@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, AsyncIterator, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from jarvis.agent_layer.types import (
     AgentContext,
@@ -19,6 +20,7 @@ from jarvis.agent_layer.types import (
 from jarvis.model_layer.stream import stream
 from jarvis.model_layer.types import (
     AssistantMessage,
+    ErrorEvent,
     LLMContext,
     StopEvent,
     TextContent,
@@ -109,6 +111,15 @@ async def _stream_assistant(
         elif isinstance(event, StopEvent):
             stop_reason = event.reason
             usage = event.usage
+        elif isinstance(event, ErrorEvent):
+            await emit(AgentErrorEvent(message=event.message))
+            return AssistantMessage(
+                content=[],
+                provider=context.model.provider,
+                model=context.model.model,
+                usage=Usage(),
+                stop_reason="stop",
+            )
 
     content = []
     if thinking_buffer:
@@ -146,7 +157,7 @@ async def _execute_tools(
             await emit(ToolExecutionStartEvent(tool_call_id=tc.id, tool_name=tc.name, args=tc.arguments))
             tasks.append(executor(tc.id, tc.name, tc.arguments))
         completed = await asyncio.gather(*tasks, return_exceptions=True)
-        for tc, result in zip(tool_calls, completed):
+        for tc, result in zip(tool_calls, completed, strict=False):
             if isinstance(result, Exception):
                 result = ToolResultMessage(
                     tool_call_id=tc.id,
@@ -163,7 +174,7 @@ async def _execute_tools(
             await emit(ToolExecutionStartEvent(tool_call_id=tc.id, tool_name=tc.name, args=tc.arguments))
             try:
                 result = await executor(tc.id, tc.name, tc.arguments)
-            except Exception as exc:
+            except Exception:
                 result = ToolResultMessage(
                     tool_call_id=tc.id,
                     tool_name=tc.name,

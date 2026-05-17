@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -147,18 +146,20 @@ class JarvisTUI(App[None]):
         self._chat.add_user(text)
         self._stream_buffer = ""
 
-        asyncio.create_task(self._run_prompt(text))
+        self.run_worker(self._run_prompt(text))
 
     async def _run_prompt(self, text: str) -> None:
-        assert self._input is not None
-        assert self._chat is not None
+        if self._input is None or self._chat is None:
+            return
         try:
             await self._session.prompt(text)
         except Exception as exc:
-            self._chat.add_error(str(exc))
+            if self._chat is not None:
+                self._chat.add_error(str(exc))
         finally:
-            self._input.disabled = False
-            self._input.focus()
+            if self._input is not None:
+                self._input.disabled = False
+                self._input.focus()
 
     # ── EventBridge 적용 (Hunk: Session Bridge 패턴) ─────────────────────────
 

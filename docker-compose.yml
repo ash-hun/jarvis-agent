@@ -1,0 +1,49 @@
+services:
+  # ── 테스트 실행 (실 API 없이) ────────────────────────────────────────────────
+  test:
+    build:
+      context: .
+      target: test
+    environment:
+      JARVIS_DEBUG: "true"
+      JARVIS_LLM__PROVIDER: "faux"
+      JARVIS_LLM__MODEL: "faux-model"
+      JARVIS_MEMORY__BACKEND: "in_memory"
+      JARVIS_SESSION__SESSIONS_DIR: "/tmp/jarvis/sessions"
+      JARVIS_MEMORY__SQLITE_PATH: "/tmp/jarvis/memory.db"
+      JARVIS_SECURITY__REQUIRE_AUTH: "false"
+    volumes:
+      - ./tests:/app/tests        # 테스트 파일 실시간 반영
+      - ./src:/app/src             # 소스 실시간 반영
+    command: ["uv", "run", "pytest", "-v", "--no-header", "--tb=short"]
+
+  # ── 특정 테스트만 실행 예시: docker compose run --rm test-single ──────────────
+  test-single:
+    build:
+      context: .
+      target: test
+    environment:
+      JARVIS_DEBUG: "true"
+      JARVIS_LLM__PROVIDER: "faux"
+      JARVIS_SECURITY__REQUIRE_AUTH: "false"
+    volumes:
+      - ./tests:/app/tests
+      - ./src:/app/src
+    profiles: ["manual"]
+    command: ["uv", "run", "pytest", "-v", "--no-header", "--tb=long", "-s"]
+
+  # ── 실제 실행 (TUI) ──────────────────────────────────────────────────────────
+  jarvis:
+    build:
+      context: .
+      target: runtime
+    env_file:
+      - .env
+    volumes:
+      - jarvis_data:/root/.jarvis
+    stdin_open: true
+    tty: true
+    profiles: ["app"]
+
+volumes:
+  jarvis_data:

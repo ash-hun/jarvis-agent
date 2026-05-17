@@ -16,7 +16,6 @@
   <div class="left">
     <span class="corner"><span class="corner-bracket"></span> SYS:ONLINE</span>
     <span class="dimtext">/ v0.1.0</span>
-    <span class="dimtext">/ NODE:LOCAL</span>
   </div>
   <div class="center">
     <span class="tick" id="tick"></span>
@@ -38,6 +37,7 @@
     <div class="panel-head">
       <span>· SESSIONS</span>
       <span class="count" id="session-count">01</span>
+      <button class="new-session-btn" id="new-session-btn" title="새 세션">+</button>
       <button class="collapse-btn" id="collapse-btn" title="사이드바 접기">
         <span class="chev">‹</span>
       </button>
@@ -95,7 +95,6 @@
           autocomplete="off"
           spellcheck="false"
         >
-        <span class="caret"></span>
       </label>
       <button class="send-btn" id="send-btn" type="submit">SEND ⏎</button>
     </form>
@@ -106,7 +105,7 @@
 <footer class="footer">
   <div class="foot-stats left">
     <div class="fstat"><span class="k">MSG</span><span class="v" id="ft-msg">0</span></div>
-    <div class="fstat"><span class="k">TOOLS</span><span class="v">2 on</span></div>
+    <div class="fstat"><span class="k">BUILD</span><span class="v">0.1.0</span></div>
   </div>
 
   <div class="sphere-wrap">
@@ -117,6 +116,7 @@
   </div>
 
   <div class="foot-stats right">
+    <div class="fstat"><span class="k">MODE</span><span class="v">LOCAL</span></div>
     <div class="fstat"><span class="k">UPTIME</span><span class="v" id="ft-uptime">00:00:00</span></div>
     <div class="fstat"><span class="k">MODEL</span><span class="v" id="ft-model">—</span></div>
   </div>
@@ -141,8 +141,8 @@
   ⚠ JARVIS 연결 끊김 — 재연결 중...
 </div>
 
-<script src="hud.js"></script>
-<script src="voice.js"></script>
-<script src="app.js"></script>
+<script src="hud.js?v=20260517"></script>
+<script src="voice.js?v=20260517"></script>
+<script src="app.js?v=20260517"></script>
 </body>
 </html>

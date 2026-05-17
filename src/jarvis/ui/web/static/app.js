@@ -4,7 +4,6 @@
 const $messages       = document.getElementById('messages');
 const $input          = document.getElementById('chat-input');
 const $sendBtn        = document.getElementById('send-btn');
-const $micBtn         = document.getElementById('mic-btn');
 const $clock          = document.getElementById('clock');
 const $statusText     = document.getElementById('status-text');
 const $statusTick     = document.getElementById('status-tick');
@@ -87,19 +86,27 @@ let _streamText = '';
 
 function streamStart() {
   _streamText = '';
-  _streamDiv  = appendMsg('AGENT', 'agent', typingDots());
+  const div = document.createElement('div');
+  div.className = 'msg agent';
+  div.innerHTML = '<div class="role"><span class="indicator">▌</span><span>JARVIS</span></div><div class="body"><div class="agent-text"></div></div>';
+  div.querySelector('.agent-text').innerHTML = typingDots();
+  $messages.appendChild(div);
+  $messages.scrollTop = $messages.scrollHeight;
+  incMsgCount();
+  _streamDiv = div;
 }
 
 function streamDelta(delta) {
   if (!_streamDiv) streamStart();
   _streamText += delta;
-  _streamDiv.querySelector('.body').textContent = _streamText;
+  _streamDiv.querySelector('.agent-text').textContent = _streamText;
   $messages.scrollTop = $messages.scrollHeight;
 }
 
 function streamEnd() {
-  if (_streamDiv && !_streamText) {
-    _streamDiv.querySelector('.body').textContent = '';
+  if (_streamDiv) {
+    const textEl = _streamDiv.querySelector('.agent-text');
+    if (!_streamText) textEl.textContent = '';
   }
   _streamDiv  = null;
   _streamText = '';
@@ -126,13 +133,93 @@ function hideApproval() {
 $btnAllow.addEventListener('click', () => { if (_currentApprovalId) sendApproval(_currentApprovalId, true); });
 $btnDeny.addEventListener('click',  () => { if (_currentApprovalId) sendApproval(_currentApprovalId, false); });
 
-// ── WebSocket ─────────────────────────────────────────────────────────────────
-let ws             = null;
-let _reconnectDelay = 1000;
+// ── Session management ────────────────────────────────────────────────────────
+let _currentSessionId = 'default';
 
-function connect() {
+function renderSessions(sessions) {
+  const list = document.getElementById('session-list');
+  list.innerHTML = '';
+  document.getElementById('session-count').textContent = String(sessions.length).padStart(2, '0');
+  for (const sid of sessions) {
+    const div = document.createElement('div');
+    div.className = `session${sid === _currentSessionId ? ' active' : ''}`;
+    div.innerHTML = `
+      <span class="marker"></span>
+      <span class="title">${escapeHtml(sid)}</span>
+      <span class="meta">${sid === _currentSessionId ? 'NOW' : ''}</span>`;
+    div.addEventListener('click', () => { if (sid !== _currentSessionId) connect(sid); });
+    list.appendChild(div);
+  }
+}
+
+document.getElementById('new-session-btn').addEventListener('click', async () => {
+  const res = await fetch('/api/sessions', { method: 'POST' });
+  const { session_id } = await res.json();
+  connect(session_id);
+});
+
+// ── Session history ───────────────────────────────────────────────────────────
+async function fetchAndRenderHistory(sessionId) {
+  try {
+    const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/messages`);
+    if (!res.ok) return;
+    // Guard: if session switched while fetching, discard stale results
+    if (_currentSessionId !== sessionId) return;
+    const { messages } = await res.json();
+    if (_currentSessionId !== sessionId) return;
+    if (!messages || messages.length === 0) return;
+    for (const msg of messages) {
+      if (msg.role === 'user') {
+        appendMsg('USER', 'user', escapeHtml(msg.text || ''));
+      } else if (msg.role === 'assistant' && msg.text) {
+        const div = document.createElement('div');
+        div.className = 'msg agent';
+        div.innerHTML =
+          '<div class="role"><span class="indicator">▌</span><span>JARVIS</span></div>' +
+          '<div class="body"><div class="agent-text"></div></div>';
+        div.querySelector('.agent-text').textContent = msg.text;
+        $messages.appendChild(div);
+        incMsgCount();
+      }
+    }
+    $messages.scrollTop = $messages.scrollHeight;
+  } catch (e) {
+    console.error('history fetch failed:', e);
+  }
+}
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+let ws              = null;
+let _reconnectDelay = 1000;
+let _intentionalClose = false;
+
+function resetChatUI() {
+  $messages.innerHTML = '';
+  _msgCount = 0;
+  $msgCount.textContent = '0';
+  $ftMsg.textContent    = '0';
+  _streamDiv  = null;
+  _streamText = '';
+  _toolMsgs.clear();
+  setInputEnabled(false);
+}
+
+function connect(sessionId = _currentSessionId) {
+  if (ws) {
+    _intentionalClose = true;
+    ws.close();
+    ws = null;
+  }
+  _currentSessionId = sessionId;
+  resetChatUI();
+  fetchAndRenderHistory(sessionId).then(() => {
+    if (_currentSessionId === sessionId) {
+      appendMsg('SYS', 'sys', `— SESSION · ${new Date().toLocaleTimeString('ko-KR', {hour12: false})} · ${escapeHtml(sessionId)} —`);
+    }
+  });
+
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws = new WebSocket(`${proto}://${location.host}/ws?session_id=${encodeURIComponent(sessionId)}`);
 
   ws.addEventListener('open', () => {
     $connBanner.classList.add('hidden');
@@ -140,10 +227,11 @@ function connect() {
   });
 
   ws.addEventListener('close', () => {
+    if (_intentionalClose) { _intentionalClose = false; return; }
     ws = null;
     setInputEnabled(false);
     $connBanner.classList.remove('hidden');
-    setTimeout(connect, _reconnectDelay);
+    setTimeout(() => connect(_currentSessionId), _reconnectDelay);
     _reconnectDelay = Math.min(_reconnectDelay * 2, 10000);
   });
 
@@ -171,12 +259,15 @@ function handleMessage(msg) {
 
     case 'connected': {
       const sid = msg.session_id || '—';
+      const model = msg.model || '—';
       $sessionTitle.textContent   = sid;
       $sessionIdLabel.textContent = sid;
+      if ($ftModel) $ftModel.textContent = model;
+      if ($sbModel) $sbModel.textContent = model;
+      if (msg.sessions) renderSessions(msg.sessions);
       setStatus('READY');
       setInputEnabled(true);
       HUD.setState('idle');
-      appendMsg('SYS', 'sys', `— SESSION INITIALIZED · ${new Date().toLocaleTimeString('ko-KR', {hour12: false})} · session: ${escapeHtml(sid)} —`);
       break;
     }
 
@@ -203,8 +294,25 @@ function handleMessage(msg) {
 
     case 'tool_execution_start': {
       const name = msg.tool_name || 'tool';
-      const div  = appendMsg('SYS', 'sys', `⚡ running ${escapeHtml(name)}…`);
-      _toolMsgs.set(msg.tool_call_id, { div, name });
+      const args = msg.args || {};
+      const cmd  = args.command || args.query || (Object.keys(args).length ? JSON.stringify(args) : '');
+
+      if (!_streamDiv) streamStart();
+      _streamDiv.querySelector('.agent-text').innerHTML = typingDots();
+
+      const traceDiv = document.createElement('div');
+      traceDiv.className = 'tool-trace running';
+      traceDiv.innerHTML =
+        `<span class="tool-icon">⚡</span>` +
+        `<span class="tool-name">${escapeHtml(name)}</span>` +
+        (cmd ? `<span class="tool-cmd">${escapeHtml(cmd)}</span>` : '') +
+        `<span class="tool-status">running…</span>`;
+
+      const body = _streamDiv.querySelector('.body');
+      body.insertBefore(traceDiv, body.querySelector('.agent-text'));
+      $messages.scrollTop = $messages.scrollHeight;
+
+      _toolMsgs.set(msg.tool_call_id, { div: traceDiv, name });
       setStatus('EXECUTING', 'executing');
       HUD.setState('tool_running');
       break;
@@ -213,8 +321,10 @@ function handleMessage(msg) {
     case 'tool_execution_end': {
       const entry = _toolMsgs.get(msg.tool_call_id);
       if (entry) {
-        const icon = msg.is_error ? '✗' : '✓';
-        entry.div.querySelector('.body').textContent = `${icon} ${entry.name} [${msg.is_error ? 'error' : 'done'}]`;
+        const ok = !msg.is_error;
+        entry.div.className = `tool-trace ${ok ? 'done' : 'error'}`;
+        entry.div.querySelector('.tool-icon').textContent   = ok ? '✓' : '✗';
+        entry.div.querySelector('.tool-status').textContent = ok ? 'Done' : 'Error';
         _toolMsgs.delete(msg.tool_call_id);
       }
       setStatus('THINKING', 'thinking');
@@ -249,6 +359,7 @@ function handleMessage(msg) {
 function setInputEnabled(enabled) {
   $input.disabled   = !enabled;
   $sendBtn.disabled = !enabled;
+  if (enabled) $input.focus();
 }
 
 function submitMessage() {
@@ -265,7 +376,7 @@ document.getElementById('composer').addEventListener('submit', (e) => {
   submitMessage();
 });
 
-// Ctrl+K → abort
+// Ctrl+K → abort  /  Enter → approval accept
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey && e.key === 'k') {
     e.preventDefault();
@@ -274,6 +385,10 @@ document.addEventListener('keydown', (e) => {
     setStatus('READY');
     HUD.setState('idle');
     setInputEnabled(true);
+  }
+  if (e.key === 'Enter' && !$approvalOverlay.classList.contains('hidden')) {
+    e.preventDefault();
+    if (_currentApprovalId) sendApproval(_currentApprovalId, true);
   }
 });
 
@@ -284,11 +399,6 @@ const voice = new VoiceManager((transcript) => {
 });
 window.voiceManager = voice;
 
-$micBtn.addEventListener('click', () => {
-  if (!voice.supported) { $micBtn.title = '이 브라우저는 음성 입력을 지원하지 않습니다'; return; }
-  const active = voice.toggle();
-  $micBtn.classList.toggle('listening', voice.listening);
-});
 
 // ── Sidebar collapse ──────────────────────────────────────────────────────────
 const SB_KEY = 'jarvis.sbCollapsed';
@@ -301,4 +411,4 @@ document.getElementById('collapse-btn').addEventListener('click', () => {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 setInputEnabled(false);
-connect();
+connect('default');

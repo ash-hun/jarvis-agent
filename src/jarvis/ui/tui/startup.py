@@ -1,0 +1,244 @@
+from __future__ import annotations
+
+import argparse
+import asyncio
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
+    from jarvis.config import JarvisSettings
+    from jarvis.core.session import AgentSession
+    from jarvis.core.tools.registry import ToolRegistry
+
+
+# ── StartupPlan (Hunk: Startup Planner 패턴) ──────────────────────────────────
+
+
+@dataclass(frozen=True)
+class TUIPlan:
+    kind: Literal["tui"]
+    session_id: str | None = None
+
+
+@dataclass(frozen=True)
+class HelpPlan:
+    kind: Literal["help"]
+
+
+@dataclass(frozen=True)
+class VersionPlan:
+    kind: Literal["version"]
+
+
+@dataclass(frozen=True)
+class SessionListPlan:
+    kind: Literal["session-list"]
+
+
+@dataclass(frozen=True)
+class SessionResumePlan:
+    kind: Literal["session-resume"]
+    session_id: str
+
+
+StartupPlan = TUIPlan | HelpPlan | VersionPlan | SessionListPlan | SessionResumePlan
+
+
+def parse_startup_plan(argv: list[str] | None = None) -> StartupPlan:
+    """
+    모든 CLI 입력을 렌더링 전에 StartupPlan으로 정규화.
+    순수 함수 — 단위 테스트 가능. Hunk: Startup Planner 패턴.
+    """
+    args = argv if argv is not None else sys.argv[1:]
+
+    parser = argparse.ArgumentParser(prog="jarvis", add_help=False)
+    parser.add_argument("--help", "-h", action="store_true")
+    parser.add_argument("--version", "-v", action="store_true")
+    parser.add_argument("--list-sessions", action="store_true")
+    parser.add_argument("--session", "-s", type=str, default=None)
+
+    parsed, _ = parser.parse_known_args(args)
+
+    if parsed.help:
+        return HelpPlan(kind="help")
+    if parsed.version:
+        return VersionPlan(kind="version")
+    if parsed.list_sessions:
+        return SessionListPlan(kind="session-list")
+    if parsed.session:
+        return SessionResumePlan(kind="session-resume", session_id=parsed.session)
+    return TUIPlan(kind="tui", session_id=None)
+
+
+# ── AppContext (Warp: AppContext 패턴) ─────────────────────────────────────────
+
+
+@dataclass
+class AppContext:
+    """
+    JarvisTUI에 전달되는 인프라 컨테이너.
+    Warp: AppContext — 렌더/이벤트 처리 중 임시 접근을 위한 컨테이너.
+    JarvisTUI.__init__()에 ctx 이름으로 전달 (마지막 파라미터).
+    """
+
+    session_repo: JsonlSessionRepo
+    tool_registry: ToolRegistry
+    settings: JarvisSettings
+
+
+# ── 팩토리 헬퍼 ───────────────────────────────────────────────────────────────
+
+
+def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
+    """공통 인프라를 생성하고 (AppContext, SecurityPipeline)을 반환."""
+    from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
+    from jarvis.agent_layer.memory.sqlite import SqliteMemory
+    from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
+    from jarvis.core.plugins.loader import PluginLoader
+    from jarvis.core.plugins.runner import PluginRunner
+    from jarvis.core.policy.authenticator import NoAuthAuthenticator
+    from jarvis.core.policy.pipeline import SecurityPipeline
+    from jarvis.core.policy.policy import AllowAllPolicy
+    from jarvis.core.policy.sandbox import DefaultSandbox
+    from jarvis.core.policy.validator import DefaultInputValidator
+    from jarvis.core.skills.registry import SkillRegistry
+    from jarvis.core.tools.builtin.bash import BashTool
+    from jarvis.core.tools.builtin.read_file import ReadFileTool
+    from jarvis.core.tools.loader import ToolLoader
+    from jarvis.core.tools.registry import ToolRegistry
+
+    tool_registry = ToolRegistry()
+    tool_registry.register(BashTool())
+    tool_registry.register(ReadFileTool())
+
+    memory_chain = MemoryMiddlewareChain(stages=[SqliteMemory(db_path=settings.memory.sqlite_path)])
+    session_repo = JsonlSessionRepo(sessions_root=settings.session.sessions_dir)
+
+    sandbox = DefaultSandbox(
+        dangerous_patterns=settings.security.dangerous_commands,
+        require_approval_for=settings.security.require_approval_for,
+    )
+    pipeline = SecurityPipeline(
+        validator=DefaultInputValidator(max_length=settings.security.input_max_length),
+        authenticator=NoAuthAuthenticator(),
+        policy=AllowAllPolicy(),
+        sandbox=sandbox,
+    )
+
+    skill_registry = SkillRegistry()
+    plugin_runner = PluginRunner()
+
+    async def _async_setup() -> None:
+        await session_repo.create(session_id="default")
+
+        tools_dir = Path(settings.plugin.tools_dir).expanduser()
+        if tools_dir.exists():
+            loader = ToolLoader(tool_registry)
+            await loader.load_directory(str(tools_dir))
+
+        skills_dir = Path(settings.plugin.skills_dir).expanduser()
+        if skills_dir.exists():
+            await skill_registry.load_directory(str(skills_dir))
+
+        plugins_dir = Path(settings.plugin.plugins_dir).expanduser()
+        if plugins_dir.exists():
+            plugin_loader = PluginLoader(plugin_runner)
+            await plugin_loader.load_directory(str(plugins_dir))
+
+    asyncio.run(_async_setup())
+
+    ctx = AppContext(
+        session_repo=session_repo,
+        tool_registry=tool_registry,
+        settings=settings,
+    )
+
+    _extra = {
+        "memory_chain": memory_chain,
+        "pipeline": pipeline,
+        "plugin_runner": plugin_runner,
+        "skill_registry": skill_registry,
+    }
+    return ctx, _extra
+
+
+def build_session(
+    plan: TUIPlan | SessionResumePlan,
+    ctx: AppContext,
+    extra: dict[str, Any],
+) -> AgentSession:
+    from jarvis.core.session import AgentSession
+    from jarvis.model_layer.types import ModelConfig
+
+    settings = ctx.settings
+    model = ModelConfig(
+        provider=settings.llm.provider,
+        model=settings.llm.model,
+        api_key=settings.llm.api_key.get_secret_value() if settings.llm.api_key else None,
+        base_url=settings.llm.base_url,
+        temperature=settings.llm.temperature,
+        max_tokens=settings.llm.max_tokens,
+    )
+
+    session_id = getattr(plan, "session_id", None) or "default"
+
+    return AgentSession(
+        model=model,
+        session_id=session_id,
+        security_pipeline=extra["pipeline"],
+        plugin_runner=extra["plugin_runner"],
+        memory_chain=extra["memory_chain"],
+        tool_registry=ctx.tool_registry,
+        skill_registry=extra["skill_registry"],
+        session_repo=ctx.session_repo,
+    )
+
+
+# ── main() 진입점 ─────────────────────────────────────────────────────────────
+
+
+def main() -> None:
+    from jarvis.config import get_settings
+
+    plan = parse_startup_plan()
+
+    if plan.kind == "help":
+        print(
+            "Usage: jarvis [OPTIONS]\n\n"
+            "Options:\n"
+            "  -s, --session ID       기존 세션 재개\n"
+            "  --list-sessions        저장된 세션 목록 출력\n"
+            "  -v, --version          버전 출력\n"
+            "  -h, --help             이 도움말 출력\n"
+        )
+        return
+
+    if plan.kind == "version":
+        print("jarvis 0.1.0")
+        return
+
+    settings = get_settings()
+    ctx, extra = _build_infra(settings)
+
+    if plan.kind == "session-list":
+
+        async def _print_sessions() -> None:
+            sessions = await ctx.session_repo.list()
+            if not sessions:
+                print("저장된 세션 없음")
+                return
+            for s in sessions:
+                print(f"{s.session_id}")
+
+        asyncio.run(_print_sessions())
+        return
+
+    # TUIPlan or SessionResumePlan → TUI 실행
+    from jarvis.ui.tui.app import JarvisTUI
+
+    session = build_session(plan, ctx, extra)
+    app = JarvisTUI(session=session, ctx=ctx)
+    app.run()

@@ -1,6 +1,5 @@
 'use strict';
 
-// ── VoiceManager — Web Speech API stubs ─────────────────────────────────────
 class VoiceManager {
   constructor(onTranscript) {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -9,23 +8,18 @@ class VoiceManager {
     this.listening   = false;
 
     if (this.recognition) {
-      this.recognition.lang       = 'ko-KR';
-      this.recognition.continuous = false;
-      this.recognition.interimResults = false;
+      this.recognition.lang            = 'ko-KR';
+      this.recognition.continuous      = false;
+      this.recognition.interimResults  = false;
 
       this.recognition.onresult = (e) => {
-        const transcript = e.results[0][0].transcript;
-        onTranscript(transcript);
+        onTranscript(e.results[0][0].transcript);
       };
-
       this.recognition.onend = () => {
         this.listening = false;
-        document.getElementById('mic-btn').classList.remove('listening');
       };
-
       this.recognition.onerror = () => {
         this.listening = false;
-        document.getElementById('mic-btn').classList.remove('listening');
       };
     }
   }
@@ -36,10 +30,10 @@ class VoiceManager {
     if (!this.recognition) return false;
     if (this.listening) {
       this.recognition.stop();
+      this.listening = false;
     } else {
       this.recognition.start();
       this.listening = true;
-      document.getElementById('mic-btn').classList.add('listening');
     }
     return true;
   }

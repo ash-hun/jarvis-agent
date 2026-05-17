@@ -1,206 +1,198 @@
 'use strict';
 
-// ── Color palette ────────────────────────────────────────────────────────────
-const C = {
-  primary:   '#00d4ff',
-  secondary: '#00ffcc',
-  accent:    '#7fffef',
-  warn:      '#ff8800',
-  error:     '#ff4466',
-  bg:        '#05090f',
-  dim:       '#4a7a8a',
-};
-
-// ── Ring definitions ─────────────────────────────────────────────────────────
-const RINGS = [
-  { r: 190, speed:  0.20, dash: [25, 12], color: 'primary',   width: 1.5 },
-  { r: 160, speed: -0.40, dash: [8,  20], color: 'secondary', width: 1.0 },
-  { r: 130, speed:  0.70, dash: [40,  8], color: 'primary',   width: 2.0 },
-  { r: 100, speed: -1.10, dash: [5,  15], color: 'accent',    width: 1.5 },
-  { r:  70, speed:  1.80, dash: [15,  5], color: 'secondary', width: 1.0 },
-];
-
-// ── HUD state ────────────────────────────────────────────────────────────────
-let hudState = 'idle'; // 'idle' | 'thinking' | 'tool_running' | 'error'
-
-function setHudState(s) { hudState = s; }
-
-// ── Canvas setup ─────────────────────────────────────────────────────────────
+// ── Canvas ────────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('hud-canvas');
 const ctx    = canvas.getContext('2d');
+const DPR    = Math.min(2, window.devicePixelRatio || 1);
 
-function resize() {
-  const panel = canvas.parentElement;
-  const size  = Math.min(panel.clientWidth, panel.clientHeight - 120);
-  canvas.width  = size;
-  canvas.height = size;
+function fitCanvas() {
+  const w = canvas.clientWidth  || 140;
+  const h = canvas.clientHeight || 140;
+  canvas.width  = w * DPR;
+  canvas.height = h * DPR;
 }
-window.addEventListener('resize', resize);
-resize();
+fitCanvas();
+window.addEventListener('resize', fitCanvas);
 
-// ── Hex grid ─────────────────────────────────────────────────────────────────
-function drawHexGrid(cx, cy, t) {
-  const step   = 28;
-  const cols   = Math.ceil(canvas.width  / step) + 2;
-  const rows   = Math.ceil(canvas.height / step) + 2;
-  const ox     = -step;
-  const oy     = -step;
-  const pulse  = 0.03 + 0.015 * Math.sin(t * 0.4);
-
-  ctx.save();
-  ctx.strokeStyle = `rgba(0,212,255,${pulse})`;
-  ctx.lineWidth   = 0.5;
-
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const x = ox + col * step + (row % 2 === 0 ? 0 : step / 2);
-      const y = oy + row * step * 0.866;
-      hexPath(x, y, step * 0.48);
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
-}
-
-function hexPath(x, y, r) {
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const a = (Math.PI / 3) * i - Math.PI / 6;
-    const px = x + r * Math.cos(a);
-    const py = y + r * Math.sin(a);
-    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-  }
-  ctx.closePath();
-}
-
-// ── Rings ────────────────────────────────────────────────────────────────────
-function drawRings(cx, cy, t) {
-  const speedMul = hudState === 'thinking'    ? 2.2
-                 : hudState === 'tool_running' ? 1.6
-                 : hudState === 'error'        ? 0.5
-                 : 1.0;
-
-  const alpha = hudState === 'thinking' ? 0.95 : 0.75;
-
-  RINGS.forEach(ring => {
-    const angle = t * ring.speed * speedMul;
-    const color = C[ring.color];
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(angle);
-
-    ctx.beginPath();
-    ctx.arc(0, 0, ring.r, 0, Math.PI * 2);
-    ctx.setLineDash(ring.dash);
-    ctx.lineDashOffset = 0;
-    ctx.strokeStyle = hexAlpha(color, alpha);
-    ctx.lineWidth   = ring.width;
-    ctx.shadowColor = color;
-    ctx.shadowBlur  = hudState === 'thinking' ? 16 : 8;
-    ctx.stroke();
-
-    ctx.restore();
+// ── Fibonacci sphere (N=900) ──────────────────────────────────────────────────
+const N      = 900;
+const POINTS = [];
+for (let i = 0; i < N; i++) {
+  const t     = i / (N - 1);
+  const phi   = Math.acos(1 - 2 * t);
+  const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+  POINTS.push({
+    x:      Math.sin(phi) * Math.cos(theta),
+    y:      Math.sin(phi) * Math.sin(theta),
+    z:      Math.cos(phi),
+    jitter: Math.random() * 0.5 + 0.5,
   });
 }
 
-// ── Core (Arc Reactor) ───────────────────────────────────────────────────────
-function drawCore(cx, cy, t) {
-  // Outer glow ring
-  const glowR  = 48;
-  const pulse  = Math.sin(t * (hudState === 'thinking' ? 4 : 2)) * 0.5 + 0.5;
-  const coreC  = hudState === 'error'        ? C.error
-               : hudState === 'tool_running' ? C.warn
-               : C.primary;
+// ── State ─────────────────────────────────────────────────────────────────────
+let hudState    = 'idle';
+let level       = 0;
+let targetLevel = 0;
+let rotY        = 0;
+const rotX      = -0.18;
 
-  const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, glowR);
-  grad.addColorStop(0,   hexAlpha(coreC, 0.9));
-  grad.addColorStop(0.4, hexAlpha(coreC, 0.3 + pulse * 0.15));
-  grad.addColorStop(1,   hexAlpha(coreC, 0));
+let _simT = 0;
+function simulate() {
+  _simT += 0.06;
+  if (hudState === 'thinking' || hudState === 'tool_running') {
+    targetLevel = Math.max(0.1, Math.min(1,
+      0.4 + 0.3 * Math.sin(_simT * 2.1) + 0.15 * Math.sin(_simT * 4.4)));
+  } else if (hudState === 'error') {
+    targetLevel = 0.15 + 0.1 * Math.sin(_simT * 3);
+  } else {
+    targetLevel = 0.04 + Math.max(0, Math.sin(_simT * 0.6)) * 0.04;
+  }
+}
+setInterval(simulate, 60);
 
-  ctx.beginPath();
-  ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // Inner ring
-  ctx.beginPath();
-  ctx.arc(cx, cy, 22, 0, Math.PI * 2);
-  ctx.strokeStyle = hexAlpha(coreC, 0.9);
-  ctx.lineWidth   = 2;
-  ctx.shadowColor = coreC;
-  ctx.shadowBlur  = 18;
-  ctx.stroke();
-
-  // Center dot
-  ctx.beginPath();
-  ctx.arc(cx, cy, 7, 0, Math.PI * 2);
-  ctx.fillStyle = coreC;
-  ctx.shadowColor = coreC;
-  ctx.shadowBlur  = 24;
-  ctx.fill();
-  ctx.shadowBlur  = 0;
-
-  // State label
-  const label = hudState === 'thinking'    ? 'PROCESSING'
-              : hudState === 'tool_running' ? 'EXECUTING'
-              : hudState === 'error'        ? 'ERROR'
-              : 'STANDBY';
-  ctx.font         = 'bold 10px "Courier New", monospace';
-  ctx.fillStyle    = hexAlpha(coreC, 0.8);
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(label, cx, cy + 42);
+// ── Wave function (two-layer 3-D sine for organic shape) ──────────────────────
+function getWave(x, y, z, t) {
+  const a = Math.sin(3.2 * x + t * 0.9)  * Math.cos(3.2 * y + t * 0.65) * Math.sin(2.8 * z + t * 0.5);
+  const b = Math.sin(5.5 * x - t * 0.7)  * Math.cos(4.5 * z + t * 0.40);
+  return (a + 0.3 * b) / 1.3;  // approx −1 … +1
 }
 
-// ── Error shake effect ────────────────────────────────────────────────────────
-let _errorShakeT = 0;
-function maybeShake(cx, cy) {
-  if (hudState !== 'error') { _errorShakeT = 0; return { x: cx, y: cy }; }
-  _errorShakeT += 0.25;
-  const amp = Math.max(0, 4 - _errorShakeT * 0.4);
+// ── Color mapping ─────────────────────────────────────────────────────────────
+// wave < 0  → deep blue
+// wave ≈ 0  → cyan
+// wave > 0  → purple/violet (peak = spray)
+function lerpC(a, b, t) {
   return {
-    x: cx + Math.sin(_errorShakeT * 17) * amp,
-    y: cy + Math.cos(_errorShakeT * 13) * amp,
+    r: Math.round(a.r + (b.r - a.r) * t),
+    g: Math.round(a.g + (b.g - a.g) * t),
+    b: Math.round(a.b + (b.b - a.b) * t),
   };
 }
+const BLUE   = { r: 18,  g: 40,  b: 190 };
+const CYAN   = { r: 95,  g: 200, b: 226 };
+const PURPLE = { r: 130, g: 60,  b: 220 };
+const BRIGHT = { r: 200, g: 150, b: 255 };
 
-// ── Main loop ────────────────────────────────────────────────────────────────
-let _t = 0;
-let _last = null;
-
-function animate(ts) {
-  if (_last !== null) _t += (ts - _last) / 1000;
-  _last = ts;
-
-  const W  = canvas.width;
-  const H  = canvas.height;
-  const cx = W / 2;
-  const cy = H / 2;
-
-  ctx.clearRect(0, 0, W, H);
-  ctx.save();
-
-  const { x, y } = maybeShake(cx, cy);
-  ctx.translate(x - cx, y - cy);
-
-  drawHexGrid(cx, cy, _t);
-  drawRings(cx, cy, _t);
-  drawCore(cx, cy, _t);
-
-  ctx.restore();
-  requestAnimationFrame(animate);
+function waveColor(wave) {
+  if (wave < 0) {
+    return lerpC(BLUE, CYAN, (wave + 1));          // −1→0 : blue→cyan
+  } else if (wave < 0.45) {
+    return lerpC(CYAN, PURPLE, wave / 0.45);       //  0→0.45: cyan→purple
+  } else {
+    return lerpC(PURPLE, BRIGHT, (wave - 0.45) / 0.55); // 0.45→1: purple→bright
+  }
 }
 
-requestAnimationFrame(animate);
-
-// ── Utility ───────────────────────────────────────────────────────────────────
-function hexAlpha(hex, alpha) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
+// ── Rotation helpers ──────────────────────────────────────────────────────────
+function rotateY(p, c, s) {
+  return { x: p.x * c + p.z * s, y: p.y, z: -p.x * s + p.z * c };
 }
+function rotateX(p, c, s) {
+  return { x: p.x, y: p.y * c - p.z * s, z: p.y * s + p.z * c };
+}
+
+// ── Draw loop ─────────────────────────────────────────────────────────────────
+function draw(ts) {
+  const w  = canvas.width, h = canvas.height;
+  const cx = w / 2, cy = h / 2;
+  ctx.clearRect(0, 0, w, h);
+
+  // smooth level
+  level += (targetLevel - level) * 0.12;
+
+  const baseR  = Math.min(w, h) * 0.30;
+  const pulsed = baseR * (1 + level * 0.12 + Math.sin(ts * 0.002) * 0.004);
+
+  // state-driven wave amplitude & rotation speed
+  const waveAmp = hudState === 'thinking'    ? 0.52
+                : hudState === 'tool_running' ? 0.42
+                : hudState === 'error'        ? 0.25
+                : 0.32;
+  const rotSpd  = hudState === 'thinking'    ? 0.005
+                : hudState === 'tool_running' ? 0.004
+                : 0.0022;
+  const tSec    = ts / 1000;
+
+  rotY += rotSpd + level * 0.005;
+  const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+  const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+
+  // Project all points
+  const projected = [];
+  for (const p of POINTS) {
+    const wave = getWave(p.x, p.y, p.z, tSec);
+
+    // Base deformation
+    let r = pulsed * (1 + waveAmp * wave);
+
+    // Scatter: high-wave points get an extra outward push (spray effect)
+    if (wave > 0.5) {
+      const scatter = (wave - 0.5) * 2.0 * p.jitter;
+      r *= (1 + scatter * 0.55);
+    }
+
+    const rx = p.x * r, ry = p.y * r, rz = p.z * r;
+
+    // 3-D rotation
+    let q = rotateY({ x: rx, y: ry, z: rz }, cosY, sinY);
+    q     = rotateX(q, cosX, sinX);
+
+    const depth = (q.z / pulsed + 1.6) / 3.2;  // 0=back … 1=front
+    const col   = waveColor(wave);
+
+    // Size: bigger at front + at wave peaks
+    const size = (0.5 + depth * 1.6 + Math.max(0, wave) * 1.8) * DPR;
+
+    projected.push({ sx: cx + q.x, sy: cy - q.y, z: q.z, depth, col, size, wave });
+  }
+
+  // Painter's algorithm
+  projected.sort((a, b) => a.z - b.z);
+
+  // ── Pass 1: all dots (no shadow) ───────────────────────────────────────────
+  ctx.shadowBlur = 0;
+  for (const p of projected) {
+    if (p.depth < 0.02) continue;
+    const alpha = (0.12 + p.depth * 0.78).toFixed(2);
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${p.col.r},${p.col.g},${p.col.b},${alpha})`;
+    ctx.fill();
+  }
+
+  // ── Pass 2: glow for front + spray peaks ───────────────────────────────────
+  for (const p of projected) {
+    const isSpray = p.wave > 0.55 && p.depth > 0.35;
+    const isFront = p.depth > 0.80;
+    if (!isSpray && !isFront) continue;
+
+    const alpha = (0.12 + p.depth * 0.78).toFixed(2);
+    ctx.shadowColor = `rgb(${p.col.r},${p.col.g},${p.col.b})`;
+    ctx.shadowBlur  = (isSpray ? 10 : 6) * DPR;
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${p.col.r},${p.col.g},${p.col.b},${alpha})`;
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+
+  // ── Core glow ──────────────────────────────────────────────────────────────
+  if (level > 0.05) {
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, pulsed * 0.5);
+    grad.addColorStop(0, `rgba(95,200,226,${(level * 0.2).toFixed(2)})`);
+    grad.addColorStop(1, 'rgba(95,200,226,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// ── Sphere click → voice toggle ───────────────────────────────────────────────
+document.getElementById('sphere-hit').addEventListener('click', () => {
+  if (window.voiceManager) window.voiceManager.toggle();
+});
 
 // ── Public API ────────────────────────────────────────────────────────────────
-window.HUD = { setState: setHudState };
+window.HUD = { setState(s) { hudState = s; } };

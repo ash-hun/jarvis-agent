@@ -1,15 +1,22 @@
 'use strict';
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
-const $history    = document.getElementById('chat-history');
-const $input      = document.getElementById('chat-input');
-const $sendBtn    = document.getElementById('send-btn');
-const $micBtn     = document.getElementById('mic-btn');
-const $clock      = document.getElementById('clock');
-const $sessionId  = document.getElementById('session-id');
-const $statusBadge = document.getElementById('status-badge');
-const $toolOverlay = document.getElementById('tool-overlay');
-const $connBanner  = document.getElementById('connection-banner');
+const $messages       = document.getElementById('messages');
+const $input          = document.getElementById('chat-input');
+const $sendBtn        = document.getElementById('send-btn');
+const $micBtn         = document.getElementById('mic-btn');
+const $clock          = document.getElementById('clock');
+const $statusText     = document.getElementById('status-text');
+const $statusTick     = document.getElementById('status-tick');
+const $statusPill     = document.getElementById('status-pill');
+const $sessionTitle   = document.getElementById('session-title');
+const $sessionIdLabel = document.getElementById('session-id-label');
+const $msgCount       = document.getElementById('msg-count');
+const $ftMsg          = document.getElementById('ft-msg');
+const $ftUptime       = document.getElementById('ft-uptime');
+const $ftModel        = document.getElementById('ft-model');
+const $sbModel        = document.getElementById('sb-model');
+const $connBanner     = document.getElementById('connection-banner');
 
 const $approvalOverlay = document.getElementById('approval-overlay');
 const $approvalReason  = document.getElementById('approval-reason');
@@ -19,74 +26,59 @@ const $btnDeny         = document.getElementById('btn-deny');
 
 // ── Clock ─────────────────────────────────────────────────────────────────────
 function updateClock() {
-  const now = new Date();
+  const d   = new Date();
   const pad = n => String(n).padStart(2, '0');
-  $clock.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  $clock.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 setInterval(updateClock, 1000);
 updateClock();
 
-// ── Status badge ──────────────────────────────────────────────────────────────
+// ── Uptime ────────────────────────────────────────────────────────────────────
+const _startTime = Date.now();
+function updateUptime() {
+  const s   = Math.floor((Date.now() - _startTime) / 1000);
+  const pad = n => String(n).padStart(2, '0');
+  $ftUptime.textContent = `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+}
+setInterval(updateUptime, 1000);
+updateUptime();
+
+// ── Status pill ───────────────────────────────────────────────────────────────
 function setStatus(label, cls = '') {
-  $statusBadge.textContent = label;
-  $statusBadge.className   = 'status-badge' + (cls ? ' ' + cls : '');
+  $statusText.textContent = label;
+  $statusPill.className   = 'status-pill' + (cls ? ' ' + cls : '');
 }
 
-// ── Chat history helpers ──────────────────────────────────────────────────────
-function appendMsg(role, html, extra = '') {
-  const div = document.createElement('div');
-  div.className = `msg ${role} ${extra}`.trim();
-
-  const label = document.createElement('div');
-  label.className = 'msg-label';
-  label.textContent = role === 'user' ? 'YOU' : role === 'assistant' ? 'JARVIS' : '';
-
-  const body = document.createElement('div');
-  body.className = 'msg-body';
-  body.innerHTML = html;
-
-  if (label.textContent) div.appendChild(label);
-  div.appendChild(body);
-  $history.appendChild(div);
-  $history.scrollTop = $history.scrollHeight;
-  return div;
+// ── Message counter ───────────────────────────────────────────────────────────
+let _msgCount = 0;
+function incMsgCount() {
+  _msgCount++;
+  $msgCount.textContent = _msgCount;
+  $ftMsg.textContent    = _msgCount;
 }
 
-function appendTool(name, state = 'running') {
+// ── Message helpers ───────────────────────────────────────────────────────────
+function appendMsg(roleLabel, kind, bodyHtml = '') {
   const div = document.createElement('div');
-  div.className = `msg tool ${state === 'done' ? 'done' : state === 'error' ? 'error-msg' : ''}`;
-
-  const dot = document.createElement('span');
-  dot.className = 'tool-icon';
-  dot.textContent = state === 'done' ? '✓' : state === 'error' ? '✗' : '⚡';
-
-  div.appendChild(dot);
-  div.appendChild(document.createTextNode(` ${name}`));
-  $history.appendChild(div);
-  $history.scrollTop = $history.scrollHeight;
+  div.className = `msg ${kind}`;
+  div.innerHTML = `<div class="role">${roleLabel}</div><div class="body"></div>`;
+  div.querySelector('.body').innerHTML = bodyHtml;
+  $messages.appendChild(div);
+  $messages.scrollTop = $messages.scrollHeight;
+  incMsgCount();
   return div;
 }
 
 function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
-// ── Tool overlay (canvas panel) ───────────────────────────────────────────────
-const _overlayItems = new Map(); // tool_call_id → element
-
-function overlayAdd(id, name) {
-  const item = document.createElement('div');
-  item.className = 'tool-item';
-  item.innerHTML = `<span class="tool-dot"></span><span>${escapeHtml(name)}</span>`;
-  $toolOverlay.appendChild(item);
-  _overlayItems.set(id, item);
-}
-
-function overlayDone(id, isError) {
-  const item = _overlayItems.get(id);
-  if (!item) return;
-  item.classList.add(isError ? 'error' : 'done');
-  setTimeout(() => { item.remove(); _overlayItems.delete(id); }, 2000);
+function typingDots() {
+  return '<span class="typing-dots"><span></span><span></span><span></span></span>';
 }
 
 // ── Streaming assistant message ───────────────────────────────────────────────
@@ -95,28 +87,28 @@ let _streamText = '';
 
 function streamStart() {
   _streamText = '';
-  _streamDiv  = appendMsg('assistant', '', 'streaming');
+  _streamDiv  = appendMsg('AGENT', 'agent', typingDots());
 }
 
 function streamDelta(delta) {
   if (!_streamDiv) streamStart();
   _streamText += delta;
-  _streamDiv.querySelector('.msg-body').textContent = _streamText;
-  $history.scrollTop = $history.scrollHeight;
+  _streamDiv.querySelector('.body').textContent = _streamText;
+  $messages.scrollTop = $messages.scrollHeight;
 }
 
 function streamEnd() {
-  if (_streamDiv) {
-    _streamDiv.classList.remove('streaming');
-    _streamDiv = null;
+  if (_streamDiv && !_streamText) {
+    _streamDiv.querySelector('.body').textContent = '';
   }
+  _streamDiv  = null;
   _streamText = '';
 }
 
 // ── Tool message tracking ─────────────────────────────────────────────────────
-const _toolMsgs = new Map(); // tool_call_id → { chatDiv, name }
+const _toolMsgs = new Map(); // tool_call_id → div
 
-// ── Pending approval ──────────────────────────────────────────────────────────
+// ── Approval ──────────────────────────────────────────────────────────────────
 let _currentApprovalId = null;
 
 function showApproval(id, command, reason) {
@@ -131,16 +123,11 @@ function hideApproval() {
   _currentApprovalId = null;
 }
 
-$btnAllow.addEventListener('click', () => {
-  if (_currentApprovalId) sendApproval(_currentApprovalId, true);
-});
-$btnDeny.addEventListener('click', () => {
-  if (_currentApprovalId) sendApproval(_currentApprovalId, false);
-});
+$btnAllow.addEventListener('click', () => { if (_currentApprovalId) sendApproval(_currentApprovalId, true); });
+$btnDeny.addEventListener('click',  () => { if (_currentApprovalId) sendApproval(_currentApprovalId, false); });
 
 // ── WebSocket ─────────────────────────────────────────────────────────────────
-let ws     = null;
-let _reconnectTimer = null;
+let ws             = null;
 let _reconnectDelay = 1000;
 
 function connect() {
@@ -156,13 +143,11 @@ function connect() {
     ws = null;
     setInputEnabled(false);
     $connBanner.classList.remove('hidden');
-    _reconnectTimer = setTimeout(connect, _reconnectDelay);
+    setTimeout(connect, _reconnectDelay);
     _reconnectDelay = Math.min(_reconnectDelay * 2, 10000);
   });
 
-  ws.addEventListener('error', () => {
-    ws?.close();
-  });
+  ws.addEventListener('error', () => ws?.close());
 
   ws.addEventListener('message', (e) => {
     let msg;
@@ -172,9 +157,7 @@ function connect() {
 }
 
 function send(obj) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(obj));
-  }
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
 }
 
 function sendApproval(id, approved) {
@@ -185,12 +168,17 @@ function sendApproval(id, approved) {
 // ── Message router ────────────────────────────────────────────────────────────
 function handleMessage(msg) {
   switch (msg.type) {
-    case 'connected':
-      $sessionId.textContent = `SESSION: ${msg.session_id || '—'}`;
+
+    case 'connected': {
+      const sid = msg.session_id || '—';
+      $sessionTitle.textContent   = sid;
+      $sessionIdLabel.textContent = sid;
       setStatus('READY');
       setInputEnabled(true);
       HUD.setState('idle');
+      appendMsg('SYS', 'sys', `— SESSION INITIALIZED · ${new Date().toLocaleTimeString('ko-KR', {hour12: false})} · session: ${escapeHtml(sid)} —`);
       break;
+    }
 
     case 'agent_start':
       setStatus('THINKING', 'thinking');
@@ -215,23 +203,18 @@ function handleMessage(msg) {
 
     case 'tool_execution_start': {
       const name = msg.tool_name || 'tool';
-      overlayAdd(msg.tool_call_id, name);
-      const chatDiv = appendTool(name, 'running');
-      _toolMsgs.set(msg.tool_call_id, { chatDiv, name });
-      setStatus('EXECUTING', 'tool_running');
+      const div  = appendMsg('SYS', 'sys', `⚡ running ${escapeHtml(name)}…`);
+      _toolMsgs.set(msg.tool_call_id, { div, name });
+      setStatus('EXECUTING', 'executing');
       HUD.setState('tool_running');
       break;
     }
 
     case 'tool_execution_end': {
       const entry = _toolMsgs.get(msg.tool_call_id);
-      const isErr = !!msg.is_error;
-      overlayDone(msg.tool_call_id, isErr);
       if (entry) {
-        const dot = entry.chatDiv.querySelector('.tool-icon');
-        if (dot) dot.textContent = isErr ? '✗' : '✓';
-        entry.chatDiv.classList.toggle('done', !isErr);
-        entry.chatDiv.classList.toggle('error-msg', isErr);
+        const icon = msg.is_error ? '✗' : '✓';
+        entry.div.querySelector('.body').textContent = `${icon} ${entry.name} [${msg.is_error ? 'error' : 'done'}]`;
         _toolMsgs.delete(msg.tool_call_id);
       }
       setStatus('THINKING', 'thinking');
@@ -241,7 +224,7 @@ function handleMessage(msg) {
 
     case 'agent_error':
       streamEnd();
-      appendMsg('assistant', escapeHtml(msg.message || 'Unknown error'), 'error-msg');
+      appendMsg('SYS', 'err', escapeHtml(msg.message || 'Unknown error'));
       setStatus('ERROR', 'error');
       HUD.setState('error');
       setInputEnabled(true);
@@ -249,7 +232,7 @@ function handleMessage(msg) {
       break;
 
     case 'error':
-      appendMsg('assistant', escapeHtml(msg.message || 'Error'), 'error-msg');
+      appendMsg('SYS', 'err', escapeHtml(msg.message || 'Error'));
       setStatus('ERROR', 'error');
       HUD.setState('error');
       setInputEnabled(true);
@@ -271,18 +254,15 @@ function setInputEnabled(enabled) {
 function submitMessage() {
   const text = $input.value.trim();
   if (!text) return;
-  appendMsg('user', escapeHtml(text));
+  appendMsg('USER', 'user', escapeHtml(text));
   $input.value = '';
   setInputEnabled(false);
   send({ type: 'user_message', text });
 }
 
-$sendBtn.addEventListener('click', submitMessage);
-$input.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    submitMessage();
-  }
+document.getElementById('composer').addEventListener('submit', (e) => {
+  e.preventDefault();
+  submitMessage();
 });
 
 // Ctrl+K → abort
@@ -302,13 +282,21 @@ const voice = new VoiceManager((transcript) => {
   $input.value = transcript;
   submitMessage();
 });
+window.voiceManager = voice;
 
 $micBtn.addEventListener('click', () => {
-  if (!voice.supported) {
-    $micBtn.title = '이 브라우저는 음성 입력을 지원하지 않습니다';
-    return;
-  }
-  voice.toggle();
+  if (!voice.supported) { $micBtn.title = '이 브라우저는 음성 입력을 지원하지 않습니다'; return; }
+  const active = voice.toggle();
+  $micBtn.classList.toggle('listening', voice.listening);
+});
+
+// ── Sidebar collapse ──────────────────────────────────────────────────────────
+const SB_KEY = 'jarvis.sbCollapsed';
+if (localStorage.getItem(SB_KEY) === '1') document.body.classList.add('sb-collapsed');
+document.getElementById('collapse-btn').addEventListener('click', () => {
+  const next = !document.body.classList.contains('sb-collapsed');
+  document.body.classList.toggle('sb-collapsed', next);
+  localStorage.setItem(SB_KEY, next ? '1' : '0');
 });
 
 // ── Boot ──────────────────────────────────────────────────────────────────────

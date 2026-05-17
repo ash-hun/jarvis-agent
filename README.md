@@ -186,6 +186,22 @@ class MyMemory:
 
 Register it in the `MemoryMiddlewareChain` during session setup.
 
+## Built-in Skills
+
+Skills live in the [`skills/`](skills/) directory and are loaded automatically when `JARVIS_PLUGIN__SKILLS_DIR=./skills`.
+
+| Command | Aliases | Description |
+|---------|---------|-------------|
+| `/test` | `/t`, `/pytest`, `/ut` | Run the full unit test suite and report results |
+
+**Usage examples:**
+
+```
+/test                          → runs all unit tests
+/test -k "test_policy"         → runs only tests matching the keyword
+/test tests/unit/test_config.py → runs a specific file
+```
+
 ## Development
 
 ```bash

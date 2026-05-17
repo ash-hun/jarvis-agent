@@ -33,6 +33,9 @@ class ChatHistory(RichLog):
         color = "red" if is_error else "yellow"
         self.write(f"[{color}]  ⚙ {name}[/{color}]")
 
+    def add_status(self, text: str) -> None:
+        self.write(f"[dim]{text}[/dim]")
+
     def add_error(self, text: str) -> None:
         self.write(f"[bold red]Error:[/bold red] {text}")
 
@@ -61,7 +64,8 @@ class JarvisTUI(App):
         super().__init__(**kwargs)
         self._session = session
         self._stream_buffer = ""
-        self._current_turn_log = ""
+        self._streaming_started = False
+        self._last_rendered = ""
 
         session.subscribe(self._on_agent_event)
 
@@ -84,7 +88,6 @@ class JarvisTUI(App):
         chat.add_user(text)
 
         self._stream_buffer = ""
-        self._current_turn_log = ""
 
         asyncio.create_task(self._run_prompt(text))
 
@@ -102,27 +105,27 @@ class JarvisTUI(App):
     async def _on_agent_event(self, event: AgentEvent) -> None:
         chat = self.query_one("#chat", ChatHistory)
 
-        if isinstance(event, MessageUpdateEvent):
-            self._stream_buffer += event.text_delta
-            self.call_from_thread(self._update_streaming, self._stream_buffer)
+        if isinstance(event, AgentStartEvent):
+            chat.add_status("⏳ Thinking...")
+
+        elif isinstance(event, MessageUpdateEvent):
+            self._stream_buffer += event.text_delta or ""
+            self._stream_buffer += event.thinking_delta or ""
 
         elif isinstance(event, AgentEndEvent):
             if self._stream_buffer:
-                self.call_from_thread(chat.add_assistant, self._stream_buffer)
+                chat.add_assistant(self._stream_buffer)
                 self._stream_buffer = ""
 
         elif isinstance(event, ToolExecutionStartEvent):
-            self.call_from_thread(chat.add_tool, f"Running {event.tool_name}...")
+            chat.add_tool(f"Running {event.tool_name}...")
 
         elif isinstance(event, ToolExecutionEndEvent):
             status = "error" if event.is_error else "done"
-            self.call_from_thread(chat.add_tool, f"{event.tool_name} [{status}]", event.is_error)
+            chat.add_tool(f"{event.tool_name} [{status}]", event.is_error)
 
         elif isinstance(event, AgentErrorEvent):
-            self.call_from_thread(chat.add_error, event.message)
-
-    def _update_streaming(self, text: str) -> None:
-        pass
+            chat.add_error(event.message)
 
     def action_abort(self) -> None:
         self._session.abort()
@@ -134,11 +137,14 @@ class JarvisTUI(App):
 
 
 def main() -> None:
+    from pathlib import Path
+
     from jarvis.config import get_settings
     from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
     from jarvis.agent_layer.memory.sqlite import SqliteMemory
     from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
     from jarvis.core.plugins.runner import PluginRunner
+    from jarvis.core.plugins.loader import PluginLoader
     from jarvis.core.policy.authenticator import NoAuthAuthenticator
     from jarvis.core.policy.pipeline import SecurityPipeline
     from jarvis.core.policy.policy import AllowAllPolicy
@@ -150,7 +156,6 @@ def main() -> None:
     from jarvis.core.tools.builtin.read_file import ReadFileTool
     from jarvis.core.tools.loader import ToolLoader
     from jarvis.model_layer.types import ModelConfig
-    import uuid
 
     settings = get_settings()
 
@@ -167,7 +172,6 @@ def main() -> None:
         stages=[SqliteMemory(db_path=settings.memory.sqlite_path)]
     )
     session_repo = JsonlSessionRepo(sessions_root=settings.session.sessions_dir)
-    asyncio.get_event_loop().run_until_complete(session_repo.create(session_id="default"))
 
     pipeline = SecurityPipeline(
         validator=DefaultInputValidator(max_length=settings.security.input_max_length),
@@ -184,12 +188,32 @@ def main() -> None:
     tool_registry.register(ReadFileTool())
 
     skill_registry = SkillRegistry()
+    plugin_runner = PluginRunner()
+
+    async def _setup() -> None:
+        await session_repo.create(session_id="default")
+
+        tools_dir = Path(settings.plugin.tools_dir).expanduser()
+        if tools_dir.exists():
+            loader = ToolLoader(tool_registry)
+            await loader.load_directory(str(tools_dir))
+
+        skills_dir = Path(settings.plugin.skills_dir).expanduser()
+        if skills_dir.exists():
+            await skill_registry.load_directory(str(skills_dir))
+
+        plugins_dir = Path(settings.plugin.plugins_dir).expanduser()
+        if plugins_dir.exists():
+            plugin_loader = PluginLoader(plugin_runner)
+            await plugin_loader.load_directory(str(plugins_dir))
+
+    asyncio.run(_setup())
 
     session = AgentSession(
         model=model,
         session_id="default",
         security_pipeline=pipeline,
-        plugin_runner=PluginRunner(),
+        plugin_runner=plugin_runner,
         memory_chain=memory_chain,
         tool_registry=tool_registry,
         skill_registry=skill_registry,

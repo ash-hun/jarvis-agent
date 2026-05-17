@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir uv
 
-COPY pyproject.toml .
+COPY pyproject.toml uv.lock ./
 COPY src/ src/
 
 RUN uv sync --frozen --no-dev
@@ -34,5 +34,6 @@ FROM base AS runtime
 COPY . .
 
 ENV PYTHONPATH=/app/src
+ENV PATH="/app/.venv/bin:$PATH"
 
-CMD ["uv", "run", "jarvis"]
+CMD ["jarvis"]

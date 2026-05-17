@@ -205,6 +205,19 @@ body.sb-collapsed .session {
 }
 body.sb-collapsed .panel-head { justify-content: center; }
 
+.new-session-btn {
+  width: 22px; height: 22px;
+  border: 1px solid var(--hairline-strong);
+  background: transparent;
+  color: var(--cyan);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-family: var(--mono); font-size: 14px; line-height: 1;
+  padding: 0;
+  transition: all .15s;
+}
+.new-session-btn:hover { background: rgba(95,200,226,0.1); border-color: var(--cyan); }
+
 .collapse-btn {
   width: 22px; height: 22px;
   border: 1px solid var(--hairline-strong);
@@ -316,8 +329,8 @@ body.sb-collapsed .collapse-btn .chev { transform: rotate(180deg); }
 .messages {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 24px 14px;
-  display: flex; flex-direction: column; gap: 18px;
+  padding: 12px 24px 10px;
+  display: flex; flex-direction: column; gap: 10px;
   scroll-behavior: smooth;
 }
 .messages::-webkit-scrollbar { width: 5px; }
@@ -340,10 +353,11 @@ body.sb-collapsed .collapse-btn .chev { transform: rotate(180deg); }
   white-space: pre-wrap; word-wrap: break-word;
 }
 .msg.agent .role { color: var(--cyan); }
-.msg.agent .body::before {
-  content: "▌ ";
+.msg.agent .role .indicator {
   color: var(--cyan-bright);
   text-shadow: 0 0 6px var(--cyan-glow);
+  animation: pulse 1.6s ease-in-out infinite;
+  margin-right: 3px;
 }
 .msg.user .role { color: var(--text-dim); }
 .msg.sys .role { color: var(--amber); }
@@ -356,6 +370,31 @@ body.sb-collapsed .collapse-btn .chev { transform: rotate(180deg); }
   color: var(--red); font-size: 11px;
   border-left: 1px solid rgba(240,95,95,0.35); padding-left: 10px;
 }
+
+/* tool trace — JARVIS 메시지 안 도구 실행 표시 */
+.tool-trace {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  padding: 4px 10px;
+  margin-bottom: 6px;
+  border-left: 2px solid var(--amber);
+  background: rgba(240, 179, 95, 0.06);
+  color: var(--amber);
+  letter-spacing: 0.06em;
+}
+.tool-trace.done  { opacity: 0.75; }
+.tool-trace.error { border-left-color: var(--red); color: var(--red); }
+.tool-trace .tool-cmd {
+  color: var(--text-faint);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+}
+.tool-trace .tool-status { margin-left: auto; letter-spacing: 0.1em; }
 
 /* typing dots */
 .typing-dots { display: inline-flex; gap: 5px; vertical-align: middle; margin-left: 2px; }
@@ -375,7 +414,7 @@ body.sb-collapsed .collapse-btn .chev { transform: rotate(180deg); }
   border-top: 1px solid var(--hairline);
   padding: 12px 22px 14px;
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto;
   column-gap: 10px;
   align-items: center;
   background: linear-gradient(180deg, rgba(5,12,22,0.0), rgba(5,12,22,0.45));
@@ -402,13 +441,6 @@ body.sb-collapsed .collapse-btn .chev { transform: rotate(180deg); }
 }
 .field-wrap input::placeholder { color: var(--text-faint); letter-spacing: 0.06em; }
 .field-wrap input:disabled { opacity: 0.4; cursor: not-allowed; }
-.caret {
-  width: 8px; height: 14px;
-  background: var(--cyan-bright);
-  box-shadow: 0 0 6px var(--cyan-glow);
-  animation: blink 1s steps(2) infinite;
-  margin-left: 6px; flex-shrink: 0;
-}
 @keyframes blink { 50% { opacity: 0; } }
 
 .mic-btn {
@@ -454,9 +486,7 @@ body.sb-collapsed .collapse-btn .chev { transform: rotate(180deg); }
   overflow: visible;
 }
 .footer::before {
-  content: "";
-  position: absolute; left: 0; right: 0; top: -1px; height: 1px;
-  background: linear-gradient(90deg, transparent, var(--cyan-glow), transparent);
+  display: none;
 }
 
 /* Sphere */
@@ -480,17 +510,7 @@ body.sb-collapsed .collapse-btn .chev { transform: rotate(180deg); }
   position: absolute; width: 140px; height: 140px; left: 0; top: 0;
 }
 .sphere-ring {
-  position: absolute; left: 50%; top: 50%;
-  width: 118px; height: 118px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border: 1px solid rgba(95,200,226,0.18);
-  pointer-events: none;
-}
-.sphere-ring.r2 {
-  width: 138px; height: 138px;
-  border-style: dashed; border-color: rgba(95,200,226,0.10);
-  animation: spin 60s linear infinite;
+  display: none;
 }
 @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 

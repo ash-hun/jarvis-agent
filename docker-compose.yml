@@ -13,11 +13,11 @@ services:
       JARVIS_MEMORY__SQLITE_PATH: "/tmp/jarvis/memory.db"
       JARVIS_SECURITY__REQUIRE_AUTH: "false"
     volumes:
-      - ./tests:/app/tests        # 테스트 파일 실시간 반영
-      - ./src:/app/src             # 소스 실시간 반영
+      - ./tests:/app/tests
+      - ./src:/app/src
     command: ["uv", "run", "pytest", "-v", "--no-header", "--tb=short"]
 
-  # ── 특정 테스트만 실행 예시: docker compose run --rm test-single ──────────────
+  # ── 특정 테스트만 실행: docker compose run --rm test-single ──────────────────
   test-single:
     build:
       context: .
@@ -32,7 +32,7 @@ services:
     profiles: ["manual"]
     command: ["uv", "run", "pytest", "-v", "--no-header", "--tb=long", "-s"]
 
-  # ── 실제 실행 (TUI) ──────────────────────────────────────────────────────────
+  # ── TUI 실행 ─────────────────────────────────────────────────────────────────
   jarvis:
     build:
       context: .
@@ -44,6 +44,38 @@ services:
     stdin_open: true
     tty: true
     profiles: ["app"]
+
+  # ── Web HUD 백엔드 (FastAPI + WebSocket + Agent) ───────────────────────────
+  jarvis-backend:
+    build:
+      context: .
+      target: runtime-web
+    env_file:
+      - .env
+    environment:
+      JARVIS_LLM__PROVIDER: ${JARVIS_LLM__PROVIDER:-anthropic}
+    volumes:
+      - jarvis_data:/root/.jarvis
+    profiles: ["web"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('localhost', 7777), timeout=2); s.close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  # ── Web HUD 프론트엔드 (nginx 정적 파일 + /ws 프록시) ─────────────────────────
+  jarvis-frontend:
+    image: nginx:alpine
+    ports:
+      - "7777:80"
+    volumes:
+      - ./src/jarvis/ui/web/static:/usr/share/nginx/html:ro
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      jarvis-backend:
+        condition: service_healthy
+    profiles: ["web"]
 
 volumes:
   jarvis_data:

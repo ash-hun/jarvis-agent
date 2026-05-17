@@ -2,6 +2,11 @@
 
 A personal AI assistant agent built on a layered, extensible harness — inspired by the architecture of [Pi Agent Harness](https://github.com/anthropics/anthropic-quickstarts). Built with Python 3.11+, Textual TUI, and a forced 4-stage security pipeline.
 
+<div align="center">
+    <img src="./assets/screenshot.png" />
+</div>
+
+
 ```
 User Input → TUI → SecurityPipeline → AgentSession → AgentLoop → LLM (streaming)
                         ↓

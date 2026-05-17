@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JARVIS · HUD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="left">
+    <span class="corner"><span class="corner-bracket"></span> SYS:ONLINE</span>
+    <span class="dimtext">/ v0.1.0</span>
+    <span class="dimtext">/ NODE:LOCAL</span>
+  </div>
+  <div class="center">
+    <span class="tick" id="tick"></span>
+    <span class="agent-name">JARVIS</span>
+  </div>
+  <div class="right">
+    <span class="status-pill" id="status-pill">
+      <span class="tick-sm" id="status-tick"></span><span id="status-text">READY</span>
+    </span>
+    <span class="clock" id="clock">--:--:--</span>
+  </div>
+</header>
+
+<!-- MAIN STAGE -->
+<main class="stage">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="panel-head">
+      <span>· SESSIONS</span>
+      <span class="count" id="session-count">01</span>
+      <button class="collapse-btn" id="collapse-btn" title="사이드바 접기">
+        <span class="chev">‹</span>
+      </button>
+    </div>
+    <div class="session-list" id="session-list">
+      <div class="session active" id="current-session">
+        <span class="marker"></span>
+        <span class="title" id="session-title">—</span>
+        <span class="meta">NOW</span>
+      </div>
+    </div>
+
+    <div class="tools-section">
+      <div class="panel-head" style="margin-top:6px">
+        <span>· TOOLS</span>
+      </div>
+      <div class="tools-list">
+        <div class="row"><span>bash</span><b>on</b></div>
+        <div class="row"><span>read_file</span><b>on</b></div>
+        <div class="row"><span>tts.kr</span><span class="off">off</span></div>
+      </div>
+    </div>
+
+    <div class="sidebar-foot">
+      <div class="row"><span>BUILD</span><b>0.1.0</b></div>
+      <div class="row"><span>MODEL</span><b id="sb-model">—</b></div>
+    </div>
+  </aside>
+
+  <!-- CHAT -->
+  <section class="chat">
+    <div class="chat-head">
+      <div class="tabs">
+        <span class="tab on">CHAT</span>
+        <span class="tab">LOG</span>
+        <span class="tab">TRACE</span>
+      </div>
+      <div class="right">
+        <span>SESSION : <b id="session-id-label" style="color:var(--cyan)">—</b></span>
+        <span>·</span>
+        <span><span id="msg-count">0</span> MSG</span>
+      </div>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <!-- COMPOSER -->
+    <form class="composer" id="composer">
+      <label class="field-wrap">
+        <span class="prompt">&gt;_</span>
+        <input
+          id="chat-input"
+          type="text"
+          placeholder="중앙 어시스턴트를 눌러 voice mode를 활성화하거나 메시지를 입력하세요."
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <span class="caret"></span>
+      </label>
+      <button class="mic-btn" id="mic-btn" type="button" title="음성 입력">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="2" width="6" height="13" rx="3"/>
+          <path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/>
+        </svg>
+      </button>
+      <button class="send-btn" id="send-btn" type="submit">SEND ⏎</button>
+    </form>
+  </section>
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="foot-stats left">
+    <div class="fstat"><span class="k">MSG</span><span class="v" id="ft-msg">0</span></div>
+    <div class="fstat"><span class="k">TOOLS</span><span class="v">2 on</span></div>
+  </div>
+
+  <div class="sphere-wrap">
+    <div class="sphere-ring"></div>
+    <div class="sphere-ring r2"></div>
+    <canvas id="hud-canvas" class="sphere-canvas"></canvas>
+    <div class="sphere-hit" id="sphere-hit" title="voice mode 토글"></div>
+  </div>
+
+  <div class="foot-stats right">
+    <div class="fstat"><span class="k">UPTIME</span><span class="v" id="ft-uptime">00:00:00</span></div>
+    <div class="fstat"><span class="k">MODEL</span><span class="v" id="ft-model">—</span></div>
+  </div>
+</footer>
+
+<!-- APPROVAL MODAL -->
+<div class="approval-overlay hidden" id="approval-overlay">
+  <div class="approval-box">
+    <h3>⚡ AUTHORIZATION REQUIRED</h3>
+    <p class="approval-reason" id="approval-reason"></p>
+    <div class="approval-command" id="approval-command"></div>
+    <p class="approval-hint">이 명령을 허용하시겠습니까? (120초 후 자동 거부)</p>
+    <div class="approval-btns">
+      <button class="btn-allow" id="btn-allow">ALLOW</button>
+      <button class="btn-deny" id="btn-deny">DENY</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONNECTION BANNER -->
+<div class="connection-banner hidden" id="connection-banner">
+  ⚠ JARVIS 연결 끊김 — 재연결 중...
+</div>
+
+<script src="hud.js"></script>
+<script src="voice.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

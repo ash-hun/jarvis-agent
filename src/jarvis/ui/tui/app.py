@@ -1,227 +1,266 @@
 from __future__ import annotations
 
-import asyncio
-from typing import Any
+import time
+from typing import TYPE_CHECKING, Any
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.widgets import Footer, Header, Input, RichLog, Static
+from textual.containers import Horizontal, Vertical
+from textual.reactive import Reactive
+from textual.widgets import Footer, Header, Input
 
-from jarvis.agent_layer.types import (
-    AgentEndEvent,
-    AgentErrorEvent,
-    AgentEvent,
-    AgentStartEvent,
-    MessageUpdateEvent,
-    ToolExecutionEndEvent,
-    ToolExecutionStartEvent,
-    TurnStartEvent,
-)
+from jarvis.agent_layer.types import AgentEvent
 from jarvis.core.session import AgentSession
+from jarvis.ui.tui.bridge import (
+    AppendStreamAction,
+    EventBridge,
+    FlushStreamAction,
+    ShowErrorAction,
+    ShowStatusAction,
+    ToolEndAction,
+    ToolStartAction,
+    UIAction,
+)
+from jarvis.ui.tui.components.approval_dialog import ApprovalDialog
+from jarvis.ui.tui.components.chat_history import ChatHistory
+from jarvis.ui.tui.components.sidebar import SidebarPane
+from jarvis.ui.tui.components.status_bar import StatusBar
+from jarvis.ui.tui.state import ActiveTool
+
+if TYPE_CHECKING:
+    from jarvis.ui.tui.startup import AppContext
 
 
-class ChatHistory(RichLog):
-    DEFAULT_CSS = "ChatHistory { border: solid $primary; height: 1fr; margin: 1; }"
+class JarvisTUI(App[None]):
+    """
+    Jarvis 터미널 UI — Textual 기반.
 
-    def add_user(self, text: str) -> None:
-        self.write(f"[bold cyan]You:[/bold cyan] {text}")
+    Warp: Entity-Handle 패턴
+    - App이 모든 위젯을 소유 (compose()에서 한 번만 생성)
+    - 핸들은 on_mount()에서 단 한 번 확정
+    - 이벤트 핸들러에서 위젯 인라인 생성 금지
 
-    def add_assistant(self, text: str) -> None:
-        self.write(f"[bold green]Jarvis:[/bold green] {text}")
-
-    def add_tool(self, name: str, is_error: bool = False) -> None:
-        color = "red" if is_error else "yellow"
-        self.write(f"[{color}]  ⚙ {name}[/{color}]")
-
-    def add_status(self, text: str) -> None:
-        self.write(f"[dim]{text}[/dim]")
-
-    def add_error(self, text: str) -> None:
-        self.write(f"[bold red]Error:[/bold red] {text}")
-
-
-class StatusBar(Static):
-    DEFAULT_CSS = "StatusBar { dock: bottom; height: 1; background: $primary; color: $text; }"
-
-    def set_status(self, text: str) -> None:
-        self.update(text)
-
-
-class JarvisTUI(App):
-    """Jarvis 터미널 UI — Textual 기반."""
+    Hunk: Session Bridge + Split 레이아웃
+    """
 
     CSS = """
     Screen { layout: vertical; }
-    Input { dock: bottom; margin: 0 1; }
+
+    #body {
+        height: 1fr;
+        layout: horizontal;
+    }
+
+    #main-pane {
+        width: 1fr;
+        layout: vertical;
+    }
+
+    Input {
+        dock: bottom;
+        margin: 0 1 1 1;
+    }
     """
 
     BINDINGS = [
         Binding("ctrl+c", "quit", "Quit", show=True),
         Binding("ctrl+k", "abort", "Abort", show=True),
+        Binding("ctrl+b", "toggle_sidebar", "Sidebar", show=True),
+        Binding("ctrl+n", "new_session", "New Session", show=True),
     ]
 
-    def __init__(self, session: AgentSession, **kwargs: Any) -> None:
+    # Reactive 상태 — App 소유 (Warp: Entity 패턴)
+    is_streaming: Reactive[bool] = Reactive(False)
+    active_tool_count: Reactive[int] = Reactive(0)
+    sidebar_visible: Reactive[bool] = Reactive(True)
+
+    def __init__(
+        self,
+        session: AgentSession,
+        ctx: AppContext,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         self._session = session
+        self._ctx = ctx  # Warp: ctx, 마지막 파라미터
+
+        # 한 번만 생성 (Warp: MouseStateHandle 원칙)
+        self._bridge = EventBridge()
+
+        # 내부 상태 (순수 Python, Textual 독립)
         self._stream_buffer = ""
-        self._streaming_started = False
-        self._last_rendered = ""
+        self._active_tools: list[ActiveTool] = []
+
+        # 위젯 핸들 선언 — on_mount()에서 확정 (Warp: ViewHandle 패턴)
+        self._chat: ChatHistory | None = None
+        self._sidebar: SidebarPane | None = None
+        self._status: StatusBar | None = None
+        self._input: Input | None = None
 
         session.subscribe(self._on_agent_event)
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield ChatHistory(id="chat", markup=True, highlight=True, wrap=True)
-        yield Input(placeholder="Type your message... (Ctrl+C to quit, Ctrl+K to abort)", id="input")
+        with Horizontal(id="body"):
+            yield SidebarPane(id="sidebar")
+            with Vertical(id="main-pane"):
+                yield ChatHistory(id="chat", markup=True, highlight=True, wrap=True)
+        yield Input(
+            placeholder="Type your message... (Ctrl+K abort, Ctrl+B sidebar)",
+            id="input",
+        )
+        yield StatusBar(id="status")
         yield Footer()
+
+    async def on_mount(self) -> None:
+        # 핸들 한 번에 확정 (Warp: mount 시 단일 생성 원칙)
+        self._chat = self.query_one("#chat", ChatHistory)
+        self._sidebar = self.query_one("#sidebar", SidebarPane)
+        self._status = self.query_one("#status", StatusBar)
+        self._input = self.query_one("#input", Input)
+
+        # 사이드바 초기 데이터 로딩
+        await self._sidebar.load_sessions(self._ctx.session_repo)
+        self._sidebar.load_tools(self._ctx.tool_registry)
+
+        self._chat.write("[bold]Jarvis ready.[/bold] Type a message to begin.")
+        self._input.focus()
+
+    # ── 입력 처리 ─────────────────────────────────────────────────────────────
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         text = event.value.strip()
         if not text:
             return
 
-        input_widget = self.query_one("#input", Input)
-        input_widget.value = ""
-        input_widget.disabled = True
+        assert self._input is not None
+        assert self._chat is not None
 
-        chat = self.query_one("#chat", ChatHistory)
-        chat.add_user(text)
+        self._input.value = ""
 
+        if text == "/exit":
+            self.exit()
+            return
+
+        self._input.disabled = True
+        self._chat.add_user(text)
         self._stream_buffer = ""
 
-        asyncio.create_task(self._run_prompt(text))
+        self.run_worker(self._run_prompt(text))
 
     async def _run_prompt(self, text: str) -> None:
-        input_widget = self.query_one("#input", Input)
+        if self._input is None or self._chat is None:
+            return
         try:
             await self._session.prompt(text)
         except Exception as exc:
-            chat = self.query_one("#chat", ChatHistory)
-            chat.add_error(str(exc))
+            if self._chat is not None:
+                self._chat.add_error(str(exc))
         finally:
-            input_widget.disabled = False
-            input_widget.focus()
+            if self._input is not None:
+                self._input.disabled = False
+                self._input.focus()
+
+    # ── EventBridge 적용 (Hunk: Session Bridge 패턴) ─────────────────────────
 
     async def _on_agent_event(self, event: AgentEvent) -> None:
-        chat = self.query_one("#chat", ChatHistory)
+        if self._chat is None:
+            return  # on_mount 전 안전 가드
+        try:
+            for action in self._bridge.translate(event):
+                await self._apply_action(action)
+        except Exception as exc:
+            self._chat.add_error(f"[internal] {exc}")
 
-        if isinstance(event, AgentStartEvent):
-            chat.add_status("⏳ Thinking...")
+    async def _apply_action(self, action: UIAction) -> None:
+        if self._chat is None or self._status is None:
+            return
 
-        elif isinstance(event, MessageUpdateEvent):
-            self._stream_buffer += event.text_delta or ""
-            self._stream_buffer += event.thinking_delta or ""
+        match action:
+            case ShowStatusAction(text=t):
+                self._status.set_status(t)
 
-        elif isinstance(event, AgentEndEvent):
-            if self._stream_buffer:
-                chat.add_assistant(self._stream_buffer)
-                self._stream_buffer = ""
+            case AppendStreamAction(delta=d):
+                self._stream_buffer += d
+                self.is_streaming = True
 
-        elif isinstance(event, ToolExecutionStartEvent):
-            chat.add_tool(f"Running {event.tool_name}...")
+            case FlushStreamAction():
+                if self._stream_buffer:
+                    self._chat.add_assistant(self._stream_buffer)
+                    self._stream_buffer = ""
+                self.is_streaming = False
 
-        elif isinstance(event, ToolExecutionEndEvent):
-            status = "error" if event.is_error else "done"
-            chat.add_tool(f"{event.tool_name} [{status}]", event.is_error)
+            case ToolStartAction(tool_call_id=tid, tool_name=n):
+                self._active_tools.append(ActiveTool(tool_call_id=tid, tool_name=n, started_at=int(time.time() * 1000)))
+                self._chat.add_tool(f"Running {n}...")
+                self.active_tool_count = len(self._active_tools)
 
-        elif isinstance(event, AgentErrorEvent):
-            chat.add_error(event.message)
+            case ToolEndAction(tool_call_id=tid, tool_name=n, is_error=err):
+                self._active_tools = [t for t in self._active_tools if t.tool_call_id != tid]
+                self._chat.add_tool(f"{n} [{'error' if err else 'done'}]", err)
+                self.active_tool_count = len(self._active_tools)
+
+            case ShowErrorAction(message=m):
+                self._chat.add_error(m)
+
+    # ── UIAdapter.request_approval 구현 ───────────────────────────────────────
+
+    async def request_approval(self, command: str, reason: str) -> bool:
+        """ApprovalDialog 모달을 표시하고 사용자 결정을 반환."""
+        result: bool = await self.push_screen_wait(ApprovalDialog(command=command, reason=reason))
+        return result
+
+    # ── 액션 ──────────────────────────────────────────────────────────────────
 
     def action_abort(self) -> None:
         self._session.abort()
 
-    async def on_mount(self) -> None:
-        chat = self.query_one("#chat", ChatHistory)
-        chat.write("[bold]Jarvis ready.[/bold] Type a message to begin.")
-        self.query_one("#input", Input).focus()
+    def action_toggle_sidebar(self) -> None:
+        """사이드바 토글 (Hunk: layout toggle 패턴)."""
+        self.sidebar_visible = not self.sidebar_visible
+        sidebar = self.query_one("#sidebar", SidebarPane)
+        sidebar.display = self.sidebar_visible
+
+    async def action_new_session(self) -> None:
+        """Ctrl+N: 새 UUID 세션을 생성하고 대화를 초기화한다."""
+        if self._ctx.session_factory is None:
+            return
+
+        assert self._chat is not None
+        assert self._status is not None
+        assert self._input is not None
+
+        self._status.set_status("Creating new session...")
+        self._input.disabled = True
+
+        try:
+            new_session = await self._ctx.session_factory()
+            new_session.subscribe(self._on_agent_event)
+            self._session = new_session
+            self._stream_buffer = ""
+            self._active_tools = []
+            self.is_streaming = False
+            self.active_tool_count = 0
+
+            self._chat.clear()
+            self._chat.write(
+                f"[bold]New session:[/bold] [dim]{new_session._session_id}[/dim]"
+            )
+            assert self._sidebar is not None
+            await self._sidebar.load_sessions(self._ctx.session_repo)
+            self._status.set_status("Ready")
+        except Exception as exc:
+            self._chat.add_error(f"Failed to create session: {exc}")
+            self._status.set_status("Ready")
+        finally:
+            self._input.disabled = False
+            self._input.focus()
 
 
 def main() -> None:
-    from pathlib import Path
+    from jarvis.ui.tui.startup import main as startup_main
 
-    from jarvis.config import get_settings
-    from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
-    from jarvis.agent_layer.memory.sqlite import SqliteMemory
-    from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
-    from jarvis.core.plugins.runner import PluginRunner
-    from jarvis.core.plugins.loader import PluginLoader
-    from jarvis.core.policy.authenticator import NoAuthAuthenticator
-    from jarvis.core.policy.pipeline import SecurityPipeline
-    from jarvis.core.policy.policy import AllowAllPolicy
-    from jarvis.core.policy.sandbox import DefaultSandbox
-    from jarvis.core.policy.validator import DefaultInputValidator
-    from jarvis.core.skills.registry import SkillRegistry
-    from jarvis.core.tools.registry import ToolRegistry
-    from jarvis.core.tools.builtin.bash import BashTool
-    from jarvis.core.tools.builtin.read_file import ReadFileTool
-    from jarvis.core.tools.loader import ToolLoader
-    from jarvis.model_layer.types import ModelConfig
-
-    settings = get_settings()
-
-    model = ModelConfig(
-        provider=settings.llm.provider,
-        model=settings.llm.model,
-        api_key=settings.llm.api_key.get_secret_value() if settings.llm.api_key else None,
-        base_url=settings.llm.base_url,
-        temperature=settings.llm.temperature,
-        max_tokens=settings.llm.max_tokens,
-    )
-
-    memory_chain = MemoryMiddlewareChain(
-        stages=[SqliteMemory(db_path=settings.memory.sqlite_path)]
-    )
-    session_repo = JsonlSessionRepo(sessions_root=settings.session.sessions_dir)
-
-    pipeline = SecurityPipeline(
-        validator=DefaultInputValidator(max_length=settings.security.input_max_length),
-        authenticator=NoAuthAuthenticator(),
-        policy=AllowAllPolicy(),
-        sandbox=DefaultSandbox(
-            dangerous_patterns=settings.security.dangerous_commands,
-            require_approval_for=settings.security.require_approval_for,
-        ),
-    )
-
-    tool_registry = ToolRegistry()
-    tool_registry.register(BashTool())
-    tool_registry.register(ReadFileTool())
-
-    skill_registry = SkillRegistry()
-    plugin_runner = PluginRunner()
-
-    async def _setup() -> None:
-        await session_repo.create(session_id="default")
-
-        tools_dir = Path(settings.plugin.tools_dir).expanduser()
-        if tools_dir.exists():
-            loader = ToolLoader(tool_registry)
-            await loader.load_directory(str(tools_dir))
-
-        skills_dir = Path(settings.plugin.skills_dir).expanduser()
-        if skills_dir.exists():
-            await skill_registry.load_directory(str(skills_dir))
-
-        plugins_dir = Path(settings.plugin.plugins_dir).expanduser()
-        if plugins_dir.exists():
-            plugin_loader = PluginLoader(plugin_runner)
-            await plugin_loader.load_directory(str(plugins_dir))
-
-    asyncio.run(_setup())
-
-    session = AgentSession(
-        model=model,
-        session_id="default",
-        security_pipeline=pipeline,
-        plugin_runner=plugin_runner,
-        memory_chain=memory_chain,
-        tool_registry=tool_registry,
-        skill_registry=skill_registry,
-        session_repo=session_repo,
-    )
-
-    app = JarvisTUI(session=session)
-    app.run()
+    startup_main()
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 from jarvis.core.policy.pipeline import ApprovalResult, PolicyResult, SandboxBlocked
 
@@ -54,6 +54,11 @@ class DefaultSandbox:
         if self._approval_callback:
             return await self._approval_callback(command, reason)
         return False
+
+    def set_approval_callback(
+        self, callback: Callable[[str, str], Awaitable[bool]]
+    ) -> None:
+        self._approval_callback = callback
 
     def is_approval_required(self, tool_name: str) -> bool:
         return tool_name in self._require_approval

@@ -28,7 +28,7 @@ ENV JARVIS_SECURITY__REQUIRE_AUTH=false
 
 CMD ["uv", "run", "pytest", "-v", "--no-header", "--tb=short"]
 
-# ── runtime stage ─────────────────────────────────────────────────────────────
+# ── runtime stage (TUI) ───────────────────────────────────────────────────────
 FROM base AS runtime
 
 COPY . .
@@ -37,3 +37,15 @@ ENV PYTHONPATH=/app/src
 ENV PATH="/app/.venv/bin:$PATH"
 
 CMD ["jarvis"]
+
+# ── runtime-web stage (Web HUD backend) ───────────────────────────────────────
+FROM base AS runtime-web
+
+RUN uv sync --frozen --extra web --no-dev
+
+COPY . .
+
+ENV PYTHONPATH=/app/src
+ENV PATH="/app/.venv/bin:$PATH"
+
+CMD ["uv", "run", "jarvis", "--web", "--host", "0.0.0.0", "--port", "7777"]

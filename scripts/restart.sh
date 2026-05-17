@@ -3,32 +3,29 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-SERVICE="jarvis"
 PROFILE="app"
 
 cd "$PROJECT_DIR"
 
-# --web 플래그: Web HUD 모드 선택
+# --web 플래그: Web HUD 모드 (backend + frontend 동시 실행)
 if [[ "${1:-}" == "--web" ]]; then
-  SERVICE="jarvis-web"
   PROFILE="web"
   shift
 fi
 
-# docker compose run 으로 생성된 컨테이너도 함께 정리
-echo "[restart] Stopping $SERVICE..."
-docker compose --profile "$PROFILE" down "$SERVICE" 2>/dev/null || true
-docker ps -q --filter "name=${SERVICE}-run-" | xargs -r docker stop 2>/dev/null || true
+echo "[restart] Stopping profile=$PROFILE..."
+docker compose --profile "$PROFILE" down 2>/dev/null || true
 
 if [[ "${1:-}" == "--build" ]]; then
-  echo "[restart] Rebuilding image..."
-  docker compose --profile "$PROFILE" build "$SERVICE"
+  echo "[restart] Rebuilding images..."
+  docker compose --profile "$PROFILE" build
   shift
 fi
 
-echo "[restart] Starting $SERVICE..."
+echo "[restart] Starting profile=$PROFILE..."
 if [[ "$PROFILE" == "web" ]]; then
-  exec docker compose --profile "$PROFILE" up --remove-orphans "$SERVICE"
+  # backend + frontend 동시 기동, 로그 스트리밍
+  exec docker compose --profile web up --remove-orphans
 else
-  exec docker compose --profile "$PROFILE" run --rm "$SERVICE"
+  exec docker compose --profile app run --rm jarvis
 fi

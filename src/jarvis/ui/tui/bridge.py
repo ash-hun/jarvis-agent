@@ -98,7 +98,8 @@ class EventBridge:
                     tool_call_id=event.tool_call_id,
                     tool_name=event.tool_name,
                     is_error=event.is_error,
-                )
+                ),
+                ShowStatusAction(text="Thinking..."),
             ]
 
         if isinstance(event, AgentErrorEvent):

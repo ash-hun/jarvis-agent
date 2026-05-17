@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from rich.markup import escape as markup_escape
 from textual.widgets import RichLog
 
 
@@ -7,17 +8,17 @@ class ChatHistory(RichLog):
     DEFAULT_CSS = "ChatHistory { border: solid $primary; height: 1fr; margin: 0; }"
 
     def add_user(self, text: str) -> None:
-        self.write(f"[bold cyan]You:[/bold cyan] {text}")
+        self.write(f"[bold cyan]You:[/bold cyan] {markup_escape(text)}")
 
     def add_assistant(self, text: str) -> None:
-        self.write(f"[bold green]Jarvis:[/bold green] {text}")
+        self.write(f"[bold green]Jarvis:[/bold green] {markup_escape(text)}")
 
     def add_tool(self, name: str, is_error: bool = False) -> None:
         color = "red" if is_error else "yellow"
-        self.write(f"[{color}]  ⛙ {name}[/{color}]")
+        self.write(f"[{color}]  ⛙ {markup_escape(name)}[/{color}]")
 
     def add_status(self, text: str) -> None:
-        self.write(f"[dim]{text}[/dim]")
+        self.write(f"[dim]{markup_escape(text)}[/dim]")
 
     def add_error(self, text: str) -> None:
-        self.write(f"[bold red]Error:[/bold red] {text}")
+        self.write(f"[bold red]Error:[/bold red] {markup_escape(text)}")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label
@@ -36,7 +37,17 @@ class ApprovalDialog(ModalScreen[bool]):
     ApprovalDialog Button {
         margin: 0 1;
     }
+    ApprovalDialog #hint {
+        color: $text-muted;
+        margin-top: 1;
+    }
     """
+
+    BINDINGS = [
+        Binding("y", "allow", "Allow", show=False),
+        Binding("n", "deny", "Deny", show=False),
+        Binding("escape", "deny", "Deny", show=False),
+    ]
 
     def __init__(self, command: str, reason: str) -> None:
         super().__init__()
@@ -50,9 +61,16 @@ class ApprovalDialog(ModalScreen[bool]):
                 f"[dim]{self._command[:300]}[/dim]",
                 id="command-preview",
             )
+            yield Label("[dim]  y  Allow    n / Esc  Deny[/dim]", id="hint")
             with Horizontal():
-                yield Button("Allow", variant="warning", id="allow")
-                yield Button("Deny", variant="error", id="deny")
+                yield Button("Allow (y)", variant="warning", id="allow")
+                yield Button("Deny (n)", variant="error", id="deny")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.dismiss(event.button.id == "allow")
+
+    def action_allow(self) -> None:
+        self.dismiss(True)
+
+    def action_deny(self) -> None:
+        self.dismiss(False)

@@ -165,12 +165,15 @@ class JarvisTUI(App[None]):
     async def _on_agent_event(self, event: AgentEvent) -> None:
         if self._chat is None:
             return  # on_mount 전 안전 가드
-        for action in self._bridge.translate(event):
-            await self._apply_action(action)
+        try:
+            for action in self._bridge.translate(event):
+                await self._apply_action(action)
+        except Exception as exc:
+            self._chat.add_error(f"[internal] {exc}")
 
     async def _apply_action(self, action: UIAction) -> None:
-        assert self._chat is not None
-        assert self._status is not None
+        if self._chat is None or self._status is None:
+            return
 
         match action:
             case ShowStatusAction(text=t):

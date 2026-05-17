@@ -454,9 +454,7 @@ body.sb-collapsed .collapse-btn .chev { transform: rotate(180deg); }
   overflow: visible;
 }
 .footer::before {
-  content: "";
-  position: absolute; left: 0; right: 0; top: -1px; height: 1px;
-  background: linear-gradient(90deg, transparent, var(--cyan-glow), transparent);
+  display: none;
 }
 
 /* Sphere */
@@ -480,17 +478,7 @@ body.sb-collapsed .collapse-btn .chev { transform: rotate(180deg); }
   position: absolute; width: 140px; height: 140px; left: 0; top: 0;
 }
 .sphere-ring {
-  position: absolute; left: 50%; top: 50%;
-  width: 118px; height: 118px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border: 1px solid rgba(95,200,226,0.18);
-  pointer-events: none;
-}
-.sphere-ring.r2 {
-  width: 138px; height: 138px;
-  border-style: dashed; border-color: rgba(95,200,226,0.10);
-  animation: spin 60s linear infinite;
+  display: none;
 }
 @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 

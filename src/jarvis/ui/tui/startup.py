@@ -46,7 +46,15 @@ class SessionResumePlan:
     session_id: str
 
 
-StartupPlan = TUIPlan | HelpPlan | VersionPlan | SessionListPlan | SessionResumePlan
+@dataclass(frozen=True)
+class WebPlan:
+    kind: Literal["web"]
+    session_id: str | None = None
+    host: str = "127.0.0.1"
+    port: int = 7777
+
+
+StartupPlan = TUIPlan | HelpPlan | VersionPlan | SessionListPlan | SessionResumePlan | WebPlan
 
 
 def parse_startup_plan(argv: list[str] | None = None) -> StartupPlan:
@@ -61,6 +69,9 @@ def parse_startup_plan(argv: list[str] | None = None) -> StartupPlan:
     parser.add_argument("--version", "-v", action="store_true")
     parser.add_argument("--list-sessions", action="store_true")
     parser.add_argument("--session", "-s", type=str, default=None)
+    parser.add_argument("--web", action="store_true")
+    parser.add_argument("--host", type=str, default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=7777)
 
     parsed, _ = parser.parse_known_args(args)
 
@@ -70,6 +81,8 @@ def parse_startup_plan(argv: list[str] | None = None) -> StartupPlan:
         return VersionPlan(kind="version")
     if parsed.list_sessions:
         return SessionListPlan(kind="session-list")
+    if parsed.web:
+        return WebPlan(kind="web", session_id=parsed.session, host=parsed.host, port=parsed.port)
     if parsed.session:
         return SessionResumePlan(kind="session-resume", session_id=parsed.session)
     return TUIPlan(kind="tui", session_id=None)
@@ -237,6 +250,9 @@ def main() -> None:
             "Options:\n"
             "  -s, --session ID       기존 세션 재개\n"
             "  --list-sessions        저장된 세션 목록 출력\n"
+            "  --web                  Web HUD 모드 실행\n"
+            "  --host HOST            Web 서버 호스트 (기본: 127.0.0.1)\n"
+            "  --port PORT            Web 서버 포트 (기본: 7777)\n"
             "  -v, --version          버전 출력\n"
             "  -h, --help             이 도움말 출력\n"
         )
@@ -260,6 +276,13 @@ def main() -> None:
                 print(f"{s.session_id}")
 
         asyncio.run(_print_sessions())
+        return
+
+    # WebPlan → Web HUD 실행
+    if plan.kind == "web":
+        from jarvis.ui.web.startup import run_web
+        session_id = plan.session_id or "default"
+        run_web(ctx=ctx, extra=extra, session_id=session_id, host=plan.host, port=plan.port)
         return
 
     # TUIPlan or SessionResumePlan → TUI 실행

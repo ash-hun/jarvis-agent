@@ -45,5 +45,21 @@ services:
     tty: true
     profiles: ["app"]
 
+  # ── Web HUD 실행 ─────────────────────────────────────────────────────────────
+  jarvis-web:
+    build:
+      context: .
+      target: runtime
+    command: ["uv", "run", "jarvis", "--web", "--host", "0.0.0.0", "--port", "7777"]
+    env_file:
+      - .env
+    environment:
+      JARVIS_LLM__PROVIDER: ${JARVIS_LLM__PROVIDER:-anthropic}
+    ports:
+      - "7777:7777"
+    volumes:
+      - jarvis_data:/root/.jarvis
+    profiles: ["web"]
+
 volumes:
   jarvis_data:

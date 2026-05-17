@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JARVIS HUD</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="hud-root">
+
+    <!-- ── Header ── -->
+    <header class="hud-header">
+      <span class="logo">JARVIS</span>
+      <div class="divider"></div>
+      <span class="session-id" id="session-id">SESSION: —</span>
+      <span class="status-badge" id="status-badge">READY</span>
+      <span class="clock" id="clock">--:--:--</span>
+    </header>
+
+    <!-- ── Body ── -->
+    <main class="hud-body">
+
+      <!-- Canvas HUD Panel (40%) -->
+      <section class="canvas-panel">
+        <canvas id="hud-canvas"></canvas>
+
+        <!-- Tool execution overlay -->
+        <div class="tool-overlay" id="tool-overlay"></div>
+      </section>
+
+      <!-- Chat Panel (60%) -->
+      <section class="chat-panel">
+        <div class="chat-history" id="chat-history"></div>
+      </section>
+
+    </main>
+
+    <!-- ── Input Bar ── -->
+    <footer class="input-bar">
+      <button class="mic-btn" id="mic-btn" title="음성 입력">🎤</button>
+      <input
+        class="chat-input"
+        id="chat-input"
+        type="text"
+        placeholder="메시지를 입력하세요..."
+        autocomplete="off"
+        spellcheck="false"
+      >
+      <button class="send-btn" id="send-btn">SEND</button>
+    </footer>
+
+  </div><!-- /.hud-root -->
+
+  <!-- ── Approval Modal ── -->
+  <div class="approval-overlay hidden" id="approval-overlay">
+    <div class="approval-box">
+      <h3>⚡ AUTHORIZATION REQUIRED</h3>
+      <p class="approval-reason" id="approval-reason"></p>
+      <div class="approval-command" id="approval-command"></div>
+      <p class="approval-hint">이 명령을 허용하시겠습니까? (120초 후 자동 거부)</p>
+      <div class="approval-btns">
+        <button class="btn-allow" id="btn-allow">ALLOW</button>
+        <button class="btn-deny" id="btn-deny">DENY</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Connection Banner ── -->
+  <div class="connection-banner hidden" id="connection-banner">
+    ⚠ JARVIS 연결 끊김 — 재연결 중...
+  </div>
+
+  <script src="hud.js"></script>
+  <script src="voice.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

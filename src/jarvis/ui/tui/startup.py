@@ -3,7 +3,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 import sys
-from dataclasses import dataclass
+import uuid
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -87,13 +89,15 @@ class AppContext:
     session_repo: JsonlSessionRepo
     tool_registry: ToolRegistry
     settings: JarvisSettings
+    # Ctrl+N 새 세션 팩토리 — main()에서 주입
+    session_factory: Callable[[], Awaitable[AgentSession]] | None = field(default=None)
 
 
 # ── 팩토리 헬퍼 ───────────────────────────────────────────────────────────────
 
 
 def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
-    """공통 인프라를 생성하고 (AppContext, SecurityPipeline)을 반환."""
+    """공통 인프라를 생성하고 (AppContext, extra)를 반환."""
     from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
     from jarvis.agent_layer.memory.sqlite import SqliteMemory
     from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
@@ -132,6 +136,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     plugin_runner = PluginRunner()
 
     async def _async_setup() -> None:
+        # 개발 중 고정 세션 유지. 추후 UUID 방식으로 교체 예정.
         await session_repo.create(session_id="default")
 
         tools_dir = Path(settings.plugin.tools_dir).expanduser()
@@ -156,20 +161,18 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         settings=settings,
     )
 
-    _extra = {
+    _extra: dict[str, Any] = {
         "memory_chain": memory_chain,
         "pipeline": pipeline,
         "plugin_runner": plugin_runner,
         "skill_registry": skill_registry,
+        "sandbox": sandbox,  # approval_callback 나중에 주입용
     }
     return ctx, _extra
 
 
-def build_session(
-    plan: TUIPlan | SessionResumePlan,
-    ctx: AppContext,
-    extra: dict[str, Any],
-) -> AgentSession:
+def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]) -> AgentSession:
+    """주어진 session_id로 AgentSession을 생성한다."""
     from jarvis.core.session import AgentSession
     from jarvis.model_layer.types import ModelConfig
 
@@ -182,9 +185,6 @@ def build_session(
         temperature=settings.llm.temperature,
         max_tokens=settings.llm.max_tokens,
     )
-
-    session_id = getattr(plan, "session_id", None) or "default"
-
     return AgentSession(
         model=model,
         session_id=session_id,
@@ -195,6 +195,32 @@ def build_session(
         skill_registry=extra["skill_registry"],
         session_repo=ctx.session_repo,
     )
+
+
+def build_session(
+    plan: TUIPlan | SessionResumePlan,
+    ctx: AppContext,
+    extra: dict[str, Any],
+) -> AgentSession:
+    session_id = getattr(plan, "session_id", None) or "default"
+    return _build_agent_session(session_id, ctx, extra)
+
+
+def make_session_factory(
+    ctx: AppContext,
+    extra: dict[str, Any],
+) -> Callable[[], Awaitable[AgentSession]]:
+    """
+    Ctrl+N용 새 UUID 세션 팩토리를 반환한다.
+    반환된 callable은 async — TUI on_mount 이후에만 호출할 것.
+    """
+
+    async def _factory() -> AgentSession:
+        new_id = str(uuid.uuid4())
+        await ctx.session_repo.create(session_id=new_id)
+        return _build_agent_session(new_id, ctx, extra)
+
+    return _factory
 
 
 # ── main() 진입점 ─────────────────────────────────────────────────────────────
@@ -239,6 +265,11 @@ def main() -> None:
     # TUIPlan or SessionResumePlan → TUI 실행
     from jarvis.ui.tui.app import JarvisTUI
 
+    ctx.session_factory = make_session_factory(ctx, extra)
     session = build_session(plan, ctx, extra)
     app = JarvisTUI(session=session, ctx=ctx)
+
+    # ApprovalDialog를 sandbox의 approval_callback으로 연결
+    extra["sandbox"].set_approval_callback(app.request_approval)
+
     app.run()

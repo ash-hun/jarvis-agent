@@ -67,6 +67,7 @@ class JarvisTUI(App[None]):
         Binding("ctrl+c", "quit", "Quit", show=True),
         Binding("ctrl+k", "abort", "Abort", show=True),
         Binding("ctrl+b", "toggle_sidebar", "Sidebar", show=True),
+        Binding("ctrl+n", "new_session", "New Session", show=True),
     ]
 
     # Reactive 상태 — App 소유 (Warp: Entity 패턴)
@@ -137,6 +138,11 @@ class JarvisTUI(App[None]):
         assert self._chat is not None
 
         self._input.value = ""
+
+        if text == "/exit":
+            self.exit()
+            return
+
         self._input.disabled = True
         self._chat.add_user(text)
         self._stream_buffer = ""
@@ -210,6 +216,41 @@ class JarvisTUI(App[None]):
         self.sidebar_visible = not self.sidebar_visible
         sidebar = self.query_one("#sidebar", SidebarPane)
         sidebar.display = self.sidebar_visible
+
+    async def action_new_session(self) -> None:
+        """Ctrl+N: 새 UUID 세션을 생성하고 대화를 초기화한다."""
+        if self._ctx.session_factory is None:
+            return
+
+        assert self._chat is not None
+        assert self._status is not None
+        assert self._input is not None
+
+        self._status.set_status("Creating new session...")
+        self._input.disabled = True
+
+        try:
+            new_session = await self._ctx.session_factory()
+            new_session.subscribe(self._on_agent_event)
+            self._session = new_session
+            self._stream_buffer = ""
+            self._active_tools = []
+            self.is_streaming = False
+            self.active_tool_count = 0
+
+            self._chat.clear()
+            self._chat.write(
+                f"[bold]New session:[/bold] [dim]{new_session._session_id}[/dim]"
+            )
+            assert self._sidebar is not None
+            await self._sidebar.load_sessions(self._ctx.session_repo)
+            self._status.set_status("Ready")
+        except Exception as exc:
+            self._chat.add_error(f"Failed to create session: {exc}")
+            self._status.set_status("Ready")
+        finally:
+            self._input.disabled = False
+            self._input.focus()
 
 
 def main() -> None:

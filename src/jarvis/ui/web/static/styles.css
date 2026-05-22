@@ -284,6 +284,12 @@ body.sb-collapsed .collapse-btn .chev { transform: rotate(180deg); }
   box-shadow: 0 0 8px var(--cyan-glow);
 }
 .session.active .title { color: var(--cyan-bright); }
+.fork-btn {
+  margin-left: auto; background: none; border: 1px solid var(--hairline);
+  color: var(--text-dim); cursor: pointer; font-size: 11px; padding: 0 4px;
+  border-radius: 3px; line-height: 16px;
+}
+.fork-btn:hover { color: var(--cyan-bright); border-color: var(--cyan-bright); }
 
 .tools-list {
   display: flex; flex-direction: column; gap: 4px;

@@ -67,6 +67,7 @@ class JarvisTUI(App[None]):
         Binding("ctrl+k", "abort", "Abort", show=True),
         Binding("ctrl+b", "toggle_sidebar", "Sidebar", show=True),
         Binding("ctrl+n", "new_session", "New Session", show=True),
+        Binding("ctrl+f", "fork_session", "Fork Session", show=True),
     ]
 
     # Reactive 상태 — App 소유 (Warp: Entity 패턴)
@@ -126,6 +127,10 @@ class JarvisTUI(App[None]):
         self._chat.write("[bold]Jarvis ready.[/bold] Type a message to begin.")
         self._input.focus()
 
+        # 스케줄러 시작 (croniter 없으면 service 내부에서 skip)
+        if self._ctx.scheduler is not None:
+            self.run_worker(self._ctx.scheduler.start())
+
     # ── 입력 처리 ─────────────────────────────────────────────────────────────
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
@@ -145,6 +150,22 @@ class JarvisTUI(App[None]):
         self._input.disabled = True
         self._chat.add_user(text)
         self._stream_buffer = ""
+
+        # 슬래시 명령 인터셉트 — 텍스트 어디서나 /command 처리 후 나머지만 LLM으로 전달
+        if self._ctx.dispatcher is not None:
+            result = await self._ctx.dispatcher.dispatch(text)
+            for feedback in result.feedbacks:
+                self._chat.add_assistant(feedback)
+            if result.fully_consumed:
+                self._input.disabled = False
+                self._input.focus()
+                return
+            text = result.remaining_text
+
+        if not text.strip():
+            self._input.disabled = False
+            self._input.focus()
+            return
 
         self.run_worker(self._run_prompt(text))
 
@@ -251,6 +272,43 @@ class JarvisTUI(App[None]):
             self._status.set_status("Ready")
         except Exception as exc:
             self._chat.add_error(f"Failed to create session: {exc}")
+            self._status.set_status("Ready")
+        finally:
+            self._input.disabled = False
+            self._input.focus()
+
+    async def action_fork_session(self) -> None:
+        """Ctrl+F: 현재 세션을 포크하여 메시지 이력을 복사한 새 세션을 시작한다."""
+        if self._ctx.branch_factory is None:
+            return
+
+        assert self._chat is not None
+        assert self._status is not None
+        assert self._input is not None
+
+        self._status.set_status("Forking session...")
+        self._input.disabled = True
+
+        try:
+            parent_id = self._session._session_id
+            new_session = await self._ctx.branch_factory(parent_id)
+            new_session.subscribe(self._on_agent_event)
+            self._session = new_session
+            self._stream_buffer = ""
+            self._active_tools = []
+            self.is_streaming = False
+            self.active_tool_count = 0
+
+            self._chat.clear()
+            self._chat.write(
+                f"[bold]Forked from:[/bold] [dim]{parent_id}[/dim]\n"
+                f"[bold]New session:[/bold] [dim]{new_session._session_id}[/dim]"
+            )
+            assert self._sidebar is not None
+            await self._sidebar.load_sessions(self._ctx.session_repo)
+            self._status.set_status("Ready")
+        except Exception as exc:
+            self._chat.add_error(f"Failed to fork session: {exc}")
             self._status.set_status("Ready")
         finally:
             self._input.disabled = False

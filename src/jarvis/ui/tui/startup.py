@@ -12,7 +12,9 @@ from typing import TYPE_CHECKING, Any, Literal
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
     from jarvis.config import JarvisSettings
+    from jarvis.core.scheduler.service import SchedulerService
     from jarvis.core.session import AgentSession
+    from jarvis.core.slash.dispatcher import SlashCommandDispatcher
     from jarvis.core.tools.registry import ToolRegistry
 
 
@@ -104,6 +106,12 @@ class AppContext:
     settings: JarvisSettings
     # Ctrl+N 새 세션 팩토리 — main()에서 주입
     session_factory: Callable[[], Awaitable[AgentSession]] | None = field(default=None)
+    # Ctrl+F 브랜치 팩토리 — main()에서 주입
+    branch_factory: Callable[[str], Awaitable[AgentSession]] | None = field(default=None)
+    # 스케줄러 서비스 — _build_infra()에서 주입
+    scheduler: "SchedulerService | None" = field(default=None)
+    # 슬래시 명령 디스패처 — _build_infra()에서 주입
+    dispatcher: "SlashCommandDispatcher | None" = field(default=None)
 
 
 # ── 팩토리 헬퍼 ───────────────────────────────────────────────────────────────
@@ -188,6 +196,29 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
 
     asyncio.run(_async_setup())
 
+    # Scheduler 초기화 (croniter 없으면 graceful skip은 service._loop()에서 처리)
+    scheduler = None
+    if settings.scheduler.enabled:
+        from jarvis.core.scheduler.loader import load_tasks
+        from jarvis.core.scheduler.service import SchedulerService
+        from jarvis.model_layer.types import ModelConfig
+        sched_tasks = load_tasks(settings.scheduler.schedules_dir)
+        sched_model = ModelConfig(
+            provider=settings.llm.provider,
+            model=settings.llm.model,
+            api_key=settings.llm.api_key.get_secret_value() if settings.llm.api_key else None,
+            base_url=settings.llm.base_url,
+            temperature=settings.llm.temperature,
+            max_tokens=settings.llm.max_tokens,
+        )
+        scheduler = SchedulerService(
+            tasks=sched_tasks,
+            session_repo=session_repo,
+            tool_registry=tool_registry,
+            model=sched_model,
+            base_extra={},  # filled in after extra dict is built below
+        )
+
     ctx = AppContext(
         session_repo=session_repo,
         tool_registry=tool_registry,
@@ -201,6 +232,16 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         "skill_registry": skill_registry,
         "sandbox": sandbox,  # approval_callback 나중에 주입용
     }
+
+    # Scheduler의 base_extra를 채워 넣는다 (extra가 만들어진 이후)
+    if scheduler is not None:
+        scheduler._base_extra = _extra
+        ctx.scheduler = scheduler
+
+    # SlashCommandDispatcher 생성 (scheduler와 연결)
+    from jarvis.core.slash.dispatcher import SlashCommandDispatcher
+    ctx.dispatcher = SlashCommandDispatcher(scheduler=ctx.scheduler)
+
     return ctx, _extra
 
 
@@ -237,6 +278,29 @@ def build_session(
 ) -> AgentSession:
     session_id = getattr(plan, "session_id", None) or "default"
     return _build_agent_session(session_id, ctx, extra)
+
+
+def make_branch_factory(
+    ctx: AppContext,
+    extra: dict[str, Any],
+) -> Callable[[str], Awaitable[AgentSession]]:
+    """
+    Ctrl+F용 브랜치 팩토리.
+    parent_session_id를 받아 메시지를 복사한 새 AgentSession을 반환한다.
+    """
+
+    async def _factory(parent_session_id: str) -> AgentSession:
+        from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
+        repo = ctx.session_repo
+        if isinstance(repo, JsonlSessionRepo):
+            meta = await repo.create_branch(parent_session_id)
+        else:
+            # Fallback: plain new session without message copy
+            import uuid as _uuid
+            meta = await repo.create(session_id=str(_uuid.uuid4()))
+        return _build_agent_session(meta.session_id, ctx, extra)
+
+    return _factory
 
 
 def make_session_factory(
@@ -309,6 +373,7 @@ def main() -> None:
     from jarvis.ui.tui.app import JarvisTUI
 
     ctx.session_factory = make_session_factory(ctx, extra)
+    ctx.branch_factory = make_branch_factory(ctx, extra)
     session = build_session(plan, ctx, extra)
     app = JarvisTUI(session=session, ctx=ctx)
 

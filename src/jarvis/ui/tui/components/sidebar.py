@@ -7,7 +7,7 @@ from textual.containers import Vertical
 from textual.widgets import Label, ListItem, ListView
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
+    from jarvis.agent_layer.session.protocol import SessionRepo
     from jarvis.core.tools.registry import ToolRegistry
 
 
@@ -38,15 +38,34 @@ class SidebarPane(Vertical):
     }
     """
 
-    async def load_sessions(self, session_repo: JsonlSessionRepo) -> None:
-        """세션 레포에서 최근 세션 목록을 로드하여 사이드바에 표시."""
+    async def load_sessions(self, session_repo: SessionRepo) -> None:
+        """세션 레포에서 최근 세션 목록을 로드하여 트리 구조로 표시."""
         sessions = await session_repo.list()
         session_list = self.query_one("#session-list", ListView)
         await session_list.clear()
-        for meta in sessions[:10]:
-            short_id = meta.session_id[:14]
-            label = f"{short_id} ({meta.message_count})"
+
+        # Build tree: roots first, then children indented
+        roots = [s for s in sessions if s.parent_id is None]
+        children_map: dict[str, list] = {}
+        for s in sessions:
+            if s.parent_id is not None:
+                children_map.setdefault(s.parent_id, []).append(s)
+
+        shown = 0
+        for root in roots[:10]:
+            if shown >= 10:
+                break
+            short_id = root.session_id[:14]
+            label = f"{short_id} ({root.message_count})"
             session_list.append(ListItem(Label(label)))
+            shown += 1
+            for child in children_map.get(root.session_id, []):
+                if shown >= 10:
+                    break
+                short_id = child.session_id[:12]
+                label = f"↳ {short_id} ({child.message_count})"
+                session_list.append(ListItem(Label(label)))
+                shown += 1
 
     def load_tools(self, tool_registry: ToolRegistry) -> None:
         """도구 레지스트리에서 등록된 도구 목록을 표시."""

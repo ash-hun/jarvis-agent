@@ -75,6 +75,8 @@ def create_app(
     @app.on_event("startup")
     async def _startup() -> None:
         await manager.get_or_create(initial_session_id)
+        if ctx.scheduler is not None:
+            await ctx.scheduler.start()
 
     # ── REST: 세션 목록 / 생성 / 히스토리 ────────────────────────────────────
 
@@ -86,6 +88,19 @@ def create_app(
     async def create_session() -> JSONResponse:
         sid = await manager.create_new()
         return JSONResponse({"session_id": sid})
+
+    @app.post("/api/sessions/{session_id}/branch")  # type: ignore[untyped-decorator]
+    async def branch_session(session_id: str) -> JSONResponse:
+        from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
+        repo = ctx.session_repo
+        if isinstance(repo, JsonlSessionRepo):
+            meta = await repo.create_branch(session_id)
+        else:
+            new_sid = await manager.create_new()
+            return JSONResponse({"session_id": new_sid, "parent_id": None})
+        # Pre-create the AgentSession for the branch
+        await manager.get_or_create(meta.session_id)
+        return JSONResponse({"session_id": meta.session_id, "parent_id": meta.parent_id})
 
     @app.get("/api/sessions/{session_id}/messages")  # type: ignore[untyped-decorator]
     async def get_session_messages(session_id: str) -> JSONResponse:
@@ -137,7 +152,18 @@ def create_app(
                 if msg_type == "user_message":
                     text = msg.get("text", "").strip()
                     if text:
-                        asyncio.create_task(_run_prompt(session, adapter, text))
+                        # 슬래시 명령 인터셉트 — 텍스트 어디서나 /command 처리 후 나머지만 LLM으로 전달
+                        if ctx.dispatcher is not None:
+                            result = await ctx.dispatcher.dispatch(text)
+                            for feedback in result.feedbacks:
+                                await ws.send_json({"type": "agent_start"})
+                                await ws.send_json({"type": "stream_delta", "text": feedback})
+                                await ws.send_json({"type": "agent_end"})
+                            if result.fully_consumed:
+                                continue
+                            text = result.remaining_text
+                        if text.strip():
+                            asyncio.create_task(_run_prompt(session, adapter, text))
 
                 elif msg_type == "approval_response":
                     await adapter.handle_approval_response(

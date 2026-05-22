@@ -20,6 +20,7 @@ class SessionMetadata(BaseModel):
     created_at: int
     updated_at: int
     message_count: int
+    parent_id: str | None = None
 
 
 def deserialize_message(content: dict[str, Any]) -> Message | None:
@@ -48,3 +49,5 @@ class SessionRepo(Protocol):
     async def append(self, session_id: str, message: Message) -> str: ...
 
     async def delete(self, session_id: str) -> None: ...
+
+    async def create_branch(self, parent_session_id: str) -> SessionMetadata: ...

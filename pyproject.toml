@@ -64,6 +64,9 @@ mcp = [
 gemini = [
     "google-genai>=1.0.0",
 ]
+scheduler = [
+    "croniter>=2.0.0",
+]
 
 [project.scripts]
 jarvis = "jarvis.ui.tui.app:main"

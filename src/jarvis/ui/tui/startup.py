@@ -124,6 +124,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     from jarvis.core.tools.builtin.bash import BashTool
     from jarvis.core.tools.builtin.edit_file import EditFileTool
     from jarvis.core.tools.builtin.read_file import ReadFileTool
+    from jarvis.core.tools.builtin.web_search import WebSearchTool
     from jarvis.core.tools.builtin.write_file import WriteFileTool
     from jarvis.core.tools.loader import ToolLoader
     from jarvis.core.tools.registry import ToolRegistry
@@ -133,6 +134,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     tool_registry.register(ReadFileTool())
     tool_registry.register(WriteFileTool())
     tool_registry.register(EditFileTool())
+    tool_registry.register(WebSearchTool())
 
     memory_chain = MemoryMiddlewareChain(stages=[SqliteMemory(db_path=settings.memory.sqlite_path)])
 
@@ -178,6 +180,11 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         if plugins_dir.exists():
             plugin_loader = PluginLoader(plugin_runner)
             await plugin_loader.load_directory(str(plugins_dir))
+
+        if settings.mcp_servers:
+            from jarvis.core.tools.mcp_loader import MCPToolLoader
+            mcp_loader = MCPToolLoader(tool_registry)
+            await mcp_loader.load_servers(settings.mcp_servers)
 
     asyncio.run(_async_setup())
 

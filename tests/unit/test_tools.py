@@ -149,3 +149,80 @@ class TestReadFileTool:
         assert result.is_error is False
         lines = result.content[0].text.strip().split("\n")
         assert len(lines) == 5
+
+
+# ── WriteFileTool 테스트 ──────────────────────────────────────────────────────
+
+class TestWriteFileTool:
+    @pytest.fixture
+    def write_tool(self):
+        from jarvis.core.tools.builtin.write_file import WriteFileTool
+        return WriteFileTool()
+
+    async def test_write_new_file(self, write_tool, tmp_path):
+        f = tmp_path / "out.txt"
+        result = await write_tool.execute("c1", {"path": str(f), "content": "hello"})
+        assert result.is_error is False
+        assert f.read_text() == "hello"
+
+    async def test_overwrite_existing_file(self, write_tool, tmp_path):
+        f = tmp_path / "out.txt"
+        f.write_text("old content")
+        result = await write_tool.execute("c1", {"path": str(f), "content": "new content"})
+        assert result.is_error is False
+        assert f.read_text() == "new content"
+
+    async def test_creates_parent_directories(self, write_tool, tmp_path):
+        f = tmp_path / "a" / "b" / "c.txt"
+        result = await write_tool.execute("c1", {"path": str(f), "content": "deep"})
+        assert result.is_error is False
+        assert f.exists()
+
+    async def test_reports_bytes_written(self, write_tool, tmp_path):
+        f = tmp_path / "out.txt"
+        result = await write_tool.execute("c1", {"path": str(f), "content": "abc"})
+        assert "3" in result.content[0].text
+
+
+# ── EditFileTool 테스트 ───────────────────────────────────────────────────────
+
+class TestEditFileTool:
+    @pytest.fixture
+    def edit_tool(self):
+        from jarvis.core.tools.builtin.edit_file import EditFileTool
+        return EditFileTool()
+
+    async def test_replace_single_occurrence(self, edit_tool, tmp_path):
+        f = tmp_path / "code.py"
+        f.write_text("def foo():\n    pass\n")
+        result = await edit_tool.execute("c1", {"path": str(f), "old_string": "pass", "new_string": "return 42"})
+        assert result.is_error is False
+        assert "return 42" in f.read_text()
+
+    async def test_old_string_not_found(self, edit_tool, tmp_path):
+        f = tmp_path / "code.py"
+        f.write_text("def foo(): pass\n")
+        result = await edit_tool.execute("c1", {"path": str(f), "old_string": "MISSING", "new_string": "x"})
+        assert result.is_error is True
+        assert "not found" in result.content[0].text
+
+    async def test_ambiguous_without_replace_all(self, edit_tool, tmp_path):
+        f = tmp_path / "code.py"
+        f.write_text("x = 1\nx = 1\n")
+        result = await edit_tool.execute("c1", {"path": str(f), "old_string": "x = 1", "new_string": "y = 2"})
+        assert result.is_error is True
+        assert "replace_all" in result.content[0].text
+
+    async def test_replace_all(self, edit_tool, tmp_path):
+        f = tmp_path / "code.py"
+        f.write_text("x = 1\nx = 1\n")
+        result = await edit_tool.execute(
+            "c1", {"path": str(f), "old_string": "x = 1", "new_string": "y = 2", "replace_all": True}
+        )
+        assert result.is_error is False
+        assert f.read_text() == "y = 2\ny = 2\n"
+
+    async def test_file_not_found(self, edit_tool):
+        result = await edit_tool.execute("c1", {"path": "/nonexistent.py", "old_string": "x", "new_string": "y"})
+        assert result.is_error is True
+        assert "not found" in result.content[0].text

@@ -26,7 +26,7 @@ class SecurityConfig(BaseSettings):
     dangerous_commands: list[str] = Field(
         default_factory=lambda: ["rm -rf", "sudo", "curl | bash", "wget | bash", "> /dev/sda"]
     )
-    require_approval_for: list[str] = Field(default_factory=lambda: ["bash", "write_file"])
+    require_approval_for: list[str] = Field(default_factory=lambda: ["bash", "write_file", "edit_file"])
     input_max_length: int = 10_000
     jwt_secret: SecretStr | None = None
     jwt_algorithm: str = "HS256"
@@ -45,8 +45,9 @@ class MemoryConfig(BaseSettings):
 class SessionConfig(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
-    persistence_backend: Literal["jsonl", "sqlite"] = "jsonl"
+    persistence_backend: Literal["jsonl", "postgres"] = "jsonl"
     sessions_dir: str = "~/.jarvis/sessions"
+    postgres_dsn: str | None = None
 
 
 class UIConfig(BaseSettings):

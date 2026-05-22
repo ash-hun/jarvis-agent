@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
+    from jarvis.agent_layer.session.protocol import SessionRepo
     from jarvis.config import JarvisSettings
     from jarvis.core.session import AgentSession
     from jarvis.core.tools.registry import ToolRegistry
@@ -99,7 +99,7 @@ class AppContext:
     JarvisTUI.__init__()에 ctx 이름으로 전달 (마지막 파라미터).
     """
 
-    session_repo: JsonlSessionRepo
+    session_repo: "SessionRepo"
     tool_registry: ToolRegistry
     settings: JarvisSettings
     # Ctrl+N 새 세션 팩토리 — main()에서 주입
@@ -113,7 +113,6 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     """공통 인프라를 생성하고 (AppContext, extra)를 반환."""
     from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
     from jarvis.agent_layer.memory.sqlite import SqliteMemory
-    from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
     from jarvis.core.plugins.loader import PluginLoader
     from jarvis.core.plugins.runner import PluginRunner
     from jarvis.core.policy.authenticator import NoAuthAuthenticator
@@ -123,16 +122,30 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     from jarvis.core.policy.validator import DefaultInputValidator
     from jarvis.core.skills.registry import SkillRegistry
     from jarvis.core.tools.builtin.bash import BashTool
+    from jarvis.core.tools.builtin.edit_file import EditFileTool
     from jarvis.core.tools.builtin.read_file import ReadFileTool
+    from jarvis.core.tools.builtin.write_file import WriteFileTool
     from jarvis.core.tools.loader import ToolLoader
     from jarvis.core.tools.registry import ToolRegistry
 
     tool_registry = ToolRegistry()
     tool_registry.register(BashTool())
     tool_registry.register(ReadFileTool())
+    tool_registry.register(WriteFileTool())
+    tool_registry.register(EditFileTool())
 
     memory_chain = MemoryMiddlewareChain(stages=[SqliteMemory(db_path=settings.memory.sqlite_path)])
-    session_repo = JsonlSessionRepo(sessions_root=settings.session.sessions_dir)
+
+    if settings.session.persistence_backend == "postgres":
+        from jarvis.agent_layer.session.postgres import PostgresSessionRepo
+        if not settings.session.postgres_dsn:
+            raise ValueError(
+                "JARVIS_SESSION__POSTGRES_DSN must be set when persistence_backend=postgres"
+            )
+        session_repo = PostgresSessionRepo(dsn=settings.session.postgres_dsn)
+    else:
+        from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
+        session_repo = JsonlSessionRepo(sessions_root=settings.session.sessions_dir)
 
     sandbox = DefaultSandbox(
         dangerous_patterns=settings.security.dangerous_commands,

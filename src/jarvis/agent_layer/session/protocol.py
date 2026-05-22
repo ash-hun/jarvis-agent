@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Protocol, runtime_checkable
 from pydantic import BaseModel
 
-from jarvis.model_layer.types import Message
+from jarvis.model_layer.types import AssistantMessage, Message, ToolResultMessage, UserMessage
 
 
 class SessionEntry(BaseModel):
@@ -20,6 +20,21 @@ class SessionMetadata(BaseModel):
     created_at: int
     updated_at: int
     message_count: int
+
+
+def deserialize_message(content: dict[str, Any]) -> Message | None:
+    """role 필드 기준으로 dict → Message 타입 역직렬화."""
+    role = content.get("role")
+    try:
+        if role == "user":
+            return UserMessage.model_validate(content)
+        elif role == "assistant":
+            return AssistantMessage.model_validate(content)
+        elif role == "tool_result":
+            return ToolResultMessage.model_validate(content)
+    except Exception:
+        return None
+    return None
 
 
 @runtime_checkable

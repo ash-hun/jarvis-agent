@@ -55,6 +55,9 @@ vector-memory = [
     "chromadb>=0.5.0",
     "sentence-transformers>=3.0",
 ]
+postgres = [
+    "asyncpg>=0.30.0",
+]
 
 [project.scripts]
 jarvis = "jarvis.ui.tui.app:main"

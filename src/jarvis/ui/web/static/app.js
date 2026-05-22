@@ -141,13 +141,25 @@ function renderSessions(sessions) {
   list.innerHTML = '';
   document.getElementById('session-count').textContent = String(sessions.length).padStart(2, '0');
   for (const sid of sessions) {
+    const isActive = sid === _currentSessionId;
     const div = document.createElement('div');
-    div.className = `session${sid === _currentSessionId ? ' active' : ''}`;
+    div.className = `session${isActive ? ' active' : ''}`;
     div.innerHTML = `
       <span class="marker"></span>
       <span class="title">${escapeHtml(sid)}</span>
-      <span class="meta">${sid === _currentSessionId ? 'NOW' : ''}</span>`;
-    div.addEventListener('click', () => { if (sid !== _currentSessionId) connect(sid); });
+      <span class="meta">${isActive ? 'NOW' : ''}</span>
+      ${isActive ? '<button class="fork-btn" title="Fork session">⑂</button>' : ''}`;
+    div.querySelector('.title')?.addEventListener('click', () => {
+      if (!isActive) connect(sid);
+    });
+    if (isActive) {
+      div.querySelector('.fork-btn')?.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const res = await fetch(`/api/sessions/${encodeURIComponent(sid)}/branch`, { method: 'POST' });
+        const { session_id } = await res.json();
+        connect(session_id);
+      });
+    }
     list.appendChild(div);
   }
 }

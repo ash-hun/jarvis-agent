@@ -31,6 +31,12 @@ class JsonlSessionRepo:
     async def create(self, session_id: str | None = None, cwd: str = ".") -> SessionMetadata:
         self._root.mkdir(parents=True, exist_ok=True)
         sid = session_id or str(uuid.uuid4())
+        meta_path = self._meta_path(sid)
+        # Idempotent: return existing meta rather than overwriting
+        if meta_path.exists():
+            async with aiofiles.open(meta_path) as f:
+                data = json.loads(await f.read())
+            return SessionMetadata.model_validate(data)
         now = int(time.time() * 1000)
         meta = SessionMetadata(
             session_id=sid,
@@ -39,7 +45,7 @@ class JsonlSessionRepo:
             updated_at=now,
             message_count=0,
         )
-        async with aiofiles.open(self._meta_path(sid), "w") as f:
+        async with aiofiles.open(meta_path, "w") as f:
             await f.write(meta.model_dump_json())
         self._session_path(sid).touch()
         return meta
@@ -97,6 +103,40 @@ class JsonlSessionRepo:
     async def delete(self, session_id: str) -> None:
         self._session_path(session_id).unlink(missing_ok=True)
         self._meta_path(session_id).unlink(missing_ok=True)
+
+    async def create_branch(self, parent_session_id: str) -> SessionMetadata:
+        """부모 세션의 모든 메시지를 복사한 새 세션을 생성하고 parent_id를 설정한다."""
+        self._root.mkdir(parents=True, exist_ok=True)
+        branch_id = str(uuid.uuid4())
+        now = int(time.time() * 1000)
+
+        # Read parent messages
+        parent_messages = await self.get_messages(parent_session_id)
+
+        # Create branch JSONL by copying parent entries
+        branch_path = self._session_path(branch_id)
+        async with aiofiles.open(branch_path, "w") as f:
+            for msg in parent_messages:
+                entry = SessionEntry(
+                    id=str(uuid.uuid4()),
+                    parent_id=parent_session_id,
+                    timestamp=now,
+                    type="message",
+                    content=json.loads(msg.model_dump_json()),
+                )
+                await f.write(entry.model_dump_json() + "\n")
+
+        meta = SessionMetadata(
+            session_id=branch_id,
+            cwd=".",
+            created_at=now,
+            updated_at=now,
+            message_count=len(parent_messages),
+            parent_id=parent_session_id,
+        )
+        async with aiofiles.open(self._meta_path(branch_id), "w") as f:
+            await f.write(meta.model_dump_json())
+        return meta
 
     async def _update_meta(self, session_id: str) -> None:
         meta_path = self._meta_path(session_id)

@@ -42,6 +42,7 @@ class AnthropicProvider:
         )
 
         messages = _convert_messages(context)
+        _inject_cache_breakpoint(messages)
         tools = [t.to_llm_schema() for t in context.tools] if context.tools else []
 
         kwargs: dict = {
@@ -51,7 +52,7 @@ class AnthropicProvider:
             "temperature": model.temperature,
         }
         if context.system_prompt:
-            kwargs["system"] = context.system_prompt
+            kwargs["system"] = [{"type": "text", "text": context.system_prompt, "cache_control": {"type": "ephemeral"}}]
         if tools:
             kwargs["tools"] = tools
         if opts.enable_thinking:
@@ -114,6 +115,22 @@ class AnthropicProvider:
 
         except anthropic.APIError as exc:
             yield ErrorEvent(message=str(exc), code=str(getattr(exc, "status_code", None)))
+
+
+def _inject_cache_breakpoint(messages: list[dict]) -> None:
+    """두 번째-마지막 메시지의 마지막 content block에 cache_control 삽입.
+
+    이 지점까지의 히스토리를 캐시해서 매 턴마다 재전송 비용을 줄인다.
+    메시지가 2개 미만이면(현재 user 입력만 있는 첫 턴) 캐시 불필요.
+    """
+    if len(messages) < 2:
+        return
+    target = messages[-2]
+    content = target.get("content")
+    if isinstance(content, list) and content:
+        content[-1]["cache_control"] = {"type": "ephemeral"}
+    elif isinstance(content, str):
+        target["content"] = [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}]
 
 
 def _convert_messages(context: LLMContext) -> list[dict]:

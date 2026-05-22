@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import time
+from collections import deque
 from typing import Any, Awaitable, Callable
 
 from jarvis.agent_layer.harness import AgentHarness
@@ -8,7 +10,7 @@ from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.agent_layer.session.protocol import SessionRepo
 from jarvis.agent_layer.types import AgentEvent, AgentLoopConfig
 from jarvis.core.plugins.runner import PluginRunner
-from jarvis.core.policy.pipeline import AuthContext, PolicyResult, SecurityPipeline
+from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
 from jarvis.core.skills.registry import SkillRegistry
 from jarvis.core.tools.registry import ToolRegistry
 from jarvis.model_layer.types import AssistantMessage, ModelConfig, Tool
@@ -48,6 +50,8 @@ class AgentSession:
         self._skill_registry = skill_registry
         self._session_id = session_id
 
+        self._rate_counters: dict[str, deque[float]] = {}
+
         self._harness = AgentHarness(
             model=model,
             session_id=session_id,
@@ -75,6 +79,9 @@ class AgentSession:
                 [t.name for t in self._tool_registry.list_all()],
         )
 
+        if policy_result.rate_limit is not None:
+            self._check_rate_limit(auth_ctx.user_id, policy_result.rate_limit)
+
         expanded = self._skill_registry.expand(validated.sanitized)
 
         await self._plugins.emit_before_agent_start(expanded, {"session_id": self._session_id})
@@ -94,6 +101,20 @@ class AgentSession:
             result = await self._plugins.emit_on_message_end(result)
 
         return result
+
+    def _check_rate_limit(self, user_id: str, rate_limit: int, window: float = 60.0) -> None:
+        """슬라이딩 윈도우(window초)에서 rate_limit 초과 시 PolicyDenied."""
+        now = time.monotonic()
+        if user_id not in self._rate_counters:
+            self._rate_counters[user_id] = deque()
+        timestamps = self._rate_counters[user_id]
+        while timestamps and now - timestamps[0] > window:
+            timestamps.popleft()
+        if len(timestamps) >= rate_limit:
+            raise PolicyDenied(
+                f"Rate limit exceeded: {rate_limit} requests/{int(window)}s for user '{user_id}'"
+            )
+        timestamps.append(now)
 
     def abort(self) -> None:
         self._harness.abort()

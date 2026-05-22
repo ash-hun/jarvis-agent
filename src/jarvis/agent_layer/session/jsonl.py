@@ -8,8 +8,8 @@ from typing import Any
 
 import aiofiles
 
-from jarvis.agent_layer.session.protocol import SessionEntry, SessionMetadata
-from jarvis.model_layer.types import AssistantMessage, Message, ToolResultMessage, UserMessage
+from jarvis.agent_layer.session.protocol import SessionEntry, SessionMetadata, deserialize_message
+from jarvis.model_layer.types import Message
 
 
 class JsonlSessionRepo:
@@ -72,7 +72,7 @@ class JsonlSessionRepo:
                 try:
                     entry = SessionEntry.model_validate(json.loads(line))
                     if entry.type == "message":
-                        msg = _deserialize(entry.content)
+                        msg = deserialize_message(entry.content)
                         if msg:
                             messages.append(msg)
                 except Exception:
@@ -110,15 +110,3 @@ class JsonlSessionRepo:
             await f.write(json.dumps(data))
 
 
-def _deserialize(content: dict[str, Any]) -> Message | None:
-    role = content.get("role")
-    try:
-        if role == "user":
-            return UserMessage.model_validate(content)
-        elif role == "assistant":
-            return AssistantMessage.model_validate(content)
-        elif role == "tool_result":
-            return ToolResultMessage.model_validate(content)
-    except Exception:
-        return None
-    return None

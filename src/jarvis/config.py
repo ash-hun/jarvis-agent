@@ -1,9 +1,25 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import Field, SecretStr
+from pydantic import BaseModel, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class MCPServerConfig(BaseModel):
+    """MCP 서버 연결 설정. BaseModel (list 항목이라 BaseSettings 불필요)."""
+
+    name: str
+    transport: Literal["stdio", "http"] = "stdio"
+    command: list[str] = Field(default_factory=list)  # stdio transport용 명령
+    url: str | None = None  # http/sse transport용 엔드포인트
+    env: dict[str, Any] = Field(default_factory=dict)
+
+
+class WebSearchConfig(BaseSettings):
+    model_config = SettingsConfigDict(extra="ignore")
+
+    brave_api_key: SecretStr | None = None  # 미설정 시 DuckDuckGo fallback
 
 
 class LLMProviderConfig(BaseSettings):
@@ -87,6 +103,8 @@ class JarvisSettings(BaseSettings):
     session: SessionConfig = Field(default_factory=SessionConfig)
     ui: UIConfig = Field(default_factory=UIConfig)
     plugin: PluginConfig = Field(default_factory=PluginConfig)
+    web_search: WebSearchConfig = Field(default_factory=WebSearchConfig)
+    mcp_servers: list[MCPServerConfig] = Field(default_factory=list)
     debug: bool = False
     log_level: str = "INFO"
 

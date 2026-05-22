@@ -27,6 +27,7 @@ class ProviderRegistry:
 
 def build_default_registry() -> ProviderRegistry:
     from jarvis.model_layer.providers.anthropic import AnthropicProvider
+    from jarvis.model_layer.providers.gemini import GeminiProvider
     from jarvis.model_layer.providers.ollama import OllamaProvider
     from jarvis.model_layer.providers.openai import OpenAIProvider
     from jarvis.model_layer.providers.vllm import VLLMProvider
@@ -36,6 +37,7 @@ def build_default_registry() -> ProviderRegistry:
     registry.register(OpenAIProvider())
     registry.register(OllamaProvider())
     registry.register(VLLMProvider())
+    registry.register(GeminiProvider())
     return registry
 
 

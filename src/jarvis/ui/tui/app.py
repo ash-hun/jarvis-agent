@@ -340,7 +340,23 @@ class JarvisTUI(App[None]):
             case ShowErrorAction(message=m):
                 self._chat.add_error(m)
 
-    # ── UIAdapter.request_approval 구현 ───────────────────────────────────────
+    # ── UIAdapter Protocol 구현 ───────────────────────────────────────────────
+    # protocol.py의 UIAdapter와 메서드 시그니처 일치: on_agent_event, on_stream_text,
+    # request_approval, show_error
+
+    async def on_agent_event(self, event: AgentEvent) -> None:
+        """UIAdapter Protocol 구현 — session.subscribe 경로와 동일."""
+        await self._on_agent_event(event)
+
+    async def on_stream_text(self, delta: str) -> None:
+        """UIAdapter Protocol 구현 — 스트림 델타를 버퍼에 누적."""
+        self._stream_buffer += delta
+        self.is_streaming = True
+
+    async def show_error(self, error: str) -> None:
+        """UIAdapter Protocol 구현 — 에러 메시지를 채팅 영역에 표시."""
+        if self._chat is not None:
+            self._chat.add_error(error)
 
     async def request_approval(self, command: str, reason: str) -> bool:
         """ApprovalDialog 모달을 표시하고 사용자 결정을 반환."""

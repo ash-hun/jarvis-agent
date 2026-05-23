@@ -72,3 +72,6 @@ class PermissiveSandbox:
 
     async def request_approval(self, command: str, reason: str) -> bool:
         return True
+
+    def is_approval_required(self, tool_name: str) -> bool:
+        return False

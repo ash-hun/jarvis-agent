@@ -50,13 +50,12 @@ class SchedulerService:
         print(f"[Scheduler] Started with {self.task_count} enabled task(s)")
 
     async def stop(self) -> None:
+        import contextlib
         self._running = False
         if self._task_handle:
             self._task_handle.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task_handle
-            except asyncio.CancelledError:
-                pass
         print("[Scheduler] Stopped")
 
     async def _loop(self) -> None:
@@ -88,11 +87,17 @@ class SchedulerService:
                     # Fire if previous cron tick is within the last 60s and not yet run
                     if now - prev < 60 and last_run.get(task.name, 0) < prev:
                         last_run[task.name] = now
-                        asyncio.create_task(self._execute_task(task))
+                        t = asyncio.create_task(self._execute_task(task))
+                        t.add_done_callback(self._on_task_done)
                 except Exception as exc:
                     print(f"[Scheduler] Cron parse error for '{task.name}': {exc}")
 
             await asyncio.sleep(30)
+
+    def _on_task_done(self, future: asyncio.Task[None]) -> None:
+        """fire-and-forget task의 예외가 소실되지 않도록 로깅."""
+        if not future.cancelled() and (exc := future.exception()):
+            print(f"[Scheduler] Unhandled exception in background task: {exc!r}")
 
     async def _execute_task(self, task: ScheduledTask) -> None:
         from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain

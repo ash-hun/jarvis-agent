@@ -15,6 +15,7 @@
 
 from .blackboard import SharedBlackboard
 from .factory import AgentDefinition, AgentFactory
+from .loader import load_agent_definitions
 from .node import AgentNode
 from .orchestrators import (
     Bid,
@@ -59,7 +60,8 @@ __all__ = [
     "Bid",
     "BlackboardOrchestrator",
     "OrchestratorPipeline",
-    # 팩토리
+    # 팩토리 + 로더
     "AgentFactory",
     "AgentDefinition",
+    "load_agent_definitions",
 ]

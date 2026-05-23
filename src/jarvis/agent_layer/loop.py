@@ -42,12 +42,13 @@ async def run_agent_loop(
     emit: AgentEventSink,
     tool_executor: Callable[[str, str, dict[str, Any]], Awaitable[ToolResultMessage]] | None = None,
     signal: asyncio.Event | None = None,
+    agent_name: str | None = None,
 ) -> AssistantMessage | None:
     """
     Pi: runAgentLoop() 패턴.
     LLM 호출 → 툴 실행 → 반복. max_turns 초과 또는 stop 시 종료.
     """
-    await emit(AgentStartEvent(session_id=context.session_id, prompt=""))
+    await emit(AgentStartEvent(session_id=context.session_id, prompt="", agent_name=agent_name))
     final_message: AssistantMessage | None = None
 
     for turn in range(config.max_turns):
@@ -70,7 +71,12 @@ async def run_agent_loop(
         tool_results = await _execute_tools(tool_calls, tool_executor, config, emit, signal)
         context.messages.extend(tool_results)
 
-    await emit(AgentEndEvent(session_id=context.session_id, final_message=final_message, turns=turn + 1))
+    await emit(AgentEndEvent(
+        session_id=context.session_id,
+        final_message=final_message,
+        turns=turn + 1,
+        agent_name=agent_name,
+    ))
     return final_message
 
 

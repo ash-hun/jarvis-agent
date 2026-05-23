@@ -195,7 +195,11 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     skill_registry = SkillRegistry()
     plugin_runner = PluginRunner()
 
+    # _async_setup() 에서 수집된 에이전트 정의 — 클로저로 공유
+    _agent_defs: list[Any] = []
+
     async def _async_setup() -> None:
+        nonlocal _agent_defs
         # 개발 중 고정 세션 유지. 추후 UUID 방식으로 교체 예정.
         await session_repo.create(session_id="default")
 
@@ -217,6 +221,13 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
             from jarvis.core.tools.mcp_loader import MCPToolLoader
             mcp_loader = MCPToolLoader(tool_registry)
             await mcp_loader.load_servers(settings.mcp_servers)
+
+        # 에이전트 정의 로딩 + 서브 세션 사전 생성
+        if settings.agents.enabled:
+            from jarvis.core.multi_agent.loader import load_agent_definitions
+            _agent_defs = load_agent_definitions(settings.agents.agents_dir)
+            for defn in _agent_defs:
+                await session_repo.create(session_id=f"agent_{defn.name}")
 
     asyncio.run(_async_setup())
 
@@ -256,6 +267,16 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         scheduler._base_extra = _extra
         ctx.scheduler = scheduler
 
+    # YAML 에이전트 정의 → AgentNodeTool 등록 (extra 완성 후)
+    if settings.agents.enabled and _agent_defs:
+        for defn in _agent_defs:
+            try:
+                tool = _build_agent_node(defn, ctx, tool_registry, _extra)
+                tool_registry.register(tool)
+                print(f"[AgentLoader] Loaded agent: {defn.name} (tool: {tool.name})")
+            except Exception as exc:
+                print(f"[AgentLoader] Failed to load agent '{defn.name}': {exc}")
+
     # SlashCommandDispatcher 생성 (scheduler + LTM 연결)
     from jarvis.core.slash.dispatcher import SlashCommandDispatcher
     from jarvis.core.slash.remember_cmd import make_remember_handler
@@ -294,6 +315,73 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
         skill_registry=extra["skill_registry"],
         session_repo=ctx.session_repo,
     )
+
+
+def _build_agent_node(
+    defn: Any,
+    ctx: AppContext,
+    main_registry: Any,
+    extra: dict[str, Any],
+) -> Any:
+    """AgentDefinition → 격리된 AgentSession → AgentNode → AgentNodeTool.
+
+    각 에이전트는 독립된 AgentSession을 가진다:
+    - system_prompt: 에이전트 전용 역할 지시
+    - tool subset: defn.tools 목록만 허용 (빈 경우 전체 상속)
+    - model: defn.model_override 지정 가능 (None이면 메인 모델 상속)
+    """
+    from jarvis.core.multi_agent.factory import AgentFactory
+    from jarvis.core.multi_agent.tool import AgentNodeTool
+    from jarvis.core.session import AgentSession
+    from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.model_layer.types import ModelConfig
+
+    settings = ctx.settings
+    model_config: ModelConfig = extra["model_config"]
+
+    # 모델 오버라이드
+    if defn.model_override:
+        model = ModelConfig(
+            provider=settings.llm.provider,
+            model=defn.model_override,
+            api_key=settings.llm.api_key.get_secret_value() if settings.llm.api_key else None,
+            base_url=settings.llm.base_url,
+            temperature=settings.llm.temperature,
+            max_tokens=settings.llm.max_tokens,
+        )
+    else:
+        model = model_config
+
+    # 도구 서브셋 (미지정이면 메인 레지스트리 전체 공유)
+    if defn.tools:
+        agent_registry = ToolRegistry()
+        for tool_name in defn.tools:
+            t = main_registry.get(tool_name)
+            if t is not None:
+                agent_registry.register(t)
+    else:
+        agent_registry = main_registry
+
+    session = AgentSession(
+        model=model,
+        session_id=f"agent_{defn.name}",
+        security_pipeline=extra["pipeline"],
+        plugin_runner=extra["plugin_runner"],
+        memory_chain=extra["memory_chain"],
+        tool_registry=agent_registry,
+        skill_registry=extra["skill_registry"],
+        session_repo=ctx.session_repo,
+        system_prompt=defn.system_prompt,
+        agent_name=defn.name,
+    )
+
+    factory = AgentFactory()
+    node = factory.create(defn, session)
+    tool = AgentNodeTool(node)
+    # AgentDefinition.description을 LLM이 읽는 툴 설명으로 사용
+    if defn.description:
+        tool.description = defn.description
+    return tool
 
 
 def build_session(

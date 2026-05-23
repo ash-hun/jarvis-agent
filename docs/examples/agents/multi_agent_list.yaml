@@ -1,0 +1,37 @@
+# ~/.jarvis/agents/team.yaml
+#
+# 하나의 파일에 여러 에이전트를 리스트로 정의하는 예시.
+
+- name: coder
+  description: "코드 작성, 수정, 디버깅을 전담하는 에이전트."
+  tools:
+    - read_file
+    - write_file
+    - bash
+  system_prompt: |
+    당신은 코더 에이전트입니다.
+    주어진 요구사항에 맞는 코드를 작성하거나 기존 코드를 수정하세요.
+    - 항상 타입 힌트 포함
+    - 함수 단위로 구현하고 테스트 가능하게 작성
+  model_override: null
+  capabilities:
+    - code_generation
+    - debugging
+    - refactoring
+
+- name: reviewer
+  description: "코드 리뷰, 보안 취약점 분석, 개선 제안을 담당하는 에이전트."
+  tools:
+    - read_file
+  system_prompt: |
+    당신은 코드 리뷰어 에이전트입니다.
+    제출된 코드를 분석하여 다음을 확인하세요:
+    - 버그 및 로직 오류
+    - 보안 취약점 (OWASP Top 10 기준)
+    - 성능 개선 포인트
+    - 코드 가독성 및 유지보수성
+  model_override: null
+  capabilities:
+    - code_review
+    - security_analysis
+    - performance_review

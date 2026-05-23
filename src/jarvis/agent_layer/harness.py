@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from jarvis.agent_layer.loop import AgentEventSink, run_agent_loop
 from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.agent_layer.session.protocol import SessionRepo
 from jarvis.agent_layer.types import AgentContext, AgentEvent, AgentLoopConfig
-from jarvis.model_layer.types import AssistantMessage, Message, ModelConfig, Tool, ToolResultMessage
+from jarvis.model_layer.types import AssistantMessage, ModelConfig, Tool, ToolResultMessage
 
 
 class AgentHarness:
@@ -26,6 +27,7 @@ class AgentHarness:
         system_prompt: str | None = None,
         tools: list[Tool] | None = None,
         loop_config: AgentLoopConfig | None = None,
+        agent_name: str | None = None,
     ) -> None:
         self._model = model
         self._session_id = session_id
@@ -37,6 +39,7 @@ class AgentHarness:
         self._listeners: list[AgentEventSink] = []
         self._signal = asyncio.Event()
         self._running = False
+        self._agent_name: str | None = agent_name
 
     def subscribe(self, listener: AgentEventSink) -> Callable[[], None]:
         self._listeners.append(listener)
@@ -45,7 +48,7 @@ class AgentHarness:
         return unsubscribe
 
     async def _emit(self, event: AgentEvent) -> None:
-        await asyncio.gather(*[l(event) for l in self._listeners], return_exceptions=True)
+        await asyncio.gather(*[fn(event) for fn in self._listeners], return_exceptions=True)
 
     async def run(
         self,
@@ -84,6 +87,7 @@ class AgentHarness:
             emit=self._emit,
             tool_executor=tool_executor,
             signal=self._signal,
+            agent_name=self._agent_name,
         )
 
         if result:

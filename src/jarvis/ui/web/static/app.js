@@ -481,6 +481,14 @@ function sendApproval(id, approved) {
   hideApproval();
 }
 
+// ── Agent hierarchy stack ─────────────────────────────────────────────────────
+let _agentStack = []; // [{name: string|null}, ...] — 계층 추적용
+
+function _agentBreadcrumb() {
+  const names = _agentStack.map(a => a.name || '?').filter(Boolean);
+  return names.length ? names.join(' → ') : null;
+}
+
 // ── Message router ────────────────────────────────────────────────────────────
 function handleMessage(msg) {
   switch (msg.type) {
@@ -501,11 +509,15 @@ function handleMessage(msg) {
       break;
     }
 
-    case 'agent_start':
-      setStatus('THINKING', 'thinking');
+    case 'agent_start': {
+      const isRoot = _agentStack.length === 0;
+      _agentStack.push({ name: msg.agent_name || null });
+      const crumb = _agentBreadcrumb();
+      setStatus(crumb ? `THINKING · ${crumb}` : 'THINKING', 'thinking');
       HUD.setState('thinking');
-      streamStart();
+      if (isRoot) streamStart(); // 루트 에이전트만 메시지 컨테이너 초기화
       break;
+    }
 
     case 'message_update':
       if (msg.text_delta) streamDelta(msg.text_delta);
@@ -516,21 +528,28 @@ function handleMessage(msg) {
       break;
 
     case 'agent_end': {
-      streamEnd();
-      setStatus('READY');
-      HUD.setState('idle');
-      // 사용량 업데이트
-      const usage = msg.final_message?.usage;
-      if (usage) updateUsage(usage);
-      // Voice mode: TTS 완료까지 input 잠금 유지
-      if (_voiceMode && _lastStreamText) {
-        voice.setProcessing();
-        send({ type: 'voice_tts_request', text: _lastStreamText });
-        // input은 voice_tts_audio 처리 후 voice.onStateChange('idle')에서 복원
+      if (_agentStack.length > 0) _agentStack.pop();
+
+      if (_agentStack.length === 0) {
+        // 루트 에이전트 종료 — 메시지 확정 + 입력 복원
+        streamEnd();
+        setStatus('READY');
+        HUD.setState('idle');
+        const usage = msg.final_message?.usage;
+        if (usage) updateUsage(usage);
+        if (_voiceMode && _lastStreamText) {
+          voice.setProcessing();
+          send({ type: 'voice_tts_request', text: _lastStreamText });
+        } else {
+          setInputEnabled(true);
+        }
+        _voiceMode = false;
       } else {
-        setInputEnabled(true);
+        // 서브 에이전트 종료 — 부모 계층으로 복귀
+        const crumb = _agentBreadcrumb();
+        setStatus(crumb ? `THINKING · ${crumb}` : 'THINKING', 'thinking');
+        HUD.setState('thinking');
       }
-      _voiceMode = false;
       break;
     }
 

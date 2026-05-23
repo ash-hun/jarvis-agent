@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 import time
 from collections import deque
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from jarvis.agent_layer.harness import AgentHarness
 from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
@@ -13,8 +13,7 @@ from jarvis.core.plugins.runner import PluginRunner
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
 from jarvis.core.skills.registry import SkillRegistry
 from jarvis.core.tools.registry import ToolRegistry
-from jarvis.model_layer.types import AssistantMessage, ModelConfig, Tool
-
+from jarvis.model_layer.types import AssistantMessage, ModelConfig
 
 AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
 
@@ -43,6 +42,7 @@ class AgentSession:
         session_repo: SessionRepo,
         system_prompt: str | None = None,
         loop_config: AgentLoopConfig | None = None,
+        agent_name: str | None = None,
     ) -> None:
         self._security = security_pipeline
         self._plugins = plugin_runner
@@ -60,6 +60,7 @@ class AgentSession:
             system_prompt=system_prompt,
             tools=tool_registry.to_llm_tools(),
             loop_config=loop_config,
+            agent_name=agent_name,
         )
 
     def subscribe(self, listener: AgentEventSink) -> Callable[[], None]:
@@ -115,6 +116,14 @@ class AgentSession:
                 f"Rate limit exceeded: {rate_limit} requests/{int(window)}s for user '{user_id}'"
             )
         timestamps.append(now)
+
+    @property
+    def agent_name(self) -> str | None:
+        return self._harness._agent_name
+
+    @agent_name.setter
+    def agent_name(self, name: str | None) -> None:
+        self._harness._agent_name = name
 
     def abort(self) -> None:
         self._harness.abort()

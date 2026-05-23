@@ -119,8 +119,11 @@ class AppContext:
 
 def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     """공통 인프라를 생성하고 (AppContext, extra)를 반환."""
+    from jarvis.agent_layer.memory.backends.sqlite_ltm import SqliteLTMBackend
+    from jarvis.agent_layer.memory.backends.sqlite_stm import SqliteSTMBackend
     from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
-    from jarvis.agent_layer.memory.sqlite import SqliteMemory
+    from jarvis.agent_layer.memory.long_term import LongTermMemory
+    from jarvis.agent_layer.memory.short_term import ShortTermMemory
     from jarvis.core.plugins.loader import PluginLoader
     from jarvis.core.plugins.runner import PluginRunner
     from jarvis.core.policy.authenticator import NoAuthAuthenticator
@@ -144,7 +147,12 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     tool_registry.register(EditFileTool())
     tool_registry.register(WebSearchTool())
 
-    memory_chain = MemoryMiddlewareChain(stages=[SqliteMemory(db_path=settings.memory.sqlite_path)])
+    stm_backend = SqliteSTMBackend(db_path=settings.memory.sqlite_path)
+    ltm_backend = SqliteLTMBackend(db_path=settings.memory.ltm_sqlite_path)
+    memory_chain = MemoryMiddlewareChain(stages=[
+        ShortTermMemory(stm_backend),
+        LongTermMemory(ltm_backend),
+    ])
 
     if settings.session.persistence_backend == "postgres":
         from jarvis.agent_layer.session.postgres import PostgresSessionRepo
@@ -238,9 +246,16 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         scheduler._base_extra = _extra
         ctx.scheduler = scheduler
 
-    # SlashCommandDispatcher 생성 (scheduler와 연결)
+    # SlashCommandDispatcher 생성 (scheduler + LTM 연결)
     from jarvis.core.slash.dispatcher import SlashCommandDispatcher
+    from jarvis.core.slash.remember_cmd import make_remember_handler
+
     ctx.dispatcher = SlashCommandDispatcher(scheduler=ctx.scheduler)
+    ctx.dispatcher.register(
+        "remember",
+        make_remember_handler(ltm_backend),
+        "내용 저장/검색/삭제 (list | search <키워드> | forget <id>)",
+    )
 
     return ctx, _extra
 

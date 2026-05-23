@@ -408,7 +408,17 @@ function setSlashActive(idx) {
 function selectSlashItem(idx) {
   const cmd = _slashFiltered[idx];
   if (!cmd) return;
-  $input.value = '/' + cmd.name + ' ';
+  const ctx = getSlashContext();
+  if (ctx) {
+    // 커서 앞의 /fragment 만 /cmdname␣ 으로 교체, 뒤 텍스트는 보존
+    const val      = $input.value;
+    const inserted = '/' + cmd.name + ' ';
+    $input.value   = val.slice(0, ctx.slashStart) + inserted + val.slice(ctx.slashEnd);
+    const newPos   = ctx.slashStart + inserted.length;
+    $input.setSelectionRange(newPos, newPos);
+  } else {
+    $input.value = '/' + cmd.name + ' ';
+  }
   updateHighlight();
   hideSlashPopup();
   $input.focus();
@@ -447,14 +457,45 @@ function hideSlashPopup() {
   $slashPopup.classList.add('hidden');
 }
 
+// 커서 직전 텍스트에서 /command 컨텍스트 추출
+// 반환: { query, slashStart, slashEnd } 또는 null
+function getSlashContext() {
+  const val    = $input.value;
+  const cursor = $input.selectionStart ?? val.length;
+  const before = val.slice(0, cursor);
+  // /command 가 문장 맨앞이거나 공백 뒤에 위치할 때만 매칭
+  const m = before.match(/(?:^|\s)(\/([a-zA-Z0-9_?-]*))$/);
+  if (!m) return null;
+  const slashStart = cursor - m[1].length;
+  return { query: m[2].toLowerCase(), slashStart, slashEnd: cursor };
+}
+
 // Input event: update highlight + show/filter popup when typing /cmd
 $input.addEventListener('input', () => {
   updateHighlight();
-  const val   = $input.value;
-  const match = val.match(/^\/([a-zA-Z0-9_?-]*)$/);
-  if (match) {
-    const q        = match[1].toLowerCase();
-    const filtered = _slashCmds.filter(c => c.name.startsWith(q));
+  const ctx = getSlashContext();
+  if (ctx) {
+    const filtered = _slashCmds.filter(c => c.name.startsWith(ctx.query));
+    if (filtered.length > 0) { showSlashPopup(filtered); return; }
+  }
+  hideSlashPopup();
+});
+
+// 커서 이동(클릭, 방향키)으로 슬래시 컨텍스트가 바뀔 때도 팝업 재평가
+$input.addEventListener('keyup', (e) => {
+  if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+    const ctx = getSlashContext();
+    if (ctx) {
+      const filtered = _slashCmds.filter(c => c.name.startsWith(ctx.query));
+      if (filtered.length > 0) { showSlashPopup(filtered); return; }
+    }
+    hideSlashPopup();
+  }
+});
+$input.addEventListener('click', () => {
+  const ctx = getSlashContext();
+  if (ctx) {
+    const filtered = _slashCmds.filter(c => c.name.startsWith(ctx.query));
     if (filtered.length > 0) { showSlashPopup(filtered); return; }
   }
   hideSlashPopup();

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Protocol, runtime_checkable
-
+from typing import Protocol, runtime_checkable  # noqa: UP035
 
 # ── 파이프라인 데이터 타입 (불변) ─────────────────────────────────────────────
 
@@ -78,6 +77,7 @@ class PolicyEngineProtocol(Protocol):
 class SandboxProtocol(Protocol):
     async def approve(self, policy_result: PolicyResult, command: str) -> ApprovalResult: ...
     async def request_approval(self, command: str, reason: str) -> bool: ...
+    def is_approval_required(self, tool_name: str) -> bool: ...
 
 
 # ── SecurityPipeline 오케스트레이터 ──────────────────────────────────────────

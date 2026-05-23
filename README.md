@@ -1,123 +1,195 @@
 # Jarvis
 
-A personal AI assistant agent built on a layered, extensible harness — inspired by the architecture of [Pi Agent Harness](https://github.com/anthropics/anthropic-quickstarts). Built with Python 3.11+, Textual TUI, and a forced 4-stage security pipeline.
+개인 AI 비서 에이전트. 터미널 TUI와 브라우저 Web HUD 두 가지 모드로 동작하며, 멀티프로바이더 LLM · 멀티 에이전트 오케스트레이션 · 장기 메모리를 지원한다.
 
 <div align="center">
     <img src="./assets/screenshot.png" />
 </div>
 
+---
 
-```
-User Input → TUI → SecurityPipeline → AgentSession → AgentLoop → LLM (streaming)
-                        ↓
-              Validate → Authenticate → Policy → Sandbox
-```
+## UI 모드
 
-## Features
-
-- **Multi-provider LLM** — Anthropic, OpenAI, Google, Ollama, vLLM (local), easily extensible
-- **Pluggable memory middleware** — WindowMemory, SQLite persistence, LLM-based compaction, external DB adapters
-- **File-based tools & skills** — Drop a `.py` or `.yaml` file, hot-reloads automatically
-- **Forced security pipeline** — 4 ordered stages (input validation → auth → policy → sandbox), order cannot be bypassed
-- **JSONL session persistence** — Append-only, git-friendly, with parent-id threading
-- **Plugin hooks** — `before_tool_call`, `after_tool_call`, `transform_context`, etc.
-- **Textual TUI** — Rich terminal UI with streaming output, `ctrl+k` to abort
-- **Docker Compose** — Test and run without local setup
+| 모드 | 실행 | 특징 |
+|------|------|------|
+| **TUI** | `jarvis` | Textual 터미널 HUD, 스트리밍 출력, `ctrl+k` 중단 |
+| **Web HUD** | `jarvis --web` | Iron Man 스타일 Arc Reactor + 채팅, WebSocket 스트리밍 |
 
 ## Quick Start
 
-**Requirements:** Python 3.11+, [uv](https://docs.astral.sh/uv/)
+**요구사항:** Python 3.11+, [uv](https://docs.astral.sh/uv/)
 
 ```bash
-git clone https://github.com/your-username/jarvis.git
+git clone https://github.com/ash-hun/jarvis.git
 cd jarvis
 
 uv sync
 cp .env.example .env
-# Edit .env — at minimum set JARVIS_LLM__API_KEY
+# .env에서 최소 JARVIS_LLM__API_KEY 설정
 
-jarvis
+jarvis           # TUI 실행
+jarvis --web     # Web HUD 실행 (http://localhost:7777)
 ```
 
-### With Docker
+<details>
+<summary>Docker로 실행하기</summary>
 
 ```bash
-cp .env.example .env
-# Edit .env
+cp .env.example .env  # .env 설정
 
+# TUI (PostgreSQL 세션 포함)
 docker compose --profile app up jarvis
+
+# Web HUD 전체 스택 (nginx + backend + postgres)
+docker compose --profile web up
+
+# 종료
+docker compose --profile web down
 ```
 
-## Configuration
+| 프로파일 | 포함 서비스 | 접속 |
+|----------|------------|------|
+| `app` | jarvis TUI + postgres | 터미널 |
+| `web` | nginx + jarvis-backend + postgres | http://localhost:7777 |
 
-All settings are loaded from environment variables (prefix `JARVIS_`, nested delimiter `__`) or `.env`:
+</details>
+
+---
+
+## LLM 프로바이더
+
+| 프로바이더 | `JARVIS_LLM__PROVIDER` 값 | API 키 필요 |
+|-----------|--------------------------|------------|
+| Anthropic (Claude) | `anthropic` | ✅ |
+| OpenAI (GPT) | `openai` | ✅ |
+| Google (Gemini) | `google` | ✅ |
+| Ollama (로컬) | `ollama` | ❌ |
+| vLLM (로컬) | `vllm` | ❌ |
 
 ```bash
-# LLM Provider
-JARVIS_LLM__PROVIDER=anthropic        # anthropic | openai | google | ollama | vllm
+# Anthropic (기본)
+JARVIS_LLM__PROVIDER=anthropic
 JARVIS_LLM__MODEL=claude-sonnet-4-5
-JARVIS_LLM__API_KEY=sk-...
+JARVIS_LLM__API_KEY=sk-ant-...
 
-# Local models (no API key needed)
+# 로컬 모델 (API 키 불필요)
 JARVIS_LLM__PROVIDER=ollama
 JARVIS_LLM__BASE_URL=http://localhost:11434
 JARVIS_LLM__MODEL=llama3.2
-
-# Memory backend
-JARVIS_MEMORY__BACKEND=sqlite         # in_memory | sqlite | external
-
-# Disable auth (personal / dev use)
-JARVIS_SECURITY__REQUIRE_AUTH=false
 ```
 
-See [`.env.example`](.env.example) for all available options.
+---
 
-## Architecture
+## 주요 기능
+
+### 메모리 시스템
+
+| 계층 | 설명 |
+|------|------|
+| **STM (Short-Term)** | 슬라이딩 윈도우 + LLM 압축 — 컨텍스트 초과 방지 |
+| **LTM (Long-Term)** | SQLite 또는 외부 DB 영속화 — 세션 간 기억 유지 |
+| **Episodic** | 세션 종료 시 자동 요약 → LTM 저장 |
+
+```bash
+JARVIS_MEMORY__BACKEND=sqlite    # in_memory | sqlite | external
+```
+
+### 세션 관리
+
+- **JSONL** (기본, 로컬): append-only, git-friendly
+- **PostgreSQL** (Docker/운영): 풀 관리, 자동 스키마 생성
+- **세션 브랜치**: 특정 시점에서 대화를 분기해 실험 가능
+
+```bash
+jarvis -s <session_id>      # 기존 세션 재개
+jarvis --list-sessions      # 세션 목록
+```
+
+### 스케줄러
+
+자연어 또는 cron 표현식으로 작업 예약:
 
 ```
-config  ←  모든 레이어 (읽기 전용)
-model_layer  ←  agent_layer  ←  core  ←  ui
+/schedule 매일 오전 9시에 날씨 알려줘
+/schedule 0 9 * * * date && uptime
 ```
 
-| Layer | Path | Role |
-|-------|------|------|
-| `model_layer/` | `src/jarvis/model_layer/` | AsyncIterator-based multi-provider LLM abstraction |
-| `agent_layer/` | `src/jarvis/agent_layer/` | State management, memory middleware chain, JSONL session |
-| `core/` | `src/jarvis/core/` | Security pipeline, tool/skill/plugin registries, AgentSession |
-| `ui/` | `src/jarvis/ui/` | Textual TUI (decoupled via `UIAdapter` Protocol) |
+### 보안 파이프라인
 
-### Security Pipeline
-
-The pipeline runs in a fixed order — stages cannot be skipped or reordered:
+모든 입력은 4단계를 순서대로 통과한다. 순서 변경·스킵 불가.
 
 ```
 InputValidator → Authenticator → PolicyEngine → Sandbox
 ```
 
-| Stage | Default impl | What it does |
-|-------|--------------|--------------|
-| `InputValidator` | `DefaultInputValidator` | Length check, XSS patterns, Unicode normalization |
-| `Authenticator` | `NoAuthAuthenticator` | Always passes (for personal use); swap for `ApiKeyAuthenticator` or `JWTAuthenticator` |
-| `PolicyEngine` | `AllowAllPolicy` | Role-based tool access control |
-| `Sandbox` | `DefaultSandbox` | Blocks dangerous shell patterns, human-in-the-loop approval |
+---
 
-### Memory Middleware
+## 내장 도구 (Tools)
 
-Stages are applied sequentially via `MemoryMiddlewareChain`:
+| 도구 | 설명 |
+|------|------|
+| `bash` | 셸 명령 실행 (타임아웃, human-in-the-loop 승인) |
+| `read_file` | 파일 읽기 (라인 번호, offset/limit) |
+
+---
+
+## 슬래시 커맨드 (Skills)
+
+| 커맨드 | 별칭 | 설명 |
+|--------|------|------|
+| `/test` | `/t`, `/pytest` | 유닛 테스트 실행 및 결과 리포트 |
+| `/schedule` | — | 작업 예약 |
 
 ```
-[WindowMemory] → [CompactionMiddleware] → [SqliteMemory] → ...
+/test                          # 전체 테스트
+/test -k "test_policy"         # 키워드 필터
+/test tests/unit/test_config.py
 ```
 
-## Extending Jarvis
+---
 
-### Adding a Tool
+## 확장하기
 
-**Option 1 — Python file** (`~/.jarvis/tools/my_tool.py`):
+<details>
+<summary>새 LLM 프로바이더 추가</summary>
+
+1. `src/jarvis/model_layer/providers/` 아래에 `my_provider.py` 생성
+2. `AsyncIterator[StreamEvent]`를 반환하는 `stream()` 함수 구현
+3. `ProviderRegistry`에 등록
 
 ```python
+# src/jarvis/model_layer/providers/my_provider.py
+from collections.abc import AsyncIterator
+from jarvis.model_layer.types import LLMContext, ModelConfig, StreamEvent
+
+async def stream(model: ModelConfig, ctx: LLMContext, options) -> AsyncIterator[StreamEvent]:
+    # SDK 호출 → StreamEvent yield
+    yield TextDeltaEvent(delta="Hello")
+    yield StopEvent(reason="stop", usage=Usage())
+```
+
+```python
+# src/jarvis/model_layer/registry.py
+registry.register("my-provider", my_provider.stream)
+```
+
+```bash
+JARVIS_LLM__PROVIDER=my-provider
+```
+
+</details>
+
+<details>
+<summary>새 도구(Tool) 추가</summary>
+
+`~/.jarvis/tools/` 에 파일을 놓으면 핫리로드된다.
+
+**방식 1 — Python 파일:**
+
+```python
+# ~/.jarvis/tools/my_tool.py
 TOOL_NAME = "my-tool"
-TOOL_DESCRIPTION = "Does something useful"
+TOOL_DESCRIPTION = "유용한 작업 수행"
 TOOL_PARAMETERS = {
     "type": "object",
     "properties": {"query": {"type": "string"}},
@@ -125,16 +197,16 @@ TOOL_PARAMETERS = {
 }
 
 async def execute(tool_call_id: str, params: dict, **kwargs) -> dict:
-    return {"content": f"Result for: {params['query']}"}
+    return {"content": f"결과: {params['query']}"}
 ```
 
-**Option 2 — YAML + Python pair**:
+**방식 2 — YAML 선언:**
 
 ```yaml
-# my_tool.yaml
+# ~/.jarvis/tools/my_tool.yaml
 name: my-tool
-description: "Does something useful"
-execution_mode: parallel   # or sequential
+description: "유용한 작업 수행"
+execution_mode: parallel   # parallel | sequential
 parameters:
   type: object
   properties:
@@ -142,24 +214,41 @@ parameters:
   required: [query]
 ```
 
-Drop either format into `JARVIS_PLUGIN__TOOLS_DIR` (default `~/.jarvis/tools/`). Changes are hot-reloaded.
+</details>
 
-### Adding a Skill (`/command`)
+<details>
+<summary>새 슬래시 커맨드(Skill) 추가</summary>
+
+`~/.jarvis/skills/` 에 Markdown 파일을 놓는다.
 
 ```markdown
 ---
 name: summarize
-description: Summarize the given text
+description: 텍스트를 요약합니다
 aliases: [sum, tldr]
 ---
-Please summarize the following text concisely:
+다음 텍스트를 간결하게 요약해 주세요:
 
 {{args}}
 ```
 
-Save as `~/.jarvis/skills/summarize.md`. Usage: `/summarize <text>` or `/sum <text>`.
+사용: `/summarize <텍스트>` 또는 `/sum <텍스트>`
 
-### Adding a Plugin
+**고급 — Python 핸들러 연결:**
+
+```python
+# ~/.jarvis/skills/summarize.py  (같은 이름의 .py 파일)
+async def run(args: str, context) -> str:
+    # 커스텀 전처리 후 반환된 문자열이 LLM 프롬프트로 사용됨
+    return f"아래를 3줄로 요약:\n{args}"
+```
+
+</details>
+
+<details>
+<summary>새 플러그인(Plugin) 추가</summary>
+
+플러그인은 에이전트 실행 흐름에 훅을 걸 수 있다.
 
 ```python
 # ~/.jarvis/plugins/my_plugin.py
@@ -167,127 +256,203 @@ class MyPlugin:
     name = "my-plugin"
     version = "1.0.0"
 
+    async def before_agent_start(self, context): ...
     async def before_tool_call(self, tool_name: str, args: dict, auth) -> dict:
-        print(f"About to call: {tool_name}")
-        return args
-
+        print(f"툴 호출: {tool_name}")
+        return args  # 수정된 args 반환 가능
+    async def after_tool_call(self, tool_name: str, result: dict) -> dict:
+        return result
+    async def on_message_end(self, message): ...
     async def transform_context(self, messages: list) -> list:
-        return messages
+        return messages  # 컨텍스트 변형 가능
 ```
 
-Plugin hooks: `before_agent_start`, `before_tool_call`, `after_tool_call`, `on_message_end`, `transform_context`.
+파일을 놓으면 자동 감지·로드된다. `JARVIS_PLUGIN__PLUGINS_DIR` (기본: `~/.jarvis/plugins/`).
 
-### Adding a Memory Middleware
+</details>
+
+<details>
+<summary>멀티 에이전트 오케스트레이션</summary>
+
+YAML 파일로 에이전트를 선언하고 `~/.jarvis/agents/` 에 배치한다.
+
+**단일 에이전트 선언 (`researcher.yaml`):**
+
+```yaml
+name: researcher
+description: "웹 검색과 문서 분석을 담당하는 에이전트"
+enabled: true
+tools:
+  - web_search
+  - read_file
+system_prompt: |
+  당신은 리서처 에이전트입니다.
+  사용자의 질문에 답하기 위해 웹을 검색하고 문서를 분석합니다.
+model_override: null   # null이면 전역 설정 사용
+```
+
+**여러 에이전트를 한 파일에 (list 형식):**
+
+```yaml
+# ~/.jarvis/agents/team.yaml
+- name: coder
+  description: "코드 작성 전담 에이전트"
+  tools: [bash, read_file]
+  system_prompt: "당신은 Python 전문 코더입니다."
+
+- name: reviewer
+  description: "코드 리뷰 전담 에이전트"
+  tools: [read_file]
+  system_prompt: "당신은 시니어 코드 리뷰어입니다. 보안과 성능을 중점으로 리뷰합니다."
+```
+
+**오케스트레이션 로직 (AgentHarness 활용):**
+
+```python
+from jarvis.agent_layer.harness import AgentHarness
+
+# 두 에이전트를 순차 실행 (supervisor → worker 패턴)
+supervisor = AgentHarness(session=session, agent_name="supervisor")
+result = await supervisor.run("아래 코드를 리뷰해줘:\n" + code)
+
+worker = AgentHarness(session=session, agent_name="coder")
+fixed = await worker.run(f"리뷰 내용: {result}\n위 피드백으로 코드를 수정해줘")
+```
+
+**이벤트 계층 추적:**
+
+각 에이전트 이벤트는 `agent_name`을 포함한다. 중첩 에이전트 호출 시 부모-자식 관계를 UI에서 시각화한다.
+
+```python
+# AgentStartEvent, AgentEndEvent 모두 agent_name 포함
+AgentStartEvent(session_id="...", agent_name="researcher")
+AgentEndEvent(session_id="...", agent_name="researcher", turns=3)
+```
+
+</details>
+
+<details>
+<summary>메모리 미들웨어 추가</summary>
 
 ```python
 from jarvis.agent_layer.memory.protocol import MemoryMiddleware
 
 class MyMemory:
-    async def transform(self, messages, context): return messages
-    async def store(self, message, context): ...
-    async def retrieve(self, query, context, limit): return []
-    async def clear(self, context): ...
+    async def transform(self, messages, context):
+        # 메시지 리스트를 변형해서 반환
+        return messages
+
+    async def store(self, message, context):
+        # 메시지를 외부 저장소에 저장
+        ...
+
+    async def retrieve(self, query, context, limit):
+        # 관련 메모리 검색
+        return []
+
+    async def clear(self, context):
+        ...
 ```
 
-Register it in the `MemoryMiddlewareChain` during session setup.
+`MemoryMiddlewareChain`에 등록:
 
-## Built-in Skills
-
-Skills live in the [`skills/`](skills/) directory and are loaded automatically when `JARVIS_PLUGIN__SKILLS_DIR=./skills`.
-
-| Command | Aliases | Description |
-|---------|---------|-------------|
-| `/test` | `/t`, `/pytest`, `/ut` | Run the full unit test suite and report results |
-
-**Usage examples:**
-
-```
-/test                          → runs all unit tests
-/test -k "test_policy"         → runs only tests matching the keyword
-/test tests/unit/test_config.py → runs a specific file
+```python
+chain = MemoryMiddlewareChain([
+    WindowMemory(max_messages=20),
+    MyMemory(),          # 커스텀 미들웨어 삽입
+    SqliteMemory(db_path="~/.jarvis/memory.db"),
+])
 ```
 
-## Development
+</details>
+
+---
+
+## 설정 레퍼런스
+
+<details>
+<summary>전체 환경변수 목록</summary>
 
 ```bash
-uv sync                          # install deps (includes dev extras)
-uv run pytest                    # all tests (no real API calls)
-uv run pytest -k "test_policy"   # specific test
-uv run ruff check .              # lint
-uv run ruff format .             # format
-uv run mypy src/                 # type check
+# ── LLM ─────────────────────────────────────────────────────────────────────
+JARVIS_LLM__PROVIDER=anthropic        # anthropic | openai | google | ollama | vllm
+JARVIS_LLM__MODEL=claude-sonnet-4-5
+JARVIS_LLM__API_KEY=sk-ant-...
+JARVIS_LLM__BASE_URL=                 # Ollama/vLLM 전용
+JARVIS_LLM__MAX_TOKENS=4096
+JARVIS_LLM__TEMPERATURE=0.7
+
+# ── 메모리 ───────────────────────────────────────────────────────────────────
+JARVIS_MEMORY__BACKEND=in_memory      # in_memory | sqlite | external
+JARVIS_MEMORY__SQLITE_PATH=~/.jarvis/memory.db
+JARVIS_MEMORY__WINDOW_SIZE=20
+JARVIS_MEMORY__COMPACTION_THRESHOLD=30
+
+# ── 세션 영속성 ──────────────────────────────────────────────────────────────
+JARVIS_SESSION__BACKEND=jsonl         # jsonl | postgres
+JARVIS_SESSION__JSONL_DIR=~/.jarvis/sessions
+JARVIS_SESSION__POSTGRES_DSN=postgresql://user:pw@host:5432/db
+
+# ── 보안 ─────────────────────────────────────────────────────────────────────
+JARVIS_SECURITY__REQUIRE_AUTH=false   # true면 API 키 인증 강제
+JARVIS_SECURITY__ALLOWED_DIRS=        # Sandbox 허용 디렉토리 (콤마 구분)
+
+# ── 플러그인 ─────────────────────────────────────────────────────────────────
+JARVIS_PLUGIN__TOOLS_DIR=~/.jarvis/tools
+JARVIS_PLUGIN__SKILLS_DIR=~/.jarvis/skills
+JARVIS_PLUGIN__PLUGINS_DIR=~/.jarvis/plugins
+JARVIS_PLUGIN__AGENTS_DIR=~/.jarvis/agents
+
+# ── Web HUD ──────────────────────────────────────────────────────────────────
+JARVIS_WEB__HOST=127.0.0.1
+JARVIS_WEB__PORT=7777
 ```
 
-### Running Tests with Docker
+</details>
+
+---
+
+## 개발
 
 ```bash
-docker compose run --rm test
+uv sync                          # 의존성 설치 (dev 포함)
+uv run pytest                    # 전체 테스트 (실 API 호출 없음, 398개)
+uv run pytest -k "test_policy"   # 특정 테스트
+uv run ruff check .              # 린트
+uv run ruff format .             # 포매팅
+uv run mypy src/                 # 타입 체크
 ```
 
-Tests use a `FauxProvider` (no API calls) with `JARVIS_SECURITY__REQUIRE_AUTH=false` and `JARVIS_MEMORY__BACKEND=in_memory`.
-
-### Test Coverage
-
-```
-tests/unit/
-├── test_config.py      — Pydantic Settings, env override, secrets
-├── test_types.py       — Message/StreamEvent serialization
-├── test_stream.py      — FauxProvider streaming, stream_to_message()
-├── test_policy.py      — All 4 pipeline stages + SecurityPipeline end-to-end
-├── test_memory.py      — MemoryMiddlewareChain, WindowMemory, compaction
-├── test_tools.py       — ToolRegistry, BashTool, ReadFileTool
-├── test_skills.py      — SkillRegistry, /command expansion, file loading
-└── test_session.py     — AgentSession full flow (prompt, events, tools, abort)
-```
-
-## Project Structure
+<details>
+<summary>테스트 구조</summary>
 
 ```
-jarvis/
-├── src/jarvis/
-│   ├── config.py                      # Top-level Pydantic Settings
-│   ├── model_layer/                   # LLM abstraction
-│   │   ├── types.py                   # Message, StreamEvent, Tool
-│   │   ├── stream.py                  # stream() / stream_to_message()
-│   │   ├── registry.py                # ProviderRegistry
-│   │   └── providers/                 # anthropic, openai, ollama, vllm
-│   ├── agent_layer/                   # Stateful agent core
-│   │   ├── loop.py                    # run_agent_loop()
-│   │   ├── harness.py                 # AgentHarness
-│   │   ├── memory/                    # Middleware chain + implementations
-│   │   └── session/                   # JSONL session repo
-│   ├── core/                          # Application core
-│   │   ├── session.py                 # AgentSession (central hub)
-│   │   ├── policy/                    # 4-stage security pipeline
-│   │   ├── tools/                     # ToolRegistry + loader + builtins
-│   │   ├── skills/                    # SkillRegistry + /command expansion
-│   │   └── plugins/                   # PluginRunner + JarvisPlugin Protocol
-│   └── ui/
-│       ├── protocol.py                # UIAdapter Protocol
-│       └── tui/                       # Textual TUI app
-├── tests/
-│   ├── conftest.py                    # Shared fixtures (FauxProvider, AgentSession)
-│   ├── fixtures/faux_provider.py      # Test-only LLM provider
-│   └── unit/                          # Unit tests (97 tests, 0 API calls)
-├── Dockerfile                         # Multi-stage: base / test / runtime
-├── docker-compose.yml
-└── .env.example
+tests/
+├── unit/
+│   ├── test_config.py           Pydantic Settings, env override
+│   ├── test_types.py            Message/StreamEvent 직렬화
+│   ├── test_stream.py           FauxProvider 스트리밍
+│   ├── test_policy.py           보안 파이프라인 4단계
+│   ├── test_memory.py           MemoryMiddlewareChain
+│   ├── test_tools.py            ToolRegistry, BashTool, ReadFileTool
+│   ├── test_skills.py           SkillRegistry, /command 확장
+│   ├── test_session.py          AgentSession 전체 플로우
+│   └── test_multi_agent/
+│       └── test_loader.py       YAML 에이전트 정의 로더
+└── integration/
+    └── test_postgres_session_repo.py   PostgreSQL 세션 repo (testcontainers)
 ```
 
-## Built-in Tools
+**통합 테스트 실행 (Docker 필요):**
 
-| Tool | Description |
-|------|-------------|
-| `bash` | Run shell commands (sequential execution, timeout support) |
-| `read_file` | Read files with line numbers, offset/limit support |
+```bash
+uv sync  # testcontainers, asyncpg 포함
+uv run pytest tests/integration/ -v
+```
 
-## Roadmap
+</details>
 
-- [ ] Web UI (FastAPI + WebSocket, same `UIAdapter` Protocol)
-- [ ] Google provider implementation
-- [ ] Vector memory adapter (ChromaDB / pgvector)
-- [ ] MCP (Model Context Protocol) tool bridge
-- [ ] Session branching / tree navigation in TUI
+---
 
 ## License
 

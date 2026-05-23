@@ -88,13 +88,21 @@
     <form class="composer" id="composer">
       <label class="field-wrap">
         <span class="prompt">&gt;_</span>
-        <input
-          id="chat-input"
-          type="text"
-          placeholder="중앙 어시스턴트를 눌러 voice mode를 활성화하거나 메시지를 입력하세요."
-          autocomplete="off"
-          spellcheck="false"
-        >
+        <div class="input-wrapper">
+          <!-- Slash command popup (positioned above input) -->
+          <div class="slash-popup hidden" id="slash-popup" role="listbox" aria-label="slash commands"></div>
+          <!-- Highlight overlay: renders colored /command tokens behind the input -->
+          <div class="input-highlight" id="input-highlight" aria-hidden="true">
+            <span id="input-highlight-inner"></span>
+          </div>
+          <input
+            id="chat-input"
+            type="text"
+            placeholder="중앙 어시스턴트를 눌러 voice mode를 활성화하거나 메시지를 입력하세요."
+            autocomplete="off"
+            spellcheck="false"
+          >
+        </div>
       </label>
       <button class="send-btn" id="send-btn" type="submit">SEND ⏎</button>
     </form>

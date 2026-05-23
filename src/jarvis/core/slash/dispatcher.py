@@ -43,6 +43,11 @@ class SlashCommandDispatcher:
         self._handlers[name.lower()] = handler
         self._descriptions[name.lower()] = description
 
+    @property
+    def commands(self) -> dict[str, str]:
+        """등록된 명령 이름 → 설명 딕셔너리 (? alias 제외)."""
+        return {k: v for k, v in self._descriptions.items() if k != "?"}
+
     async def dispatch(self, text: str) -> ParseResult:
         """
         텍스트에서 /command 패턴을 모두 추출·실행한다.

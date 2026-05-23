@@ -24,6 +24,7 @@ from jarvis.ui.tui.bridge import (
 from jarvis.ui.tui.components.approval_dialog import ApprovalDialog
 from jarvis.ui.tui.components.chat_history import ChatHistory
 from jarvis.ui.tui.components.sidebar import SidebarPane
+from jarvis.ui.tui.components.slash_picker import SlashPicker
 from jarvis.ui.tui.components.status_bar import StatusBar
 from jarvis.ui.tui.state import ActiveTool
 
@@ -56,8 +57,25 @@ class JarvisTUI(App[None]):
         layout: vertical;
     }
 
+    #chat {
+        height: 1fr;
+    }
+
+    SlashPicker {
+        display: none;
+    }
+
+    SlashPicker.-visible {
+        display: block;
+    }
+
+    /* /command 입력 시 입력창 border를 cyan-bright로 강조 */
+    Input.-slash-mode {
+        border: tall $accent;
+        color: $accent;
+    }
+
     Input {
-        dock: bottom;
         margin: 0 1 1 1;
     }
     """
@@ -68,6 +86,8 @@ class JarvisTUI(App[None]):
         Binding("ctrl+b", "toggle_sidebar", "Sidebar", show=True),
         Binding("ctrl+n", "new_session", "New Session", show=True),
         Binding("ctrl+f", "fork_session", "Fork Session", show=True),
+        Binding("down", "picker_down", "Picker", show=False),
+        Binding("escape", "picker_close", "Close Picker", show=False),
     ]
 
     # Reactive 상태 — App 소유 (Warp: Entity 패턴)
@@ -97,6 +117,7 @@ class JarvisTUI(App[None]):
         self._sidebar: SidebarPane | None = None
         self._status: StatusBar | None = None
         self._input: Input | None = None
+        self._picker: SlashPicker | None = None
 
         session.subscribe(self._on_agent_event)
 
@@ -106,10 +127,11 @@ class JarvisTUI(App[None]):
             yield SidebarPane(id="sidebar")
             with Vertical(id="main-pane"):
                 yield ChatHistory(id="chat", markup=True, highlight=True, wrap=True)
-        yield Input(
-            placeholder="Type your message... (Ctrl+K abort, Ctrl+B sidebar)",
-            id="input",
-        )
+                yield SlashPicker(id="slash-picker")
+                yield Input(
+                    placeholder="Type your message... (↓ picker, Ctrl+K abort, Ctrl+B sidebar)",
+                    id="input",
+                )
         yield StatusBar(id="status")
         yield Footer()
 
@@ -119,6 +141,7 @@ class JarvisTUI(App[None]):
         self._sidebar = self.query_one("#sidebar", SidebarPane)
         self._status = self.query_one("#status", StatusBar)
         self._input = self.query_one("#input", Input)
+        self._picker = self.query_one("#slash-picker", SlashPicker)
 
         # 사이드바 초기 데이터 로딩
         await self._sidebar.load_sessions(self._ctx.session_repo)
@@ -130,6 +153,71 @@ class JarvisTUI(App[None]):
         # 스케줄러 시작 (croniter 없으면 service 내부에서 skip)
         if self._ctx.scheduler is not None:
             self.run_worker(self._ctx.scheduler.start())
+
+    # ── 슬래시 명령 picker ────────────────────────────────────────────────────
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        """'/' 입력 시 picker를 표시하고, 그 외에는 숨긴다."""
+        if self._picker is None or self._input is None or self._ctx.dispatcher is None:
+            return
+
+        val   = event.value
+        match = None
+        import re
+        m = re.match(r"^/([a-zA-Z0-9_?-]*)$", val)
+        if m:
+            match = m.group(1)
+
+        if match is not None:
+            self._picker.populate(self._ctx.dispatcher.commands, query=match)
+            if self._picker.option_count > 0:
+                self._picker.add_class("-visible")
+                self._input.add_class("-slash-mode")
+                return
+
+        self._picker.remove_class("-visible")
+        self._input.remove_class("-slash-mode")
+
+    def _apply_picker_selection(self) -> None:
+        """현재 picker에서 하이라이트된 옵션을 Input에 삽입하고 picker를 닫는다."""
+        if self._picker is None or self._input is None:
+            return
+        highlighted = self._picker.highlighted
+        if highlighted is None:
+            return
+        opt = self._picker.get_option_at_index(highlighted)
+        if opt and opt.id:
+            self._input.value = f"/{opt.id} "
+            self._input.action_end()  # 커서를 맨 끝으로 이동
+        self._picker.remove_class("-visible")
+        self._input.remove_class("-slash-mode")
+        self._input.focus()
+
+    def on_option_list_option_selected(self, event: SlashPicker.OptionSelected) -> None:
+        """Enter/Space로 picker 항목 선택 시 Input에 명령어를 채운다."""
+        if self._picker is None or self._input is None:
+            return
+        if event.option.id:
+            self._input.value = f"/{event.option.id} "
+            self._input.action_end()
+        self._picker.remove_class("-visible")
+        self._input.remove_class("-slash-mode")
+        self._input.focus()
+
+    def action_picker_down(self) -> None:
+        """↓ 키: picker가 열려 있으면 picker로 포커스 이동."""
+        if self._picker is None:
+            return
+        if self._picker.has_class("-visible"):
+            self._picker.focus()
+
+    def action_picker_close(self) -> None:
+        """Escape: picker를 닫고 Input으로 복귀."""
+        if self._picker is None or self._input is None:
+            return
+        self._picker.remove_class("-visible")
+        self._input.remove_class("-slash-mode")
+        self._input.focus()
 
     # ── 입력 처리 ─────────────────────────────────────────────────────────────
 

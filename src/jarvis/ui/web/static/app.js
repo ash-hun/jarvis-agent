@@ -1,9 +1,12 @@
 'use strict';
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
-const $messages       = document.getElementById('messages');
-const $input          = document.getElementById('chat-input');
-const $sendBtn        = document.getElementById('send-btn');
+const $messages          = document.getElementById('messages');
+const $input             = document.getElementById('chat-input');
+const $sendBtn           = document.getElementById('send-btn');
+const $slashPopup        = document.getElementById('slash-popup');
+const $inputHighlight    = document.getElementById('input-highlight');
+const $inputHighlightInner = document.getElementById('input-highlight-inner');
 const $clock          = document.getElementById('clock');
 const $statusText     = document.getElementById('status-text');
 const $statusTick     = document.getElementById('status-tick');
@@ -277,6 +280,7 @@ function handleMessage(msg) {
       if ($ftModel) $ftModel.textContent = model;
       if ($sbModel) $sbModel.textContent = model;
       if (msg.sessions) renderSessions(msg.sessions);
+      if (msg.slash_commands) _slashCmds = msg.slash_commands;
       setStatus('READY');
       setInputEnabled(true);
       HUD.setState('idle');
@@ -367,18 +371,145 @@ function handleMessage(msg) {
   }
 }
 
+// ── Slash command interaction ─────────────────────────────────────────────────
+let _slashCmds     = [];  // [{name, description}, ...] — fetched from server
+let _slashFiltered = [];  // currently shown subset
+let _slashVisible  = false;
+let _slashIdx      = -1;
+
+const _CMD_HIGHLIGHT_RE = /(?<!\S)\/([a-zA-Z?][a-zA-Z0-9_-]*)/g;
+
+function buildHighlightHtml(text) {
+  let result = '';
+  let lastIdx = 0;
+  let m;
+  _CMD_HIGHLIGHT_RE.lastIndex = 0;
+  while ((m = _CMD_HIGHLIGHT_RE.exec(text)) !== null) {
+    result += escapeHtml(text.slice(lastIdx, m.index));
+    result += `<span class="slash-token">${escapeHtml(m[0])}</span>`;
+    lastIdx = m.index + m[0].length;
+  }
+  result += escapeHtml(text.slice(lastIdx));
+  return result;
+}
+
+function updateHighlight() {
+  $inputHighlightInner.innerHTML = buildHighlightHtml($input.value);
+  $inputHighlightInner.style.transform = `translateX(-${$input.scrollLeft}px)`;
+}
+
+function setSlashActive(idx) {
+  _slashIdx = idx;
+  $slashPopup.querySelectorAll('.slash-item').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+}
+
+function selectSlashItem(idx) {
+  const cmd = _slashFiltered[idx];
+  if (!cmd) return;
+  $input.value = '/' + cmd.name + ' ';
+  updateHighlight();
+  hideSlashPopup();
+  $input.focus();
+}
+
+function showSlashPopup(cmds) {
+  _slashFiltered = cmds;
+  $slashPopup.innerHTML =
+    '<div class="slash-popup-head">SLASH COMMANDS</div>';
+
+  cmds.forEach((cmd, i) => {
+    const item = document.createElement('div');
+    item.className = 'slash-item';
+    item.setAttribute('role', 'option');
+    item.innerHTML =
+      `<span class="cmd-name">/${escapeHtml(cmd.name)}</span>` +
+      `<span class="cmd-desc">${escapeHtml(cmd.description || '')}</span>`;
+
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault(); // keep input focus
+      selectSlashItem(i);
+    });
+    item.addEventListener('mousemove', () => setSlashActive(i));
+    $slashPopup.appendChild(item);
+  });
+
+  _slashVisible = true;
+  $slashPopup.classList.remove('hidden');
+  setSlashActive(0);
+}
+
+function hideSlashPopup() {
+  _slashVisible = false;
+  _slashIdx     = -1;
+  _slashFiltered = [];
+  $slashPopup.classList.add('hidden');
+}
+
+// Input event: update highlight + show/filter popup when typing /cmd
+$input.addEventListener('input', () => {
+  updateHighlight();
+  const val   = $input.value;
+  const match = val.match(/^\/([a-zA-Z0-9_?-]*)$/);
+  if (match) {
+    const q        = match[1].toLowerCase();
+    const filtered = _slashCmds.filter(c => c.name.startsWith(q));
+    if (filtered.length > 0) { showSlashPopup(filtered); return; }
+  }
+  hideSlashPopup();
+});
+
+// Scroll sync between input and highlight overlay
+$input.addEventListener('scroll', updateHighlight);
+
+// Keyboard navigation inside popup
+$input.addEventListener('keydown', (e) => {
+  if (!_slashVisible) return;
+  const n = _slashFiltered.length;
+  if (n === 0) return;
+
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault();
+      setSlashActive((_slashIdx + 1) % n);
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      setSlashActive((_slashIdx - 1 + n) % n);
+      break;
+    case 'Tab':
+    case 'Enter':
+      e.preventDefault();
+      selectSlashItem(_slashIdx);
+      break;
+    case 'Escape':
+      e.preventDefault();
+      hideSlashPopup();
+      break;
+  }
+});
+
+// Close popup on blur (mousedown on items uses preventDefault so blur won't fire for those)
+$input.addEventListener('blur', () => {
+  setTimeout(hideSlashPopup, 150);
+});
+
 // ── Input handling ────────────────────────────────────────────────────────────
 function setInputEnabled(enabled) {
-  $input.disabled   = !enabled;
-  $sendBtn.disabled = !enabled;
+  $input.disabled                = !enabled;
+  $sendBtn.disabled              = !enabled;
+  $inputHighlight.style.opacity  = enabled ? '1' : '0.4';
   if (enabled) $input.focus();
 }
 
 function submitMessage() {
   const text = $input.value.trim();
   if (!text) return;
+  if (_slashVisible) return; // popup open — let keydown handle it
   appendMsg('USER', 'user', escapeHtml(text));
   $input.value = '';
+  updateHighlight();
   setInputEnabled(false);
   send({ type: 'user_message', text });
 }

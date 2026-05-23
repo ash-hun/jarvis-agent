@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -12,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 if TYPE_CHECKING:
     from jarvis.core.session import AgentSession
     from jarvis.ui.tui.startup import AppContext
+    from jarvis.voice.service import VoiceService
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -71,6 +73,18 @@ def create_app(
 ) -> FastAPI:
     app = FastAPI(title="Jarvis HUD", docs_url=None, redoc_url=None)
     manager = SessionManager(ctx, base_extra)
+
+    # Voice service — lazy init from config
+    voice_service: VoiceService | None = None
+    try:
+        from jarvis.voice.service import VoiceService as _VS
+        v = ctx.settings.voice
+        voice_service = _VS.from_config(
+            stt_provider=v.stt_provider,
+            tts_provider=v.tts_provider,
+        )
+    except Exception:
+        pass
 
     @app.on_event("startup")
     async def _startup() -> None:
@@ -185,6 +199,12 @@ def create_app(
                         approved=bool(msg.get("approved", False)),
                     )
 
+                elif msg_type == "voice_tts_request":
+                    text = msg.get("text", "").strip()
+                    lang = msg.get("lang", ctx.settings.voice.tts_lang)
+                    if text and voice_service:
+                        asyncio.create_task(_run_tts(ws, voice_service, text, lang))
+
                 elif msg_type == "abort":
                     session.abort()
 
@@ -205,3 +225,26 @@ async def _run_prompt(session: Any, adapter: Any, text: str) -> None:
         await session.prompt(text)
     except Exception as exc:
         await adapter.show_error(str(exc))
+
+
+async def _run_tts(ws: Any, voice_service: Any, text: str, lang: str) -> None:
+    try:
+        audio_bytes = await voice_service.synthesize(text, lang)
+        if audio_bytes:
+            await ws.send_json({
+                "type": "voice_tts_audio",
+                "data": base64.b64encode(audio_bytes).decode(),
+                "mime": "audio/wav",
+            })
+        else:
+            # BrowserTTSProvider — 클라이언트가 Web Speech API로 읽어야 함
+            await ws.send_json({
+                "type": "voice_tts_audio",
+                "data": "",
+                "text": text,
+            })
+    except Exception as exc:
+        try:
+            await ws.send_json({"type": "error", "message": f"TTS 오류: {exc}"})
+        except Exception:
+            pass

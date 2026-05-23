@@ -44,6 +44,10 @@ function simulate() {
       0.4 + 0.3 * Math.sin(_simT * 2.1) + 0.15 * Math.sin(_simT * 4.4)));
   } else if (hudState === 'error') {
     targetLevel = 0.15 + 0.1 * Math.sin(_simT * 3);
+  } else if (hudState === 'listening') {
+    targetLevel = 0.08 + 0.06 * Math.sin(_simT * 1.4);
+  } else if (hudState === 'speaking') {
+    targetLevel = 0.2 + 0.14 * Math.abs(Math.sin(_simT * 3.2));
   } else {
     targetLevel = 0.04 + Math.max(0, Math.sin(_simT * 0.6)) * 0.04;
   }
@@ -107,9 +111,12 @@ function draw(ts) {
   const waveAmp = hudState === 'thinking'    ? 0.52
                 : hudState === 'tool_running' ? 0.42
                 : hudState === 'error'        ? 0.25
+                : hudState === 'listening'    ? 0.20
+                : hudState === 'speaking'     ? 0.38
                 : 0.32;
   const rotSpd  = hudState === 'thinking'    ? 0.005
                 : hudState === 'tool_running' ? 0.004
+                : hudState === 'speaking'     ? 0.006
                 : 0.0022;
   const tSec    = ts / 1000;
 
@@ -188,11 +195,6 @@ function draw(ts) {
   requestAnimationFrame(draw);
 }
 requestAnimationFrame(draw);
-
-// ── Sphere click → voice toggle ───────────────────────────────────────────────
-document.getElementById('sphere-hit').addEventListener('click', () => {
-  if (window.voiceManager) window.voiceManager.toggle();
-});
 
 // ── Public API ────────────────────────────────────────────────────────────────
 window.HUD = { setState(s) { hudState = s; } };

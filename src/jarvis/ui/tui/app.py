@@ -14,6 +14,8 @@ from textual.widgets import Footer, Header, Input
 from jarvis.agent_layer.types import AgentEvent
 from jarvis.core.session import AgentSession
 from jarvis.ui.tui.bridge import (
+    AgentPopAction,
+    AgentPushAction,
     AppendStreamAction,
     EventBridge,
     FlushStreamAction,
@@ -114,6 +116,7 @@ class JarvisTUI(App[None]):
         # 내부 상태 (순수 Python, Textual 독립)
         self._stream_buffer = ""
         self._active_tools: list[ActiveTool] = []
+        self._agent_stack: list[str] = []  # 계층 추적: ["main", "researcher", ...]
 
         # 위젯 핸들 선언 — on_mount()에서 확정 (Warp: ViewHandle 패턴)
         self._chat: ChatHistory | None = None
@@ -339,6 +342,20 @@ class JarvisTUI(App[None]):
 
             case ShowErrorAction(message=m):
                 self._chat.add_error(m)
+
+            case AgentPushAction(agent_name=name):
+                self._agent_stack.append(name)
+                breadcrumb = " → ".join(self._agent_stack)
+                self._status.set_status(f"Thinking… [{breadcrumb}]")
+
+            case AgentPopAction():
+                if self._agent_stack:
+                    self._agent_stack.pop()
+                if self._agent_stack:
+                    breadcrumb = " → ".join(self._agent_stack)
+                    self._status.set_status(f"Thinking… [{breadcrumb}]")
+                else:
+                    self._status.set_status("Ready")
 
     # ── UIAdapter Protocol 구현 ───────────────────────────────────────────────
     # protocol.py의 UIAdapter와 메서드 시그니처 일치: on_agent_event, on_stream_text,

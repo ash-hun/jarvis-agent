@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextlib
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -65,6 +66,22 @@ class SessionManager:
     def list_ids(self) -> list[str]:
         return list(self._sessions.keys())
 
+    async def save_all_sessions(self, stm: Any, ltm: Any, model: Any) -> None:
+        """서버 종료 시 모든 활성 세션의 에피소딕 요약을 LTM에 저장한다."""
+        from jarvis.agent_layer.memory.episodic import EpisodicSummarizer
+
+        summarizer = EpisodicSummarizer(model=model, ltm_backend=ltm)
+        for session_id, session in list(self._sessions.items()):
+            try:
+                msgs = await stm.load(session._session_id)
+                if not msgs:
+                    continue
+                entry_id = await summarizer.save_session(session._session_id, msgs)
+                if entry_id:
+                    print(f"[Episodic] Session {session_id[:8]} summary saved (id: {entry_id[:8]})")
+            except Exception as exc:
+                print(f"[Episodic] Session {session_id[:8]} summary failed (non-fatal): {exc}")
+
 
 def create_app(
     ctx: AppContext,
@@ -91,6 +108,15 @@ def create_app(
         await manager.get_or_create(initial_session_id)
         if ctx.scheduler is not None:
             await ctx.scheduler.start()
+
+    @app.on_event("shutdown")
+    async def _shutdown() -> None:
+        stm = base_extra.get("stm_backend")
+        ltm = base_extra.get("ltm_backend")
+        model = base_extra.get("model_config")
+        if stm is None or ltm is None or model is None:
+            return
+        await manager.save_all_sessions(stm, ltm, model)
 
     # ── REST: 세션 목록 / 생성 / 히스토리 ────────────────────────────────────
 
@@ -244,7 +270,5 @@ async def _run_tts(ws: Any, voice_service: Any, text: str, lang: str) -> None:
                 "text": text,
             })
     except Exception as exc:
-        try:
+        with contextlib.suppress(Exception):
             await ws.send_json({"type": "error", "message": f"TTS 오류: {exc}"})
-        except Exception:
-            pass

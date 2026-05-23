@@ -91,6 +91,13 @@ class SchedulerConfig(BaseSettings):
     schedules_dir: str = "~/.jarvis/schedules"
 
 
+class AgentConfig(BaseSettings):
+    model_config = SettingsConfigDict(extra="ignore")
+
+    enabled: bool = True
+    agents_dir: str = "~/.jarvis/agents"
+
+
 class VoiceConfig(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
@@ -123,6 +130,7 @@ class JarvisSettings(BaseSettings):
     ui: UIConfig = Field(default_factory=UIConfig)
     plugin: PluginConfig = Field(default_factory=PluginConfig)
     scheduler: SchedulerConfig = Field(default_factory=SchedulerConfig)
+    agents: AgentConfig = Field(default_factory=AgentConfig)
     voice: VoiceConfig = Field(default_factory=VoiceConfig)
     web_search: WebSearchConfig = Field(default_factory=WebSearchConfig)
     mcp_servers: list[MCPServerConfig] = Field(default_factory=list)

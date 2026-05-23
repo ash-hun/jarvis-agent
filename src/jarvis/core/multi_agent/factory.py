@@ -24,10 +24,11 @@ class AgentDefinition:
 class AgentFactory:
     """AgentDefinition → AgentNode 생성 + 수명 관리."""
 
-    def __init__(self) -> None:
-        self._nodes: dict[str, "AgentNode"] = {}  # noqa: F821
+    def __init__(self, event_sink: object = None) -> None:
+        self._nodes: dict[str, AgentNode] = {}  # noqa: F821
+        self._event_sink = event_sink  # sub-agent 이벤트를 부모로 포워딩할 sink
 
-    def create(self, definition: AgentDefinition, base_session: object) -> "AgentNode":  # noqa: F821
+    def create(self, definition: AgentDefinition, base_session: object) -> AgentNode:  # noqa: F821
         """base_session을 복제해 격리된 AgentNode를 반환.
 
         현재 구현은 base_session 자체를 공유한다.
@@ -39,6 +40,7 @@ class AgentFactory:
             name=definition.name,
             session=base_session,
             capabilities=definition.capabilities,
+            event_sink=self._event_sink,  # type: ignore[arg-type]
         )
         return node
 
@@ -46,7 +48,7 @@ class AgentFactory:
         self,
         definition: AgentDefinition,
         base_session: object,
-    ) -> "AgentNode":  # noqa: F821
+    ) -> AgentNode:  # noqa: F821
         """멱등 — 동일 name이 이미 있으면 캐시 반환."""
         if definition.name not in self._nodes:
             self._nodes[definition.name] = self.create(definition, base_session)

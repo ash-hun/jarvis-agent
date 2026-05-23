@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Callable, Literal, Union
+from typing import Any, Literal
+
 from pydantic import BaseModel, Field
 
 from jarvis.model_layer.types import AssistantMessage, Message, ModelConfig, StreamOptions, Tool
-
 
 # ── Agent events (Pi: AgentEvent 패턴) ────────────────────────────────────────
 
@@ -13,6 +13,7 @@ class AgentStartEvent(BaseModel):
     type: Literal["agent_start"] = "agent_start"
     session_id: str
     prompt: str
+    agent_name: str | None = None
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
 
 
@@ -50,6 +51,7 @@ class AgentEndEvent(BaseModel):
     session_id: str
     final_message: AssistantMessage | None = None
     turns: int = 0
+    agent_name: str | None = None
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
 
 
@@ -60,15 +62,15 @@ class AgentErrorEvent(BaseModel):
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
 
 
-AgentEvent = Union[
-    AgentStartEvent,
-    TurnStartEvent,
-    MessageUpdateEvent,
-    ToolExecutionStartEvent,
-    ToolExecutionEndEvent,
-    AgentEndEvent,
-    AgentErrorEvent,
-]
+AgentEvent = (
+    AgentStartEvent
+    | TurnStartEvent
+    | MessageUpdateEvent
+    | ToolExecutionStartEvent
+    | ToolExecutionEndEvent
+    | AgentEndEvent
+    | AgentErrorEvent
+)
 
 
 # ── Agent context & config ────────────────────────────────────────────────────

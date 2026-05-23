@@ -54,7 +54,30 @@ class ShowErrorAction:
     kind: Literal["show_error"] = field(default="show_error", init=False)
 
 
-UIAction = ShowStatusAction | AppendStreamAction | FlushStreamAction | ToolStartAction | ToolEndAction | ShowErrorAction
+@dataclass(frozen=True)
+class AgentPushAction:
+    """서브 에이전트 시작 — 계층 스택에 push."""
+    agent_name: str
+    kind: Literal["agent_push"] = field(default="agent_push", init=False)
+
+
+@dataclass(frozen=True)
+class AgentPopAction:
+    """서브 에이전트 종료 — 계층 스택에서 pop."""
+    agent_name: str | None
+    kind: Literal["agent_pop"] = field(default="agent_pop", init=False)
+
+
+UIAction = (
+    ShowStatusAction
+    | AppendStreamAction
+    | FlushStreamAction
+    | ToolStartAction
+    | ToolEndAction
+    | ShowErrorAction
+    | AgentPushAction
+    | AgentPopAction
+)
 
 
 # ── EventBridge ────────────────────────────────────────────────────────────────
@@ -70,7 +93,8 @@ class EventBridge:
     def translate(self, event: AgentEvent) -> list[UIAction]:
         """단일 AgentEvent를 0~N개의 UIAction으로 번역."""
         if isinstance(event, AgentStartEvent):
-            return [ShowStatusAction(text="Thinking...")]
+            name = event.agent_name or "agent"
+            return [AgentPushAction(agent_name=name)]
 
         if isinstance(event, MessageUpdateEvent):
             actions: list[UIAction] = []
@@ -81,7 +105,7 @@ class EventBridge:
         if isinstance(event, AgentEndEvent):
             return [
                 FlushStreamAction(),
-                ShowStatusAction(text="Ready"),
+                AgentPopAction(agent_name=event.agent_name),
             ]
 
         if isinstance(event, ToolExecutionStartEvent):

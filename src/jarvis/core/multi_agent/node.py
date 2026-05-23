@@ -6,12 +6,17 @@ session은 Any로 받아 circular import를 피한다 (AgentSession은 core에 �
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
+
+from jarvis.agent_layer.types import AgentEvent
 
 from .task import AgentResult, AgentTask
 
 if TYPE_CHECKING:
     from jarvis.core.session import AgentSession
+
+AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
 
 
 class ResultCache:
@@ -44,18 +49,28 @@ class AgentNode:
     def __init__(
         self,
         name: str,
-        session: "AgentSession | Any",
+        session: AgentSession | Any,
         capabilities: list[str] | None = None,
+        event_sink: AgentEventSink | None = None,
     ) -> None:
         self.name = name
         self.capabilities: list[str] = capabilities or []
         self._session = session
+        self._event_sink = event_sink
         self._cache = ResultCache()
+        # 세션이 agent_name을 지원하면 자동으로 이름 주입
+        if hasattr(session, "agent_name"):
+            session.agent_name = name
 
     async def invoke(self, task: AgentTask) -> AgentResult:
         cached = self._cache.get(task.task_id)
         if cached is not None:
             return cached
+
+        # event_sink가 주어진 경우 서브 에이전트 이벤트를 부모로 포워딩
+        unsub = None
+        if self._event_sink is not None and hasattr(self._session, "subscribe"):
+            unsub = self._session.subscribe(self._event_sink)
 
         try:
             msg = await self._session.prompt(task.content)
@@ -74,6 +89,9 @@ class AgentNode:
                 success=False,
                 error=str(exc),
             )
+        finally:
+            if unsub is not None:
+                unsub()
 
         self._cache.set(task.task_id, result)
         return result

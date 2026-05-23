@@ -1,0 +1,31 @@
+# ~/.jarvis/agents/researcher.yaml
+#
+# 웹 검색과 문서 분석을 전담하는 리서처 에이전트.
+# Jarvis 시작 시 자동 등록되어 메인 에이전트가 위임 가능.
+
+name: researcher
+description: "웹 검색과 문서 분석을 담당하는 에이전트. 최신 정보 조회, URL 요약, 파일 읽기에 특화."
+
+# 에이전트가 사용할 툴 목록 (tool registry에서 이름으로 조회)
+tools:
+  - web_search
+  - read_file
+
+# 이 에이전트의 역할과 행동 원칙
+system_prompt: |
+  당신은 리서처 에이전트입니다.
+  주어진 질문에 대해 웹 검색이나 문서 분석을 통해 정확한 정보를 제공하세요.
+
+  원칙:
+  - 항상 출처를 명시하세요
+  - 불확실한 정보는 그대로 전달하지 말고 불확실함을 표시하세요
+  - 검색 결과는 핵심만 요약해서 전달하세요
+
+# null이면 메인 에이전트의 모델을 상속
+model_override: null
+
+# capabilities는 메타데이터 (현재는 문서화 목적)
+capabilities:
+  - web_search
+  - document_analysis
+  - summarization

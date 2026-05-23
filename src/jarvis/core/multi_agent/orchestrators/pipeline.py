@@ -1,0 +1,46 @@
+"""OrchestratorPipeline — 다중 오케스트레이터 순차 합성.
+
+각 단계의 결과가 다음 단계의 입력으로 전달된다.
+실패(success=False) 발생 시 fail-fast로 파이프라인을 즉시 중단.
+패턴 조합 예: Hierarchical(계획) → Blackboard(실행) → Supervisor(검증)
+"""
+
+from __future__ import annotations
+
+from jarvis.core.multi_agent.task import AgentResult, AgentTask
+
+from .base import BaseOrchestrator
+
+
+class OrchestratorPipeline:
+    """OrchestratorProtocol을 구현하는 합성 오케스트레이터."""
+
+    def __init__(self, orchestrators: list[BaseOrchestrator]) -> None:
+        if not orchestrators:
+            raise ValueError("Pipeline requires at least one orchestrator.")
+        self.orchestrators = orchestrators
+
+    async def dispatch(self, task: AgentTask) -> AgentResult:
+        current_task = task
+        last_result: AgentResult | None = None
+
+        for orchestrator in self.orchestrators:
+            result = await orchestrator.dispatch(current_task)
+            last_result = result
+
+            if not result.success:
+                return result  # fail-fast
+
+            # 이전 단계 결과를 다음 단계 입력으로
+            current_task = AgentTask.create(
+                content=result.content,
+                context={
+                    **current_task.context,
+                    "previous_result": result.content,
+                    "previous_agent": result.agent_name,
+                },
+                parent_task_id=task.task_id,  # 원본 부모 유지
+            )
+
+        assert last_result is not None
+        return last_result

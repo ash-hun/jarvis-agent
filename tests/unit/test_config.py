@@ -13,6 +13,7 @@ def test_default_settings(monkeypatch):
     monkeypatch.delenv("JARVIS_LLM__MODEL", raising=False)
     monkeypatch.delenv("JARVIS_SECURITY__REQUIRE_AUTH", raising=False)
     monkeypatch.delenv("JARVIS_MEMORY__BACKEND", raising=False)
+    monkeypatch.delenv("JARVIS_DEBUG", raising=False)
     settings = JarvisSettings()
     assert settings.llm.provider == "anthropic"
     assert settings.llm.model == "claude-sonnet-4-5"

@@ -32,6 +32,25 @@ services:
     profiles: ["manual"]
     command: ["uv", "run", "pytest", "-v", "--no-header", "--tb=long", "-s"]
 
+  # ── PostgreSQL (세션 영속성) ──────────────────────────────────────────────────
+  # app/web 프로파일에서 자동 기동. 외부 DB를 쓸 때는 JARVIS_SESSION__POSTGRES_DSN을
+  # .env에 설정하면 해당 DSN이 우선 적용된다.
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: jarvis
+      POSTGRES_PASSWORD: jarvis
+      POSTGRES_DB: jarvis
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jarvis -d jarvis"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    profiles: ["app", "web"]
+
   # ── TUI 실행 ─────────────────────────────────────────────────────────────────
   jarvis:
     build:
@@ -39,10 +58,17 @@ services:
       target: runtime
     env_file:
       - .env
+    environment:
+      # postgres가 기본. 외부 DSN이 .env에 있으면 그쪽을 사용한다.
+      JARVIS_SESSION__PERSISTENCE_BACKEND: postgres
+      JARVIS_SESSION__POSTGRES_DSN: ${JARVIS_SESSION__POSTGRES_DSN:-postgresql://jarvis:jarvis@postgres:5432/jarvis}
     volumes:
       - jarvis_data:/root/.jarvis
     stdin_open: true
     tty: true
+    depends_on:
+      postgres:
+        condition: service_healthy
     profiles: ["app"]
 
   # ── Web HUD 백엔드 (FastAPI + WebSocket + Agent) ───────────────────────────
@@ -54,8 +80,14 @@ services:
       - .env
     environment:
       JARVIS_LLM__PROVIDER: ${JARVIS_LLM__PROVIDER:-anthropic}
+      # postgres가 기본. 외부 DSN이 .env에 있으면 그쪽을 사용한다.
+      JARVIS_SESSION__PERSISTENCE_BACKEND: postgres
+      JARVIS_SESSION__POSTGRES_DSN: ${JARVIS_SESSION__POSTGRES_DSN:-postgresql://jarvis:jarvis@postgres:5432/jarvis}
     volumes:
       - jarvis_data:/root/.jarvis
+    depends_on:
+      postgres:
+        condition: service_healthy
     profiles: ["web"]
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('localhost', 7777), timeout=2); s.close()"]
@@ -79,3 +111,4 @@ services:
 
 volumes:
   jarvis_data:
+  postgres_data:

@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from jarvis.model_layer.types import Message, ModelConfig, TextContent, UserMessage
+from jarvis.model_layer.types import Message, ModelConfig, UserMessage
+
+if TYPE_CHECKING:
+    from jarvis.agent_layer.memory.backends.protocol import LTMBackend
 
 
 class CompactionMiddleware:
     """
     컨텍스트 토큰이 임계값을 초과하면 오래된 메시지를 LLM으로 요약.
+    ltm_backend가 설정된 경우 요약 결과를 LTM에 자동 저장 (source="auto_summary").
     Pi: AgentHarness.compact() 동일 패턴.
     """
 
@@ -16,10 +20,12 @@ class CompactionMiddleware:
         model: ModelConfig,
         threshold_chars: int = 80_000,
         keep_recent: int = 10,
+        ltm_backend: LTMBackend | None = None,
     ) -> None:
         self._model = model
         self._threshold_chars = threshold_chars
         self._keep_recent = keep_recent
+        self._ltm_backend = ltm_backend
 
     async def transform(
         self,
@@ -37,6 +43,16 @@ class CompactionMiddleware:
             return messages
 
         summary = await self._summarize(to_compact)
+
+        if self._ltm_backend is not None:
+            from jarvis.agent_layer.memory.backends.protocol import MemoryEntry
+            entry = MemoryEntry(
+                content=summary,
+                source="auto_summary",
+                session_id=context.get("session_id"),
+            )
+            await self._ltm_backend.store(entry)
+
         summary_msg = UserMessage(
             content=f"[Compacted context summary]\n{summary}"
         )
@@ -61,7 +77,10 @@ class CompactionMiddleware:
         )
         ctx = LLMContext(
             messages=[UserMessage(content=f"Summarize the following conversation concisely:\n\n{text}")],
-            system_prompt="You are a summarization assistant. Produce a dense summary preserving key facts, decisions, and context.",
+            system_prompt=(
+                "You are a summarization assistant. "
+                "Produce a dense summary preserving key facts, decisions, and context."
+            ),
         )
         result = await stream_to_message(self._model, ctx, StreamOptions())
         return result.text() or "[summary unavailable]"

@@ -102,6 +102,16 @@ def create_app(
         await manager.get_or_create(meta.session_id)
         return JSONResponse({"session_id": meta.session_id, "parent_id": meta.parent_id})
 
+    @app.get("/api/slash-commands")  # type: ignore[untyped-decorator]
+    async def get_slash_commands() -> JSONResponse:
+        if ctx.dispatcher is None:
+            return JSONResponse({"commands": []})
+        cmds = [
+            {"name": name, "description": desc}
+            for name, desc in sorted(ctx.dispatcher.commands.items())
+        ]
+        return JSONResponse({"commands": cmds})
+
     @app.get("/api/sessions/{session_id}/messages")  # type: ignore[untyped-decorator]
     async def get_session_messages(session_id: str) -> JSONResponse:
         messages = await ctx.session_repo.get_messages(session_id)
@@ -143,6 +153,10 @@ def create_app(
                 "session_id": session._session_id,
                 "model": session._harness._model.model,
                 "sessions": manager.list_ids(),
+                "slash_commands": [
+                    {"name": name, "description": desc}
+                    for name, desc in sorted(ctx.dispatcher.commands.items())
+                ] if ctx.dispatcher else [],
             })
 
             while True:

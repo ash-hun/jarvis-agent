@@ -438,16 +438,116 @@ body.sb-collapsed .collapse-btn .chev { transform: rotate(180deg); }
   border-color: var(--cyan);
   box-shadow: 0 0 0 1px var(--cyan-glow), inset 0 0 18px rgba(95,200,226,0.06);
 }
-.field-wrap input {
+
+/* ── Input wrapper: highlight overlay + actual input ────────────────────────*/
+.input-wrapper {
+  position: relative;
   flex: 1;
-  background: transparent; border: 0; outline: 0;
-  color: var(--text); font-family: var(--mono);
-  font-size: 13px; letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
   margin-left: 10px;
+  min-width: 0;
+}
+
+/* Highlight overlay renders colored /command tokens — sits behind the input */
+.input-highlight {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  overflow: hidden;
+  user-select: none;
+}
+.input-highlight span {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  white-space: pre;
+  display: inline-block;
+  /* translateX synced via JS to match input scroll offset */
+}
+.slash-token {
+  color: var(--cyan-bright);
+  text-shadow: 0 0 10px rgba(125,240,255,0.45);
+}
+
+.field-wrap input {
+  position: relative; /* above highlight layer */
+  flex: 1;
+  width: 100%;
+  background: transparent; border: 0; outline: 0;
+  color: transparent; /* text hidden — shown by highlight overlay */
+  caret-color: var(--cyan-bright);
+  font-family: var(--mono);
+  font-size: 13px; letter-spacing: 0.04em;
 }
 .field-wrap input::placeholder { color: var(--text-faint); letter-spacing: 0.06em; }
-.field-wrap input:disabled { opacity: 0.4; cursor: not-allowed; }
+.field-wrap input:disabled { cursor: not-allowed; }
+.field-wrap input:disabled ~ .input-highlight { opacity: 0.4; }
 @keyframes blink { 50% { opacity: 0; } }
+
+/* ── Slash command popup ─────────────────────────────────────────────────────*/
+.slash-popup {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  background: var(--bg-2);
+  border: 1px solid var(--cyan);
+  box-shadow:
+    0 -6px 28px rgba(95,200,226,0.22),
+    0 0 0 1px rgba(95,200,226,0.08);
+  z-index: 200;
+  overflow-y: auto;
+  max-height: 220px;
+}
+.slash-popup.hidden { display: none; }
+
+/* Popup header label */
+.slash-popup-head {
+  padding: 5px 12px 4px;
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  color: var(--text-faint);
+  border-bottom: 1px solid var(--hairline);
+  text-transform: uppercase;
+}
+
+.slash-item {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  column-gap: 12px;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  border-bottom: 1px solid var(--hairline);
+  transition: background .1s;
+}
+.slash-item:last-child { border-bottom: 0; }
+.slash-item .cmd-name {
+  color: var(--cyan-bright);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  font-size: 12px;
+}
+.slash-item .cmd-desc {
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.slash-item:hover,
+.slash-item.active {
+  background: rgba(95,200,226,0.1);
+}
+.slash-item.active .cmd-name {
+  text-shadow: 0 0 8px var(--cyan-glow);
+}
 
 .mic-btn {
   width: 38px; height: 38px;

@@ -90,6 +90,17 @@ class SchedulerConfig(BaseSettings):
     schedules_dir: str = "~/.jarvis/schedules"
 
 
+class VoiceConfig(BaseSettings):
+    model_config = SettingsConfigDict(extra="ignore")
+
+    stt_provider: str = "browser"    # browser | whisper
+    tts_provider: str = "browser"    # browser | supertonic
+    whisper_model_size: str = "base"
+    supertonic_model: str = "Supertone/supertonic-3"
+    tts_lang: str = "ko"
+    stt_lang: str = "ko-KR"
+
+
 class JarvisSettings(BaseSettings):
     """
     최상위 설정 — .env 또는 환경변수에서 자동 로딩.
@@ -111,6 +122,7 @@ class JarvisSettings(BaseSettings):
     ui: UIConfig = Field(default_factory=UIConfig)
     plugin: PluginConfig = Field(default_factory=PluginConfig)
     scheduler: SchedulerConfig = Field(default_factory=SchedulerConfig)
+    voice: VoiceConfig = Field(default_factory=VoiceConfig)
     web_search: WebSearchConfig = Field(default_factory=WebSearchConfig)
     mcp_servers: list[MCPServerConfig] = Field(default_factory=list)
     debug: bool = False

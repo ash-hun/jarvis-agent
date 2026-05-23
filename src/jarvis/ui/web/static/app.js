@@ -84,8 +84,9 @@ function typingDots() {
 }
 
 // ── Streaming assistant message ───────────────────────────────────────────────
-let _streamDiv  = null;
-let _streamText = '';
+let _streamDiv      = null;
+let _streamText     = '';
+let _lastStreamText = '';  // voice TTS용 마지막 완성 텍스트
 
 function streamStart() {
   _streamText = '';
@@ -111,6 +112,7 @@ function streamEnd() {
     const textEl = _streamDiv.querySelector('.agent-text');
     if (!_streamText) textEl.textContent = '';
   }
+  _lastStreamText = _streamText;
   _streamDiv  = null;
   _streamText = '';
 }
@@ -301,12 +303,21 @@ function handleMessage(msg) {
       streamDelta(msg.text);
       break;
 
-    case 'agent_end':
+    case 'agent_end': {
       streamEnd();
       setStatus('READY');
       HUD.setState('idle');
-      setInputEnabled(true);
+      // Voice mode: TTS 완료까지 input 잠금 유지
+      if (_voiceMode && _lastStreamText) {
+        voice.setProcessing();
+        send({ type: 'voice_tts_request', text: _lastStreamText });
+        // input은 voice_tts_audio 처리 후 voice.onStateChange('idle')에서 복원
+      } else {
+        setInputEnabled(true);
+      }
+      _voiceMode = false;
       break;
+    }
 
     case 'tool_execution_start': {
       const name = msg.tool_name || 'tool';
@@ -367,6 +378,18 @@ function handleMessage(msg) {
 
     case 'approval_request':
       showApproval(msg.id, msg.command, msg.reason);
+      break;
+
+    case 'voice_tts_audio':
+      if (msg.data) {
+        // 백엔드 TTS (Supertonic-3 WAV)
+        voice.playAudioBase64(msg.data, msg.mime || 'audio/wav');
+      } else if (msg.text) {
+        // 브라우저 TTS fallback (BrowserTTSProvider)
+        voice.speakBrowser(msg.text);
+      } else {
+        voice.setIdle();
+      }
       break;
   }
 }
@@ -577,11 +600,60 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ── Voice ─────────────────────────────────────────────────────────────────────
-const voice = new VoiceManager((transcript) => {
-  $input.value = transcript;
-  submitMessage();
+let _voiceMode = false;  // 현재 음성으로 시작된 요청인지
+const $sphereWrap = document.querySelector('.sphere-wrap');
+const $sphereHit  = document.getElementById('sphere-hit');
+
+const voice = new VoiceManager({
+  onTranscript(transcript) {
+    if (!transcript.trim()) return;
+    _voiceMode = true;
+    // 인식된 텍스트를 입력창에 표시
+    $input.value = transcript;
+    updateHighlight();
+    // 즉시 에이전트로 전송 (appendMsg + WS)
+    appendMsg('USER', 'user', escapeHtml(transcript));
+    $input.value = '';
+    updateHighlight();
+    setInputEnabled(false);
+    send({ type: 'user_message', text: transcript });
+  },
+  onStateChange(state) {
+    // 구체 시각 상태 반영
+    $sphereWrap.classList.remove('voice-listening', 'voice-speaking', 'voice-processing');
+    if (state !== 'idle') $sphereWrap.classList.add(`voice-${state}`);
+
+    if (state === 'listening') {
+      setStatus('LISTENING', 'listening');
+      HUD.setState('listening');
+    } else if (state === 'speaking') {
+      setStatus('SPEAKING', 'speaking');
+      HUD.setState('speaking');
+    } else if (state === 'processing') {
+      // 에이전트 처리 중 — 기존 UI가 담당
+    } else {
+      // idle: TTS 종료 or 오류 → input 복원 + 상태 표시 초기화
+      if ($statusText.textContent === 'LISTENING' || $statusText.textContent === 'SPEAKING') {
+        setStatus('READY');
+        HUD.setState('idle');
+      }
+      setInputEnabled(true);
+    }
+  },
+  onError(msg) {
+    appendMsg('SYS', 'err', escapeHtml(msg));
+  },
 });
 window.voiceManager = voice;
+
+// 구체 클릭 → voice mode 토글
+$sphereHit.addEventListener('click', () => {
+  if (!voice.supported) {
+    appendMsg('SYS', 'err', 'Web Speech API를 지원하지 않는 브라우저입니다. Chrome을 사용해 주세요.');
+    return;
+  }
+  voice.toggle();
+});
 
 
 // ── Sidebar collapse ──────────────────────────────────────────────────────────

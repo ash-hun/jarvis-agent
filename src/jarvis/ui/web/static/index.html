@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260524b">
+  <link rel="stylesheet" href="styles.css?v=20260525">
 </head>
 <body>
 
@@ -61,6 +61,23 @@
       </div>
     </div>
 
+    <!-- USAGE DASHBOARD -->
+    <div class="usage-section">
+      <div class="panel-head usage-toggle" id="usage-toggle" title="클릭해서 접기/펼치기">
+        <span>· USAGE</span>
+        <span class="usage-total" id="usage-total-tokens">0 tok</span>
+      </div>
+      <div class="usage-body" id="usage-body">
+        <div class="usage-row"><span class="uk">IN</span><span class="uv" id="u-in">0</span></div>
+        <div class="usage-row"><span class="uk">OUT</span><span class="uv" id="u-out">0</span></div>
+        <div class="usage-row"><span class="uk">C↓</span><span class="uv" id="u-cr">0</span></div>
+        <div class="usage-row"><span class="uk">C↑</span><span class="uv" id="u-cw">0</span></div>
+        <div class="usage-sep"></div>
+        <div class="usage-row"><span class="uk">COST</span><span class="uv cost-val" id="u-cost">$0.0000</span></div>
+        <div class="usage-sparkline" id="usage-sparkline"></div>
+      </div>
+    </div>
+
     <div class="sidebar-foot">
       <div class="row"><span>BUILD</span><b>0.1.0</b></div>
       <div class="row"><span>MODEL</span><b id="sb-model">—</b></div>
@@ -109,6 +126,23 @@
   </section>
 </main>
 
+<!-- ARTIFACT PANEL -->
+<aside class="artifact-panel" id="artifact-panel">
+  <div class="artifact-head">
+    <div class="artifact-title">
+      <span class="artifact-icon">◈</span>
+      <span class="artifact-lang-lbl" id="artifact-lang">—</span>
+    </div>
+    <div class="artifact-acts">
+      <button class="art-btn" id="artifact-copy-btn">COPY</button>
+      <button class="art-btn art-close" id="artifact-close-btn">✕</button>
+    </div>
+  </div>
+  <div class="artifact-body">
+    <pre class="artifact-pre"><code id="artifact-code"></code></pre>
+  </div>
+</aside>
+
 <!-- FOOTER -->
 <footer class="footer">
   <div class="foot-stats left">
@@ -124,6 +158,7 @@
   </div>
 
   <div class="foot-stats right">
+    <div class="fstat"><span class="k">TOKENS</span><span class="v" id="ft-tokens">0</span></div>
     <div class="fstat"><span class="k">MODE</span><span class="v">LOCAL</span></div>
     <div class="fstat"><span class="k">UPTIME</span><span class="v" id="ft-uptime">00:00:00</span></div>
     <div class="fstat"><span class="k">MODEL</span><span class="v" id="ft-model">—</span></div>
@@ -149,8 +184,8 @@
   ⚠ JARVIS 연결 끊김 — 재연결 중...
 </div>
 
-<script src="hud.js?v=20260524b"></script>
-<script src="voice.js?v=20260524b"></script>
-<script src="app.js?v=20260524b"></script>
+<script src="hud.js?v=20260525"></script>
+<script src="voice.js?v=20260525"></script>
+<script src="app.js?v=20260525"></script>
 </body>
 </html>

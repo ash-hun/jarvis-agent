@@ -26,6 +26,25 @@ const $approvalCommand = document.getElementById('approval-command');
 const $btnAllow        = document.getElementById('btn-allow');
 const $btnDeny         = document.getElementById('btn-deny');
 
+// ── Usage Dashboard DOM refs ──────────────────────────────────────────────────
+const $uIn            = document.getElementById('u-in');
+const $uOut           = document.getElementById('u-out');
+const $uCr            = document.getElementById('u-cr');
+const $uCw            = document.getElementById('u-cw');
+const $uCost          = document.getElementById('u-cost');
+const $uTotalTokens   = document.getElementById('usage-total-tokens');
+const $ftTokens       = document.getElementById('ft-tokens');
+const $usageSparkline = document.getElementById('usage-sparkline');
+const $usageBody      = document.getElementById('usage-body');
+const $usageToggle    = document.getElementById('usage-toggle');
+
+// ── Artifact Panel DOM refs ───────────────────────────────────────────────────
+const $artifactPanel    = document.getElementById('artifact-panel');
+const $artifactLang     = document.getElementById('artifact-lang');
+const $artifactCode     = document.getElementById('artifact-code');
+const $artifactCopyBtn  = document.getElementById('artifact-copy-btn');
+const $artifactCloseBtn = document.getElementById('artifact-close-btn');
+
 // ── Clock ─────────────────────────────────────────────────────────────────────
 function updateClock() {
   const d   = new Date();
@@ -83,6 +102,185 @@ function typingDots() {
   return '<span class="typing-dots"><span></span><span></span><span></span></span>';
 }
 
+// ── Markdown Renderer ─────────────────────────────────────────────────────────
+// 외부 의존 없는 자체 구현 — h1-h3, p, ul/ol/li, pre/code, strong, em, hr
+const _codeStore = {};  // uid → raw code text (copy 버튼용)
+
+function inlineParse(text) {
+  let s = escapeHtml(text);
+  s = s.replace(/\*\*(.+?)\*\*/g,  '<strong>$1</strong>');
+  s = s.replace(/__(.+?)__/g,       '<strong>$1</strong>');
+  s = s.replace(/\*(.+?)\*/g,       '<em>$1</em>');
+  s = s.replace(/`([^`]+)`/g,       '<code class="inline-code">$1</code>');
+  return s;
+}
+
+function renderMarkdown(src) {
+  const lines = src.split('\n');
+  let out = '', i = 0, listType = null;
+
+  const closeList = () => { if (listType) { out += `</${listType}>`; listType = null; } };
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Fenced code block
+    if (line.startsWith('```')) {
+      closeList();
+      const lang = line.slice(3).trim() || 'text';
+      const codeLines = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith('```')) { codeLines.push(lines[i]); i++; }
+      const rawCode = codeLines.join('\n');
+      const uid = Math.random().toString(36).slice(2, 9);
+      _codeStore[uid] = rawCode;
+      out += `<div class="code-block">` +
+        `<div class="code-head">` +
+        `<span class="code-lang">${escapeHtml(lang)}</span>` +
+        `<button class="copy-btn" data-uid="${uid}">COPY</button>` +
+        `</div>` +
+        `<pre><code class="language-${escapeHtml(lang)}">${escapeHtml(rawCode)}</code></pre>` +
+        `</div>`;
+      i++; continue;
+    }
+
+    if (line.trim() === '')    { closeList(); out += '<br>'; i++; continue; }
+    if (/^---+$/.test(line.trim())) { closeList(); out += '<hr>'; i++; continue; }
+
+    const h3 = line.match(/^### (.+)/); if (h3) { closeList(); out += `<h3>${inlineParse(h3[1])}</h3>`; i++; continue; }
+    const h2 = line.match(/^## (.+)/);  if (h2) { closeList(); out += `<h2>${inlineParse(h2[1])}</h2>`; i++; continue; }
+    const h1 = line.match(/^# (.+)/);   if (h1) { closeList(); out += `<h1>${inlineParse(h1[1])}</h1>`; i++; continue; }
+
+    const ul = line.match(/^[-*+] (.+)/);
+    if (ul) { if (listType !== 'ul') { closeList(); out += '<ul>'; listType = 'ul'; } out += `<li>${inlineParse(ul[1])}</li>`; i++; continue; }
+
+    const ol = line.match(/^\d+[.)]\s+(.+)/);
+    if (ol) { if (listType !== 'ol') { closeList(); out += '<ol>'; listType = 'ol'; } out += `<li>${inlineParse(ol[1])}</li>`; i++; continue; }
+
+    closeList();
+    out += `<p>${inlineParse(line)}</p>`;
+    i++;
+  }
+  closeList();
+  return out;
+}
+
+function attachCopyBtns(container) {
+  container.querySelectorAll('.copy-btn[data-uid]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const code = _codeStore[btn.dataset.uid] || '';
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = 'COPIED!';
+        setTimeout(() => { btn.textContent = 'COPY'; }, 2000);
+      }).catch(() => {
+        const pre = btn.closest('.code-block')?.querySelector('pre');
+        if (pre) {
+          const r = document.createRange();
+          r.selectNode(pre);
+          window.getSelection().removeAllRanges();
+          window.getSelection().addRange(r);
+        }
+      });
+    });
+  });
+}
+
+// ── Artifact ──────────────────────────────────────────────────────────────────
+let _artifactRaw = '';
+
+function extractArtifact(text) {
+  const re = /```(\w*)\n([\s\S]*?)```/g;
+  let best = null, m;
+  while ((m = re.exec(text)) !== null) {
+    const lang = m[1] || 'text';
+    const code = m[2];
+    const lines = code.split('\n').filter(l => l.trim()).length;
+    if (lines >= 8 && (!best || code.length > best.code.length)) best = { lang, code };
+  }
+  return best;
+}
+
+function showArtifact(lang, code) {
+  _artifactRaw = code;
+  $artifactLang.textContent = lang.toUpperCase() || 'CODE';
+  $artifactCode.textContent = code;
+  $artifactPanel.classList.add('open');
+}
+
+function hideArtifact() { $artifactPanel.classList.remove('open'); }
+
+$artifactCloseBtn.addEventListener('click', hideArtifact);
+$artifactCopyBtn.addEventListener('click', () => {
+  navigator.clipboard.writeText(_artifactRaw).then(() => {
+    $artifactCopyBtn.textContent = 'COPIED!';
+    setTimeout(() => { $artifactCopyBtn.textContent = 'COPY'; }, 2000);
+  });
+});
+
+// ── Usage Dashboard ───────────────────────────────────────────────────────────
+let _currentModel = '—';
+const _sessionUsage = { input: 0, output: 0, cache_read: 0, cache_write: 0, turns: [] };
+
+function getCostRate(model) {
+  const m = (model || '').toLowerCase();
+  if (m.includes('opus'))       return { in: 15,    out: 75   };
+  if (m.includes('sonnet'))     return { in: 3,     out: 15   };
+  if (m.includes('haiku'))      return { in: 0.8,   out: 4    };
+  if (m.includes('gpt-4o-mini')) return { in: 0.15,  out: 0.6  };
+  if (m.includes('gpt-4o'))    return { in: 5,     out: 15   };
+  if (m.includes('gemini'))    return { in: 1.25,  out: 5    };
+  return { in: 3, out: 15 };
+}
+
+function fmtTok(n) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000)     return (n / 1_000).toFixed(1)     + 'K';
+  return String(n);
+}
+
+function updateUsage(usage) {
+  _sessionUsage.input      += usage.input      || 0;
+  _sessionUsage.output     += usage.output     || 0;
+  _sessionUsage.cache_read  += usage.cache_read  || 0;
+  _sessionUsage.cache_write += usage.cache_write || 0;
+  _sessionUsage.turns.push({ in: usage.input || 0, out: usage.output || 0 });
+  if (_sessionUsage.turns.length > 16) _sessionUsage.turns.shift();
+  renderUsagePanel();
+}
+
+function renderUsagePanel() {
+  const s = _sessionUsage;
+  const total = s.input + s.output;
+  $uIn.textContent          = fmtTok(s.input);
+  $uOut.textContent         = fmtTok(s.output);
+  $uCr.textContent          = fmtTok(s.cache_read);
+  $uCw.textContent          = fmtTok(s.cache_write);
+  $uTotalTokens.textContent = fmtTok(total) + ' tok';
+  $ftTokens.textContent     = fmtTok(total);
+
+  const rate = getCostRate(_currentModel);
+  const cost = (s.input / 1e6) * rate.in + (s.output / 1e6) * rate.out;
+  $uCost.textContent = '$' + cost.toFixed(4);
+
+  // Sparkline
+  const maxOut = Math.max(...s.turns.map(t => t.out), 1);
+  $usageSparkline.innerHTML = s.turns.map(t => {
+    const h = Math.max(4, Math.round((t.out / maxOut) * 32));
+    return `<div class="spark-bar" style="height:${h}px" title="${t.out} output tokens"></div>`;
+  }).join('');
+}
+
+function resetUsage() {
+  _sessionUsage.input = _sessionUsage.output = _sessionUsage.cache_read = _sessionUsage.cache_write = 0;
+  _sessionUsage.turns = [];
+  renderUsagePanel();
+}
+
+// Usage 섹션 토글 (클릭해서 접기/펼치기)
+$usageToggle.addEventListener('click', () => {
+  $usageBody.classList.toggle('collapsed');
+});
+
 // ── Streaming assistant message ───────────────────────────────────────────────
 let _streamDiv      = null;
 let _streamText     = '';
@@ -110,11 +308,22 @@ function streamDelta(delta) {
 function streamEnd() {
   if (_streamDiv) {
     const textEl = _streamDiv.querySelector('.agent-text');
-    if (!_streamText) textEl.textContent = '';
+    if (!_streamText) {
+      textEl.textContent = '';
+    } else {
+      textEl.innerHTML = renderMarkdown(_streamText);
+      attachCopyBtns(textEl);
+    }
   }
   _lastStreamText = _streamText;
   _streamDiv  = null;
   _streamText = '';
+
+  // Artifact 감지 — 큰 코드블록(8줄 이상)이면 패널에 표시
+  if (_lastStreamText) {
+    const artifact = extractArtifact(_lastStreamText);
+    if (artifact) showArtifact(artifact.lang, artifact.code);
+  }
 }
 
 // ── Tool message tracking ─────────────────────────────────────────────────────
@@ -219,6 +428,8 @@ function resetChatUI() {
   _streamText = '';
   _toolMsgs.clear();
   setInputEnabled(false);
+  resetUsage();
+  hideArtifact();
 }
 
 function connect(sessionId = _currentSessionId) {
@@ -277,6 +488,7 @@ function handleMessage(msg) {
     case 'connected': {
       const sid = msg.session_id || '—';
       const model = msg.model || '—';
+      _currentModel = model;
       $sessionTitle.textContent   = sid;
       $sessionIdLabel.textContent = sid;
       if ($ftModel) $ftModel.textContent = model;
@@ -307,6 +519,9 @@ function handleMessage(msg) {
       streamEnd();
       setStatus('READY');
       HUD.setState('idle');
+      // 사용량 업데이트
+      const usage = msg.final_message?.usage;
+      if (usage) updateUsage(usage);
       // Voice mode: TTS 완료까지 input 잠금 유지
       if (_voiceMode && _lastStreamText) {
         voice.setProcessing();

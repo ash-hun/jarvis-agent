@@ -52,7 +52,8 @@ class MemoryConfig(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
     backend: Literal["in_memory", "sqlite", "external"] = "sqlite"
-    sqlite_path: str = "~/.jarvis/memory.db"
+    sqlite_path: str = "~/.jarvis/stm.db"
+    ltm_sqlite_path: str = "~/.jarvis/ltm.db"
     external_connection: str | None = None
     window_size: int = 50
     compaction_threshold: int = 100_000

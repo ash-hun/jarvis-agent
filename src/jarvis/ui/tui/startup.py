@@ -101,7 +101,7 @@ class AppContext:
     JarvisTUI.__init__()에 ctx 이름으로 전달 (마지막 파라미터).
     """
 
-    session_repo: "SessionRepo"
+    session_repo: SessionRepo
     tool_registry: ToolRegistry
     settings: JarvisSettings
     # Ctrl+N 새 세션 팩토리 — main()에서 주입
@@ -109,9 +109,9 @@ class AppContext:
     # Ctrl+F 브랜치 팩토리 — main()에서 주입
     branch_factory: Callable[[str], Awaitable[AgentSession]] | None = field(default=None)
     # 스케줄러 서비스 — _build_infra()에서 주입
-    scheduler: "SchedulerService | None" = field(default=None)
+    scheduler: SchedulerService | None = field(default=None)
     # 슬래시 명령 디스패처 — _build_infra()에서 주입
-    dispatcher: "SlashCommandDispatcher | None" = field(default=None)
+    dispatcher: SlashCommandDispatcher | None = field(default=None)
 
 
 # ── 팩토리 헬퍼 ───────────────────────────────────────────────────────────────
@@ -122,6 +122,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     from jarvis.agent_layer.memory.backends.sqlite_ltm import SqliteLTMBackend
     from jarvis.agent_layer.memory.backends.sqlite_stm import SqliteSTMBackend
     from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
+    from jarvis.agent_layer.memory.compaction import CompactionMiddleware
     from jarvis.agent_layer.memory.long_term import LongTermMemory
     from jarvis.agent_layer.memory.short_term import ShortTermMemory
     from jarvis.core.plugins.loader import PluginLoader
@@ -147,10 +148,25 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     tool_registry.register(EditFileTool())
     tool_registry.register(WebSearchTool())
 
+    from jarvis.model_layer.types import ModelConfig
+    model_config = ModelConfig(
+        provider=settings.llm.provider,
+        model=settings.llm.model,
+        api_key=settings.llm.api_key.get_secret_value() if settings.llm.api_key else None,
+        base_url=settings.llm.base_url,
+        temperature=settings.llm.temperature,
+        max_tokens=settings.llm.max_tokens,
+    )
+
     stm_backend = SqliteSTMBackend(db_path=settings.memory.sqlite_path)
     ltm_backend = SqliteLTMBackend(db_path=settings.memory.ltm_sqlite_path)
     memory_chain = MemoryMiddlewareChain(stages=[
         ShortTermMemory(stm_backend),
+        CompactionMiddleware(
+            model=model_config,
+            threshold_chars=settings.memory.compaction_threshold,
+            ltm_backend=ltm_backend,
+        ),
         LongTermMemory(ltm_backend),
     ])
 
@@ -209,21 +225,12 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     if settings.scheduler.enabled:
         from jarvis.core.scheduler.loader import load_tasks
         from jarvis.core.scheduler.service import SchedulerService
-        from jarvis.model_layer.types import ModelConfig
         sched_tasks = load_tasks(settings.scheduler.schedules_dir)
-        sched_model = ModelConfig(
-            provider=settings.llm.provider,
-            model=settings.llm.model,
-            api_key=settings.llm.api_key.get_secret_value() if settings.llm.api_key else None,
-            base_url=settings.llm.base_url,
-            temperature=settings.llm.temperature,
-            max_tokens=settings.llm.max_tokens,
-        )
         scheduler = SchedulerService(
             tasks=sched_tasks,
             session_repo=session_repo,
             tool_registry=tool_registry,
-            model=sched_model,
+            model=model_config,
             base_extra={},  # filled in after extra dict is built below
         )
 
@@ -239,6 +246,9 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         "plugin_runner": plugin_runner,
         "skill_registry": skill_registry,
         "sandbox": sandbox,  # approval_callback 나중에 주입용
+        "stm_backend": stm_backend,
+        "ltm_backend": ltm_backend,
+        "model_config": model_config,
     }
 
     # Scheduler의 base_extra를 채워 넣는다 (extra가 만들어진 이후)
@@ -396,3 +406,24 @@ def main() -> None:
     extra["sandbox"].set_approval_callback(app.request_approval)
 
     app.run()
+
+    # TUI 종료 후 세션 요약을 LTM에 저장
+    async def _on_session_end() -> None:
+        stm = extra.get("stm_backend")
+        ltm = extra.get("ltm_backend")
+        model = extra.get("model_config")
+        if stm is None or ltm is None or model is None:
+            return
+        try:
+            msgs = await stm.load(session._session_id)
+            if not msgs:
+                return
+            from jarvis.agent_layer.memory.episodic import EpisodicSummarizer
+            summarizer = EpisodicSummarizer(model=model, ltm_backend=ltm)
+            entry_id = await summarizer.save_session(session._session_id, msgs)
+            if entry_id:
+                print(f"[Episodic] Session summary saved (id: {entry_id[:8]})")
+        except Exception as exc:
+            print(f"[Episodic] Session summary failed (non-fatal): {exc}")
+
+    asyncio.run(_on_session_end())

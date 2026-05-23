@@ -4,13 +4,10 @@ import asyncio
 import json
 import time
 import uuid
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from jarvis.agent_layer.session.protocol import SessionMetadata, deserialize_message
 from jarvis.model_layer.types import Message
-
-if TYPE_CHECKING:
-    import asyncpg
 
 
 class PostgresSessionRepo:
@@ -49,12 +46,17 @@ class PostgresSessionRepo:
         async with pool.acquire() as conn:
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS jarvis_sessions (
-                    session_id  TEXT    PRIMARY KEY,
-                    cwd         TEXT    NOT NULL,
-                    created_at  BIGINT  NOT NULL,
-                    updated_at  BIGINT  NOT NULL,
+                    session_id    TEXT    PRIMARY KEY,
+                    cwd           TEXT    NOT NULL,
+                    parent_id     TEXT,
+                    created_at    BIGINT  NOT NULL,
+                    updated_at    BIGINT  NOT NULL,
                     message_count INTEGER NOT NULL DEFAULT 0
                 )
+            """)
+            # 기존 테이블에 parent_id 컬럼이 없으면 추가 (하위 호환)
+            await conn.execute("""
+                ALTER TABLE jarvis_sessions ADD COLUMN IF NOT EXISTS parent_id TEXT
             """)
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS jarvis_entries (
@@ -78,8 +80,8 @@ class PostgresSessionRepo:
         async with pool.acquire() as conn:
             await conn.execute(
                 """
-                INSERT INTO jarvis_sessions (session_id, cwd, created_at, updated_at, message_count)
-                VALUES ($1, $2, $3, $4, 0)
+                INSERT INTO jarvis_sessions (session_id, cwd, parent_id, created_at, updated_at, message_count)
+                VALUES ($1, $2, NULL, $3, $4, 0)
                 ON CONFLICT (session_id) DO NOTHING
                 """,
                 sid, cwd, now, now,
@@ -101,6 +103,47 @@ class PostgresSessionRepo:
                 )
         return [SessionMetadata(**dict(row)) for row in rows]
 
+    async def create_branch(self, parent_session_id: str) -> SessionMetadata:
+        pool = await self._get_pool()
+        branch_id = str(uuid.uuid4())
+        now = int(time.time() * 1000)
+        async with pool.acquire() as conn:
+            parent_row = await conn.fetchrow(
+                "SELECT * FROM jarvis_sessions WHERE session_id = $1", parent_session_id
+            )
+            if not parent_row:
+                raise ValueError(f"Parent session {parent_session_id!r} not found")
+            parent_cwd: str = parent_row["cwd"]
+            parent_count: int = parent_row["message_count"]
+
+            await conn.execute(
+                """
+                INSERT INTO jarvis_sessions
+                    (session_id, cwd, parent_id, created_at, updated_at, message_count)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                """,
+                branch_id, parent_cwd, parent_session_id, now, now, parent_count,
+            )
+            # 부모 메시지를 브랜치에 복사
+            await conn.execute(
+                """
+                INSERT INTO jarvis_entries (id, session_id, parent_id, timestamp, type, content)
+                SELECT gen_random_uuid()::text, $1, parent_id, timestamp, type, content
+                FROM jarvis_entries
+                WHERE session_id = $2 AND type = 'message'
+                ORDER BY timestamp
+                """,
+                branch_id, parent_session_id,
+            )
+        return SessionMetadata(
+            session_id=branch_id,
+            cwd=parent_cwd,
+            created_at=now,
+            updated_at=now,
+            message_count=parent_count,
+            parent_id=parent_session_id,
+        )
+
     async def get_messages(self, session_id: str) -> list[Message]:
         pool = await self._get_pool()
         async with pool.acquire() as conn:
@@ -114,7 +157,9 @@ class PostgresSessionRepo:
             )
         messages: list[Message] = []
         for row in rows:
-            content: dict[str, Any] = row["content"]
+            raw = row["content"]
+            # asyncpg는 JSONB를 버전/설정에 따라 str 또는 dict로 반환
+            content: dict[str, Any] = json.loads(raw) if isinstance(raw, str) else raw
             msg = deserialize_message(content)
             if msg:
                 messages.append(msg)

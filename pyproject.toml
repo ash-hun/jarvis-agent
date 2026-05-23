@@ -83,6 +83,8 @@ dev-dependencies = [
     "ruff>=0.6.0",
     "mypy>=1.11",
     "ipython",
+    "testcontainers[postgres]>=4.8.0",
+    "asyncpg>=0.30.0",
 ]
 
 [tool.hatch.build.targets.wheel]

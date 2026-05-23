@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import re
 import time
 from typing import TYPE_CHECKING, Any
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
+from textual.events import Key
 from textual.reactive import Reactive
 from textual.widgets import Footer, Header, Input
 
@@ -87,6 +89,7 @@ class JarvisTUI(App[None]):
         Binding("ctrl+n", "new_session", "New Session", show=True),
         Binding("ctrl+f", "fork_session", "Fork Session", show=True),
         Binding("down", "picker_down", "Picker", show=False),
+        Binding("up", "picker_up", "Picker Up", show=False),
         Binding("escape", "picker_close", "Close Picker", show=False),
     ]
 
@@ -119,6 +122,9 @@ class JarvisTUI(App[None]):
         self._input: Input | None = None
         self._picker: SlashPicker | None = None
 
+        # slash picker 상태 — 커서 기준 /command 시작 위치
+        self._picker_slash_start: int = 0
+
         session.subscribe(self._on_agent_event)
 
     def compose(self) -> ComposeResult:
@@ -129,7 +135,7 @@ class JarvisTUI(App[None]):
                 yield ChatHistory(id="chat", markup=True, highlight=True, wrap=True)
                 yield SlashPicker(id="slash-picker")
                 yield Input(
-                    placeholder="Type your message... (↓ picker, Ctrl+K abort, Ctrl+B sidebar)",
+                    placeholder="Type your message... (/ command, ↑↓ picker, Tab complete, Ctrl+K abort)",
                     id="input",
                 )
         yield StatusBar(id="status")
@@ -157,20 +163,19 @@ class JarvisTUI(App[None]):
     # ── 슬래시 명령 picker ────────────────────────────────────────────────────
 
     def on_input_changed(self, event: Input.Changed) -> None:
-        """'/' 입력 시 picker를 표시하고, 그 외에는 숨긴다."""
+        """'/' 입력 시 picker를 표시하고, 그 외에는 숨긴다. 문장 중간도 감지."""
         if self._picker is None or self._input is None or self._ctx.dispatcher is None:
             return
 
-        val   = event.value
-        match = None
-        import re
-        m = re.match(r"^/([a-zA-Z0-9_?-]*)$", val)
-        if m:
-            match = m.group(1)
+        val = event.value
+        m = re.search(r"(?:^|\s)(/([a-zA-Z0-9_?-]*))$", val)
 
-        if match is not None:
-            self._picker.populate(self._ctx.dispatcher.commands, query=match)
+        if m:
+            self._picker_slash_start = m.start(1)
+            query = m.group(2)
+            self._picker.populate(self._ctx.dispatcher.commands, query=query)
             if self._picker.option_count > 0:
+                self._picker.highlighted = 0
                 self._picker.add_class("-visible")
                 self._input.add_class("-slash-mode")
                 return
@@ -179,26 +184,26 @@ class JarvisTUI(App[None]):
         self._input.remove_class("-slash-mode")
 
     def _apply_picker_selection(self) -> None:
-        """현재 picker에서 하이라이트된 옵션을 Input에 삽입하고 picker를 닫는다."""
+        """현재 picker에서 하이라이트된 옵션을 Input의 /fragment 위치에 삽입하고 picker를 닫는다."""
         if self._picker is None or self._input is None:
             return
-        highlighted = self._picker.highlighted
-        if highlighted is None:
-            return
+        highlighted = self._picker.highlighted if self._picker.highlighted is not None else 0
         opt = self._picker.get_option_at_index(highlighted)
         if opt and opt.id:
-            self._input.value = f"/{opt.id} "
-            self._input.action_end()  # 커서를 맨 끝으로 이동
+            prefix = self._input.value[: self._picker_slash_start]
+            self._input.value = f"{prefix}/{opt.id} "
+            self._input.action_end()
         self._picker.remove_class("-visible")
         self._input.remove_class("-slash-mode")
         self._input.focus()
 
     def on_option_list_option_selected(self, event: SlashPicker.OptionSelected) -> None:
-        """Enter/Space로 picker 항목 선택 시 Input에 명령어를 채운다."""
+        """Enter/Space로 picker 항목 선택 시 /fragment를 명령어로 교체한다."""
         if self._picker is None or self._input is None:
             return
         if event.option.id:
-            self._input.value = f"/{event.option.id} "
+            prefix = self._input.value[: self._picker_slash_start]
+            self._input.value = f"{prefix}/{event.option.id} "
             self._input.action_end()
         self._picker.remove_class("-visible")
         self._input.remove_class("-slash-mode")
@@ -211,6 +216,14 @@ class JarvisTUI(App[None]):
         if self._picker.has_class("-visible"):
             self._picker.focus()
 
+    def action_picker_up(self) -> None:
+        """↑ 키: picker가 열려 있으면 마지막 항목으로 포커스 이동."""
+        if self._picker is None:
+            return
+        if self._picker.has_class("-visible"):
+            self._picker.highlighted = self._picker.option_count - 1
+            self._picker.focus()
+
     def action_picker_close(self) -> None:
         """Escape: picker를 닫고 Input으로 복귀."""
         if self._picker is None or self._input is None:
@@ -219,9 +232,24 @@ class JarvisTUI(App[None]):
         self._input.remove_class("-slash-mode")
         self._input.focus()
 
+    def on_key(self, event: Key) -> None:
+        """Tab: picker가 열려 있고 input에 포커스일 때 현재 항목 완성."""
+        if event.key != "tab":
+            return
+        if self._picker is None or self._input is None:
+            return
+        if self._picker.has_class("-visible") and self._input.has_focus:
+            event.prevent_default()
+            self._apply_picker_selection()
+
     # ── 입력 처리 ─────────────────────────────────────────────────────────────
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
+        # picker가 열려 있으면 Enter로 항목 선택 (제출 대신)
+        if self._picker is not None and self._picker.has_class("-visible"):
+            self._apply_picker_selection()
+            return
+
         text = event.value.strip()
         if not text:
             return

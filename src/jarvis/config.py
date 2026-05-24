@@ -51,10 +51,8 @@ class SecurityConfig(BaseSettings):
 class MemoryConfig(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
-    backend: Literal["in_memory", "sqlite", "external"] = "sqlite"
-    sqlite_path: str = "~/.jarvis/stm.db"
-    ltm_sqlite_path: str = "~/.jarvis/ltm.db"
-    external_connection: str | None = None
+    backend: Literal["in_memory", "postgres"] = "postgres"
+    postgres_dsn: str | None = None  # None이면 session.postgres_dsn fallback
     window_size: int = 50
     compaction_threshold: int = 100_000
 

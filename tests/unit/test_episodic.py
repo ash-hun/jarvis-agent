@@ -3,24 +3,22 @@ from __future__ import annotations
 
 import pytest
 
-from jarvis.agent_layer.memory.backends.protocol import MemoryEntry
-from jarvis.agent_layer.memory.backends.sqlite_ltm import SqliteLTMBackend
-from jarvis.agent_layer.memory.backends.sqlite_stm import SqliteSTMBackend
+from jarvis.agent_layer.memory.backends.in_memory_ltm import InMemoryLTMBackend
+from jarvis.agent_layer.memory.backends.in_memory_stm import InMemorySTMBackend
 from jarvis.agent_layer.memory.compaction import CompactionMiddleware
 from jarvis.agent_layer.memory.episodic import EpisodicSummarizer
-from jarvis.model_layer.types import TextContent, UserMessage
-
+from jarvis.model_layer.types import UserMessage
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 @pytest.fixture
-def ltm(tmp_path):
-    return SqliteLTMBackend(db_path=str(tmp_path / "ltm.db"))
+def ltm():
+    return InMemoryLTMBackend()
 
 
 @pytest.fixture
-def stm(tmp_path):
-    return SqliteSTMBackend(db_path=str(tmp_path / "stm.db"))
+def stm():
+    return InMemorySTMBackend()
 
 
 def _user_msg(text: str) -> UserMessage:

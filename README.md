@@ -87,11 +87,11 @@ JARVIS_LLM__MODEL=llama3.2
 | 계층 | 설명 |
 |------|------|
 | **STM (Short-Term)** | 슬라이딩 윈도우 + LLM 압축 — 컨텍스트 초과 방지 |
-| **LTM (Long-Term)** | SQLite 또는 외부 DB 영속화 — 세션 간 기억 유지 |
+| **LTM (Long-Term)** | PostgreSQL 영속화 — 세션 간 기억 유지 |
 | **Episodic** | 세션 종료 시 자동 요약 → LTM 저장 |
 
 ```bash
-JARVIS_MEMORY__BACKEND=sqlite    # in_memory | sqlite | external
+JARVIS_MEMORY__BACKEND=postgres    # in_memory | postgres
 ```
 
 ### 세션 관리
@@ -383,8 +383,7 @@ JARVIS_LLM__MAX_TOKENS=4096
 JARVIS_LLM__TEMPERATURE=0.7
 
 # ── 메모리 ───────────────────────────────────────────────────────────────────
-JARVIS_MEMORY__BACKEND=in_memory      # in_memory | sqlite | external
-JARVIS_MEMORY__SQLITE_PATH=~/.jarvis/memory.db
+JARVIS_MEMORY__BACKEND=in_memory      # in_memory | postgres
 JARVIS_MEMORY__WINDOW_SIZE=20
 JARVIS_MEMORY__COMPACTION_THRESHOLD=30
 

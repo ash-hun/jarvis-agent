@@ -21,7 +21,7 @@ Pi의 핵심 설계 철학(streaming as AsyncIterator, middleware chain, Protoco
 | 비동기 | asyncio + anyio |
 | LLM 추상화 | litellm (내부 레이어에서만) + 자체 ai/ 레이어 |
 | 보안 | python-jose (JWT), pycryptodome |
-| 스토리지 | aiosqlite, aiofiles (JSONL) |
+| 스토리지 | asyncpg (PostgreSQL), aiofiles (JSONL) |
 | 플러그인 | watchfiles (핫리로드) |
 | 테스트 | pytest-asyncio, faux provider |
 | 린팅 | ruff (line-length 120) |
@@ -60,7 +60,6 @@ jarvis/
 │       │   │   ├── protocol.py          # MemoryMiddleware Protocol
 │       │   │   ├── chain.py             # MemoryMiddlewareChain
 │       │   │   ├── in_memory.py         # WindowMemory
-│       │   │   ├── sqlite.py            # SqliteMemory
 │       │   │   ├── compaction.py        # Pi: compact() 패턴
 │       │   │   └── adapters/
 │       │   │       ├── vector.py        # 벡터 DB 어댑터
@@ -276,7 +275,7 @@ class JarvisSettings(BaseSettings):
 
     llm: LLMProviderConfig       # provider, model, api_key, base_url
     security: SecurityConfig      # require_auth, allowed_roles, dangerous_commands
-    memory: MemoryConfig          # backend, sqlite_path, window_size, compaction_threshold
+    memory: MemoryConfig          # backend, postgres_dsn, window_size, compaction_threshold
     session: SessionConfig        # persistence_backend, sessions_dir
     ui: UIConfig                  # mode, theme
     plugin: PluginConfig          # plugins_dir, skills_dir, tools_dir, watch_files

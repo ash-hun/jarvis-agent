@@ -3,24 +3,23 @@ from __future__ import annotations
 
 import pytest
 
-from jarvis.agent_layer.memory.backends.protocol import MemoryEntry, LTMBackend, STMBackend
-from jarvis.agent_layer.memory.backends.sqlite_ltm import SqliteLTMBackend
-from jarvis.agent_layer.memory.backends.sqlite_stm import SqliteSTMBackend
+from jarvis.agent_layer.memory.backends.in_memory_ltm import InMemoryLTMBackend
+from jarvis.agent_layer.memory.backends.in_memory_stm import InMemorySTMBackend
+from jarvis.agent_layer.memory.backends.protocol import LTMBackend, MemoryEntry, STMBackend
 from jarvis.agent_layer.memory.long_term import LongTermMemory
 from jarvis.agent_layer.memory.short_term import ShortTermMemory
 from jarvis.model_layer.types import AssistantMessage, TextContent, UserMessage
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 @pytest.fixture
-def stm_backend(tmp_path):
-    return SqliteSTMBackend(db_path=str(tmp_path / "stm.db"))
+def stm_backend():
+    return InMemorySTMBackend()
 
 
 @pytest.fixture
-def ltm_backend(tmp_path):
-    return SqliteLTMBackend(db_path=str(tmp_path / "ltm.db"))
+def ltm_backend():
+    return InMemoryLTMBackend()
 
 
 def _user_msg(text: str) -> UserMessage:
@@ -41,7 +40,7 @@ def test_ltm_backend_satisfies_protocol(ltm_backend):
     assert isinstance(ltm_backend, LTMBackend)
 
 
-# ── SqliteSTMBackend ───────────────────────────────────────────────────────────
+# ── InMemorySTMBackend ────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_stm_append_and_load(stm_backend):
@@ -78,7 +77,7 @@ async def test_stm_load_empty(stm_backend):
     assert await stm_backend.load("nonexistent") == []
 
 
-# ── SqliteLTMBackend ───────────────────────────────────────────────────────────
+# ── InMemoryLTMBackend ────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_ltm_store_and_get_recent(ltm_backend):

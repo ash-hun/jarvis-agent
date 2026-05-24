@@ -18,7 +18,7 @@ def test_default_settings(monkeypatch):
     assert settings.llm.provider == "anthropic"
     assert settings.llm.model == "claude-sonnet-4-5"
     assert settings.security.require_auth is True
-    assert settings.memory.backend == "sqlite"
+    assert settings.memory.backend == "postgres"
     assert settings.debug is False
 
 

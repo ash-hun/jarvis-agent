@@ -119,8 +119,6 @@ class AppContext:
 
 def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     """공통 인프라를 생성하고 (AppContext, extra)를 반환."""
-    from jarvis.agent_layer.memory.backends.sqlite_ltm import SqliteLTMBackend
-    from jarvis.agent_layer.memory.backends.sqlite_stm import SqliteSTMBackend
     from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
     from jarvis.agent_layer.memory.compaction import CompactionMiddleware
     from jarvis.agent_layer.memory.long_term import LongTermMemory
@@ -158,8 +156,22 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         max_tokens=settings.llm.max_tokens,
     )
 
-    stm_backend = SqliteSTMBackend(db_path=settings.memory.sqlite_path)
-    ltm_backend = SqliteLTMBackend(db_path=settings.memory.ltm_sqlite_path)
+    if settings.memory.backend == "in_memory":
+        from jarvis.agent_layer.memory.backends.in_memory_ltm import InMemoryLTMBackend
+        from jarvis.agent_layer.memory.backends.in_memory_stm import InMemorySTMBackend
+        stm_backend = InMemorySTMBackend()
+        ltm_backend = InMemoryLTMBackend()
+    else:
+        dsn = settings.memory.postgres_dsn or settings.session.postgres_dsn
+        if not dsn:
+            raise ValueError(
+                "JARVIS_MEMORY__POSTGRES_DSN 또는 JARVIS_SESSION__POSTGRES_DSN 설정 필요"
+            )
+        from jarvis.agent_layer.memory.backends.postgres_ltm import PostgresLTMBackend
+        from jarvis.agent_layer.memory.backends.postgres_stm import PostgresSTMBackend
+        stm_backend = PostgresSTMBackend(dsn=dsn)
+        ltm_backend = PostgresLTMBackend(dsn=dsn)
+
     memory_chain = MemoryMiddlewareChain(stages=[
         ShortTermMemory(stm_backend),
         CompactionMiddleware(
@@ -403,12 +415,10 @@ def make_branch_factory(
     """
 
     async def _factory(parent_session_id: str) -> AgentSession:
-        from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
         repo = ctx.session_repo
-        if isinstance(repo, JsonlSessionRepo):
+        if hasattr(repo, "create_branch"):
             meta = await repo.create_branch(parent_session_id)
         else:
-            # Fallback: plain new session without message copy
             import uuid as _uuid
             meta = await repo.create(session_id=str(_uuid.uuid4()))
         return _build_agent_session(meta.session_id, ctx, extra)

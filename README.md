@@ -8,12 +8,6 @@
 
 ---
 
-## UI 모드
-
-| 모드 | 실행 | 특징 |
-|------|------|------|
-| **TUI** | `jarvis` | Textual 터미널 HUD, 스트리밍 출력, `ctrl+k` 중단 |
-| **Web HUD** | `jarvis --web` | Iron Man 스타일 Arc Reactor + 채팅, WebSocket 스트리밍 |
 
 ## Quick Start
 
@@ -126,10 +120,13 @@ InputValidator → Authenticator → PolicyEngine → Sandbox
 
 ## 내장 도구 (Tools)
 
-| 도구 | 설명 |
-|------|------|
-| `bash` | 셸 명령 실행 (타임아웃, human-in-the-loop 승인) |
-| `read_file` | 파일 읽기 (라인 번호, offset/limit) |
+| 도구 | 주요 파라미터 | 설명 |
+|------|-------------|------|
+| `bash` | `command`, `timeout` | 셸 명령 실행. 위험 명령은 human-in-the-loop 승인 요청 |
+| `read_file` | `path`, `offset`, `limit` | 파일 읽기. 라인 번호 기반 범위 지정 가능 |
+| `write_file` | `path`, `content` | 파일 쓰기. 부모 디렉토리 자동 생성, 기존 파일 덮어쓰기 |
+| `edit_file` | `path`, `old_string`, `new_string`, `replace_all` | 파일 내 문자열 정밀 교체. 매칭 실패 시 에러 반환 |
+| `web_search` | `query`, `max_results` | 웹 검색. Brave API 키 설정 시 Brave, 미설정 시 DuckDuckGo fallback |
 
 ---
 

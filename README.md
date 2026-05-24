@@ -8,12 +8,6 @@
 
 ---
 
-## UI 모드
-
-| 모드 | 실행 | 특징 |
-|------|------|------|
-| **TUI** | `jarvis` | Textual 터미널 HUD, 스트리밍 출력, `ctrl+k` 중단 |
-| **Web HUD** | `jarvis --web` | Iron Man 스타일 Arc Reactor + 채팅, WebSocket 스트리밍 |
 
 ## Quick Start
 

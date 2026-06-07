@@ -187,6 +187,8 @@ InputValidator → Authenticator → PolicyEngine → Sandbox
 | `/branch` | — | `[session_id]` 세션을 특정 시점에서 분기 |
 | `/tools` | — | 현재 사용 가능한 도구 목록 표시 |
 | `/compact` | — | 현재 세션을 요약해 장기 기억에 저장 |
+| `/export` | — | 현재 세션 대화를 파일로 내보내기 (`md` \| `json`, `~/.jarvis/exports/`) |
+| `/cost` | — | 현재 세션 토큰 사용량·추정 비용 리포트 (모델별 집계) |
 | `/help` | `/?` | 사용 가능한 명령 목록 표시 |
 
 ```
@@ -494,7 +496,7 @@ JARVIS_WEB__PORT=7777
 
 ```bash
 uv sync                          # 의존성 설치 (dev 포함)
-uv run pytest                    # 전체 테스트 (실 API 호출 없음, 473개)
+uv run pytest                    # 전체 테스트 (실 API 호출 없음, 487개)
 uv run pytest -k "test_policy"   # 특정 테스트
 uv run ruff check .              # 린트
 uv run ruff format .             # 포매팅

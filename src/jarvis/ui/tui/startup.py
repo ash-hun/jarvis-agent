@@ -333,6 +333,16 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         "현재 세션을 요약해 장기 기억에 저장",
     )
 
+    from jarvis.core.slash.cost_cmd import make_cost_handler
+    from jarvis.core.slash.export_cmd import make_export_handler
+
+    ctx.dispatcher.register(
+        "export", make_export_handler(session_repo), "현재 세션 대화 내보내기 (md | json)"
+    )
+    ctx.dispatcher.register(
+        "cost", make_cost_handler(session_repo), "현재 세션 토큰 사용량·추정 비용 리포트"
+    )
+
     # TUI 음성 컨트롤러 (voice.tui_enabled일 때만; 프로바이더 import 실패 시 graceful skip)
     if settings.voice.tui_enabled:
         try:

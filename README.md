@@ -245,6 +245,36 @@ parameters:
 </details>
 
 <details>
+<summary>MCP 서버 연결</summary>
+
+[MCP](https://modelcontextprotocol.io) 서버의 툴을 자동으로 발견·등록한다. `stdio`(로컬 프로세스)와 `http`(SSE) transport를 지원한다.
+
+```python
+# config / .env 로 주입되는 mcp_servers 항목
+{
+  "name": "filesystem",
+  "transport": "stdio",
+  "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/data"],
+  "timeout": 30.0                      # 연결/호출 타임아웃(초) — 응답 없는 서버가 startup을 막지 않음
+}
+
+{
+  "name": "remote-api",
+  "transport": "http",
+  "url": "https://mcp.example.com/sse",
+  "auth_token": "sk-...",              # Authorization: Bearer 헤더로 변환
+  "headers": {"X-Org": "acme"},        # 커스텀 헤더 (auth_token보다 우선)
+  "timeout": 30.0
+}
+```
+
+- **격리**: 한 서버의 연결 실패·타임아웃이 다른 서버 로딩을 막지 않는다.
+- **타임아웃**: 각 서버는 `timeout`(기본 30초) 내 응답하지 않으면 skip된다.
+- 사용하려면 `uv sync --extra mcp` (mcp 패키지) 필요. 미설치 시 자동 skip.
+
+</details>
+
+<details>
 <summary>새 슬래시 커맨드(Skill) 추가</summary>
 
 `~/.jarvis/skills/` 에 Markdown 파일을 놓는다.
@@ -443,7 +473,7 @@ JARVIS_WEB__PORT=7777
 
 ```bash
 uv sync                          # 의존성 설치 (dev 포함)
-uv run pytest                    # 전체 테스트 (실 API 호출 없음, 450개)
+uv run pytest                    # 전체 테스트 (실 API 호출 없음, 461개)
 uv run pytest -k "test_policy"   # 특정 테스트
 uv run ruff check .              # 린트
 uv run ruff format .             # 포매팅

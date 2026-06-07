@@ -108,6 +108,27 @@ jarvis --list-sessions      # 세션 목록
 /schedule 0 9 * * * date && uptime
 ```
 
+### 음성 (Web HUD)
+
+브라우저 HUD에서 구체를 클릭하면 음성 대화가 가능하다. STT/TTS 처리 위치는 설정으로 결정된다.
+
+| 설정 | `browser` (기본) | 서버 처리 |
+|------|-----------------|-----------|
+| **STT** | Web Speech API (브라우저 인식) | `whisper` — 브라우저가 녹음 → 백엔드 faster-whisper 전사 |
+| **TTS** | Web Speech API (브라우저 합성) | `supertonic` — 백엔드 ONNX 합성 → WAV 스트림 |
+
+```bash
+JARVIS_VOICE__STT_PROVIDER=whisper       # browser | whisper
+JARVIS_VOICE__TTS_PROVIDER=supertonic    # browser | supertonic
+JARVIS_VOICE__WHISPER_MODEL_SIZE=base    # tiny | base | small | medium | large-v3
+JARVIS_VOICE__STT_LANG=ko-KR
+
+# 서버 STT/TTS 사용 시 추가 의존성
+uv sync --extra voice
+```
+
+서버 STT 모드에서는 `connected` 메시지의 `voice.stt_mode=server`를 받아, 브라우저가 `MediaRecorder`로 녹음한 오디오를 `voice_stt_submit`으로 전송하고 백엔드가 `voice_stt_result`로 전사 결과를 돌려준다.
+
 ### 보안 파이프라인
 
 모든 입력은 4단계를 순서대로 통과한다. 순서 변경·스킵 불가.
@@ -422,7 +443,7 @@ JARVIS_WEB__PORT=7777
 
 ```bash
 uv sync                          # 의존성 설치 (dev 포함)
-uv run pytest                    # 전체 테스트 (실 API 호출 없음, 436개)
+uv run pytest                    # 전체 테스트 (실 API 호출 없음, 450개)
 uv run pytest -k "test_policy"   # 특정 테스트
 uv run ruff check .              # 린트
 uv run ruff format .             # 포매팅

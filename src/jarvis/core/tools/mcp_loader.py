@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import TYPE_CHECKING, Any
 
@@ -28,11 +29,24 @@ class MCPToolWrapper:
         from jarvis.model_layer.types import TextContent, ToolResultMessage
 
         try:
-            result_text = await _call_mcp_tool(self._server, self.name, params)
+            result_text = await asyncio.wait_for(
+                _call_mcp_tool(self._server, self.name, params),
+                timeout=self._server.timeout,
+            )
             return ToolResultMessage(
                 tool_call_id=tool_call_id,
                 tool_name=self.name,
                 content=[TextContent(text=result_text)],
+            )
+        except TimeoutError:
+            return ToolResultMessage(
+                tool_call_id=tool_call_id,
+                tool_name=self.name,
+                content=[TextContent(
+                    text=f"MCP tool '{self.name}' timed out after {self._server.timeout}s "
+                         f"(server '{self._server.name}')"
+                )],
+                is_error=True,
             )
         except Exception as exc:
             return ToolResultMessage(
@@ -59,20 +73,37 @@ class MCPToolLoader:
 
         loaded: list[str] = []
         for server in servers:
+            # 서버별 격리 — 한 서버의 실패/타임아웃이 다른 서버 로딩을 막지 않는다.
             try:
-                tools = await _list_mcp_tools(server)
-                for tool in tools:
-                    wrapper = MCPToolWrapper(
-                        server_config=server,
-                        tool_name=tool["name"],
-                        description=tool.get("description", ""),
-                        input_schema=tool.get("inputSchema", {}),
-                    )
-                    self._registry.register_force(wrapper)
-                    loaded.append(tool["name"])
-                print(f"[MCPToolLoader] Loaded {len(tools)} tool(s) from '{server.name}'")
+                tools = await asyncio.wait_for(
+                    _list_mcp_tools(server), timeout=server.timeout
+                )
+            except TimeoutError:
+                print(
+                    f"[MCPToolLoader] '{server.name}' timed out after {server.timeout}s "
+                    f"— skipping"
+                )
+                continue
             except Exception as exc:
                 print(f"[MCPToolLoader] Failed to load from '{server.name}': {exc}")
+                continue
+
+            count = 0
+            for tool in tools:
+                name = tool.get("name")
+                if not name:
+                    print(f"[MCPToolLoader] '{server.name}': skipping tool with no name")
+                    continue
+                wrapper = MCPToolWrapper(
+                    server_config=server,
+                    tool_name=name,
+                    description=tool.get("description", ""),
+                    input_schema=tool.get("inputSchema", {}),
+                )
+                self._registry.register_force(wrapper)
+                loaded.append(name)
+                count += 1
+            print(f"[MCPToolLoader] Loaded {count} tool(s) from '{server.name}'")
 
         return loaded
 
@@ -98,7 +129,7 @@ async def _list_mcp_tools(server: MCPServerConfig) -> list[dict[str, Any]]:
         if not server.url:
             raise ValueError(f"MCP server '{server.name}': transport=http requires url")
         from mcp.client.sse import sse_client
-        async with sse_client(server.url) as (read, write):
+        async with sse_client(server.url, headers=_build_http_headers(server)) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 result = await session.list_tools()
@@ -128,13 +159,26 @@ async def _call_mcp_tool(server: MCPServerConfig, tool_name: str, params: dict[s
         if not server.url:
             raise ValueError(f"MCP server '{server.name}': transport=http requires url")
         from mcp.client.sse import sse_client
-        async with sse_client(server.url) as (read, write):
+        async with sse_client(server.url, headers=_build_http_headers(server)) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 result = await session.call_tool(tool_name, params)
                 return _extract_result_text(result)
 
     raise ValueError(f"Unsupported MCP transport '{server.transport}'")
+
+
+def _build_http_headers(server: MCPServerConfig) -> dict[str, str] | None:
+    """http transport용 헤더 구성. auth_token이 있으면 Authorization: Bearer로 추가.
+
+    명시적으로 지정한 headers가 auth_token 파생 헤더보다 우선한다.
+    헤더가 없으면 None을 반환해 mcp 기본 동작을 따른다.
+    """
+    headers: dict[str, str] = {}
+    if server.auth_token is not None:
+        headers["Authorization"] = f"Bearer {server.auth_token.get_secret_value()}"
+    headers.update(server.headers)
+    return headers or None
 
 
 def _tools_to_dicts(tools: Any) -> list[dict[str, Any]]:

@@ -14,6 +14,9 @@ class MCPServerConfig(BaseModel):
     command: list[str] = Field(default_factory=list)  # stdio transport용 명령
     url: str | None = None  # http/sse transport용 엔드포인트
     env: dict[str, Any] = Field(default_factory=dict)
+    timeout: float = 30.0  # 연결/툴 호출 타임아웃(초) — 응답 없는 서버가 startup을 막지 않도록
+    headers: dict[str, str] = Field(default_factory=dict)  # http transport용 커스텀 헤더
+    auth_token: SecretStr | None = None  # http transport용 Bearer 토큰 (Authorization 헤더로 변환)
 
 
 class WebSearchConfig(BaseSettings):

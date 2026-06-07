@@ -188,6 +188,7 @@ def create_app(
         unsubscribe = session.subscribe(adapter.on_agent_event)
 
         try:
+            stt_browser = voice_service is None or voice_service.stt_is_browser
             await ws.send_json({
                 "type": "connected",
                 "session_id": session._session_id,
@@ -197,6 +198,12 @@ def create_app(
                     {"name": name, "description": desc}
                     for name, desc in sorted(ctx.dispatcher.commands.items())
                 ] if ctx.dispatcher else [],
+                "voice": {
+                    # server: 브라우저가 오디오를 녹음해 백엔드 STT(Whisper 등)로 전송
+                    # browser: 브라우저 Web Speech API가 인식까지 담당
+                    "stt_mode": "browser" if stt_browser else "server",
+                    "stt_lang": ctx.settings.voice.stt_lang,
+                },
             })
 
             while True:
@@ -231,6 +238,12 @@ def create_app(
                     if text and voice_service:
                         asyncio.create_task(_run_tts(ws, voice_service, text, lang))
 
+                elif msg_type == "voice_stt_submit":
+                    data = msg.get("data", "")
+                    sample_rate = int(msg.get("sample_rate", 16000))
+                    if data and voice_service:
+                        asyncio.create_task(_run_stt(ws, voice_service, data, sample_rate))
+
                 elif msg_type == "abort":
                     session.abort()
 
@@ -251,6 +264,17 @@ async def _run_prompt(session: Any, adapter: Any, text: str) -> None:
         await session.prompt(text)
     except Exception as exc:
         await adapter.show_error(str(exc))
+
+
+async def _run_stt(ws: Any, voice_service: Any, audio_b64: str, sample_rate: int) -> None:
+    """base64 오디오를 디코딩해 백엔드 STT로 전사하고 결과를 전송한다."""
+    try:
+        audio_bytes = base64.b64decode(audio_b64)
+        text = await voice_service.transcribe(audio_bytes, sample_rate)
+        await ws.send_json({"type": "voice_stt_result", "text": text})
+    except Exception as exc:
+        with contextlib.suppress(Exception):
+            await ws.send_json({"type": "voice_stt_result", "text": "", "error": str(exc)})
 
 
 async def _run_tts(ws: Any, voice_service: Any, text: str, lang: str) -> None:

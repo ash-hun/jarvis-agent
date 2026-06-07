@@ -503,6 +503,7 @@ function handleMessage(msg) {
       if ($sbModel) $sbModel.textContent = model;
       if (msg.sessions) renderSessions(msg.sessions);
       if (msg.slash_commands) _slashCmds = msg.slash_commands;
+      if (msg.voice && msg.voice.stt_mode) voice.setSttMode(msg.voice.stt_mode);
       setStatus('READY');
       setInputEnabled(true);
       HUD.setState('idle');
@@ -622,6 +623,19 @@ function handleMessage(msg) {
         // 브라우저 TTS fallback (BrowserTTSProvider)
         voice.speakBrowser(msg.text);
       } else {
+        voice.setIdle();
+      }
+      break;
+
+    case 'voice_stt_result':
+      // 서버 STT (Whisper 등) 전사 결과
+      if (msg.error) {
+        appendMsg('SYS', 'err', escapeHtml(`STT 오류: ${msg.error}`));
+        voice.setIdle();
+      } else if (msg.text && msg.text.trim()) {
+        voice.receiveTranscript(msg.text);
+      } else {
+        appendMsg('SYS', 'err', '음성을 인식하지 못했습니다.');
         voice.setIdle();
       }
       break;
@@ -876,6 +890,10 @@ const voice = new VoiceManager({
   },
   onError(msg) {
     appendMsg('SYS', 'err', escapeHtml(msg));
+  },
+  onAudioCaptured(base64, mime) {
+    // 서버 STT 모드: 녹음된 오디오를 백엔드로 전송 → voice_stt_result 수신
+    send({ type: 'voice_stt_submit', data: base64, mime, sample_rate: 16000 });
   },
 });
 window.voiceManager = voice;

@@ -129,6 +129,27 @@ uv sync --extra voice
 
 서버 STT 모드에서는 `connected` 메시지의 `voice.stt_mode=server`를 받아, 브라우저가 `MediaRecorder`로 녹음한 오디오를 `voice_stt_submit`으로 전송하고 백엔드가 `voice_stt_result`로 전사 결과를 돌려준다.
 
+### 음성 (TUI)
+
+터미널 TUI에서도 음성 입출력이 가능하다. 브라우저 API가 없으므로 **서버 프로바이더(whisper/supertonic) + 시스템 오디오 도구**를 사용한다.
+
+```bash
+JARVIS_VOICE__TUI_ENABLED=true
+JARVIS_VOICE__STT_PROVIDER=whisper       # 음성 입력(Ctrl+R)
+JARVIS_VOICE__TTS_PROVIDER=supertonic    # 음성 출력(Ctrl+T)
+JARVIS_VOICE__TUI_RECORD_SECONDS=5       # Ctrl+R 녹음 길이(초)
+
+uv sync --extra voice                    # whisper/supertonic
+# 시스템 오디오 도구: 재생 afplay(macOS)/paplay/aplay/ffplay, 녹음 sox 또는 arecord
+```
+
+| 단축키 | 동작 |
+|--------|------|
+| `Ctrl+T` | 응답 음성 출력(TTS) 토글 |
+| `Ctrl+R` | 마이크 녹음 → 전사 → 입력창에 채움 (자동 전송 안 함, 검토 후 Enter) |
+
+프로바이더가 `browser`이거나 오디오 도구가 없으면 안내 메시지와 함께 비활성화된다.
+
 ### 보안 파이프라인
 
 모든 입력은 4단계를 순서대로 통과한다. 순서 변경·스킵 불가.
@@ -473,7 +494,7 @@ JARVIS_WEB__PORT=7777
 
 ```bash
 uv sync                          # 의존성 설치 (dev 포함)
-uv run pytest                    # 전체 테스트 (실 API 호출 없음, 461개)
+uv run pytest                    # 전체 테스트 (실 API 호출 없음, 473개)
 uv run pytest -k "test_policy"   # 특정 테스트
 uv run ruff check .              # 린트
 uv run ruff format .             # 포매팅

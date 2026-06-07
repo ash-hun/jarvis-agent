@@ -112,6 +112,8 @@ class AppContext:
     scheduler: SchedulerService | None = field(default=None)
     # 슬래시 명령 디스패처 — _build_infra()에서 주입
     dispatcher: SlashCommandDispatcher | None = field(default=None)
+    # TUI 음성 컨트롤러 — _build_infra()에서 주입 (voice.tui_enabled일 때만)
+    voice_controller: Any = field(default=None)
 
 
 # ── 팩토리 헬퍼 ───────────────────────────────────────────────────────────────
@@ -330,6 +332,20 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         make_compact_handler(model_config, session_repo, ltm_backend),
         "현재 세션을 요약해 장기 기억에 저장",
     )
+
+    # TUI 음성 컨트롤러 (voice.tui_enabled일 때만; 프로바이더 import 실패 시 graceful skip)
+    if settings.voice.tui_enabled:
+        try:
+            from jarvis.ui.tui.voice import TuiVoiceController
+            from jarvis.voice.service import VoiceService
+
+            voice_service = VoiceService.from_config(
+                stt_provider=settings.voice.stt_provider,
+                tts_provider=settings.voice.tts_provider,
+            )
+            ctx.voice_controller = TuiVoiceController(voice_service)
+        except Exception as exc:
+            print(f"[Voice] TUI 음성 비활성화 (초기화 실패): {exc}")
 
     return ctx, _extra
 

@@ -108,6 +108,8 @@ class VoiceConfig(BaseSettings):
     supertonic_model: str = "Supertone/supertonic-3"
     tts_lang: str = "ko"
     stt_lang: str = "ko-KR"
+    tui_enabled: bool = False        # TUI 음성 입출력 활성화 (whisper/supertonic + 시스템 오디오 도구 필요)
+    tui_record_seconds: float = 5.0  # TUI 음성 입력(Ctrl+R) 녹음 길이(초)
 
 
 class JarvisSettings(BaseSettings):

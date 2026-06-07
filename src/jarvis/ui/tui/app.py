@@ -90,6 +90,8 @@ class JarvisTUI(App[None]):
         Binding("ctrl+b", "toggle_sidebar", "Sidebar", show=True),
         Binding("ctrl+n", "new_session", "New Session", show=True),
         Binding("ctrl+f", "fork_session", "Fork Session", show=True),
+        Binding("ctrl+t", "toggle_speak", "Speak", show=True),
+        Binding("ctrl+r", "voice_input", "Voice", show=True),
         Binding("down", "picker_down", "Picker", show=False),
         Binding("up", "picker_up", "Picker Up", show=False),
         Binding("escape", "picker_close", "Close Picker", show=False),
@@ -99,6 +101,7 @@ class JarvisTUI(App[None]):
     is_streaming: Reactive[bool] = Reactive(False)
     active_tool_count: Reactive[int] = Reactive(0)
     sidebar_visible: Reactive[bool] = Reactive(True)
+    speak_mode: Reactive[bool] = Reactive(False)  # Ctrl+T: 응답 음성 출력 토글
 
     def __init__(
         self,
@@ -326,8 +329,11 @@ class JarvisTUI(App[None]):
 
             case FlushStreamAction():
                 if self._stream_buffer:
-                    self._chat.add_assistant(self._stream_buffer)
+                    spoken = self._stream_buffer
+                    self._chat.add_assistant(spoken)
                     self._stream_buffer = ""
+                    if self.speak_mode and self._ctx.voice_controller is not None:
+                        self.run_worker(self._speak(spoken))
                 self.is_streaming = False
 
             case ToolStartAction(tool_call_id=tid, tool_name=n):
@@ -384,6 +390,75 @@ class JarvisTUI(App[None]):
 
     def action_abort(self) -> None:
         self._session.abort()
+
+    # ── 음성 (TUI) ────────────────────────────────────────────────────────────
+
+    def action_toggle_speak(self) -> None:
+        """Ctrl+T: 에이전트 응답 음성 출력(TTS) 토글."""
+        vc = self._ctx.voice_controller
+        if self._chat is None or self._status is None:
+            return
+        if vc is None:
+            self._chat.add_error(
+                "음성 출력 비활성화됨. JARVIS_VOICE__TUI_ENABLED=true 로 활성화하세요."
+            )
+            return
+        if not vc.can_speak:
+            self._chat.add_error(
+                "음성 출력에는 서버 TTS 프로바이더가 필요합니다 "
+                "(JARVIS_VOICE__TTS_PROVIDER=supertonic)."
+            )
+            return
+        self.speak_mode = not self.speak_mode
+        self._status.set_status(f"음성 출력 {'ON' if self.speak_mode else 'OFF'}")
+
+    def action_voice_input(self) -> None:
+        """Ctrl+R: 마이크로 녹음 → 전사 → 입력창에 채운다 (자동 전송하지 않음)."""
+        vc = self._ctx.voice_controller
+        if self._chat is None:
+            return
+        if vc is None:
+            self._chat.add_error(
+                "음성 입력 비활성화됨. JARVIS_VOICE__TUI_ENABLED=true 로 활성화하세요."
+            )
+            return
+        if not vc.can_listen:
+            self._chat.add_error(
+                "음성 입력에는 서버 STT 프로바이더가 필요합니다 "
+                "(JARVIS_VOICE__STT_PROVIDER=whisper)."
+            )
+            return
+        self.run_worker(self._voice_input())
+
+    async def _voice_input(self) -> None:
+        vc = self._ctx.voice_controller
+        if vc is None or self._status is None or self._input is None or self._chat is None:
+            return
+        seconds = self._ctx.settings.voice.tui_record_seconds
+        self._status.set_status(f"🎤 듣는 중… ({seconds:g}s)")
+        try:
+            text = await vc.listen(seconds)
+        except Exception as exc:
+            self._chat.add_error(f"음성 입력 실패: {exc}")
+            self._status.set_status("Ready")
+            return
+        self._status.set_status("Ready")
+        if text.strip():
+            self._input.value = text
+            self._input.action_end()
+            self._input.focus()
+        else:
+            self._chat.add_tool("음성을 인식하지 못했습니다.")
+
+    async def _speak(self, text: str) -> None:
+        vc = self._ctx.voice_controller
+        if vc is None:
+            return
+        try:
+            await vc.speak(text, lang=self._ctx.settings.voice.tts_lang)
+        except Exception as exc:
+            if self._chat is not None:
+                self._chat.add_error(f"음성 출력 실패: {exc}")
 
     def action_toggle_sidebar(self) -> None:
         """사이드바 토글 (Hunk: layout toggle 패턴)."""

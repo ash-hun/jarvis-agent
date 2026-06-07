@@ -126,7 +126,11 @@ InputValidator → Authenticator → PolicyEngine → Sandbox
 | `read_file` | `path`, `offset`, `limit` | 파일 읽기. 라인 번호 기반 범위 지정 가능 |
 | `write_file` | `path`, `content` | 파일 쓰기. 부모 디렉토리 자동 생성, 기존 파일 덮어쓰기 |
 | `edit_file` | `path`, `old_string`, `new_string`, `replace_all` | 파일 내 문자열 정밀 교체. 매칭 실패 시 에러 반환 |
+| `glob` | `pattern`, `path`, `limit` | 글롭 패턴으로 파일 탐색 (`**/*.py`). 최근 수정순 정렬 |
+| `grep` | `pattern`, `path`, `glob`, `case_insensitive` | 파일 내용 정규식 검색. `path:line: text` 형식 반환, 바이너리 자동 스킵 |
+| `list_dir` | `path`, `all` | 디렉토리 나열. 타입(dir/file)·크기 표시 |
 | `web_search` | `query`, `max_results` | 웹 검색. Brave API 키 설정 시 Brave, 미설정 시 DuckDuckGo fallback |
+| `web_fetch` | `url`, `max_length` | URL 본문을 가져와 텍스트로 변환 (HTML 태그 제거) |
 
 ---
 
@@ -136,6 +140,12 @@ InputValidator → Authenticator → PolicyEngine → Sandbox
 |--------|------|------|
 | `/test` | `/t`, `/pytest` | 유닛 테스트 실행 및 결과 리포트 |
 | `/schedule` | — | 작업 예약 |
+| `/remember` | — | 장기 기억 저장/검색/삭제 (`list` \| `search <키워드>` \| `forget <id>`) |
+| `/sessions` | — | 저장된 세션 목록 표시 |
+| `/branch` | — | `[session_id]` 세션을 특정 시점에서 분기 |
+| `/tools` | — | 현재 사용 가능한 도구 목록 표시 |
+| `/compact` | — | 현재 세션을 요약해 장기 기억에 저장 |
+| `/help` | `/?` | 사용 가능한 명령 목록 표시 |
 
 ```
 /test                          # 전체 테스트
@@ -412,7 +422,7 @@ JARVIS_WEB__PORT=7777
 
 ```bash
 uv sync                          # 의존성 설치 (dev 포함)
-uv run pytest                    # 전체 테스트 (실 API 호출 없음, 398개)
+uv run pytest                    # 전체 테스트 (실 API 호출 없음, 436개)
 uv run pytest -k "test_policy"   # 특정 테스트
 uv run ruff check .              # 린트
 uv run ruff format .             # 포매팅

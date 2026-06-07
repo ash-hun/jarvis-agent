@@ -133,7 +133,11 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     from jarvis.core.skills.registry import SkillRegistry
     from jarvis.core.tools.builtin.bash import BashTool
     from jarvis.core.tools.builtin.edit_file import EditFileTool
+    from jarvis.core.tools.builtin.glob import GlobTool
+    from jarvis.core.tools.builtin.grep import GrepTool
+    from jarvis.core.tools.builtin.list_dir import ListDirTool
     from jarvis.core.tools.builtin.read_file import ReadFileTool
+    from jarvis.core.tools.builtin.web_fetch import WebFetchTool
     from jarvis.core.tools.builtin.web_search import WebSearchTool
     from jarvis.core.tools.builtin.write_file import WriteFileTool
     from jarvis.core.tools.loader import ToolLoader
@@ -144,7 +148,11 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     tool_registry.register(ReadFileTool())
     tool_registry.register(WriteFileTool())
     tool_registry.register(EditFileTool())
+    tool_registry.register(GlobTool())
+    tool_registry.register(GrepTool())
+    tool_registry.register(ListDirTool())
     tool_registry.register(WebSearchTool())
+    tool_registry.register(WebFetchTool())
 
     from jarvis.model_layer.types import ModelConfig
     model_config = ModelConfig(
@@ -298,6 +306,29 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         "remember",
         make_remember_handler(ltm_backend),
         "내용 저장/검색/삭제 (list | search <키워드> | forget <id>)",
+    )
+
+    # 운영용 슬래시 커맨드
+    from jarvis.core.slash.ops_cmd import (
+        make_branch_handler,
+        make_compact_handler,
+        make_sessions_handler,
+        make_tools_handler,
+    )
+
+    ctx.dispatcher.register(
+        "sessions", make_sessions_handler(session_repo), "저장된 세션 목록 표시"
+    )
+    ctx.dispatcher.register(
+        "branch", make_branch_handler(session_repo), "[session_id] 세션을 분기"
+    )
+    ctx.dispatcher.register(
+        "tools", make_tools_handler(tool_registry), "사용 가능한 도구 목록 표시"
+    )
+    ctx.dispatcher.register(
+        "compact",
+        make_compact_handler(model_config, session_repo, ltm_backend),
+        "현재 세션을 요약해 장기 기억에 저장",
     )
 
     return ctx, _extra

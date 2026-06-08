@@ -98,6 +98,7 @@ class InnerThoughtEngine:
             recalled_memories="\n".join(f"- {x}" for x in recalled),
             history=self._format_history(request.history),
             user_input=request.user_input,
+            user_model=request.user_model,
         )
 
     async def _call_model(self, prompt: str) -> str:

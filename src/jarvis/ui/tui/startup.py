@@ -282,6 +282,11 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     if settings.thought.enabled:
         openloop_store = _build_openloop_store(settings)
 
+    # User Model 저장소 (Tier 3 D1) — 앱 레벨 단일 인스턴스.
+    user_model_store: Any = None
+    if settings.thought.enabled and settings.user_model.enabled:
+        user_model_store = _build_user_model_store(settings)
+
     # Proactivity 활동 시계 + 성찰 트리거 + 피드백 학습기. 앱 레벨 단일 인스턴스.
     from jarvis.core.proactive import ActivityClock, FeedbackLearner
 
@@ -304,6 +309,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         "openloop_store": openloop_store,
         "activity_clock": activity_clock,
         "feedback_learner": feedback_learner,
+        "user_model_store": user_model_store,
     }
 
     # Scheduler의 base_extra를 채워 넣는다 (extra가 만들어진 이후)
@@ -339,6 +345,31 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
             "openloop",
             make_openloop_handler(openloop_store),
             "추적 중인 약속/미완 작업 (done <id> | dismiss <id>)",
+        )
+
+    if user_model_store is not None:
+        from jarvis.agent_layer.usermodel import UserModelBuilder
+        from jarvis.core.slash.usermodel_cmd import make_usermodel_handler
+
+        ctx.dispatcher.register(
+            "usermodel",
+            make_usermodel_handler(
+                user_model_store,
+                UserModelBuilder(model_config),
+                ltm_backend,
+                build_source_limit=settings.user_model.build_source_limit,
+            ),
+            "증류된 사용자 모델 (build로 갱신)",
+        )
+
+    if settings.thought.enabled:
+        from jarvis.agent_layer.journal import ReflectionJournaler
+        from jarvis.core.slash.journal_cmd import make_journal_handler
+
+        ctx.dispatcher.register(
+            "journal",
+            make_journal_handler(ReflectionJournaler(model_config, ltm_backend)),
+            "자기 성찰 저널 (write로 작성)",
         )
 
     # 운영용 슬래시 커맨드
@@ -423,6 +454,7 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
         openloop_store=extra.get("openloop_store"),
         activity_clock=extra.get("activity_clock"),
         feedback_learner=extra.get("feedback_learner"),
+        user_model_store=extra.get("user_model_store"),
     )
 
 
@@ -470,6 +502,18 @@ def _build_reflection_trigger(settings: JarvisSettings, activity_clock: Any) -> 
     if pcfg.daemon_trigger == "both":
         return AnyTrigger([interval, idle])
     return interval
+
+
+def _build_user_model_store(settings: JarvisSettings) -> Any:
+    """UserModelConfig.backend에 따라 사용자 모델 저장소를 만든다(기본 jsonl)."""
+    cfg = settings.user_model
+    if cfg.backend == "in_memory":
+        from jarvis.agent_layer.usermodel import InMemoryUserModelStore
+
+        return InMemoryUserModelStore()
+    from jarvis.agent_layer.usermodel import JsonlUserModelStore
+
+    return JsonlUserModelStore(path=cfg.path)
 
 
 def _build_openloop_store(settings: JarvisSettings) -> Any:

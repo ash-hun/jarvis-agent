@@ -1,6 +1,6 @@
 # Jarvis
 
-개인 AI 비서 에이전트. 터미널 TUI와 브라우저 Web HUD 두 가지 모드로 동작하며, 멀티프로바이더 LLM · 멀티 에이전트 오케스트레이션 · 장기 메모리를 지원한다.
+개인 AI 비서 에이전트. 터미널 TUI와 브라우저 Web HUD 두 가지 모드로 동작하며, 멀티프로바이더 LLM · 멀티 에이전트 오케스트레이션 · 장기 메모리에 더해, 요청에만 답하지 않고 스스로 사고하고 먼저 행동하는 **proactive agent** 기능을 지원한다.
 
 <div align="center">
     <img src="./assets/screenshot.png" />
@@ -108,6 +108,39 @@ jarvis --list-sessions      # 세션 목록
 /schedule 0 9 * * * date && uptime
 ```
 
+### Proactive Agent (Inner Thought 기반)
+
+요청에만 응답하던 reactive agent를 **스스로 사고하고 먼저 행동하는 proactive agent**로 확장한다. 설계 문서: [proactive-inner-thought-design.md](docs/proactive-inner-thought-design.md).
+
+| 계층 | 설명 |
+|------|------|
+| **Inner Thought** | 매 요청 시 메인 응답과 분리된 별도 LLM 호출로 구조화된 사고(`ThoughtFrame`) 생성 → 컨텍스트 증강 + 사고 로그·이벤트 노출 (TUI 💭 / Web 시안 라인) |
+| **Dual-Channel** | 오래 걸릴 작업이면 filler("잠깐만요, 확인할게요")를 **즉시 발화**(voice는 TTS)하고 메인 루프는 백그라운드 수행 — 대기 체감 감소 |
+| **Proactivity Daemon** | 요청 없이 주기적/idle 시점에 성찰해, 게이팅을 통과하면 **먼저 말 검**. 저위험 읽기 작업은 자율로 미리 처리(이중 안전 게이트) |
+| **Open-loop 추적** | 대화에서 흘린 약속·미완 작업을 감지·저장 → 이후 성찰 시 상기/처리 (`/openloop`) |
+| **피드백 학습** | proactive 발화의 수락(👍)/무시(👎)를 학습해 발화 임계치를 자동 조정 |
+| **User Model · 저널** | 누적 기억을 증류한 사용자 모델(`/usermodel`)을 사고에 주입, 자기 성찰 저널(`/journal`)을 남겨 회상에 반영 |
+
+```bash
+# Inner Thought + Dual-Channel: 기본 ON (false로 끔)
+JARVIS_THOUGHT__ENABLED=true
+JARVIS_PROACTIVE__ENABLED=true
+
+# 별도(저렴) 사고 모델 분리 — 메인=anthropic / 사고=ollama 등
+JARVIS_THOUGHT__MODEL=claude-haiku-4-5
+
+# 자율 성찰 daemon: 기본 OFF (opt-in) — 요청 없이 먼저 말 검
+JARVIS_PROACTIVE__DAEMON_ENABLED=true
+JARVIS_PROACTIVE__DAEMON_TRIGGER=both    # interval | idle | both
+```
+
+| 피드백 단축키 | 동작 |
+|--------------|------|
+| `Ctrl+Y` (TUI) / 👍 (Web) | proactive 발화 "도움됨" |
+| `Ctrl+G` (TUI) / 👎 (Web) | proactive 발화 "무시" |
+
+> 사고 방식은 프롬프트 파일로 직접 조율할 수 있다: `~/.jarvis/inner_thought.md`(요청), `~/.jarvis/inner_thought_reflection.md`(성찰).
+
 ### 음성 (Web HUD)
 
 브라우저 HUD에서 구체를 클릭하면 음성 대화가 가능하다. STT/TTS 처리 위치는 설정으로 결정된다.
@@ -189,6 +222,9 @@ InputValidator → Authenticator → PolicyEngine → Sandbox
 | `/compact` | — | 현재 세션을 요약해 장기 기억에 저장 |
 | `/export` | — | 현재 세션 대화를 파일로 내보내기 (`md` \| `json`, `~/.jarvis/exports/`) |
 | `/cost` | — | 현재 세션 토큰 사용량·추정 비용 리포트 (모델별 집계) |
+| `/openloop` | — | 추적 중인 약속/미완 작업 (`done <id>` \| `dismiss <id>`) — proactive |
+| `/usermodel` | — | 증류된 사용자 모델 표시 / `build`로 갱신 — proactive |
+| `/journal` | — | 자기 성찰 저널 표시 / `write`로 작성 — proactive |
 | `/help` | `/?` | 사용 가능한 명령 목록 표시 |
 
 ```
@@ -486,6 +522,31 @@ JARVIS_PLUGIN__AGENTS_DIR=~/.jarvis/agents
 # ── Web HUD ──────────────────────────────────────────────────────────────────
 JARVIS_WEB__HOST=127.0.0.1
 JARVIS_WEB__PORT=7777
+
+# ── Proactive: Inner Thought (Tier 0) ────────────────────────────────────────
+JARVIS_THOUGHT__ENABLED=true             # 기본 ON
+JARVIS_THOUGHT__MODEL=                    # 비우면 메인 모델, 지정 시 별도 사고 모델
+JARVIS_THOUGHT__PROVIDER=                 # 사고 모델만 다른 provider로 분리(예: ollama)
+JARVIS_THOUGHT__PROMPT_PATH=~/.jarvis/inner_thought.md
+JARVIS_THOUGHT__REFLECTION_PROMPT_PATH=~/.jarvis/inner_thought_reflection.md
+JARVIS_THOUGHT__LOG_SINKS=["ltm"]         # ltm | stm (복수 가능)
+JARVIS_THOUGHT__COMPOSER=default          # default | interpretation_only
+
+# ── Proactive: Dual-Channel + Daemon (Tier 1~2) ──────────────────────────────
+JARVIS_PROACTIVE__ENABLED=true            # 기본 ON (요청 시 filler+백그라운드)
+JARVIS_PROACTIVE__CONFIDENCE_THRESHOLD=0.6
+JARVIS_PROACTIVE__COOLDOWN_SEC=300
+JARVIS_PROACTIVE__DAEMON_ENABLED=false    # 자율 성찰 루프 (opt-in)
+JARVIS_PROACTIVE__DAEMON_TRIGGER=interval # interval | idle | both
+JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=900
+JARVIS_PROACTIVE__DAEMON_IDLE_SEC=180
+
+# ── Proactive: Open-loop / User Model (Tier 2~3) ─────────────────────────────
+JARVIS_OPENLOOP__BACKEND=jsonl            # jsonl | in_memory | postgres
+JARVIS_OPENLOOP__PATH=~/.jarvis/openloops.jsonl
+JARVIS_USER_MODEL__ENABLED=true
+JARVIS_USER_MODEL__BACKEND=jsonl          # jsonl | in_memory
+JARVIS_USER_MODEL__PATH=~/.jarvis/user_model.json
 ```
 
 </details>
@@ -496,7 +557,7 @@ JARVIS_WEB__PORT=7777
 
 ```bash
 uv sync                          # 의존성 설치 (dev 포함)
-uv run pytest                    # 전체 테스트 (실 API 호출 없음, 487개)
+uv run pytest                    # 전체 테스트 (실 API 호출 없음, 612개)
 uv run pytest -k "test_policy"   # 특정 테스트
 uv run ruff check .              # 린트
 uv run ruff format .             # 포매팅

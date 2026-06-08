@@ -71,6 +71,7 @@ class ProactiveMessageAction:
     text: str
     msg_kind: str  # filler | proactive | answer
     speak: bool
+    message_id: str = ""  # 피드백(수락/무시) 참조용
     kind: Literal["proactive_message"] = field(default="proactive_message", init=False)
 
 
@@ -163,6 +164,7 @@ class EventBridge:
                     text=event.text,
                     msg_kind=event.kind,
                     speak=event.speak,
+                    message_id=event.message_id,
                 )
             ]
 

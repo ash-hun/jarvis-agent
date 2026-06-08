@@ -19,7 +19,7 @@ class StubEngine:
         return self._frame
 
 
-def _build_session(fx, engine=None, proactivity_factory=None):
+def _build_session(fx, engine=None, proactivity_factory=None, feedback_learner=None):
     from jarvis.core.session import AgentSession
 
     return AgentSession(
@@ -33,6 +33,7 @@ def _build_session(fx, engine=None, proactivity_factory=None):
         session_repo=fx["repo"],
         thought_engine=engine,
         proactivity_factory=proactivity_factory,
+        feedback_learner=feedback_learner,
     )
 
 
@@ -217,6 +218,41 @@ async def test_reflect_executes_only_safelisted_tool(fx):
     # 자율 실행 요약이 proactive 메시지에 포함.
     pmsg = [e for e in events if isinstance(e, ProactiveMessageEvent)][0]
     assert "미리 해둠" in pmsg.text
+
+
+@pytest.mark.asyncio
+async def test_record_feedback_updates_learner(fx):
+    from jarvis.core.proactive import FeedbackLearner
+
+    await fx["repo"].create(session_id="test-session")
+    learner = FeedbackLearner(base_threshold=0.6, step=0.05)
+    session = _build_session(fx, engine=None, feedback_learner=learner)
+
+    await session.record_feedback(accepted=True)
+    assert learner.threshold() == pytest.approx(0.55)
+    await session.record_feedback(accepted=False)
+    assert learner.threshold() == pytest.approx(0.60)
+
+
+@pytest.mark.asyncio
+async def test_record_feedback_noop_without_learner(fx):
+    await fx["repo"].create(session_id="test-session")
+    session = _build_session(fx, engine=None, feedback_learner=None)
+    await session.record_feedback(accepted=True)  # 예외 없이 no-op
+
+
+@pytest.mark.asyncio
+async def test_proactive_event_carries_message_id(fx):
+    await fx["repo"].create(session_id="test-session")
+    engine = StubEngine(ThoughtFrame(decision="ask", confidence=0.9, interpretation="알림"))
+    session = _build_session(fx, engine=engine, proactivity_factory=_factory)
+
+    events: list = []
+    session.subscribe(lambda e: events.append(e) or _noop())
+    await session.reflect()
+
+    pmsgs = [e for e in events if isinstance(e, ProactiveMessageEvent)]
+    assert pmsgs and pmsgs[0].message_id  # 피드백 참조용 id가 실려야 한다
 
 
 async def _noop():

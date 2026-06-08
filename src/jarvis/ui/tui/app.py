@@ -94,6 +94,8 @@ class JarvisTUI(App[None]):
         Binding("ctrl+f", "fork_session", "Fork Session", show=True),
         Binding("ctrl+t", "toggle_speak", "Speak", show=True),
         Binding("ctrl+r", "voice_input", "Voice", show=True),
+        Binding("ctrl+y", "proactive_accept", "👍 Proactive", show=False),
+        Binding("ctrl+g", "proactive_dismiss", "👎 Proactive", show=False),
         Binding("down", "picker_down", "Picker", show=False),
         Binding("up", "picker_up", "Picker Up", show=False),
         Binding("escape", "picker_close", "Close Picker", show=False),
@@ -118,6 +120,7 @@ class JarvisTUI(App[None]):
         # 한 번만 생성 (Warp: MouseStateHandle 원칙)
         self._bridge = EventBridge()
         self._proactive_daemon: Any = None  # on_mount에서 조건부 기동
+        self._last_proactive_id: str | None = None  # 피드백(ctrl+y/g) 대상
 
         # 내부 상태 (순수 Python, Textual 독립)
         self._stream_buffer = ""
@@ -176,7 +179,9 @@ class JarvisTUI(App[None]):
 
             # provider는 매 틱 self._session을 다시 읽어 세션 전환을 자동 추종.
             self._proactive_daemon = ProactivityDaemon(
-                lambda: [self._session.reflect], interval_sec=pcfg.daemon_interval_sec
+                lambda: [self._session.reflect],
+                interval_sec=pcfg.daemon_interval_sec,
+                trigger=self._ctx.reflection_trigger,
             )
             self.run_worker(self._proactive_daemon.start())
 
@@ -371,9 +376,13 @@ class JarvisTUI(App[None]):
                 if interp:
                     self._chat.add_inner_thought(f"{interp}  ({dec} · {conf:.0%})")
 
-            case ProactiveMessageAction(text=ptext, msg_kind=mk, speak=spk):
+            case ProactiveMessageAction(text=ptext, msg_kind=mk, speak=spk, message_id=mid):
                 if ptext:
                     self._chat.add_proactive(ptext, mk)
+                    # filler가 아닌 먼저 건넨 말은 피드백 대상으로 기록 (ctrl+y/ctrl+g).
+                    if mk != "filler" and mid:
+                        self._last_proactive_id = mid
+                        self._chat.add_status("ctrl+y 도움됨 / ctrl+g 무시")
                     # voice 모드면 비요청 발화도 즉시 읽어준다(filler는 특히 중요).
                     if (spk or self.speak_mode) and self._ctx.voice_controller is not None:
                         self.run_worker(self._speak(ptext))
@@ -478,6 +487,20 @@ class JarvisTUI(App[None]):
             self._input.focus()
         else:
             self._chat.add_tool("음성을 인식하지 못했습니다.")
+
+    def action_proactive_accept(self) -> None:
+        self._proactive_feedback(True)
+
+    def action_proactive_dismiss(self) -> None:
+        self._proactive_feedback(False)
+
+    def _proactive_feedback(self, accepted: bool) -> None:
+        """최근 proactive 발화에 대한 수락/무시를 학습기에 기록 (C3)."""
+        if self._last_proactive_id is None or self._chat is None:
+            return
+        self._last_proactive_id = None
+        self._chat.add_status("피드백: 도움됨" if accepted else "피드백: 무시")
+        self.run_worker(self._session.record_feedback(accepted))
 
     async def _speak(self, text: str) -> None:
         vc = self._ctx.voice_controller

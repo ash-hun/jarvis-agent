@@ -285,6 +285,10 @@ $usageToggle.addEventListener('click', () => {
 let _streamDiv      = null;
 let _streamText     = '';
 let _lastStreamText = '';  // voice TTS용 마지막 완성 텍스트
+let _pendingProactiveId = null;  // 피드백 대기 중인 proactive 메시지 id (C3)
+// 음성 피드백 키워드 — proactive 직후 짧게 말하면 수락/무시로 해석.
+const _FB_ACCEPT = ['좋아', '고마워', '응', '그래', '확인', '오케이'];
+const _FB_DISMISS = ['아니', '됐어', '무시', '괜찮아', '나중에', '아니야'];
 
 function streamStart() {
   _streamText = '';
@@ -619,7 +623,23 @@ function handleMessage(msg) {
       const ptext = (msg.text || '').trim();
       if (ptext) {
         const isFiller = msg.kind === 'filler';
-        appendMsg(isFiller ? '💬' : '🔔', 'proactive', escapeHtml(ptext));
+        const div = appendMsg(isFiller ? '💬' : '🔔', 'proactive', escapeHtml(ptext));
+        // filler가 아닌 먼저 건넨 말엔 수락/무시 피드백 버튼 (C3).
+        if (!isFiller && msg.message_id) {
+          _pendingProactiveId = msg.message_id;
+          const bar = document.createElement('div');
+          bar.className = 'proactive-fb';
+          bar.innerHTML = '<button class="fb-yes">👍 도움됨</button><button class="fb-no">👎 무시</button>';
+          div.querySelector('.body').appendChild(bar);
+          const finish = (accepted) => {
+            send({ type: 'proactive_feedback', id: msg.message_id, accepted });
+            bar.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+            bar.classList.add('done');
+            if (_pendingProactiveId === msg.message_id) _pendingProactiveId = null;
+          };
+          bar.querySelector('.fb-yes').onclick = () => finish(true);
+          bar.querySelector('.fb-no').onclick = () => finish(false);
+        }
         // voice 모드면 비요청 발화도 즉시 읽어준다 — filler는 대기 체감을 줄이는 핵심.
         if (_voiceMode || msg.speak) {
           voice.setProcessing();
@@ -881,6 +901,17 @@ const $sphereHit  = document.getElementById('sphere-hit');
 const voice = new VoiceManager({
   onTranscript(transcript) {
     if (!transcript.trim()) return;
+    // proactive 직후 짧은 음성 피드백을 수락/무시로 해석 (C3, voice).
+    if (_pendingProactiveId) {
+      const t = transcript.trim().replace(/[.!?…]/g, '');
+      if (_FB_ACCEPT.includes(t) || _FB_DISMISS.includes(t)) {
+        const accepted = _FB_ACCEPT.includes(t);
+        send({ type: 'proactive_feedback', id: _pendingProactiveId, accepted });
+        _pendingProactiveId = null;
+        appendMsg('SYS', 'sys', accepted ? '피드백: 도움됨' : '피드백: 무시');
+        return;
+      }
+    }
     _voiceMode = true;
     // 인식된 텍스트를 입력창에 표시
     $input.value = transcript;

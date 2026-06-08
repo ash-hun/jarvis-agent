@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -16,6 +17,7 @@ class ProactiveMessage(BaseModel):
     - answer    : deferred 작업 완료 후의 실제 답(스트리밍이 아닌 단발 push 경로용)
     """
 
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex[:12])
     text: str
     kind: Literal["filler", "proactive", "answer"] = "proactive"
     meta: dict[str, Any] = Field(default_factory=dict)

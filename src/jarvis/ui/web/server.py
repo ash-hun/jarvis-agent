@@ -122,6 +122,7 @@ def create_app(
             proactive_daemon = ProactivityDaemon(
                 lambda: [s.reflect for s in manager.active_sessions()],
                 interval_sec=pcfg.daemon_interval_sec,
+                trigger=ctx.reflection_trigger,
             )
             await proactive_daemon.start()
 
@@ -249,6 +250,10 @@ def create_app(
                         approval_id=msg.get("id", ""),
                         approved=bool(msg.get("approved", False)),
                     )
+
+                elif msg_type == "proactive_feedback":
+                    # proactive 발화 수락/무시 → 피드백 학습기 (C3).
+                    await session.record_feedback(bool(msg.get("accepted", False)))
 
                 elif msg_type == "voice_tts_request":
                     text = msg.get("text", "").strip()

@@ -88,6 +88,7 @@ class ProactiveMessageEvent(BaseModel):
     text: str
     kind: Literal["filler", "proactive", "answer"] = "proactive"
     speak: bool = False  # voice 모드에서 즉시 TTS 대상인지
+    message_id: str = ""  # 피드백(수락/무시)이 참조할 식별자
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
 
 

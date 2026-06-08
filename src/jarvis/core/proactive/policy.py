@@ -43,13 +43,19 @@ class DefaultProactivityPolicy:
         cooldown_sec: int = 300,
         filler_fallbacks: tuple[str, ...] = DEFAULT_FILLERS,
         clock: Callable[[], float] = time.monotonic,
+        threshold_provider: Callable[[], float] | None = None,
     ) -> None:
         self._threshold = confidence_threshold
+        # 동적 임계치(피드백 학습, C3). 없으면 고정 confidence_threshold 사용.
+        self._threshold_provider = threshold_provider
         self._cooldown = cooldown_sec
         self._fillers = filler_fallbacks or DEFAULT_FILLERS
         self._clock = clock
         self._last_spoke: dict[str, float] = {}
         self._filler_idx = 0
+
+    def _current_threshold(self) -> float:
+        return self._threshold_provider() if self._threshold_provider else self._threshold
 
     # ── 요청-기반 Dual-Channel ──────────────────────────────────────────────────
 
@@ -67,10 +73,11 @@ class DefaultProactivityPolicy:
     ) -> ProactiveDecision:
         if frame.decision not in ("act", "ask"):
             return ProactiveDecision(speak=False, reason=f"decision={frame.decision}")
-        if frame.confidence < self._threshold:
+        threshold = self._current_threshold()
+        if frame.confidence < threshold:
             return ProactiveDecision(
                 speak=False,
-                reason=f"confidence {frame.confidence:.2f} < {self._threshold:.2f}",
+                reason=f"confidence {frame.confidence:.2f} < {threshold:.2f}",
             )
 
         t = self._clock() if now is None else now

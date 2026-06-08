@@ -251,6 +251,10 @@ def create_app(
                         approved=bool(msg.get("approved", False)),
                     )
 
+                elif msg_type == "proactive_feedback":
+                    # proactive 발화 수락/무시 → 피드백 학습기 (C3).
+                    await session.record_feedback(bool(msg.get("accepted", False)))
+
                 elif msg_type == "voice_tts_request":
                     text = msg.get("text", "").strip()
                     lang = msg.get("lang", ctx.settings.voice.tts_lang)

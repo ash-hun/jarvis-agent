@@ -31,6 +31,7 @@ from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult,
 from jarvis.core.proactive import (
     ActivityClock,
     EmitProactive,
+    FeedbackLearner,
     ProactiveDecision,
     ProactiveMessage,
     ProactivityCore,
@@ -85,6 +86,7 @@ class AgentSession:
         proactivity_factory: Callable[[EmitProactive], ProactivityCore] | None = None,
         openloop_store: OpenLoopStore | None = None,
         activity_clock: ActivityClock | None = None,
+        feedback_learner: FeedbackLearner | None = None,
     ) -> None:
         self._security = security_pipeline
         self._plugins = plugin_runner
@@ -98,6 +100,7 @@ class AgentSession:
         self._thought_composer = thought_composer or DefaultThoughtComposer()
         self._openloop_store = openloop_store
         self._activity_clock = activity_clock
+        self._feedback_learner = feedback_learner
         # 코어는 세션별 emit에 바인딩되어야 하므로 팩토리로 주입받아 여기서 생성.
         self._proactivity: ProactivityCore | None = (
             proactivity_factory(self._emit_proactive) if proactivity_factory else None
@@ -275,8 +278,17 @@ class AgentSession:
                 session_id=self._session_id,
                 text=message.text,
                 kind=message.kind,
+                message_id=message.id,
             )
         )
+
+    async def record_feedback(self, accepted: bool) -> None:
+        """proactive 발화에 대한 사용자 피드백(수락/무시)을 학습기에 기록 (C3).
+
+        채널 무관(web 버튼 / TUI 키 / voice) — UI가 이 진입점으로 신호를 모은다.
+        """
+        if self._feedback_learner is not None:
+            self._feedback_learner.record(accepted)
 
     async def _load_open_loops(self) -> list[str]:
         """열린 open-loop 설명을 사고 컨텍스트로 주입(없거나 store 미설정이면 빈 목록)."""

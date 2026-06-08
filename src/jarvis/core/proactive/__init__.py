@@ -21,6 +21,7 @@ from jarvis.core.proactive.daemon import (
     ReflectOnce,
     ReflectTargets,
 )
+from jarvis.core.proactive.feedback import FeedbackLearner
 from jarvis.core.proactive.policy import (
     DEFAULT_FILLERS,
     DefaultProactivityPolicy,
@@ -48,6 +49,7 @@ __all__ = [
     "DefaultProactivityPolicy",
     "EmitProactive",
     "ExternalTrigger",
+    "FeedbackLearner",
     "IdleTrigger",
     "IntervalTrigger",
     "ReflectionTrigger",

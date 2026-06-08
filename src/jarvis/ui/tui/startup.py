@@ -114,9 +114,10 @@ class AppContext:
     dispatcher: SlashCommandDispatcher | None = field(default=None)
     # TUI 음성 컨트롤러 — _build_infra()에서 주입 (voice.tui_enabled일 때만)
     voice_controller: Any = field(default=None)
-    # Proactivity — _build_infra()에서 주입 (활동 시계 + 성찰 트리거)
+    # Proactivity — _build_infra()에서 주입 (활동 시계 + 성찰 트리거 + 피드백 학습)
     activity_clock: Any = field(default=None)
     reflection_trigger: Any = field(default=None)
+    feedback_learner: Any = field(default=None)
 
 
 # ── 팩토리 헬퍼 ───────────────────────────────────────────────────────────────
@@ -281,13 +282,15 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     if settings.thought.enabled:
         openloop_store = _build_openloop_store(settings)
 
-    # Proactivity 활동 시계 + 성찰 트리거 (idle 감지 등). 앱 레벨 단일 인스턴스.
-    from jarvis.core.proactive import ActivityClock
+    # Proactivity 활동 시계 + 성찰 트리거 + 피드백 학습기. 앱 레벨 단일 인스턴스.
+    from jarvis.core.proactive import ActivityClock, FeedbackLearner
 
     activity_clock = ActivityClock()
     reflection_trigger = _build_reflection_trigger(settings, activity_clock)
+    feedback_learner = FeedbackLearner(base_threshold=settings.proactive.confidence_threshold)
     ctx.activity_clock = activity_clock
     ctx.reflection_trigger = reflection_trigger
+    ctx.feedback_learner = feedback_learner
 
     _extra: dict[str, Any] = {
         "memory_chain": memory_chain,
@@ -300,6 +303,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         "model_config": model_config,
         "openloop_store": openloop_store,
         "activity_clock": activity_clock,
+        "feedback_learner": feedback_learner,
     }
 
     # Scheduler의 base_extra를 채워 넣는다 (extra가 만들어진 이후)
@@ -418,6 +422,7 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
         proactivity_factory=_build_proactivity_factory(ctx),
         openloop_store=extra.get("openloop_store"),
         activity_clock=extra.get("activity_clock"),
+        feedback_learner=extra.get("feedback_learner"),
     )
 
 
@@ -434,10 +439,14 @@ def _build_proactivity_factory(ctx: AppContext) -> Any:
 
     from jarvis.core.proactive import DefaultProactivityCore, DefaultProactivityPolicy
 
+    learner = ctx.feedback_learner
+
     def factory(emit: Any) -> Any:
         policy = DefaultProactivityPolicy(
             confidence_threshold=pcfg.confidence_threshold,
             cooldown_sec=pcfg.cooldown_sec,
+            # C3 — 피드백 학습기의 동적 임계치를 사용(없으면 고정값).
+            threshold_provider=learner.threshold if learner is not None else None,
         )
         return DefaultProactivityCore(emit_proactive=emit, policy=policy)
 

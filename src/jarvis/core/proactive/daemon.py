@@ -4,6 +4,8 @@ import asyncio
 import contextlib
 from collections.abc import Awaitable, Callable, Iterable
 
+from jarvis.core.proactive.triggers import IntervalTrigger, ReflectionTrigger
+
 # 성찰 1회 — 보통 AgentSession.reflect 바인딩.
 ReflectOnce = Callable[[], Awaitable[object]]
 # 매 틱마다 "지금 성찰할 대상들"을 돌려주는 provider. 세션 전환/추가를 자동 추종.
@@ -24,12 +26,13 @@ class ProactivityDaemon:
         self,
         targets: ReflectTargets,
         *,
-        interval_sec: float,
+        interval_sec: float = 900.0,
         sleep: Sleeper = asyncio.sleep,
+        trigger: ReflectionTrigger | None = None,
     ) -> None:
         self._targets = targets
-        self._interval = interval_sec
-        self._sleep = sleep
+        # 트리거 미지정 시 기존 동작(고정 주기)으로 폴백.
+        self._trigger: ReflectionTrigger = trigger or IntervalTrigger(interval_sec, sleep)
         self._running = False
         self._task: asyncio.Task | None = None
 
@@ -58,9 +61,9 @@ class ProactivityDaemon:
                 await reflect()
 
     async def _loop(self) -> None:
-        # 가동 직후 즉시 말 걸지 않도록 sleep 먼저(휴지기 후 성찰).
+        # 가동 직후 즉시 말 걸지 않도록 트리거를 먼저 기다린다(휴지기/이벤트 후 성찰).
         while self._running:
-            await self._sleep(self._interval)
+            await self._trigger.wait()
             if not self._running:
                 break
             await self.tick()

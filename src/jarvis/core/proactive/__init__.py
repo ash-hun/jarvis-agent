@@ -26,6 +26,14 @@ from jarvis.core.proactive.policy import (
     DefaultProactivityPolicy,
     ProactivityPolicy,
 )
+from jarvis.core.proactive.triggers import (
+    ActivityClock,
+    AnyTrigger,
+    ExternalTrigger,
+    IdleTrigger,
+    IntervalTrigger,
+    ReflectionTrigger,
+)
 from jarvis.core.proactive.types import (
     ProactiveDecision,
     ProactiveMessage,
@@ -34,9 +42,15 @@ from jarvis.core.proactive.types import (
 
 __all__ = [
     "DEFAULT_FILLERS",
+    "ActivityClock",
+    "AnyTrigger",
     "DefaultProactivityCore",
     "DefaultProactivityPolicy",
     "EmitProactive",
+    "ExternalTrigger",
+    "IdleTrigger",
+    "IntervalTrigger",
+    "ReflectionTrigger",
     "ProactiveDecision",
     "ProactiveMessage",
     "ProactivityCore",

@@ -122,6 +122,7 @@ def create_app(
             proactive_daemon = ProactivityDaemon(
                 lambda: [s.reflect for s in manager.active_sessions()],
                 interval_sec=pcfg.daemon_interval_sec,
+                trigger=ctx.reflection_trigger,
             )
             await proactive_daemon.start()
 

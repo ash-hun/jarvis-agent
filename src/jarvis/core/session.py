@@ -29,6 +29,7 @@ from jarvis.agent_layer.types import (
 from jarvis.core.plugins.runner import PluginRunner
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
 from jarvis.core.proactive import (
+    ActivityClock,
     EmitProactive,
     ProactiveDecision,
     ProactiveMessage,
@@ -83,6 +84,7 @@ class AgentSession:
         thought_composer: ThoughtComposer | None = None,
         proactivity_factory: Callable[[EmitProactive], ProactivityCore] | None = None,
         openloop_store: OpenLoopStore | None = None,
+        activity_clock: ActivityClock | None = None,
     ) -> None:
         self._security = security_pipeline
         self._plugins = plugin_runner
@@ -95,6 +97,7 @@ class AgentSession:
         self._thought_log = thought_log
         self._thought_composer = thought_composer or DefaultThoughtComposer()
         self._openloop_store = openloop_store
+        self._activity_clock = activity_clock
         # 코어는 세션별 emit에 바인딩되어야 하므로 팩토리로 주입받아 여기서 생성.
         self._proactivity: ProactivityCore | None = (
             proactivity_factory(self._emit_proactive) if proactivity_factory else None
@@ -122,6 +125,10 @@ class AgentSession:
         credentials: dict | None = None,
     ) -> AssistantMessage | None:
         creds = credentials or {}
+
+        # 사용자 활동 기록 — idle 트리거가 "조용해진 시점"을 알도록 리셋한다.
+        if self._activity_clock is not None:
+            self._activity_clock.touch()
 
         validated, auth_ctx, policy_result = await self._security.run(
             raw_input=raw_input,

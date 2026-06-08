@@ -114,6 +114,9 @@ class AppContext:
     dispatcher: SlashCommandDispatcher | None = field(default=None)
     # TUI 음성 컨트롤러 — _build_infra()에서 주입 (voice.tui_enabled일 때만)
     voice_controller: Any = field(default=None)
+    # Proactivity — _build_infra()에서 주입 (활동 시계 + 성찰 트리거)
+    activity_clock: Any = field(default=None)
+    reflection_trigger: Any = field(default=None)
 
 
 # ── 팩토리 헬퍼 ───────────────────────────────────────────────────────────────
@@ -278,6 +281,14 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     if settings.thought.enabled:
         openloop_store = _build_openloop_store(settings)
 
+    # Proactivity 활동 시계 + 성찰 트리거 (idle 감지 등). 앱 레벨 단일 인스턴스.
+    from jarvis.core.proactive import ActivityClock
+
+    activity_clock = ActivityClock()
+    reflection_trigger = _build_reflection_trigger(settings, activity_clock)
+    ctx.activity_clock = activity_clock
+    ctx.reflection_trigger = reflection_trigger
+
     _extra: dict[str, Any] = {
         "memory_chain": memory_chain,
         "pipeline": pipeline,
@@ -288,6 +299,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         "ltm_backend": ltm_backend,
         "model_config": model_config,
         "openloop_store": openloop_store,
+        "activity_clock": activity_clock,
     }
 
     # Scheduler의 base_extra를 채워 넣는다 (extra가 만들어진 이후)
@@ -405,6 +417,7 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
         thought_composer=thought_composer,
         proactivity_factory=_build_proactivity_factory(ctx),
         openloop_store=extra.get("openloop_store"),
+        activity_clock=extra.get("activity_clock"),
     )
 
 
@@ -429,6 +442,25 @@ def _build_proactivity_factory(ctx: AppContext) -> Any:
         return DefaultProactivityCore(emit_proactive=emit, policy=policy)
 
     return factory
+
+
+def _build_reflection_trigger(settings: JarvisSettings, activity_clock: Any) -> Any:
+    """ProactiveConfig.daemon_trigger에 따라 성찰 트리거를 만든다.
+
+    interval(주기) / idle(조용해지면) / both(둘 중 먼저). 외부(MCP) 트리거는
+    ExternalTrigger.fire()를 both 합성에 추가해 확장한다(현재는 미연결 플러그 지점).
+    """
+    from jarvis.core.proactive import AnyTrigger, IdleTrigger, IntervalTrigger
+
+    pcfg = settings.proactive
+    interval = IntervalTrigger(pcfg.daemon_interval_sec)
+    idle = IdleTrigger(activity_clock, pcfg.daemon_idle_sec)
+
+    if pcfg.daemon_trigger == "idle":
+        return idle
+    if pcfg.daemon_trigger == "both":
+        return AnyTrigger([interval, idle])
+    return interval
 
 
 def _build_openloop_store(settings: JarvisSettings) -> Any:

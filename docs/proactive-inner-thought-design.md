@@ -1,6 +1,7 @@
 # Proactive Jarvis — Inner Thought 기반 설계
 
-> 상태: **설계(Design)** — 구현 전. 본 문서는 구현 로드맵의 기준점이다.
+> 상태: **구현 완료** — 본 문서는 설계 의도/로드맵의 기준점이며, Tier 0~3 전부 반영되었다.
+> 실제 구현 현황·모듈 지도·설정은 [proactive-implementation.md](proactive-implementation.md) 참조.
 > 관련: [jarvis-architecture.md](jarvis-architecture.md) · [pi-reference](ref_analysis/pi-reference.md)
 
 ## 0. 한 줄 요약

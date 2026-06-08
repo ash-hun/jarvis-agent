@@ -438,6 +438,7 @@ def _build_thought(
         ThoughtLog,
         ThoughtPromptTemplate,
     )
+    from jarvis.agent_layer.thought.prompt import DEFAULT_REFLECTION_TEMPLATE
     from jarvis.model_layer.types import ModelConfig
 
     tcfg = settings.thought
@@ -458,6 +459,9 @@ def _build_thought(
     engine = InnerThoughtEngine(
         model=thought_model,
         template=ThoughtPromptTemplate.load(tcfg.prompt_path),
+        reflection_template=ThoughtPromptTemplate.load(
+            tcfg.reflection_prompt_path, default=DEFAULT_REFLECTION_TEMPLATE
+        ),
         recall=extra["memory_chain"].retrieve,
         recall_limit=tcfg.recall_limit,
         skip_if_shorter_than=tcfg.skip_if_shorter_than,

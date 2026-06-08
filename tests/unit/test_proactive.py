@@ -221,7 +221,24 @@ def test_default_policy_satisfies_protocol():
 
 
 @pytest.mark.asyncio
-async def test_daemon_tick_invokes_reflect():
+async def test_daemon_tick_invokes_all_targets():
+    from jarvis.core.proactive import ProactivityDaemon
+
+    calls = {"a": 0, "b": 0}
+
+    async def ra():
+        calls["a"] += 1
+
+    async def rb():
+        calls["b"] += 1
+
+    daemon = ProactivityDaemon(lambda: [ra, rb], interval_sec=0)
+    await daemon.tick()
+    assert calls == {"a": 1, "b": 1}  # 멀티세션 — 모든 대상 성찰
+
+
+@pytest.mark.asyncio
+async def test_daemon_targets_reevaluated_each_tick():
     from jarvis.core.proactive import ProactivityDaemon
 
     calls = {"n": 0}
@@ -229,20 +246,32 @@ async def test_daemon_tick_invokes_reflect():
     async def reflect():
         calls["n"] += 1
 
-    daemon = ProactivityDaemon(reflect, interval_sec=0)
+    # 처음엔 대상 0개, 다음 틱엔 1개 — provider 재평가로 추종.
+    state = {"targets": []}
+    daemon = ProactivityDaemon(lambda: state["targets"], interval_sec=0)
+    await daemon.tick()
+    assert calls["n"] == 0
+    state["targets"] = [reflect]
     await daemon.tick()
     assert calls["n"] == 1
 
 
 @pytest.mark.asyncio
-async def test_daemon_tick_isolates_failure():
+async def test_daemon_tick_isolates_target_failure():
     from jarvis.core.proactive import ProactivityDaemon
+
+    calls = {"ok": 0}
 
     async def boom():
         raise RuntimeError("reflect down")
 
-    daemon = ProactivityDaemon(boom, interval_sec=0)
-    await daemon.tick()  # 예외가 전파되지 않아야 함
+    async def ok():
+        calls["ok"] += 1
+
+    # 한 대상이 터져도 나머지는 성찰된다.
+    daemon = ProactivityDaemon(lambda: [boom, ok], interval_sec=0)
+    await daemon.tick()
+    assert calls["ok"] == 1
 
 
 @pytest.mark.asyncio
@@ -263,7 +292,7 @@ async def test_daemon_loop_runs_ticks_then_stops():
             stop_evt.set()
             await asyncio.sleep(3600)
 
-    daemon = ProactivityDaemon(reflect, interval_sec=0, sleep=fake_sleep)
+    daemon = ProactivityDaemon(lambda: [reflect], interval_sec=0, sleep=fake_sleep)
     await daemon.start()
     assert daemon.is_running is True
     await asyncio.wait_for(stop_evt.wait(), timeout=1.0)
@@ -285,7 +314,7 @@ async def test_daemon_start_is_idempotent():
 
         await asyncio.sleep(3600)
 
-    daemon = ProactivityDaemon(reflect, interval_sec=0, sleep=never)
+    daemon = ProactivityDaemon(lambda: [reflect], interval_sec=0, sleep=never)
     await daemon.start()
     first = daemon._task
     await daemon.start()  # 두 번째 start는 무시(중복 task 금지)

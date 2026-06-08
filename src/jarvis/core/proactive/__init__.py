@@ -16,7 +16,11 @@ from jarvis.core.proactive.core import (
     ProactivityCore,
     RunMain,
 )
-from jarvis.core.proactive.daemon import ProactivityDaemon, ReflectOnce
+from jarvis.core.proactive.daemon import (
+    ProactivityDaemon,
+    ReflectOnce,
+    ReflectTargets,
+)
 from jarvis.core.proactive.policy import (
     DEFAULT_FILLERS,
     DefaultProactivityPolicy,
@@ -39,6 +43,7 @@ __all__ = [
     "ProactivityDaemon",
     "ProactivityPolicy",
     "ReflectOnce",
+    "ReflectTargets",
     "ResponsePlan",
     "RunMain",
 ]

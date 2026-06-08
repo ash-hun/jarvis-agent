@@ -174,8 +174,9 @@ class JarvisTUI(App[None]):
         if pcfg.daemon_enabled:
             from jarvis.core.proactive import ProactivityDaemon
 
+            # provider는 매 틱 self._session을 다시 읽어 세션 전환을 자동 추종.
             self._proactive_daemon = ProactivityDaemon(
-                self._session.reflect, interval_sec=pcfg.daemon_interval_sec
+                lambda: [self._session.reflect], interval_sec=pcfg.daemon_interval_sec
             )
             self.run_worker(self._proactive_daemon.start())
 

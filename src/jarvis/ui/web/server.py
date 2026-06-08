@@ -66,6 +66,9 @@ class SessionManager:
     def list_ids(self) -> list[str]:
         return list(self._sessions.keys())
 
+    def active_sessions(self) -> list[AgentSession]:
+        return list(self._sessions.values())
+
     async def save_all_sessions(self, stm: Any, ltm: Any, model: Any) -> None:
         """서버 종료 시 모든 활성 세션의 에피소딕 요약을 LTM에 저장한다."""
         from jarvis.agent_layer.memory.episodic import EpisodicSummarizer
@@ -107,17 +110,18 @@ def create_app(
     @app.on_event("startup")
     async def _startup() -> None:
         nonlocal proactive_daemon
-        session, _ = await manager.get_or_create(initial_session_id)
+        await manager.get_or_create(initial_session_id)
         if ctx.scheduler is not None:
             await ctx.scheduler.start()
 
-        # Proactivity Daemon (B3) — 기본(initial) 세션에 바인딩해 주기 성찰 push.
+        # Proactivity Daemon (B3) — 매 틱 활성 세션 전체를 성찰 (멀티세션 추종).
         pcfg = ctx.settings.proactive
         if pcfg.daemon_enabled:
             from jarvis.core.proactive import ProactivityDaemon
 
             proactive_daemon = ProactivityDaemon(
-                session.reflect, interval_sec=pcfg.daemon_interval_sec
+                lambda: [s.reflect for s in manager.active_sessions()],
+                interval_sec=pcfg.daemon_interval_sec,
             )
             await proactive_daemon.start()
 

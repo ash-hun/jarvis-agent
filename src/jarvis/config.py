@@ -112,6 +112,7 @@ class ThoughtConfig(BaseSettings):
     api_key: SecretStr | None = None
     base_url: str = ""
     prompt_path: str = "~/.jarvis/inner_thought.md"
+    reflection_prompt_path: str = "~/.jarvis/inner_thought_reflection.md"  # daemon 성찰용
     confidence_threshold: float = 0.6  # Tier 1 게이팅용 (Tier 0은 기록만)
     proactive_cooldown_sec: int = 300  # Tier 1 발화 쿨다운 (예약)
     skip_if_shorter_than: int = 0  # 이보다 짧은 입력은 사고 생략(지연/비용 완화)

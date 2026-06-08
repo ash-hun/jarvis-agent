@@ -140,6 +140,68 @@ async def test_engine_extracts_json_from_noisy_output(faux_model_with_response):
     assert frame.observation.startswith("사용자가")
 
 
+# ── 엔진: reflection 전용 템플릿 (E3) ─────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_engine_uses_reflection_template_in_reflection_mode(faux_model_with_response):
+    captured: dict = {}
+
+    class SpyEngine(InnerThoughtEngine):
+        async def _call_model(self, prompt: str) -> str:
+            captured["prompt"] = prompt
+            return _frame_json()
+
+    req_tpl = ThoughtPromptTemplate("[REQUEST] {{user_input}}")
+    refl_tpl = ThoughtPromptTemplate("[REFLECT] {{history}}")
+    model = faux_model_with_response(response=_frame_json())
+    engine = SpyEngine(
+        model=model, template=req_tpl, reflection_template=refl_tpl, clock=_clock
+    )
+
+    await engine.think(ThoughtRequest(user_input="씨앗", mode="reflection"))
+    assert "[REFLECT]" in captured["prompt"]
+    assert "[REQUEST]" not in captured["prompt"]
+
+
+@pytest.mark.asyncio
+async def test_engine_uses_request_template_by_default(faux_model_with_response):
+    captured: dict = {}
+
+    class SpyEngine(InnerThoughtEngine):
+        async def _call_model(self, prompt: str) -> str:
+            captured["prompt"] = prompt
+            return _frame_json()
+
+    engine = SpyEngine(
+        model=faux_model_with_response(response=_frame_json()),
+        template=ThoughtPromptTemplate("[REQUEST] {{user_input}}"),
+        reflection_template=ThoughtPromptTemplate("[REFLECT]"),
+        clock=_clock,
+    )
+    await engine.think(ThoughtRequest(user_input="질문"))  # mode 기본 request
+    assert "[REQUEST]" in captured["prompt"]
+
+
+@pytest.mark.asyncio
+async def test_reflection_mode_not_skipped_by_short_input(faux_model_with_response):
+    # skip_if_shorter_than이 커도 reflection은 생략되지 않는다.
+    model = faux_model_with_response(response=_frame_json())
+    engine = InnerThoughtEngine(model=model, skip_if_shorter_than=100, clock=_clock)
+    frame = await engine.think(ThoughtRequest(user_input="x", mode="reflection"))
+    assert frame is not None
+
+
+def test_template_load_accepts_custom_default(tmp_path):
+    from jarvis.agent_layer.thought.prompt import DEFAULT_REFLECTION_TEMPLATE
+
+    tpl = ThoughtPromptTemplate.load(
+        str(tmp_path / "missing.md"), default=DEFAULT_REFLECTION_TEMPLATE
+    )
+    out = tpl.render()
+    assert "자율 성찰" in out  # reflection 기본 템플릿으로 폴백
+
+
 # ── 엔진: graceful fallback ───────────────────────────────────────────────────
 
 

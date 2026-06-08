@@ -32,6 +32,35 @@ DEFAULT_TEMPLATE = """\
 원칙: 도움이 안 되면 침묵하라(silent). 저위험 행동만 자율 제안하라.
 """
 
+# daemon 자율 성찰(mode="reflection")용 템플릿 — 사용자 요청이 없는 시점.
+# "절제 우선" 원칙을 강하게 걸어 과잉 발화를 막는다.
+DEFAULT_REFLECTION_TEMPLATE = """\
+너는 Jarvis의 "내적 사고" 모듈이다. 지금은 사용자의 직접 요청이 없는 자율 성찰 시점이다.
+최근 맥락을 보고, 사용자에게 먼저 알리거나 도울 가치가 분명할 때만 말하라.
+아래 입력을 보고 ThoughtFrame JSON 하나만 출력하라. JSON 외 다른 텍스트는 금지한다.
+
+[지금] {{now}}
+[열린 약속] {{open_loops}}
+[회상된 기억] {{recalled_memories}}
+[최근 대화] {{history}}
+
+다음 키를 가진 JSON 객체 하나만 출력하라:
+- observation (string): 최근 맥락에서 관찰되는 사실
+- interpretation (string): 먼저 도울 만한 것 (없으면 빈 문자열)
+- recalled (string[]): 근거가 되는 기억 요약
+- options (string[]): 가능한 선제 대응들
+- proactive_actions (object[]): 지금 먼저 해두면 좋은 행동.
+    각 항목: {kind: "suggest"|"tool"|"remember"|"schedule", description, tool_name?, args?, risk: "low"|"high"}
+- decision (string): "act" | "ask" | "silent"
+- confidence (number): 0.0 ~ 1.0
+- rationale (string): 위 결정의 이유
+- needs_background (boolean): 성찰에서는 보통 false
+- filler (string): 보통 빈 문자열
+
+원칙(중요): 확신이 없으면 반드시 silent로 판단하라. 사용자를 방해할 가치가
+분명하지 않으면 침묵이 기본이다. 애매하면 말하지 마라.
+"""
+
 # 템플릿이 채워야 하는 플레이스홀더 목록(렌더 시 누락 키는 빈 문자열로 치환).
 PLACEHOLDERS = ("now", "open_loops", "recalled_memories", "history", "user_input")
 
@@ -48,16 +77,19 @@ class ThoughtPromptTemplate:
         self._template = template
 
     @classmethod
-    def load(cls, path: str | None) -> ThoughtPromptTemplate:
-        """경로의 파일을 읽되, 없거나 읽기 실패 시 기본 템플릿으로 fallback."""
+    def load(cls, path: str | None, default: str = DEFAULT_TEMPLATE) -> ThoughtPromptTemplate:
+        """경로의 파일을 읽되, 없거나 읽기 실패 시 default 템플릿으로 fallback.
+
+        default를 바꿔 요청용/성찰용 등 용도별 기본 템플릿을 로딩할 수 있다.
+        """
         if not path:
-            return cls()
+            return cls(default)
         p = Path(path).expanduser()
         try:
             text = p.read_text(encoding="utf-8")
         except (OSError, UnicodeError):
-            return cls()
-        return cls(text.strip() or DEFAULT_TEMPLATE)
+            return cls(default)
+        return cls(text.strip() or default)
 
     def render(self, **values: str) -> str:
         """플레이스홀더를 치환. 정의되지 않은 키는 빈 문자열로 안전하게 처리."""

@@ -40,9 +40,12 @@ class InnerThoughtEngine:
         skip_if_shorter_than: int = 0,
         history_window: int = 12,
         clock: Callable[[], datetime] | None = None,
+        reflection_template: ThoughtPromptTemplate | None = None,
     ) -> None:
         self._model = model
         self._template = template or ThoughtPromptTemplate()
+        # 성찰 전용 템플릿(mode="reflection"). 미지정 시 요청용 템플릿으로 폴백.
+        self._reflection_template = reflection_template or self._template
         self._recall = recall
         self._recall_limit = recall_limit
         self._skip_if_shorter_than = skip_if_shorter_than
@@ -50,8 +53,10 @@ class InnerThoughtEngine:
         self._clock = clock or datetime.now
 
     async def think(self, request: ThoughtRequest) -> ThoughtFrame | None:
-        # 짧은 입력(인사 등)은 사고 생략 — 지연/비용 완화.
-        if len(request.user_input.strip()) < self._skip_if_shorter_than:
+        # 짧은 입력(인사 등)은 사고 생략 — 지연/비용 완화. 성찰은 적용 제외.
+        if request.mode != "reflection" and (
+            len(request.user_input.strip()) < self._skip_if_shorter_than
+        ):
             return None
 
         recalled = await self._recall_memories(request)
@@ -82,7 +87,12 @@ class InnerThoughtEngine:
         return [_message_text(m) for m in messages if _message_text(m)]
 
     def _render(self, request: ThoughtRequest, recalled: list[str]) -> str:
-        return self._template.render(
+        template = (
+            self._reflection_template
+            if request.mode == "reflection"
+            else self._template
+        )
+        return template.render(
             now=self._clock().isoformat(timespec="seconds"),
             open_loops="\n".join(f"- {x}" for x in request.open_loops),
             recalled_memories="\n".join(f"- {x}" for x in recalled),

@@ -131,6 +131,17 @@ class OpenLoopConfig(BaseSettings):
     postgres_dsn: str | None = None  # None이면 session/memory DSN fallback
 
 
+class UserModelConfig(BaseSettings):
+    """User Model 설정 (Tier 3 D1). ThoughtConfig.enabled가 선행 조건."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    enabled: bool = True
+    backend: Literal["jsonl", "in_memory"] = "jsonl"
+    path: str = "~/.jarvis/user_model.json"
+    build_source_limit: int = 30  # /usermodel build 시 증류에 쓸 최근 기억 개수
+
+
 class ProactiveConfig(BaseSettings):
     """Proactive 설정 (Tier 1). 기본 on. ThoughtConfig.enabled가 선행 조건."""
 
@@ -185,6 +196,7 @@ class JarvisSettings(BaseSettings):
     thought: ThoughtConfig = Field(default_factory=ThoughtConfig)
     proactive: ProactiveConfig = Field(default_factory=ProactiveConfig)
     openloop: OpenLoopConfig = Field(default_factory=OpenLoopConfig)
+    user_model: UserModelConfig = Field(default_factory=UserModelConfig)
     web_search: WebSearchConfig = Field(default_factory=WebSearchConfig)
     mcp_servers: list[MCPServerConfig] = Field(default_factory=list)
     debug: bool = False

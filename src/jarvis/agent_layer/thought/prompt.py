@@ -8,6 +8,7 @@ DEFAULT_TEMPLATE = """\
 아래 입력을 보고 ThoughtFrame JSON 하나만 출력하라. JSON 외 다른 텍스트는 금지한다.
 
 [지금] {{now}}
+{{user_model}}
 [열린 약속] {{open_loops}}
 [회상된 기억] {{recalled_memories}}
 [최근 대화] {{history}}
@@ -42,6 +43,7 @@ DEFAULT_REFLECTION_TEMPLATE = """\
 아래 입력을 보고 ThoughtFrame JSON 하나만 출력하라. JSON 외 다른 텍스트는 금지한다.
 
 [지금] {{now}}
+{{user_model}}
 [열린 약속] {{open_loops}}
 [회상된 기억] {{recalled_memories}}
 [최근 대화] {{history}}
@@ -68,7 +70,14 @@ DEFAULT_REFLECTION_TEMPLATE = """\
 """
 
 # 템플릿이 채워야 하는 플레이스홀더 목록(렌더 시 누락 키는 빈 문자열로 치환).
-PLACEHOLDERS = ("now", "open_loops", "recalled_memories", "history", "user_input")
+PLACEHOLDERS = (
+    "now",
+    "open_loops",
+    "recalled_memories",
+    "history",
+    "user_input",
+    "user_model",
+)
 
 
 class ThoughtPromptTemplate:

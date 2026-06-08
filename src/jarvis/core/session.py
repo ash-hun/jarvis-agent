@@ -26,6 +26,7 @@ from jarvis.agent_layer.types import (
     ToolExecutionEndEvent,
     ToolExecutionStartEvent,
 )
+from jarvis.agent_layer.usermodel import UserModelStore
 from jarvis.core.plugins.runner import PluginRunner
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
 from jarvis.core.proactive import (
@@ -87,6 +88,7 @@ class AgentSession:
         openloop_store: OpenLoopStore | None = None,
         activity_clock: ActivityClock | None = None,
         feedback_learner: FeedbackLearner | None = None,
+        user_model_store: UserModelStore | None = None,
     ) -> None:
         self._security = security_pipeline
         self._plugins = plugin_runner
@@ -101,6 +103,7 @@ class AgentSession:
         self._openloop_store = openloop_store
         self._activity_clock = activity_clock
         self._feedback_learner = feedback_learner
+        self._user_model_store = user_model_store
         # 코어는 세션별 emit에 바인딩되어야 하므로 팩토리로 주입받아 여기서 생성.
         self._proactivity: ProactivityCore | None = (
             proactivity_factory(self._emit_proactive) if proactivity_factory else None
@@ -249,6 +252,7 @@ class AgentSession:
                 history=await self._session_repo.get_messages(self._session_id),
                 session_id=self._session_id,
                 open_loops=await self._load_open_loops(),
+                user_model=await self._load_user_model(),
                 mode=mode,  # type: ignore[arg-type]
             )
         )
@@ -299,6 +303,16 @@ class AgentSession:
         except Exception:
             return []
         return [loop.description for loop in loops]
+
+    async def _load_user_model(self) -> str:
+        """증류된 사용자 모델을 사고 컨텍스트 블록으로 주입(없으면 빈 문자열)."""
+        if self._user_model_store is None:
+            return ""
+        try:
+            model = await self._user_model_store.get()
+        except Exception:
+            return ""
+        return model.as_context() if model is not None else ""
 
     async def _persist_open_loops(self, frame: ThoughtFrame) -> None:
         """사고가 새로 감지한 open-loop를 저장(중복은 store가 건너뜀). 부가 작업이라 실패 무시."""

@@ -19,7 +19,7 @@ class CapturingEngine:
         return self._frame
 
 
-def _build_session(fx, engine, store):
+def _build_session(fx, engine, store, user_model_store=None):
     from jarvis.core.session import AgentSession
 
     return AgentSession(
@@ -33,6 +33,7 @@ def _build_session(fx, engine, store):
         session_repo=fx["repo"],
         thought_engine=engine,
         openloop_store=store,
+        user_model_store=user_model_store,
     )
 
 
@@ -108,3 +109,30 @@ async def test_no_store_is_noop(fx):
     result = await session.prompt("입력")
     assert result is not None  # store 없어도 정상 동작
     assert engine.requests[0].open_loops == []
+
+
+@pytest.mark.asyncio
+async def test_user_model_injected_into_request(fx):
+    from jarvis.agent_layer.usermodel import InMemoryUserModelStore, UserModel
+
+    await fx["repo"].create(session_id="test-session")
+    um_store = InMemoryUserModelStore()
+    await um_store.save(UserModel(summary="간결한 답 선호", traits=["Python"]))
+    engine = CapturingEngine(ThoughtFrame())
+    session = _build_session(fx, engine, store=None, user_model_store=um_store)
+
+    await session.prompt("새 입력")
+
+    injected = engine.requests[0].user_model
+    assert "[사용자 모델]" in injected
+    assert "간결한 답 선호" in injected and "Python" in injected
+
+
+@pytest.mark.asyncio
+async def test_user_model_absent_is_blank(fx):
+    await fx["repo"].create(session_id="test-session")
+    engine = CapturingEngine(ThoughtFrame())
+    session = _build_session(fx, engine, store=None, user_model_store=None)
+
+    await session.prompt("입력")
+    assert engine.requests[0].user_model == ""

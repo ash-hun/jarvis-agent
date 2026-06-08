@@ -77,5 +77,6 @@ class ThoughtRequest(BaseModel):
     history: list[Message] = Field(default_factory=list)
     session_id: str | None = None
     open_loops: list[str] = Field(default_factory=list)  # Tier 2에서 채워짐
+    user_model: str = ""  # Tier 3 — 증류된 사용자 모델 컨텍스트(주입용)
     # 요청 시점이 아닌 백그라운드 성찰(Tier 1 daemon)도 같은 계약을 재사용한다.
     mode: Literal["request", "reflection"] = "request"

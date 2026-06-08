@@ -24,10 +24,21 @@ from jarvis.agent_layer.types import (
 )
 from jarvis.core.plugins.runner import PluginRunner
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
-from jarvis.core.proactive import EmitProactive, ProactiveMessage, ProactivityCore
+from jarvis.core.proactive import (
+    EmitProactive,
+    ProactiveDecision,
+    ProactiveMessage,
+    ProactivityCore,
+)
 from jarvis.core.skills.registry import SkillRegistry
 from jarvis.core.tools.registry import ToolRegistry
 from jarvis.model_layer.types import AssistantMessage, ModelConfig
+
+# daemon 자율 성찰 시 user_input 대신 넣는 seed — 요청 없는 시점임을 모델에 알린다.
+REFLECTION_SEED = (
+    "(자율 성찰) 지금은 사용자의 직접 요청이 없는 시점이다. 최근 상황·맥락을 보고, "
+    "사용자에게 먼저 알리거나 도울 가치가 있으면 decision을 act/ask로, 없으면 silent로 판단하라."
+)
 
 AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
 
@@ -138,12 +149,27 @@ class AgentSession:
             return await self._proactivity.dispatch_request(frame, run_main)
         return await run_main()
 
-    async def _run_inner_thought(self, user_input: str) -> ThoughtFrame | None:
+    async def reflect(self) -> ProactiveDecision | None:
+        """daemon 자율 성찰(B3) — 요청 없이 한 번 성찰해 먼저 말할지 게이팅한다.
+
+        엔진/ proactivity가 없으면 no-op(None). 게이팅 통과 시 core.reflect가
+        ProactiveMessageEvent를 push한다.
         """
-        요청 시점 메타인지 — expand 직후, run_main 직전에 실행.
+        if self._thought_engine is None or self._proactivity is None:
+            return None
+        frame = await self._run_inner_thought(REFLECTION_SEED, mode="reflection")
+        if frame is None:
+            return None
+        return await self._proactivity.reflect(frame, session_id=self._session_id)
+
+    async def _run_inner_thought(
+        self, user_input: str, mode: str = "request"
+    ) -> ThoughtFrame | None:
+        """
+        메타인지 1회 — 요청 시점(expand 직후) 또는 daemon 성찰(mode="reflection").
 
         사고 프레임을 생성·기록·이벤트로 노출하고 그 프레임을 반환한다. 프레임은
-        ① composer 조립(컨텍스트 증강)과 ② proactivity Dual-Channel 판단에 쓰인다.
+        ① composer 조립(컨텍스트 증강)과 ② proactivity 판단에 쓰인다.
         엔진이 없거나(비활성) 사고가 생략/실패하면 None을 돌려 메인 턴을 그대로 진행.
         """
         if self._thought_engine is None:
@@ -154,6 +180,7 @@ class AgentSession:
                 user_input=user_input,
                 history=await self._session_repo.get_messages(self._session_id),
                 session_id=self._session_id,
+                mode=mode,  # type: ignore[arg-type]
             )
         )
         if frame is None:

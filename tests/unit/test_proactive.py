@@ -217,6 +217,82 @@ def test_default_policy_satisfies_protocol():
     assert isinstance(DefaultProactivityPolicy(), ProactivityPolicy)
 
 
+# ── ProactivityDaemon (B3) ────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_daemon_tick_invokes_reflect():
+    from jarvis.core.proactive import ProactivityDaemon
+
+    calls = {"n": 0}
+
+    async def reflect():
+        calls["n"] += 1
+
+    daemon = ProactivityDaemon(reflect, interval_sec=0)
+    await daemon.tick()
+    assert calls["n"] == 1
+
+
+@pytest.mark.asyncio
+async def test_daemon_tick_isolates_failure():
+    from jarvis.core.proactive import ProactivityDaemon
+
+    async def boom():
+        raise RuntimeError("reflect down")
+
+    daemon = ProactivityDaemon(boom, interval_sec=0)
+    await daemon.tick()  # 예외가 전파되지 않아야 함
+
+
+@pytest.mark.asyncio
+async def test_daemon_loop_runs_ticks_then_stops():
+    import asyncio
+
+    from jarvis.core.proactive import ProactivityDaemon
+
+    calls = {"n": 0}
+    stop_evt = asyncio.Event()
+
+    async def reflect():
+        calls["n"] += 1
+
+    async def fake_sleep(_):
+        # 2틱 후, 멈출 때까지 길게 대기(취소로 빠져나옴).
+        if calls["n"] >= 2:
+            stop_evt.set()
+            await asyncio.sleep(3600)
+
+    daemon = ProactivityDaemon(reflect, interval_sec=0, sleep=fake_sleep)
+    await daemon.start()
+    assert daemon.is_running is True
+    await asyncio.wait_for(stop_evt.wait(), timeout=1.0)
+    await daemon.stop()
+
+    assert calls["n"] == 2
+    assert daemon.is_running is False
+
+
+@pytest.mark.asyncio
+async def test_daemon_start_is_idempotent():
+    from jarvis.core.proactive import ProactivityDaemon
+
+    async def reflect():
+        return None
+
+    async def never(_):
+        import asyncio
+
+        await asyncio.sleep(3600)
+
+    daemon = ProactivityDaemon(reflect, interval_sec=0, sleep=never)
+    await daemon.start()
+    first = daemon._task
+    await daemon.start()  # 두 번째 start는 무시(중복 task 금지)
+    assert daemon._task is first
+    await daemon.stop()
+
+
 async def _collect(bucket: list, msg: ProactiveMessage) -> None:
     bucket.append(msg)
 

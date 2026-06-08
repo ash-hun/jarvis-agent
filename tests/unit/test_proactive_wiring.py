@@ -113,5 +113,52 @@ async def test_no_proactivity_factory_is_noop(fx):
     assert not [e for e in events if isinstance(e, ProactiveMessageEvent)]
 
 
+# ── session.reflect (B3 daemon이 호출) ────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_reflect_pushes_proactive_when_gated(fx):
+    await fx["repo"].create(session_id="test-session")
+    # decision=ask + 높은 confidence → 게이팅 통과 → proactive push.
+    engine = StubEngine(
+        ThoughtFrame(decision="ask", confidence=0.9, interpretation="먼저 알려줄 게 있어요")
+    )
+    session = _build_session(fx, engine=engine, proactivity_factory=_factory)
+
+    events: list = []
+    session.subscribe(lambda e: events.append(e) or _noop())
+
+    decision = await session.reflect()
+    assert decision is not None and decision.speak is True
+    proactive = [
+        e
+        for e in events
+        if isinstance(e, ProactiveMessageEvent) and e.kind == "proactive"
+    ]
+    assert len(proactive) == 1
+    assert proactive[0].text == "먼저 알려줄 게 있어요"
+
+
+@pytest.mark.asyncio
+async def test_reflect_noop_without_engine(fx):
+    await fx["repo"].create(session_id="test-session")
+    session = _build_session(fx, engine=None, proactivity_factory=_factory)
+    assert await session.reflect() is None
+
+
+@pytest.mark.asyncio
+async def test_reflect_silent_does_not_push(fx):
+    await fx["repo"].create(session_id="test-session")
+    engine = StubEngine(ThoughtFrame(decision="silent", confidence=0.9))
+    session = _build_session(fx, engine=engine, proactivity_factory=_factory)
+
+    events: list = []
+    session.subscribe(lambda e: events.append(e) or _noop())
+
+    decision = await session.reflect()
+    assert decision is not None and decision.speak is False
+    assert not [e for e in events if isinstance(e, ProactiveMessageEvent)]
+
+
 async def _noop():
     return None

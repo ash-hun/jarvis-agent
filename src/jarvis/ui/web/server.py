@@ -90,6 +90,7 @@ def create_app(
 ) -> FastAPI:
     app = FastAPI(title="Jarvis HUD", docs_url=None, redoc_url=None)
     manager = SessionManager(ctx, base_extra)
+    proactive_daemon: Any = None
 
     # Voice service — lazy init from config
     voice_service: VoiceService | None = None
@@ -105,12 +106,25 @@ def create_app(
 
     @app.on_event("startup")
     async def _startup() -> None:
-        await manager.get_or_create(initial_session_id)
+        nonlocal proactive_daemon
+        session, _ = await manager.get_or_create(initial_session_id)
         if ctx.scheduler is not None:
             await ctx.scheduler.start()
 
+        # Proactivity Daemon (B3) — 기본(initial) 세션에 바인딩해 주기 성찰 push.
+        pcfg = ctx.settings.proactive
+        if pcfg.daemon_enabled:
+            from jarvis.core.proactive import ProactivityDaemon
+
+            proactive_daemon = ProactivityDaemon(
+                session.reflect, interval_sec=pcfg.daemon_interval_sec
+            )
+            await proactive_daemon.start()
+
     @app.on_event("shutdown")
     async def _shutdown() -> None:
+        if proactive_daemon is not None:
+            await proactive_daemon.stop()
         stm = base_extra.get("stm_backend")
         ltm = base_extra.get("ltm_backend")
         model = base_extra.get("model_config")

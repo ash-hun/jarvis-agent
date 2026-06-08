@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import time
 from collections import deque
 from collections.abc import Awaitable, Callable
@@ -7,6 +8,7 @@ from typing import Any
 
 from jarvis.agent_layer.harness import AgentHarness
 from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
+from jarvis.agent_layer.openloop import OpenLoop, OpenLoopStore
 from jarvis.agent_layer.session.protocol import SessionRepo
 from jarvis.agent_layer.thought import (
     DefaultThoughtComposer,
@@ -21,6 +23,8 @@ from jarvis.agent_layer.types import (
     AgentLoopConfig,
     InnerThoughtEvent,
     ProactiveMessageEvent,
+    ToolExecutionEndEvent,
+    ToolExecutionStartEvent,
 )
 from jarvis.core.plugins.runner import PluginRunner
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
@@ -38,6 +42,12 @@ from jarvis.model_layer.types import AssistantMessage, ModelConfig
 REFLECTION_SEED = (
     "(자율 성찰) 지금은 사용자의 직접 요청이 없는 시점이다. 최근 상황·맥락을 보고, "
     "사용자에게 먼저 알리거나 도울 가치가 있으면 decision을 act/ask로, 없으면 silent로 판단하라."
+)
+
+# E2 — daemon 자율 실행이 허용되는 읽기 전용 툴 화이트리스트(설계 §6 저위험 목록).
+# 실제 실행은 이 목록 ∩ "승인 불필요(sandbox)" 이중 게이트를 통과해야만 한다.
+AUTONOMOUS_SAFE_TOOLS = frozenset(
+    {"read_file", "glob", "grep", "list_dir", "web_search", "web_fetch"}
 )
 
 AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
@@ -72,6 +82,7 @@ class AgentSession:
         thought_log: ThoughtLog | None = None,
         thought_composer: ThoughtComposer | None = None,
         proactivity_factory: Callable[[EmitProactive], ProactivityCore] | None = None,
+        openloop_store: OpenLoopStore | None = None,
     ) -> None:
         self._security = security_pipeline
         self._plugins = plugin_runner
@@ -83,6 +94,7 @@ class AgentSession:
         self._thought_engine = thought_engine
         self._thought_log = thought_log
         self._thought_composer = thought_composer or DefaultThoughtComposer()
+        self._openloop_store = openloop_store
         # 코어는 세션별 emit에 바인딩되어야 하므로 팩토리로 주입받아 여기서 생성.
         self._proactivity: ProactivityCore | None = (
             proactivity_factory(self._emit_proactive) if proactivity_factory else None
@@ -160,7 +172,53 @@ class AgentSession:
         frame = await self._run_inner_thought(REFLECTION_SEED, mode="reflection")
         if frame is None:
             return None
-        return await self._proactivity.reflect(frame, session_id=self._session_id)
+        return await self._proactivity.reflect(
+            frame, session_id=self._session_id, execute=self._execute_autonomous
+        )
+
+    async def _execute_autonomous(self, actions: list[Any]) -> str:
+        """저위험 자율 행동(E2)을 실행하고 사람이 읽을 요약을 반환.
+
+        이중 안전 게이트: (1) AUTONOMOUS_SAFE_TOOLS 화이트리스트 ∩
+        (2) sandbox 승인 불필요. 둘 다 통과한 tool 행동만 실행한다(고위험·외부
+        변경·승인 대상은 절대 자율 실행하지 않음 — 요청 없는 시점엔 승인 주체 없음).
+        """
+        import uuid
+
+        done: list[str] = []
+        for action in actions:
+            if action.kind != "tool" or not action.tool_name:
+                continue
+            if action.tool_name not in AUTONOMOUS_SAFE_TOOLS:
+                continue
+            if self._security.sandbox.is_approval_required(action.tool_name):
+                continue
+
+            call_id = uuid.uuid4().hex[:12]
+            await self._harness.emit_event(
+                ToolExecutionStartEvent(
+                    tool_call_id=call_id, tool_name=action.tool_name, args=action.args
+                )
+            )
+            is_error = True
+            try:
+                result = await self._tool_registry.execute(
+                    call_id, action.tool_name, action.args
+                )
+                is_error = bool(getattr(result, "is_error", False))
+            except Exception:
+                is_error = True
+            await self._harness.emit_event(
+                ToolExecutionEndEvent(
+                    tool_call_id=call_id, tool_name=action.tool_name, is_error=is_error
+                )
+            )
+            if not is_error:
+                done.append(f"· {action.description}")
+
+        if not done:
+            return ""
+        return "(미리 해둠) " + " / ".join(done)
 
     async def _run_inner_thought(
         self, user_input: str, mode: str = "request"
@@ -180,11 +238,14 @@ class AgentSession:
                 user_input=user_input,
                 history=await self._session_repo.get_messages(self._session_id),
                 session_id=self._session_id,
+                open_loops=await self._load_open_loops(),
                 mode=mode,  # type: ignore[arg-type]
             )
         )
         if frame is None:
             return None
+
+        await self._persist_open_loops(frame)
 
         await self._harness.emit_event(
             InnerThoughtEvent(
@@ -209,6 +270,29 @@ class AgentSession:
                 kind=message.kind,
             )
         )
+
+    async def _load_open_loops(self) -> list[str]:
+        """열린 open-loop 설명을 사고 컨텍스트로 주입(없거나 store 미설정이면 빈 목록)."""
+        if self._openloop_store is None:
+            return []
+        try:
+            loops = await self._openloop_store.list_open(session_id=self._session_id)
+        except Exception:
+            return []
+        return [loop.description for loop in loops]
+
+    async def _persist_open_loops(self, frame: ThoughtFrame) -> None:
+        """사고가 새로 감지한 open-loop를 저장(중복은 store가 건너뜀). 부가 작업이라 실패 무시."""
+        if self._openloop_store is None or not frame.open_loops:
+            return
+        for desc in frame.open_loops:
+            text = desc.strip()
+            if not text:
+                continue
+            with contextlib.suppress(Exception):
+                await self._openloop_store.add_unique(
+                    OpenLoop(description=text, origin_session=self._session_id)
+                )
 
     def _check_rate_limit(self, user_id: str, rate_limit: int, window: float = 60.0) -> None:
         """슬라이딩 윈도우(window초)에서 rate_limit 초과 시 PolicyDenied."""

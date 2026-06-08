@@ -273,6 +273,13 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         settings=settings,
     )
 
+    # Open-loop 저장소 — 앱 레벨 단일 인스턴스(모든 세션·daemon이 공유).
+    openloop_store: Any = None
+    if settings.thought.enabled:
+        from jarvis.agent_layer.openloop import InMemoryOpenLoopStore
+
+        openloop_store = InMemoryOpenLoopStore()
+
     _extra: dict[str, Any] = {
         "memory_chain": memory_chain,
         "pipeline": pipeline,
@@ -282,6 +289,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         "stm_backend": stm_backend,
         "ltm_backend": ltm_backend,
         "model_config": model_config,
+        "openloop_store": openloop_store,
     }
 
     # Scheduler의 base_extra를 채워 넣는다 (extra가 만들어진 이후)
@@ -309,6 +317,15 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         make_remember_handler(ltm_backend),
         "내용 저장/검색/삭제 (list | search <키워드> | forget <id>)",
     )
+
+    if openloop_store is not None:
+        from jarvis.core.slash.openloop_cmd import make_openloop_handler
+
+        ctx.dispatcher.register(
+            "openloop",
+            make_openloop_handler(openloop_store),
+            "추적 중인 약속/미완 작업 (done <id> | dismiss <id>)",
+        )
 
     # 운영용 슬래시 커맨드
     from jarvis.core.slash.ops_cmd import (
@@ -389,6 +406,7 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
         thought_log=thought_log,
         thought_composer=thought_composer,
         proactivity_factory=_build_proactivity_factory(ctx),
+        openloop_store=extra.get("openloop_store"),
     )
 
 

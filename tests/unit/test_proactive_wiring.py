@@ -160,5 +160,64 @@ async def test_reflect_silent_does_not_push(fx):
     assert not [e for e in events if isinstance(e, ProactiveMessageEvent)]
 
 
+# ── E2: 저위험 자율 실행 이중 게이트 ──────────────────────────────────────────
+
+
+class _FakeTool:
+    name = "read_file"
+    description = "fake read"
+    parameters: dict = {"type": "object", "properties": {}}
+    execution_mode = "parallel"
+
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    async def execute(self, tool_call_id, params, signal=None):
+        from jarvis.model_layer.types import TextContent, ToolResultMessage
+
+        self.calls.append(params)
+        return ToolResultMessage(
+            tool_call_id=tool_call_id,
+            tool_name=self.name,
+            content=[TextContent(text="ok")],
+            is_error=False,
+        )
+
+
+@pytest.mark.asyncio
+async def test_reflect_executes_only_safelisted_tool(fx):
+    from jarvis.agent_layer.thought.types import ProactiveAction
+    from jarvis.agent_layer.types import ToolExecutionEndEvent
+
+    await fx["repo"].create(session_id="test-session")
+    tool = _FakeTool()
+    fx["tool_registry"].register(tool)
+
+    # 둘 다 low-risk지만, read_file만 화이트리스트 → 실행. mutate_db는 스킵.
+    frame = ThoughtFrame(
+        decision="act",
+        confidence=0.9,
+        interpretation="확인 필요",
+        proactive_actions=[
+            ProactiveAction(kind="tool", tool_name="read_file", description="로그", risk="low"),
+            ProactiveAction(kind="tool", tool_name="mutate_db", description="변경", risk="low"),
+        ],
+    )
+    session = _build_session(fx, engine=StubEngine(frame), proactivity_factory=_factory)
+
+    events: list = []
+    session.subscribe(lambda e: events.append(e) or _noop())
+
+    decision = await session.reflect()
+
+    assert decision.speak is True
+    assert len(tool.calls) == 1  # read_file만 실행, mutate_db 스킵
+    ends = [e for e in events if isinstance(e, ToolExecutionEndEvent)]
+    assert len(ends) == 1 and ends[0].tool_name == "read_file"
+    # 자율 실행 요약이 proactive 메시지에 포함.
+    pmsg = [e for e in events if isinstance(e, ProactiveMessageEvent)][0]
+    assert "미리 해둠" in pmsg.text
+
+
 async def _noop():
     return None

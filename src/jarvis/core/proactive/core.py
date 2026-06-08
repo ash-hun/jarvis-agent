@@ -5,7 +5,7 @@ import contextlib
 from collections.abc import Awaitable, Callable
 from typing import Protocol, runtime_checkable
 
-from jarvis.agent_layer.thought.types import ThoughtFrame
+from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
 from jarvis.core.proactive.policy import DefaultProactivityPolicy, ProactivityPolicy
 from jarvis.core.proactive.types import ProactiveDecision, ProactiveMessage
 from jarvis.model_layer.types import AssistantMessage
@@ -14,6 +14,8 @@ from jarvis.model_layer.types import AssistantMessage
 RunMain = Callable[[], Awaitable[AssistantMessage | None]]
 # proactive 발화 운반 — fast channel / push (B2). UI에 비동기 전달.
 EmitProactive = Callable[[ProactiveMessage], Awaitable[None]]
+# 저위험 자율 행동 실행기 (E2) — 실행 후 사람이 읽을 요약을 반환. 보안 게이트는 호출부 책임.
+ExecuteActions = Callable[[list[ProactiveAction]], Awaitable[str]]
 
 
 @runtime_checkable
@@ -27,7 +29,13 @@ class ProactivityCore(Protocol):
 
     async def dispatch_request(self, frame: ThoughtFrame | None, run_main: RunMain) -> AssistantMessage | None: ...
 
-    async def reflect(self, frame: ThoughtFrame, *, session_id: str = "default") -> ProactiveDecision: ...
+    async def reflect(
+        self,
+        frame: ThoughtFrame,
+        *,
+        session_id: str = "default",
+        execute: ExecuteActions | None = None,
+    ) -> ProactiveDecision: ...
 
 
 class DefaultProactivityCore:
@@ -63,10 +71,29 @@ class DefaultProactivityCore:
         self._spawn(self._run_deferred(run_main))
         return None
 
-    async def reflect(self, frame: ThoughtFrame, *, session_id: str = "default") -> ProactiveDecision:
+    async def reflect(
+        self,
+        frame: ThoughtFrame,
+        *,
+        session_id: str = "default",
+        execute: ExecuteActions | None = None,
+    ) -> ProactiveDecision:
         decision = self._policy.decide_proactive(frame, session_id=session_id)
-        if decision.speak and decision.message:
-            await self._emit(ProactiveMessage(text=decision.message, kind="proactive"))
+        if not decision.speak:
+            return decision
+
+        # E2 — 게이팅 통과 시 저위험 자율 행동을 먼저 실행(실행→알림) 후 요약을
+        # 메시지에 덧붙인다. execute가 없으면 행동은 건너뛰고 메시지만 push.
+        note = ""
+        if execute is not None and decision.autonomous_actions:
+            with contextlib.suppress(Exception):
+                note = await execute(decision.autonomous_actions)
+
+        text = decision.message
+        if note:
+            text = f"{text}\n{note}" if text else note
+        if text:
+            await self._emit(ProactiveMessage(text=text, kind="proactive"))
         return decision
 
     async def _run_deferred(self, run_main: RunMain) -> None:

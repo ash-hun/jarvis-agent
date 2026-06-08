@@ -42,6 +42,9 @@ class ThoughtFrame(BaseModel):
     # filler에 "오래 걸린다"를 표현하는 즉답을 담는다(voice/text fast channel용).
     needs_background: bool = False
     filler: str = ""
+    # Open-loop (Tier 2): 이번 입력에서 새로 감지한 약속/미완 작업 설명 목록.
+    # 세션이 이를 OpenLoopStore에 저장하고, daemon 성찰 시 다시 주입한다.
+    open_loops: list[str] = Field(default_factory=list)
 
     def context_block(self) -> str:
         """

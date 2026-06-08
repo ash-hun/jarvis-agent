@@ -603,6 +603,17 @@ function handleMessage(msg) {
       setTimeout(() => { setStatus('READY'); HUD.setState('idle'); }, 3000);
       break;
 
+    case 'inner_thought': {
+      // 메인 응답과 구분된 메타인지 라인 (💭). interpretation이 없으면 표시 생략.
+      const interp = (msg.interpretation || '').trim();
+      if (interp) {
+        const conf = Math.round((msg.confidence || 0) * 100);
+        appendMsg('💭', 'thought',
+          `${escapeHtml(interp)} <span class="thought-meta">(${escapeHtml(msg.decision || 'silent')} · ${conf}%)</span>`);
+      }
+      break;
+    }
+
     case 'error':
       appendMsg('SYS', 'err', escapeHtml(msg.message || 'Error'));
       setStatus('ERROR', 'error');

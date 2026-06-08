@@ -8,7 +8,14 @@ from typing import Any
 from jarvis.agent_layer.harness import AgentHarness
 from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.agent_layer.session.protocol import SessionRepo
-from jarvis.agent_layer.types import AgentEvent, AgentLoopConfig
+from jarvis.agent_layer.thought import (
+    DefaultThoughtComposer,
+    ThoughtComposer,
+    ThoughtEngine,
+    ThoughtLog,
+    ThoughtRequest,
+)
+from jarvis.agent_layer.types import AgentEvent, AgentLoopConfig, InnerThoughtEvent
 from jarvis.core.plugins.runner import PluginRunner
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
 from jarvis.core.skills.registry import SkillRegistry
@@ -43,12 +50,20 @@ class AgentSession:
         system_prompt: str | None = None,
         loop_config: AgentLoopConfig | None = None,
         agent_name: str | None = None,
+        thought_engine: ThoughtEngine | None = None,
+        thought_log: ThoughtLog | None = None,
+        thought_composer: ThoughtComposer | None = None,
     ) -> None:
         self._security = security_pipeline
         self._plugins = plugin_runner
         self._tool_registry = tool_registry
         self._skill_registry = skill_registry
         self._session_id = session_id
+        self._session_repo = session_repo
+        self._memory_chain = memory_chain
+        self._thought_engine = thought_engine
+        self._thought_log = thought_log
+        self._thought_composer = thought_composer or DefaultThoughtComposer()
 
         self._rate_counters: dict[str, deque[float]] = {}
 
@@ -85,6 +100,8 @@ class AgentSession:
 
         expanded = self._skill_registry.expand(validated.sanitized)
 
+        inner_thought_prompt = await self._run_inner_thought(expanded)
+
         await self._plugins.emit_before_agent_start(expanded, {"session_id": self._session_id})
 
         tool_executor = self._make_tool_executor(auth_ctx, policy_result)
@@ -95,6 +112,7 @@ class AgentSession:
             extra_context={
                 "user_id": auth_ctx.user_id,
                 "roles": list(auth_ctx.roles),
+                "inner_thought_prompt": inner_thought_prompt,
             },
         )
 
@@ -102,6 +120,41 @@ class AgentSession:
             result = await self._plugins.emit_on_message_end(result)
 
         return result
+
+    async def _run_inner_thought(self, user_input: str) -> str | None:
+        """
+        요청 시점 메타인지 — expand 직후, harness.run 직전에 실행.
+
+        Tier 0: 사고 프레임을 생성·기록·이벤트로 노출하고, composer로 조립한
+        프롬프트 텍스트를 반환한다(자율 행동 없음). 엔진이 없거나(비활성) 사고가
+        생략/실패하면 조용히 None을 돌려 메인 턴을 그대로 진행한다.
+        """
+        if self._thought_engine is None:
+            return None
+
+        frame = await self._thought_engine.think(
+            ThoughtRequest(
+                user_input=user_input,
+                history=await self._session_repo.get_messages(self._session_id),
+                session_id=self._session_id,
+            )
+        )
+        if frame is None:
+            return None
+
+        await self._harness.emit_event(
+            InnerThoughtEvent(
+                session_id=self._session_id,
+                interpretation=frame.interpretation,
+                decision=frame.decision,
+                confidence=frame.confidence,
+                frame=frame.model_dump(),
+            )
+        )
+        if self._thought_log is not None:
+            await self._thought_log.store(frame, self._session_id)
+
+        return self._thought_composer.compose(frame) or None
 
     def _check_rate_limit(self, user_id: str, rate_limit: int, window: float = 60.0) -> None:
         """슬라이딩 윈도우(window초)에서 rate_limit 초과 시 PolicyDenied."""

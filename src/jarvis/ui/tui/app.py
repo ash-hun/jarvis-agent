@@ -19,6 +19,7 @@ from jarvis.ui.tui.bridge import (
     AppendStreamAction,
     EventBridge,
     FlushStreamAction,
+    InnerThoughtAction,
     ShowErrorAction,
     ShowStatusAction,
     ToolEndAction,
@@ -348,6 +349,10 @@ class JarvisTUI(App[None]):
 
             case ShowErrorAction(message=m):
                 self._chat.add_error(m)
+
+            case InnerThoughtAction(interpretation=interp, decision=dec, confidence=conf):
+                if interp:
+                    self._chat.add_inner_thought(f"{interp}  ({dec} · {conf:.0%})")
 
             case AgentPushAction(agent_name=name):
                 self._agent_stack.append(name)

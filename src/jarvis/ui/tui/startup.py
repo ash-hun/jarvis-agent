@@ -374,6 +374,8 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
         temperature=settings.llm.temperature,
         max_tokens=settings.llm.max_tokens,
     )
+    thought_engine, thought_log, thought_composer = _build_thought(ctx, extra, model)
+
     return AgentSession(
         model=model,
         session_id=session_id,
@@ -383,7 +385,76 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
         tool_registry=ctx.tool_registry,
         skill_registry=extra["skill_registry"],
         session_repo=ctx.session_repo,
+        thought_engine=thought_engine,
+        thought_log=thought_log,
+        thought_composer=thought_composer,
     )
+
+
+def _build_thought(
+    ctx: AppContext, extra: dict[str, Any], main_model: Any
+) -> tuple[Any, Any, Any]:
+    """ThoughtConfig.enabled일 때만 (엔진, 로그, composer)를 만든다.
+
+    비활성(기본)이면 (None, None, None) — session은 사고 분기를 건너뛴다.
+    - A1: provider/api_key/base_url까지 분리한 사고 모델
+    - A2: log_sinks(ltm|stm) 선택 → ThoughtLog fan-out
+    - A3: composer(default|interpretation_only) 선택
+    """
+    settings = ctx.settings
+    if not settings.thought.enabled:
+        return None, None, None
+
+    from jarvis.agent_layer.thought import (
+        DefaultThoughtComposer,
+        InnerThoughtEngine,
+        InterpretationOnlyComposer,
+        LTMThoughtSink,
+        STMThoughtSink,
+        ThoughtLog,
+        ThoughtPromptTemplate,
+    )
+    from jarvis.model_layer.types import ModelConfig
+
+    tcfg = settings.thought
+
+    # A1 — 사고 모델: 지정된 항목만 메인에서 분리, 비우면 메인 값 상속.
+    api_key = (
+        tcfg.api_key.get_secret_value() if tcfg.api_key is not None else main_model.api_key
+    )
+    thought_model = ModelConfig(
+        provider=tcfg.provider or main_model.provider,
+        model=tcfg.model or main_model.model,
+        api_key=api_key,
+        base_url=tcfg.base_url or main_model.base_url,
+        temperature=main_model.temperature,
+        max_tokens=main_model.max_tokens,
+    )
+
+    engine = InnerThoughtEngine(
+        model=thought_model,
+        template=ThoughtPromptTemplate.load(tcfg.prompt_path),
+        recall=extra["memory_chain"].retrieve,
+        recall_limit=tcfg.recall_limit,
+        skip_if_shorter_than=tcfg.skip_if_shorter_than,
+    )
+
+    # A2 — 사고 로그 싱크: 설정된 것만, 알 수 없는 이름은 무시.
+    sink_factories = {
+        "ltm": lambda: LTMThoughtSink(extra["ltm_backend"]),
+        "stm": lambda: STMThoughtSink(extra["stm_backend"]),
+    }
+    sinks = [sink_factories[name]() for name in tcfg.log_sinks if name in sink_factories]
+    log = ThoughtLog(sinks)
+
+    # A3 — 조립 전략.
+    composers = {
+        "default": DefaultThoughtComposer,
+        "interpretation_only": InterpretationOnlyComposer,
+    }
+    composer = composers.get(tcfg.composer, DefaultThoughtComposer)()
+
+    return engine, log, composer
 
 
 def _build_agent_node(

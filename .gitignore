@@ -222,3 +222,6 @@ _reference/
 CLAUDE.md
 memory-lake/
 develop_plan.md
+
+# Claude Code local settings (per-machine, not tracked)
+.claude/

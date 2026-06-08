@@ -22,3 +22,7 @@ class ChatHistory(RichLog):
 
     def add_error(self, text: str) -> None:
         self.write(f"[bold red]Error:[/bold red] {markup_escape(text)}")
+
+    def add_inner_thought(self, text: str) -> None:
+        """inner thought(메타인지) — 메인 응답과 구분된 흐릿한 사고 라인."""
+        self.write(f"[dim italic]💭 {markup_escape(text)}[/dim italic]")

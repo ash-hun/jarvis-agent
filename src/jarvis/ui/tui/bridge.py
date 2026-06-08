@@ -8,6 +8,7 @@ from jarvis.agent_layer.types import (
     AgentErrorEvent,
     AgentEvent,
     AgentStartEvent,
+    InnerThoughtEvent,
     MessageUpdateEvent,
     ToolExecutionEndEvent,
     ToolExecutionStartEvent,
@@ -55,6 +56,15 @@ class ShowErrorAction:
 
 
 @dataclass(frozen=True)
+class InnerThoughtAction:
+    """inner thought(메타인지) 산출물 — 메인 응답과 구분된 사고 라인으로 표시."""
+    interpretation: str
+    decision: str
+    confidence: float
+    kind: Literal["inner_thought"] = field(default="inner_thought", init=False)
+
+
+@dataclass(frozen=True)
 class AgentPushAction:
     """서브 에이전트 시작 — 계층 스택에 push."""
     agent_name: str
@@ -75,6 +85,7 @@ UIAction = (
     | ToolStartAction
     | ToolEndAction
     | ShowErrorAction
+    | InnerThoughtAction
     | AgentPushAction
     | AgentPopAction
 )
@@ -124,6 +135,15 @@ class EventBridge:
                     is_error=event.is_error,
                 ),
                 ShowStatusAction(text="Thinking..."),
+            ]
+
+        if isinstance(event, InnerThoughtEvent):
+            return [
+                InnerThoughtAction(
+                    interpretation=event.interpretation,
+                    decision=event.decision,
+                    confidence=event.confidence,
+                )
             ]
 
         if isinstance(event, AgentErrorEvent):

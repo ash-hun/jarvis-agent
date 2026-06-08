@@ -129,8 +129,8 @@ JARVIS_PROACTIVE__ENABLED=true
 # 별도(저렴) 사고 모델 분리 — 메인=anthropic / 사고=ollama 등
 JARVIS_THOUGHT__MODEL=claude-haiku-4-5
 
-# 자율 성찰 daemon: 기본 OFF (opt-in) — 요청 없이 먼저 말 검
-JARVIS_PROACTIVE__DAEMON_ENABLED=true
+# 자율 성찰 daemon: 기본 ON — 요청 없이 먼저 말 검 (false로 끔)
+JARVIS_PROACTIVE__DAEMON_ENABLED=false
 JARVIS_PROACTIVE__DAEMON_TRIGGER=both    # interval | idle | both
 ```
 
@@ -536,7 +536,7 @@ JARVIS_THOUGHT__COMPOSER=default          # default | interpretation_only
 JARVIS_PROACTIVE__ENABLED=true            # 기본 ON (요청 시 filler+백그라운드)
 JARVIS_PROACTIVE__CONFIDENCE_THRESHOLD=0.6
 JARVIS_PROACTIVE__COOLDOWN_SEC=300
-JARVIS_PROACTIVE__DAEMON_ENABLED=false    # 자율 성찰 루프 (opt-in)
+JARVIS_PROACTIVE__DAEMON_ENABLED=true     # 자율 성찰 루프 (기본 on)
 JARVIS_PROACTIVE__DAEMON_TRIGGER=interval # interval | idle | both
 JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=900
 JARVIS_PROACTIVE__DAEMON_IDLE_SEC=180

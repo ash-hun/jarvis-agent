@@ -106,7 +106,7 @@ proactive 발화에 사용자가 👍/👎(Web 버튼 · TUI `Ctrl+Y`/`Ctrl+G` �
 | `JARVIS_PROACTIVE__ENABLED` | `true` | Dual-Channel 마스터 스위치 |
 | `JARVIS_PROACTIVE__CONFIDENCE_THRESHOLD` | `0.6` | 발화 게이팅 임계치(학습기 base) |
 | `JARVIS_PROACTIVE__COOLDOWN_SEC` | `300` | 세션별 발화 쿨다운 |
-| `JARVIS_PROACTIVE__DAEMON_ENABLED` | `false` | 자율 성찰 루프 (opt-in) |
+| `JARVIS_PROACTIVE__DAEMON_ENABLED` | `true` | 자율 성찰 루프 (기본 on, false로 끔) |
 | `JARVIS_PROACTIVE__DAEMON_TRIGGER` | `interval` | interval / idle / both |
 | `JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC` / `__DAEMON_IDLE_SEC` | `900` / `180` | 트리거 주기 |
 | `JARVIS_OPENLOOP__BACKEND` / `__PATH` | `jsonl` | open-loop 영속 (jsonl/in_memory/postgres) |
@@ -134,7 +134,7 @@ proactive 발화에 사용자가 👍/👎(Web 버튼 · TUI `Ctrl+Y`/`Ctrl+G` �
 
 - `THOUGHT`/`PROACTIVE` 비활성 시 모든 분기 완전 skip → 기존 reactive 동작과 동일(제로 오버헤드).
 - 사고/증류/회상 실패는 예외 대신 graceful fallback → 메인 턴을 절대 막지 않음.
-- daemon은 기본 OFF(요청 없이 먼저 말 거는 강한 행동) — 명시적 opt-in.
+- daemon은 기본 ON(요청 없이 먼저 말 검) — `JARVIS_PROACTIVE__DAEMON_ENABLED=false`로 끈다. 발화는 confidence 임계치+쿨다운+피드백 학습으로 절제되고, 확신 없으면 silent로 기운다.
 - 자율 실행은 읽기 전용 이중 게이트로 한정.
 
 ## 10. 테스트

@@ -103,6 +103,32 @@ async def test_engine_parses_valid_frame(faux_model_with_response):
 
 
 @pytest.mark.asyncio
+async def test_engine_parses_dual_channel_fields(faux_model_with_response):
+    # needs_background / filler가 프레임으로 파싱돼야 한다(Tier 1 Dual-Channel 입력).
+    model = faux_model_with_response(
+        response=_frame_json(needs_background=True, filler="잠깐만요, 확인하고 알려드릴게요")
+    )
+    engine = InnerThoughtEngine(model=model, clock=_clock)
+
+    frame = await engine.think(ThoughtRequest(user_input="배포 로그 분석해줘"))
+    assert frame is not None
+    assert frame.needs_background is True
+    assert frame.filler == "잠깐만요, 확인하고 알려드릴게요"
+
+
+@pytest.mark.asyncio
+async def test_engine_dual_channel_defaults_when_absent(faux_model_with_response):
+    # 모델이 새 필드를 안 주면 기본값(즉답 모드).
+    model = faux_model_with_response(response=_frame_json())
+    engine = InnerThoughtEngine(model=model, clock=_clock)
+
+    frame = await engine.think(ThoughtRequest(user_input="안녕"))
+    assert frame is not None
+    assert frame.needs_background is False
+    assert frame.filler == ""
+
+
+@pytest.mark.asyncio
 async def test_engine_extracts_json_from_noisy_output(faux_model_with_response):
     # 코드펜스/잡텍스트에 둘러싸여도 추출돼야 한다.
     noisy = "다음과 같이 생각합니다:\n```json\n" + _frame_json() + "\n```\n끝."

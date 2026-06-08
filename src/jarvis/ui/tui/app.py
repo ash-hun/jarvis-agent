@@ -20,6 +20,7 @@ from jarvis.ui.tui.bridge import (
     EventBridge,
     FlushStreamAction,
     InnerThoughtAction,
+    ProactiveMessageAction,
     ShowErrorAction,
     ShowStatusAction,
     ToolEndAction,
@@ -353,6 +354,13 @@ class JarvisTUI(App[None]):
             case InnerThoughtAction(interpretation=interp, decision=dec, confidence=conf):
                 if interp:
                     self._chat.add_inner_thought(f"{interp}  ({dec} · {conf:.0%})")
+
+            case ProactiveMessageAction(text=ptext, msg_kind=mk, speak=spk):
+                if ptext:
+                    self._chat.add_proactive(ptext, mk)
+                    # voice 모드면 비요청 발화도 즉시 읽어준다(filler는 특히 중요).
+                    if (spk or self.speak_mode) and self._ctx.voice_controller is not None:
+                        self.run_worker(self._speak(ptext))
 
             case AgentPushAction(agent_name=name):
                 self._agent_stack.append(name)

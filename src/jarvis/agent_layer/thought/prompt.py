@@ -23,6 +23,11 @@ DEFAULT_TEMPLATE = """\
 - decision (string): "act" | "ask" | "silent"  (확신 없으면 silent로 기울여라)
 - confidence (number): 0.0 ~ 1.0
 - rationale (string): 위 결정의 이유
+- needs_background (boolean): 답하려면 도구 사용·검색·다단계 작업 등으로 시간이
+    걸릴 것 같으면 true. 즉답 가능한 단순 질문이면 false.
+- filler (string): needs_background가 true일 때만 채운다. 사용자에게 먼저 건넬
+    짧은 즉답으로, 반드시 "지금 알아보는 중이라 시간이 조금 걸린다"는 뜻을 자연스럽게
+    담아라(예: "잠깐만요, 배포 로그 확인하고 바로 알려드릴게요"). false면 빈 문자열.
 
 원칙: 도움이 안 되면 침묵하라(silent). 저위험 행동만 자율 제안하라.
 """

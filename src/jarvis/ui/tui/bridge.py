@@ -10,6 +10,7 @@ from jarvis.agent_layer.types import (
     AgentStartEvent,
     InnerThoughtEvent,
     MessageUpdateEvent,
+    ProactiveMessageEvent,
     ToolExecutionEndEvent,
     ToolExecutionStartEvent,
 )
@@ -65,6 +66,15 @@ class InnerThoughtAction:
 
 
 @dataclass(frozen=True)
+class ProactiveMessageAction:
+    """시스템 비요청 발화 — filler/proactive/answer. voice 모드면 TTS 대상."""
+    text: str
+    msg_kind: str  # filler | proactive | answer
+    speak: bool
+    kind: Literal["proactive_message"] = field(default="proactive_message", init=False)
+
+
+@dataclass(frozen=True)
 class AgentPushAction:
     """서브 에이전트 시작 — 계층 스택에 push."""
     agent_name: str
@@ -86,6 +96,7 @@ UIAction = (
     | ToolEndAction
     | ShowErrorAction
     | InnerThoughtAction
+    | ProactiveMessageAction
     | AgentPushAction
     | AgentPopAction
 )
@@ -143,6 +154,15 @@ class EventBridge:
                     interpretation=event.interpretation,
                     decision=event.decision,
                     confidence=event.confidence,
+                )
+            ]
+
+        if isinstance(event, ProactiveMessageEvent):
+            return [
+                ProactiveMessageAction(
+                    text=event.text,
+                    msg_kind=event.kind,
+                    speak=event.speak,
                 )
             ]
 

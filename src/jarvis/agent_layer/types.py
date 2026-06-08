@@ -74,6 +74,23 @@ class InnerThoughtEvent(BaseModel):
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
 
 
+class ProactiveMessageEvent(BaseModel):
+    """시스템 → 사용자 비요청 발화 (Tier 1 Push 채널).
+
+    kind:
+    - filler    : Dual-Channel — "오래 걸림"을 알리는 즉답 (voice는 즉시 TTS)
+    - proactive : daemon이 먼저 거는 말
+    - answer    : deferred 작업 완료 후 단발 push 답
+    """
+
+    type: Literal["proactive_message"] = "proactive_message"
+    session_id: str
+    text: str
+    kind: Literal["filler", "proactive", "answer"] = "proactive"
+    speak: bool = False  # voice 모드에서 즉시 TTS 대상인지
+    timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
+
+
 AgentEvent = (
     AgentStartEvent
     | TurnStartEvent
@@ -83,6 +100,7 @@ AgentEvent = (
     | AgentEndEvent
     | AgentErrorEvent
     | InnerThoughtEvent
+    | ProactiveMessageEvent
 )
 
 

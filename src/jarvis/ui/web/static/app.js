@@ -614,6 +614,21 @@ function handleMessage(msg) {
       break;
     }
 
+    case 'proactive_message': {
+      // 시스템 비요청 발화 — filler(💬 대기) / proactive·answer(🔔 먼저 건넨 말).
+      const ptext = (msg.text || '').trim();
+      if (ptext) {
+        const isFiller = msg.kind === 'filler';
+        appendMsg(isFiller ? '💬' : '🔔', 'proactive', escapeHtml(ptext));
+        // voice 모드면 비요청 발화도 즉시 읽어준다 — filler는 대기 체감을 줄이는 핵심.
+        if (_voiceMode || msg.speak) {
+          voice.setProcessing();
+          send({ type: 'voice_tts_request', text: ptext });
+        }
+      }
+      break;
+    }
+
     case 'error':
       appendMsg('SYS', 'err', escapeHtml(msg.message || 'Error'));
       setStatus('ERROR', 'error');

@@ -100,11 +100,11 @@ class AgentConfig(BaseSettings):
 
 
 class ThoughtConfig(BaseSettings):
-    """Inner Thought Engine 설정 (Tier 0). 기본 off — opt-in."""
+    """Inner Thought Engine 설정 (Tier 0). 기본 on — JARVIS_THOUGHT__ENABLED=false로 끈다."""
 
     model_config = SettingsConfigDict(extra="ignore")
 
-    enabled: bool = False
+    enabled: bool = True
     model: str = ""  # 비우면 메인 LLM 모델, 지정 시 별도 모델
     # 사고 모델을 메인과 완전 분리 (예: 메인=anthropic, 사고=ollama 로컬).
     # 비우면 메인 LLM의 provider/key/base_url을 그대로 상속.
@@ -118,6 +118,18 @@ class ThoughtConfig(BaseSettings):
     recall_limit: int = 5  # 사고 시 회상할 기억 개수
     log_sinks: list[str] = Field(default_factory=lambda: ["ltm"])  # ltm | stm (복수 가능)
     composer: str = "default"  # default | interpretation_only — 메인 프롬프트 조립 전략
+
+
+class ProactiveConfig(BaseSettings):
+    """Proactive 설정 (Tier 1). 기본 on. ThoughtConfig.enabled가 선행 조건."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    enabled: bool = True  # Dual-Channel(요청 시 filler+백그라운드) 마스터 스위치
+    confidence_threshold: float = 0.6  # daemon 발화 게이팅 임계치
+    cooldown_sec: int = 300  # 세션별 proactive 발화 쿨다운
+    daemon_enabled: bool = False  # B3 백그라운드 성찰 루프 (후속)
+    daemon_interval_sec: int = 900  # 성찰 주기(초)
 
 
 class VoiceConfig(BaseSettings):
@@ -157,6 +169,7 @@ class JarvisSettings(BaseSettings):
     agents: AgentConfig = Field(default_factory=AgentConfig)
     voice: VoiceConfig = Field(default_factory=VoiceConfig)
     thought: ThoughtConfig = Field(default_factory=ThoughtConfig)
+    proactive: ProactiveConfig = Field(default_factory=ProactiveConfig)
     web_search: WebSearchConfig = Field(default_factory=WebSearchConfig)
     mcp_servers: list[MCPServerConfig] = Field(default_factory=list)
     debug: bool = False

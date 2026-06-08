@@ -362,6 +362,16 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
             "증류된 사용자 모델 (build로 갱신)",
         )
 
+    if settings.thought.enabled:
+        from jarvis.agent_layer.journal import ReflectionJournaler
+        from jarvis.core.slash.journal_cmd import make_journal_handler
+
+        ctx.dispatcher.register(
+            "journal",
+            make_journal_handler(ReflectionJournaler(model_config, ltm_backend)),
+            "자기 성찰 저널 (write로 작성)",
+        )
+
     # 운영용 슬래시 커맨드
     from jarvis.core.slash.ops_cmd import (
         make_branch_handler,

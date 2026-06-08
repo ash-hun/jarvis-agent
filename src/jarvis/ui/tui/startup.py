@@ -388,7 +388,31 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
         thought_engine=thought_engine,
         thought_log=thought_log,
         thought_composer=thought_composer,
+        proactivity_factory=_build_proactivity_factory(ctx),
     )
+
+
+def _build_proactivity_factory(ctx: AppContext) -> Any:
+    """ProactiveConfig.enabled일 때만 ProactivityCore 팩토리를 만든다.
+
+    코어는 세션별 emit에 바인딩돼야 하므로 (emit) -> ProactivityCore 팩토리를 반환.
+    비활성(기본)이면 None — session은 Dual-Channel 분기를 건너뛴다.
+    """
+    pcfg = ctx.settings.proactive
+    # 사고가 꺼져 있으면 프레임이 없어 proactivity가 무의미 → 함께 off.
+    if not pcfg.enabled or not ctx.settings.thought.enabled:
+        return None
+
+    from jarvis.core.proactive import DefaultProactivityCore, DefaultProactivityPolicy
+
+    def factory(emit: Any) -> Any:
+        policy = DefaultProactivityPolicy(
+            confidence_threshold=pcfg.confidence_threshold,
+            cooldown_sec=pcfg.cooldown_sec,
+        )
+        return DefaultProactivityCore(emit_proactive=emit, policy=policy)
+
+    return factory
 
 
 def _build_thought(

@@ -15,12 +15,30 @@ from jarvis.agent_layer.thought import (
     ThoughtLog,
     ThoughtRequest,
 )
-from jarvis.agent_layer.types import AgentEvent, AgentLoopConfig, InnerThoughtEvent
+from jarvis.agent_layer.thought.types import ThoughtFrame
+from jarvis.agent_layer.types import (
+    AgentEvent,
+    AgentLoopConfig,
+    InnerThoughtEvent,
+    ProactiveMessageEvent,
+)
 from jarvis.core.plugins.runner import PluginRunner
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
+from jarvis.core.proactive import (
+    EmitProactive,
+    ProactiveDecision,
+    ProactiveMessage,
+    ProactivityCore,
+)
 from jarvis.core.skills.registry import SkillRegistry
 from jarvis.core.tools.registry import ToolRegistry
 from jarvis.model_layer.types import AssistantMessage, ModelConfig
+
+# daemon 자율 성찰 시 user_input 대신 넣는 seed — 요청 없는 시점임을 모델에 알린다.
+REFLECTION_SEED = (
+    "(자율 성찰) 지금은 사용자의 직접 요청이 없는 시점이다. 최근 상황·맥락을 보고, "
+    "사용자에게 먼저 알리거나 도울 가치가 있으면 decision을 act/ask로, 없으면 silent로 판단하라."
+)
 
 AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
 
@@ -53,6 +71,7 @@ class AgentSession:
         thought_engine: ThoughtEngine | None = None,
         thought_log: ThoughtLog | None = None,
         thought_composer: ThoughtComposer | None = None,
+        proactivity_factory: Callable[[EmitProactive], ProactivityCore] | None = None,
     ) -> None:
         self._security = security_pipeline
         self._plugins = plugin_runner
@@ -64,6 +83,10 @@ class AgentSession:
         self._thought_engine = thought_engine
         self._thought_log = thought_log
         self._thought_composer = thought_composer or DefaultThoughtComposer()
+        # 코어는 세션별 emit에 바인딩되어야 하므로 팩토리로 주입받아 여기서 생성.
+        self._proactivity: ProactivityCore | None = (
+            proactivity_factory(self._emit_proactive) if proactivity_factory else None
+        )
 
         self._rate_counters: dict[str, deque[float]] = {}
 
@@ -91,8 +114,7 @@ class AgentSession:
         validated, auth_ctx, policy_result = await self._security.run(
             raw_input=raw_input,
             credentials=creds,
-            requested_tools=self._tool_registry.list_all() and
-                [t.name for t in self._tool_registry.list_all()],
+            requested_tools=self._tool_registry.list_all() and [t.name for t in self._tool_registry.list_all()],
         )
 
         if policy_result.rate_limit is not None:
@@ -100,34 +122,55 @@ class AgentSession:
 
         expanded = self._skill_registry.expand(validated.sanitized)
 
-        inner_thought_prompt = await self._run_inner_thought(expanded)
+        frame = await self._run_inner_thought(expanded)
+        inner_thought_prompt = self._thought_composer.compose(frame) or None if frame is not None else None
 
         await self._plugins.emit_before_agent_start(expanded, {"session_id": self._session_id})
 
         tool_executor = self._make_tool_executor(auth_ctx, policy_result)
 
-        result = await self._harness.run(
-            user_input=expanded,
-            tool_executor=tool_executor,
-            extra_context={
-                "user_id": auth_ctx.user_id,
-                "roles": list(auth_ctx.roles),
-                "inner_thought_prompt": inner_thought_prompt,
-            },
-        )
+        async def run_main() -> AssistantMessage | None:
+            result = await self._harness.run(
+                user_input=expanded,
+                tool_executor=tool_executor,
+                extra_context={
+                    "user_id": auth_ctx.user_id,
+                    "roles": list(auth_ctx.roles),
+                    "inner_thought_prompt": inner_thought_prompt,
+                },
+            )
+            if result:
+                result = await self._plugins.emit_on_message_end(result)
+            return result
 
-        if result:
-            result = await self._plugins.emit_on_message_end(result)
+        # Dual-Channel: proactivity가 있으면 needs_background 시 filler 즉시 발화 후
+        # 백그라운드 수행(반환 None). 없거나 즉시 모드면 현재 동작 그대로.
+        if self._proactivity is not None:
+            return await self._proactivity.dispatch_request(frame, run_main)
+        return await run_main()
 
-        return result
+    async def reflect(self) -> ProactiveDecision | None:
+        """daemon 자율 성찰(B3) — 요청 없이 한 번 성찰해 먼저 말할지 게이팅한다.
 
-    async def _run_inner_thought(self, user_input: str) -> str | None:
+        엔진/ proactivity가 없으면 no-op(None). 게이팅 통과 시 core.reflect가
+        ProactiveMessageEvent를 push한다.
         """
-        요청 시점 메타인지 — expand 직후, harness.run 직전에 실행.
+        if self._thought_engine is None or self._proactivity is None:
+            return None
+        frame = await self._run_inner_thought(REFLECTION_SEED, mode="reflection")
+        if frame is None:
+            return None
+        return await self._proactivity.reflect(frame, session_id=self._session_id)
 
-        Tier 0: 사고 프레임을 생성·기록·이벤트로 노출하고, composer로 조립한
-        프롬프트 텍스트를 반환한다(자율 행동 없음). 엔진이 없거나(비활성) 사고가
-        생략/실패하면 조용히 None을 돌려 메인 턴을 그대로 진행한다.
+    async def _run_inner_thought(
+        self, user_input: str, mode: str = "request"
+    ) -> ThoughtFrame | None:
+        """
+        메타인지 1회 — 요청 시점(expand 직후) 또는 daemon 성찰(mode="reflection").
+
+        사고 프레임을 생성·기록·이벤트로 노출하고 그 프레임을 반환한다. 프레임은
+        ① composer 조립(컨텍스트 증강)과 ② proactivity 판단에 쓰인다.
+        엔진이 없거나(비활성) 사고가 생략/실패하면 None을 돌려 메인 턴을 그대로 진행.
         """
         if self._thought_engine is None:
             return None
@@ -137,6 +180,7 @@ class AgentSession:
                 user_input=user_input,
                 history=await self._session_repo.get_messages(self._session_id),
                 session_id=self._session_id,
+                mode=mode,  # type: ignore[arg-type]
             )
         )
         if frame is None:
@@ -154,7 +198,17 @@ class AgentSession:
         if self._thought_log is not None:
             await self._thought_log.store(frame, self._session_id)
 
-        return self._thought_composer.compose(frame) or None
+        return frame
+
+    async def _emit_proactive(self, message: ProactiveMessage) -> None:
+        """ProactivityCore의 push 콜백 — ProactiveMessage → ProactiveMessageEvent."""
+        await self._harness.emit_event(
+            ProactiveMessageEvent(
+                session_id=self._session_id,
+                text=message.text,
+                kind=message.kind,
+            )
+        )
 
     def _check_rate_limit(self, user_id: str, rate_limit: int, window: float = 60.0) -> None:
         """슬라이딩 윈도우(window초)에서 rate_limit 초과 시 PolicyDenied."""
@@ -165,9 +219,7 @@ class AgentSession:
         while timestamps and now - timestamps[0] > window:
             timestamps.popleft()
         if len(timestamps) >= rate_limit:
-            raise PolicyDenied(
-                f"Rate limit exceeded: {rate_limit} requests/{int(window)}s for user '{user_id}'"
-            )
+            raise PolicyDenied(f"Rate limit exceeded: {rate_limit} requests/{int(window)}s for user '{user_id}'")
         timestamps.append(now)
 
     @property
@@ -191,6 +243,7 @@ class AgentSession:
         async def executor(tool_call_id: str, tool_name: str, params: dict[str, Any]) -> Any:
             if "*" not in allowed and tool_name not in allowed:
                 from jarvis.model_layer.types import TextContent, ToolResultMessage
+
                 return ToolResultMessage(
                     tool_call_id=tool_call_id,
                     tool_name=tool_name,
@@ -201,6 +254,7 @@ class AgentSession:
             hook_result = await self._plugins.emit_before_tool_call(tool_name, params, auth_ctx)
             if hook_result and hook_result.get("block"):
                 from jarvis.model_layer.types import TextContent, ToolResultMessage
+
                 return ToolResultMessage(
                     tool_call_id=tool_call_id,
                     tool_name=tool_name,
@@ -215,6 +269,7 @@ class AgentSession:
                 )
                 if not approved:
                     from jarvis.model_layer.types import TextContent, ToolResultMessage
+
                     return ToolResultMessage(
                         tool_call_id=tool_call_id,
                         tool_name=tool_name,

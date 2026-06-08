@@ -26,3 +26,8 @@ class ChatHistory(RichLog):
     def add_inner_thought(self, text: str) -> None:
         """inner thought(메타인지) — 메인 응답과 구분된 흐릿한 사고 라인."""
         self.write(f"[dim italic]💭 {markup_escape(text)}[/dim italic]")
+
+    def add_proactive(self, text: str, msg_kind: str = "proactive") -> None:
+        """시스템 비요청 발화 — filler(💬 대기) / proactive·answer(🔔 먼저 건넨 말)."""
+        icon = "💬" if msg_kind == "filler" else "🔔"
+        self.write(f"[bold magenta]{icon} Jarvis:[/bold magenta] {markup_escape(text)}")

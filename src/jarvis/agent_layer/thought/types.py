@@ -38,6 +38,10 @@ class ThoughtFrame(BaseModel):
     decision: Literal["act", "ask", "silent"] = "silent"  # 확신 없으면 silent
     confidence: float = 0.0  # 0.0–1.0
     rationale: str = ""  # 결정 근거(관찰 가능성)
+    # Dual-Channel (Tier 1): 메인 작업이 오래 걸릴 것으로 판단되면 needs_background=True,
+    # filler에 "오래 걸린다"를 표현하는 즉답을 담는다(voice/text fast channel용).
+    needs_background: bool = False
+    filler: str = ""
 
     def context_block(self) -> str:
         """

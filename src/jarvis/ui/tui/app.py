@@ -20,6 +20,7 @@ from jarvis.ui.tui.bridge import (
     EventBridge,
     FlushStreamAction,
     InnerThoughtAction,
+    ProactiveMessageAction,
     ShowErrorAction,
     ShowStatusAction,
     ToolEndAction,
@@ -116,6 +117,7 @@ class JarvisTUI(App[None]):
 
         # 한 번만 생성 (Warp: MouseStateHandle 원칙)
         self._bridge = EventBridge()
+        self._proactive_daemon: Any = None  # on_mount에서 조건부 기동
 
         # 내부 상태 (순수 Python, Textual 독립)
         self._stream_buffer = ""
@@ -166,6 +168,20 @@ class JarvisTUI(App[None]):
         # 스케줄러 시작 (croniter 없으면 service 내부에서 skip)
         if self._ctx.scheduler is not None:
             self.run_worker(self._ctx.scheduler.start())
+
+        # Proactivity Daemon (B3) — 요청 없이 주기적으로 성찰해 먼저 말 검.
+        pcfg = self._ctx.settings.proactive
+        if pcfg.daemon_enabled:
+            from jarvis.core.proactive import ProactivityDaemon
+
+            self._proactive_daemon = ProactivityDaemon(
+                self._session.reflect, interval_sec=pcfg.daemon_interval_sec
+            )
+            self.run_worker(self._proactive_daemon.start())
+
+    async def on_unmount(self) -> None:
+        if self._proactive_daemon is not None:
+            await self._proactive_daemon.stop()
 
     # ── 슬래시 명령 picker ────────────────────────────────────────────────────
 
@@ -353,6 +369,13 @@ class JarvisTUI(App[None]):
             case InnerThoughtAction(interpretation=interp, decision=dec, confidence=conf):
                 if interp:
                     self._chat.add_inner_thought(f"{interp}  ({dec} · {conf:.0%})")
+
+            case ProactiveMessageAction(text=ptext, msg_kind=mk, speak=spk):
+                if ptext:
+                    self._chat.add_proactive(ptext, mk)
+                    # voice 모드면 비요청 발화도 즉시 읽어준다(filler는 특히 중요).
+                    if (spk or self.speak_mode) and self._ctx.voice_controller is not None:
+                        self.run_worker(self._speak(ptext))
 
             case AgentPushAction(agent_name=name):
                 self._agent_stack.append(name)

@@ -80,9 +80,10 @@ services:
       - .env
     environment:
       JARVIS_LLM__PROVIDER: ${JARVIS_LLM__PROVIDER:-anthropic}
-      # Inner Thought Engine (Tier 0). 기본 off — JARVIS_THOUGHT__ENABLED=true로 켠다.
-      JARVIS_THOUGHT__ENABLED: ${JARVIS_THOUGHT__ENABLED:-false}
+      # Inner Thought(Tier 0) + Proactive(Tier 1). 기본 on — false로 끌 수 있다.
+      JARVIS_THOUGHT__ENABLED: ${JARVIS_THOUGHT__ENABLED:-true}
       JARVIS_THOUGHT__MODEL: ${JARVIS_THOUGHT__MODEL:-}
+      JARVIS_PROACTIVE__ENABLED: ${JARVIS_PROACTIVE__ENABLED:-true}
       # postgres가 기본. 외부 DSN이 .env에 있으면 그쪽을 사용한다.
       JARVIS_SESSION__PERSISTENCE_BACKEND: postgres
       JARVIS_SESSION__POSTGRES_DSN: ${JARVIS_SESSION__POSTGRES_DSN:-postgresql://jarvis:jarvis@postgres:5432/jarvis}

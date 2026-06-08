@@ -1,0 +1,81 @@
+from __future__ import annotations
+
+import asyncio
+import contextlib
+from collections.abc import Awaitable, Callable
+from typing import Protocol, runtime_checkable
+
+from jarvis.agent_layer.thought.types import ThoughtFrame
+from jarvis.core.proactive.policy import DefaultProactivityPolicy, ProactivityPolicy
+from jarvis.core.proactive.types import ProactiveDecision, ProactiveMessage
+from jarvis.model_layer.types import AssistantMessage
+
+# 메인 에이전트 턴 실행기 — slow channel. 결과 메시지(or None)를 반환.
+RunMain = Callable[[], Awaitable[AssistantMessage | None]]
+# proactive 발화 운반 — fast channel / push (B2). UI에 비동기 전달.
+EmitProactive = Callable[[ProactiveMessage], Awaitable[None]]
+
+
+@runtime_checkable
+class ProactivityCore(Protocol):
+    """proactive 동작의 코어 — 정책·채널·push를 한 객체가 소유.
+
+    독립 class로 격리되어 통째 교체 가능하다. 진입점 2개:
+    - dispatch_request : 요청-기반 Dual-Channel (filler + 백그라운드 메인 루프)
+    - reflect          : daemon 자율 발화 게이팅 + push (B3)
+    """
+
+    async def dispatch_request(self, frame: ThoughtFrame | None, run_main: RunMain) -> AssistantMessage | None: ...
+
+    async def reflect(self, frame: ThoughtFrame, *, session_id: str = "default") -> ProactiveDecision: ...
+
+
+class DefaultProactivityCore:
+    """기본 Dual-Channel 오케스트레이터.
+
+    협력자는 전부 생성자 주입(정책·push·spawn)이라 session/UI와 분리된다.
+    - fast channel : emit_proactive(filler) 즉시 발화
+    - slow channel : run_main()을 (지연 모드면) 백그라운드 task로 수행
+    """
+
+    def __init__(
+        self,
+        emit_proactive: EmitProactive,
+        policy: ProactivityPolicy | None = None,
+        spawn: Callable[[Awaitable[None]], None] | None = None,
+    ) -> None:
+        self._emit = emit_proactive
+        self._policy = policy or DefaultProactivityPolicy()
+        self._spawn = spawn or self._default_spawn
+        self._bg_tasks: set[asyncio.Task] = set()
+
+    async def dispatch_request(self, frame: ThoughtFrame | None, run_main: RunMain) -> AssistantMessage | None:
+        # 프레임이 없거나(사고 비활성) 즉시 모드면 현재 동작 그대로.
+        if frame is None:
+            return await run_main()
+
+        plan = self._policy.plan_response(frame)
+        if plan.mode == "immediate":
+            return await run_main()
+
+        # deferred — fast channel: filler 즉시 발화 → slow channel: 백그라운드 수행.
+        await self._emit(ProactiveMessage(text=plan.filler, kind="filler"))
+        self._spawn(self._run_deferred(run_main))
+        return None
+
+    async def reflect(self, frame: ThoughtFrame, *, session_id: str = "default") -> ProactiveDecision:
+        decision = self._policy.decide_proactive(frame, session_id=session_id)
+        if decision.speak and decision.message:
+            await self._emit(ProactiveMessage(text=decision.message, kind="proactive"))
+        return decision
+
+    async def _run_deferred(self, run_main: RunMain) -> None:
+        # 메인 루프는 자체 이벤트(stream/agent_end)를 그대로 emit → 답은 그 경로로 전달.
+        # 백그라운드 실패가 호출부를 깨지 않도록 격리.
+        with contextlib.suppress(Exception):
+            await run_main()
+
+    def _default_spawn(self, coro: Awaitable[None]) -> None:
+        task = asyncio.create_task(coro)  # type: ignore[arg-type]
+        self._bg_tasks.add(task)
+        task.add_done_callback(self._bg_tasks.discard)

@@ -35,7 +35,8 @@ _MAIN = ModelConfig(provider="anthropic", model="claude", api_key="mainkey", bas
 
 
 def test_disabled_returns_all_none():
-    settings = JarvisSettings()  # thought.enabled = False (기본)
+    settings = JarvisSettings()
+    settings.thought.enabled = False  # 명시적으로 끔
     ctx = AppContext(session_repo=None, tool_registry=None, settings=settings)
     assert _build_thought(ctx, _extra(), _MAIN) == (None, None, None)
 

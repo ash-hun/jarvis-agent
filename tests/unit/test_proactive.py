@@ -208,6 +208,54 @@ async def test_reflect_silent_does_not_push():
     assert emitted == []
 
 
+@pytest.mark.asyncio
+async def test_reflect_executes_autonomous_and_augments_message():
+    from jarvis.agent_layer.thought.types import ProactiveAction
+
+    emitted: list[ProactiveMessage] = []
+    seen: dict = {}
+
+    async def execute(actions):
+        seen["actions"] = actions
+        return "(미리 해둠) · 로그 읽기"
+
+    core = DefaultProactivityCore(
+        emit_proactive=lambda m: _collect(emitted, m),
+        policy=DefaultProactivityPolicy(confidence_threshold=0.5),
+    )
+    frame = ThoughtFrame(
+        decision="act",
+        confidence=0.9,
+        interpretation="배포 상태 확인이 필요해 보임",
+        proactive_actions=[ProactiveAction(kind="tool", description="로그 읽기", risk="low")],
+    )
+    decision = await core.reflect(frame, session_id="s1", execute=execute)
+
+    assert decision.speak is True
+    assert len(seen["actions"]) == 1  # low-risk만 전달
+    assert len(emitted) == 1
+    assert "배포 상태" in emitted[0].text and "미리 해둠" in emitted[0].text
+
+
+@pytest.mark.asyncio
+async def test_reflect_execute_failure_falls_back_to_message():
+    emitted: list[ProactiveMessage] = []
+
+    async def boom(actions):
+        raise RuntimeError("exec down")
+
+    core = DefaultProactivityCore(
+        emit_proactive=lambda m: _collect(emitted, m),
+        policy=DefaultProactivityPolicy(confidence_threshold=0.5),
+    )
+    frame = ThoughtFrame(decision="ask", confidence=0.9, interpretation="알림")
+    decision = await core.reflect(frame, session_id="s1", execute=boom)
+
+    # 실행이 터져도 메시지는 나간다.
+    assert decision.speak is True
+    assert emitted[0].text == "알림"
+
+
 def test_default_core_satisfies_protocol():
     core = DefaultProactivityCore(emit_proactive=lambda m: _noop())
     assert isinstance(core, ProactivityCore)

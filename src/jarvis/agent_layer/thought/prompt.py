@@ -28,6 +28,8 @@ DEFAULT_TEMPLATE = """\
 - filler (string): needs_background가 true일 때만 채운다. 사용자에게 먼저 건넬
     짧은 즉답으로, 반드시 "지금 알아보는 중이라 시간이 조금 걸린다"는 뜻을 자연스럽게
     담아라(예: "잠깐만요, 배포 로그 확인하고 바로 알려드릴게요"). false면 빈 문자열.
+- open_loops (string[]): 이 입력에서 사용자가 새로 흘린 약속·미완 작업·나중에 챙길
+    일을 짧게 적어라(예: "내일 배포 후 결과 공유하기"). 없으면 빈 배열.
 
 원칙: 도움이 안 되면 침묵하라(silent). 저위험 행동만 자율 제안하라.
 """
@@ -56,6 +58,10 @@ DEFAULT_REFLECTION_TEMPLATE = """\
 - rationale (string): 위 결정의 이유
 - needs_background (boolean): 성찰에서는 보통 false
 - filler (string): 보통 빈 문자열
+- open_loops (string[]): 보통 빈 배열(성찰은 새 약속을 만들기보다 기존 것을 본다)
+
+[열린 약속]을 보고, 지금 시점에 먼저 상기하거나 처리할 가치가 분명한 항목이
+있으면 act/ask로, 없으면 silent로 판단하라.
 
 원칙(중요): 확신이 없으면 반드시 silent로 판단하라. 사용자를 방해할 가치가
 분명하지 않으면 침묵이 기본이다. 애매하면 말하지 마라.

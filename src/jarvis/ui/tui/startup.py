@@ -273,6 +273,11 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         settings=settings,
     )
 
+    # Open-loop 저장소 — 앱 레벨 단일 인스턴스(모든 세션·daemon이 공유).
+    openloop_store: Any = None
+    if settings.thought.enabled:
+        openloop_store = _build_openloop_store(settings)
+
     _extra: dict[str, Any] = {
         "memory_chain": memory_chain,
         "pipeline": pipeline,
@@ -282,6 +287,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         "stm_backend": stm_backend,
         "ltm_backend": ltm_backend,
         "model_config": model_config,
+        "openloop_store": openloop_store,
     }
 
     # Scheduler의 base_extra를 채워 넣는다 (extra가 만들어진 이후)
@@ -309,6 +315,15 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         make_remember_handler(ltm_backend),
         "내용 저장/검색/삭제 (list | search <키워드> | forget <id>)",
     )
+
+    if openloop_store is not None:
+        from jarvis.core.slash.openloop_cmd import make_openloop_handler
+
+        ctx.dispatcher.register(
+            "openloop",
+            make_openloop_handler(openloop_store),
+            "추적 중인 약속/미완 작업 (done <id> | dismiss <id>)",
+        )
 
     # 운영용 슬래시 커맨드
     from jarvis.core.slash.ops_cmd import (
@@ -389,6 +404,7 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
         thought_log=thought_log,
         thought_composer=thought_composer,
         proactivity_factory=_build_proactivity_factory(ctx),
+        openloop_store=extra.get("openloop_store"),
     )
 
 
@@ -413,6 +429,28 @@ def _build_proactivity_factory(ctx: AppContext) -> Any:
         return DefaultProactivityCore(emit_proactive=emit, policy=policy)
 
     return factory
+
+
+def _build_openloop_store(settings: JarvisSettings) -> Any:
+    """OpenLoopConfig.backend에 따라 영속 저장소를 만든다(기본 jsonl).
+
+    postgres는 dsn 미설정 시 session/memory DSN으로 fallback, 그래도 없으면 jsonl.
+    """
+    cfg = settings.openloop
+    if cfg.backend == "in_memory":
+        from jarvis.agent_layer.openloop import InMemoryOpenLoopStore
+
+        return InMemoryOpenLoopStore()
+    if cfg.backend == "postgres":
+        dsn = cfg.postgres_dsn or settings.session.postgres_dsn or settings.memory.postgres_dsn
+        if dsn:
+            from jarvis.agent_layer.openloop import PostgresOpenLoopStore
+
+            return PostgresOpenLoopStore(dsn=dsn)
+        # dsn이 없으면 jsonl로 안전하게 폴백.
+    from jarvis.agent_layer.openloop import JsonlOpenLoopStore
+
+    return JsonlOpenLoopStore(path=cfg.path)
 
 
 def _build_thought(

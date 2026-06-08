@@ -62,6 +62,18 @@ class AgentErrorEvent(BaseModel):
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
 
 
+class InnerThoughtEvent(BaseModel):
+    """inner thought(메타인지) 산출물을 UI/로그로 노출. 메인 응답과 분리된 사고 스트림."""
+
+    type: Literal["inner_thought"] = "inner_thought"
+    session_id: str
+    interpretation: str = ""
+    decision: str = "silent"
+    confidence: float = 0.0
+    frame: dict[str, Any] = Field(default_factory=dict)  # ThoughtFrame.model_dump()
+    timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
+
+
 AgentEvent = (
     AgentStartEvent
     | TurnStartEvent
@@ -70,6 +82,7 @@ AgentEvent = (
     | ToolExecutionEndEvent
     | AgentEndEvent
     | AgentErrorEvent
+    | InnerThoughtEvent
 )
 
 

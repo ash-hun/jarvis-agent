@@ -50,6 +50,10 @@ class AgentHarness:
     async def _emit(self, event: AgentEvent) -> None:
         await asyncio.gather(*[fn(event) for fn in self._listeners], return_exceptions=True)
 
+    async def emit_event(self, event: AgentEvent) -> None:
+        """루프 외부(예: session의 inner thought)에서 구독자에게 이벤트를 보낸다."""
+        await self._emit(event)
+
     async def run(
         self,
         user_input: str,

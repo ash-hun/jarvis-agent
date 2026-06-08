@@ -80,6 +80,19 @@ async def run_agent_loop(
     return final_message
 
 
+def _augment_system_prompt(context: AgentContext) -> str | None:
+    """inner thought composer가 조립한 텍스트가 있으면 system_prompt에 덧붙인다.
+
+    조립은 session의 ThoughtComposer가 담당(교체 가능). loop는 결과 문자열만
+    system_prompt에 합치며, 대화 히스토리/세션 저장은 건드리지 않아 오염을 막는다.
+    """
+    base = context.system_prompt
+    block = context.metadata.get("inner_thought_prompt")
+    if not block:
+        return base
+    return f"{base}\n\n{block}" if base else block
+
+
 async def _stream_assistant(
     context: AgentContext,
     config: AgentLoopConfig,
@@ -89,7 +102,7 @@ async def _stream_assistant(
     llm_ctx = LLMContext(
         messages=context.messages,
         tools=context.tools if context.tools else None,
-        system_prompt=context.system_prompt,
+        system_prompt=_augment_system_prompt(context),
     )
 
     text_buffer = ""

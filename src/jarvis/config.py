@@ -99,6 +99,27 @@ class AgentConfig(BaseSettings):
     agents_dir: str = "~/.jarvis/agents"
 
 
+class ThoughtConfig(BaseSettings):
+    """Inner Thought Engine 설정 (Tier 0). 기본 off — opt-in."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    enabled: bool = False
+    model: str = ""  # 비우면 메인 LLM 모델, 지정 시 별도 모델
+    # 사고 모델을 메인과 완전 분리 (예: 메인=anthropic, 사고=ollama 로컬).
+    # 비우면 메인 LLM의 provider/key/base_url을 그대로 상속.
+    provider: str = ""
+    api_key: SecretStr | None = None
+    base_url: str = ""
+    prompt_path: str = "~/.jarvis/inner_thought.md"
+    confidence_threshold: float = 0.6  # Tier 1 게이팅용 (Tier 0은 기록만)
+    proactive_cooldown_sec: int = 300  # Tier 1 발화 쿨다운 (예약)
+    skip_if_shorter_than: int = 0  # 이보다 짧은 입력은 사고 생략(지연/비용 완화)
+    recall_limit: int = 5  # 사고 시 회상할 기억 개수
+    log_sinks: list[str] = Field(default_factory=lambda: ["ltm"])  # ltm | stm (복수 가능)
+    composer: str = "default"  # default | interpretation_only — 메인 프롬프트 조립 전략
+
+
 class VoiceConfig(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
@@ -135,6 +156,7 @@ class JarvisSettings(BaseSettings):
     scheduler: SchedulerConfig = Field(default_factory=SchedulerConfig)
     agents: AgentConfig = Field(default_factory=AgentConfig)
     voice: VoiceConfig = Field(default_factory=VoiceConfig)
+    thought: ThoughtConfig = Field(default_factory=ThoughtConfig)
     web_search: WebSearchConfig = Field(default_factory=WebSearchConfig)
     mcp_servers: list[MCPServerConfig] = Field(default_factory=list)
     debug: bool = False

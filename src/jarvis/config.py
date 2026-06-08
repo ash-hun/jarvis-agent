@@ -121,6 +121,16 @@ class ThoughtConfig(BaseSettings):
     composer: str = "default"  # default | interpretation_only — 메인 프롬프트 조립 전략
 
 
+class OpenLoopConfig(BaseSettings):
+    """Open-loop 추적 영속화 설정 (Tier 2)."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    backend: Literal["jsonl", "in_memory", "postgres"] = "jsonl"
+    path: str = "~/.jarvis/openloops.jsonl"  # jsonl 백엔드 경로
+    postgres_dsn: str | None = None  # None이면 session/memory DSN fallback
+
+
 class ProactiveConfig(BaseSettings):
     """Proactive 설정 (Tier 1). 기본 on. ThoughtConfig.enabled가 선행 조건."""
 
@@ -171,6 +181,7 @@ class JarvisSettings(BaseSettings):
     voice: VoiceConfig = Field(default_factory=VoiceConfig)
     thought: ThoughtConfig = Field(default_factory=ThoughtConfig)
     proactive: ProactiveConfig = Field(default_factory=ProactiveConfig)
+    openloop: OpenLoopConfig = Field(default_factory=OpenLoopConfig)
     web_search: WebSearchConfig = Field(default_factory=WebSearchConfig)
     mcp_servers: list[MCPServerConfig] = Field(default_factory=list)
     debug: bool = False

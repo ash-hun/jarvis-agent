@@ -276,9 +276,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     # Open-loop 저장소 — 앱 레벨 단일 인스턴스(모든 세션·daemon이 공유).
     openloop_store: Any = None
     if settings.thought.enabled:
-        from jarvis.agent_layer.openloop import InMemoryOpenLoopStore
-
-        openloop_store = InMemoryOpenLoopStore()
+        openloop_store = _build_openloop_store(settings)
 
     _extra: dict[str, Any] = {
         "memory_chain": memory_chain,
@@ -431,6 +429,28 @@ def _build_proactivity_factory(ctx: AppContext) -> Any:
         return DefaultProactivityCore(emit_proactive=emit, policy=policy)
 
     return factory
+
+
+def _build_openloop_store(settings: JarvisSettings) -> Any:
+    """OpenLoopConfig.backend에 따라 영속 저장소를 만든다(기본 jsonl).
+
+    postgres는 dsn 미설정 시 session/memory DSN으로 fallback, 그래도 없으면 jsonl.
+    """
+    cfg = settings.openloop
+    if cfg.backend == "in_memory":
+        from jarvis.agent_layer.openloop import InMemoryOpenLoopStore
+
+        return InMemoryOpenLoopStore()
+    if cfg.backend == "postgres":
+        dsn = cfg.postgres_dsn or settings.session.postgres_dsn or settings.memory.postgres_dsn
+        if dsn:
+            from jarvis.agent_layer.openloop import PostgresOpenLoopStore
+
+            return PostgresOpenLoopStore(dsn=dsn)
+        # dsn이 없으면 jsonl로 안전하게 폴백.
+    from jarvis.agent_layer.openloop import JsonlOpenLoopStore
+
+    return JsonlOpenLoopStore(path=cfg.path)
 
 
 def _build_thought(

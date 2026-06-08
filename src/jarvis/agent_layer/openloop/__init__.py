@@ -7,12 +7,16 @@ Open-loop 추적 서브시스템 (Tier 2).
 """
 from __future__ import annotations
 
+from jarvis.agent_layer.openloop.jsonl_store import JsonlOpenLoopStore
+from jarvis.agent_layer.openloop.postgres_store import PostgresOpenLoopStore
 from jarvis.agent_layer.openloop.store import InMemoryOpenLoopStore, OpenLoopStore
 from jarvis.agent_layer.openloop.types import OpenLoop, normalize_description
 
 __all__ = [
     "InMemoryOpenLoopStore",
+    "JsonlOpenLoopStore",
     "OpenLoop",
     "OpenLoopStore",
+    "PostgresOpenLoopStore",
     "normalize_description",
 ]

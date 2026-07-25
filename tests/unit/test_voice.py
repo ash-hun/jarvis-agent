@@ -46,12 +46,14 @@ class TestVoiceRegistry:
 # ── BrowserSTTProvider 동작 명세 ────────────────────────────────────────────────
 
 class TestBrowserProviders:
-    async def test_browser_stt_raises(self):
-        """브라우저 STT는 서버에서 전사하지 않음 — 클라이언트 Web Speech API 전용."""
+    async def test_browser_stt_returns_empty(self):
+        """브라우저 STT는 서버에서 전사하지 않음 — 클라이언트 Web Speech API 전용.
+
+        방어적으로 호출돼도 빈 문자열을 돌려 메인 흐름을 막지 않는다(TTS와 동일 규약).
+        """
         from jarvis.voice.providers.browser import BrowserSTTProvider
 
-        with pytest.raises(NotImplementedError):
-            await BrowserSTTProvider().transcribe(b"audio")
+        assert await BrowserSTTProvider().transcribe(b"audio") == ""
 
     async def test_browser_tts_returns_empty(self):
         """빈 bytes → 클라이언트가 browser TTS fallback 사용."""

@@ -2,18 +2,32 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>JARVIS · HUD</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#02060c">
+  <meta name="description" content="Iron Man 스타일 개인 비서 에이전트 HUD">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JARVIS">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260525">
+  <link rel="stylesheet" href="styles.css?v=20260902">
 </head>
 <body>
 
 <!-- HEADER -->
 <header class="header">
   <div class="left">
+    <button class="drawer-btn" id="drawer-btn" type="button" aria-label="세션 목록 열기" aria-expanded="false">
+      <span class="bars"></span>
+    </button>
     <span class="corner"><span class="corner-bracket"></span> SYS:ONLINE</span>
     <span class="dimtext">/ v0.1.0</span>
   </div>
@@ -126,6 +140,9 @@
   </section>
 </main>
 
+<!-- MOBILE DRAWER SCRIM -->
+<div class="drawer-scrim" id="drawer-scrim" hidden></div>
+
 <!-- ARTIFACT PANEL -->
 <aside class="artifact-panel" id="artifact-panel">
   <div class="artifact-head">
@@ -184,8 +201,19 @@
   ⚠ JARVIS 연결 끊김 — 재연결 중...
 </div>
 
-<script src="hud.js?v=20260525"></script>
-<script src="voice.js?v=20260525"></script>
-<script src="app.js?v=20260525"></script>
+<script src="hud.js?v=20260902"></script>
+<script src="voice.js?v=20260902"></script>
+<script src="app.js?v=20260902"></script>
+
+<!-- PWA: service worker 등록 (http/https에서만, 실패해도 앱 동작엔 영향 없음) -->
+<script>
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch((err) => {
+        console.warn('[PWA] service worker 등록 실패:', err);
+      });
+    });
+  }
+</script>
 </body>
 </html>

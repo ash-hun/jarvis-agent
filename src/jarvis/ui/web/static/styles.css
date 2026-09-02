@@ -981,3 +981,135 @@ body.sb-collapsed .collapse-btn .chev { transform: rotate(180deg); }
 .status-pill.listening #status-text { color: #4ade80; }
 .status-pill.speaking  { border-color: #e879f9; }
 .status-pill.speaking  #status-text { color: #e879f9; }
+
+/* ── PWA / 모바일 ────────────────────────────────────────────────────────────*/
+
+/* 터치 기본기: 탭 하이라이트 제거, 더블탭 확대 지연 없음 */
+button, .tab, .session, .sphere-hit, .usage-toggle {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* 모바일 드로어 토글 (데스크탑에선 숨김) */
+.drawer-btn {
+  display: none;
+  width: 40px; height: 40px;
+  margin-right: 4px;
+  align-items: center; justify-content: center;
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  color: var(--cyan);
+  cursor: pointer;
+}
+.drawer-btn .bars,
+.drawer-btn .bars::before,
+.drawer-btn .bars::after {
+  display: block;
+  width: 16px; height: 1px;
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan-glow);
+}
+.drawer-btn .bars { position: relative; }
+.drawer-btn .bars::before,
+.drawer-btn .bars::after { content: ""; position: absolute; left: 0; }
+.drawer-btn .bars::before { top: -5px; }
+.drawer-btn .bars::after { top: 5px; }
+
+.drawer-scrim {
+  position: fixed; inset: 0;
+  background: rgba(2, 6, 12, 0.62);
+  backdrop-filter: blur(2px);
+  z-index: 29;
+}
+.drawer-scrim[hidden] { display: none; }
+
+/* 세로 모드 태블릿 이하 — 사이드바를 드로어로 전환 */
+@media (max-width: 860px) {
+  :root {
+    --sidebar-w: 264px;
+    --bottom-reserved: 132px;
+    --footer-h: 56px;
+  }
+
+  .drawer-btn { display: inline-flex; }
+
+  /* 헤더 중앙 타이틀은 좁은 화면에서 자리만 먹는다 */
+  .header { padding-left: 10px; padding-right: 10px; }
+  .header .center { display: none; }
+  .header .right .clock { display: none; }
+
+  .sidebar {
+    position: fixed;
+    top: var(--header-h);
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    width: var(--sidebar-w);
+    flex-basis: var(--sidebar-w);
+    background: var(--bg-1);
+    transform: translateX(-100%);
+    transition: transform .26s cubic-bezier(.4,0,.2,1);
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+  body.drawer-open .sidebar { transform: translateX(0); }
+  /* 드로어에서는 데스크탑 접기 상태를 무시한다 */
+  body.sb-collapsed .sidebar { padding: 18px 14px 14px; }
+  body.sb-collapsed .panel-head > span:not(.collapse-btn),
+  body.sb-collapsed .panel-head .count,
+  body.sb-collapsed .session .title,
+  body.sb-collapsed .session .meta,
+  body.sb-collapsed .tools-section,
+  body.sb-collapsed .sidebar-foot { display: revert; }
+  .collapse-btn { display: none; }
+
+  .chat { padding-bottom: calc(var(--bottom-reserved) - var(--footer-h)); }
+  .chat-head { padding: 10px 14px; }
+  .chat-head .tabs { gap: 12px; }
+  .messages { padding: 10px 14px 8px; }
+
+  /* iOS가 입력 포커스 시 확대하지 않도록 16px 이상 유지 */
+  #chat-input, .input-highlight { font-size: 16px; }
+  .composer { padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); }
+  .field-wrap { padding: 12px; }
+  .send-btn { min-height: 44px; min-width: 64px; }
+
+  /* 아티팩트 패널은 전체 폭 */
+  .artifact-panel { width: 100%; right: -100%; }
+
+  /* 구체는 작게 — 채팅 영역을 덜 가린다 */
+  .sphere-wrap { width: 104px; height: 104px; bottom: 2px; }
+  .sphere-canvas { width: 104px; height: 104px; }
+  .sphere-hit { width: 88px; height: 88px; }
+  .footer { padding-bottom: env(safe-area-inset-bottom); }
+  .foot-stats .fstat:nth-child(n+3) { display: none; }
+}
+
+/* 폰 세로 — 통계 최소화 + 여백 축소 */
+@media (max-width: 560px) {
+  :root { --header-h: 48px; --bottom-reserved: 120px; }
+  .header .left .dimtext { display: none; }
+  .foot-stats.left { display: none; }
+  .foot-stats .fstat:nth-child(n+2) { display: none; }
+  .chat-head .right span:nth-child(-n+2) { display: none; }
+  .slash-popup { max-height: 40vh; }
+}
+
+/* 가로 모드 폰 — 세로 공간이 없으므로 구체/푸터를 접는다 */
+@media (max-height: 480px) and (orientation: landscape) {
+  :root { --bottom-reserved: 70px; --footer-h: 44px; }
+  .sphere-wrap { width: 76px; height: 76px; }
+  .sphere-canvas { width: 76px; height: 76px; }
+  .sphere-hit { width: 64px; height: 64px; }
+}
+
+/* 설치형(standalone) 실행 시 — 브라우저 UI가 없으므로 상단 안전영역을 직접 확보 */
+@media (display-mode: standalone) {
+  .header { padding-top: env(safe-area-inset-top); height: calc(var(--header-h) + env(safe-area-inset-top)); }
+  .stage, .artifact-panel { top: calc(var(--header-h) + env(safe-area-inset-top)); }
+  .sidebar { top: calc(var(--header-h) + env(safe-area-inset-top)); }
+}
+
+/* 모션 최소화 선호 — 스캔라인·회전 애니메이션을 끈다 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

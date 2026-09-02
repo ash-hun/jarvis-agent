@@ -974,6 +974,35 @@ document.getElementById('collapse-btn').addEventListener('click', () => {
   localStorage.setItem(SB_KEY, next ? '1' : '0');
 });
 
+// ── Mobile drawer ─────────────────────────────────────────────────────────────
+// 좁은 화면에서 사이드바는 오버레이 드로어가 된다(CSS @media 860px 이하).
+// 데스크탑에서는 버튼이 숨겨져 있어 이 코드가 실행될 일이 없다.
+const $drawerBtn   = document.getElementById('drawer-btn');
+const $drawerScrim = document.getElementById('drawer-scrim');
+
+function setDrawer(open) {
+  document.body.classList.toggle('drawer-open', open);
+  $drawerScrim.hidden = !open;
+  $drawerBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  $drawerBtn.setAttribute('aria-label', open ? '세션 목록 닫기' : '세션 목록 열기');
+}
+
+$drawerBtn.addEventListener('click', () => {
+  setDrawer(!document.body.classList.contains('drawer-open'));
+});
+$drawerScrim.addEventListener('click', () => setDrawer(false));
+// 세션을 고르면 드로어를 닫아 바로 대화로 돌아간다.
+document.getElementById('session-list').addEventListener('click', () => setDrawer(false));
+document.getElementById('new-session-btn').addEventListener('click', () => setDrawer(false));
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') setDrawer(false);
+});
+// 데스크탑 폭으로 돌아오면 드로어 상태를 남기지 않는다.
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 860) setDrawer(false);
+});
+
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 setInputEnabled(false);
 connect('default');

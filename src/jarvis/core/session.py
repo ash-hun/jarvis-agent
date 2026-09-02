@@ -27,6 +27,7 @@ from jarvis.agent_layer.types import (
     ToolExecutionStartEvent,
 )
 from jarvis.agent_layer.usermodel import UserModelStore
+from jarvis.core.external import ExternalEventInbox
 from jarvis.core.plugins.runner import PluginRunner
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
 from jarvis.core.proactive import (
@@ -89,6 +90,8 @@ class AgentSession:
         activity_clock: ActivityClock | None = None,
         feedback_learner: FeedbackLearner | None = None,
         user_model_store: UserModelStore | None = None,
+        external_inbox: ExternalEventInbox | None = None,
+        external_detail_in_prompt: bool = False,
     ) -> None:
         self._security = security_pipeline
         self._plugins = plugin_runner
@@ -104,6 +107,8 @@ class AgentSession:
         self._activity_clock = activity_clock
         self._feedback_learner = feedback_learner
         self._user_model_store = user_model_store
+        self._external_inbox = external_inbox
+        self._external_detail_in_prompt = external_detail_in_prompt
         # 코어는 세션별 emit에 바인딩되어야 하므로 팩토리로 주입받아 여기서 생성.
         self._proactivity: ProactivityCore | None = (
             proactivity_factory(self._emit_proactive) if proactivity_factory else None
@@ -179,10 +184,17 @@ class AgentSession:
 
         엔진/ proactivity가 없으면 no-op(None). 게이팅 통과 시 core.reflect가
         ProactiveMessageEvent를 push한다.
+
+        외부 이벤트(Phase 3)가 있으면 inbox를 여기서 drain해 사고에 먹인다 —
+        drain-once이므로 여러 세션이 성찰해도 이벤트당 발화는 1회뿐이다.
         """
         if self._thought_engine is None or self._proactivity is None:
             return None
-        frame = await self._run_inner_thought(REFLECTION_SEED, mode="reflection")
+        frame = await self._run_inner_thought(
+            REFLECTION_SEED,
+            mode="reflection",
+            external_events=self._drain_external_events(),
+        )
         if frame is None:
             return None
         return await self._proactivity.reflect(
@@ -233,8 +245,25 @@ class AgentSession:
             return ""
         return "(미리 해둠) " + " / ".join(done)
 
+    def _drain_external_events(self) -> list[str]:
+        """외부 이벤트 inbox를 비워 사고 프롬프트용 한 줄 목록으로 변환.
+
+        inbox가 없으면(소스 미설정) 빈 목록 — 기존 동작과 완전히 동일하다.
+        external_detail_in_prompt=False(기본)면 원문 대신 제목만 싣는다 —
+        메일 본문 등이 사고 로그·LTM에 축적되는 것을 막는다.
+        """
+        if self._external_inbox is None:
+            return []
+        return [
+            event.as_line(include_detail=self._external_detail_in_prompt)
+            for event in self._external_inbox.drain()
+        ]
+
     async def _run_inner_thought(
-        self, user_input: str, mode: str = "request"
+        self,
+        user_input: str,
+        mode: str = "request",
+        external_events: list[str] | None = None,
     ) -> ThoughtFrame | None:
         """
         메타인지 1회 — 요청 시점(expand 직후) 또는 daemon 성찰(mode="reflection").
@@ -253,6 +282,7 @@ class AgentSession:
                 session_id=self._session_id,
                 open_loops=await self._load_open_loops(),
                 user_model=await self._load_user_model(),
+                external_events=external_events or [],
                 mode=mode,  # type: ignore[arg-type]
             )
         )

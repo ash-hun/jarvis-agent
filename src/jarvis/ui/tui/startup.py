@@ -118,6 +118,9 @@ class AppContext:
     activity_clock: Any = field(default=None)
     reflection_trigger: Any = field(default=None)
     feedback_learner: Any = field(default=None)
+    # 외부 트리거(Phase 3) — _build_infra()에서 주입. 소스 YAML이 없으면 둘 다 None.
+    external_inbox: Any = field(default=None)
+    external_poller: Any = field(default=None)
 
 
 # ── 팩토리 헬퍼 ───────────────────────────────────────────────────────────────
@@ -290,12 +293,17 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     # Proactivity 활동 시계 + 성찰 트리거 + 피드백 학습기. 앱 레벨 단일 인스턴스.
     from jarvis.core.proactive import ActivityClock, FeedbackLearner
 
+    # 외부 이벤트 소스(Phase 3) — 트리거 합성보다 먼저 만들어야 한다.
+    external_inbox, external_poller, external_trigger = _build_external(settings)
+
     activity_clock = ActivityClock()
-    reflection_trigger = _build_reflection_trigger(settings, activity_clock)
+    reflection_trigger = _build_reflection_trigger(settings, activity_clock, external_trigger)
     feedback_learner = FeedbackLearner(base_threshold=settings.proactive.confidence_threshold)
     ctx.activity_clock = activity_clock
     ctx.reflection_trigger = reflection_trigger
     ctx.feedback_learner = feedback_learner
+    ctx.external_inbox = external_inbox
+    ctx.external_poller = external_poller
 
     _extra: dict[str, Any] = {
         "memory_chain": memory_chain,
@@ -310,6 +318,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         "activity_clock": activity_clock,
         "feedback_learner": feedback_learner,
         "user_model_store": user_model_store,
+        "external_inbox": external_inbox,
     }
 
     # Scheduler의 base_extra를 채워 넣는다 (extra가 만들어진 이후)
@@ -455,6 +464,8 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
         activity_clock=extra.get("activity_clock"),
         feedback_learner=extra.get("feedback_learner"),
         user_model_store=extra.get("user_model_store"),
+        external_inbox=extra.get("external_inbox"),
+        external_detail_in_prompt=settings.external.store_detail_in_log,
     )
 
 
@@ -485,11 +496,14 @@ def _build_proactivity_factory(ctx: AppContext) -> Any:
     return factory
 
 
-def _build_reflection_trigger(settings: JarvisSettings, activity_clock: Any) -> Any:
+def _build_reflection_trigger(
+    settings: JarvisSettings, activity_clock: Any, external_trigger: Any = None
+) -> Any:
     """ProactiveConfig.daemon_trigger에 따라 성찰 트리거를 만든다.
 
     interval(주기) / idle(조용해지면) / both(둘 중 먼저). 외부(MCP) 트리거는
-    ExternalTrigger.fire()를 both 합성에 추가해 확장한다(현재는 미연결 플러그 지점).
+    daemon_trigger와 직교한다 — 소스가 있으면 어떤 모드에서든 AnyTrigger로
+    합성해, daemon_trigger=interval이어도 외부 이벤트로 깨어난다.
     """
     from jarvis.core.proactive import AnyTrigger, IdleTrigger, IntervalTrigger
 
@@ -498,10 +512,64 @@ def _build_reflection_trigger(settings: JarvisSettings, activity_clock: Any) -> 
     idle = IdleTrigger(activity_clock, pcfg.daemon_idle_sec)
 
     if pcfg.daemon_trigger == "idle":
-        return idle
-    if pcfg.daemon_trigger == "both":
-        return AnyTrigger([interval, idle])
-    return interval
+        base: Any = idle
+    elif pcfg.daemon_trigger == "both":
+        base = AnyTrigger([interval, idle])
+    else:
+        base = interval
+
+    if external_trigger is None:
+        return base
+    return AnyTrigger([base, external_trigger])
+
+
+def _build_external(settings: JarvisSettings) -> tuple[Any, Any, Any]:
+    """외부 이벤트 소스 → (inbox, poller, trigger). 소스가 없으면 (None, None, None).
+
+    소스 YAML이 없거나 설정이 꺼져 있으면 아무것도 만들지 않는다 — 스케줄러와
+    동일한 무해한 no-op이라 기존 동작이 그대로 유지된다.
+    """
+    cfg = settings.external
+    if not cfg.enabled:
+        return None, None, None
+
+    from jarvis.core.external import (
+        ExternalEventInbox,
+        ExternalEventPoller,
+        InMemorySeenStore,
+        JsonlSeenStore,
+        build_mcp_sources,
+        load_source_specs,
+    )
+
+    specs = load_source_specs(cfg.sources_dir)
+    sources = build_mcp_sources(
+        specs, settings.mcp_servers, detail_max_chars=cfg.detail_max_chars
+    )
+    if not sources:
+        return None, None, None
+
+    from jarvis.core.proactive import ExternalTrigger
+
+    seen: Any
+    if cfg.seen_backend == "in_memory":
+        seen = InMemorySeenStore(ttl_sec=cfg.seen_ttl_sec, max_keys=cfg.seen_max_keys)
+    else:
+        seen = JsonlSeenStore(
+            path=cfg.seen_path, ttl_sec=cfg.seen_ttl_sec, max_keys=cfg.seen_max_keys
+        )
+
+    inbox = ExternalEventInbox(maxlen=cfg.inbox_max_events)
+    trigger = ExternalTrigger()
+    poller = ExternalEventPoller(
+        sources,  # type: ignore[arg-type]
+        inbox,
+        seen,
+        trigger=trigger,
+        max_events_per_tick=cfg.max_events_per_tick,
+    )
+    print(f"[ExternalTrigger] {len(sources)} source(s) loaded from {cfg.sources_dir}")
+    return inbox, poller, trigger
 
 
 def _build_user_model_store(settings: JarvisSettings) -> Any:

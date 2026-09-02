@@ -50,6 +50,7 @@ async def run_agent_loop(
     """
     await emit(AgentStartEvent(session_id=context.session_id, prompt="", agent_name=agent_name))
     final_message: AssistantMessage | None = None
+    turn = -1  # max_turns=0이면 루프가 한 번도 돌지 않는다 — turns=0으로 보고
 
     for turn in range(config.max_turns):
         if signal and signal.is_set():

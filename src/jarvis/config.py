@@ -157,6 +157,23 @@ class ProactiveConfig(BaseSettings):
     daemon_idle_sec: int = 180  # idle 트리거 — 이만큼 조용하면 1회 성찰
 
 
+class ExternalTriggerConfig(BaseSettings):
+    """외부 트리거 설정 (Proactive Phase 3). 소스 YAML이 없으면 전 구간 no-op."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    enabled: bool = True
+    sources_dir: str = "~/.jarvis/external_sources"
+    seen_backend: Literal["jsonl", "in_memory"] = "jsonl"
+    seen_path: str = "~/.jarvis/external_seen.jsonl"
+    seen_ttl_sec: int = 604_800  # 7일 — dedup 키 보관 기간
+    seen_max_keys: int = 10_000  # dedup 스토어 상한(무한 증식 방지)
+    max_events_per_tick: int = 20  # 한 번의 성찰에 실을 이벤트 상한
+    inbox_max_events: int = 200  # inbox 상한 — 초과분은 드롭 건수를 로그로 노출
+    detail_max_chars: int = 500  # 프라이버시·토큰 상한(원문 절단)
+    store_detail_in_log: bool = False  # 사고 로그(LTM)에 원문 detail 저장 여부
+
+
 class VoiceConfig(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
@@ -197,6 +214,7 @@ class JarvisSettings(BaseSettings):
     proactive: ProactiveConfig = Field(default_factory=ProactiveConfig)
     openloop: OpenLoopConfig = Field(default_factory=OpenLoopConfig)
     user_model: UserModelConfig = Field(default_factory=UserModelConfig)
+    external: ExternalTriggerConfig = Field(default_factory=ExternalTriggerConfig)
     web_search: WebSearchConfig = Field(default_factory=WebSearchConfig)
     mcp_servers: list[MCPServerConfig] = Field(default_factory=list)
     debug: bool = False

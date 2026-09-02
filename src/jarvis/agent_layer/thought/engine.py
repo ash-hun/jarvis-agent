@@ -92,14 +92,21 @@ class InnerThoughtEngine:
             if request.mode == "reflection"
             else self._template
         )
-        return template.render(
+        external = "\n".join(f"- {x}" for x in request.external_events)
+        rendered = template.render(
             now=self._clock().isoformat(timespec="seconds"),
             open_loops="\n".join(f"- {x}" for x in request.open_loops),
+            external_events=external,
             recalled_memories="\n".join(f"- {x}" for x in recalled),
             history=self._format_history(request.history),
             user_input=request.user_input,
             user_model=request.user_model,
         )
+        # 템플릿 드리프트 방어 — 사용자가 이미 편집한 템플릿엔 새 플레이스홀더가
+        # 없다. 이벤트가 있는데 자리가 없으면 뒤에 덧붙여 조용한 유실을 막는다.
+        if external and not template.has_placeholder("external_events"):
+            rendered = f"{rendered}\n\n[외부 이벤트]\n{external}"
+        return rendered
 
     async def _call_model(self, prompt: str) -> str:
         """단발 LLM 호출. 사고 전용이므로 툴 없이 텍스트만 받는다."""

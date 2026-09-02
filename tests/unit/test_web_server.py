@@ -98,3 +98,52 @@ def test_ws_abort_is_noop_without_active_turn(client):
         # 후속 핸드셰이크가 깨지지 않았는지 확인 — 빈 user_message는 무시되고 루프 유지
         ws.send_json({"type": "user_message", "text": "   "})
         # 여기까지 예외 없이 도달하면 루프가 살아있는 것
+
+
+# ── PWA 정적 자산 ─────────────────────────────────────────────────────────────
+
+
+def test_manifest_is_served_with_required_fields(client):
+    resp = client.get("/manifest.json")
+    assert resp.status_code == 200
+    manifest = resp.json()
+    assert manifest["start_url"] == "./"
+    assert manifest["display"] == "standalone"
+    sizes = {icon["sizes"] for icon in manifest["icons"]}
+    assert {"192x192", "512x512"} <= sizes
+    assert any(icon["purpose"] == "maskable" for icon in manifest["icons"])
+
+
+def test_service_worker_is_served_and_skips_live_endpoints(client):
+    resp = client.get("/sw.js")
+    assert resp.status_code == 200
+    body = resp.text
+    # /ws·/api를 캐시하면 실시간 상태가 굳는다 — 우회 규칙이 반드시 남아 있어야 한다.
+    assert "'/api'" in body and "'/ws'" in body
+
+
+def test_icons_are_served(client):
+    for name in ("icon-192.png", "icon-512.png", "apple-touch-icon.png"):
+        resp = client.get(f"/icons/{name}")
+        assert resp.status_code == 200, name
+        assert resp.content.startswith(b"\x89PNG")
+
+
+def test_index_links_pwa_assets_and_registers_worker(client):
+    html = client.get("/").text
+    assert '<link rel="manifest" href="manifest.json">' in html
+    assert 'name="theme-color"' in html
+    assert "navigator.serviceWorker.register('sw.js')" in html
+    assert "viewport-fit=cover" in html
+
+
+def test_shell_precache_version_matches_asset_query(client):
+    """sw.js가 프리캐시하는 URL과 index.html이 실제로 요청하는 URL이 어긋나면
+    셸이 캐시되지 않은 채 오프라인에서 깨진다 — 버전 문자열을 함께 묶어 둔다."""
+    import re
+
+    sw = client.get("/sw.js").text
+    html = client.get("/").text
+    version = re.search(r"SHELL_VERSION = '(\d+)'", sw).group(1)
+    assert f"app.js?v={version}" in html
+    assert f"styles.css?v={version}" in html

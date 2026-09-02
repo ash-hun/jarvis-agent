@@ -1,0 +1,19 @@
+# ~/.jarvis/external_sources/*.yaml 로 복사해 쓴다.
+# server 는 config 의 mcp_servers 이름을 참조한다(ToolRegistry 를 경유하지 않는다).
+# 파일이 없으면 소스 0개 → 폴러가 아예 기동하지 않는 무해한 no-op.
+
+- name: calendar-upcoming
+  server: google-calendar
+  tool: list_events
+  args:
+    time_min: now
+    time_max: "+2h"
+  interval_sec: 300
+  enabled: true
+
+- name: mail-unread
+  server: gmail
+  tool: search_messages
+  args:
+    q: "is:unread newer_than:1h"
+  interval_sec: 600

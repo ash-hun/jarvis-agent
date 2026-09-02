@@ -78,5 +78,8 @@ class ThoughtRequest(BaseModel):
     session_id: str | None = None
     open_loops: list[str] = Field(default_factory=list)  # Tier 2에서 채워짐
     user_model: str = ""  # Tier 3 — 증류된 사용자 모델 컨텍스트(주입용)
+    # Phase 3 — 외부 세계(캘린더·메일 등)에서 새로 감지한 사실의 한 줄 목록.
+    # 문자열만 받는다 — 사고 층은 MCP도 벤더 스키마도 모른다(Hard Rule #1).
+    external_events: list[str] = Field(default_factory=list)
     # 요청 시점이 아닌 백그라운드 성찰(Tier 1 daemon)도 같은 계약을 재사용한다.
     mode: Literal["request", "reflection"] = "request"

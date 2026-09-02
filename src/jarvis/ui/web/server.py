@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import contextlib
+import time
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -27,6 +28,8 @@ class SessionManager:
         self._base_extra = base_extra
         self._sessions: dict[str, AgentSession] = {}
         self._sandboxes: dict[str, Any] = {}
+        # 최근 사용자 활동 시각(monotonic) — 외부 이벤트를 어느 세션이 소비할지 정렬용.
+        self._last_activity: dict[str, float] = {}
 
     def _make_session_extra(self) -> tuple[dict[str, Any], Any]:
         """세션별 sandbox + pipeline을 새로 생성해 extra 복사본을 반환한다."""
@@ -68,6 +71,20 @@ class SessionManager:
 
     def active_sessions(self) -> list[AgentSession]:
         return list(self._sessions.values())
+
+    def touch(self, session_id: str) -> None:
+        """사용자 메시지 수신 시점에 호출 — 세션 recency를 갱신한다."""
+        self._last_activity[session_id] = time.monotonic()
+
+    def sessions_by_recency(self) -> list[AgentSession]:
+        """최근 활동순 세션 목록. 한 번도 touch되지 않았으면 삽입 순서 폴백.
+
+        외부 이벤트는 inbox drain-once라 첫 세션이 전부 소비한다 — 그 "첫 세션"을
+        가장 최근에 대화한 세션으로 만든다.
+        """
+        items = list(self._sessions.items())
+        items.sort(key=lambda kv: self._last_activity.get(kv[0], float("-inf")), reverse=True)
+        return [session for _, session in items]
 
     async def save_all_sessions(self, stm: Any, ltm: Any, model: Any) -> None:
         """서버 종료 시 모든 활성 세션의 에피소딕 요약을 LTM에 저장한다."""
@@ -120,16 +137,22 @@ def create_app(
             from jarvis.core.proactive import ProactivityDaemon
 
             proactive_daemon = ProactivityDaemon(
-                lambda: [s.reflect for s in manager.active_sessions()],
+                lambda: [s.reflect for s in manager.sessions_by_recency()],
                 interval_sec=pcfg.daemon_interval_sec,
                 trigger=ctx.reflection_trigger,
             )
             await proactive_daemon.start()
 
+        # 외부 이벤트 폴러(Phase 3) — 소스 YAML이 없으면 ctx.external_poller가 None.
+        if ctx.external_poller is not None:
+            await ctx.external_poller.start()
+
     @app.on_event("shutdown")
     async def _shutdown() -> None:
         if proactive_daemon is not None:
             await proactive_daemon.stop()
+        if ctx.external_poller is not None:
+            await ctx.external_poller.stop()
         stm = base_extra.get("stm_backend")
         ltm = base_extra.get("ltm_backend")
         model = base_extra.get("model_config")
@@ -232,6 +255,7 @@ def create_app(
                 if msg_type == "user_message":
                     text = msg.get("text", "").strip()
                     if text:
+                        manager.touch(session_id)
                         # 슬래시 명령 인터셉트 — 텍스트 어디서나 /command 처리 후 나머지만 LLM으로 전달
                         if ctx.dispatcher is not None:
                             result = await ctx.dispatcher.dispatch(text)

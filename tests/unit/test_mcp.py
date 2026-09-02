@@ -30,7 +30,7 @@ class TestMCPToolWrapper:
     async def test_execute_success(self):
         wrapper = self._make_wrapper()
 
-        with patch("jarvis.core.tools.mcp_loader._call_mcp_tool", new_callable=AsyncMock) as mock_call:
+        with patch("jarvis.core.tools.mcp_loader.call_mcp_tool", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = "Tool executed successfully"
             result = await wrapper.execute("call_01", {"arg": "value"})
 
@@ -40,7 +40,7 @@ class TestMCPToolWrapper:
     async def test_execute_error_on_exception(self):
         wrapper = self._make_wrapper()
 
-        with patch("jarvis.core.tools.mcp_loader._call_mcp_tool", new_callable=AsyncMock) as mock_call:
+        with patch("jarvis.core.tools.mcp_loader.call_mcp_tool", new_callable=AsyncMock) as mock_call:
             mock_call.side_effect = RuntimeError("Connection refused")
             result = await wrapper.execute("call_01", {"arg": "value"})
 
@@ -172,7 +172,7 @@ class TestMCPToolWrapperTimeout:
         async def hang(*a, **k):
             await asyncio.sleep(10)
 
-        with patch("jarvis.core.tools.mcp_loader._call_mcp_tool", side_effect=hang):
+        with patch("jarvis.core.tools.mcp_loader.call_mcp_tool", side_effect=hang):
             result = await wrapper.execute("c1", {})
 
         assert result.is_error is True

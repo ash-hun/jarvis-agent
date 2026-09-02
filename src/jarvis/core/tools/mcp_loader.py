@@ -30,7 +30,7 @@ class MCPToolWrapper:
 
         try:
             result_text = await asyncio.wait_for(
-                _call_mcp_tool(self._server, self.name, params),
+                call_mcp_tool(self._server, self.name, params),
                 timeout=self._server.timeout,
             )
             return ToolResultMessage(
@@ -138,7 +138,7 @@ async def _list_mcp_tools(server: MCPServerConfig) -> list[dict[str, Any]]:
     raise ValueError(f"Unsupported MCP transport '{server.transport}' for '{server.name}'")
 
 
-async def _call_mcp_tool(server: MCPServerConfig, tool_name: str, params: dict[str, Any]) -> str:
+async def call_mcp_tool(server: MCPServerConfig, tool_name: str, params: dict[str, Any]) -> str:
     from mcp import ClientSession
     if server.transport == "stdio":
         if not server.command:

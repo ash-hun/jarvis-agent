@@ -1,7 +1,8 @@
 # Proactive Phase 3 — 외부 트리거(MCP) 설계
 
-> 상태: **설계 확정 · 미구현**. Tier 2의 마지막 미연결 항목(`ExternalTrigger.fire()` 어댑터)을 채운다.
-> 설계 의도: [proactive-inner-thought-design.md](proactive-inner-thought-design.md) · 구현 현황: [proactive-implementation.md](proactive-implementation.md)
+> 상태: **구현 완료**. Tier 2의 마지막 미연결 항목(`ExternalTrigger.fire()` 어댑터)을 채웠다.
+> 본 문서는 설계 근거를 남긴 기록이며, 실제 코드 기준 현황은 [proactive-implementation.md](proactive-implementation.md) §11을 본다.
+> 설계 의도: [proactive-inner-thought-design.md](proactive-inner-thought-design.md) · 예제 YAML: [examples/external_sources/](examples/external_sources/calendar_mail.yaml)
 
 ## 0. 목표
 
@@ -11,7 +12,14 @@
 - 외부 시스템에 쓰기(메일 발송·일정 생성) — proactive 자율 실행은 [AUTONOMOUS_SAFE_TOOLS](../src/jarvis/core/session.py) 화이트리스트에 갇혀 있고 그대로 둔다.
 - cron으로 "매일 9시에 캘린더 확인해줘" — 이미 [SchedulerService](../src/jarvis/core/scheduler/service.py)가 커버한다(에이전트 턴 전체를 돌리는 무거운 경로). 본 설계는 **턴 없이 사고에만 먹이는** 가벼운 경로다.
 
-## 1. 현재 끊어진 사슬
+구현과 달라진 점(설계 → 코드):
+
+| 설계 | 구현 | 이유 |
+|------|------|------|
+| `store_detail_in_log` — 사고 로그에 원문 저장 여부 | 원문이 **프롬프트에 실리는지**를 제어(기본 off) | 로그는 LLM이 쓴 프레임이라 사후 필터가 불가능하다. 원문을 애초에 사고에 넣지 않는 쪽이 유일하게 실효적인 프라이버시 통제다. 제목을 추론하지 못한 비정형 소스는 원문으로 폴백(그마저 없으면 판단 불가) |
+| — | `inbox_max_events`(기본 200) 신설 | inbox deque 상한을 설정으로 노출 |
+
+## 1. 현재 끊어진 사슬 (설계 시점)
 
 | # | 공백 | 위치 |
 |---|------|------|

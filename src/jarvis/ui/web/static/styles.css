@@ -1070,8 +1070,10 @@ button, .tab, .session, .sphere-hit, .usage-toggle {
   /* iOS가 입력 포커스 시 확대하지 않도록 16px 이상 유지 */
   #chat-input, .input-highlight { font-size: 16px; }
   .composer { padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); }
+  /* input의 min-content 폭이 1fr 트랙을 밀어내 SEND가 화면 밖으로 나가는 것 방지 */
+  .field-wrap, .input-wrapper, #chat-input { min-width: 0; }
   .field-wrap { padding: 12px; }
-  .send-btn { min-height: 44px; min-width: 64px; }
+  .send-btn { min-height: 44px; min-width: 60px; padding: 8px 12px; font-size: 10px; }
 
   /* 아티팩트 패널은 전체 폭 */
   .artifact-panel { width: 100%; right: -100%; }

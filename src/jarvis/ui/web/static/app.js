@@ -11,14 +11,13 @@ const $clock          = document.getElementById('clock');
 const $statusText     = document.getElementById('status-text');
 const $statusTick     = document.getElementById('status-tick');
 const $statusPill     = document.getElementById('status-pill');
-const $sessionTitle   = document.getElementById('session-title');
 const $sessionIdLabel = document.getElementById('session-id-label');
 const $msgCount       = document.getElementById('msg-count');
-const $ftMsg          = document.getElementById('ft-msg');
-const $ftUptime       = document.getElementById('ft-uptime');
-const $ftModel        = document.getElementById('ft-model');
-const $sbModel        = document.getElementById('sb-model');
+const $uptime         = document.getElementById('uptime');
+const $sysModel       = document.getElementById('sys-model');
 const $connBanner     = document.getElementById('connection-banner');
+const $caption        = document.getElementById('reactor-caption');
+const $activityLog    = document.getElementById('activity-log');
 
 const $approvalOverlay = document.getElementById('approval-overlay');
 const $approvalReason  = document.getElementById('approval-reason');
@@ -33,10 +32,7 @@ const $uCr            = document.getElementById('u-cr');
 const $uCw            = document.getElementById('u-cw');
 const $uCost          = document.getElementById('u-cost');
 const $uTotalTokens   = document.getElementById('usage-total-tokens');
-const $ftTokens       = document.getElementById('ft-tokens');
 const $usageSparkline = document.getElementById('usage-sparkline');
-const $usageBody      = document.getElementById('usage-body');
-const $usageToggle    = document.getElementById('usage-toggle');
 
 // ── Artifact Panel DOM refs ───────────────────────────────────────────────────
 const $artifactPanel    = document.getElementById('artifact-panel');
@@ -44,6 +40,14 @@ const $artifactLang     = document.getElementById('artifact-lang');
 const $artifactCode     = document.getElementById('artifact-code');
 const $artifactCopyBtn  = document.getElementById('artifact-copy-btn');
 const $artifactCloseBtn = document.getElementById('artifact-close-btn');
+
+// ── Brand ─────────────────────────────────────────────────────────────────────
+// 에이전트 이름·명언은 /brand.js(서버 설정)에서 온다. 못 받으면 기본값으로 뜬다.
+const BRAND      = window.BRAND || {};
+const AGENT_NAME = BRAND.name  || 'J.A.R.V.I.S.';
+const QUOTE      = BRAND.quote || '';
+document.querySelectorAll('[data-brand="name"]').forEach((el) => { el.textContent = AGENT_NAME; });
+document.title = `${AGENT_NAME} · HUD`;
 
 // ── Clock ─────────────────────────────────────────────────────────────────────
 function updateClock() {
@@ -59,7 +63,7 @@ const _startTime = Date.now();
 function updateUptime() {
   const s   = Math.floor((Date.now() - _startTime) / 1000);
   const pad = n => String(n).padStart(2, '0');
-  $ftUptime.textContent = `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+  $uptime.textContent = `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
 }
 setInterval(updateUptime, 1000);
 updateUptime();
@@ -75,7 +79,55 @@ let _msgCount = 0;
 function incMsgCount() {
   _msgCount++;
   $msgCount.textContent = _msgCount;
-  $ftMsg.textContent    = _msgCount;
+}
+
+// ── Reactor caption ───────────────────────────────────────────────────────────
+// 쉴 때는 명언, 응답·proactive 메시지가 오면 그 한 줄. 잠시 뒤 명언으로 돌아간다.
+const CAPTION_HOLD_MS = 20000;
+let _captionTimer = null;
+
+function setCaption(text, kind) {
+  const swap = () => {
+    $caption.className = `reactor-caption ${kind}`;
+    $caption.textContent = text;
+  };
+  if ($caption.classList.contains(kind)) { swap(); return; }
+  $caption.classList.add('fading');
+  setTimeout(swap, 350);
+}
+
+function showQuote() {
+  clearTimeout(_captionTimer);
+  setCaption(QUOTE, 'quote');
+}
+
+function showLive(text, holdMs = 0) {
+  clearTimeout(_captionTimer);
+  setCaption(text, 'live');
+  if (holdMs) _captionTimer = setTimeout(showQuote, holdMs);
+}
+
+// 마크다운 기호를 걷어낸 마지막 비어 있지 않은 줄
+function lastLine(text) {
+  const lines = text.split('\n').map((l) => l.replace(/[#*`>_]/g, '').trim()).filter(Boolean);
+  const line = lines.length ? lines[lines.length - 1] : '';
+  return line.length > 160 ? line.slice(0, 157) + '…' : line;
+}
+
+// ── Activity log ──────────────────────────────────────────────────────────────
+const ACTIVITY_MAX = 60;
+
+function logActivity(text, kind = '') {
+  const d   = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const li  = document.createElement('li');
+  if (kind) li.className = kind;
+  li.innerHTML = `<time>${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}</time><span class="msg-text"></span>`;
+  const span = li.querySelector('.msg-text');
+  span.textContent = text;
+  span.title = text;
+  $activityLog.prepend(li);
+  while ($activityLog.children.length > ACTIVITY_MAX) $activityLog.lastElementChild.remove();
 }
 
 // ── Message helpers ───────────────────────────────────────────────────────────
@@ -255,8 +307,7 @@ function renderUsagePanel() {
   $uOut.textContent         = fmtTok(s.output);
   $uCr.textContent          = fmtTok(s.cache_read);
   $uCw.textContent          = fmtTok(s.cache_write);
-  $uTotalTokens.textContent = fmtTok(total) + ' tok';
-  $ftTokens.textContent     = fmtTok(total);
+  $uTotalTokens.textContent = fmtTok(total);
 
   const rate = getCostRate(_currentModel);
   const cost = (s.input / 1e6) * rate.in + (s.output / 1e6) * rate.out;
@@ -276,11 +327,6 @@ function resetUsage() {
   renderUsagePanel();
 }
 
-// Usage 섹션 토글 (클릭해서 접기/펼치기)
-$usageToggle.addEventListener('click', () => {
-  $usageBody.classList.toggle('collapsed');
-});
-
 // ── Streaming assistant message ───────────────────────────────────────────────
 let _streamDiv      = null;
 let _streamText     = '';
@@ -294,7 +340,8 @@ function streamStart() {
   _streamText = '';
   const div = document.createElement('div');
   div.className = 'msg agent';
-  div.innerHTML = '<div class="role"><span class="indicator">▌</span><span>JARVIS</span></div><div class="body"><div class="agent-text"></div></div>';
+  div.innerHTML = '<div class="role"><span class="indicator">▌</span><span></span></div><div class="body"><div class="agent-text"></div></div>';
+  div.querySelector('.role span:last-child').textContent = AGENT_NAME;
   div.querySelector('.agent-text').innerHTML = typingDots();
   $messages.appendChild(div);
   $messages.scrollTop = $messages.scrollHeight;
@@ -307,6 +354,8 @@ function streamDelta(delta) {
   _streamText += delta;
   _streamDiv.querySelector('.agent-text').textContent = _streamText;
   $messages.scrollTop = $messages.scrollHeight;
+  const line = lastLine(_streamText);
+  if (line) showLive(line);
 }
 
 function streamEnd() {
@@ -322,6 +371,8 @@ function streamEnd() {
   _lastStreamText = _streamText;
   _streamDiv  = null;
   _streamText = '';
+  const line = lastLine(_lastStreamText);
+  if (line) showLive(line, CAPTION_HOLD_MS);
 
   // Artifact 감지 — 큰 코드블록(8줄 이상)이면 패널에 표시
   if (_lastStreamText) {
@@ -405,8 +456,9 @@ async function fetchAndRenderHistory(sessionId) {
         const div = document.createElement('div');
         div.className = 'msg agent';
         div.innerHTML =
-          '<div class="role"><span class="indicator">▌</span><span>JARVIS</span></div>' +
+          '<div class="role"><span class="indicator">▌</span><span></span></div>' +
           '<div class="body"><div class="agent-text"></div></div>';
+        div.querySelector('.role span:last-child').textContent = AGENT_NAME;
         div.querySelector('.agent-text').textContent = msg.text;
         $messages.appendChild(div);
         incMsgCount();
@@ -427,7 +479,6 @@ function resetChatUI() {
   $messages.innerHTML = '';
   _msgCount = 0;
   $msgCount.textContent = '0';
-  $ftMsg.textContent    = '0';
   _streamDiv  = null;
   _streamText = '';
   _toolMsgs.clear();
@@ -463,6 +514,7 @@ function connect(sessionId = _currentSessionId) {
     ws = null;
     setInputEnabled(false);
     $connBanner.classList.remove('hidden');
+    logActivity('link lost — retrying', 'err');
     setTimeout(() => connect(_currentSessionId), _reconnectDelay);
     _reconnectDelay = Math.min(_reconnectDelay * 2, 10000);
   });
@@ -501,10 +553,10 @@ function handleMessage(msg) {
       const sid = msg.session_id || '—';
       const model = msg.model || '—';
       _currentModel = model;
-      $sessionTitle.textContent   = sid;
       $sessionIdLabel.textContent = sid;
-      if ($ftModel) $ftModel.textContent = model;
-      if ($sbModel) $sbModel.textContent = model;
+      $sysModel.textContent       = model;
+      $sysModel.title             = model;
+      logActivity(`session ${sid} linked`, 'ok');
       if (msg.sessions) renderSessions(msg.sessions);
       if (msg.slash_commands) _slashCmds = msg.slash_commands;
       if (msg.voice && msg.voice.stt_mode) voice.setSttMode(msg.voice.stt_mode);
@@ -515,8 +567,10 @@ function handleMessage(msg) {
     }
 
     case 'agent_start': {
+      clearTimeout(_awaitTimer);
       const isRoot = _agentStack.length === 0;
       _agentStack.push({ name: msg.agent_name || null });
+      if (!isRoot && msg.agent_name) logActivity(`↳ ${msg.agent_name}`);
       const crumb = _agentBreadcrumb();
       setStatus(crumb ? `THINKING · ${crumb}` : 'THINKING', 'thinking');
       HUD.setState('thinking');
@@ -579,6 +633,7 @@ function handleMessage(msg) {
       $messages.scrollTop = $messages.scrollHeight;
 
       _toolMsgs.set(msg.tool_call_id, { div: traceDiv, name });
+      logActivity(cmd ? `▸ ${name} · ${cmd}` : `▸ ${name}`, 'tool');
       setStatus('EXECUTING', 'executing');
       HUD.setState('tool_running');
       break;
@@ -591,6 +646,7 @@ function handleMessage(msg) {
         entry.div.className = `tool-trace ${ok ? 'done' : 'error'}`;
         entry.div.querySelector('.tool-icon').textContent   = ok ? '✓' : '✗';
         entry.div.querySelector('.tool-status').textContent = ok ? 'Done' : 'Error';
+        logActivity(`${ok ? '✓' : '✗'} ${entry.name}`, ok ? 'ok' : 'err');
         _toolMsgs.delete(msg.tool_call_id);
       }
       setStatus('THINKING', 'thinking');
@@ -600,6 +656,7 @@ function handleMessage(msg) {
 
     case 'agent_error':
       streamEnd();
+      logActivity(msg.message || 'Unknown error', 'err');
       appendMsg('SYS', 'err', escapeHtml(msg.message || 'Unknown error'));
       setStatus('ERROR', 'error');
       HUD.setState('error');
@@ -612,6 +669,7 @@ function handleMessage(msg) {
       const interp = (msg.interpretation || '').trim();
       if (interp) {
         const conf = Math.round((msg.confidence || 0) * 100);
+        logActivity(`💭 ${msg.decision || 'silent'} · ${conf}%`);
         appendMsg('💭', 'thought',
           `${escapeHtml(interp)} <span class="thought-meta">(${escapeHtml(msg.decision || 'silent')} · ${conf}%)</span>`);
       }
@@ -624,6 +682,8 @@ function handleMessage(msg) {
       if (ptext) {
         const isFiller = msg.kind === 'filler';
         const div = appendMsg(isFiller ? '💬' : '🔔', 'proactive', escapeHtml(ptext));
+        logActivity(`${isFiller ? '💬' : '🔔'} ${ptext}`, 'proactive');
+        showLive(lastLine(ptext), CAPTION_HOLD_MS);
         // filler가 아닌 먼저 건넨 말엔 수락/무시 피드백 버튼 (C3).
         if (!isFiller && msg.message_id) {
           _pendingProactiveId = msg.message_id;
@@ -651,6 +711,7 @@ function handleMessage(msg) {
 
     case 'error':
       appendMsg('SYS', 'err', escapeHtml(msg.message || 'Error'));
+      logActivity(msg.message || 'Error', 'err');
       setStatus('ERROR', 'error');
       HUD.setState('error');
       setInputEnabled(true);
@@ -659,6 +720,7 @@ function handleMessage(msg) {
 
     case 'approval_request':
       showApproval(msg.id, msg.command, msg.reason);
+      logActivity(`⚡ approval · ${msg.command || ''}`, 'tool');
       break;
 
     case 'voice_tts_audio':
@@ -861,6 +923,21 @@ function setInputEnabled(enabled) {
   if (enabled) $input.focus();
 }
 
+// 보내는 즉시 THINKING — 서버는 첫 이벤트(agent_start) 전에 inner thought(LLM 호출)를
+// 먼저 돌리므로 몇 초간 아무 이벤트도 오지 않는다. 그동안 HUD 가 쉬는 것처럼 보이지 않게 한다.
+// 응답이 끝내 오지 않으면 90초 뒤 원래대로 돌린다.
+const AWAIT_TIMEOUT_MS = 90000;
+let _awaitTimer = null;
+
+function beginAwaitingReply() {
+  setStatus('THINKING', 'thinking');
+  HUD.setState('thinking');
+  clearTimeout(_awaitTimer);
+  _awaitTimer = setTimeout(() => {
+    if (_agentStack.length === 0) { setStatus('READY'); HUD.setState('idle'); }
+  }, AWAIT_TIMEOUT_MS);
+}
+
 function submitMessage() {
   const text = $input.value.trim();
   if (!text) return;
@@ -870,6 +947,7 @@ function submitMessage() {
   updateHighlight();
   setInputEnabled(false);
   send({ type: 'user_message', text });
+  beginAwaitingReply();
 }
 
 document.getElementById('composer').addEventListener('submit', (e) => {
@@ -922,6 +1000,7 @@ const voice = new VoiceManager({
     updateHighlight();
     setInputEnabled(false);
     send({ type: 'user_message', text: transcript });
+    beginAwaitingReply();
   },
   onStateChange(state) {
     // 구체 시각 상태 반영
@@ -965,17 +1044,21 @@ $sphereHit.addEventListener('click', () => {
 });
 
 
-// ── Sidebar collapse ──────────────────────────────────────────────────────────
-const SB_KEY = 'jarvis.sbCollapsed';
-if (localStorage.getItem(SB_KEY) === '1') document.body.classList.add('sb-collapsed');
-document.getElementById('collapse-btn').addEventListener('click', () => {
-  const next = !document.body.classList.contains('sb-collapsed');
-  document.body.classList.toggle('sb-collapsed', next);
-  localStorage.setItem(SB_KEY, next ? '1' : '0');
+// ── Conversation card collapse ────────────────────────────────────────────────
+// 접힘 여부는 뷰어별 편의 설정이라 localStorage 에만 둔다(없어도 동작).
+const CHAT_KEY = 'hud.chatCollapsed';
+try {
+  if (localStorage.getItem(CHAT_KEY) === '1') document.body.classList.add('chat-collapsed');
+} catch { /* storage 차단 — 기본(펼침)으로 */ }
+document.getElementById('chat-toggle').addEventListener('click', () => {
+  const next = !document.body.classList.contains('chat-collapsed');
+  document.body.classList.toggle('chat-collapsed', next);
+  try { localStorage.setItem(CHAT_KEY, next ? '1' : '0'); } catch { /* 무시 */ }
+  if (!next) $messages.scrollTop = $messages.scrollHeight;
 });
 
 // ── Mobile drawer ─────────────────────────────────────────────────────────────
-// 좁은 화면에서 사이드바는 오버레이 드로어가 된다(CSS @media 860px 이하).
+// 좁은 화면에서 세션·활동·시스템 카드(.hud-side)는 오버레이 드로어가 된다(CSS @media 860px 이하).
 // 데스크탑에서는 버튼이 숨겨져 있어 이 코드가 실행될 일이 없다.
 const $drawerBtn   = document.getElementById('drawer-btn');
 const $drawerScrim = document.getElementById('drawer-scrim');
@@ -984,7 +1067,7 @@ function setDrawer(open) {
   document.body.classList.toggle('drawer-open', open);
   $drawerScrim.hidden = !open;
   $drawerBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-  $drawerBtn.setAttribute('aria-label', open ? '세션 목록 닫기' : '세션 목록 열기');
+  $drawerBtn.setAttribute('aria-label', open ? '패널 닫기' : '패널 열기');
 }
 
 $drawerBtn.addEventListener('click', () => {
@@ -1004,5 +1087,6 @@ window.addEventListener('resize', () => {
 
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+showQuote();
 setInputEnabled(false);
 connect('default');

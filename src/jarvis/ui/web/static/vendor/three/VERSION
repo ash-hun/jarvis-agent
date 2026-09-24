@@ -1,0 +1,2 @@
+three.js 0.186.0 (MIT) — https://cdn.jsdelivr.net/npm/three@0.186.0
+build/three.module.min.js, build/three.core.min.js (renamed three.core.js: the module build imports "./three.core.js")

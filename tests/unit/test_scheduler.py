@@ -143,13 +143,14 @@ class TestSchedulerService:
             await svc.stop()
             assert svc._running is False
 
-    async def test_loop_skips_when_croniter_missing(self):
-        """croniter 미설치 시 loop는 즉시 종료되어야 한다."""
+    async def test_loop_without_croniter_does_not_raise(self):
+        """croniter 미설치여도 loop 가 예외 없이 돈다(cron 작업만 건너뛰고 한 번 실행 작업은 처리)."""
         svc = self._make_service([
             ScheduledTask(name="t", schedule="* * * * *", prompt="p")
         ])
         with patch.dict(sys.modules, {"croniter": None}):
-            await svc._loop()  # Should not raise, just print and return
+            await svc._loop()  # _running 이 False 라 바로 끝난다 — ImportError 만 없으면 된다
+        assert svc._tick(__import__("datetime").datetime.now(), None) == []  # cron 작업은 건너뜀
 
     async def test_execute_task_calls_session_prompt(self):
         """_execute_task는 AgentSession.prompt()를 호출해야 한다."""
@@ -332,3 +333,96 @@ class TestSchedulerNextRun:
 
         task = ScheduledTask(name="t", schedule="not a cron", prompt="p")
         assert SchedulerService.next_run(task) is None
+
+
+# ── 한 번 실행 알림 (/schedule ~에) ──────────────────────────────────────────
+
+
+class TestSchedulerOnceFiring:
+    def _svc(self, tasks, tmp_path=None):
+        svc = _service(tasks, schedules_dir=str(tmp_path) if tmp_path else None)
+        svc.set_notifier(AsyncMock())
+        return svc
+
+    async def test_due_reminder_is_delivered_once_and_removed(self, tmp_path):
+        import asyncio
+        from datetime import datetime, timedelta
+
+        now = datetime(2026, 9, 24, 19, 0, 4)
+        svc = self._svc([], tmp_path)
+        svc.add_task(ScheduledTask(name="once-1", prompt="물 마시기", kind="reminder",
+                                   run_at=now - timedelta(seconds=4)))
+        assert (tmp_path / "once-1.yaml").exists()
+
+        await asyncio.gather(*svc._tick(now, None))
+        payload = svc._notify.await_args[0][0]
+        assert payload["type"] == "reminder" and payload["text"] == "물 마시기"
+        assert payload["kind"] == "reminder" and payload["once"] is True
+        assert payload["delayed_sec"] == 4
+        # 목록·파일에서 사라져 다시 울리지 않는다
+        assert svc.list_tasks() == []
+        assert not (tmp_path / "once-1.yaml").exists()
+        assert svc._tick(now + timedelta(seconds=10), None) == []
+
+    def test_future_once_task_is_not_fired(self):
+        from datetime import datetime, timedelta
+
+        now = datetime(2026, 9, 24, 18, 0)
+        svc = self._svc([ScheduledTask(name="later", prompt="p", run_at=now + timedelta(minutes=5))])
+        assert svc._tick(now, None) == []
+        assert svc.next_run(svc.get_task("later")) == now + timedelta(minutes=5)
+
+    async def test_overdue_after_restart_reports_delay(self):
+        import asyncio
+        from datetime import datetime, timedelta
+
+        now = datetime(2026, 9, 24, 19, 30)
+        svc = self._svc([ScheduledTask(name="missed", prompt="p", kind="reminder",
+                                       run_at=now - timedelta(minutes=30))])
+        await asyncio.gather(*svc._tick(now, None))
+        assert svc._notify.await_args[0][0]["delayed_sec"] == 1800
+
+    async def test_task_kind_delivers_agent_answer(self):
+        import asyncio
+        from datetime import datetime
+
+        now = datetime(2026, 9, 24, 19, 0)
+        svc = self._svc([ScheduledTask(name="news", prompt="뉴스 요약", kind="task", run_at=now)])
+        with patch.object(svc, "_execute_task", AsyncMock(return_value="오늘의 요약")):
+            await asyncio.gather(*svc._tick(now, None))
+        payload = svc._notify.await_args[0][0]
+        assert payload["text"] == "오늘의 요약" and payload["error"] is False
+
+    async def test_failed_task_is_reported_as_error(self):
+        import asyncio
+        from datetime import datetime
+
+        now = datetime(2026, 9, 24, 19, 0)
+        svc = self._svc([ScheduledTask(name="news", prompt="뉴스 요약", kind="task", run_at=now)])
+        with patch.object(svc, "_execute_task", AsyncMock(return_value=None)):
+            await asyncio.gather(*svc._tick(now, None))
+        assert svc._notify.await_args[0][0]["error"] is True
+
+    async def test_cron_task_result_is_delivered_too(self):
+        import asyncio
+        from datetime import datetime
+
+        croniter = pytest.importorskip("croniter").croniter
+        now = datetime(2026, 9, 24, 9, 0, 5)
+        svc = self._svc([ScheduledTask(name="brief", schedule="0 9 * * *", prompt="브리핑")])
+        with patch.object(svc, "_execute_task", AsyncMock(return_value="브리핑 내용")):
+            await asyncio.gather(*svc._tick(now, croniter))
+        payload = svc._notify.await_args[0][0]
+        assert payload["once"] is False and payload["text"] == "브리핑 내용"
+
+    def test_user_authored_once_file_is_disabled_not_deleted(self, tmp_path):
+        import yaml
+
+        from jarvis.core.scheduler.loader import load_tasks, remove_task_file
+
+        path = tmp_path / "mine.yaml"
+        path.write_text('- name: a\n  prompt: p\n  run_at: "2026-09-24T19:00:00"\n- name: b\n  schedule: "0 9 * * *"\n  prompt: q\n')
+        task = load_tasks(str(tmp_path))[0]
+        remove_task_file(task, str(tmp_path))
+        items = yaml.safe_load(path.read_text())
+        assert path.exists() and items[0]["enabled"] is False and "enabled" not in items[1]

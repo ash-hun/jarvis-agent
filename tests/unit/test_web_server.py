@@ -295,3 +295,25 @@ def test_agenda_marks_once_reminders(agenda):
     assert item["once"] is True and item["kind"] == "reminder"
     assert item["next_run"].startswith(run_at.isoformat())
 
+
+def test_tts_request_without_voice_service_falls_back_to_browser(monkeypatch, tmp_path):
+    """음성 서비스가 없어도 응답을 돌려줘야 HUD 가 '음성 처리 중'에 멈추지 않는다."""
+    import jarvis.voice.service as vs
+
+    def no_voice(*_args, **_kwargs):
+        raise RuntimeError("voice unavailable")
+
+    monkeypatch.setattr(vs.VoiceService, "from_config", staticmethod(no_voice))
+    monkeypatch.setenv("JARVIS_PROACTIVE__DAEMON_ENABLED", "false")
+    monkeypatch.setenv("JARVIS_SCHEDULER__ENABLED", "false")
+    monkeypatch.setenv("JARVIS_MEMORY__BACKEND", "in_memory")
+    monkeypatch.setenv("JARVIS_SESSION__PERSISTENCE_BACKEND", "jsonl")
+    monkeypatch.setenv("JARVIS_SESSION__SESSIONS_DIR", str(tmp_path / "sessions"))
+    ctx, base_extra = _build_infra(JarvisSettings())
+
+    with TestClient(create_app(ctx, base_extra, initial_session_id="default")) as c:
+        with c.websocket_connect("/ws?session_id=default") as ws:
+            ws.receive_json()  # connected
+            ws.send_json({"type": "voice_tts_request", "text": "물 마시기"})
+            reply = ws.receive_json()
+    assert reply == {"type": "voice_tts_audio", "data": "", "text": "물 마시기"}

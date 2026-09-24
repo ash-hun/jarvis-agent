@@ -382,6 +382,10 @@ def create_app(
                     lang = msg.get("lang", ctx.settings.voice.tts_lang)
                     if text and voice_service:
                         asyncio.create_task(_run_tts(ws, voice_service, text, lang))
+                    elif text:
+                        # 음성 서비스가 없으면 브라우저가 직접 읽게 돌려준다 — 응답이 없으면
+                        # HUD 가 '음성 처리 중' 상태에 멈춘다
+                        await ws.send_json({"type": "voice_tts_audio", "data": "", "text": text})
 
                 elif msg_type == "voice_stt_submit":
                     data = msg.get("data", "")

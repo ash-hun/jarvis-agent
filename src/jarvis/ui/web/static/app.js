@@ -901,6 +901,7 @@ function handleMessage(msg) {
     }
 
     case 'error':
+      voice.setIdle();  // TTS 오류면 '음성 처리 중' 상태를 풀어 준다
       appendMsg('SYS', 'err', escapeHtml(msg.message || 'Error'));
       logActivity(msg.message || 'Error', 'err');
       setStatus('ERROR', 'error');

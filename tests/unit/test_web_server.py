@@ -173,3 +173,96 @@ def test_brand_js_loads_before_hud_scripts(client):
     """brand.js가 hud.js보다 늦게 오면 리액터가 기본 색으로 그려진다."""
     html = client.get("/").text
     assert html.index('src="brand.js"') < html.index('src="hud.js')
+
+
+# ── Agenda(스케줄 + open loops) / 도구 ───────────────────────────────────────
+
+
+@pytest.fixture
+def agenda(monkeypatch, tmp_path):
+    """open loop 저장소는 메모리, 스케줄러는 루프 없이 tmp 디렉토리를 쓰는 서비스로 띄운다."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from jarvis.core.scheduler.service import SchedulerService
+    from jarvis.core.scheduler.task import ScheduledTask
+
+    monkeypatch.setenv("JARVIS_PROACTIVE__DAEMON_ENABLED", "false")
+    monkeypatch.setenv("JARVIS_SCHEDULER__ENABLED", "false")
+    monkeypatch.setenv("JARVIS_MEMORY__BACKEND", "in_memory")
+    monkeypatch.setenv("JARVIS_SESSION__PERSISTENCE_BACKEND", "jsonl")
+    monkeypatch.setenv("JARVIS_SESSION__SESSIONS_DIR", str(tmp_path / "sessions"))
+    monkeypatch.setenv("JARVIS_THOUGHT__ENABLED", "true")
+    monkeypatch.setenv("JARVIS_OPENLOOP__BACKEND", "in_memory")
+    settings = JarvisSettings()
+    ctx, base_extra = _build_infra(settings)
+
+    scheduler = SchedulerService(
+        tasks=[
+            ScheduledTask(name="late", schedule="0 23 * * *", prompt="late job"),
+            ScheduledTask(name="off", schedule="0 9 * * *", prompt="off job", enabled=False),
+        ],
+        session_repo=MagicMock(),
+        tool_registry=MagicMock(),
+        model=MagicMock(),
+        base_extra={},
+        schedules_dir=str(tmp_path / "schedules"),
+    )
+    scheduler.start = AsyncMock()  # 실제 cron 루프는 돌리지 않는다
+    ctx.scheduler = scheduler
+
+    app = create_app(ctx, base_extra, initial_session_id="default")
+    with TestClient(app) as c:
+        yield c, base_extra["openloop_store"], scheduler
+
+
+def test_agenda_lists_open_loops_and_schedules(agenda):
+    import asyncio
+
+    from jarvis.agent_layer.openloop.types import OpenLoop
+
+    client, store, _ = agenda
+    loop_id = asyncio.run(store.add(OpenLoop(description="리뷰 자료 보내기", origin_session="default")))
+
+    body = client.get("/api/agenda").json()
+    assert [lp["id"] for lp in body["open_loops"]] == [loop_id]
+    assert body["open_loops"][0]["description"] == "리뷰 자료 보내기"
+    names = [s["name"] for s in body["schedules"]]
+    assert set(names) == {"late", "off"}
+    # 꺼진 작업은 다음 실행이 없고 목록 아래로 간다
+    off = next(s for s in body["schedules"] if s["name"] == "off")
+    assert off["enabled"] is False and off["next_run"] is None
+    assert names[-1] == "off"
+
+
+def test_openloop_done_removes_it_from_agenda(agenda):
+    import asyncio
+
+    from jarvis.agent_layer.openloop.types import OpenLoop
+
+    client, store, _ = agenda
+    loop_id = asyncio.run(store.add(OpenLoop(description="x")))
+
+    resp = client.post(f"/api/openloops/{loop_id}", json={"status": "done"})
+    assert resp.status_code == 200
+    assert client.get("/api/agenda").json()["open_loops"] == []
+
+
+def test_openloop_rejects_bad_status_and_unknown_id(agenda):
+    client, _, _ = agenda
+    assert client.post("/api/openloops/nope", json={"status": "open"}).status_code == 400
+    assert client.post("/api/openloops/nope", json={"status": "done"}).status_code == 404
+
+
+def test_schedule_toggle(agenda):
+    client, _, scheduler = agenda
+    resp = client.post("/api/schedules/late", json={"enabled": False})
+    assert resp.status_code == 200
+    assert scheduler.get_task("late").enabled is False
+    assert client.post("/api/schedules/late", json={"enabled": "no"}).status_code == 400
+    assert client.post("/api/schedules/ghost", json={"enabled": True}).status_code == 404
+
+
+def test_tools_list_marks_approval_required(client):
+    tools = {t["name"]: t for t in client.get("/api/tools").json()["tools"]}
+    assert tools["bash"]["approval"] is True
+    assert tools["read_file"]["approval"] is False

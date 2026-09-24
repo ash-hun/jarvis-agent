@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,400;1,500&family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026092404">
+  <link rel="stylesheet" href="styles.css?v=2026092502">
   <!-- 에이전트 브랜드(이름·명언·색). 동기 로드 — 첫 페인트 전에 CSS 변수를 채운다. -->
   <script src="brand.js"></script>
 </head>
@@ -84,6 +84,16 @@
       <div class="session-list" id="session-list"></div>
     </section>
 
+    <section class="hud-card agenda-card">
+      <div class="panel-head"><span>Agenda</span><span class="count" id="agenda-count">0</span></div>
+      <div class="agenda-body">
+        <div class="agenda-sub">Upcoming</div>
+        <ul class="agenda-list" id="schedule-list" data-empty="예정된 작업 없음"></ul>
+        <div class="agenda-sub">Open loops</div>
+        <ul class="agenda-list" id="openloop-list" data-empty="남은 할 일 없음"></ul>
+      </div>
+    </section>
+
     <section class="hud-card log-card">
       <div class="panel-head"><span>Activity</span><span class="count">LOG</span></div>
       <ol class="activity-log" id="activity-log"></ol>
@@ -95,12 +105,17 @@
         <dt>Model</dt><dd id="sys-model">—</dd>
         <dt>Session</dt><dd id="session-id-label">—</dd>
         <dt>Tokens</dt><dd id="usage-total-tokens">0</dd>
+        <dt>Tools</dt>
+        <dd><button class="tools-toggle" id="tools-toggle" type="button" aria-expanded="false" aria-controls="tools-list">
+          <span id="tools-count">0</span> <span class="chev">▾</span>
+        </button></dd>
         <dt class="sep">In</dt><dd class="sep" id="u-in">0</dd>
         <dt>Out</dt><dd id="u-out">0</dd>
         <dt>Cache↓</dt><dd id="u-cr">0</dd>
         <dt>Cache↑</dt><dd id="u-cw">0</dd>
         <dt>Cost</dt><dd class="cost-val" id="u-cost">$0.0000</dd>
       </dl>
+      <ul class="tools-list" id="tools-list" hidden></ul>
       <div class="usage-sparkline" id="usage-sparkline"></div>
     </section>
   </div>
@@ -173,11 +188,11 @@
       "three": "./vendor/three/three.module.min.js"
   } }
 </script>
-<script src="hud.js?v=2026092404"></script>
-<script src="voice.js?v=2026092404"></script>
-<script src="app.js?v=2026092404"></script>
+<script src="hud.js?v=2026092502"></script>
+<script src="voice.js?v=2026092502"></script>
+<script src="app.js?v=2026092502"></script>
 <!-- 모듈은 defer — hud.js 의 window.HUD 가 준비된 뒤 실행된다 -->
-<script type="module" src="sphere.js?v=2026092404"></script>
+<script type="module" src="sphere.js?v=2026092502"></script>
 
 <!-- PWA: service worker 등록 (http/https에서만, 실패해도 앱 동작엔 영향 없음) -->
 <script>

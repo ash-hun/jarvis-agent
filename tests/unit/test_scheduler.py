@@ -183,3 +183,152 @@ class TestSchedulerConfig:
         s = JarvisSettings()
         assert hasattr(s, "scheduler")
         assert s.scheduler.enabled is True
+
+
+# ── 목록·토글·저장 (HUD Agenda) ──────────────────────────────────────────────
+
+
+def _service(tasks=None, schedules_dir=None):
+    from jarvis.core.scheduler.service import SchedulerService
+
+    return SchedulerService(
+        tasks=tasks or [],
+        session_repo=MagicMock(),
+        tool_registry=MagicMock(),
+        model=MagicMock(),
+        base_extra={},
+        schedules_dir=schedules_dir,
+    )
+
+
+class TestSchedulerAgenda:
+    def test_list_tasks_includes_disabled_and_is_a_copy(self):
+        tasks = [
+            ScheduledTask(name="a", schedule="0 * * * *", prompt="p"),
+            ScheduledTask(name="b", schedule="0 * * * *", prompt="p", enabled=False),
+        ]
+        svc = _service(tasks)
+        listed = svc.list_tasks()
+        assert [t.name for t in listed] == ["a", "b"]
+        listed.clear()
+        assert len(svc.list_tasks()) == 2
+
+    def test_set_enabled_unknown_name_returns_false(self):
+        assert _service().set_enabled("nope", False) is False
+
+    def test_toggle_rewrites_only_enabled_in_source_yaml(self, tmp_path):
+        """사용자가 쓴 파일에서는 enabled 키만 바뀌고 나머지 필드는 남아야 한다."""
+        import yaml
+
+        from jarvis.core.scheduler.loader import load_tasks
+
+        path = tmp_path / "brief.yaml"
+        path.write_text(textwrap.dedent("""
+            name: brief
+            schedule: "0 9 * * *"
+            prompt: morning brief
+            description: 매일 아침
+            tools_allowed: [web_search]
+        """))
+        svc = _service(load_tasks(str(tmp_path)), schedules_dir=str(tmp_path))
+
+        assert svc.set_enabled("brief", False) is True
+        data = yaml.safe_load(path.read_text())
+        assert data["enabled"] is False
+        assert data["description"] == "매일 아침"
+        assert data["tools_allowed"] == ["web_search"]
+        # 재시작해도 꺼진 상태가 남는다
+        assert load_tasks(str(tmp_path))[0].enabled is False
+
+    def test_toggle_in_list_file_touches_only_matching_item(self, tmp_path):
+        import yaml
+
+        from jarvis.core.scheduler.loader import load_tasks
+
+        path = tmp_path / "many.yaml"
+        path.write_text(textwrap.dedent("""
+            - name: one
+              schedule: "0 9 * * *"
+              prompt: p1
+            - name: two
+              schedule: "0 10 * * *"
+              prompt: p2
+        """))
+        svc = _service(load_tasks(str(tmp_path)), schedules_dir=str(tmp_path))
+        svc.set_enabled("two", False)
+
+        items = yaml.safe_load(path.read_text())
+        assert [i["name"] for i in items] == ["one", "two"]
+        assert "enabled" not in items[0]
+        assert items[1]["enabled"] is False
+
+    def test_toggle_is_idempotent(self, tmp_path):
+        from jarvis.core.scheduler.loader import load_tasks
+
+        path = tmp_path / "brief.yaml"
+        path.write_text('name: brief\nschedule: "0 9 * * *"\nprompt: p\n')
+        svc = _service(load_tasks(str(tmp_path)), schedules_dir=str(tmp_path))
+        svc.set_enabled("brief", False)
+        first = path.read_text()
+        svc.set_enabled("brief", False)
+        assert path.read_text() == first
+
+    def test_added_task_is_saved_and_survives_restart(self, tmp_path):
+        """/schedule 로 만든 작업이 재시작 후에도 남아야 한다."""
+        from datetime import datetime, timedelta
+
+        from jarvis.core.scheduler.loader import load_tasks
+
+        deadline = datetime.now().replace(microsecond=0) + timedelta(days=3)
+        svc = _service(schedules_dir=str(tmp_path))
+        svc.add_task(ScheduledTask(name="slash-1", schedule="0 * * * *", prompt="collect", run_until=deadline))
+
+        assert (tmp_path / "slash-1.yaml").exists()
+        reloaded = load_tasks(str(tmp_path))
+        assert [t.name for t in reloaded] == ["slash-1"]
+        assert reloaded[0].run_until == deadline
+
+        # 저장된 작업을 끄면 같은 파일에 반영된다
+        svc.set_enabled("slash-1", False)
+        assert load_tasks(str(tmp_path))[0].enabled is False
+
+    def test_add_task_without_dir_stays_in_memory(self, tmp_path):
+        svc = _service()
+        svc.add_task(ScheduledTask(name="mem", schedule="0 * * * *", prompt="p"))
+        assert list(tmp_path.iterdir()) == []
+
+
+class TestSchedulerNextRun:
+    def setup_method(self):
+        pytest.importorskip("croniter")
+
+    def test_next_run_follows_cron(self):
+        from datetime import datetime
+
+        from jarvis.core.scheduler.service import SchedulerService
+
+        task = ScheduledTask(name="t", schedule="0 9 * * *", prompt="p")
+        nxt = SchedulerService.next_run(task, datetime(2026, 9, 24, 8, 30))
+        assert nxt == datetime(2026, 9, 24, 9, 0)
+
+    def test_disabled_task_has_no_next_run(self):
+        from jarvis.core.scheduler.service import SchedulerService
+
+        task = ScheduledTask(name="t", schedule="0 9 * * *", prompt="p", enabled=False)
+        assert SchedulerService.next_run(task) is None
+
+    def test_next_run_after_deadline_is_none(self):
+        from datetime import datetime
+
+        from jarvis.core.scheduler.service import SchedulerService
+
+        task = ScheduledTask(
+            name="t", schedule="0 9 * * *", prompt="p", run_until=datetime(2026, 9, 24, 8, 45),
+        )
+        assert SchedulerService.next_run(task, datetime(2026, 9, 24, 8, 30)) is None
+
+    def test_bad_cron_has_no_next_run(self):
+        from jarvis.core.scheduler.service import SchedulerService
+
+        task = ScheduledTask(name="t", schedule="not a cron", prompt="p")
+        assert SchedulerService.next_run(task) is None

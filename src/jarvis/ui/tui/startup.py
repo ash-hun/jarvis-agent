@@ -272,6 +272,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
             tool_registry=tool_registry,
             model=model_config,
             base_extra={},  # filled in after extra dict is built below
+            schedules_dir=settings.scheduler.schedules_dir,
         )
 
     ctx = AppContext(

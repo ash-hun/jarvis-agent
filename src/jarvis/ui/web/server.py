@@ -5,6 +5,7 @@ import base64
 import contextlib
 import json
 import time
+from datetime import datetime
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -195,6 +196,77 @@ def create_app(
             for name, desc in sorted(ctx.dispatcher.commands.items())
         ]
         return JSONResponse({"commands": cmds})
+
+    # ── REST: Agenda(스케줄 + open loops) / 도구 ─────────────────────────────
+    # HUD 오른쪽 카드가 쓴다. 변경 이벤트가 따로 없으므로 프론트가 접속·응답 종료·
+    # 조작 직후에 다시 불러온다.
+
+    @app.get("/api/agenda")  # type: ignore[untyped-decorator]
+    async def get_agenda() -> JSONResponse:
+        schedules: list[dict[str, Any]] = []
+        if ctx.scheduler is not None:
+            from jarvis.core.scheduler.service import SchedulerService
+
+            now = datetime.now()
+            for task in ctx.scheduler.list_tasks():
+                nxt = SchedulerService.next_run(task, now)
+                schedules.append({
+                    "name": task.name,
+                    "description": task.description,
+                    "prompt": task.prompt[:160],
+                    "schedule": task.schedule,
+                    "enabled": task.enabled,
+                    # 서버 로컬 시간대 오프셋을 붙인다 — 브라우저가 어느 시간대에 있든 같은 순간을 가리키게
+                    "next_run": nxt.astimezone().isoformat() if nxt else None,
+                    "run_until": task.run_until.astimezone().isoformat() if task.run_until else None,
+                })
+            # 곧 돌 작업이 위로, 다음 실행이 없는(꺼짐·만료) 작업은 아래로
+            schedules.sort(key=lambda t: (t["next_run"] is None, t["next_run"] or "", t["name"]))
+
+        loops: list[dict[str, Any]] = []
+        store = base_extra.get("openloop_store")
+        if store is not None:
+            for loop in await store.list_open(limit=20):
+                loops.append({
+                    "id": loop.id,
+                    "description": loop.description,
+                    "due_ms": loop.due_ms,
+                    "created_at": loop.created_at,
+                    "origin_session": loop.origin_session,
+                })
+        return JSONResponse({"schedules": schedules, "open_loops": loops})
+
+    @app.post("/api/openloops/{loop_id}")  # type: ignore[untyped-decorator]
+    async def update_openloop(loop_id: str, payload: dict[str, Any]) -> JSONResponse:
+        status = payload.get("status")
+        if status not in ("done", "dismissed"):
+            return JSONResponse({"error": "status must be 'done' or 'dismissed'"}, status_code=400)
+        store = base_extra.get("openloop_store")
+        if store is None or not await store.update_status(loop_id, status):
+            return JSONResponse({"error": "open loop not found"}, status_code=404)
+        return JSONResponse({"id": loop_id, "status": status})
+
+    @app.post("/api/schedules/{name}")  # type: ignore[untyped-decorator]
+    async def toggle_schedule(name: str, payload: dict[str, Any]) -> JSONResponse:
+        enabled = payload.get("enabled")
+        if not isinstance(enabled, bool):
+            return JSONResponse({"error": "enabled must be true or false"}, status_code=400)
+        if ctx.scheduler is None or not ctx.scheduler.set_enabled(name, enabled):
+            return JSONResponse({"error": "schedule not found"}, status_code=404)
+        return JSONResponse({"name": name, "enabled": enabled})
+
+    @app.get("/api/tools")  # type: ignore[untyped-decorator]
+    async def list_tools() -> JSONResponse:
+        needs_approval = set(ctx.settings.security.require_approval_for)
+        tools = [
+            {
+                "name": tool.name,
+                "description": (tool.description or "").strip().split("\n")[0][:160],
+                "approval": tool.name in needs_approval,
+            }
+            for tool in sorted(ctx.tool_registry.list_all(), key=lambda t: t.name)
+        ]
+        return JSONResponse({"tools": tools})
 
     @app.get("/api/sessions/{session_id}/messages")  # type: ignore[untyped-decorator]
     async def get_session_messages(session_id: str) -> JSONResponse:

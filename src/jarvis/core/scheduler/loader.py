@@ -20,10 +20,50 @@ def load_tasks(schedules_dir: str) -> list[ScheduledTask]:
                 data = yaml.safe_load(f)
             if isinstance(data, dict):
                 task = ScheduledTask.model_validate(data)
+                task._source = path
                 tasks.append(task)
             elif isinstance(data, list):
                 for item in data:
-                    tasks.append(ScheduledTask.model_validate(item))
+                    task = ScheduledTask.model_validate(item)
+                    task._source = path
+                    tasks.append(task)
         except Exception as exc:
             print(f"[SchedulerLoader] Failed to load '{path}': {exc}")
     return tasks
+
+
+def save_task(task: ScheduledTask, schedules_dir: str) -> Path:
+    """작업을 `<schedules_dir>/<name>.yaml` 로 저장한다. 같은 작업을 다시 저장해도 결과가 같다.
+
+    항상 작업 전용 파일에만 쓴다 — 여러 작업이 든 사용자 YAML 을 통째로 덮어쓰지 않도록
+    `_source` 를 따라가지 않는다(기존 파일의 토글은 write_enabled 가 맡는다).
+    """
+    root = Path(schedules_dir).expanduser()
+    root.mkdir(parents=True, exist_ok=True)
+    path = root / f"{task.name}.yaml"
+    data = task.model_dump(mode="json", exclude_none=True)
+    with open(path, "w") as f:
+        yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+    task._source = path
+    return path
+
+
+def write_enabled(task: ScheduledTask) -> bool:
+    """원본 YAML 에서 이 작업의 `enabled` 키만 바꿔 되쓴다.
+
+    사용자가 손으로 쓴 다른 필드는 그대로 둔다. 파일 하나에 작업 목록이 들어 있으면
+    이름이 같은 항목만 고친다. 원본 파일이 없거나 항목을 못 찾으면 False.
+    """
+    path = task._source
+    if path is None or not path.exists():
+        return False
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    items = [data] if isinstance(data, dict) else data if isinstance(data, list) else []
+    target = next((i for i in items if isinstance(i, dict) and i.get("name") == task.name), None)
+    if target is None:
+        return False
+    target["enabled"] = task.enabled
+    with open(path, "w") as f:
+        yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+    return True

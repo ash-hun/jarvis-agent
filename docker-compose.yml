@@ -82,6 +82,9 @@ services:
     env_file:
       - .env
     environment:
+      # 스케줄(cron)과 /schedule 마감 시각은 컨테이너 로컬 시간으로 해석된다.
+      # 기본 UTC 이면 "오전 9시"가 한국 시간 18시에 돈다 — .env 의 TZ 로 바꿀 수 있다.
+      TZ: ${TZ:-Asia/Seoul}
       JARVIS_LLM__PROVIDER: ${JARVIS_LLM__PROVIDER:-anthropic}
       # Inner Thought(Tier 0) + Proactive(Tier 1). 기본 on — false로 끌 수 있다.
       JARVIS_THOUGHT__ENABLED: ${JARVIS_THOUGHT__ENABLED:-true}

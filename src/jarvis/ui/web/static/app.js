@@ -366,8 +366,10 @@ function renderAgenda({ schedules = [], open_loops = [] }) {
       const u = new Date(t.run_until);
       when += ` · ~${u.getMonth() + 1}/${u.getDate()} ${String(u.getHours()).padStart(2, '0')}:${String(u.getMinutes()).padStart(2, '0')}`;
     }
+    if (t.once) when += ` · 한 번 · ${t.kind === 'task' ? '작업' : '알림'}`;
     // /schedule 로 만든 작업의 description 은 자동 문구라, 사용자가 쓴 프롬프트를 보여준다
-    const label = t.name.startsWith('slash-') ? t.prompt : (t.description || t.prompt || t.name);
+    const fromSlash = t.name.startsWith('slash-') || t.name.startsWith('once-');
+    const label = fromSlash ? t.prompt : (t.description || t.prompt || t.name);
     const li = agendaItem(label, when, t.enabled ? '' : 'off');
     const sw = document.createElement('button');
     sw.type = 'button';
@@ -435,6 +437,51 @@ async function toggleSchedule(name, enabled) {
 }
 
 setInterval(fetchAgenda, 60000);
+
+// ── Schedule notices (스케줄 알림) ────────────────────────────────────────────
+// 서버가 스케줄 실행 결과를 {type:'reminder'} 로 방송한다. 대화 🔔 · 캡션 · Activity ·
+// 브라우저 시스템 알림(탭이 뒤에 있을 때) · 음성으로 알린다.
+function noticeSuffix(n) {
+  if (n.missed) return ' (놓친 알림)';
+  if (n.delayed_sec > 60) return ` (지연 ${Math.round(n.delayed_sec / 60)}분)`;
+  return '';
+}
+
+function showNotice(n) {
+  const suffix = noticeSuffix(n);
+  const text = (n.text || '').trim();
+  // 작업이면 무엇을 실행한 결과인지 제목을 붙인다
+  const header = n.kind === 'task' ? `<div class="notice-title">⏱ ${escapeHtml(n.title || '')}${escapeHtml(suffix)}</div>` : '';
+  const body = n.kind === 'task'
+    ? header + renderMarkdown(text)
+    : `${escapeHtml(text)}${suffix ? `<span class="thought-meta">${escapeHtml(suffix)}</span>` : ''}`;
+  const div = appendMsg('🔔', n.error ? 'err' : 'proactive', body);
+  attachCopyBtns(div);
+
+  logActivity(`🔔 ${n.kind === 'task' ? n.title : text}${suffix}`, n.error ? 'err' : 'proactive');
+  showLive(lastLine(text) || n.title || '', CAPTION_HOLD_MS);
+
+  if ('Notification' in window && Notification.permission === 'granted' &&
+      (document.hidden || !document.hasFocus())) {
+    try {
+      new Notification(`${AGENT_NAME}${suffix}`, { body: text.slice(0, 240), tag: n.id });
+    } catch (e) { /* 일부 브라우저는 페이지에서 직접 생성을 막는다 */ }
+  }
+
+  // 놓친 알림은 한꺼번에 몰려올 수 있어 읽지 않는다
+  if (!n.missed && text) {
+    voice.setProcessing();
+    send({ type: 'voice_tts_request', text: text.slice(0, 400) });
+  }
+  fetchAgenda();  // 한 번 실행 알림은 울린 뒤 목록에서 빠진다
+}
+
+// 시스템 알림 권한은 사용자가 /schedule 을 쓸 때 묻는다(맥락 없는 권한 요청을 피한다)
+function askNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+  }
+}
 
 // ── Tools (system card) ───────────────────────────────────────────────────────
 const $toolsToggle = document.getElementById('tools-toggle');
@@ -862,6 +909,10 @@ function handleMessage(msg) {
       setTimeout(() => { setStatus('READY'); HUD.setState('idle'); }, 3000);
       break;
 
+    case 'reminder':
+      showNotice(msg);
+      break;
+
     case 'approval_request':
       showApproval(msg.id, msg.command, msg.reason);
       logActivity(`⚡ approval · ${msg.command || ''}`, 'tool');
@@ -1092,6 +1143,7 @@ function submitMessage() {
   setInputEnabled(false);
   send({ type: 'user_message', text });
   beginAwaitingReply();
+  if (/(^|\s)\/schedule\b/.test(text)) askNotificationPermission();
 }
 
 document.getElementById('composer').addEventListener('submit', (e) => {

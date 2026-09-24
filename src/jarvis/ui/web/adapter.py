@@ -28,6 +28,13 @@ class PerConnectionAdapter:
         except Exception:
             pass
 
+    async def send(self, payload: dict) -> None:
+        """임의 메시지를 이 연결로 보낸다(스케줄 알림 방송 등). 끊긴 연결이면 조용히 넘어간다."""
+        try:
+            await self._ws.send_json(payload)
+        except Exception:
+            pass
+
     async def on_stream_text(self, delta: str) -> None:
         try:
             await self._ws.send_json({"type": "stream_delta", "text": delta})

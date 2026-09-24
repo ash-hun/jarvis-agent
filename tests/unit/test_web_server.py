@@ -266,3 +266,32 @@ def test_tools_list_marks_approval_required(client):
     tools = {t["name"]: t for t in client.get("/api/tools").json()["tools"]}
     assert tools["bash"]["approval"] is True
     assert tools["read_file"]["approval"] is False
+
+
+def test_notice_without_open_hud_is_delivered_on_next_connect(agenda):
+    """열린 HUD 가 없을 때 울린 알림은 쌓였다가 다음 접속 때 missed 로 온다."""
+    import asyncio
+
+    client, _, scheduler = agenda
+    asyncio.run(scheduler._notify({"type": "reminder", "id": "n1", "text": "물 마시기"}))
+
+    with client.websocket_connect("/ws?session_id=default") as ws:
+        assert ws.receive_json()["type"] == "connected"
+        notice = ws.receive_json()
+    assert notice["type"] == "reminder" and notice["text"] == "물 마시기"
+    assert notice["missed"] is True
+
+
+def test_agenda_marks_once_reminders(agenda):
+    from datetime import datetime, timedelta
+
+    from jarvis.core.scheduler.task import ScheduledTask
+
+    client, _, scheduler = agenda
+    run_at = datetime.now().replace(microsecond=0) + timedelta(minutes=3)
+    scheduler.add_task(ScheduledTask(name="once-x", prompt="물 마시기", kind="reminder", run_at=run_at))
+
+    item = next(s for s in client.get("/api/agenda").json()["schedules"] if s["name"] == "once-x")
+    assert item["once"] is True and item["kind"] == "reminder"
+    assert item["next_run"].startswith(run_at.isoformat())
+

@@ -3,16 +3,18 @@ from __future__ import annotations
 import asyncio
 import base64
 import contextlib
+import json
 import time
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 if TYPE_CHECKING:
+    from jarvis.config import BrandConfig
     from jarvis.core.session import AgentSession
     from jarvis.ui.tui.startup import AppContext
     from jarvis.voice.service import VoiceService
@@ -299,11 +301,51 @@ def create_app(
         finally:
             unsubscribe()
 
+    # ── 브랜드: 에이전트별 워드마크·명언·색감 ────────────────────────────────
+    # 정적 셸은 에이전트와 무관하게 두고, 정체성은 이 두 라우트로만 주입한다.
+
+    @app.get("/brand.js")  # type: ignore[untyped-decorator]
+    async def brand_js() -> Response:
+        return Response(
+            render_brand_js(ctx.settings.brand),
+            media_type="application/javascript",
+            headers={"Cache-Control": "no-cache"},
+        )
+
+    @app.get("/manifest.json")  # type: ignore[untyped-decorator]
+    async def manifest() -> JSONResponse:
+        return JSONResponse(render_manifest(ctx.settings.brand))
+
     # static 파일 서빙 — WebSocket 라우트 등록 후 마운트
     if STATIC_DIR.exists():
         app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
 
     return app
+
+
+def render_brand_js(brand: BrandConfig) -> str:
+    """<head>에서 동기 로드되는 스크립트. 첫 페인트 전에 CSS 변수와 window.BRAND를 채운다."""
+    payload = json.dumps(brand.model_dump(), ensure_ascii=False)
+    return (
+        f"window.BRAND = {payload};\n"
+        "(function (p) {\n"
+        "  var s = document.documentElement.style;\n"
+        "  s.setProperty('--primary', p.primary);\n"
+        "  s.setProperty('--accent', p.accent);\n"
+        "  s.setProperty('--bg-0', p.background);\n"
+        "  p.nebula.forEach(function (c, i) { s.setProperty('--nebula-' + i, c); });\n"
+        "})(window.BRAND.palette);\n"
+    )
+
+
+def render_manifest(brand: BrandConfig) -> dict[str, Any]:
+    """정적 manifest.json을 바탕으로 이름·색만 에이전트 것으로 바꾼다."""
+    manifest: dict[str, Any] = json.loads((STATIC_DIR / "manifest.json").read_text("utf-8"))
+    manifest["name"] = f"{brand.name} · HUD"
+    manifest["short_name"] = brand.name
+    manifest["background_color"] = brand.palette.background
+    manifest["theme_color"] = brand.palette.background
+    return manifest
 
 
 async def _run_prompt(session: Any, adapter: Any, text: str) -> None:

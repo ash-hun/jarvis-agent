@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from jarvis.core.scheduler.task import ScheduledTask
@@ -26,8 +27,11 @@ class SchedulerService:
         tool_registry: ToolRegistry,
         model: ModelConfig,
         base_extra: dict[str, Any],
+        schedules_dir: str | None = None,
     ) -> None:
         self._tasks = tasks
+        # 설정되면 새 작업·토글을 이 디렉토리의 YAML 로 저장해 재시작 후에도 남긴다.
+        self._schedules_dir = schedules_dir
         self._session_repo = session_repo
         self._tool_registry = tool_registry
         self._model = model
@@ -41,6 +45,51 @@ class SchedulerService:
 
     def add_task(self, task: ScheduledTask) -> None:
         self._tasks.append(task)
+        if self._schedules_dir:
+            from jarvis.core.scheduler.loader import save_task
+
+            save_task(task, self._schedules_dir)
+
+    def list_tasks(self) -> list[ScheduledTask]:
+        """등록된 작업 전부(꺼진 것 포함). 호출부가 목록을 바꿔도 내부 상태는 안전하다."""
+        return list(self._tasks)
+
+    def get_task(self, name: str) -> ScheduledTask | None:
+        return next((t for t in self._tasks if t.name == name), None)
+
+    def set_enabled(self, name: str, enabled: bool) -> bool:
+        """작업을 켜거나 끈다. 파일에서 온 작업이면 원본 YAML 에도 반영한다. 없는 이름이면 False."""
+        task = self.get_task(name)
+        if task is None:
+            return False
+        task.enabled = enabled
+        if task._source is not None:
+            from jarvis.core.scheduler.loader import write_enabled
+
+            write_enabled(task)
+        elif self._schedules_dir:
+            from jarvis.core.scheduler.loader import save_task
+
+            save_task(task, self._schedules_dir)
+        return True
+
+    @staticmethod
+    def next_run(task: ScheduledTask, now: datetime | None = None) -> datetime | None:
+        """다음 실행 시각. 꺼졌거나, 마감(run_until) 이후이거나, cron 을 못 읽으면 None."""
+        if not task.enabled:
+            return None
+        try:
+            from croniter import croniter
+        except ImportError:
+            return None
+        now = now or datetime.now()
+        try:
+            nxt: datetime = croniter(task.schedule, now).get_next(datetime)
+        except Exception:
+            return None
+        if task.run_until is not None and nxt > task.run_until:
+            return None
+        return nxt
 
     async def start(self) -> None:
         if self._running:

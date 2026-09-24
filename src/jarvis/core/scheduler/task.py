@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 
 class ScheduledTask(BaseModel):
@@ -16,3 +17,7 @@ class ScheduledTask(BaseModel):
     enabled: bool = True
     description: str = ""
     run_until: datetime | None = None  # 이 시각 이후 자동 만료 (슬래시 명령용)
+
+    # 이 작업을 읽어 온(또는 저장한) YAML 파일. 토글을 원본 파일에 되쓰는 데 쓴다.
+    # 직렬화 대상이 아니다 — None 이면 아직 파일이 없는 메모리 전용 작업.
+    _source: Path | None = PrivateAttr(default=None)

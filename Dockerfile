@@ -12,7 +12,8 @@ RUN uv sync --frozen --no-dev
 # ── test stage ────────────────────────────────────────────────────────────────
 FROM base AS test
 
-RUN uv sync --frozen
+# web extra까지 설치해야 Web HUD(fastapi) 테스트가 skip·수집 오류 없이 실제로 돈다.
+RUN uv sync --frozen --extra web
 
 COPY tests/ tests/
 

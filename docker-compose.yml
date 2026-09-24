@@ -15,6 +15,8 @@ services:
     volumes:
       - ./tests:/app/tests
       - ./src:/app/src
+    # 프로필 없이 `up` 할 때 끼어들지 않도록 분리 — `docker compose run --rm test` 로 실행
+    profiles: ["test"]
     command: ["uv", "run", "pytest", "-v", "--no-header", "--tb=short"]
 
   # ── 특정 테스트만 실행: docker compose run --rm test-single ──────────────────
@@ -49,6 +51,7 @@ services:
       timeout: 3s
       retries: 10
       start_period: 10s
+    restart: unless-stopped
     profiles: ["app", "web"]
 
   # ── TUI 실행 ─────────────────────────────────────────────────────────────────
@@ -91,9 +94,13 @@ services:
       JARVIS_SESSION__POSTGRES_DSN: ${JARVIS_SESSION__POSTGRES_DSN:-postgresql://jarvis:jarvis@postgres:5432/jarvis}
     volumes:
       - jarvis_data:/root/.jarvis
+      # 로컬 코드를 그대로 쓴다 — 파이썬 수정 후 이미지 재빌드 없이
+      # `docker compose restart jarvis-backend` 만으로 반영된다.
+      - ./src:/app/src
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
     profiles: ["web"]
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('localhost', 7777), timeout=2); s.close()"]
@@ -113,6 +120,7 @@ services:
     depends_on:
       jarvis-backend:
         condition: service_healthy
+    restart: unless-stopped
     profiles: ["web"]
 
 volumes:

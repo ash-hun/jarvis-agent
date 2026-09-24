@@ -338,6 +338,111 @@ class TestSchedulerNextRun:
 # ── 한 번 실행 알림 (/schedule ~에) ──────────────────────────────────────────
 
 
+class TestParseOnce:
+    def setup_method(self):
+        from datetime import datetime
+
+        self.now = datetime(2026, 9, 24, 18, 57, 30)
+
+    def _parse(self, text, now=None):
+        from jarvis.core.slash.schedule_cmd import parse_once
+
+        return parse_once(text, now or self.now)
+
+    def test_relative_minutes(self):
+        from datetime import timedelta
+
+        at, prompt = self._parse("3분 뒤에 물 마시기")
+        assert at == (self.now + timedelta(minutes=3)).replace(microsecond=0)
+        assert prompt == "물 마시기"
+
+    def test_relative_hours_without_particle(self):
+        from datetime import timedelta
+
+        at, prompt = self._parse("1시간 후 스트레칭")
+        assert at == self.now + timedelta(hours=1)
+        assert prompt == "스트레칭"
+
+    def test_ampm_today_when_still_ahead(self):
+        from datetime import datetime
+
+        at, prompt = self._parse("오후 7시에 알림 하나줘.")
+        assert at == datetime(2026, 9, 24, 19, 0)
+        assert prompt == "알림 하나줘."
+
+    def test_time_already_passed_without_day_rolls_to_tomorrow(self):
+        from datetime import datetime
+
+        at, _ = self._parse("오후 6시에 퇴근")
+        assert at == datetime(2026, 9, 25, 18, 0)
+
+    def test_tomorrow_with_minutes(self):
+        from datetime import datetime
+
+        at, prompt = self._parse("내일 오전 9시 30분에 오늘 뉴스 요약해줘")
+        assert at == datetime(2026, 9, 25, 9, 30)
+        assert prompt == "오늘 뉴스 요약해줘"
+
+    def test_24h_clock(self):
+        from datetime import datetime
+
+        at, _ = self._parse("19:05에 회의")
+        assert at == datetime(2026, 9, 24, 19, 5)
+
+    def test_full_date(self):
+        from datetime import datetime
+
+        at, _ = self._parse("2026.10.01 오후 7시에 보고서")
+        assert at == datetime(2026, 10, 1, 19, 0)
+
+    def test_until_is_not_once(self):
+        assert self._parse("2026.10.01 오후 7시까지 자료 수집") is None
+
+
+class TestScheduleOnceHandler:
+    def _scheduler(self):
+        s = MagicMock()
+        s.add_task = MagicMock()
+        return s
+
+    async def test_registers_once_task_with_classified_kind(self):
+        from jarvis.core.slash.schedule_cmd import make_schedule_handler
+
+        scheduler = self._scheduler()
+        classify = AsyncMock(return_value="task")
+        out = await make_schedule_handler(scheduler, classify)("10분 뒤에 오늘 뉴스 요약해줘")
+
+        task = scheduler.add_task.call_args[0][0]
+        assert task.run_at is not None and task.schedule == ""
+        assert task.kind == "task"
+        assert task.prompt == "오늘 뉴스 요약해줘"
+        classify.assert_awaited_once_with("오늘 뉴스 요약해줘")
+        assert "한 번 실행 등록 완료" in out and "작업" in out
+
+    async def test_without_classifier_defaults_to_reminder(self):
+        from jarvis.core.slash.schedule_cmd import make_schedule_handler
+
+        scheduler = self._scheduler()
+        await make_schedule_handler(scheduler)("5분 뒤에 물 마시기")
+        assert scheduler.add_task.call_args[0][0].kind == "reminder"
+
+    async def test_classifier_failure_falls_back_to_reminder(self):
+        from jarvis.core.slash.schedule_cmd import make_schedule_handler
+
+        scheduler = self._scheduler()
+        classify = AsyncMock(side_effect=RuntimeError("llm down"))
+        await make_schedule_handler(scheduler, classify)("5분 뒤에 물 마시기")
+        assert scheduler.add_task.call_args[0][0].kind == "reminder"
+
+    async def test_past_time_rejected(self):
+        from jarvis.core.slash.schedule_cmd import make_schedule_handler
+
+        scheduler = self._scheduler()
+        out = await make_schedule_handler(scheduler)("2020.01.01 오전 9시에 x")
+        assert "이미 지났" in out
+        scheduler.add_task.assert_not_called()
+
+
 class TestSchedulerOnceFiring:
     def _svc(self, tasks, tmp_path=None):
         svc = _service(tasks, schedules_dir=str(tmp_path) if tmp_path else None)

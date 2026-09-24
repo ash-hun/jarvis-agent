@@ -12,8 +12,9 @@ RUN uv sync --frozen --no-dev
 # ── test stage ────────────────────────────────────────────────────────────────
 FROM base AS test
 
-# web extra까지 설치해야 Web HUD(fastapi) 테스트가 skip·수집 오류 없이 실제로 돈다.
-RUN uv sync --frozen --extra web
+# web·scheduler extra까지 설치해야 Web HUD(fastapi)·스케줄러(croniter) 테스트가
+# skip·수집 오류 없이 실제로 돈다.
+RUN uv sync --frozen --extra web --extra scheduler
 
 COPY tests/ tests/
 
@@ -42,7 +43,8 @@ CMD ["jarvis"]
 # ── runtime-web stage (Web HUD backend) ───────────────────────────────────────
 FROM base AS runtime-web
 
-RUN uv sync --frozen --extra web --no-dev
+# scheduler extra(croniter)가 없으면 스케줄러가 조용히 꺼지고 HUD Agenda 의 다음 실행 시각도 비는다.
+RUN uv sync --frozen --extra web --extra scheduler --no-dev
 
 COPY . .
 

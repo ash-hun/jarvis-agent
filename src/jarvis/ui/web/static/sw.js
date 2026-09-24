@@ -6,7 +6,7 @@
  *  - SHELL_VERSION 을 올리면 이전 캐시가 activate 단계에서 정리된다.
  *    index.html 의 ?v= 쿼리와 반드시 같이 올린다.
  */
-const SHELL_VERSION = '2026090201';
+const SHELL_VERSION = '2026092404';
 const CACHE = `jarvis-shell-${SHELL_VERSION}`;
 
 const SHELL = [
@@ -16,6 +16,9 @@ const SHELL = [
   `hud.js?v=${SHELL_VERSION}`,
   `voice.js?v=${SHELL_VERSION}`,
   `app.js?v=${SHELL_VERSION}`,
+  `sphere.js?v=${SHELL_VERSION}`,
+  'vendor/three/three.module.min.js',
+  'vendor/three/three.core.js',
   'manifest.json',
   'icons/icon-192.png',
   'icons/icon-512.png',
@@ -46,8 +49,9 @@ function isShellRequest(url) {
     path === '' ||
     path === 'index.html' ||
     path === 'manifest.json' ||
-    /^(styles\.css|hud\.js|voice\.js|app\.js)$/.test(path) ||
-    path.startsWith('icons/')
+    /^(styles\.css|hud\.js|voice\.js|app\.js|sphere\.js)$/.test(path) ||
+    path.startsWith('icons/') ||
+    path.startsWith('vendor/')
   );
 }
 

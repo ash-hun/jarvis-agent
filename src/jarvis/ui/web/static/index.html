@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>JARVIS · HUD</title>
+  <title>HUD</title>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#02060c">
-  <meta name="description" content="Iron Man 스타일 개인 비서 에이전트 HUD">
+  <meta name="description" content="개인 비서 에이전트 HUD">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,15 +17,19 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026090201">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,400;1,500&family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=2026092404">
+  <!-- 에이전트 브랜드(이름·명언·색). 동기 로드 — 첫 페인트 전에 CSS 변수를 채운다. -->
+  <script src="brand.js"></script>
 </head>
 <body>
+
+<canvas class="starfield" id="starfield" aria-hidden="true"></canvas>
 
 <!-- HEADER -->
 <header class="header">
   <div class="left">
-    <button class="drawer-btn" id="drawer-btn" type="button" aria-label="세션 목록 열기" aria-expanded="false">
+    <button class="drawer-btn" id="drawer-btn" type="button" aria-label="패널 열기" aria-expanded="false">
       <span class="bars"></span>
     </button>
     <span class="corner"><span class="corner-bracket"></span> SYS:ONLINE</span>
@@ -33,7 +37,7 @@
   </div>
   <div class="center">
     <span class="tick" id="tick"></span>
-    <span class="agent-name">JARVIS</span>
+    <span class="agent-name" data-brand="name">J.A.R.V.I.S.</span>
   </div>
   <div class="right">
     <span class="status-pill" id="status-pill">
@@ -43,102 +47,87 @@
   </div>
 </header>
 
-<!-- MAIN STAGE -->
+<!-- MAIN STAGE — 가운데 리액터, 좌우 HUD 카드 -->
 <main class="stage">
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="panel-head">
-      <span>· SESSIONS</span>
-      <span class="count" id="session-count">01</span>
-      <button class="new-session-btn" id="new-session-btn" title="새 세션">+</button>
-      <button class="collapse-btn" id="collapse-btn" title="사이드바 접기">
-        <span class="chev">‹</span>
-      </button>
+  <!-- REACTOR -->
+  <section class="reactor">
+    <div class="sphere-wrap">
+      <!-- 레이어(아래→위): 입자 구(WebGL) → 링·어둡게 처리(2D) → 워드마크 -->
+      <canvas id="sphere-gl" class="sphere-gl" aria-hidden="true"></canvas>
+      <canvas id="hud-canvas" class="sphere-canvas"></canvas>
+      <div class="reactor-wordmark" data-brand="name">J.A.R.V.I.S.</div>
+      <div class="sphere-hit" id="sphere-hit" title="voice mode 토글"></div>
     </div>
-    <div class="session-list" id="session-list">
-      <div class="session active" id="current-session">
-        <span class="marker"></span>
-        <span class="title" id="session-title">—</span>
-        <span class="meta">NOW</span>
-      </div>
-    </div>
-
-    <div class="tools-section">
-      <div class="panel-head" style="margin-top:6px">
-        <span>· TOOLS</span>
-      </div>
-      <div class="tools-list">
-        <div class="row"><span>bash</span><b>on</b></div>
-        <div class="row"><span>read_file</span><b>on</b></div>
-        <div class="row"><span>tts.kr</span><span class="off">off</span></div>
-      </div>
-    </div>
-
-    <!-- USAGE DASHBOARD -->
-    <div class="usage-section">
-      <div class="panel-head usage-toggle" id="usage-toggle" title="클릭해서 접기/펼치기">
-        <span>· USAGE</span>
-        <span class="usage-total" id="usage-total-tokens">0 tok</span>
-      </div>
-      <div class="usage-body" id="usage-body">
-        <div class="usage-row"><span class="uk">IN</span><span class="uv" id="u-in">0</span></div>
-        <div class="usage-row"><span class="uk">OUT</span><span class="uv" id="u-out">0</span></div>
-        <div class="usage-row"><span class="uk">C↓</span><span class="uv" id="u-cr">0</span></div>
-        <div class="usage-row"><span class="uk">C↑</span><span class="uv" id="u-cw">0</span></div>
-        <div class="usage-sep"></div>
-        <div class="usage-row"><span class="uk">COST</span><span class="uv cost-val" id="u-cost">$0.0000</span></div>
-        <div class="usage-sparkline" id="usage-sparkline"></div>
-      </div>
-    </div>
-
-    <div class="sidebar-foot">
-      <div class="row"><span>BUILD</span><b>0.1.0</b></div>
-      <div class="row"><span>MODEL</span><b id="sb-model">—</b></div>
-    </div>
-  </aside>
-
-  <!-- CHAT -->
-  <section class="chat">
-    <div class="chat-head">
-      <div class="tabs">
-        <span class="tab on">CHAT</span>
-        <span class="tab">LOG</span>
-        <span class="tab">TRACE</span>
-      </div>
-      <div class="right">
-        <span>SESSION : <b id="session-id-label" style="color:var(--cyan)">—</b></span>
-        <span>·</span>
-        <span><span id="msg-count">0</span> MSG</span>
-      </div>
-    </div>
-
-    <div class="messages" id="messages"></div>
-
-    <!-- COMPOSER -->
-    <form class="composer" id="composer">
-      <label class="field-wrap">
-        <span class="prompt">&gt;_</span>
-        <div class="input-wrapper">
-          <!-- Slash command popup (positioned above input) -->
-          <div class="slash-popup hidden" id="slash-popup" role="listbox" aria-label="slash commands"></div>
-          <!-- Highlight overlay: renders colored /command tokens behind the input -->
-          <div class="input-highlight" id="input-highlight" aria-hidden="true">
-            <span id="input-highlight-inner"></span>
-          </div>
-          <input
-            id="chat-input"
-            type="text"
-            placeholder="중앙 어시스턴트를 눌러 voice mode를 활성화하거나 메시지를 입력하세요."
-            autocomplete="off"
-            spellcheck="false"
-          >
-        </div>
-      </label>
-      <button class="send-btn" id="send-btn" type="submit">SEND ⏎</button>
-    </form>
+    <div class="reactor-status" id="reactor-status" data-state="idle">ACTIVE</div>
+    <p class="reactor-caption quote" id="reactor-caption" aria-live="polite"></p>
   </section>
+
+  <!-- CONVERSATION (접히는 카드) -->
+  <section class="hud-card chat-card">
+    <div class="panel-head" id="chat-toggle" title="클릭해서 접기/펼치기">
+      <span class="chev">▾</span>
+      <span>Conversation</span>
+      <span class="count"><span id="msg-count">0</span> MSG</span>
+    </div>
+    <div class="messages" id="messages"></div>
+  </section>
+
+  <!-- 데스크탑에선 그리드에 직접 참여, 좁은 화면에선 드로어 -->
+  <div class="hud-side" id="hud-side">
+    <section class="hud-card sessions-card">
+      <div class="panel-head">
+        <span>Sessions</span>
+        <span class="count" id="session-count">01</span>
+        <button class="icon-btn" id="new-session-btn" type="button" title="새 세션">+</button>
+      </div>
+      <div class="session-list" id="session-list"></div>
+    </section>
+
+    <section class="hud-card log-card">
+      <div class="panel-head"><span>Activity</span><span class="count">LOG</span></div>
+      <ol class="activity-log" id="activity-log"></ol>
+    </section>
+
+    <section class="hud-card system-card">
+      <div class="panel-head"><span>System</span><span class="count" id="uptime">00:00:00</span></div>
+      <dl class="stat-grid">
+        <dt>Model</dt><dd id="sys-model">—</dd>
+        <dt>Session</dt><dd id="session-id-label">—</dd>
+        <dt>Tokens</dt><dd id="usage-total-tokens">0</dd>
+        <dt class="sep">In</dt><dd class="sep" id="u-in">0</dd>
+        <dt>Out</dt><dd id="u-out">0</dd>
+        <dt>Cache↓</dt><dd id="u-cr">0</dd>
+        <dt>Cache↑</dt><dd id="u-cw">0</dd>
+        <dt>Cost</dt><dd class="cost-val" id="u-cost">$0.0000</dd>
+      </dl>
+      <div class="usage-sparkline" id="usage-sparkline"></div>
+    </section>
+  </div>
 </main>
+
+<!-- COMPOSER DOCK -->
+<form class="composer" id="composer">
+  <label class="field-wrap">
+    <span class="prompt">&gt;_</span>
+    <div class="input-wrapper">
+      <!-- Slash command popup (positioned above input) -->
+      <div class="slash-popup hidden" id="slash-popup" role="listbox" aria-label="slash commands"></div>
+      <!-- Highlight overlay: renders colored /command tokens behind the input -->
+      <div class="input-highlight" id="input-highlight" aria-hidden="true">
+        <span id="input-highlight-inner"></span>
+      </div>
+      <input
+        id="chat-input"
+        type="text"
+        placeholder="리액터를 눌러 voice mode를 켜거나 메시지를 입력하세요."
+        autocomplete="off"
+        spellcheck="false"
+      >
+    </div>
+  </label>
+  <button class="send-btn" id="send-btn" type="submit">SEND ⏎</button>
+</form>
 
 <!-- MOBILE DRAWER SCRIM -->
 <div class="drawer-scrim" id="drawer-scrim" hidden></div>
@@ -160,28 +149,6 @@
   </div>
 </aside>
 
-<!-- FOOTER -->
-<footer class="footer">
-  <div class="foot-stats left">
-    <div class="fstat"><span class="k">MSG</span><span class="v" id="ft-msg">0</span></div>
-    <div class="fstat"><span class="k">BUILD</span><span class="v">0.1.0</span></div>
-  </div>
-
-  <div class="sphere-wrap">
-    <div class="sphere-ring"></div>
-    <div class="sphere-ring r2"></div>
-    <canvas id="hud-canvas" class="sphere-canvas"></canvas>
-    <div class="sphere-hit" id="sphere-hit" title="voice mode 토글"></div>
-  </div>
-
-  <div class="foot-stats right">
-    <div class="fstat"><span class="k">TOKENS</span><span class="v" id="ft-tokens">0</span></div>
-    <div class="fstat"><span class="k">MODE</span><span class="v">LOCAL</span></div>
-    <div class="fstat"><span class="k">UPTIME</span><span class="v" id="ft-uptime">00:00:00</span></div>
-    <div class="fstat"><span class="k">MODEL</span><span class="v" id="ft-model">—</span></div>
-  </div>
-</footer>
-
 <!-- APPROVAL MODAL -->
 <div class="approval-overlay hidden" id="approval-overlay">
   <div class="approval-box">
@@ -198,12 +165,19 @@
 
 <!-- CONNECTION BANNER -->
 <div class="connection-banner hidden" id="connection-banner">
-  ⚠ JARVIS 연결 끊김 — 재연결 중...
+  ⚠ <span data-brand="name">J.A.R.V.I.S.</span> 연결 끊김 — 재연결 중...
 </div>
 
-<script src="hud.js?v=2026090201"></script>
-<script src="voice.js?v=2026090201"></script>
-<script src="app.js?v=2026090201"></script>
+<script type="importmap">
+  { "imports": {
+      "three": "./vendor/three/three.module.min.js"
+  } }
+</script>
+<script src="hud.js?v=2026092404"></script>
+<script src="voice.js?v=2026092404"></script>
+<script src="app.js?v=2026092404"></script>
+<!-- 모듈은 defer — hud.js 의 window.HUD 가 준비된 뒤 실행된다 -->
+<script type="module" src="sphere.js?v=2026092404"></script>
 
 <!-- PWA: service worker 등록 (http/https에서만, 실패해도 앱 동작엔 영향 없음) -->
 <script>

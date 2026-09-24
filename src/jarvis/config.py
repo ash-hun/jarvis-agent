@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -74,6 +74,34 @@ class UIConfig(BaseSettings):
     mode: Literal["tui", "web"] = "tui"
     theme: str = "dark"
     show_thinking: bool = True
+
+
+HexColor = Annotated[str, Field(pattern=r"^#[0-9a-fA-F]{6}$")]
+
+
+class BrandPalette(BaseModel):
+    """에이전트 색감. 나머지 톤(밝은/어두운 변형, 반투명 선)은 UI가 여기서 유도한다."""
+
+    primary: HexColor = "#5fc8e2"  # 선·링·텍스트 강조의 주색
+    accent: HexColor = "#f0b35f"  # 경고·인디케이터 보조색
+    background: HexColor = "#02060c"  # 화면 바탕
+    nebula: list[HexColor] = Field(  # 리액터 코어 성운 입자 색 (안쪽 → 바깥)
+        default_factory=lambda: ["#3a5bff", "#8a4dff", "#ff6ad5"]
+    )
+
+
+class BrandConfig(BaseSettings):
+    """에이전트 정체성 — 워드마크·명언·색감. 에이전트마다 다르게 둔다.
+
+    지금은 env(JARVIS_BRAND__*)로 한 에이전트분을 읽는다. 한 서버에 여러 에이전트를
+    띄우게 되면 에이전트별 파일에서 이 모델을 채우는 로더만 추가하면 된다.
+    """
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    name: str = "J.A.R.V.I.S."
+    quote: str = "Proof the Heart"
+    palette: BrandPalette = Field(default_factory=BrandPalette)
 
 
 class PluginConfig(BaseSettings):
@@ -206,6 +234,7 @@ class JarvisSettings(BaseSettings):
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
     session: SessionConfig = Field(default_factory=SessionConfig)
     ui: UIConfig = Field(default_factory=UIConfig)
+    brand: BrandConfig = Field(default_factory=BrandConfig)
     plugin: PluginConfig = Field(default_factory=PluginConfig)
     scheduler: SchedulerConfig = Field(default_factory=SchedulerConfig)
     agents: AgentConfig = Field(default_factory=AgentConfig)

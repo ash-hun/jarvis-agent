@@ -65,3 +65,29 @@ def test_security_config_defaults(monkeypatch):
     assert "user" in settings.security.allowed_roles
     assert settings.security.input_max_length == 10_000
     assert len(settings.security.dangerous_commands) > 0
+
+
+def test_brand_defaults():
+    settings = JarvisSettings()
+    assert settings.brand.name == "J.A.R.V.I.S."
+    assert settings.brand.quote == "Proof the Heart"
+    assert settings.brand.palette.primary == "#5fc8e2"
+    assert len(settings.brand.palette.nebula) == 3
+
+
+def test_brand_env_override(monkeypatch):
+    monkeypatch.setenv("JARVIS_BRAND__NAME", "F.R.I.D.A.Y.")
+    monkeypatch.setenv("JARVIS_BRAND__PALETTE__PRIMARY", "#ff7a45")
+    monkeypatch.setenv("JARVIS_BRAND__PALETTE__NEBULA", '["#ff4b2b", "#ffb347"]')
+    settings = JarvisSettings()
+    assert settings.brand.name == "F.R.I.D.A.Y."
+    assert settings.brand.palette.primary == "#ff7a45"
+    assert settings.brand.palette.nebula == ["#ff4b2b", "#ffb347"]
+
+
+def test_brand_rejects_non_hex_color(monkeypatch):
+    from pydantic import ValidationError
+
+    monkeypatch.setenv("JARVIS_BRAND__PALETTE__PRIMARY", "cyan")
+    with pytest.raises(ValidationError):
+        JarvisSettings()

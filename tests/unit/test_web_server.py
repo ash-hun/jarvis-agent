@@ -147,3 +147,29 @@ def test_shell_precache_version_matches_asset_query(client):
     version = re.search(r"SHELL_VERSION = '(\d+)'", sw).group(1)
     assert f"app.js?v={version}" in html
     assert f"styles.css?v={version}" in html
+
+
+# ── 브랜드 (에이전트별 이름·명언·색) ─────────────────────────────────────────
+
+
+def test_brand_js_carries_settings_and_sets_css_vars(client):
+    resp = client.get("/brand.js")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("application/javascript")
+    assert resp.headers["cache-control"] == "no-cache"
+    body = resp.text
+    assert '"name": "J.A.R.V.I.S."' in body
+    assert '"quote": "Proof the Heart"' in body
+    assert "setProperty('--primary'" in body
+
+
+def test_manifest_uses_brand_name_and_background(client):
+    manifest = client.get("/manifest.json").json()
+    assert manifest["short_name"] == "J.A.R.V.I.S."
+    assert manifest["theme_color"] == "#02060c"
+
+
+def test_brand_js_loads_before_hud_scripts(client):
+    """brand.js가 hud.js보다 늦게 오면 리액터가 기본 색으로 그려진다."""
+    html = client.get("/").text
+    assert html.index('src="brand.js"') < html.index('src="hud.js')

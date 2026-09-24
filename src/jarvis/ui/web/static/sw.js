@@ -6,7 +6,7 @@
  *  - SHELL_VERSION 을 올리면 이전 캐시가 activate 단계에서 정리된다.
  *    index.html 의 ?v= 쿼리와 반드시 같이 올린다.
  */
-const SHELL_VERSION = '2026092404';
+const SHELL_VERSION = '2026092502';
 const CACHE = `jarvis-shell-${SHELL_VERSION}`;
 
 const SHELL = [

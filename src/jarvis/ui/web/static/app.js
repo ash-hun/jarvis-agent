@@ -327,6 +327,146 @@ function resetUsage() {
   renderUsagePanel();
 }
 
+// ── Agenda (스케줄 + open loops) ──────────────────────────────────────────────
+// 서버에 변경 이벤트가 없으므로 접속·inner thought·응답 종료·조작 직후, 그리고 1분마다
+// 다시 불러온다(다음 실행 시각이 흘러가므로).
+const $scheduleList = document.getElementById('schedule-list');
+const $openloopList = document.getElementById('openloop-list');
+const $agendaCount  = document.getElementById('agenda-count');
+
+// 오늘이면 HH:MM, 내일이면 '내일 HH:MM', 그 뒤면 'M/D HH:MM'. 24시간 안이면 남은 시간도.
+function fmtWhen(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const dayDiff = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) -
+                              new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+  const day = dayDiff === 0 ? '' : dayDiff === 1 ? '내일 ' : `${d.getMonth() + 1}/${d.getDate()} `;
+  const mins = Math.round((d - now) / 60000);
+  const left = mins < 60 ? `${Math.max(mins, 0)}분 후` : mins < 1440 ? `${Math.round(mins / 60)}시간 후` : '';
+  return `${day}${hm}${left ? ' · ' + left : ''}`;
+}
+
+function agendaItem(text, when, cls = '') {
+  const li = document.createElement('li');
+  li.className = `agenda-item ${cls}`.trim();
+  li.innerHTML = '<div class="what"><span class="txt"></span><span class="when"></span></div><div class="acts"></div>';
+  li.querySelector('.txt').textContent = text;
+  li.querySelector('.what').title = text;
+  li.querySelector('.when').textContent = when;
+  return li;
+}
+
+function renderAgenda({ schedules = [], open_loops = [] }) {
+  $scheduleList.innerHTML = '';
+  for (const t of schedules) {
+    let when = t.next_run ? fmtWhen(t.next_run) : (t.enabled ? '다음 실행 없음' : '꺼짐');
+    if (t.run_until) {
+      const u = new Date(t.run_until);
+      when += ` · ~${u.getMonth() + 1}/${u.getDate()} ${String(u.getHours()).padStart(2, '0')}:${String(u.getMinutes()).padStart(2, '0')}`;
+    }
+    // /schedule 로 만든 작업의 description 은 자동 문구라, 사용자가 쓴 프롬프트를 보여준다
+    const label = t.name.startsWith('slash-') ? t.prompt : (t.description || t.prompt || t.name);
+    const li = agendaItem(label, when, t.enabled ? '' : 'off');
+    const sw = document.createElement('button');
+    sw.type = 'button';
+    sw.className = 'switch';
+    sw.setAttribute('role', 'switch');
+    sw.setAttribute('aria-checked', String(t.enabled));
+    sw.setAttribute('aria-label', `${t.name} ${t.enabled ? '끄기' : '켜기'}`);
+    sw.addEventListener('click', () => toggleSchedule(t.name, !t.enabled));
+    li.querySelector('.acts').appendChild(sw);
+    $scheduleList.appendChild(li);
+  }
+
+  $openloopList.innerHTML = '';
+  for (const lp of open_loops) {
+    const when = lp.due_ms ? `기한 ${fmtWhen(new Date(lp.due_ms).toISOString())}` : '';
+    const li = agendaItem(lp.description, when);
+    for (const [status, label, cls] of [['done', '✓', 'done'], ['dismissed', '✕', 'dismiss']]) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `icon-btn ${cls}`;
+      b.textContent = label;
+      b.title = status === 'done' ? '완료' : '무시';
+      b.addEventListener('click', () => closeOpenLoop(lp, status, li));
+      li.querySelector('.acts').appendChild(b);
+    }
+    $openloopList.appendChild(li);
+  }
+
+  const active = schedules.filter(t => t.enabled).length + open_loops.length;
+  $agendaCount.textContent = String(active).padStart(2, '0');
+}
+
+async function fetchAgenda() {
+  try {
+    const res = await fetch('/api/agenda');
+    if (res.ok) renderAgenda(await res.json());
+  } catch (e) {
+    console.warn('agenda fetch failed:', e);
+  }
+}
+
+async function closeOpenLoop(loop, status, li) {
+  li.classList.add('leaving');
+  const res = await fetch(`/api/openloops/${encodeURIComponent(loop.id)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  }).catch(() => null);
+  if (res && res.ok) {
+    logActivity(`${status === 'done' ? '✓ 완료' : '✕ 무시'} · ${loop.description}`, status === 'done' ? 'ok' : '');
+  } else {
+    logActivity(`open loop 처리 실패 · ${loop.description}`, 'err');
+  }
+  fetchAgenda();
+}
+
+async function toggleSchedule(name, enabled) {
+  const res = await fetch(`/api/schedules/${encodeURIComponent(name)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  }).catch(() => null);
+  logActivity(res && res.ok ? `⏱ ${name} ${enabled ? '켜짐' : '꺼짐'}` : `스케줄 변경 실패 · ${name}`, res && res.ok ? '' : 'err');
+  fetchAgenda();
+}
+
+setInterval(fetchAgenda, 60000);
+
+// ── Tools (system card) ───────────────────────────────────────────────────────
+const $toolsToggle = document.getElementById('tools-toggle');
+const $toolsList   = document.getElementById('tools-list');
+
+async function fetchTools() {
+  try {
+    const res = await fetch('/api/tools');
+    if (!res.ok) return;
+    const { tools } = await res.json();
+    document.getElementById('tools-count').textContent = tools.length;
+    $toolsList.innerHTML = '';
+    for (const t of tools) {
+      const li = document.createElement('li');
+      li.innerHTML = '<span class="lock"></span><span class="nm"></span><span class="ds"></span>';
+      li.querySelector('.lock').textContent = t.approval ? '🔒' : '·';
+      li.querySelector('.nm').textContent = t.name;
+      li.querySelector('.ds').textContent = t.description;
+      li.title = `${t.name}${t.approval ? ' (실행 전 승인 필요)' : ''}\n${t.description}`;
+      $toolsList.appendChild(li);
+    }
+  } catch (e) {
+    console.warn('tools fetch failed:', e);
+  }
+}
+
+$toolsToggle.addEventListener('click', () => {
+  const open = $toolsToggle.getAttribute('aria-expanded') !== 'true';
+  $toolsToggle.setAttribute('aria-expanded', String(open));
+  $toolsList.hidden = !open;
+});
+
 // ── Streaming assistant message ───────────────────────────────────────────────
 let _streamDiv      = null;
 let _streamText     = '';
@@ -557,6 +697,8 @@ function handleMessage(msg) {
       $sysModel.textContent       = model;
       $sysModel.title             = model;
       logActivity(`session ${sid} linked`, 'ok');
+      fetchAgenda();
+      fetchTools();
       if (msg.sessions) renderSessions(msg.sessions);
       if (msg.slash_commands) _slashCmds = msg.slash_commands;
       if (msg.voice && msg.voice.stt_mode) voice.setSttMode(msg.voice.stt_mode);
@@ -594,6 +736,7 @@ function handleMessage(msg) {
         streamEnd();
         setStatus('READY');
         HUD.setState('idle');
+        fetchAgenda();  // 이번 턴의 inner thought 가 open loop 를 남겼을 수 있다
         const usage = msg.final_message?.usage;
         if (usage) updateUsage(usage);
         if (_voiceMode && _lastStreamText) {
@@ -665,6 +808,7 @@ function handleMessage(msg) {
       break;
 
     case 'inner_thought': {
+      fetchAgenda();
       // 메인 응답과 구분된 메타인지 라인 (💭). interpretation이 없으면 표시 생략.
       const interp = (msg.interpretation || '').trim();
       if (interp) {

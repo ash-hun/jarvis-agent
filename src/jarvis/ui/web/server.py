@@ -5,6 +5,7 @@ import base64
 import contextlib
 import json
 import time
+from collections import deque
 from datetime import datetime
 import uuid
 from pathlib import Path
@@ -197,6 +198,22 @@ def create_app(
         ]
         return JSONResponse({"commands": cmds})
 
+    # ── 스케줄 알림 방송 ──────────────────────────────────────────────────────
+    # 스케줄 실행 결과를 열린 HUD 전부에 보낸다. 열린 HUD 가 없으면 최근 20건을 쌓아
+    # 두었다가 다음 접속 때 missed 로 보낸다(메모리에만 — 서버 재시작 시 사라진다).
+    live_clients: set[Any] = set()
+    pending_notices: deque[dict[str, Any]] = deque(maxlen=20)
+
+    async def broadcast_notice(payload: dict[str, Any]) -> None:
+        if not live_clients:
+            pending_notices.append(payload)
+            return
+        for adapter in list(live_clients):
+            await adapter.send(payload)
+
+    if ctx.scheduler is not None:
+        ctx.scheduler.set_notifier(broadcast_notice)
+
     # ── REST: Agenda(스케줄 + open loops) / 도구 ─────────────────────────────
     # HUD 오른쪽 카드가 쓴다. 변경 이벤트가 따로 없으므로 프론트가 접속·응답 종료·
     # 조작 직후에 다시 불러온다.
@@ -215,6 +232,8 @@ def create_app(
                     "description": task.description,
                     "prompt": task.prompt[:160],
                     "schedule": task.schedule,
+                    "kind": task.kind,
+                    "once": task.run_at is not None,
                     "enabled": task.enabled,
                     # 서버 로컬 시간대 오프셋을 붙인다 — 브라우저가 어느 시간대에 있든 같은 순간을 가리키게
                     "next_run": nxt.astimezone().isoformat() if nxt else None,
@@ -322,6 +341,11 @@ def create_app(
                 },
             })
 
+            # 스케줄 알림 방송 대상에 넣고, 아무도 없을 때 쌓인 알림을 먼저 보낸다
+            live_clients.add(adapter)
+            while pending_notices:
+                await adapter.send({**pending_notices.popleft(), "missed": True})
+
             while True:
                 msg = await ws.receive_json()
                 msg_type = msg.get("type", "")
@@ -358,6 +382,10 @@ def create_app(
                     lang = msg.get("lang", ctx.settings.voice.tts_lang)
                     if text and voice_service:
                         asyncio.create_task(_run_tts(ws, voice_service, text, lang))
+                    elif text:
+                        # 음성 서비스가 없으면 브라우저가 직접 읽게 돌려준다 — 응답이 없으면
+                        # HUD 가 '음성 처리 중' 상태에 멈춘다
+                        await ws.send_json({"type": "voice_tts_audio", "data": "", "text": text})
 
                 elif msg_type == "voice_stt_submit":
                     data = msg.get("data", "")
@@ -371,6 +399,7 @@ def create_app(
         except WebSocketDisconnect:
             pass
         finally:
+            live_clients.discard(adapter)
             unsubscribe()
 
     # ── 브랜드: 에이전트별 워드마크·명언·색감 ────────────────────────────────

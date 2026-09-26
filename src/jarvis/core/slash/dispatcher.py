@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.core.scheduler.service import SchedulerService
+    from jarvis.core.slash.schedule_cmd import Classifier
 
 # /command at start-of-string or after whitespace.
 # Negative lookbehind (?<!\S) prevents matching paths inside URLs (http://host/path).
@@ -33,10 +34,14 @@ class SlashCommandDispatcher:
     새 명령은 register()로 동적 추가 가능.
     """
 
-    def __init__(self, scheduler: SchedulerService | None = None) -> None:
+    def __init__(
+        self,
+        scheduler: SchedulerService | None = None,
+        schedule_classifier: Classifier | None = None,
+    ) -> None:
         self._handlers: dict[str, Handler] = {}
         self._descriptions: dict[str, str] = {}
-        self._register_builtins(scheduler)
+        self._register_builtins(scheduler, schedule_classifier)
 
     def register(self, name: str, handler: Handler, description: str = "") -> None:
         """새 슬래시 명령을 등록한다."""
@@ -104,13 +109,15 @@ class SlashCommandDispatcher:
         remaining = "".join(remaining_parts).strip()
         return remaining, commands
 
-    def _register_builtins(self, scheduler: SchedulerService | None) -> None:
+    def _register_builtins(
+        self, scheduler: SchedulerService | None, classifier: Classifier | None,
+    ) -> None:
         from jarvis.core.slash.schedule_cmd import make_schedule_handler
 
         self.register(
             "schedule",
-            make_schedule_handler(scheduler),
-            "YYYY.MM.DD 오전/오후 N시까지 <프롬프트>",
+            make_schedule_handler(scheduler, classifier),
+            "<시각>에 <내용> (한 번) | YYYY.MM.DD 오전/오후 N시까지 <프롬프트> (반복)",
         )
         self.register("help", self._handle_help, "사용 가능한 명령 목록 표시")
         self.register("?", self._handle_help, "")  # alias, help text에서 생략

@@ -338,10 +338,15 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
                 print(f"[AgentLoader] Failed to load agent '{defn.name}': {exc}")
 
     # SlashCommandDispatcher 생성 (scheduler + LTM 연결)
+    from jarvis.core.scheduler.classify import make_llm_classifier
     from jarvis.core.slash.dispatcher import SlashCommandDispatcher
     from jarvis.core.slash.remember_cmd import make_remember_handler
 
-    ctx.dispatcher = SlashCommandDispatcher(scheduler=ctx.scheduler)
+    # "/schedule ~에" 항목을 등록할 때 알림/작업을 한 번 가른다
+    ctx.dispatcher = SlashCommandDispatcher(
+        scheduler=ctx.scheduler,
+        schedule_classifier=make_llm_classifier(model_config),
+    )
     ctx.dispatcher.register(
         "remember",
         make_remember_handler(ltm_backend),

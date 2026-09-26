@@ -444,6 +444,8 @@ body.chat-collapsed .chat-card .chev { transform: rotate(-90deg); }
   border-left: 1px solid color-mix(in srgb, var(--primary) 30%, transparent); padding-left: 10px;
 }
 .msg.thought .thought-meta { opacity: 0.6; font-style: normal; }
+/* 스케줄 작업 알림의 제목 줄 */
+.notice-title { color: var(--accent); font-size: 11px; letter-spacing: 0.06em; margin-bottom: 4px; }
 
 /* proactive — 시스템이 먼저 건넨 말 (filler / proactive / answer) */
 .msg.proactive .role { color: var(--magenta, #d98cff); }

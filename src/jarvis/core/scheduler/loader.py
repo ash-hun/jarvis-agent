@@ -67,3 +67,25 @@ def write_enabled(task: ScheduledTask) -> bool:
     with open(path, "w") as f:
         yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
     return True
+
+
+def remove_task_file(task: ScheduledTask, schedules_dir: str | None) -> None:
+    """실행을 마친 한 번 실행 작업의 저장 파일을 치운다.
+
+    우리가 만든 작업 전용 파일(<dir>/<name>.yaml)이면 지우고, 사용자가 쓴 파일이면
+    지우지 않고 enabled: false 로만 바꾼다(손으로 쓴 내용을 날리지 않게).
+    """
+    path = task._source
+    if path is None and schedules_dir:
+        candidate = Path(schedules_dir).expanduser() / f"{task.name}.yaml"
+        path = candidate if candidate.exists() else None
+    if path is None or not path.exists():
+        return
+    if path.name == f"{task.name}.yaml":
+        with open(path) as f:
+            data = yaml.safe_load(f)
+        if isinstance(data, dict) and data.get("name") == task.name:
+            path.unlink()
+            return
+    task.enabled = False
+    write_enabled(task)

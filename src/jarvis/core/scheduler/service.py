@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from collections.abc import Awaitable, Callable, Coroutine
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -13,11 +14,19 @@ if TYPE_CHECKING:
     from jarvis.model_layer.types import ModelConfig
 
 
+# 실행 결과(알림)를 받아 화면에 전달하는 콜백. web 서버가 열린 HUD 로 방송한다.
+Notify = Callable[[dict[str, Any]], Awaitable[None]]
+
+# 루프 주기. 한 번 실행(run_at) 알림이 이만큼까지 늦을 수 있다.
+TICK_SEC = 10
+
+
 class SchedulerService:
     """
-    croniter 기반 스케줄 루프.
+    스케줄 루프 — cron 반복 작업(croniter)과 정한 시각 한 번 실행(run_at) 작업.
     - 각 작업은 PermissiveSandbox + 필터된 ToolRegistry로 실행
     - HITL approval 없이 자율 실행
+    - 결과는 notify 콜백으로 전달한다(설정돼 있을 때)
     """
 
     def __init__(
@@ -38,6 +47,13 @@ class SchedulerService:
         self._base_extra = base_extra
         self._running = False
         self._task_handle: asyncio.Task[None] | None = None
+        self._notify: Notify | None = None
+        self._last_run: dict[str, float] = {}  # cron 작업별 마지막 실행 epoch
+        self._bg: set[asyncio.Task[None]] = set()
+
+    def set_notifier(self, notify: Notify | None) -> None:
+        """실행 결과를 받을 콜백을 단다. web 서버가 기동할 때 연결한다."""
+        self._notify = notify
 
     @property
     def task_count(self) -> int:
@@ -78,6 +94,8 @@ class SchedulerService:
         """다음 실행 시각. 꺼졌거나, 마감(run_until) 이후이거나, cron 을 못 읽으면 None."""
         if not task.enabled:
             return None
+        if task.run_at is not None:
+            return task.run_at
         try:
             from croniter import croniter
         except ImportError:
@@ -111,44 +129,103 @@ class SchedulerService:
         try:
             from croniter import croniter
         except ImportError:
-            print("[Scheduler] croniter not installed — scheduler disabled. Run: uv sync --extra scheduler")
-            return
-
-        import time
-        from datetime import datetime
-        # last_run[task_name] = epoch when it last ran (0 = never)
-        last_run: dict[str, float] = {}
+            croniter = None
+            print("[Scheduler] croniter not installed — cron tasks disabled (one-shot still run). "
+                  "Run: uv sync --extra scheduler")
 
         while self._running:
-            now = time.time()
-            now_dt = datetime.now()
-            for task in self._tasks:
-                if not task.enabled:
-                    continue
-                # 마감 시각이 지난 슬래시 명령 작업은 자동 만료
-                if task.run_until is not None and now_dt >= task.run_until:
-                    task.enabled = False
-                    print(f"[Scheduler] Task '{task.name}' expired (run_until={task.run_until})")
-                    continue
-                try:
-                    cron = croniter(task.schedule, now)
-                    prev = cron.get_prev(float)
-                    # Fire if previous cron tick is within the last 60s and not yet run
-                    if now - prev < 60 and last_run.get(task.name, 0) < prev:
-                        last_run[task.name] = now
-                        t = asyncio.create_task(self._execute_task(task))
-                        t.add_done_callback(self._on_task_done)
-                except Exception as exc:
-                    print(f"[Scheduler] Cron parse error for '{task.name}': {exc}")
+            self._tick(datetime.now(), croniter)
+            await asyncio.sleep(TICK_SEC)
 
-            await asyncio.sleep(30)
+    def _tick(self, now_dt: datetime, croniter: Any) -> list[asyncio.Task[None]]:
+        """한 번 훑어 때가 된 작업을 띄운다. 띄운 백그라운드 task 목록을 돌려준다."""
+        now = now_dt.timestamp()
+        fired: list[asyncio.Task[None]] = []
+        for task in list(self._tasks):
+            if not task.enabled:
+                continue
+
+            # 정한 시각 한 번 — 서버가 꺼져 있어 지난 것도 켜지는 즉시 보낸다(지연 초 표시)
+            if task.run_at is not None:
+                if now_dt >= task.run_at:
+                    delay = int((now_dt - task.run_at).total_seconds())
+                    self._retire(task)
+                    fired.append(self._spawn(self._fire_once(task, delay)))
+                continue
+
+            # 마감 시각이 지난 슬래시 명령 작업은 자동 만료
+            if task.run_until is not None and now_dt >= task.run_until:
+                task.enabled = False
+                print(f"[Scheduler] Task '{task.name}' expired (run_until={task.run_until})")
+                continue
+            if croniter is None or not task.schedule:
+                continue
+            try:
+                prev = croniter(task.schedule, now).get_prev(float)
+            except Exception as exc:
+                print(f"[Scheduler] Cron parse error for '{task.name}': {exc}")
+                continue
+            # 직전 cron 시각이 최근 60초 안이고 아직 안 돌았으면 실행
+            if now - prev < 60 and self._last_run.get(task.name, 0) < prev:
+                self._last_run[task.name] = now
+                fired.append(self._spawn(self._run_and_deliver(task)))
+        return fired
+
+    def _spawn(self, coro: Coroutine[Any, Any, None]) -> asyncio.Task[None]:
+        t = asyncio.create_task(coro)
+        self._bg.add(t)
+        t.add_done_callback(self._bg.discard)
+        t.add_done_callback(self._on_task_done)
+        return t
+
+    def _retire(self, task: ScheduledTask) -> None:
+        """한 번 실행 작업을 목록과 저장 파일에서 내린다(두 번 울리지 않게 실행 전에)."""
+        if task in self._tasks:
+            self._tasks.remove(task)
+        task.enabled = False
+        from jarvis.core.scheduler.loader import remove_task_file
+
+        remove_task_file(task, self._schedules_dir)
+
+    async def _fire_once(self, task: ScheduledTask, delay_sec: int) -> None:
+        if task.kind == "reminder":
+            await self._deliver(task, task.prompt, delay_sec)
+            return
+        text = await self._execute_task(task)
+        await self._deliver(task, text, delay_sec)
+
+    async def _run_and_deliver(self, task: ScheduledTask) -> None:
+        text = await self._execute_task(task)
+        await self._deliver(task, text, 0)
+
+    async def _deliver(self, task: ScheduledTask, text: str | None, delay_sec: int) -> None:
+        """결과를 notify 로 보낸다. text 가 None 이면 실행 실패."""
+        if self._notify is None:
+            return
+        payload = {
+            "type": "reminder",
+            "id": uuid.uuid4().hex,
+            "name": task.name,
+            "kind": task.kind,
+            "once": task.run_at is not None,
+            "title": task.prompt[:160],
+            "text": text if text is not None else "실행에 실패했습니다.",
+            "error": text is None,
+            "delayed_sec": delay_sec,
+            "fired_at": datetime.now().astimezone().isoformat(),
+        }
+        try:
+            await self._notify(payload)
+        except Exception as exc:
+            print(f"[Scheduler] notify failed for '{task.name}': {exc!r}")
 
     def _on_task_done(self, future: asyncio.Task[None]) -> None:
         """fire-and-forget task의 예외가 소실되지 않도록 로깅."""
         if not future.cancelled() and (exc := future.exception()):
             print(f"[Scheduler] Unhandled exception in background task: {exc!r}")
 
-    async def _execute_task(self, task: ScheduledTask) -> None:
+    async def _execute_task(self, task: ScheduledTask) -> str | None:
+        """작업 프롬프트를 새 세션에서 실행하고 최종 답을 돌려준다. 실패하면 None."""
         from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
         from jarvis.core.policy.authenticator import NoAuthAuthenticator
         from jarvis.core.policy.pipeline import SecurityPipeline
@@ -199,7 +276,9 @@ class SchedulerService:
         )
 
         try:
-            await session.prompt(task.prompt)
+            result = await session.prompt(task.prompt)
             print(f"[Scheduler] Task '{task.name}' completed → session {session_id}")
+            return result.text() if result is not None else ""
         except Exception as exc:
             print(f"[Scheduler] Task '{task.name}' failed: {exc}")
+            return None

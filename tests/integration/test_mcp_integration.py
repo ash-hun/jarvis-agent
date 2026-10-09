@@ -11,11 +11,11 @@ import pytest
 
 pytest.importorskip("mcp")
 
-# FastMCP 기반 최소 stdio 서버 — 서브프로세스로 기동된다.
+# MCPServer(mcp 2.x, 1.x 의 FastMCP) 기반 최소 stdio 서버 — 서브프로세스로 기동된다.
 _SERVER_SRC = '''
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
-server = FastMCP("jarvis-itest")
+server = MCPServer("jarvis-itest")
 
 
 @server.tool()

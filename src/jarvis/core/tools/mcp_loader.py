@@ -184,7 +184,7 @@ def _tools_to_dicts(tools: Any) -> list[dict[str, Any]]:
         {
             "name": t.name,
             "description": t.description or "",
-            "inputSchema": getattr(t, "inputSchema", {}),
+            "inputSchema": getattr(t, "input_schema", None) or getattr(t, "inputSchema", None) or {},
         }
         for t in tools
     ]

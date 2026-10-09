@@ -52,7 +52,7 @@ voice = [
     "numpy>=1.26.0",
 ]
 mcp = [
-    "mcp>=1.28.1,<2",  # 2.x 는 서버 API 개명(FastMCP → MCPServer). 클라이언트만 쓰지만 1.x 에서 보안 패치가 나와 고정
+    "mcp>=2.0,<3",
 ]
 gemini = [
     "google-genai>=1.0.0",

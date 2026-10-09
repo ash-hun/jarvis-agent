@@ -9,7 +9,7 @@ from jarvis.memory.eval.metrics import judge
 from jarvis.memory.eval.probe import count_llm_calls
 from jarvis.memory.eval.runner import DATASETS_DIR, SUITES, format_report, load_suites, run
 from jarvis.memory.eval.schema import EvalCase, Expect, ScopeSpec, SetupStep, load_cases
-from jarvis.memory.eval.target import LegacyLTMTarget
+from jarvis.memory.eval.target import StoreTarget
 
 # ── MemoryScope ───────────────────────────────────────────────────────────────
 
@@ -107,22 +107,23 @@ async def test_isolation_and_semantic_suites_pass_with_scope_aware_target():
     assert report.suites["semantic"].recall == 1.0
 
 
-# ── 베이스라인: 현재 구조는 격리가 안 된다 ──────────────────────────────────
-# 1단계(범위 키)에서 이 테스트는 "leak_rate == 0" 으로 뒤집힌다.
+# ── 실제 저장소: 격리는 1단계에서 해결, 지식 갱신은 3단계 ─────────────────────
 
 
 @pytest.mark.memory_eval
-async def test_legacy_ltm_leaks_across_users_and_agents():
-    report = await run(load_suites(["isolation"]), LegacyLTMTarget())
-    assert report.suites["isolation"].leak_rate == 1.0
-    assert not report.all_passed
+async def test_store_isolates_users_and_agents():
+    report = await run(load_suites(["isolation"]), StoreTarget())
+    assert report.all_passed, format_report(report, verbose=True)
+    assert report.suites["isolation"].leak_rate == 0.0
 
 
 @pytest.mark.memory_eval
-async def test_legacy_ltm_does_not_prefer_latest_fact():
-    report = await run(load_suites(["semantic"]), LegacyLTMTarget())
+async def test_store_does_not_prefer_latest_fact_yet():
+    """3단계(의미 기억 정책, superseded_by)에서 이 테스트는 "전부 통과" 로 뒤집힌다."""
+    report = await run(load_suites(["semantic"]), StoreTarget())
     updates = [c for c in report.cases if c.case.startswith("knowledge_update")]
     assert updates and all(c.leaked for c in updates)
+    assert report.suites["semantic"].recall == 1.0
     assert report.suites["semantic"].abstain_rate == 1.0
 
 

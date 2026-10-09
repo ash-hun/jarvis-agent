@@ -81,8 +81,9 @@ class TestToolsHandler:
 class TestCompactHandler:
     @pytest.fixture
     def ltm(self):
-        from jarvis.agent_layer.memory.backends.in_memory_ltm import InMemoryLTMBackend
-        return InMemoryLTMBackend()
+        from jarvis.memory.manager import MemoryManager
+        from jarvis.memory.stores.in_memory import InMemoryItemStore
+        return MemoryManager(InMemoryItemStore())
 
     @pytest.fixture
     def model_config(self):
@@ -107,6 +108,6 @@ class TestCompactHandler:
         out = await handler("")
         assert "요약했습니다" in out
 
-        stored = await ltm.get_recent(limit=5)
+        stored = await ltm.recent(limit=5)
         assert len(stored) == 1
         assert stored[0].source == "manual_compact"

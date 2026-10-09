@@ -3,24 +3,25 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Any
 
+from jarvis.memory.scope import scope_from_context
 from jarvis.model_layer.types import Message, UserMessage
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.memory.backends.protocol import LTMBackend
+    from jarvis.memory.manager import MemoryManager
 
 
 class LongTermMemory:
     """
-    LTMBackend를 감싸는 MemoryMiddleware (세션 횡단).
+    MemoryManager 를 감싸는 MemoryMiddleware (세션 횡단). 조회 범위는 context 에서 조립한다.
 
     transform: 최신 user 메시지를 쿼리로 LTM 검색 → 관련 항목을 컨텍스트 앞에 주입.
     store: no-op — LTM은 /remember 명시적 명령으로만 저장.
-    retrieve: LTMBackend.search()로 Message 목록 반환.
+    retrieve: MemoryManager.recall()로 Message 목록 반환.
     clear: no-op — LTM은 세션 범위 밖.
     """
 
-    def __init__(self, backend: LTMBackend, inject_limit: int = 3) -> None:
-        self._backend = backend
+    def __init__(self, memory: MemoryManager, inject_limit: int = 3) -> None:
+        self._memory = memory
         self._inject_limit = inject_limit
 
     async def transform(
@@ -32,7 +33,7 @@ class LongTermMemory:
         if not query:
             return messages
 
-        entries = await self._backend.search(query, limit=self._inject_limit)
+        entries = await self._memory.recall(query, scope_from_context(context), limit=self._inject_limit)
         if not entries:
             return messages
 
@@ -51,7 +52,7 @@ class LongTermMemory:
         context: dict[str, Any],
         limit: int = 10,
     ) -> list[Message]:
-        entries = await self._backend.search(query, limit=limit)
+        entries = await self._memory.recall(query, scope_from_context(context), limit=limit)
         return [
             UserMessage(
                 content=e.content,

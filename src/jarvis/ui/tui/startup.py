@@ -173,30 +173,33 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         max_tokens=settings.llm.max_tokens,
     )
 
+    from jarvis.memory.manager import MemoryManager
+
     if settings.memory.backend == "in_memory":
-        from jarvis.agent_layer.memory.backends.in_memory_ltm import InMemoryLTMBackend
         from jarvis.agent_layer.memory.backends.in_memory_stm import InMemorySTMBackend
+        from jarvis.memory.stores.in_memory import InMemoryItemStore
         stm_backend = InMemorySTMBackend()
-        ltm_backend = InMemoryLTMBackend()
+        item_store: Any = InMemoryItemStore()
     else:
         dsn = settings.memory.postgres_dsn or settings.session.postgres_dsn
         if not dsn:
             raise ValueError(
                 "JARVIS_MEMORY__POSTGRES_DSN 또는 JARVIS_SESSION__POSTGRES_DSN 설정 필요"
             )
-        from jarvis.agent_layer.memory.backends.postgres_ltm import PostgresLTMBackend
         from jarvis.agent_layer.memory.backends.postgres_stm import PostgresSTMBackend
+        from jarvis.memory.stores.postgres import PostgresItemStore
         stm_backend = PostgresSTMBackend(dsn=dsn)
-        ltm_backend = PostgresLTMBackend(dsn=dsn)
+        item_store = PostgresItemStore(dsn=dsn)
 
+    memory = MemoryManager(item_store)
     memory_chain = MemoryMiddlewareChain(stages=[
         ShortTermMemory(stm_backend),
         CompactionMiddleware(
             model=model_config,
             threshold_chars=settings.memory.compaction_threshold,
-            ltm_backend=ltm_backend,
+            memory=memory,
         ),
-        LongTermMemory(ltm_backend),
+        LongTermMemory(memory),
     ])
 
     if settings.session.persistence_backend == "postgres":
@@ -313,7 +316,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         "skill_registry": skill_registry,
         "sandbox": sandbox,  # approval_callback 나중에 주입용
         "stm_backend": stm_backend,
-        "ltm_backend": ltm_backend,
+        "memory": memory,
         "model_config": model_config,
         "openloop_store": openloop_store,
         "activity_clock": activity_clock,
@@ -349,7 +352,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     )
     ctx.dispatcher.register(
         "remember",
-        make_remember_handler(ltm_backend),
+        make_remember_handler(memory),
         "내용 저장/검색/삭제 (list | search <키워드> | forget <id>)",
     )
 
@@ -371,7 +374,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
             make_usermodel_handler(
                 user_model_store,
                 UserModelBuilder(model_config),
-                ltm_backend,
+                memory,
                 build_source_limit=settings.user_model.build_source_limit,
             ),
             "증류된 사용자 모델 (build로 갱신)",
@@ -383,7 +386,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
 
         ctx.dispatcher.register(
             "journal",
-            make_journal_handler(ReflectionJournaler(model_config, ltm_backend)),
+            make_journal_handler(ReflectionJournaler(model_config, memory)),
             "자기 성찰 저널 (write로 작성)",
         )
 
@@ -406,7 +409,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     )
     ctx.dispatcher.register(
         "compact",
-        make_compact_handler(model_config, session_repo, ltm_backend),
+        make_compact_handler(model_config, session_repo, memory),
         "현재 세션을 요약해 장기 기억에 저장",
     )
 
@@ -666,7 +669,7 @@ def _build_thought(
 
     # A2 — 사고 로그 싱크: 설정된 것만, 알 수 없는 이름은 무시.
     sink_factories = {
-        "ltm": lambda: LTMThoughtSink(extra["ltm_backend"]),
+        "ltm": lambda: LTMThoughtSink(extra["memory"]),
         "stm": lambda: STMThoughtSink(extra["stm_backend"]),
     }
     sinks = [sink_factories[name]() for name in tcfg.log_sinks if name in sink_factories]
@@ -861,17 +864,17 @@ def main() -> None:
     # TUI 종료 후 세션 요약을 LTM에 저장
     async def _on_session_end() -> None:
         stm = extra.get("stm_backend")
-        ltm = extra.get("ltm_backend")
+        memory = extra.get("memory")
         model = extra.get("model_config")
-        if stm is None or ltm is None or model is None:
+        if stm is None or memory is None or model is None:
             return
         try:
             msgs = await stm.load(session._session_id)
             if not msgs:
                 return
             from jarvis.agent_layer.memory.episodic import EpisodicSummarizer
-            summarizer = EpisodicSummarizer(model=model, ltm_backend=ltm)
-            entry_id = await summarizer.save_session(session._session_id, msgs)
+            summarizer = EpisodicSummarizer(model=model, memory=memory)
+            entry_id = await summarizer.save_session(session._session_id, msgs, scope=session.memory_scope)
             if entry_id:
                 print(f"[Episodic] Session summary saved (id: {entry_id[:8]})")
         except Exception as exc:

@@ -5,8 +5,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from jarvis.agent_layer.memory.backends.in_memory_ltm import InMemoryLTMBackend
 from jarvis.agent_layer.memory.backends.in_memory_stm import InMemorySTMBackend
+from jarvis.memory.manager import MemoryManager
+from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.model_layer.types import UserMessage
 from jarvis.ui.web.server import SessionManager
 
@@ -21,8 +22,11 @@ def _make_manager(sessions: dict) -> SessionManager:
 
 
 def _mock_session(session_id: str) -> MagicMock:
+    from jarvis.memory import MemoryScope
+
     s = MagicMock()
     s._session_id = session_id
+    s.memory_scope = MemoryScope(user_id="local", session_id=session_id)
     return s
 
 
@@ -37,7 +41,7 @@ def _user_msg(text: str) -> UserMessage:
 async def test_save_all_stores_episodic(faux_model_with_response):
     """활성 세션이 있으면 LTM에 에피소딕 요약이 저장된다."""
     stm = InMemorySTMBackend()
-    ltm = InMemoryLTMBackend()
+    ltm = MemoryManager(InMemoryItemStore())
     model = faux_model_with_response("세션 요약: 사용자가 Python을 배웠습니다.")
 
     await stm.append("sess1", _user_msg("Python 배우고 싶어"))
@@ -45,7 +49,7 @@ async def test_save_all_stores_episodic(faux_model_with_response):
     mgr = _make_manager({"sess1": _mock_session("sess1")})
     await mgr.save_all_sessions(stm, ltm, model)
 
-    recent = await ltm.get_recent()
+    recent = await ltm.recent()
     assert len(recent) == 1
     assert recent[0].session_id == "sess1"
     assert recent[0].source == "session_end"
@@ -55,7 +59,7 @@ async def test_save_all_stores_episodic(faux_model_with_response):
 async def test_save_all_multiple_sessions(faux_model_with_response):
     """세션이 여럿이면 모두 저장된다."""
     stm = InMemorySTMBackend()
-    ltm = InMemoryLTMBackend()
+    ltm = MemoryManager(InMemoryItemStore())
     model = faux_model_with_response("요약")
 
     await stm.append("a", _user_msg("메시지 A"))
@@ -67,7 +71,7 @@ async def test_save_all_multiple_sessions(faux_model_with_response):
     })
     await mgr.save_all_sessions(stm, ltm, model)
 
-    recent = await ltm.get_recent()
+    recent = await ltm.recent()
     assert len(recent) == 2
     session_ids = {e.session_id for e in recent}
     assert session_ids == {"a", "b"}
@@ -77,27 +81,27 @@ async def test_save_all_multiple_sessions(faux_model_with_response):
 async def test_save_all_skips_empty_sessions(faux_model_with_response):
     """STM에 메시지가 없는 세션은 LTM에 저장하지 않는다."""
     stm = InMemorySTMBackend()
-    ltm = InMemoryLTMBackend()
+    ltm = MemoryManager(InMemoryItemStore())
     model = faux_model_with_response("요약")
 
     # "empty" 세션은 STM에 메시지 없음
     mgr = _make_manager({"empty": _mock_session("empty")})
     await mgr.save_all_sessions(stm, ltm, model)
 
-    assert await ltm.get_recent() == []
+    assert await ltm.recent() == []
 
 
 @pytest.mark.asyncio
 async def test_save_all_no_sessions_does_nothing(faux_model_with_response):
     """활성 세션이 없으면 아무것도 저장하지 않는다."""
     stm = InMemorySTMBackend()
-    ltm = InMemoryLTMBackend()
+    ltm = MemoryManager(InMemoryItemStore())
     model = faux_model_with_response("요약")
 
     mgr = _make_manager({})
     await mgr.save_all_sessions(stm, ltm, model)
 
-    assert await ltm.get_recent() == []
+    assert await ltm.recent() == []
 
 
 @pytest.mark.asyncio
@@ -108,14 +112,14 @@ async def test_save_all_failure_is_non_fatal():
     stm = AsyncMock()
     stm.load.side_effect = RuntimeError("STM unavailable")
 
-    ltm = InMemoryLTMBackend()
+    ltm = MemoryManager(InMemoryItemStore())
     model = MagicMock()
 
     mgr = _make_manager({"crash": _mock_session("crash")})
     # 예외가 전파되지 않아야 한다
     await mgr.save_all_sessions(stm, ltm, model)
 
-    assert await ltm.get_recent() == []
+    assert await ltm.recent() == []
 
 
 @pytest.mark.asyncio
@@ -132,7 +136,7 @@ async def test_save_all_partial_failure_continues(faux_model_with_response):
 
     stm.load.side_effect = load_side_effect
 
-    ltm = InMemoryLTMBackend()
+    ltm = MemoryManager(InMemoryItemStore())
     model = faux_model_with_response("요약")
 
     mgr = _make_manager({
@@ -141,6 +145,6 @@ async def test_save_all_partial_failure_continues(faux_model_with_response):
     })
     await mgr.save_all_sessions(stm, ltm, model)
 
-    recent = await ltm.get_recent()
+    recent = await ltm.recent()
     assert len(recent) == 1
     assert recent[0].session_id == "ok"

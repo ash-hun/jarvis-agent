@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from jarvis.core.policy.pipeline import AuthContext, AuthError, ValidatedInput
+from jarvis.memory.scope import LOCAL_USER
 
 
 class NoAuthAuthenticator:
@@ -15,7 +16,7 @@ class NoAuthAuthenticator:
         credentials: dict,
     ) -> AuthContext:
         return AuthContext(
-            user_id="local",
+            user_id=LOCAL_USER,
             roles=self._roles,
             is_anonymous=True,
         )

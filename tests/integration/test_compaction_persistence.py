@@ -1,4 +1,4 @@
-"""CompactionMiddleware → Postgres LTM 영속성 통합 테스트.
+"""CompactionMiddleware → Postgres 저장소 영속성 통합 테스트.
 
 unit 레벨(test_episodic.py)은 in-memory LTM으로 compaction→저장을 검증한다.
 여기서는 실제 PostgreSQL에 자동 요약이 **안착하고 백엔드 재기동 후에도 생존**하는지
@@ -30,12 +30,14 @@ def postgres_dsn():
 
 @pytest.fixture
 async def ltm(postgres_dsn: str):
-    from jarvis.agent_layer.memory.backends.postgres_ltm import PostgresLTMBackend
+    from jarvis.memory.manager import MemoryManager
+    from jarvis.memory.stores.postgres import PostgresItemStore
 
-    b = PostgresLTMBackend(dsn=postgres_dsn)
-    await b.clear_all()  # 모듈 내 테스트 간 격리
-    yield b
-    await b.close()
+    store = PostgresItemStore(dsn=postgres_dsn)
+    memory = MemoryManager(store)
+    await memory.clear()  # 모듈 내 테스트 간 격리
+    yield memory
+    await store.close()
 
 
 def _user_msg(text: str):
@@ -57,7 +59,7 @@ class TestCompactionPersistence:
             model=model,
             threshold_chars=10,  # 강제 압축
             keep_recent=1,
-            ltm_backend=ltm,
+            memory=ltm,
         )
         msgs = [_user_msg("첫 번째"), _user_msg("두 번째"), _user_msg("세 번째")]
         result = await middleware.transform(msgs, {"session_id": "pg-compact"})
@@ -66,7 +68,7 @@ class TestCompactionPersistence:
         assert len(result) == 2
         assert "Compacted context summary" in (result[0].content if isinstance(result[0].content, str) else "")
 
-        recent = await ltm.get_recent(limit=10)
+        recent = await ltm.recent(limit=10)
         summaries = [r for r in recent if r.source == "auto_summary"]
         assert len(summaries) == 1
         assert summaries[0].session_id == "pg-compact"
@@ -74,16 +76,17 @@ class TestCompactionPersistence:
 
     async def test_summary_survives_backend_reopen(self, faux_model_with_response, postgres_dsn):
         """백엔드를 닫았다 새로 열어도 자동 요약이 살아있다(실 내구성)."""
-        from jarvis.agent_layer.memory.backends.postgres_ltm import PostgresLTMBackend
         from jarvis.agent_layer.memory.compaction import CompactionMiddleware
+        from jarvis.memory.manager import MemoryManager
+        from jarvis.memory.stores.postgres import PostgresItemStore
 
-        b1 = PostgresLTMBackend(dsn=postgres_dsn)
-        await b1.clear_all()
+        b1 = PostgresItemStore(dsn=postgres_dsn)
+        await b1.clear()
         middleware = CompactionMiddleware(
             model=faux_model_with_response("요약: 재기동 후에도 보존되어야 한다."),
             threshold_chars=10,
             keep_recent=1,
-            ltm_backend=b1,
+            memory=MemoryManager(b1),
         )
         await middleware.transform(
             [_user_msg("a"), _user_msg("b"), _user_msg("c")],
@@ -92,8 +95,8 @@ class TestCompactionPersistence:
         await b1.close()
 
         # 완전히 새 백엔드 인스턴스로 재조회
-        b2 = PostgresLTMBackend(dsn=postgres_dsn)
-        recent = await b2.get_recent(limit=10)
+        b2 = PostgresItemStore(dsn=postgres_dsn)
+        recent = await MemoryManager(b2).recent(limit=10)
         await b2.close()
 
         durable = [r for r in recent if r.session_id == "pg-durable" and r.source == "auto_summary"]
@@ -108,10 +111,10 @@ class TestCompactionPersistence:
             model=faux_model_with_response("불려선 안 됨"),
             threshold_chars=10_000_000,  # 사실상 도달 불가
             keep_recent=1,
-            ltm_backend=ltm,
+            memory=ltm,
         )
         original = [_user_msg("짧음")]
         result = await middleware.transform(original, {"session_id": "pg-noop"})
 
         assert result == original  # 변형 없이 그대로 통과
-        assert await ltm.get_recent(limit=10) == []
+        assert await ltm.recent(limit=10) == []

@@ -4,8 +4,9 @@ import asyncio
 import contextlib
 from typing import Protocol, runtime_checkable
 
-from jarvis.agent_layer.memory.backends.protocol import LTMBackend, MemoryEntry, STMBackend
+from jarvis.agent_layer.memory.backends.protocol import STMBackend
 from jarvis.agent_layer.thought.types import ThoughtFrame
+from jarvis.memory.manager import MemoryManager
 from jarvis.model_layer.types import AssistantMessage, TextContent
 
 # 사고 로그를 식별하는 태그. 회상 시 일반 기억과 구분/필터하는 데 쓴다.
@@ -22,18 +23,17 @@ class ThoughtSink(Protocol):
 class LTMThoughtSink:
     """LTM(세션 횡단)에 프레임 전체를 JSON으로 저장. `source="thought"` 태깅."""
 
-    def __init__(self, backend: LTMBackend) -> None:
-        self._backend = backend
+    def __init__(self, memory: MemoryManager) -> None:
+        self._memory = memory
 
     async def store(self, frame: ThoughtFrame, session_id: str | None = None) -> None:
-        await self._backend.store(
-            MemoryEntry(
-                content=frame.model_dump_json(),
-                source=THOUGHT_SOURCE,
-                session_id=session_id,
-                tags=[f"decision:{frame.decision}"],
-                metadata={"decision": frame.decision, "confidence": frame.confidence},
-            )
+        scope = self._memory.resolve_scope().with_session(session_id)
+        await self._memory.remember(
+            frame.model_dump_json(),
+            source=THOUGHT_SOURCE,
+            scope=scope,
+            tags=[f"decision:{frame.decision}"],
+            metadata={"decision": frame.decision, "confidence": frame.confidence},
         )
 
 

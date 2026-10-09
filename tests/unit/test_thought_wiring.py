@@ -4,7 +4,6 @@ from __future__ import annotations
 import pytest
 
 from jarvis.agent_layer.loop import _augment_system_prompt
-from jarvis.agent_layer.memory.backends.in_memory_ltm import InMemoryLTMBackend
 from jarvis.agent_layer.thought import (
     LTMThoughtSink,
     ThoughtFrame,
@@ -13,6 +12,8 @@ from jarvis.agent_layer.thought import (
 )
 from jarvis.agent_layer.thought.log import THOUGHT_SOURCE
 from jarvis.agent_layer.types import AgentContext, InnerThoughtEvent
+from jarvis.memory.manager import MemoryManager
+from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.model_layer.types import ModelConfig
 
 
@@ -126,14 +127,14 @@ async def test_session_emits_inner_thought_event(session_fixtures):
 @pytest.mark.asyncio
 async def test_session_stores_thought_log(session_fixtures):
     await session_fixtures["repo"].create(session_id="test-session")
-    backend = InMemoryLTMBackend()
+    backend = MemoryManager(InMemoryItemStore())
     engine = StubEngine(ThoughtFrame(interpretation="x", decision="silent", confidence=0.1))
     log = ThoughtLog([LTMThoughtSink(backend)])
     session = _build_session(session_fixtures, engine=engine, log=log)
 
     await session.prompt("안녕하세요 잘 지내시나요")
 
-    entries = await backend.get_recent(limit=10)
+    entries = await backend.recent(limit=10)
     assert len(entries) == 1
     assert entries[0].source == THOUGHT_SOURCE
 

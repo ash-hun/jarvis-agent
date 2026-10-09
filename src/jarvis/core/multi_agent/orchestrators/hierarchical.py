@@ -37,7 +37,7 @@ class HierarchicalOrchestrator(BaseOrchestrator):
                     "level": level,
                     "previous_results": [r.content for r in last_results],
                 },
-                parent_task_id=task.task_id,
+                parent_task_id=task.parent_task_id or task.task_id,  # 루트 작업을 공유 키로 유지
                 scope=task.scope,
             )
 

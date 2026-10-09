@@ -357,15 +357,30 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         scheduler._base_extra = _extra
         ctx.scheduler = scheduler
 
-    # YAML 에이전트 정의 → AgentNodeTool 등록 (extra 완성 후)
+    # YAML 에이전트 정의 → AgentNodeTool 등록 (extra 완성 후). 팩토리 하나를 모든 정의가 공유한다
+    orchestration = None
     if settings.agents.enabled and _agent_defs:
+        from jarvis.core.multi_agent.factory import AgentFactory
+        from jarvis.core.multi_agent.orchestrate_tool import OrchestrateTool
+        from jarvis.core.multi_agent.service import OrchestrationService
+
+        agent_factory = AgentFactory(
+            build_session=_agent_session_builder(ctx, tool_registry, _extra), session_repo=session_repo
+        )
+        loaded_defs = []
         for defn in _agent_defs:
             try:
-                tool = _build_agent_node(defn, ctx, tool_registry, _extra)
+                tool = _build_agent_node(defn, agent_factory, _extra)
                 tool_registry.register(tool)
+                loaded_defs.append(defn)
                 print(f"[AgentLoader] Loaded agent: {defn.name} (tool: {tool.name})")
             except Exception as exc:
                 print(f"[AgentLoader] Failed to load agent '{defn.name}': {exc}")
+        if loaded_defs:
+            # 오케스트레이션: 메인 LLM 이 패턴을 고르는 도구. /orchestrate 는 아래 디스패처에서
+            orchestration = OrchestrationService(loaded_defs, agent_factory, memory)
+            tool_registry.register(OrchestrateTool(orchestration))
+            print(f"[AgentLoader] orchestrate tool ready ({len(loaded_defs)} agent(s))")
 
     # SlashCommandDispatcher 생성 (scheduler + LTM 연결)
     from jarvis.core.scheduler.classify import make_llm_classifier
@@ -439,6 +454,14 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         make_compact_handler(model_config, session_repo, memory),
         "현재 세션을 요약해 장기 기억에 저장",
     )
+    if orchestration is not None:
+        from jarvis.core.slash.orchestrate_cmd import make_orchestrate_handler
+
+        ctx.dispatcher.register(
+            "orchestrate",
+            make_orchestrate_handler(orchestration),
+            "<pattern> [--agents a,b] [--promote] <작업>: 서브 에이전트들을 패턴으로 조율",
+        )
 
     from jarvis.core.slash.cost_cmd import make_cost_handler
     from jarvis.core.slash.export_cmd import make_export_handler
@@ -712,23 +735,16 @@ def _build_thought(
     return engine, log, composer
 
 
-def _build_agent_node(
-    defn: Any,
-    ctx: AppContext,
-    main_registry: Any,
-    extra: dict[str, Any],
-) -> Any:
-    """AgentDefinition → (지연 생성되는) 격리된 AgentSession → AgentNode → AgentNodeTool.
+def _agent_session_builder(ctx: AppContext, main_registry: Any, extra: dict[str, Any]) -> Any:
+    """(정의, 자식 세션 id) → 격리된 AgentSession. AgentFactory 가 위임 시점에 부른다.
 
-    각 에이전트 세션은 위임 시점에 부모 범위로 만들어진다:
-    - session_id: defn.memory.stm 정책(부모 세션별 / 작업별 / 에이전트별)
-    - 메모리 범위: 부모의 사용자를 상속하고 에이전트 id 는 자기 이름
+    - session_id: defn.memory.stm 정책(부모 세션별 / 작업별 / 에이전트별)이 정해 넘긴다
+    - 메모리 범위: 부모의 사용자를 상속하고 에이전트 id 는 자기 이름(inherit_scope)
     - system_prompt: 에이전트 전용 역할 지시
-    - tool subset: defn.tools 목록만 허용 (빈 경우 전체 상속)
+    - tool subset: defn.tools 목록만 허용 (빈 경우 메인 레지스트리 전체). 호출 시점에 고르므로
+      나중에 등록된 도구(다른 에이전트, orchestrate)도 보인다
     - model: defn.model_override 지정 가능 (None이면 메인 모델 상속)
     """
-    from jarvis.core.multi_agent.factory import AgentFactory
-    from jarvis.core.multi_agent.tool import AgentNodeTool
     from jarvis.core.session import AgentSession
     from jarvis.core.tools.registry import ToolRegistry
     from jarvis.model_layer.types import ModelConfig
@@ -736,30 +752,26 @@ def _build_agent_node(
     settings = ctx.settings
     model_config: ModelConfig = extra["model_config"]
 
-    # 모델 오버라이드
-    if defn.model_override:
-        model = ModelConfig(
-            provider=settings.llm.provider,
-            model=defn.model_override,
-            api_key=settings.llm.api_key.get_secret_value() if settings.llm.api_key else None,
-            base_url=settings.llm.base_url,
-            temperature=settings.llm.temperature,
-            max_tokens=settings.llm.max_tokens,
-        )
-    else:
-        model = model_config
-
-    # 도구 서브셋 (미지정이면 메인 레지스트리 전체 공유)
-    if defn.tools:
-        agent_registry = ToolRegistry()
-        for tool_name in defn.tools:
-            t = main_registry.get(tool_name)
-            if t is not None:
-                agent_registry.register(t)
-    else:
-        agent_registry = main_registry
-
     def build_session(definition: Any, session_id: str) -> AgentSession:
+        if definition.model_override:
+            model = ModelConfig(
+                provider=settings.llm.provider,
+                model=definition.model_override,
+                api_key=settings.llm.api_key.get_secret_value() if settings.llm.api_key else None,
+                base_url=settings.llm.base_url,
+                temperature=settings.llm.temperature,
+                max_tokens=settings.llm.max_tokens,
+            )
+        else:
+            model = model_config
+        if definition.tools:
+            agent_registry = ToolRegistry()
+            for tool_name in definition.tools:
+                t = main_registry.get(tool_name)
+                if t is not None:
+                    agent_registry.register(t)
+        else:
+            agent_registry = main_registry
         return AgentSession(
             model=model,
             session_id=session_id,
@@ -774,7 +786,13 @@ def _build_agent_node(
             inherit_scope=True,
         )
 
-    factory = AgentFactory(build_session=build_session, session_repo=ctx.session_repo)
+    return build_session
+
+
+def _build_agent_node(defn: Any, factory: Any, extra: dict[str, Any]) -> Any:
+    """AgentDefinition → 지연 생성 노드를 감싼 AgentNodeTool. 세션은 첫 위임 때 factory 가 만든다."""
+    from jarvis.core.multi_agent.tool import AgentNodeTool
+
     tool = AgentNodeTool(definition=defn, factory=factory, memory=extra.get("memory"))
     # AgentDefinition.description을 LLM이 읽는 툴 설명으로 사용
     if defn.description:

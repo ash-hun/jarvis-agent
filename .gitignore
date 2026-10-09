@@ -225,3 +225,5 @@ develop_plan.md
 
 # Claude Code local settings (per-machine, not tracked)
 .claude/
+# 설계, 조사 문서는 로컬에서만 관리한다
+docs/

@@ -103,3 +103,4 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = ["memory_eval: 메모리 기능별 평가 스위트"]

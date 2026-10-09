@@ -262,12 +262,10 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
             mcp_loader = MCPToolLoader(tool_registry)
             await mcp_loader.load_servers(settings.mcp_servers)
 
-        # 에이전트 정의 로딩 + 서브 세션 사전 생성
+        # 에이전트 정의 로딩. 서브 세션은 첫 위임 때 부모 세션 기준으로 만든다(AgentFactory.node_for)
         if settings.agents.enabled:
             from jarvis.core.multi_agent.loader import load_agent_definitions
             _agent_defs = load_agent_definitions(settings.agents.agents_dir)
-            for defn in _agent_defs:
-                await session_repo.create(session_id=f"agent_{defn.name}")
 
     asyncio.run(_async_setup())
 
@@ -698,9 +696,11 @@ def _build_agent_node(
     main_registry: Any,
     extra: dict[str, Any],
 ) -> Any:
-    """AgentDefinition → 격리된 AgentSession → AgentNode → AgentNodeTool.
+    """AgentDefinition → (지연 생성되는) 격리된 AgentSession → AgentNode → AgentNodeTool.
 
-    각 에이전트는 독립된 AgentSession을 가진다:
+    각 에이전트 세션은 위임 시점에 부모 범위로 만들어진다:
+    - session_id: defn.memory.stm 정책(부모 세션별 / 작업별 / 에이전트별)
+    - 메모리 범위: 부모의 사용자를 상속하고 에이전트 id 는 자기 이름
     - system_prompt: 에이전트 전용 역할 지시
     - tool subset: defn.tools 목록만 허용 (빈 경우 전체 상속)
     - model: defn.model_override 지정 가능 (None이면 메인 모델 상속)
@@ -737,22 +737,23 @@ def _build_agent_node(
     else:
         agent_registry = main_registry
 
-    session = AgentSession(
-        model=model,
-        session_id=f"agent_{defn.name}",
-        security_pipeline=extra["pipeline"],
-        plugin_runner=extra["plugin_runner"],
-        memory_chain=extra["memory_chain"],
-        tool_registry=agent_registry,
-        skill_registry=extra["skill_registry"],
-        session_repo=ctx.session_repo,
-        system_prompt=defn.system_prompt,
-        agent_name=defn.name,
-    )
+    def build_session(definition: Any, session_id: str) -> AgentSession:
+        return AgentSession(
+            model=model,
+            session_id=session_id,
+            security_pipeline=extra["pipeline"],
+            plugin_runner=extra["plugin_runner"],
+            memory_chain=extra["memory_chain"],
+            tool_registry=agent_registry,
+            skill_registry=extra["skill_registry"],
+            session_repo=ctx.session_repo,
+            system_prompt=definition.system_prompt,
+            agent_name=definition.name,
+            inherit_scope=True,
+        )
 
-    factory = AgentFactory()
-    node = factory.create(defn, session)
-    tool = AgentNodeTool(node)
+    factory = AgentFactory(build_session=build_session, session_repo=ctx.session_repo)
+    tool = AgentNodeTool(definition=defn, factory=factory, memory=extra.get("memory"))
     # AgentDefinition.description을 LLM이 읽는 툴 설명으로 사용
     if defn.description:
         tool.description = defn.description

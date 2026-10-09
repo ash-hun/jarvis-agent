@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from jarvis.memory.scope import MemoryScope
+
 
 def _make_task_id(content: str, context: dict[str, Any]) -> str:
     payload = json.dumps(
@@ -29,6 +31,7 @@ class AgentTask:
     context: dict[str, Any]
     parent_task_id: str | None
     created_at: datetime
+    scope: MemoryScope | None = None  # 위임한 쪽(부모)의 메모리 범위. 자식 범위는 여기서 파생한다
 
     @classmethod
     def create(
@@ -36,6 +39,7 @@ class AgentTask:
         content: str,
         context: dict[str, Any] | None = None,
         parent_task_id: str | None = None,
+        scope: MemoryScope | None = None,
     ) -> AgentTask:
         ctx = context or {}
         return cls(
@@ -44,6 +48,7 @@ class AgentTask:
             context=ctx,
             parent_task_id=parent_task_id,
             created_at=datetime.now(UTC),
+            scope=scope,
         )
 
 

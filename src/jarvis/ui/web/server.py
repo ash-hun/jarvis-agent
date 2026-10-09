@@ -15,6 +15,8 @@ from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope
+
 if TYPE_CHECKING:
     from jarvis.config import ApiUser, BrandConfig, JarvisSettings
     from jarvis.core.session import AgentSession
@@ -119,17 +121,18 @@ class SessionManager:
         items.sort(key=lambda kv: self._last_activity.get(kv[0], float("-inf")), reverse=True)
         return [session for _, session in items]
 
-    async def save_all_sessions(self, stm: Any, ltm: Any, model: Any) -> None:
-        """서버 종료 시 모든 활성 세션의 에피소딕 요약을 LTM에 저장한다."""
+    async def save_all_sessions(self, stm: Any, memory: Any, model: Any) -> None:
+        """서버 종료 시 모든 활성 세션의 에피소딕 요약을 각 세션의 범위로 저장한다."""
         from jarvis.agent_layer.memory.episodic import EpisodicSummarizer
 
-        summarizer = EpisodicSummarizer(model=model, ltm_backend=ltm)
+        summarizer = EpisodicSummarizer(model=model, memory=memory)
         for session_id, session in list(self._sessions.items()):
             try:
                 msgs = await stm.load(session._session_id)
                 if not msgs:
                     continue
-                entry_id = await summarizer.save_session(session._session_id, msgs)
+                scope = getattr(session, "memory_scope", None)
+                entry_id = await summarizer.save_session(session._session_id, msgs, scope=scope)
                 if entry_id:
                     print(f"[Episodic] Session {session_id[:8]} summary saved (id: {entry_id[:8]})")
             except Exception as exc:
@@ -196,11 +199,11 @@ def create_app(
         if ctx.external_poller is not None:
             await ctx.external_poller.stop()
         stm = base_extra.get("stm_backend")
-        ltm = base_extra.get("ltm_backend")
+        memory = base_extra.get("memory")
         model = base_extra.get("model_config")
-        if stm is None or ltm is None or model is None:
+        if stm is None or memory is None or model is None:
             return
-        await manager.save_all_sessions(stm, ltm, model)
+        await manager.save_all_sessions(stm, memory, model)
 
     # ── REST: 세션 목록 / 생성 / 히스토리 ────────────────────────────────────
 
@@ -404,6 +407,11 @@ def create_app(
                         manager.touch(session_id)
                         # 슬래시 명령 인터셉트 — 텍스트 어디서나 /command 처리 후 나머지만 LLM으로 전달
                         if ctx.dispatcher is not None:
+                            # /remember 같은 명령이 이 연결의 사용자 범위로 기억을 쓰게 한다
+                            current_scope.set(MemoryScope(
+                                user_id=user.name if user is not None else LOCAL_USER,
+                                session_id=session_id,
+                            ))
                             result = await ctx.dispatcher.dispatch(text)
                             for feedback in result.feedbacks:
                                 await ws.send_json({"type": "agent_start"})

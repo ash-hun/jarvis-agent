@@ -2,16 +2,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from jarvis.memory.scope import scope_from_context
 from jarvis.model_layer.types import Message, ModelConfig, UserMessage
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.memory.backends.protocol import LTMBackend
+    from jarvis.memory.manager import MemoryManager
 
 
 class CompactionMiddleware:
     """
     컨텍스트 토큰이 임계값을 초과하면 오래된 메시지를 LLM으로 요약.
-    ltm_backend가 설정된 경우 요약 결과를 LTM에 자동 저장 (source="auto_summary").
+    memory 가 설정된 경우 요약 결과를 실행 에이전트의 private 일화로 저장 (source="auto_summary").
     Pi: AgentHarness.compact() 동일 패턴.
     """
 
@@ -20,12 +21,12 @@ class CompactionMiddleware:
         model: ModelConfig,
         threshold_chars: int = 80_000,
         keep_recent: int = 10,
-        ltm_backend: LTMBackend | None = None,
+        memory: MemoryManager | None = None,
     ) -> None:
         self._model = model
         self._threshold_chars = threshold_chars
         self._keep_recent = keep_recent
-        self._ltm_backend = ltm_backend
+        self._memory = memory
 
     async def transform(
         self,
@@ -47,14 +48,8 @@ class CompactionMiddleware:
             # 요약 실패 — 이번 턴은 압축을 건너뛴다. 빈 요약으로 히스토리를 대체하면 맥락이 사라진다.
             return messages
 
-        if self._ltm_backend is not None:
-            from jarvis.agent_layer.memory.backends.protocol import MemoryEntry
-            entry = MemoryEntry(
-                content=summary,
-                source="auto_summary",
-                session_id=context.get("session_id"),
-            )
-            await self._ltm_backend.store(entry)
+        if self._memory is not None:
+            await self._memory.remember(summary, source="auto_summary", scope=scope_from_context(context))
 
         summary_msg = UserMessage(
             content=f"[Compacted context summary]\n{summary}"

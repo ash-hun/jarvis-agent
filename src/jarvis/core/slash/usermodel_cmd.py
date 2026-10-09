@@ -4,8 +4,8 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.memory.backends.protocol import LTMBackend
     from jarvis.agent_layer.usermodel import UserModelBuilder, UserModelStore
+    from jarvis.memory.manager import MemoryManager
 
 Handler = Callable[[str], Awaitable[str]]
 
@@ -20,7 +20,7 @@ _USAGE = (
 def make_usermodel_handler(
     store: UserModelStore,
     builder: UserModelBuilder,
-    ltm_backend: LTMBackend,
+    memory: MemoryManager,
     build_source_limit: int = 30,
 ) -> Handler:
     """SlashCommandDispatcher에 등록할 /usermodel 핸들러 factory."""
@@ -28,7 +28,7 @@ def make_usermodel_handler(
     async def handle(args: str) -> str:
         sub = args.strip().lower()
         if sub == "build":
-            return await _handle_build(store, builder, ltm_backend, build_source_limit)
+            return await _handle_build(store, builder, memory, build_source_limit)
         if sub in ("", "show", "view"):
             return await _handle_show(store)
         return _USAGE
@@ -50,10 +50,10 @@ async def _handle_show(store: UserModelStore) -> str:
 async def _handle_build(
     store: UserModelStore,
     builder: UserModelBuilder,
-    ltm_backend: LTMBackend,
+    memory: MemoryManager,
     limit: int,
 ) -> str:
-    entries = await ltm_backend.get_recent(limit=limit)
+    entries = await memory.recent(limit=limit)
     sources = [e.content for e in entries if e.content]
     if not sources:
         return "[UserModel] 증류할 기억이 없습니다."

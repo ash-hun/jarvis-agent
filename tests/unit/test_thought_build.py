@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from jarvis.agent_layer.memory.backends.in_memory_ltm import InMemoryLTMBackend
 from jarvis.agent_layer.memory.backends.in_memory_stm import InMemorySTMBackend
 from jarvis.agent_layer.thought import (
     DefaultThoughtComposer,
     InterpretationOnlyComposer,
 )
 from jarvis.config import JarvisSettings
+from jarvis.memory.manager import MemoryManager
+from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.model_layer.types import ModelConfig
 from jarvis.ui.tui.startup import AppContext, _build_thought
 
@@ -26,7 +27,7 @@ def _ctx(**thought_overrides) -> AppContext:
 def _extra() -> dict:
     return {
         "memory_chain": SimpleNamespace(retrieve=lambda *a, **k: []),
-        "ltm_backend": InMemoryLTMBackend(),
+        "memory": MemoryManager(InMemoryItemStore()),
         "stm_backend": InMemorySTMBackend(),
     }
 

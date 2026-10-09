@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import pytest
 
-from jarvis.agent_layer.memory.backends.in_memory_ltm import InMemoryLTMBackend
 from jarvis.agent_layer.memory.backends.in_memory_stm import InMemorySTMBackend
-from jarvis.agent_layer.memory.backends.protocol import LTMBackend, MemoryEntry, STMBackend
+from jarvis.agent_layer.memory.backends.protocol import STMBackend
 from jarvis.agent_layer.memory.long_term import LongTermMemory
 from jarvis.agent_layer.memory.short_term import ShortTermMemory
+from jarvis.memory.manager import MemoryManager
+from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.model_layer.types import AssistantMessage, TextContent, UserMessage
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -19,7 +20,7 @@ def stm_backend():
 
 @pytest.fixture
 def ltm_backend():
-    return InMemoryLTMBackend()
+    return MemoryManager(InMemoryItemStore())
 
 
 def _user_msg(text: str) -> UserMessage:
@@ -36,8 +37,8 @@ def test_stm_backend_satisfies_protocol(stm_backend):
     assert isinstance(stm_backend, STMBackend)
 
 
-def test_ltm_backend_satisfies_protocol(ltm_backend):
-    assert isinstance(ltm_backend, LTMBackend)
+def test_ltm_manager_wraps_a_store(ltm_backend):
+    assert isinstance(ltm_backend.store, InMemoryItemStore)
 
 
 # ── InMemorySTMBackend ────────────────────────────────────────────────────────
@@ -77,14 +78,13 @@ async def test_stm_load_empty(stm_backend):
     assert await stm_backend.load("nonexistent") == []
 
 
-# ── InMemoryLTMBackend ────────────────────────────────────────────────────────
+# ── MemoryManager (in-memory 저장소) ────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_ltm_store_and_get_recent(ltm_backend):
-    e = MemoryEntry(content="Python 배우기", source="explicit")
-    await ltm_backend.store(e)
+    await ltm_backend.remember("Python 배우기", source="explicit")
 
-    recent = await ltm_backend.get_recent(limit=5)
+    recent = await ltm_backend.recent(limit=5)
     assert len(recent) == 1
     assert recent[0].content == "Python 배우기"
     assert recent[0].source == "explicit"
@@ -92,44 +92,42 @@ async def test_ltm_store_and_get_recent(ltm_backend):
 
 @pytest.mark.asyncio
 async def test_ltm_search_keyword(ltm_backend):
-    await ltm_backend.store(MemoryEntry(content="LangChain 튜토리얼", source="explicit"))
-    await ltm_backend.store(MemoryEntry(content="Python 기초 문법", source="explicit"))
+    await ltm_backend.remember("LangChain 튜토리얼", source="explicit")
+    await ltm_backend.remember("Python 기초 문법", source="explicit")
 
-    results = await ltm_backend.search("LangChain")
+    results = await ltm_backend.recall("LangChain")
     assert len(results) == 1
     assert "LangChain" in results[0].content
 
 
 @pytest.mark.asyncio
 async def test_ltm_search_no_match(ltm_backend):
-    await ltm_backend.store(MemoryEntry(content="FastAPI 정리", source="explicit"))
-    results = await ltm_backend.search("Django")
+    await ltm_backend.remember("FastAPI 정리", source="explicit")
+    results = await ltm_backend.recall("Django")
     assert results == []
 
 
 @pytest.mark.asyncio
 async def test_ltm_delete(ltm_backend):
-    e = MemoryEntry(content="삭제할 항목", source="explicit")
-    entry_id = await ltm_backend.store(e)
-    await ltm_backend.delete(entry_id)
+    entry_id = await ltm_backend.remember("삭제할 항목", source="explicit")
+    await ltm_backend.forget(entry_id)
 
-    recent = await ltm_backend.get_recent()
+    recent = await ltm_backend.recent()
     assert all(r.id != entry_id for r in recent)
 
 
 @pytest.mark.asyncio
 async def test_ltm_clear_all(ltm_backend):
     for i in range(3):
-        await ltm_backend.store(MemoryEntry(content=f"항목 {i}", source="explicit"))
-    await ltm_backend.clear_all()
-    assert await ltm_backend.get_recent() == []
+        await ltm_backend.remember(f"항목 {i}", source="explicit")
+    await ltm_backend.clear()
+    assert await ltm_backend.recent() == []
 
 
 @pytest.mark.asyncio
-async def test_ltm_store_returns_id(ltm_backend):
-    e = MemoryEntry(content="테스트", source="explicit")
-    returned_id = await ltm_backend.store(e)
-    assert returned_id == e.id
+async def test_ltm_remember_returns_id_of_stored_item(ltm_backend):
+    returned_id = await ltm_backend.remember("테스트", source="explicit")
+    assert (await ltm_backend.get(returned_id)).id == returned_id
 
 
 # ── ShortTermMemory middleware ─────────────────────────────────────────────────
@@ -166,7 +164,7 @@ async def test_short_term_clear(stm_backend):
 
 @pytest.mark.asyncio
 async def test_long_term_transform_injects_memory(ltm_backend):
-    await ltm_backend.store(MemoryEntry(content="Jarvis 개발 중", source="explicit"))
+    await ltm_backend.remember("Jarvis 개발 중", source="explicit")
 
     ltm = LongTermMemory(ltm_backend, inject_limit=3)
     msgs = [_user_msg("Jarvis 진행 상황 알려줘")]
@@ -179,7 +177,7 @@ async def test_long_term_transform_injects_memory(ltm_backend):
 
 @pytest.mark.asyncio
 async def test_long_term_transform_no_match_returns_unchanged(ltm_backend):
-    await ltm_backend.store(MemoryEntry(content="Python 기초", source="explicit"))
+    await ltm_backend.remember("Python 기초", source="explicit")
 
     ltm = LongTermMemory(ltm_backend, inject_limit=3)
     msgs = [_user_msg("Django 배우고 싶어")]
@@ -189,7 +187,7 @@ async def test_long_term_transform_no_match_returns_unchanged(ltm_backend):
 
 @pytest.mark.asyncio
 async def test_long_term_transform_no_user_message(ltm_backend):
-    await ltm_backend.store(MemoryEntry(content="테스트 항목", source="explicit"))
+    await ltm_backend.remember("테스트 항목", source="explicit")
     ltm = LongTermMemory(ltm_backend)
     # user 메시지가 없는 경우 LTM 주입 없이 원본 반환
     msgs: list = []
@@ -201,12 +199,12 @@ async def test_long_term_transform_no_user_message(ltm_backend):
 async def test_long_term_store_is_noop(ltm_backend):
     ltm = LongTermMemory(ltm_backend)
     await ltm.store(_user_msg("should not be saved"), {})
-    assert await ltm_backend.get_recent() == []
+    assert await ltm_backend.recent() == []
 
 
 @pytest.mark.asyncio
 async def test_long_term_clear_is_noop(ltm_backend):
-    await ltm_backend.store(MemoryEntry(content="보존되어야 함", source="explicit"))
+    await ltm_backend.remember("보존되어야 함", source="explicit")
     ltm = LongTermMemory(ltm_backend)
     await ltm.clear({})
-    assert len(await ltm_backend.get_recent()) == 1
+    assert len(await ltm_backend.recent()) == 1

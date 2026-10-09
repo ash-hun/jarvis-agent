@@ -7,7 +7,7 @@ from jarvis.model_layer.stream import stream_to_message
 from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.memory.backends.protocol import LTMBackend
+    from jarvis.memory.manager import MemoryManager
 
 # 저널 항목을 식별하는 LTM source 태그.
 JOURNAL_SOURCE = "journal"
@@ -33,17 +33,17 @@ class ReflectionJournaler:
     def __init__(
         self,
         model: ModelConfig,
-        ltm_backend: LTMBackend,
+        memory: MemoryManager,
         scan_limit: int = 40,
         prompt: str = DEFAULT_PROMPT,
     ) -> None:
         self._model = model
-        self._ltm = ltm_backend
+        self._memory = memory
         self._scan_limit = scan_limit
         self._prompt = prompt
 
     async def write(self) -> str | None:
-        entries = await self._ltm.get_recent(limit=self._scan_limit)
+        entries = await self._memory.recent(limit=self._scan_limit)
         thoughts = [e.content for e in entries if e.source == THOUGHT_SOURCE]
         if not thoughts:
             return None
@@ -61,15 +61,13 @@ class ReflectionJournaler:
         if not text:
             return None
 
-        from jarvis.agent_layer.memory.backends.protocol import MemoryEntry
-
         try:
-            await self._ltm.store(MemoryEntry(content=text, source=JOURNAL_SOURCE))
+            await self._memory.remember(text, source=JOURNAL_SOURCE)
         except Exception:
             return text  # 저장 실패해도 작성 내용은 반환
         return text
 
     async def recent(self, limit: int = 5) -> list[str]:
-        entries = await self._ltm.get_recent(limit=self._scan_limit)
+        entries = await self._memory.recent(limit=self._scan_limit)
         journal = [e.content for e in entries if e.source == JOURNAL_SOURCE]
         return journal[:limit]

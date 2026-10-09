@@ -40,6 +40,7 @@ from jarvis.core.proactive import (
 )
 from jarvis.core.skills.registry import SkillRegistry
 from jarvis.core.tools.registry import ToolRegistry
+from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope, current_scope
 from jarvis.model_layer.types import AssistantMessage, ModelConfig
 
 # daemon 자율 성찰 시 user_input 대신 넣는 seed — 요청 없는 시점임을 모델에 알린다.
@@ -125,6 +126,8 @@ class AgentSession:
         # prompt 진입 즉시 켜고 메인 루프가 끝날 때 끈다. harness.is_running 은 inner thought
         # 이후에야 켜져서 그 틈에 두 요청이 동시에 통과해 히스토리를 섞는다.
         self._busy = False
+        # 마지막으로 인증된 사용자. 세션 종료 요약처럼 턴 바깥에서 쓰는 메모리 범위의 근거.
+        self._last_user_id: str | None = None
 
         self._harness = AgentHarness(
             model=model,
@@ -168,6 +171,9 @@ class AgentSession:
 
         if policy_result.rate_limit is not None:
             self._check_rate_limit(auth_ctx.user_id, policy_result.rate_limit)
+
+        self._last_user_id = auth_ctx.user_id
+        current_scope.set(self.memory_scope)
 
         expanded = self._skill_registry.expand(validated.sanitized)
 
@@ -391,6 +397,15 @@ class AgentSession:
         if len(timestamps) >= rate_limit:
             raise PolicyDenied(f"Rate limit exceeded: {rate_limit} requests/{int(window)}s for user '{user_id}'")
         timestamps.append(now)
+
+    @property
+    def memory_scope(self) -> MemoryScope:
+        """이 세션이 기억을 읽고 쓰는 범위. 사용자는 마지막 인증값, 없으면 로컬 사용자."""
+        return MemoryScope(
+            user_id=self._last_user_id or LOCAL_USER,
+            agent_id=self._harness._agent_name or MAIN_AGENT,
+            session_id=self._session_id,
+        )
 
     @property
     def agent_name(self) -> str | None:

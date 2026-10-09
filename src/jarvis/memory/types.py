@@ -35,3 +35,7 @@ class MemoryItem:
     id: str = field(default_factory=lambda: uuid.uuid4().hex)
     created_at: datetime = field(default_factory=datetime.now)
     metadata: dict = field(default_factory=dict)
+
+    @property
+    def session_id(self) -> str | None:
+        return self.scope.session_id

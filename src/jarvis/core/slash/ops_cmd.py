@@ -5,9 +5,9 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.memory.backends.protocol import LTMBackend
     from jarvis.agent_layer.session.protocol import SessionRepo
     from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.memory.manager import MemoryManager
     from jarvis.model_layer.types import ModelConfig
 
 Handler = Callable[[str], Awaitable[str]]
@@ -72,7 +72,7 @@ def make_tools_handler(tool_registry: ToolRegistry) -> Handler:
 def make_compact_handler(
     model: ModelConfig,
     session_repo: SessionRepo,
-    ltm_backend: LTMBackend | None = None,
+    memory: MemoryManager | None = None,
     session_id: str = "default",
 ) -> Handler:
     """/compact — 현재 세션을 요약해 장기 기억(LTM)에 저장."""
@@ -84,14 +84,14 @@ def make_compact_handler(
 
         from jarvis.agent_layer.memory.compaction import CompactionMiddleware
 
-        middleware = CompactionMiddleware(model=model, ltm_backend=ltm_backend)
+        middleware = CompactionMiddleware(model=model, memory=memory)
         summary = await middleware._summarize(messages)
+        if summary is None:
+            return "[Compact] 요약 모델 호출에 실패했습니다."
 
-        if ltm_backend is not None:
-            from jarvis.agent_layer.memory.backends.protocol import MemoryEntry
-
-            entry = MemoryEntry(content=summary, source="manual_compact", session_id=session_id)
-            await ltm_backend.store(entry)
+        if memory is not None:
+            scope = memory.resolve_scope().with_session(session_id)
+            await memory.remember(summary, source="manual_compact", scope=scope)
             saved = " (장기 기억에 저장됨)"
         else:
             saved = ""

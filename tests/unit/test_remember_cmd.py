@@ -3,14 +3,14 @@ from __future__ import annotations
 
 import pytest
 
-from jarvis.agent_layer.memory.backends.in_memory_ltm import InMemoryLTMBackend
-from jarvis.agent_layer.memory.backends.protocol import MemoryEntry
 from jarvis.core.slash.remember_cmd import make_remember_handler
+from jarvis.memory.manager import MemoryManager
+from jarvis.memory.stores.in_memory import InMemoryItemStore
 
 
 @pytest.fixture
 def ltm():
-    return InMemoryLTMBackend()
+    return MemoryManager(InMemoryItemStore())
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ async def test_remember_save(handler, ltm):
     assert "[Memory]" in result
     assert "저장" in result
 
-    recent = await ltm.get_recent()
+    recent = await ltm.recent()
     assert len(recent) == 1
     assert "Jarvis" in recent[0].content
 
@@ -48,8 +48,8 @@ async def test_remember_list_empty(handler):
 
 @pytest.mark.asyncio
 async def test_remember_list_shows_entries(handler, ltm):
-    await ltm.store(MemoryEntry(content="항목 A", source="explicit"))
-    await ltm.store(MemoryEntry(content="항목 B", source="explicit"))
+    await ltm.remember("항목 A", source="explicit")
+    await ltm.remember("항목 B", source="explicit")
 
     result = await handler("list")
     assert "항목 A" in result
@@ -60,14 +60,14 @@ async def test_remember_list_shows_entries(handler, ltm):
 
 @pytest.mark.asyncio
 async def test_remember_search_found(handler, ltm):
-    await ltm.store(MemoryEntry(content="FastAPI 공부 중", source="explicit"))
+    await ltm.remember("FastAPI 공부 중", source="explicit")
     result = await handler("search FastAPI")
     assert "FastAPI" in result
 
 
 @pytest.mark.asyncio
 async def test_remember_search_not_found(handler, ltm):
-    await ltm.store(MemoryEntry(content="FastAPI 공부 중", source="explicit"))
+    await ltm.remember("FastAPI 공부 중", source="explicit")
     result = await handler("search Django")
     assert "없습니다" in result
 
@@ -82,14 +82,13 @@ async def test_remember_search_empty_query(handler):
 
 @pytest.mark.asyncio
 async def test_remember_forget(handler, ltm):
-    e = MemoryEntry(content="삭제 대상", source="explicit")
-    await ltm.store(e)
+    entry_id = await ltm.remember("삭제 대상", source="explicit")
 
-    result = await handler(f"forget {e.id}")
+    result = await handler(f"forget {entry_id}")
     assert "삭제" in result
 
-    recent = await ltm.get_recent()
-    assert all(r.id != e.id for r in recent)
+    recent = await ltm.recent()
+    assert all(r.id != entry_id for r in recent)
 
 
 @pytest.mark.asyncio

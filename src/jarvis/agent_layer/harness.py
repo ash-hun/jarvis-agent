@@ -72,6 +72,7 @@ class AgentHarness:
 
         mem_context: dict[str, Any] = {
             "session_id": self._session_id,
+            "agent_id": self._agent_name or "main",  # 메모리 범위: 어느 에이전트가 읽고 쓰는가
             **(extra_context or {}),
         }
         messages = await self._memory_chain.transform(history, mem_context)

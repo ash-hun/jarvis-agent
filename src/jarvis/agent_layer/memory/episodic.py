@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING
 from jarvis.model_layer.types import Message, ModelConfig, UserMessage
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.memory.backends.protocol import LTMBackend
+    from jarvis.memory.manager import MemoryManager
+    from jarvis.memory.scope import MemoryScope
 
 
 class EpisodicSummarizer:
@@ -15,14 +16,15 @@ class EpisodicSummarizer:
     저장 시 source="session_end" — LongTermMemory.transform()이 다음 세션에서 자동 주입.
     """
 
-    def __init__(self, model: ModelConfig, ltm_backend: LTMBackend) -> None:
+    def __init__(self, model: ModelConfig, memory: MemoryManager) -> None:
         self._model = model
-        self._ltm_backend = ltm_backend
+        self._memory = memory
 
     async def save_session(
         self,
         session_id: str,
         messages: list[Message],
+        scope: MemoryScope | None = None,
     ) -> str | None:
         """
         세션 메시지를 요약해 LTM에 저장.
@@ -37,14 +39,8 @@ class EpisodicSummarizer:
         if summary is None:
             return None
 
-        from jarvis.agent_layer.memory.backends.protocol import MemoryEntry
-
-        entry = MemoryEntry(
-            content=summary,
-            source="session_end",
-            session_id=session_id,
-        )
-        return await self._ltm_backend.store(entry)
+        resolved = self._memory.resolve_scope(scope).with_session(session_id)
+        return await self._memory.remember(summary, source="session_end", scope=resolved)
 
     async def _summarize(self, session_id: str, messages: list[Message]) -> str | None:
         from jarvis.model_layer.stream import stream_to_message

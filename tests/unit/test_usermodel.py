@@ -104,10 +104,13 @@ class _FakeLTM:
     def __init__(self, contents):
         self._contents = contents
 
-    async def get_recent(self, limit=10):
-        from jarvis.agent_layer.memory.backends.protocol import MemoryEntry
+    async def recent(self, limit=10):
+        from jarvis.memory import MemoryItem, MemoryKind, MemoryScope
 
-        return [MemoryEntry(content=c, source="x") for c in self._contents[:limit]]
+        scope = MemoryScope(user_id="local")
+        return [
+            MemoryItem(content=c, kind=MemoryKind.SEMANTIC, scope=scope, source="x") for c in self._contents[:limit]
+        ]
 
 
 @pytest.mark.asyncio

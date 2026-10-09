@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.memory.backends.protocol import LTMBackend
+    from jarvis.memory.manager import MemoryManager
 
 Handler = Callable[[str], Awaitable[str]]
 
@@ -18,7 +18,7 @@ _USAGE = (
 )
 
 
-def make_remember_handler(ltm_backend: LTMBackend) -> Handler:
+def make_remember_handler(memory: MemoryManager) -> Handler:
     """SlashCommandDispatcher에 등록할 /remember 핸들러 factory."""
 
     async def handle(args: str) -> str:
@@ -32,19 +32,19 @@ def make_remember_handler(ltm_backend: LTMBackend) -> Handler:
         rest = parts[1].strip() if len(parts) > 1 else ""
 
         if subcmd == "list":
-            return await _handle_list(ltm_backend)
+            return await _handle_list(memory)
         if subcmd == "search":
-            return await _handle_search(ltm_backend, rest)
+            return await _handle_search(memory, rest)
         if subcmd == "forget":
-            return await _handle_forget(ltm_backend, rest)
+            return await _handle_forget(memory, rest)
 
-        return await _handle_save(ltm_backend, args)
+        return await _handle_save(memory, args)
 
     return handle
 
 
-async def _handle_list(ltm_backend: LTMBackend) -> str:
-    entries = await ltm_backend.get_recent(limit=10)
+async def _handle_list(memory: MemoryManager) -> str:
+    entries = await memory.recent(limit=10)
     if not entries:
         return "[Memory] 저장된 장기 기억이 없습니다."
     lines = ["[Memory] 최근 장기 기억:"]
@@ -54,10 +54,10 @@ async def _handle_list(ltm_backend: LTMBackend) -> str:
     return "\n".join(lines)
 
 
-async def _handle_search(ltm_backend: LTMBackend, query: str) -> str:
+async def _handle_search(memory: MemoryManager, query: str) -> str:
     if not query:
         return "[Memory] 검색 키워드를 입력해주세요."
-    entries = await ltm_backend.search(query, limit=5)
+    entries = await memory.recall(query, limit=5)
     if not entries:
         return f"[Memory] '{query}'에 해당하는 기억이 없습니다."
     lines = [f"[Memory] '{query}' 검색 결과:"]
@@ -67,16 +67,13 @@ async def _handle_search(ltm_backend: LTMBackend, query: str) -> str:
     return "\n".join(lines)
 
 
-async def _handle_forget(ltm_backend: LTMBackend, entry_id: str) -> str:
+async def _handle_forget(memory: MemoryManager, entry_id: str) -> str:
     if not entry_id:
         return "[Memory] 삭제할 기억의 id를 입력해주세요. (/remember list 에서 확인)"
-    await ltm_backend.delete(entry_id)
+    await memory.forget(entry_id)
     return f"[Memory] 기억 [{entry_id}]을 삭제했습니다."
 
 
-async def _handle_save(ltm_backend: LTMBackend, content: str) -> str:
-    from jarvis.agent_layer.memory.backends.protocol import MemoryEntry
-
-    entry = MemoryEntry(content=content, source="explicit")
-    entry_id = await ltm_backend.store(entry)
+async def _handle_save(memory: MemoryManager, content: str) -> str:
+    entry_id = await memory.remember(content, source="explicit")
     return f"[Memory] 장기 기억에 저장했습니다. (id: {entry_id[:8]})"

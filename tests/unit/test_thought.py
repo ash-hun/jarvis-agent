@@ -7,7 +7,6 @@ from datetime import datetime
 
 import pytest
 
-from jarvis.agent_layer.memory.backends.in_memory_ltm import InMemoryLTMBackend
 from jarvis.agent_layer.thought import (
     InnerThoughtEngine,
     LTMThoughtSink,
@@ -19,6 +18,8 @@ from jarvis.agent_layer.thought import (
     ThoughtRequest,
 )
 from jarvis.agent_layer.thought.log import THOUGHT_SOURCE
+from jarvis.memory.manager import MemoryManager
+from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.model_layer.types import UserMessage
 
 
@@ -277,13 +278,13 @@ def test_engine_satisfies_protocol(faux_model):
 
 @pytest.mark.asyncio
 async def test_ltm_sink_persists_full_frame():
-    backend = InMemoryLTMBackend()
+    backend = MemoryManager(InMemoryItemStore())
     log = ThoughtLog([LTMThoughtSink(backend)])
     frame = ThoughtFrame(decision="ask", confidence=0.7, interpretation="x")
 
     await log.store(frame, session_id="s1")
 
-    entries = await backend.get_recent(limit=10)
+    entries = await backend.recent(limit=10)
     assert len(entries) == 1
     entry = entries[0]
     assert entry.source == THOUGHT_SOURCE
@@ -315,13 +316,13 @@ async def test_stm_sink_writes_tagged_message_without_polluting():
 async def test_thought_log_fans_out_to_multiple_sinks():
     from jarvis.agent_layer.memory.backends.in_memory_stm import InMemorySTMBackend
 
-    ltm = InMemoryLTMBackend()
+    ltm = MemoryManager(InMemoryItemStore())
     stm = InMemorySTMBackend()
     log = ThoughtLog([LTMThoughtSink(ltm), STMThoughtSink(stm)])
 
     await log.store(ThoughtFrame(interpretation="y"), session_id="s1")
 
-    assert len(await ltm.get_recent(limit=10)) == 1
+    assert len(await ltm.recent(limit=10)) == 1
     assert len(await stm.load("s1")) == 1
 
 
@@ -331,12 +332,12 @@ async def test_thought_log_isolates_sink_failure():
         async def store(self, frame, session_id=None):
             raise RuntimeError("sink down")
 
-    ltm = InMemoryLTMBackend()
+    ltm = MemoryManager(InMemoryItemStore())
     log = ThoughtLog([BoomSink(), LTMThoughtSink(ltm)])
 
     # 한 싱크가 터져도 나머지는 저장되고 예외는 전파되지 않는다.
     await log.store(ThoughtFrame(interpretation="z"), session_id="s1")
-    assert len(await ltm.get_recent(limit=10)) == 1
+    assert len(await ltm.recent(limit=10)) == 1
 
 
 # ── Composer (A3) ─────────────────────────────────────────────────────────────

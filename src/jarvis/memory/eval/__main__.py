@@ -1,4 +1,4 @@
-"""python -m jarvis.memory.eval --suite all|isolation|semantic [--target legacy] [--json] [-v]"""
+"""python -m jarvis.memory.eval --suite all|isolation|semantic [--target store] [--json] [-v]"""
 
 import argparse
 import asyncio
@@ -12,7 +12,7 @@ from jarvis.memory.eval.target import TARGETS
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="jarvis.memory.eval")
     parser.add_argument("--suite", default="all", choices=("all", *SUITES))
-    parser.add_argument("--target", default="legacy", choices=tuple(TARGETS))
+    parser.add_argument("--target", default="store", choices=tuple(TARGETS))
     parser.add_argument("--json", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)

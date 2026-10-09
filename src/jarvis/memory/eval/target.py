@@ -4,7 +4,9 @@ from datetime import datetime
 from typing import Protocol
 
 from jarvis.memory.eval.schema import SetupStep
+from jarvis.memory.manager import MemoryManager
 from jarvis.memory.scope import MemoryScope
+from jarvis.memory.stores.in_memory import InMemoryItemStore
 
 
 class EvalTarget(Protocol):
@@ -17,36 +19,27 @@ class EvalTarget(Protocol):
         ...
 
 
-class LegacyLTMTarget:
-    """현재 구조(agent_layer.memory 의 LTM 백엔드). 베이스라인 측정용.
-
-    search 가 scope 를 받지 않으므로 scope 는 저장 시 metadata 에만 남고 검색엔 쓰이지 않는다.
-    격리 스위트가 여기서 실패하는 것이 0단계의 기대 결과다.
-    """
+class StoreTarget:
+    """jarvis.memory 의 매니저 + in-memory 저장소. 기본 평가 대상."""
 
     def __init__(self) -> None:
-        from jarvis.agent_layer.memory.backends.in_memory_ltm import InMemoryLTMBackend
-
-        self._backend = InMemoryLTMBackend()
+        self._memory = MemoryManager(InMemoryItemStore())
 
     async def reset(self) -> None:
-        await self._backend.clear_all()
+        await self._memory.clear()
 
     async def setup(self, step: SetupStep, scope: MemoryScope) -> None:
-        from jarvis.agent_layer.memory.backends.protocol import MemoryEntry
-
-        entry = MemoryEntry(
-            content=step.remember,
-            source="explicit",
-            session_id=scope.session_id,
-            metadata={"user_id": scope.user_id, "agent_id": scope.agent_id, "visibility": step.visibility},
+        await self._memory.remember(
+            step.remember,
+            source="eval",
+            scope=scope,
+            kind=step.kind,
+            visibility=step.visibility,
+            created_at=datetime.fromisoformat(step.at) if step.at else None,
         )
-        if step.at:
-            entry.created_at = datetime.fromisoformat(step.at)
-        await self._backend.store(entry)
 
     async def probe(self, query: str, scope: MemoryScope, top_k: int) -> list[str]:
-        return [e.content for e in await self._backend.search(query, limit=top_k)]
+        return [i.content for i in await self._memory.recall(query, scope, limit=top_k)]
 
 
-TARGETS = {"legacy": LegacyLTMTarget}
+TARGETS = {"store": StoreTarget}

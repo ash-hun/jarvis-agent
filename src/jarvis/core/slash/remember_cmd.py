@@ -14,7 +14,8 @@ _USAGE = (
     "  /remember <내용>              장기 기억 저장\n"
     "  /remember list               최근 기억 목록 (최대 10개)\n"
     "  /remember search <키워드>     기억 검색\n"
-    "  /remember forget <id>        기억 삭제"
+    "  /remember forget <id>        기억 삭제\n"
+    "  /remember conflicts          서로 어긋날 수 있는 사실 쌍(간섭 후보)"
 )
 
 
@@ -37,6 +38,8 @@ def make_remember_handler(memory: MemoryManager) -> Handler:
             return await _handle_search(memory, rest)
         if subcmd == "forget":
             return await _handle_forget(memory, rest)
+        if subcmd == "conflicts":
+            return await _handle_conflicts(memory)
 
         return await _handle_save(memory, args)
 
@@ -77,3 +80,25 @@ async def _handle_forget(memory: MemoryManager, entry_id: str) -> str:
 async def _handle_save(memory: MemoryManager, content: str) -> str:
     entry_id = await memory.remember(content, source="explicit")
     return f"[Memory] 장기 기억에 저장했습니다. (id: {entry_id[:8]})"
+
+
+async def _handle_conflicts(memory: MemoryManager) -> str:
+    """간섭 후보: 주제는 다른데 내용이 비슷한 사실 쌍. 사람이 보고 /remember forget 으로 정리한다."""
+    from jarvis.memory.long_term.semantic import CONFLICTS_KEY
+    from jarvis.memory.types import MemoryKind
+
+    items = await memory.recent(kinds=[MemoryKind.SEMANTIC], limit=200)
+    by_id = {i.id: i for i in items}
+    seen: set[frozenset[str]] = set()
+    lines: list[str] = []
+    for item in items:
+        for other_id in item.metadata.get(CONFLICTS_KEY, []):
+            pair = frozenset((item.id, other_id))
+            other = by_id.get(other_id)
+            if pair in seen or other is None:
+                continue
+            seen.add(pair)
+            lines.append(f"  [{item.id[:8]}] {item.content[:60]}\n  [{other.id[:8]}] {other.content[:60]}")
+    if not lines:
+        return "[Memory] 어긋나는 사실 쌍이 없습니다."
+    return "[Memory] 서로 어긋날 수 있는 사실:\n" + "\n  ---\n".join(lines)

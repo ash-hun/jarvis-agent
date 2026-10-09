@@ -72,6 +72,8 @@ class MemoryConfig(BaseSettings):
     recall_limit: int = 3  # 질의로 회상해 넣는 항목 수(회상 블록)
     importance_threshold: float = 0.5  # 의미 추출 결과 중 이 값 미만은 버린다
     recency_half_life_hours: float = 168.0  # 검색 점수의 recency 반감기(일주일)
+    importance_half_life_days: float = 90.0  # 되뇌기 없는 항목의 importance 반감기. 0 이면 감쇠 없음
+    interference_threshold: float = 0.6  # 주제가 다른데 이보다 비슷한 의미 항목 쌍은 간섭 후보로 표시
     consolidate_on_idle: bool = True  # 사용자가 조용할 때(daemon idle 틱) 요약에서 사실을 추출한다
 
 

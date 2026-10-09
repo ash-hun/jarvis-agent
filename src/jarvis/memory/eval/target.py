@@ -37,7 +37,7 @@ class StoreTarget:
         if step.skill is not None:
             self._procedures.add(Procedure(name=step.skill, description=step.description, aliases=tuple(step.aliases)))
             return
-        await self._memory.remember(
+        item_id = await self._memory.remember(
             step.remember or "",
             source="eval",
             scope=scope,
@@ -46,6 +46,11 @@ class StoreTarget:
             importance=step.importance,
             created_at=datetime.fromisoformat(step.at) if step.at else None,
         )
+        if step.rehearsal_count:
+            item = await self._memory.get(item_id)
+            if item is not None:
+                item.rehearsal_count = step.rehearsal_count
+                await self._memory.store.store(item)
 
     async def probe(self, query: str, scope: MemoryScope, top_k: int, kind: str = "recall") -> list[str]:
         if kind == "procedures":

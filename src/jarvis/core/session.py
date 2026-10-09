@@ -57,6 +57,13 @@ AUTONOMOUS_SAFE_TOOLS = frozenset(
 AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
 
 
+class SessionBusy(Exception):
+    """같은 세션에 이전 요청이 아직 돌고 있을 때 새 prompt 를 거부한다."""
+
+
+BUSY_MESSAGE = "이전 요청을 아직 처리 중입니다. 끝나길 기다리거나 중단(abort)한 뒤 다시 보내세요."
+
+
 class AgentSession:
     """
     모든 레이어를 연결하는 중추.
@@ -115,6 +122,9 @@ class AgentSession:
         )
 
         self._rate_counters: dict[str, deque[float]] = {}
+        # prompt 진입 즉시 켜고 메인 루프가 끝날 때 끈다. harness.is_running 은 inner thought
+        # 이후에야 켜져서 그 틈에 두 요청이 동시에 통과해 히스토리를 섞는다.
+        self._busy = False
 
         self._harness = AgentHarness(
             model=model,
@@ -135,8 +145,17 @@ class AgentSession:
         raw_input: str,
         credentials: dict | None = None,
     ) -> AssistantMessage | None:
-        creds = credentials or {}
+        if self._busy:
+            raise SessionBusy(BUSY_MESSAGE)
+        self._busy = True
+        try:
+            return await self._prompt(raw_input, credentials or {})
+        except BaseException:
+            # run_main 진입 전 실패(검증·인증·rate limit·사고) — run_main 의 finally 가 못 끈다.
+            self._busy = False
+            raise
 
+    async def _prompt(self, raw_input: str, creds: dict) -> AssistantMessage | None:
         # 사용자 활동 기록 — idle 트리거가 "조용해진 시점"을 알도록 리셋한다.
         if self._activity_clock is not None:
             self._activity_clock.touch()
@@ -160,18 +179,22 @@ class AgentSession:
         tool_executor = self._make_tool_executor(auth_ctx, policy_result)
 
         async def run_main() -> AssistantMessage | None:
-            result = await self._harness.run(
-                user_input=expanded,
-                tool_executor=tool_executor,
-                extra_context={
-                    "user_id": auth_ctx.user_id,
-                    "roles": list(auth_ctx.roles),
-                    "inner_thought_prompt": inner_thought_prompt,
-                },
-            )
-            if result:
-                result = await self._plugins.emit_on_message_end(result)
-            return result
+            try:
+                result = await self._harness.run(
+                    user_input=expanded,
+                    tool_executor=tool_executor,
+                    extra_context={
+                        "user_id": auth_ctx.user_id,
+                        "roles": list(auth_ctx.roles),
+                        "inner_thought_prompt": inner_thought_prompt,
+                    },
+                )
+                if result:
+                    result = await self._plugins.emit_on_message_end(result)
+                return result
+            finally:
+                # Dual-Channel 백그라운드 모드에서는 prompt() 가 먼저 돌아오므로 여기서 꺼야 한다.
+                self._busy = False
 
         # Dual-Channel: proactivity가 있으면 needs_background 시 filler 즉시 발화 후
         # 백그라운드 수행(반환 None). 없거나 즉시 모드면 현재 동작 그대로.
@@ -382,7 +405,7 @@ class AgentSession:
 
     @property
     def is_running(self) -> bool:
-        return self._harness.is_running
+        return self._busy or self._harness.is_running
 
     def _make_tool_executor(self, auth_ctx: AuthContext, policy_result: PolicyResult):
         allowed = policy_result.allowed_tools

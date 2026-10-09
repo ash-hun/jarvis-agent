@@ -10,12 +10,12 @@ import pytest
 from jarvis.agent_layer.thought import (
     InnerThoughtEngine,
     LTMThoughtSink,
-    STMThoughtSink,
     ThoughtEngine,
     ThoughtFrame,
     ThoughtLog,
     ThoughtPromptTemplate,
     ThoughtRequest,
+    WorkingNotesSink,
 )
 from jarvis.agent_layer.thought.log import THOUGHT_SOURCE
 from jarvis.memory.manager import MemoryManager
@@ -296,34 +296,31 @@ async def test_ltm_sink_persists_full_frame():
 
 
 @pytest.mark.asyncio
-async def test_stm_sink_writes_tagged_message_without_polluting():
-    from jarvis.agent_layer.memory.backends.in_memory_stm import InMemorySTMBackend
+async def test_notes_sink_writes_to_working_memory_not_to_context():
+    from jarvis.memory import MemoryScope
 
-    stm = InMemorySTMBackend()
-    log = ThoughtLog([STMThoughtSink(stm)])
+    memory = MemoryManager(InMemoryItemStore())
+    log = ThoughtLog([WorkingNotesSink(memory)])
     frame = ThoughtFrame(decision="silent", interpretation="속마음")
 
     await log.store(frame, session_id="s1")
 
-    msgs = await stm.load("s1")
-    assert len(msgs) == 1
-    assert msgs[0].role == "assistant"
-    text = msgs[0].content[0].text
-    assert THOUGHT_SOURCE in text and "속마음" in text
+    notes = (await memory.working_state(MemoryScope(user_id="local", session_id="s1"))).notes
+    assert len(notes) == 1 and THOUGHT_SOURCE in notes[0] and "속마음" in notes[0]
+    assert await memory.recent() == []  # 장기 기억에는 쓰지 않는다
 
 
 @pytest.mark.asyncio
 async def test_thought_log_fans_out_to_multiple_sinks():
-    from jarvis.agent_layer.memory.backends.in_memory_stm import InMemorySTMBackend
+    from jarvis.memory import MemoryScope
 
     ltm = MemoryManager(InMemoryItemStore())
-    stm = InMemorySTMBackend()
-    log = ThoughtLog([LTMThoughtSink(ltm), STMThoughtSink(stm)])
+    log = ThoughtLog([LTMThoughtSink(ltm), WorkingNotesSink(ltm)])
 
     await log.store(ThoughtFrame(interpretation="y"), session_id="s1")
 
     assert len(await ltm.recent(limit=10)) == 1
-    assert len(await stm.load("s1")) == 1
+    assert len((await ltm.working_state(MemoryScope(user_id="local", session_id="s1"))).notes) == 1
 
 
 @pytest.mark.asyncio

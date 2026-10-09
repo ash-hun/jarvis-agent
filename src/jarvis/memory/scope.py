@@ -40,10 +40,15 @@ class MemoryScope:
 
 
 def scope_from_context(context: dict[str, Any]) -> MemoryScope:
-    """harness 가 미들웨어에 넘기는 context(session_id, user_id, agent_id)에서 범위를 조립한다."""
+    """harness 가 미들웨어에 넘기는 context(session_id, user_id, agent_id)에서 범위를 조립한다.
+
+    context 에 user_id 가 없으면(사고 엔진의 회상처럼 session_id 만 주는 호출자) 현재 턴의
+    contextvar 사용자를 쓰고, 그것도 없으면 로컬 사용자다.
+    """
+    current = current_scope.get()
     return MemoryScope(
-        user_id=context.get("user_id") or LOCAL_USER,
-        agent_id=context.get("agent_id") or MAIN_AGENT,
+        user_id=context.get("user_id") or (current.user_id if current else None) or LOCAL_USER,
+        agent_id=context.get("agent_id") or (current.agent_id if current else None) or MAIN_AGENT,
         session_id=context.get("session_id"),
     )
 

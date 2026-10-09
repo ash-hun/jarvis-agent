@@ -129,9 +129,6 @@ class AppContext:
 def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     """공통 인프라를 생성하고 (AppContext, extra)를 반환."""
     from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
-    from jarvis.agent_layer.memory.compaction import CompactionMiddleware
-    from jarvis.agent_layer.memory.long_term import LongTermMemory
-    from jarvis.agent_layer.memory.short_term import ShortTermMemory
     from jarvis.core.plugins.loader import PluginLoader
     from jarvis.core.plugins.runner import PluginRunner
     from jarvis.core.policy.authenticator import NoAuthAuthenticator
@@ -173,34 +170,35 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         max_tokens=settings.llm.max_tokens,
     )
 
+    from jarvis.memory.consolidation import llm_summarizer
     from jarvis.memory.manager import MemoryManager
+    from jarvis.memory.middleware import MemoryMiddlewareAdapter
 
     if settings.memory.backend == "in_memory":
-        from jarvis.agent_layer.memory.backends.in_memory_stm import InMemorySTMBackend
         from jarvis.memory.stores.in_memory import InMemoryItemStore
-        stm_backend = InMemorySTMBackend()
+        from jarvis.memory.working.in_memory import InMemoryWorkingStore
         item_store: Any = InMemoryItemStore()
+        working_store: Any = InMemoryWorkingStore()
     else:
         dsn = settings.memory.postgres_dsn or settings.session.postgres_dsn
         if not dsn:
             raise ValueError(
                 "JARVIS_MEMORY__POSTGRES_DSN 또는 JARVIS_SESSION__POSTGRES_DSN 설정 필요"
             )
-        from jarvis.agent_layer.memory.backends.postgres_stm import PostgresSTMBackend
         from jarvis.memory.stores.postgres import PostgresItemStore
-        stm_backend = PostgresSTMBackend(dsn=dsn)
+        from jarvis.memory.working.postgres import PostgresWorkingStore
         item_store = PostgresItemStore(dsn=dsn)
+        working_store = PostgresWorkingStore(dsn=dsn)
 
-    memory = MemoryManager(item_store)
-    memory_chain = MemoryMiddlewareChain(stages=[
-        ShortTermMemory(stm_backend),
-        CompactionMiddleware(
-            model=model_config,
-            threshold_chars=settings.memory.compaction_threshold,
-            memory=memory,
-        ),
-        LongTermMemory(memory),
-    ])
+    # 메모리 모듈은 매니저 하나. harness 의 미들웨어 체인에는 어댑터 한 단계로 꽂힌다.
+    memory = MemoryManager(
+        item_store,
+        working_store,
+        summarizer=llm_summarizer(model_config),
+        threshold_chars=settings.memory.compaction_threshold,
+        window_size=settings.memory.window_size,
+    )
+    memory_chain = MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(memory)])
 
     if settings.session.persistence_backend == "postgres":
         from jarvis.agent_layer.session.postgres import PostgresSessionRepo
@@ -315,7 +313,6 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         "plugin_runner": plugin_runner,
         "skill_registry": skill_registry,
         "sandbox": sandbox,  # approval_callback 나중에 주입용
-        "stm_backend": stm_backend,
         "memory": memory,
         "model_config": model_config,
         "openloop_store": openloop_store,
@@ -634,9 +631,9 @@ def _build_thought(
         InnerThoughtEngine,
         InterpretationOnlyComposer,
         LTMThoughtSink,
-        STMThoughtSink,
         ThoughtLog,
         ThoughtPromptTemplate,
+        WorkingNotesSink,
     )
     from jarvis.agent_layer.thought.prompt import DEFAULT_REFLECTION_TEMPLATE
     from jarvis.model_layer.types import ModelConfig
@@ -670,7 +667,7 @@ def _build_thought(
     # A2 — 사고 로그 싱크: 설정된 것만, 알 수 없는 이름은 무시.
     sink_factories = {
         "ltm": lambda: LTMThoughtSink(extra["memory"]),
-        "stm": lambda: STMThoughtSink(extra["stm_backend"]),
+        "stm": lambda: WorkingNotesSink(extra["memory"]),
     }
     sinks = [sink_factories[name]() for name in tcfg.log_sinks if name in sink_factories]
     log = ThoughtLog(sinks)
@@ -861,18 +858,17 @@ def main() -> None:
 
     app.run()
 
-    # TUI 종료 후 세션 요약을 LTM에 저장
+    # TUI 종료 후 세션 요약을 장기 기억에 저장. 이력은 session_repo 가 정본이다.
     async def _on_session_end() -> None:
-        stm = extra.get("stm_backend")
         memory = extra.get("memory")
         model = extra.get("model_config")
-        if stm is None or memory is None or model is None:
+        if memory is None or model is None:
             return
         try:
-            msgs = await stm.load(session._session_id)
+            msgs = await ctx.session_repo.get_messages(session._session_id)
             if not msgs:
                 return
-            from jarvis.agent_layer.memory.episodic import EpisodicSummarizer
+            from jarvis.memory.consolidation.episodic import EpisodicSummarizer
             summarizer = EpisodicSummarizer(model=model, memory=memory)
             entry_id = await summarizer.save_session(session._session_id, msgs, scope=session.memory_scope)
             if entry_id:

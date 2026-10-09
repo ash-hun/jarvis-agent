@@ -1,15 +1,25 @@
-"""Web HUD 세션 종료 훅 — save_all_sessions 단위 테스트."""
-from __future__ import annotations
+"""Web HUD 세션 종료 훅. save_all_sessions 가 session_repo 이력을 요약해 각 세션 범위로 저장한다."""
 
 from unittest.mock import MagicMock
 
 import pytest
 
-from jarvis.agent_layer.memory.backends.in_memory_stm import InMemorySTMBackend
+from jarvis.memory import MemoryScope
 from jarvis.memory.manager import MemoryManager
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.model_layer.types import UserMessage
 from jarvis.ui.web.server import SessionManager
+
+
+class _Repo:
+    def __init__(self, histories: dict[str, list] | None = None, fail_on: set[str] | None = None) -> None:
+        self._h = histories or {}
+        self._fail = fail_on or set()
+
+    async def get_messages(self, session_id: str) -> list:
+        if session_id in self._fail:
+            raise RuntimeError("repo unavailable")
+        return list(self._h.get(session_id, []))
 
 
 def _make_manager(sessions: dict) -> SessionManager:
@@ -22,8 +32,6 @@ def _make_manager(sessions: dict) -> SessionManager:
 
 
 def _mock_session(session_id: str) -> MagicMock:
-    from jarvis.memory import MemoryScope
-
     s = MagicMock()
     s._session_id = session_id
     s.memory_scope = MemoryScope(user_id="local", session_id=session_id)
@@ -34,20 +42,13 @@ def _user_msg(text: str) -> UserMessage:
     return UserMessage(content=text, timestamp=0)
 
 
-# ── save_all_sessions ─────────────────────────────────────────────────────────
-
-
 @pytest.mark.asyncio
 async def test_save_all_stores_episodic(faux_model_with_response):
-    """활성 세션이 있으면 LTM에 에피소딕 요약이 저장된다."""
-    stm = InMemorySTMBackend()
     ltm = MemoryManager(InMemoryItemStore())
     model = faux_model_with_response("세션 요약: 사용자가 Python을 배웠습니다.")
+    repo = _Repo({"sess1": [_user_msg("Python 배우고 싶어")]})
 
-    await stm.append("sess1", _user_msg("Python 배우고 싶어"))
-
-    mgr = _make_manager({"sess1": _mock_session("sess1")})
-    await mgr.save_all_sessions(stm, ltm, model)
+    await _make_manager({"sess1": _mock_session("sess1")}).save_all_sessions(repo, ltm, model)
 
     recent = await ltm.recent()
     assert len(recent) == 1
@@ -57,94 +58,59 @@ async def test_save_all_stores_episodic(faux_model_with_response):
 
 @pytest.mark.asyncio
 async def test_save_all_multiple_sessions(faux_model_with_response):
-    """세션이 여럿이면 모두 저장된다."""
-    stm = InMemorySTMBackend()
     ltm = MemoryManager(InMemoryItemStore())
     model = faux_model_with_response("요약")
+    repo = _Repo({"a": [_user_msg("메시지 A")], "b": [_user_msg("메시지 B")]})
 
-    await stm.append("a", _user_msg("메시지 A"))
-    await stm.append("b", _user_msg("메시지 B"))
+    await _make_manager({"a": _mock_session("a"), "b": _mock_session("b")}).save_all_sessions(repo, ltm, model)
 
-    mgr = _make_manager({
-        "a": _mock_session("a"),
-        "b": _mock_session("b"),
-    })
-    await mgr.save_all_sessions(stm, ltm, model)
-
-    recent = await ltm.recent()
-    assert len(recent) == 2
-    session_ids = {e.session_id for e in recent}
-    assert session_ids == {"a", "b"}
+    assert {e.session_id for e in await ltm.recent()} == {"a", "b"}
 
 
 @pytest.mark.asyncio
 async def test_save_all_skips_empty_sessions(faux_model_with_response):
-    """STM에 메시지가 없는 세션은 LTM에 저장하지 않는다."""
-    stm = InMemorySTMBackend()
     ltm = MemoryManager(InMemoryItemStore())
     model = faux_model_with_response("요약")
-
-    # "empty" 세션은 STM에 메시지 없음
-    mgr = _make_manager({"empty": _mock_session("empty")})
-    await mgr.save_all_sessions(stm, ltm, model)
-
+    await _make_manager({"empty": _mock_session("empty")}).save_all_sessions(_Repo(), ltm, model)
     assert await ltm.recent() == []
 
 
 @pytest.mark.asyncio
 async def test_save_all_no_sessions_does_nothing(faux_model_with_response):
-    """활성 세션이 없으면 아무것도 저장하지 않는다."""
-    stm = InMemorySTMBackend()
     ltm = MemoryManager(InMemoryItemStore())
-    model = faux_model_with_response("요약")
-
-    mgr = _make_manager({})
-    await mgr.save_all_sessions(stm, ltm, model)
-
+    await _make_manager({}).save_all_sessions(_Repo(), ltm, faux_model_with_response("요약"))
     assert await ltm.recent() == []
 
 
 @pytest.mark.asyncio
 async def test_save_all_failure_is_non_fatal():
-    """개별 세션 저장 실패는 다른 세션 처리를 막지 않는다."""
-    from unittest.mock import AsyncMock
-
-    stm = AsyncMock()
-    stm.load.side_effect = RuntimeError("STM unavailable")
-
     ltm = MemoryManager(InMemoryItemStore())
-    model = MagicMock()
-
-    mgr = _make_manager({"crash": _mock_session("crash")})
-    # 예외가 전파되지 않아야 한다
-    await mgr.save_all_sessions(stm, ltm, model)
-
+    await _make_manager({"crash": _mock_session("crash")}).save_all_sessions(_Repo(fail_on={"crash"}), ltm, MagicMock())
     assert await ltm.recent() == []
 
 
 @pytest.mark.asyncio
 async def test_save_all_partial_failure_continues(faux_model_with_response):
-    """한 세션이 실패해도 나머지 세션은 계속 저장된다."""
-    from unittest.mock import AsyncMock
-
-    stm = AsyncMock()
-
-    async def load_side_effect(session_id: str):
-        if session_id == "crash":
-            raise RuntimeError("crash!")
-        return [_user_msg("정상 메시지")]
-
-    stm.load.side_effect = load_side_effect
-
     ltm = MemoryManager(InMemoryItemStore())
     model = faux_model_with_response("요약")
+    repo = _Repo({"ok": [_user_msg("정상 메시지")]}, fail_on={"crash"})
+    sessions = {"crash": _mock_session("crash"), "ok": _mock_session("ok")}
 
-    mgr = _make_manager({
-        "crash": _mock_session("crash"),
-        "ok": _mock_session("ok"),
-    })
-    await mgr.save_all_sessions(stm, ltm, model)
+    await _make_manager(sessions).save_all_sessions(repo, ltm, model)
 
     recent = await ltm.recent()
-    assert len(recent) == 1
-    assert recent[0].session_id == "ok"
+    assert len(recent) == 1 and recent[0].session_id == "ok"
+
+
+@pytest.mark.asyncio
+async def test_summary_lands_in_the_sessions_own_scope(faux_model_with_response):
+    """인증된 사용자의 세션 요약은 그 사용자 범위에 private 으로 남아 다른 사용자에게 안 보인다."""
+    ltm = MemoryManager(InMemoryItemStore())
+    model = faux_model_with_response("jh 의 세션 요약")
+    session = _mock_session("s")
+    session.memory_scope = MemoryScope(user_id="jh", session_id="s")
+
+    await _make_manager({"s": session}).save_all_sessions(_Repo({"s": [_user_msg("hi")]}), ltm, model)
+
+    assert len(await ltm.recent(scope=MemoryScope(user_id="jh"))) == 1
+    assert await ltm.recent(scope=MemoryScope(user_id="other")) == []

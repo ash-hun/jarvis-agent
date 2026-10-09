@@ -82,10 +82,9 @@ def make_compact_handler(
         if len(messages) < 2:
             return "[Compact] 요약할 대화 내용이 충분하지 않습니다."
 
-        from jarvis.agent_layer.memory.compaction import CompactionMiddleware
+        from jarvis.memory.consolidation import summarize_messages
 
-        middleware = CompactionMiddleware(model=model, memory=memory)
-        summary = await middleware._summarize(messages)
+        summary = await summarize_messages(model, messages)
         if summary is None:
             return "[Compact] 요약 모델 호출에 실패했습니다."
 

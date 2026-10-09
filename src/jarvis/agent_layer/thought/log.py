@@ -4,10 +4,8 @@ import asyncio
 import contextlib
 from typing import Protocol, runtime_checkable
 
-from jarvis.agent_layer.memory.backends.protocol import STMBackend
 from jarvis.agent_layer.thought.types import ThoughtFrame
 from jarvis.memory.manager import MemoryManager
-from jarvis.model_layer.types import AssistantMessage, TextContent
 
 # 사고 로그를 식별하는 태그. 회상 시 일반 기억과 구분/필터하는 데 쓴다.
 THOUGHT_SOURCE = "thought"
@@ -37,20 +35,16 @@ class LTMThoughtSink:
         )
 
 
-class STMThoughtSink:
-    """STM(세션 범위)에 사고를 경량 메시지로 남긴다.
+class WorkingNotesSink:
+    """작업 기억(세션 범위)의 메모에 사고를 한 줄로 남긴다. 대화 컨텍스트에는 들어가지 않는다."""
 
-    `ShortTermMemory.transform`이 no-op이라 대화 컨텍스트를 오염시키지 않으며,
-    같은 세션 내 사고 흐름을 retrieve로 되짚을 수 있게 한다.
-    """
-
-    def __init__(self, backend: STMBackend) -> None:
-        self._backend = backend
+    def __init__(self, memory: MemoryManager) -> None:
+        self._memory = memory
 
     async def store(self, frame: ThoughtFrame, session_id: str | None = None) -> None:
         summary = frame.interpretation or frame.observation
-        msg = AssistantMessage(content=[TextContent(text=f"[{THOUGHT_SOURCE}:{frame.decision}] {summary}")])
-        await self._backend.append(session_id or "default", msg)
+        scope = self._memory.resolve_scope().with_session(session_id or "default")
+        await self._memory.add_note(f"[{THOUGHT_SOURCE}:{frame.decision}] {summary}", scope=scope)
 
 
 class ThoughtLog:

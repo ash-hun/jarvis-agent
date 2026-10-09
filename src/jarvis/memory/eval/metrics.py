@@ -14,6 +14,11 @@ class CaseResult:
     missing: list[str] = field(default_factory=list)  # contains 중 못 찾은 것
     leaked: list[str] = field(default_factory=list)  # not_contains 중 나온 것
     broke_abstain: bool = False  # empty 기대인데 결과가 있었음
+    detail: str = ""  # 저장소 밖 스위트(working)의 실패 설명
+    # 어느 지표에 포함되는 사례인지. 집계가 사례 정의를 다시 읽지 않도록 판정 시 기록한다
+    checks_recall: bool = False
+    checks_leak: bool = False
+    checks_abstain: bool = False
 
 
 def judge(case: EvalCase, results: list[str]) -> CaseResult:
@@ -30,6 +35,9 @@ def judge(case: EvalCase, results: list[str]) -> CaseResult:
         missing=missing,
         leaked=leaked,
         broke_abstain=broke_abstain,
+        checks_recall=bool(case.expect.contains),
+        checks_leak=bool(case.expect.not_contains),
+        checks_abstain=case.expect.empty,
     )
 
 
@@ -47,20 +55,20 @@ def _ratio(hits: int, total: int) -> float | None:
     return None if total == 0 else hits / total
 
 
-def summarize(cases: list[EvalCase], results: list[CaseResult]) -> dict[str, SuiteReport]:
-    by_suite: dict[str, list[tuple[EvalCase, CaseResult]]] = {}
-    for c, r in zip(cases, results, strict=True):
-        by_suite.setdefault(c.suite, []).append((c, r))
+def summarize(results: list[CaseResult]) -> dict[str, SuiteReport]:
+    by_suite: dict[str, list[CaseResult]] = {}
+    for r in results:
+        by_suite.setdefault(r.suite, []).append(r)
 
     reports: dict[str, SuiteReport] = {}
-    for suite, pairs in by_suite.items():
-        with_contains = [r for c, r in pairs if c.expect.contains]
-        with_not = [r for c, r in pairs if c.expect.not_contains]
-        with_empty = [r for c, r in pairs if c.expect.empty]
+    for suite, rs in by_suite.items():
+        with_contains = [r for r in rs if r.checks_recall]
+        with_not = [r for r in rs if r.checks_leak]
+        with_empty = [r for r in rs if r.checks_abstain]
         reports[suite] = SuiteReport(
             suite=suite,
-            total=len(pairs),
-            passed=sum(r.passed for _, r in pairs),
+            total=len(rs),
+            passed=sum(r.passed for r in rs),
             recall=_ratio(sum(not r.missing for r in with_contains), len(with_contains)),
             leak_rate=_ratio(sum(bool(r.leaked) for r in with_not), len(with_not)),
             abstain_rate=_ratio(sum(not r.broke_abstain for r in with_empty), len(with_empty)),

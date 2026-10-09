@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from jarvis.agent_layer.memory.backends.in_memory_stm import InMemorySTMBackend
 from jarvis.agent_layer.thought import (
     DefaultThoughtComposer,
     InterpretationOnlyComposer,
@@ -28,7 +27,6 @@ def _extra() -> dict:
     return {
         "memory_chain": SimpleNamespace(retrieve=lambda *a, **k: []),
         "memory": MemoryManager(InMemoryItemStore()),
-        "stm_backend": InMemorySTMBackend(),
     }
 
 

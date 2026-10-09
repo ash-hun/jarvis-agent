@@ -19,6 +19,7 @@ class CaseResult:
     checks_recall: bool = False
     checks_leak: bool = False
     checks_abstain: bool = False
+    score: float | None = None  # 비율형 지표(충실도 retention 등). 스위트 평균으로 집계
 
 
 def judge(case: EvalCase, results: list[str]) -> CaseResult:
@@ -49,6 +50,11 @@ class SuiteReport:
     recall: float | None  # contains 가 있는 사례 중 전부 찾은 비율
     leak_rate: float | None  # not_contains 가 있는 사례 중 하나라도 샌 비율
     abstain_rate: float | None  # empty 기대 사례 중 실제로 비어 있던 비율
+    mean_score: float | None = None  # score 가 있는 사례들의 평균
+
+
+def _mean(values: list[float]) -> float | None:
+    return sum(values) / len(values) if values else None
 
 
 def _ratio(hits: int, total: int) -> float | None:
@@ -72,5 +78,6 @@ def summarize(results: list[CaseResult]) -> dict[str, SuiteReport]:
             recall=_ratio(sum(not r.missing for r in with_contains), len(with_contains)),
             leak_rate=_ratio(sum(bool(r.leaked) for r in with_not), len(with_not)),
             abstain_rate=_ratio(sum(not r.broke_abstain for r in with_empty), len(with_empty)),
+            mean_score=_mean([r.score for r in rs if r.score is not None]),
         )
     return reports

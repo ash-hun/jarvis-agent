@@ -57,7 +57,7 @@ def test_shipped_datasets_parse():
         cases = load_cases(DATASETS_DIR / f"{suite}.jsonl")
         assert cases and all(c.suite == suite for c in cases)
     assert load_working_suites(["working"])
-    assert set(SUITES) == {"isolation", "semantic", "episodic", "procedural", "paraphrase", "working"}
+    assert set(SUITES) == {"isolation", "semantic", "episodic", "procedural", "paraphrase", "working", "faithfulness"}
 
 
 def _case(**expect) -> EvalCase:

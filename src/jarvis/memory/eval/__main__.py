@@ -1,4 +1,4 @@
-"""python -m jarvis.memory.eval --suite all|isolation|semantic|episodic|procedural|paraphrase|working [--json] [-v]
+"""python -m jarvis.memory.eval --suite all|...|working|faithfulness [--summarizer extractive|llm] [--judge llm]
 python -m jarvis.memory.eval --benchmark longmemeval|locomo --path FILE [--limit N] [--k 5] [--mode raw|full]
                              [--embedder fake|config] [--judge llm|contains]
 """
@@ -17,12 +17,15 @@ from jarvis.memory.eval.runner import (
     load_working_suites,
     merge,
     run,
+    run_faithfulness_suite,
     run_working,
 )
 from jarvis.memory.eval.target import TARGETS
 
 
-async def _run_all(names: list[str], target_name: str) -> EvalReport:
+async def _run_all(
+    names: list[str], target_name: str, summarizer: str = "extractive", judge: str | None = None
+) -> EvalReport:
     reports = []
     store_cases = load_suites(names)
     if store_cases:
@@ -30,7 +33,29 @@ async def _run_all(names: list[str], target_name: str) -> EvalReport:
     working_cases = load_working_suites(names)
     if working_cases:
         reports.append(await run_working(working_cases))
+    llm_summarizer_fn = llm_judge_fn = None
+    if summarizer == "llm" or judge == "llm":
+        from jarvis.memory.consolidation import llm_summarizer
+        from jarvis.memory.eval.faithfulness import llm_fact_judge
+
+        model = _settings_model()
+        llm_summarizer_fn = llm_summarizer(model) if summarizer == "llm" else None
+        llm_judge_fn = llm_fact_judge(model) if judge == "llm" else None
+    faithfulness = await run_faithfulness_suite(names, llm_summarizer_fn, llm_judge_fn)
+    if faithfulness is not None:
+        reports.append(faithfulness)
     return merge(*reports)
+
+
+def _settings_model():
+    from jarvis.config import get_settings
+    from jarvis.model_layer.types import ModelConfig
+
+    llm = get_settings().llm
+    return ModelConfig(
+        provider=llm.provider, model=llm.model,
+        api_key=llm.api_key.get_secret_value() if llm.api_key else None, base_url=llm.base_url,
+    )
 
 
 async def _run_benchmark(args: argparse.Namespace) -> int:
@@ -113,6 +138,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--mode", default="raw", choices=("raw", "full"))
     parser.add_argument("--embedder", default="fake", choices=("fake", "config"))
     parser.add_argument("--judge", default=None, choices=("llm", "contains"))
+    parser.add_argument("--summarizer", default="extractive", choices=("extractive", "llm"),
+                        help="faithfulness 스위트의 요약기. extractive 는 LLM 없는 기준선")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
@@ -123,7 +150,7 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(_run_benchmark(args))
 
     names = list(SUITES) if args.suite == "all" else [args.suite]
-    report = asyncio.run(_run_all(names, args.target))
+    report = asyncio.run(_run_all(names, args.target, args.summarizer, args.judge))
     if args.json:
         print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
     else:

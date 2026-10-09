@@ -110,7 +110,7 @@ jarvis --list-sessions      # 세션 목록
 
 ### Proactive Agent (Inner Thought 기반)
 
-요청에만 응답하던 reactive agent를 **스스로 사고하고 먼저 행동하는 proactive agent**로 확장한다. 설계 문서: [proactive-inner-thought-design.md](docs/proactive-inner-thought-design.md).
+요청에만 응답하던 reactive agent를 **스스로 사고하고 먼저 행동하는 proactive agent**로 확장한다. 핵심은 매 요청마다 메인 응답과 분리된 사고 호출(inner thought)로 구조화된 판단을 만들고, 그 판단으로 먼저 말할지, 뒤에서 처리할지, 침묵할지를 정하는 것이다.
 
 | 계층 | 설명 |
 |------|------|

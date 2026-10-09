@@ -429,18 +429,34 @@ model_override: null   # null이면 전역 설정 사용
   system_prompt: "당신은 시니어 코드 리뷰어입니다. 보안과 성능을 중점으로 리뷰합니다."
 ```
 
-**오케스트레이션 로직 (AgentHarness 활용):**
+**에이전트 정의의 메모리와 레벨:**
 
-```python
-from jarvis.agent_layer.harness import AgentHarness
-
-# 두 에이전트를 순차 실행 (supervisor → worker 패턴)
-supervisor = AgentHarness(session=session, agent_name="supervisor")
-result = await supervisor.run("아래 코드를 리뷰해줘:\n" + code)
-
-worker = AgentHarness(session=session, agent_name="coder")
-fixed = await worker.run(f"리뷰 내용: {result}\n위 피드백으로 코드를 수정해줘")
+```yaml
+- name: planner
+  description: "작업을 단계로 나누는 기획자"
+  capabilities: [계획]
+  level: 0              # hierarchical 패턴에서 먼저 도는 레벨
+  memory:
+    stm: per_parent_session   # per_parent_session | per_task | per_agent
+- name: writer
+  description: "보고서 작성"
+  capabilities: [작성, 보고서]
+  level: 1
 ```
+
+서브 에이전트는 위임한 부모의 사용자 범위를 상속한다. 사용자의 `/remember` 사실은 보이고 부모의 private 요약은 안 보이며, 부모는 위임을 일화로 기억한다.
+
+**오케스트레이션 호출 두 가지:**
+
+```
+/orchestrate hierarchical 분기 보고서 작성          # 사용자가 패턴을 지정
+/orchestrate blackboard --agents a,b --promote 시장 분석
+/orchestrate list                                    # 패턴과 에이전트 목록
+```
+
+메인 에이전트도 `orchestrate` 도구로 같은 일을 한다. 작업이 여러 전문가나 여러 단계를 요구한다고 판단하면 LLM 이 패턴과 참여 에이전트를 고른다. 패턴은 `supervisor`(감독자 LLM 이 위임 결정), `hierarchical`(레벨 순, 앞 결과가 뒤로 전달), `market`(capabilities 가 맞는 하나), `blackboard`(전원 병렬, 결과 취합). 쉼표로 이으면 파이프라인이다.
+
+에이전트 간 결과는 작업 범위의 작업 기억으로 전달되어 다음 에이전트의 프롬프트에 `[작업 공유 메모리]` 블록으로 들어간다. `--promote` 는 블랙보드 결과를 shared 장기 기억 사실로 올린다.
 
 **이벤트 계층 추적:**
 

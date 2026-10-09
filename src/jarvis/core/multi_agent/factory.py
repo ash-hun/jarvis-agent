@@ -46,6 +46,7 @@ class AgentDefinition:
     tools: list[str] = field(default_factory=list)  # 허용할 builtin tool 이름
     model_override: str | None = None  # None이면 부모 설정 상속
     memory: AgentMemoryPolicy = field(default_factory=AgentMemoryPolicy)
+    level: int = 0  # hierarchical 패턴의 레벨. 0 이 먼저, 같은 레벨은 병렬
 
 
 def child_session_id(definition: AgentDefinition, parent_scope: MemoryScope, task: AgentTask) -> str:

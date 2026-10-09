@@ -17,6 +17,7 @@ YAML 포맷 (단일):
     model_override: null   # null이면 메인 모델 상속
     memory:
       stm: per_parent_session   # per_parent_session | per_task | per_agent
+    level: 0                    # hierarchical 패턴에서의 레벨 (0 이 먼저)
 
 YAML 포맷 (리스트):
     - name: planner
@@ -34,7 +35,7 @@ from .factory import AgentDefinition, AgentMemoryPolicy
 
 _VALID_FIELDS = frozenset({
     "name", "description", "capabilities",
-    "system_prompt", "tools", "model_override", "memory",
+    "system_prompt", "tools", "model_override", "memory", "level",
 })
 
 

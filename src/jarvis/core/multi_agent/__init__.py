@@ -17,6 +17,7 @@ from .blackboard import SharedBlackboard
 from .factory import AgentDefinition, AgentFactory, AgentMemoryPolicy
 from .loader import load_agent_definitions
 from .node import AgentNode, LazyAgentNode
+from .orchestrate_tool import OrchestrateTool
 from .orchestrators import (
     Bid,
     BlackboardOrchestrator,
@@ -26,6 +27,7 @@ from .orchestrators import (
     SupervisorOrchestrator,
 )
 from .protocol import AgentNodeProtocol, OrchestratorProtocol, TopologyProtocol
+from .service import PATTERNS, OrchestrationService
 from .task import AgentResult, AgentTask
 from .tool import AgentNodeTool
 from .topologies import (
@@ -64,6 +66,9 @@ __all__ = [
     # 팩토리 + 로더
     "AgentFactory",
     "AgentDefinition",
+    "OrchestrationService",
+    "OrchestrateTool",
+    "PATTERNS",
     "AgentMemoryPolicy",
     "load_agent_definitions",
 ]

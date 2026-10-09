@@ -75,6 +75,13 @@ class MemoryConfig(BaseSettings):
     importance_half_life_days: float = 90.0  # 되뇌기 없는 항목의 importance 반감기. 0 이면 감쇠 없음
     interference_threshold: float = 0.6  # 주제가 다른데 이보다 비슷한 의미 항목 쌍은 간섭 후보로 표시
     consolidate_on_idle: bool = True  # 사용자가 조용할 때(daemon idle 틱) 요약에서 사실을 추출한다
+    # 의미 유사도 검색. provider 를 비우면 키워드 검색만 한다. Postgres 는 pgvector 확장이 필요하다
+    embedding_provider: str = ""  # "" | openai | ollama | vllm
+    embedding_model: str = ""  # 비우면 provider 기본값 (openai: text-embedding-3-small, ollama: nomic-embed-text)
+    embedding_dimensions: int = 0  # 비우면 provider 기본값. vllm 은 필수
+    embedding_api_key: SecretStr | None = None  # 비우면 llm.api_key
+    embedding_base_url: str | None = None  # 비우면 provider 기본값
+    min_similarity: float = 0.3  # 이 코사인 미만은 의미 검색 후보에서 제외
 
 
 class SessionConfig(BaseSettings):

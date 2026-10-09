@@ -22,8 +22,13 @@ class ItemStore(Protocol):
         scope: MemoryScope,
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
+        query_embedding: list[float] | None = None,
+        min_similarity: float = 0.3,
     ) -> list[MemoryItem]:
-        """scope 에서 보이는 항목 중 query 토큰과 겹치는 것을 최신순으로."""
+        """scope 에서 보이는 항목 중 query 토큰과 겹치거나(키워드) 벡터가 min_similarity 이상 가까운 것(의미).
+
+        둘의 합집합을 최신순으로 돌려준다. 순위는 retrieval.rank 가 다시 매긴다.
+        """
         ...
 
     async def recent(

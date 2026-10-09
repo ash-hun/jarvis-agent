@@ -18,6 +18,7 @@ from jarvis.memory.types import MemoryItem, MemoryKind, Visibility
 from jarvis.memory.working.in_memory import InMemoryWorkingStore
 from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.working.window import apply_window, chars_of, cut_at_user_boundary, summary_message
+from jarvis.model_layer.embeddings import Embedder
 from jarvis.model_layer.types import Message, UserMessage
 
 FACTS_HEADER = "[핵심 사실]"  # 고정 블록: 질의와 무관하게 항상 넣는 상위 의미 사실
@@ -66,6 +67,8 @@ class MemoryManager:
         importance_threshold: float = 0.5,
         scoring: ScoringParams = DEFAULT_PARAMS,
         interference_threshold: float = 0.6,
+        embedder: Embedder | None = None,
+        min_similarity: float = 0.3,
     ) -> None:
         self._store = store
         self._working: WorkingStore = working or InMemoryWorkingStore()
@@ -80,6 +83,8 @@ class MemoryManager:
         self._importance_threshold = importance_threshold
         self._scoring = scoring
         self._interference_threshold = interference_threshold
+        self._embedder = embedder
+        self._min_similarity = min_similarity
 
     @property
     def store(self) -> ItemStore:
@@ -222,6 +227,7 @@ class MemoryManager:
             prepare_fact(item)
         elif item.kind is MemoryKind.EPISODIC:
             prepare_episode(item)
+        await self._embed(item)
         stored = await self._store.store(item)
         if item.kind is MemoryKind.SEMANTIC:
             await supersede_conflicts(self._store, item)
@@ -235,12 +241,51 @@ class MemoryManager:
         limit: int = 10,
         exclude: set[str] | None = None,
     ) -> list[MemoryItem]:
-        """키워드로 후보를 넓게 모은 뒤 합성 점수로 상위 limit 개."""
+        """키워드와 의미 유사도로 후보를 넓게 모은 뒤 합성 점수로 상위 limit 개."""
         resolved = self.resolve_scope(scope)
-        candidates = await self._store.search(query, resolved, kinds, limit * 4)
+        query_embedding = await self._embed_query(query)
+        candidates = await self._store.search(
+            query, resolved, kinds, limit * 4, query_embedding=query_embedding, min_similarity=self._min_similarity
+        )
         if exclude:
             candidates = [c for c in candidates if c.id not in exclude]
-        return rank(candidates, query, resolved, limit, params=self._scoring)
+        return rank(candidates, query, resolved, limit, params=self._scoring, query_embedding=query_embedding)
+
+    async def _embed(self, item: MemoryItem) -> None:
+        """임베더가 있으면 항목에 벡터를 붙인다. 임베딩 실패는 저장을 막지 않는다(키워드로는 여전히 찾힌다)."""
+        if self._embedder is None:
+            return
+        try:
+            item.embedding = (await self._embedder.embed([item.content]))[0]
+            item.embedding_model = self._embedder.model
+        except Exception:
+            item.embedding, item.embedding_model = None, None
+
+    async def _embed_query(self, query: str) -> list[float] | None:
+        if self._embedder is None or not query.strip():
+            return None
+        try:
+            return (await self._embedder.embed([query]))[0]
+        except Exception:
+            return None
+
+    async def reembed(self, scope: MemoryScope | None = None, limit: int = 500) -> int:
+        """벡터가 없거나 다른 모델로 만든 항목을 현재 임베더로 다시 임베딩한다. 돌려주는 값은 갱신 수.
+
+        두 번 돌려도 같은 상태: 현재 모델로 된 항목은 건너뛴다.
+        """
+        if self._embedder is None:
+            return 0
+        resolved = self.resolve_scope(scope)
+        items = await self._store.recent(resolved, limit=limit)
+        stale = [i for i in items if i.embedding is None or i.embedding_model != self._embedder.model]
+        if not stale:
+            return 0
+        vectors = await self._embedder.embed([i.content for i in stale])
+        for item, vector in zip(stale, vectors, strict=True):
+            item.embedding, item.embedding_model = vector, self._embedder.model
+            await self._store.store(item)
+        return len(stale)
 
     async def recent(
         self,

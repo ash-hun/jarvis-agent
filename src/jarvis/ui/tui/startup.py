@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
+from pydantic import SecretStr
+
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
     from jarvis.config import JarvisSettings
@@ -175,6 +177,16 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     from jarvis.memory.consolidation import llm_summarizer
     from jarvis.memory.manager import MemoryManager
     from jarvis.memory.middleware import MemoryMiddlewareAdapter
+    from jarvis.model_layer.embeddings import build_embedder
+
+    mcfg = settings.memory
+    embedder = build_embedder(
+        mcfg.embedding_provider,
+        model=mcfg.embedding_model,
+        dimensions=mcfg.embedding_dimensions,
+        api_key=(mcfg.embedding_api_key or settings.llm.api_key or SecretStr("")).get_secret_value() or None,
+        base_url=mcfg.embedding_base_url,
+    )
 
     if settings.memory.backend == "in_memory":
         from jarvis.memory.stores.in_memory import InMemoryItemStore
@@ -189,7 +201,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
             )
         from jarvis.memory.stores.postgres import PostgresItemStore
         from jarvis.memory.working.postgres import PostgresWorkingStore
-        item_store = PostgresItemStore(dsn=dsn)
+        item_store = PostgresItemStore(dsn=dsn, dimensions=embedder.dimensions if embedder else 0)
         working_store = PostgresWorkingStore(dsn=dsn)
 
     # 메모리 모듈은 매니저 하나. harness 의 미들웨어 체인에는 어댑터 한 단계로 꽂힌다.
@@ -215,6 +227,8 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
             importance_half_life_hours=settings.memory.importance_half_life_days * 24,
         ),
         interference_threshold=settings.memory.interference_threshold,
+        embedder=embedder,
+        min_similarity=settings.memory.min_similarity,
     )
     memory_chain = MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(memory)])
 

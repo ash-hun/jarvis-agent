@@ -32,6 +32,8 @@ class MemoryItem:
     superseded_by: str | None = None  # 의미: 이 항목을 대체한 항목 id
     rehearsal_count: int = 0  # 작업 기억에서 참조된 횟수(되뇌기)
     last_accessed: datetime | None = None  # 점화: 최근 회상 시각
+    embedding: list[float] | None = None  # 의미 유사도 검색용 벡터. 임베더가 없으면 None
+    embedding_model: str | None = None  # 어떤 모델로 만든 벡터인지. 모델이 바뀌면 재임베딩 대상
     id: str = field(default_factory=lambda: uuid.uuid4().hex)
     created_at: datetime = field(default_factory=datetime.now)
     metadata: dict = field(default_factory=dict)

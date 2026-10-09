@@ -57,7 +57,7 @@ def test_shipped_datasets_parse():
         cases = load_cases(DATASETS_DIR / f"{suite}.jsonl")
         assert cases and all(c.suite == suite for c in cases)
     assert load_working_suites(["working"])
-    assert set(SUITES) == {"isolation", "semantic", "episodic", "procedural", "working"}
+    assert set(SUITES) == {"isolation", "semantic", "episodic", "procedural", "paraphrase", "working"}
 
 
 def _case(**expect) -> EvalCase:
@@ -173,3 +173,9 @@ async def test_working_suite_passes():
     report = await run_working(load_working_suites(["working"]))
     assert report.all_passed, format_report(report, verbose=True)
     assert report.suites["working"].total >= 5
+
+
+@pytest.mark.memory_eval
+async def test_paraphrase_suite_passes_with_fake_embedder():
+    report = await run(load_suites(["paraphrase"]), StoreTarget())
+    assert report.all_passed, format_report(report, verbose=True)

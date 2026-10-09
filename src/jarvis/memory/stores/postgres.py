@@ -1,6 +1,7 @@
 """PostgreSQL 저장소. 기존 jarvis_ltm_entries 테이블을 그대로 쓰고 범위 컬럼을 멱등하게 덧붙인다."""
 
 import asyncio
+import contextlib
 import json
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -21,11 +22,14 @@ _LEGACY_KIND_SQL = """
     END
 """
 
-_COLUMNS = (
+_BASE_COLUMNS = (
     "id, content, source, session_id, tags, metadata, created_at, "
     "kind, visibility, author, user_id, agent_id, importance, occurred_at, valid_from, "
     "superseded_by, rehearsal_count, last_accessed"
 )
+# pgvector 의 vector 타입은 asyncpg 코덱 없이 문자열로 주고받는다: '[0.1,0.2]'
+_COLUMNS = _BASE_COLUMNS + ", embedding::text AS embedding, embedding_model"
+_COLUMNS_NO_VECTOR = _BASE_COLUMNS + ", NULL::text AS embedding, NULL::text AS embedding_model"
 
 # 읽기 상속 규칙. 전역(user_id NULL) 항목은 모두에게, 그 외는 같은 사용자의 내 에이전트 항목 또는 shared.
 _VISIBLE = (
@@ -34,10 +38,17 @@ _VISIBLE = (
 
 
 class PostgresItemStore:
-    def __init__(self, dsn: str) -> None:
+    def __init__(self, dsn: str, dimensions: int = 0) -> None:
+        """dimensions > 0 이면 pgvector 컬럼을 만들고 의미 검색을 켠다. 확장이 없으면 키워드 검색으로 내려간다."""
         self._dsn = dsn
+        self._dimensions = dimensions
+        self._vector = False  # 마이그레이션 뒤 실제로 vector 컬럼을 쓸 수 있는지
         self._pool: Any = None
         self._loop: asyncio.AbstractEventLoop | None = None
+
+    @property
+    def vector_enabled(self) -> bool:
+        return self._vector
 
     async def _get_pool(self) -> Any:
         import asyncpg
@@ -96,15 +107,51 @@ class PostgresItemStore:
                 f"CREATE INDEX IF NOT EXISTS idx_ltm_scope ON {TABLE}(user_id, agent_id, kind)"
             )
             await conn.execute(f"CREATE INDEX IF NOT EXISTS idx_ltm_created ON {TABLE}(created_at DESC)")
+            await conn.execute(f"ALTER TABLE {TABLE} ADD COLUMN IF NOT EXISTS embedding_model TEXT")
+            self._vector = await self._ensure_vector(conn)
+
+    async def _ensure_vector(self, conn: Any) -> bool:
+        """pgvector 확장과 vector 컬럼. 확장을 못 만들면(이미지에 없음) 조용히 키워드 검색만 쓴다."""
+        if self._dimensions <= 0:
+            return False
+        try:
+            await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+            await conn.execute(f"ALTER TABLE {TABLE} ADD COLUMN IF NOT EXISTS embedding vector({self._dimensions})")
+        except Exception as exc:
+            print(f"[Memory] pgvector unavailable, keyword search only: {exc}")
+            return False
+        # hnsw 는 pgvector 0.5 이상. 없으면 순차 스캔으로도 동작한다
+        with contextlib.suppress(Exception):
+            await conn.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_ltm_embedding ON {TABLE} USING hnsw (embedding vector_cosine_ops)"
+            )
+        return True
 
     async def store(self, item: MemoryItem) -> str:
         pool = await self._get_pool()
+        vector_cols = ", embedding, embedding_model" if self._vector else ", embedding_model"
+        vector_vals = ", $19::vector, $20" if self._vector else ", $19"
+        vector_set = (
+            ", embedding = EXCLUDED.embedding, embedding_model = EXCLUDED.embedding_model"
+            if self._vector else ", embedding_model = EXCLUDED.embedding_model"
+        )
+        params: list[Any] = [
+            item.id, item.content, item.source, item.scope.session_id,
+            json.dumps(item.tags, ensure_ascii=False), json.dumps(item.metadata, ensure_ascii=False),
+            item.created_at,
+            str(item.kind), item.visibility, item.author, item.scope.user_id, item.scope.agent_id,
+            item.importance, item.occurred_at, item.valid_from, item.superseded_by,
+            item.rehearsal_count, item.last_accessed,
+        ]
+        if self._vector:
+            params.append(_vec(item.embedding))
+        params.append(item.embedding_model)
         async with pool.acquire() as conn:
             await conn.execute(
                 f"""
-                INSERT INTO {TABLE} ({_COLUMNS})
+                INSERT INTO {TABLE} ({_BASE_COLUMNS}{vector_cols})
                 VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7,
-                        $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+                        $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18{vector_vals})
                 ON CONFLICT (id) DO UPDATE SET
                     content = EXCLUDED.content, source = EXCLUDED.source, session_id = EXCLUDED.session_id,
                     tags = EXCLUDED.tags, metadata = EXCLUDED.metadata, created_at = EXCLUDED.created_at,
@@ -112,21 +159,20 @@ class PostgresItemStore:
                     user_id = EXCLUDED.user_id, agent_id = EXCLUDED.agent_id, importance = EXCLUDED.importance,
                     occurred_at = EXCLUDED.occurred_at, valid_from = EXCLUDED.valid_from,
                     superseded_by = EXCLUDED.superseded_by, rehearsal_count = EXCLUDED.rehearsal_count,
-                    last_accessed = EXCLUDED.last_accessed
+                    last_accessed = EXCLUDED.last_accessed{vector_set}
                 """,
-                item.id, item.content, item.source, item.scope.session_id,
-                json.dumps(item.tags, ensure_ascii=False), json.dumps(item.metadata, ensure_ascii=False),
-                item.created_at,
-                str(item.kind), item.visibility, item.author, item.scope.user_id, item.scope.agent_id,
-                item.importance, item.occurred_at, item.valid_from, item.superseded_by,
-                item.rehearsal_count, item.last_accessed,
+                *params,
             )
         return item.id
 
+    def _cols(self) -> str:
+        return _COLUMNS if self._vector else _COLUMNS_NO_VECTOR
+
     async def get(self, item_id: str) -> MemoryItem | None:
         pool = await self._get_pool()
+        cols = self._cols()
         async with pool.acquire() as conn:
-            row = await conn.fetchrow(f"SELECT {_COLUMNS} FROM {TABLE} WHERE id = $1", item_id)
+            row = await conn.fetchrow(f"SELECT {cols} FROM {TABLE} WHERE id = $1", item_id)
         return _row_to_item(row) if row else None
 
     async def search(
@@ -135,26 +181,34 @@ class PostgresItemStore:
         scope: MemoryScope,
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
+        query_embedding: list[float] | None = None,
+        min_similarity: float = 0.3,
     ) -> list[MemoryItem]:
+        pool = await self._get_pool()  # 마이그레이션이 끝나야 _vector 가 정해진다
         tokens = tokens_of(query)
-        if not tokens:
+        use_vector = self._vector and query_embedding is not None
+        if not tokens and not use_vector:
             return []
         params: list[Any] = [scope.user_id, scope.agent_id, SHARED]
         where = [_VISIBLE]
         if kinds:
             params.append([str(k) for k in kinds])
             where.append(f"kind = ANY(${len(params)})")
-        like = []
+        matches = []
         for t in tokens:
             params.append(f"%{t}%")
-            like.append(f"content ILIKE ${len(params)}")
-        where.append("(" + " OR ".join(like) + ")")
+            matches.append(f"content ILIKE ${len(params)}")
+        if use_vector:
+            params.append(_vec(query_embedding))
+            vec = f"${len(params)}::vector"
+            params.append(min_similarity)
+            matches.append(f"(embedding IS NOT NULL AND 1 - (embedding <=> {vec}) >= ${len(params)})")
+        where.append("(" + " OR ".join(matches) + ")")
         params.append(limit)
         sql = (
-            f"SELECT {_COLUMNS} FROM {TABLE} WHERE {' AND '.join(where)}"
+            f"SELECT {self._cols()} FROM {TABLE} WHERE {' AND '.join(where)}"
             f" ORDER BY created_at DESC LIMIT ${len(params)}"
         )
-        pool = await self._get_pool()
         async with pool.acquire() as conn:
             rows = await conn.fetch(sql, *params)
         return [_row_to_item(r) for r in rows]
@@ -165,6 +219,7 @@ class PostgresItemStore:
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
     ) -> list[MemoryItem]:
+        pool = await self._get_pool()
         params: list[Any] = [scope.user_id, scope.agent_id, SHARED]
         where = [_VISIBLE]
         if kinds:
@@ -172,10 +227,9 @@ class PostgresItemStore:
             where.append(f"kind = ANY(${len(params)})")
         params.append(limit)
         sql = (
-            f"SELECT {_COLUMNS} FROM {TABLE} WHERE {' AND '.join(where)}"
+            f"SELECT {self._cols()} FROM {TABLE} WHERE {' AND '.join(where)}"
             f" ORDER BY created_at DESC LIMIT ${len(params)}"
         )
-        pool = await self._get_pool()
         async with pool.acquire() as conn:
             rows = await conn.fetch(sql, *params)
         return [_row_to_item(r) for r in rows]
@@ -215,6 +269,16 @@ class PostgresItemStore:
             self._loop = None
 
 
+def _vec(embedding: list[float] | None) -> str | None:
+    return None if embedding is None else "[" + ",".join(repr(float(x)) for x in embedding) + "]"
+
+
+def _parse_vec(text: str | None) -> list[float] | None:
+    if not text:
+        return None
+    return [float(x) for x in text.strip("[]").split(",") if x]
+
+
 def _naive(value: Any) -> datetime | None:
     if value is None:
         return None
@@ -244,4 +308,6 @@ def _row_to_item(row: Any) -> MemoryItem:
         rehearsal_count=row["rehearsal_count"],
         last_accessed=_naive(row["last_accessed"]),
         created_at=_naive(row["created_at"]) or datetime.now(),
+        embedding=_parse_vec(row["embedding"]),
+        embedding_model=row["embedding_model"],
     )

@@ -114,3 +114,22 @@ async def test_summary_lands_in_the_sessions_own_scope(faux_model_with_response)
 
     assert len(await ltm.recent(scope=MemoryScope(user_id="jh"))) == 1
     assert await ltm.recent(scope=MemoryScope(user_id="other")) == []
+
+
+@pytest.mark.asyncio
+async def test_shutdown_consolidates_facts_from_the_session_summary(faux_model_with_response):
+    """종료 시 요약 → 의미 추출 → shared 사실. 요약 모델과 추출 모델이 같은 faux 라 JSON 을 요약으로 쓴다."""
+    from jarvis.memory.consolidation.semantic_extract import Fact
+
+    async def extractor(summary: str) -> list[Fact]:
+        return [Fact("거주지", "부산", 0.9)]
+
+    ltm = MemoryManager(InMemoryItemStore(), extractor=extractor)
+    model = faux_model_with_response("세션 요약: 부산으로 이사했다")
+    session = _mock_session("s")
+    session.memory_scope = MemoryScope(user_id="jh", session_id="s")
+
+    await _make_manager({"s": session}).save_all_sessions(_Repo({"s": [_user_msg("부산으로 이사했어")]}), ltm, model)
+
+    facts = await ltm.recent(scope=MemoryScope(user_id="jh", agent_id="researcher"))  # shared 라 서브 에이전트도 본다
+    assert [f.content for f in facts] == ["거주지: 부산"]

@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Protocol
 
 from jarvis.memory.eval.schema import SetupStep, WorkingCase
+from jarvis.memory.long_term.procedural import InMemoryProcedures, Procedure
 from jarvis.memory.manager import MemoryManager
 from jarvis.memory.scope import MemoryScope
 from jarvis.memory.stores.in_memory import InMemoryItemStore
@@ -15,31 +16,40 @@ class EvalTarget(Protocol):
 
     async def setup(self, step: SetupStep, scope: MemoryScope) -> None: ...
 
-    async def probe(self, query: str, scope: MemoryScope, top_k: int) -> list[str]:
-        """scope 에서 query 로 회상한 내용을 점수 순으로 돌려준다."""
+    async def probe(self, query: str, scope: MemoryScope, top_k: int, kind: str = "recall") -> list[str]:
+        """scope 에서 query 로 회상한 내용을 점수 순으로 돌려준다. kind=procedures 면 스킬 이름 목록."""
         ...
 
 
 class StoreTarget:
-    """jarvis.memory 의 매니저 + in-memory 저장소. 기본 평가 대상."""
+    """jarvis.memory 의 매니저 + in-memory 저장소 + in-memory 절차 소스. 기본 평가 대상."""
 
     def __init__(self) -> None:
-        self._memory = MemoryManager(InMemoryItemStore())
+        self._procedures = InMemoryProcedures()
+        self._memory = MemoryManager(InMemoryItemStore(), procedures=self._procedures)
 
     async def reset(self) -> None:
         await self._memory.clear()
+        self._procedures = InMemoryProcedures()
+        self._memory = MemoryManager(InMemoryItemStore(), procedures=self._procedures)
 
     async def setup(self, step: SetupStep, scope: MemoryScope) -> None:
+        if step.skill is not None:
+            self._procedures.add(Procedure(name=step.skill, description=step.description, aliases=tuple(step.aliases)))
+            return
         await self._memory.remember(
-            step.remember,
+            step.remember or "",
             source="eval",
             scope=scope,
             kind=step.kind,
             visibility=step.visibility,
+            importance=step.importance,
             created_at=datetime.fromisoformat(step.at) if step.at else None,
         )
 
-    async def probe(self, query: str, scope: MemoryScope, top_k: int) -> list[str]:
+    async def probe(self, query: str, scope: MemoryScope, top_k: int, kind: str = "recall") -> list[str]:
+        if kind == "procedures":
+            return [p.name for p in self._memory.procedures(query)][:top_k]
         return [i.content for i in await self._memory.recall(query, scope, limit=top_k)]
 
 

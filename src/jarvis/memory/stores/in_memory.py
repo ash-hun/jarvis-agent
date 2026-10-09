@@ -1,6 +1,7 @@
 """테스트와 in_memory 설정용 저장소. 프로세스가 끝나면 사라진다."""
 
 from collections.abc import Sequence
+from datetime import datetime
 
 from jarvis.memory.scope import MemoryScope
 from jarvis.memory.stores.protocol import tokens_of
@@ -41,6 +42,12 @@ class InMemoryItemStore:
         limit: int = 10,
     ) -> list[MemoryItem]:
         return _latest(self._visible(scope, kinds), limit)
+
+    async def touch(self, item_ids: Sequence[str], at: datetime) -> None:
+        for item_id in item_ids:
+            item = self._items.get(item_id)
+            if item is not None:
+                item.last_accessed = at
 
     async def supersede(self, old_id: str, new_id: str) -> None:
         old = self._items.get(old_id)

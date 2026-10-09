@@ -1,4 +1,4 @@
-"""MemoryManager. 턴 전 변환(observe), 범위를 아는 조회(recall, recent), 쓰기 한 함수(remember)."""
+"""MemoryManager. 턴 전 변환(observe), 범위를 아는 조회(recall, recent), 쓰기 한 함수(remember), 공고화(consolidate)."""
 
 import time
 from collections.abc import Sequence
@@ -7,6 +7,11 @@ from datetime import datetime
 from typing import Any
 
 from jarvis.memory.consolidation.compaction import Summarizer
+from jarvis.memory.consolidation.semantic_extract import FactExtractor
+from jarvis.memory.long_term.episodic import prepare_episode
+from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
+from jarvis.memory.long_term.semantic import prepare_fact, supersede_conflicts
+from jarvis.memory.retrieval.scoring import DEFAULT_HALF_LIFE_HOURS, rank
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, scope_from_context
 from jarvis.memory.stores.protocol import ItemStore
 from jarvis.memory.types import MemoryItem, MemoryKind, Visibility
@@ -15,7 +20,11 @@ from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.working.window import apply_window, chars_of, cut_at_user_boundary, summary_message
 from jarvis.model_layer.types import Message, UserMessage
 
-LTM_HEADER = "[장기 기억]"
+FACTS_HEADER = "[핵심 사실]"  # 고정 블록: 질의와 무관하게 항상 넣는 상위 의미 사실
+LTM_HEADER = "[장기 기억]"  # 회상 블록: 이번 질의로 떠오른 항목
+PROCEDURES_HEADER = "[절차 기억]"  # 질의가 가리키는 스킬
+CONSOLIDATED = "consolidated"  # 의미 추출을 마친 일화에 남기는 metadata 키
+CONSOLIDATABLE_SOURCES = frozenset({"session_end", "auto_summary", "manual_compact"})
 
 
 @dataclass(frozen=True)
@@ -29,6 +38,7 @@ class WriteRule:
 WRITE_RULES: dict[str, WriteRule] = {
     "explicit": WriteRule(MemoryKind.SEMANTIC, "shared", "user"),  # /remember
     "usermodel": WriteRule(MemoryKind.SEMANTIC, "shared", None),  # 사용자 모델 증류
+    "extracted": WriteRule(MemoryKind.SEMANTIC, "shared", None),  # 일화에서 추출한 사실
     "auto_summary": WriteRule(MemoryKind.EPISODIC, "private", None),  # 컴팩션
     "manual_compact": WriteRule(MemoryKind.EPISODIC, "private", None),  # /compact
     "session_end": WriteRule(MemoryKind.EPISODIC, "private", None),  # 세션 종료 요약
@@ -46,18 +56,28 @@ class MemoryManager:
         working: WorkingStore | None = None,
         *,
         summarizer: Summarizer | None = None,
+        extractor: FactExtractor | None = None,
+        procedures: ProceduralSource | None = None,
         threshold_chars: int = 80_000,
         keep_recent: int = 10,
         window_size: int = 50,
         inject_limit: int = 3,
+        fixed_facts: int = 3,
+        importance_threshold: float = 0.5,
+        half_life_hours: float = DEFAULT_HALF_LIFE_HOURS,
     ) -> None:
         self._store = store
         self._working: WorkingStore = working or InMemoryWorkingStore()
         self._summarizer = summarizer
+        self._extractor = extractor
+        self._procedures = procedures
         self._threshold_chars = threshold_chars
         self._keep_recent = max(1, keep_recent)
         self._window_size = window_size
         self._inject_limit = inject_limit
+        self._fixed_facts = fixed_facts
+        self._importance_threshold = importance_threshold
+        self._half_life_hours = half_life_hours
 
     @property
     def store(self) -> ItemStore:
@@ -79,7 +99,7 @@ class MemoryManager:
         1. 작업 기억의 요약이 덮는 앞부분을 버리고
         2. 남은 꼬리가 임계를 넘으면 한 번 더 요약해 persist 하고(임계를 다시 넘기 전엔 재요약 없음)
         3. 창 크기로 자르고
-        4. 장기 기억 회상 블록을 앞에 붙이며 되뇌기 횟수를 올린다.
+        4. 고정 블록(상위 의미 사실), 회상 블록(질의로 떠오른 항목), 절차 힌트를 앞에 붙이며 되뇌기를 올린다.
         """
         scope = scope_from_context(context)
         state = await self._working.load(scope)
@@ -107,17 +127,41 @@ class MemoryManager:
         out: list[Message] = ([summary_message(state.summary)] if state.summary else []) + tail
 
         query = _last_user_text(messages)
+        fixed = await self.fixed_facts(scope)
+        recalled: list[MemoryItem] = []
         if query:
-            items = await self.recall(query, scope, limit=self._inject_limit)
-            if items:
-                out = [_ltm_message(items), *out]
-                for item in items:
-                    state.rehearse(item.id)
-                dirty = True
+            recalled = await self.recall(query, scope, limit=self._inject_limit, exclude={i.id for i in fixed})
+        procedures = self.procedures(query) if query else []
+
+        blocks: list[Message] = []
+        if fixed:
+            blocks.append(_block(FACTS_HEADER, fixed))
+        if recalled:
+            blocks.append(_block(LTM_HEADER, recalled))
+        if procedures:
+            blocks.append(_procedures_block(procedures))
+        touched = fixed + recalled
+        if touched:
+            now = datetime.now()
+            await self._store.touch([i.id for i in touched], now)
+            for item in touched:
+                state.rehearse(item.id)
+            dirty = True
 
         if dirty:
             await self._working.save(state)
-        return out
+        return blocks + out
+
+    async def fixed_facts(self, scope: MemoryScope | None = None) -> list[MemoryItem]:
+        """질의와 무관하게 항상 넣는 의미 사실. 중요도와 최근성으로 고른다."""
+        if self._fixed_facts <= 0:
+            return []
+        resolved = self.resolve_scope(scope)
+        candidates = await self._store.recent(resolved, kinds=[MemoryKind.SEMANTIC], limit=self._fixed_facts * 4)
+        return rank(candidates, "", resolved, self._fixed_facts, half_life_hours=self._half_life_hours)
+
+    def procedures(self, query: str) -> list[Procedure]:
+        return self._procedures.match(query) if self._procedures is not None else []
 
     async def add_note(self, text: str, scope: MemoryScope | None = None) -> None:
         resolved = self.resolve_scope(scope)
@@ -148,7 +192,10 @@ class MemoryManager:
         item_id: str | None = None,
         created_at: datetime | None = None,
     ) -> str:
-        """source 의 쓰기 규칙으로 항목을 만들어 저장한다. 키워드 인자는 규칙을 덮어쓴다."""
+        """source 의 쓰기 규칙으로 항목을 만들어 저장한다. 키워드 인자는 규칙을 덮어쓴다.
+
+        의미 항목은 같은 주제의 옛 사실을 대체하고, 일화 항목은 사건 시각을 받는다.
+        """
         rule = WRITE_RULES.get(source, _DEFAULT_RULE)
         resolved = self.resolve_scope(scope)
         item = MemoryItem(
@@ -158,8 +205,8 @@ class MemoryManager:
             visibility=visibility or rule.visibility,
             author=author or rule.author or resolved.agent_id,
             source=source,
-            tags=tags or [],
-            metadata=metadata or {},
+            tags=list(tags or []),
+            metadata=dict(metadata or {}),
         )
         if importance is not None:
             item.importance = importance
@@ -167,7 +214,14 @@ class MemoryManager:
             item.id = item_id
         if created_at is not None:
             item.created_at = created_at
-        return await self._store.store(item)
+        if item.kind is MemoryKind.SEMANTIC:
+            prepare_fact(item)
+        elif item.kind is MemoryKind.EPISODIC:
+            prepare_episode(item)
+        stored = await self._store.store(item)
+        if item.kind is MemoryKind.SEMANTIC:
+            await supersede_conflicts(self._store, item)
+        return stored
 
     async def recall(
         self,
@@ -175,8 +229,14 @@ class MemoryManager:
         scope: MemoryScope | None = None,
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
+        exclude: set[str] | None = None,
     ) -> list[MemoryItem]:
-        return await self._store.search(query, self.resolve_scope(scope), kinds, limit)
+        """키워드로 후보를 넓게 모은 뒤 합성 점수로 상위 limit 개."""
+        resolved = self.resolve_scope(scope)
+        candidates = await self._store.search(query, resolved, kinds, limit * 4)
+        if exclude:
+            candidates = [c for c in candidates if c.id not in exclude]
+        return rank(candidates, query, resolved, limit, half_life_hours=self._half_life_hours)
 
     async def recent(
         self,
@@ -198,6 +258,54 @@ class MemoryManager:
     async def clear(self, scope: MemoryScope | None = None) -> None:
         await self._store.clear(scope)
 
+    # ── 공고화 ──────────────────────────────────────────────────────────────
+
+    async def consolidate(self, scope: MemoryScope | None = None) -> int:
+        """세션 종료(와 나중엔 idle)에 부른다. 돌려주는 값은 새로 쓴 의미 사실 수.
+
+        1. 아직 추출하지 않은 이 소유자의 일화(요약)에서 사실을 뽑아 shared 의미 항목으로 쓴다.
+           importance 가 임계 미만이면 버린다. 같은 주제의 옛 사실은 remember 가 대체한다.
+        2. 작업 기억의 되뇌기 횟수를 항목의 rehearsal_count 로 옮기고 비운다.
+        두 번 불러도 같은 상태: 추출한 일화는 metadata 로 표시하고 되뇌기는 비운다.
+        """
+        resolved = self.resolve_scope(scope)
+        written = 0
+        if self._extractor is not None:
+            episodes = await self._store.recent(resolved, kinds=[MemoryKind.EPISODIC], limit=50)
+            for episode in episodes:
+                if (
+                    episode.source not in CONSOLIDATABLE_SOURCES
+                    or episode.metadata.get(CONSOLIDATED)
+                    or episode.scope.user_id != resolved.user_id
+                    or episode.scope.agent_id != resolved.agent_id
+                ):
+                    continue
+                facts = await self._extractor(episode.content)
+                for fact in facts:
+                    if fact.importance < self._importance_threshold:
+                        continue
+                    await self.remember(
+                        fact.content,
+                        source="extracted",
+                        scope=resolved.with_session(None),
+                        importance=fact.importance,
+                        metadata={"from_episode": episode.id},
+                    )
+                    written += 1
+                episode.metadata[CONSOLIDATED] = True
+                await self._store.store(episode)
+
+        state = await self._working.load(resolved)
+        if state.rehearsal:
+            for item_id, count in state.rehearsal.items():
+                item = await self._store.get(item_id)
+                if item is not None:
+                    item.rehearsal_count += count
+                    await self._store.store(item)
+            state.rehearsal = {}
+            await self._working.save(state)
+        return written
+
 
 def _last_user_text(messages: list[Message], max_chars: int = 200) -> str:
     for msg in reversed(messages):
@@ -209,6 +317,11 @@ def _last_user_text(messages: list[Message], max_chars: int = 200) -> str:
     return ""
 
 
-def _ltm_message(items: list[MemoryItem]) -> UserMessage:
+def _block(header: str, items: list[MemoryItem]) -> UserMessage:
     body = "\n".join(f"- [{i.created_at.strftime('%Y-%m-%d')}] {i.content}" for i in items)
-    return UserMessage(content=f"{LTM_HEADER}\n{body}", timestamp=int(time.time() * 1000))
+    return UserMessage(content=f"{header}\n{body}", timestamp=int(time.time() * 1000))
+
+
+def _procedures_block(procedures: list[Procedure]) -> UserMessage:
+    body = "\n".join(f"- /{p.name}: {p.description}".rstrip(": ") for p in procedures)
+    return UserMessage(content=f"{PROCEDURES_HEADER}\n{body}", timestamp=int(time.time() * 1000))

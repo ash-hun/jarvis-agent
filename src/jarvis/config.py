@@ -68,6 +68,10 @@ class MemoryConfig(BaseSettings):
     postgres_dsn: str | None = None  # None이면 session.postgres_dsn fallback
     window_size: int = 50
     compaction_threshold: int = 100_000
+    fixed_facts: int = 3  # 매 턴 항상 넣는 상위 의미 사실 수(고정 블록)
+    recall_limit: int = 3  # 질의로 회상해 넣는 항목 수(회상 블록)
+    importance_threshold: float = 0.5  # 의미 추출 결과 중 이 값 미만은 버린다
+    recency_half_life_hours: float = 168.0  # 검색 점수의 recency 반감기(일주일)
 
 
 class SessionConfig(BaseSettings):

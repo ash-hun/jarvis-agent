@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import json
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import anthropic
 
@@ -14,7 +13,6 @@ from jarvis.model_layer.types import (
     StreamOptions,
     TextDeltaEvent,
     ThinkingDeltaEvent,
-    ToolCall,
     ToolCallDeltaEvent,
     Usage,
 )
@@ -68,13 +66,12 @@ class AnthropicProvider:
 
                     if event_type == "RawContentBlockStartEvent":
                         block = event.content_block
-                        if hasattr(block, "type"):
-                            if block.type == "tool_use":
-                                tool_buffers[event.index] = {
-                                    "id": block.id,
-                                    "name": block.name,
-                                    "arguments": "",
-                                }
+                        if hasattr(block, "type") and block.type == "tool_use":
+                            tool_buffers[event.index] = {
+                                "id": block.id,
+                                "name": block.name,
+                                "arguments": "",
+                            }
 
                     elif event_type == "RawContentBlockDeltaEvent":
                         delta = event.delta
@@ -84,15 +81,14 @@ class AnthropicProvider:
                             yield TextDeltaEvent(delta=delta.text)
                         elif delta_type == "ThinkingDelta":
                             yield ThinkingDeltaEvent(thinking=delta.thinking)
-                        elif delta_type == "InputJSONDelta":
-                            if event.index in tool_buffers:
-                                buf = tool_buffers[event.index]
-                                buf["arguments"] += delta.partial_json
-                                yield ToolCallDeltaEvent(
-                                    id=buf["id"],
-                                    name=buf["name"],
-                                    arguments_delta=delta.partial_json,
-                                )
+                        elif delta_type == "InputJSONDelta" and event.index in tool_buffers:
+                            buf = tool_buffers[event.index]
+                            buf["arguments"] += delta.partial_json
+                            yield ToolCallDeltaEvent(
+                                id=buf["id"],
+                                name=buf["name"],
+                                arguments_delta=delta.partial_json,
+                            )
 
                     elif event_type == "RawMessageStopEvent":
                         pass

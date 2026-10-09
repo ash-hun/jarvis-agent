@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import time
-from typing import Any, AsyncIterator, Literal, Protocol, Union
-from pydantic import BaseModel, Field
+from collections.abc import AsyncIterator
+from typing import Any, Literal, Protocol
 
+from pydantic import BaseModel, Field
 
 # ── Content blocks ────────────────────────────────────────────────────────────
 
@@ -79,7 +80,7 @@ class ToolResultMessage(BaseModel):
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
 
 
-Message = Union[UserMessage, AssistantMessage, ToolResultMessage]
+Message = UserMessage | AssistantMessage | ToolResultMessage
 
 
 # ── Streaming events (Pi: AssistantMessageEvent 패턴) ─────────────────────────
@@ -113,13 +114,7 @@ class ErrorEvent(BaseModel):
     code: str | None = None
 
 
-StreamEvent = Union[
-    TextDeltaEvent,
-    ThinkingDeltaEvent,
-    ToolCallDeltaEvent,
-    StopEvent,
-    ErrorEvent,
-]
+StreamEvent = TextDeltaEvent | ThinkingDeltaEvent | ToolCallDeltaEvent | StopEvent | ErrorEvent
 
 
 # ── Tool definition ───────────────────────────────────────────────────────────

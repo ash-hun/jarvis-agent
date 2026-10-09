@@ -60,7 +60,7 @@ class ToolLoader:
         except ImportError:
             return
 
-        async for changes in awatch(path):
+        async for _changes in awatch(path):
             await self.load_directory(path)
 
     async def _load_yaml_tool(self, yaml_file: Path) -> JarvisTool | None:
@@ -133,10 +133,7 @@ class _FunctionTool:
         from jarvis.model_layer.types import TextContent, ToolResultMessage
         try:
             result = await self._fn(tool_call_id=tool_call_id, params=params)
-            if isinstance(result, dict):
-                content = result.get("content", str(result))
-            else:
-                content = str(result)
+            content = result.get("content", str(result)) if isinstance(result, dict) else str(result)
             return ToolResultMessage(
                 tool_call_id=tool_call_id,
                 tool_name=self.name,

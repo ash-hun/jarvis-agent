@@ -39,7 +39,7 @@ class BashTool:
             )
             try:
                 stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 proc.kill()
                 return ToolResultMessage(
                     tool_call_id=tool_call_id,

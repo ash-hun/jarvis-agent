@@ -57,7 +57,7 @@ class TestParseDeadline:
         )
         assert result is not None
         _, prompt = result
-        assert "웹검색을 통해 AI 관련 최신 논문을 수집하고 요약해줘" == prompt
+        assert prompt == "웹검색을 통해 AI 관련 최신 논문을 수집하고 요약해줘"
 
 
 class TestInferSchedule:

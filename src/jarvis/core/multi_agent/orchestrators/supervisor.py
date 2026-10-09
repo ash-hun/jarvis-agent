@@ -24,7 +24,7 @@ class SupervisorOrchestrator(BaseOrchestrator):
     def __init__(
         self,
         topology: SupervisorTopology,
-        orchestrator_session: "AgentSession | Any",
+        orchestrator_session: AgentSession | Any,
     ) -> None:
         super().__init__(topology)
         self._session = orchestrator_session

@@ -4,7 +4,6 @@ import pytest
 
 from jarvis.core.multi_agent.task import AgentResult, AgentTask
 
-
 # ── AgentTask ──────────────────────────────────────────────────────────────────
 
 

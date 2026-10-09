@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import openai as openai_sdk
 
@@ -121,7 +121,11 @@ def _convert_messages(context: LLMContext) -> list[dict]:
                 entry["content"] = "".join(b.text for b in text_parts)  # type: ignore[union-attr]
             if tool_calls:
                 entry["tool_calls"] = [
-                    {"id": tc.id, "type": "function", "function": {"name": tc.name, "arguments": json.dumps(tc.arguments)}}  # type: ignore[union-attr]
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {"name": tc.name, "arguments": json.dumps(tc.arguments)},  # type: ignore[union-attr]
+                    }
                     for tc in tool_calls
                 ]
             result.append(entry)

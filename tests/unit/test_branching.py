@@ -1,9 +1,7 @@
 """Conversation Branching UI — JsonlSessionRepo.create_branch() 테스트."""
 from __future__ import annotations
 
-import pytest
-
-from jarvis.model_layer.types import TextContent, UserMessage
+from jarvis.model_layer.types import UserMessage
 
 
 class TestSessionMetadataParentId:
@@ -35,7 +33,7 @@ class TestSessionMetadataParentId:
 
 class TestJsonlSessionRepoIdempotentCreate:
     async def test_create_idempotent(self, jsonl_repo):
-        meta1 = await jsonl_repo.create(session_id="sess-1", cwd="/tmp")
+        await jsonl_repo.create(session_id="sess-1", cwd="/tmp")
         # Append a message to increase message_count
         msg = UserMessage(content="hello")
         await jsonl_repo.append("sess-1", msg)

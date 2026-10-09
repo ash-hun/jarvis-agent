@@ -15,7 +15,6 @@ from jarvis.core.multi_agent.topologies.blackboard import BlackboardTopology
 from jarvis.core.multi_agent.topologies.hierarchical import HierarchicalTopology
 from jarvis.core.multi_agent.topologies.supervisor import SupervisorTopology
 
-
 # ── 헬퍼 ──────────────────────────────────────────────────────────────────────
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import uuid
 from typing import TYPE_CHECKING
 
@@ -23,29 +24,21 @@ class PerConnectionAdapter:
     async def on_agent_event(self, event: AgentEvent) -> None:
         payload = event.model_dump()
         payload["type"] = getattr(event, "type", "unknown")
-        try:
+        with contextlib.suppress(Exception):
             await self._ws.send_json(payload)
-        except Exception:
-            pass
 
     async def send(self, payload: dict) -> None:
         """임의 메시지를 이 연결로 보낸다(스케줄 알림 방송 등). 끊긴 연결이면 조용히 넘어간다."""
-        try:
+        with contextlib.suppress(Exception):
             await self._ws.send_json(payload)
-        except Exception:
-            pass
 
     async def on_stream_text(self, delta: str) -> None:
-        try:
+        with contextlib.suppress(Exception):
             await self._ws.send_json({"type": "stream_delta", "text": delta})
-        except Exception:
-            pass
 
     async def show_error(self, error: str) -> None:
-        try:
+        with contextlib.suppress(Exception):
             await self._ws.send_json({"type": "error", "message": error})
-        except Exception:
-            pass
 
     async def request_approval(self, command: str, reason: str) -> bool:
         approval_id = str(uuid.uuid4())

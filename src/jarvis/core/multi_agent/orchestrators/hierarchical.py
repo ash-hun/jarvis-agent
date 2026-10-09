@@ -46,7 +46,7 @@ class HierarchicalOrchestrator(BaseOrchestrator):
             last_results = list(results)
 
             # 다음 레벨용 context 누적
-            for node, result in zip(nodes, results):
+            for node, result in zip(nodes, results, strict=False):
                 accumulated[f"result_{node.name}"] = result.content
 
         if not last_results:

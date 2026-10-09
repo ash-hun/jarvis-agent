@@ -29,7 +29,7 @@ class MarketOrchestrator(BaseOrchestrator):
     async def _collect_bids(self, task: AgentTask) -> list[Bid]:
         nodes = self.topology.get_nodes()
         results = await asyncio.gather(*[node.can_handle(task) for node in nodes])
-        return [Bid(node=node, can_handle=can) for node, can in zip(nodes, results)]
+        return [Bid(node=node, can_handle=can) for node, can in zip(nodes, results, strict=False)]
 
     def _select_winner(self, bids: list[Bid]) -> AgentNodeProtocol | None:
         eligible = [b for b in bids if b.can_handle]

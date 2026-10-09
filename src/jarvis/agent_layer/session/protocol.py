@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Protocol, runtime_checkable
+
 from pydantic import BaseModel
 
 from jarvis.model_layer.types import AssistantMessage, Message, ToolResultMessage, UserMessage

@@ -1,8 +1,6 @@
 """GeminiProvider 메시지 변환 및 기본 동작 테스트 (실 API 미사용)."""
 from __future__ import annotations
 
-import pytest
-
 from jarvis.model_layer.providers.gemini import _convert_messages
 from jarvis.model_layer.types import (
     AssistantMessage,
@@ -13,7 +11,6 @@ from jarvis.model_layer.types import (
     ToolResultMessage,
     UserMessage,
 )
-
 
 # ── LLMContext 헬퍼 ──────────────────────────────────────────────────────────
 
@@ -31,7 +28,10 @@ class TestConvertMessages:
         assert result[0]["parts"] == [{"text": "Hello Gemini"}]
 
     def test_user_content_list(self):
-        ctx = _ctx([UserMessage(content=[TextContent(text="Describe this"), ImageContent(data="abc123", mime_type="image/png")])])
+        ctx = _ctx([UserMessage(content=[
+            TextContent(text="Describe this"),
+            ImageContent(data="abc123", mime_type="image/png"),
+        ])])
         result = _convert_messages(ctx)
         parts = result[0]["parts"]
         assert parts[0] == {"text": "Describe this"}

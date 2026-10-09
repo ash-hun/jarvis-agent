@@ -59,8 +59,11 @@ async def run_agent_loop(
         await emit(TurnStartEvent(turn=turn))
 
         assistant_msg = await _stream_assistant(context, config, emit, signal)
-        context.messages.append(assistant_msg)
         final_message = assistant_msg
+        if assistant_msg.error_message is not None:
+            # provider 에러 — 빈 assistant 메시지를 히스토리에 남기면 다음 호출이 400으로 깨진다
+            break
+        context.messages.append(assistant_msg)
 
         tool_calls = assistant_msg.tool_calls()
         if not tool_calls or assistant_msg.stop_reason != "tool_use":
@@ -72,6 +75,8 @@ async def run_agent_loop(
         tool_results = await _execute_tools(tool_calls, tool_executor, config, emit, signal)
         context.messages.extend(tool_results)
 
+    _close_dangling_tool_calls(context.messages)
+
     await emit(AgentEndEvent(
         session_id=context.session_id,
         final_message=final_message,
@@ -79,6 +84,32 @@ async def run_agent_loop(
         agent_name=agent_name,
     ))
     return final_message
+
+
+def _close_dangling_tool_calls(messages: list) -> None:
+    """마지막 assistant tool_use 중 결과가 없는 것에 에러 결과를 붙인다.
+
+    max_turns 소진·abort·executor 부재로 루프가 끊기면 tool_use만 남는데, 그 히스토리로
+    다음 호출을 하면 provider가 tool_result 누락으로 거부한다(Anthropic 400).
+    """
+    last_assistant = next(
+        (i for i in range(len(messages) - 1, -1, -1) if isinstance(messages[i], AssistantMessage)),
+        None,
+    )
+    if last_assistant is None:
+        return
+    answered = {
+        m.tool_call_id for m in messages[last_assistant + 1 :] if isinstance(m, ToolResultMessage)
+    }
+    for tc in messages[last_assistant].tool_calls():
+        if tc.id in answered:
+            continue
+        messages.append(ToolResultMessage(
+            tool_call_id=tc.id,
+            tool_name=tc.name,
+            content=[TextContent(text="Tool was not executed (loop ended before execution)")],
+            is_error=True,
+        ))
 
 
 def _augment_system_prompt(context: AgentContext) -> str | None:
@@ -139,6 +170,7 @@ async def _stream_assistant(
                 model=context.model.model,
                 usage=Usage(),
                 stop_reason="stop",
+                error_message=event.message,
             )
 
     content = []

@@ -159,3 +159,36 @@ async def test_compaction_keeps_recent_messages(faux_model_with_response, ltm):
     assert len(result) == 3
     assert result[-1].content == "최신 메시지 B"
     assert result[-2].content == "최신 메시지 A"
+
+
+# ── 요약 LLM 실패 ──────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def faux_model_error():
+    from jarvis.model_layer.registry import get_default_registry
+    from jarvis.model_layer.types import ModelConfig
+    from tests.fixtures.faux_provider import FauxProviderFactory
+
+    get_default_registry()._providers["faux"] = FauxProviderFactory.error()
+    return ModelConfig(provider="faux", model="faux-model")
+
+
+@pytest.mark.asyncio
+async def test_episodic_skips_store_when_summary_llm_fails(faux_model_error, ltm):
+    summarizer = EpisodicSummarizer(model=faux_model_error, ltm_backend=ltm)
+
+    entry_id = await summarizer.save_session("s", [_user_msg("hi")])
+
+    assert entry_id is None
+    assert await ltm.get_recent() == []
+
+
+@pytest.mark.asyncio
+async def test_compaction_keeps_history_when_summary_llm_fails(faux_model_error, ltm):
+    middleware = CompactionMiddleware(model=faux_model_error, threshold_chars=10, keep_recent=1, ltm_backend=ltm)
+    msgs = [_user_msg("a"), _user_msg("b"), _user_msg("c")]
+
+    out = await middleware.transform(msgs, {"session_id": "s"})
+
+    assert out == msgs  # 압축 건너뜀 — 빈 요약으로 히스토리를 날리지 않는다
+    assert await ltm.get_recent() == []

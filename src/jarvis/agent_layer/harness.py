@@ -85,6 +85,7 @@ class AgentHarness:
             metadata=extra_context or {},
         )
 
+        n_before = len(agent_context.messages)
         result = await run_agent_loop(
             context=agent_context,
             config=self._loop_config,
@@ -94,8 +95,11 @@ class AgentHarness:
             agent_name=self._agent_name,
         )
 
-        if result:
-            await self._session_repo.append(self._session_id, result)
+        # 루프가 쌓은 메시지(assistant tool_use → tool_result → ... → 최종 assistant)를 전부 남긴다.
+        # 최종 메시지만 남기면 세션 재개 시 provider가 tool_use/tool_result 짝 불일치로 거부한다.
+        for msg in agent_context.messages[n_before:]:
+            await self._session_repo.append(self._session_id, msg)
+        if result is not None and result.error_message is None:
             await self._memory_chain.store(result, mem_context)
 
         self._running = False

@@ -43,6 +43,9 @@ class CompactionMiddleware:
             return messages
 
         summary = await self._summarize(to_compact)
+        if summary is None:
+            # 요약 실패 — 이번 턴은 압축을 건너뛴다. 빈 요약으로 히스토리를 대체하면 맥락이 사라진다.
+            return messages
 
         if self._ltm_backend is not None:
             from jarvis.agent_layer.memory.backends.protocol import MemoryEntry
@@ -67,7 +70,7 @@ class CompactionMiddleware:
     async def clear(self, context: dict[str, Any]) -> None:
         pass
 
-    async def _summarize(self, messages: list[Message]) -> str:
+    async def _summarize(self, messages: list[Message]) -> str | None:
         from jarvis.model_layer.stream import stream_to_message
         from jarvis.model_layer.types import LLMContext, StreamOptions
 
@@ -83,4 +86,6 @@ class CompactionMiddleware:
             ),
         )
         result = await stream_to_message(self._model, ctx, StreamOptions())
+        if result.error_message is not None:
+            return None
         return result.text() or "[summary unavailable]"

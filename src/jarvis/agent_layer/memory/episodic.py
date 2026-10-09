@@ -28,12 +28,14 @@ class EpisodicSummarizer:
         세션 메시지를 요약해 LTM에 저장.
 
         Returns:
-            저장된 entry_id, 메시지가 없으면 None.
+            저장된 entry_id. 메시지가 없거나 요약 LLM 호출이 실패하면 None.
         """
         if not messages:
             return None
 
         summary = await self._summarize(session_id, messages)
+        if summary is None:
+            return None
 
         from jarvis.agent_layer.memory.backends.protocol import MemoryEntry
 
@@ -44,7 +46,7 @@ class EpisodicSummarizer:
         )
         return await self._ltm_backend.store(entry)
 
-    async def _summarize(self, session_id: str, messages: list[Message]) -> str:
+    async def _summarize(self, session_id: str, messages: list[Message]) -> str | None:
         from jarvis.model_layer.stream import stream_to_message
         from jarvis.model_layer.types import LLMContext, StreamOptions
 
@@ -75,4 +77,6 @@ class EpisodicSummarizer:
             ),
         )
         result = await stream_to_message(self._model, ctx, StreamOptions())
+        if result.error_message is not None:
+            return None
         return result.text() or "[summary unavailable]"

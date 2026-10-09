@@ -26,8 +26,13 @@ class ApiKeyAuthenticator:
     API key 기반 인증. credentials["api_key"]와 미리 설정된 키를 비교.
     """
 
-    def __init__(self, valid_keys: dict[str, frozenset[str]]) -> None:
+    def __init__(
+        self,
+        valid_keys: dict[str, frozenset[str]],
+        user_names: dict[str, str] | None = None,
+    ) -> None:
         self._keys = valid_keys
+        self._names = user_names or {}
 
     async def authenticate(
         self,
@@ -40,7 +45,7 @@ class ApiKeyAuthenticator:
         if api_key not in self._keys:
             raise AuthError("Invalid API key")
         return AuthContext(
-            user_id=api_key[:8] + "...",
+            user_id=self._names.get(api_key, api_key[:8] + "..."),
             roles=self._keys[api_key],
             token=api_key,
         )
@@ -59,7 +64,7 @@ class JWTAuthenticator:
         credentials: dict,
     ) -> AuthContext:
         try:
-            from jose import jwt, JWTError
+            from jose import jwt
         except ImportError as exc:
             raise ImportError("python-jose is required: pip install python-jose[cryptography]") from exc
 

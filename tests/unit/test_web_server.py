@@ -317,3 +317,72 @@ def test_tts_request_without_voice_service_falls_back_to_browser(monkeypatch, tm
             ws.send_json({"type": "voice_tts_request", "text": "물 마시기"})
             reply = ws.receive_json()
     assert reply == {"type": "voice_tts_audio", "data": "", "text": "물 마시기"}
+
+
+# ── 접근 키 인증 ──────────────────────────────────────────────────────────────
+# api_keys 가 설정되면 /api/* 와 /ws 가 키를 요구한다. 비어 있으면(위 client) 지금처럼 열려 있다.
+
+from starlette.websockets import WebSocketDisconnect  # noqa: E402
+
+KEY = "test-key-abc"
+
+
+@pytest.fixture
+def auth_client(monkeypatch, tmp_path):
+    monkeypatch.setenv("JARVIS_PROACTIVE__DAEMON_ENABLED", "false")
+    monkeypatch.setenv("JARVIS_SCHEDULER__ENABLED", "false")
+    monkeypatch.setenv("JARVIS_MEMORY__BACKEND", "in_memory")
+    monkeypatch.setenv("JARVIS_SESSION__PERSISTENCE_BACKEND", "jsonl")
+    monkeypatch.setenv("JARVIS_SESSION__SESSIONS_DIR", str(tmp_path / "sessions"))
+    monkeypatch.setenv("JARVIS_SECURITY__API_KEYS", f'{{"{KEY}": {{"name": "jh", "roles": ["admin"]}}}}')
+    ctx, base_extra = _build_infra(JarvisSettings())
+    with TestClient(create_app(ctx, base_extra, initial_session_id="default")) as c:
+        yield c
+
+
+def test_api_rejects_missing_or_wrong_key(auth_client):
+    assert auth_client.get("/api/sessions").status_code == 401
+    assert auth_client.get("/api/sessions", headers={"Authorization": "Bearer wrong"}).status_code == 401
+
+
+def test_api_accepts_bearer_header_or_token_query(auth_client):
+    assert auth_client.get("/api/sessions", headers={"Authorization": f"Bearer {KEY}"}).status_code == 200
+    assert auth_client.get(f"/api/sessions?token={KEY}").status_code == 200
+
+
+def test_static_shell_stays_open_without_key(auth_client):
+    # index/js 가 열려 있어야 브라우저가 키 입력 화면까지 도달한다
+    assert auth_client.get("/").status_code == 200
+    assert auth_client.get("/brand.js").status_code == 200
+
+
+def test_ws_without_key_is_closed_with_4401(auth_client):
+    with pytest.raises(WebSocketDisconnect) as exc, auth_client.websocket_connect("/ws?session_id=default") as ws:
+        ws.receive_json()
+    assert exc.value.code == 4401
+
+
+def test_ws_with_key_connects_and_identifies_user(auth_client):
+    with auth_client.websocket_connect(f"/ws?session_id=default&token={KEY}") as ws:
+        hello = ws.receive_json()
+    assert hello["type"] == "connected" and hello["user"] == "jh"
+
+
+def test_ws_prompt_carries_identified_user_into_session(auth_client, faux_model_with_response):
+    """키로 식별된 user_id 가 AgentSession → harness extra_context 까지 흐른다(사용자별 정책의 전제)."""
+    faux_model_with_response("ok")
+    with auth_client.websocket_connect(f"/ws?session_id=default&token={KEY}") as ws:
+        ws.receive_json()
+        ws.send_json({"type": "user_message", "text": "안녕"})
+        seen = []
+        for _ in range(20):
+            msg = ws.receive_json()
+            seen.append(msg["type"])
+            if msg["type"] == "agent_end":
+                break
+    assert "agent_end" in seen
+
+
+def test_open_mode_connected_payload_has_no_user(client):
+    with client.websocket_connect("/ws?session_id=default") as ws:
+        assert ws.receive_json()["user"] is None

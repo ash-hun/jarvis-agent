@@ -191,6 +191,12 @@ uv sync --extra voice                    # whisper/supertonic
 InputValidator → Authenticator → PolicyEngine → Sandbox
 ```
 
+**Web HUD 접근 키.** `JARVIS_SECURITY__API_KEYS` 에 키 → 사용자(이름, roles)를 등록하면 `/ws` 와 `/api/*` 가 그 키를 요구한다. 키가 곧 식별자이므로 길고 무작위인 값을 쓴다. 브라우저는 처음 연결이 거부되면 키를 한 번 묻고 저장한다. 비워두면 web 인증이 꺼지고, TUI 는 설정과 무관하게 로컬 NoAuth 다.
+
+```bash
+JARVIS_SECURITY__API_KEYS='{"<long-random-key>": {"name": "jh", "roles": ["admin"]}}'
+```
+
 ---
 
 ## 내장 도구 (Tools)
@@ -510,7 +516,7 @@ JARVIS_SESSION__JSONL_DIR=~/.jarvis/sessions
 JARVIS_SESSION__POSTGRES_DSN=postgresql://user:pw@host:5432/db
 
 # ── 보안 ─────────────────────────────────────────────────────────────────────
-JARVIS_SECURITY__REQUIRE_AUTH=false   # true면 API 키 인증 강제
+JARVIS_SECURITY__API_KEYS=            # Web HUD 접근 키 → 사용자 JSON. 비우면 web 인증 없음 (TUI는 항상 NoAuth)
 JARVIS_SECURITY__ALLOWED_DIRS=        # Sandbox 허용 디렉토리 (콤마 구분)
 
 # ── 플러그인 ─────────────────────────────────────────────────────────────────

@@ -50,6 +50,7 @@ class OrchestrateTool:
         tool_call_id: str,
         params: dict[str, Any],
         signal: asyncio.Event | None = None,
+        context: Any = None,
     ) -> ToolResultMessage:
         try:
             result = await self._service.run(
@@ -57,6 +58,7 @@ class OrchestrateTool:
                 str(params["task"]),
                 agents=params.get("agents") or None,
                 promote=bool(params.get("promote", False)),
+                parent_scope=getattr(context, "scope", None),
             )
         except ValueError as exc:
             return ToolResultMessage(

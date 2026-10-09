@@ -1,9 +1,27 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
+from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
 from jarvis.model_layer.types import TextContent, Tool, ToolResultMessage
+
+
+@dataclass(frozen=True)
+class ToolContext:
+    """도구를 부른 세션의 정보. 서브 에이전트 위임처럼 '누가 불렀는가'가 필요한 도구가 쓴다."""
+
+    scope: Any  # MemoryScope. 순환 import 를 피해 Any
+    session_id: str | None = None
+    user_id: str | None = None
+
+
+def accepts_context(tool: Any) -> bool:
+    try:
+        return "context" in inspect.signature(tool.execute).parameters
+    except (TypeError, ValueError):
+        return False
 
 
 @runtime_checkable
@@ -65,7 +83,9 @@ class ToolRegistry:
         tool_name: str,
         params: dict[str, Any],
         signal: asyncio.Event | None = None,
+        context: ToolContext | None = None,
     ) -> ToolResultMessage:
+        """context 는 호출한 세션의 정보(메모리 범위 등). execute 가 context 인자를 받는 도구에만 넘긴다."""
         tool = self.get(tool_name)
         if tool is None:
             return ToolResultMessage(
@@ -75,6 +95,8 @@ class ToolRegistry:
                 is_error=True,
             )
         try:
+            if context is not None and accepts_context(tool):
+                return await tool.execute(tool_call_id, params, signal, context=context)
             return await tool.execute(tool_call_id, params, signal)
         except Exception as exc:
             return ToolResultMessage(

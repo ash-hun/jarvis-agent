@@ -42,10 +42,12 @@ class OrchestrationService:
         definitions: Sequence[AgentDefinition],
         factory: AgentFactory,
         memory: MemoryManager | None = None,
+        supervisor_prompt: str | None = None,
     ) -> None:
         self._definitions = {d.name: d for d in definitions}
         self._factory = factory
         self._memory = memory
+        self._supervisor_prompt = supervisor_prompt or SUPERVISOR_PROMPT
 
     @property
     def patterns(self) -> dict[str, str]:
@@ -126,7 +128,7 @@ class OrchestrationService:
         supervisor = AgentDefinition(
             name="supervisor",
             description="오케스트레이션 감독자",
-            system_prompt=SUPERVISOR_PROMPT,
+            system_prompt=self._supervisor_prompt,
             tools=[f"agent_{d.name}" for d in definitions],
         )
         sup_node, _ = await self._factory.node_for(supervisor, parent, task)
@@ -149,3 +151,16 @@ class OrchestrationService:
             )
         except Exception:
             return
+
+
+def load_supervisor_prompt(value: str) -> str | None:
+    """설정값이 파일 경로면 내용을, 아니면 그 문자열을. 비면 None(기본 문구)."""
+    from pathlib import Path
+
+    text = (value or "").strip()
+    if not text:
+        return None
+    path = Path(text).expanduser()
+    if path.is_file():
+        return path.read_text(encoding="utf-8").strip() or None
+    return text

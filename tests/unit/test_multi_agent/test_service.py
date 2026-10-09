@@ -172,3 +172,48 @@ def test_loader_reads_level(tmp_path):
     (tmp_path / "a.yaml").write_text("- name: a\n  description: d\n  level: 2\n- name: b\n  description: d\n")
     defs = {d.name: d.level for d in load_agent_definitions(str(tmp_path))}
     assert defs == {"a": 2, "b": 0}
+
+
+# ── 도구 컨텍스트: 레지스트리를 거치면 부모 범위가 인자로 온다 ───────────────
+
+
+async def test_tool_context_carries_parent_scope_without_contextvar(
+    service, memory, faux_model_with_response, jsonl_repo
+):
+    from jarvis.core.tools.registry import ToolContext, ToolRegistry
+
+    faux_model_with_response("ok")
+    registry = ToolRegistry()
+    registry.register(OrchestrateTool(service))
+    parent = MemoryScope(user_id="jh", agent_id="main", session_id="ctx-session")
+    assert current_scope.get() is None  # contextvar 없이
+
+    result = await registry.execute("c1", "orchestrate", {"pattern": "blackboard", "task": "분석"},
+                                    context=ToolContext(scope=parent, session_id="ctx-session", user_id="jh"))
+
+    assert not result.is_error
+    episodes = await memory.recall("오케스트레이션", scope=parent, kinds=[MemoryKind.EPISODIC])
+    assert episodes and episodes[0].scope.session_id == "ctx-session"
+    assert await jsonl_repo.get_messages("agent_planner__ctx-session")
+
+
+def test_registry_only_passes_context_to_tools_that_accept_it():
+    from jarvis.core.tools.registry import accepts_context
+
+    class Plain:
+        async def execute(self, tool_call_id, params, signal=None): ...
+
+    class Aware:
+        async def execute(self, tool_call_id, params, signal=None, context=None): ...
+
+    assert accepts_context(Plain()) is False and accepts_context(Aware()) is True
+
+
+def test_supervisor_prompt_from_string_or_file(tmp_path):
+    from jarvis.core.multi_agent.service import load_supervisor_prompt
+
+    assert load_supervisor_prompt("") is None
+    assert load_supervisor_prompt("짧게 답하라") == "짧게 답하라"
+    f = tmp_path / "sup.md"
+    f.write_text("파일에서 읽은 지시문\n")
+    assert load_supervisor_prompt(str(f)) == "파일에서 읽은 지시문"

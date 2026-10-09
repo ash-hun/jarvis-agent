@@ -3,8 +3,7 @@
 두 모드가 있다.
 - 정적: 미리 만든 AgentNode 하나(테스트, 단순 배선)
 - 지연: AgentDefinition + AgentFactory 를 LazyAgentNode 로 감싼다. 범위 상속과 위임 기록은 노드가 한다.
-  부모 범위는 contextvar 로 받는다. ToolRegistry.execute 에 컨텍스트 인자가 없기 때문이다.
-  ponytail: 도구 실행에 컨텍스트가 생기면 인자로 받는다
+  부모 범위는 ToolContext 로 받는다. 레지스트리를 거치지 않는 호출(테스트, 정적 배선)은 contextvar 로 폴백.
 """
 
 from __future__ import annotations
@@ -70,8 +69,9 @@ class AgentNodeTool:
         tool_call_id: str,
         params: dict[str, Any],
         signal: asyncio.Event | None = None,
+        context: Any = None,
     ) -> ToolResultMessage:
-        parent_scope = current_scope.get() or MemoryScope(user_id=LOCAL_USER)
+        parent_scope = getattr(context, "scope", None) or current_scope.get() or MemoryScope(user_id=LOCAL_USER)
         task = AgentTask.create(content=params["task"], scope=parent_scope)
         result = await self._node.invoke(task)
         if not isinstance(self._node, LazyAgentNode):

@@ -1,0 +1,77 @@
+"""승인된 절차를 LLM 도구와 슬래시 스킬로 노출한다. 도구는 절차 본문을 돌려주고 에이전트가 그대로 따른다."""
+
+import asyncio
+from typing import Any
+
+from jarvis.core.procedures.store import Procedure, ProcedureStore
+from jarvis.core.skills.registry import Skill, SkillRegistry
+from jarvis.core.tools.registry import ToolRegistry
+from jarvis.model_layer.types import TextContent, ToolResultMessage
+
+TOOL_PREFIX = "procedure_"
+TOOL_PARAMETERS = {
+    "type": "object",
+    "properties": {
+        "args": {"type": "string", "description": "절차에 넘길 입력(대상 파일, 경로, 조건 등). 없으면 빈 문자열"},
+    },
+    "required": [],
+}
+INSTRUCTION = "아래 절차를 순서대로 도구를 호출해 수행하고, 끝나면 결과를 요약하라.\n\n"
+
+
+class ProcedureTool:
+    # ponytail: 본문(레시피)만 돌려주고 직접 실행하지 않는다, 인자 치환만으로 결정되는 절차가 쌓이면 순차 실행기로 승격
+
+    execution_mode = "parallel"
+    parameters = TOOL_PARAMETERS
+
+    def __init__(self, procedure: Procedure) -> None:
+        self._procedure = procedure
+        self.name = TOOL_PREFIX + procedure.name
+        self.description = f"[학습된 절차] {procedure.description}"
+        if procedure.parameters:
+            self.description += f" 입력: {procedure.parameters}"
+
+    async def execute(
+        self,
+        tool_call_id: str,
+        params: dict[str, Any],
+        signal: asyncio.Event | None = None,
+    ) -> ToolResultMessage:
+        args = str(params.get("args", "") or "")
+        return ToolResultMessage(
+            tool_call_id=tool_call_id,
+            tool_name=self.name,
+            content=[TextContent(text=INSTRUCTION + self._procedure.render(args))],
+        )
+
+
+def to_skill(procedure: Procedure) -> Skill:
+    return Skill(
+        name=procedure.name,
+        description=procedure.description,
+        aliases=[],
+        content=INSTRUCTION + procedure.body,
+        metadata={"procedure": True, "source": procedure.source},
+    )
+
+
+def register_procedure(procedure: Procedure, tools: ToolRegistry, skills: SkillRegistry) -> None:
+    """도구 레지스트리는 first-wins 라 두 번 등록해도 하나다. 스킬은 같은 이름을 덮어쓴다(내용 동일)."""
+    tools.register(ProcedureTool(procedure))
+    skills.register(to_skill(procedure))
+
+
+def unregister_procedure(name: str, tools: ToolRegistry, skills: SkillRegistry) -> None:
+    tools.unregister(TOOL_PREFIX + name)
+    skills.unregister(name)
+
+
+def register_approved(store: ProcedureStore, tools: ToolRegistry, skills: SkillRegistry) -> list[str]:
+    """저장소의 승인된 절차 전부를 등록한다. 기동 때와 승인 직후에 부른다."""
+    names: list[str] = []
+    for procedure in store.list():
+        if procedure.approved:
+            register_procedure(procedure, tools, skills)
+            names.append(procedure.name)
+    return names

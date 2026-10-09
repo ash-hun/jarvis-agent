@@ -24,6 +24,7 @@ const $approvalReason  = document.getElementById('approval-reason');
 const $approvalCommand = document.getElementById('approval-command');
 const $btnAllow        = document.getElementById('btn-allow');
 const $btnDeny         = document.getElementById('btn-deny');
+const $btnAlways       = document.getElementById('btn-always');
 
 // ── Usage Dashboard DOM refs ──────────────────────────────────────────────────
 const $uIn            = document.getElementById('u-in');
@@ -574,10 +575,18 @@ const _toolMsgs = new Map(); // tool_call_id → div
 // ── Approval ──────────────────────────────────────────────────────────────────
 let _currentApprovalId = null;
 
-function showApproval(id, command, reason) {
+function showApproval(id, command, reason, alwaysPattern) {
   _currentApprovalId         = id;
   $approvalReason.textContent  = reason || '도구 실행 승인이 필요합니다.';
   $approvalCommand.textContent = command;
+  // 항상 허용: 서버가 제안한 패턴이 있을 때만. 규칙은 사용자가 이 버튼을 눌러야 생긴다.
+  if (alwaysPattern) {
+    $btnAlways.textContent = `ALWAYS · ${alwaysPattern}`;
+    $btnAlways.title = `앞으로 "${alwaysPattern}" 은 묻지 않고 허용`;
+    $btnAlways.classList.remove('hidden');
+  } else {
+    $btnAlways.classList.add('hidden');
+  }
   $approvalOverlay.classList.remove('hidden');
 }
 
@@ -588,6 +597,7 @@ function hideApproval() {
 
 $btnAllow.addEventListener('click', () => { if (_currentApprovalId) sendApproval(_currentApprovalId, true); });
 $btnDeny.addEventListener('click',  () => { if (_currentApprovalId) sendApproval(_currentApprovalId, false); });
+$btnAlways.addEventListener('click', () => { if (_currentApprovalId) sendApproval(_currentApprovalId, true, true); });
 
 // ── Session management ────────────────────────────────────────────────────────
 let _currentSessionId = 'default';
@@ -746,8 +756,8 @@ function send(obj) {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
 }
 
-function sendApproval(id, approved) {
-  send({ type: 'approval_response', id, approved });
+function sendApproval(id, approved, always = false) {
+  send({ type: 'approval_response', id, approved, always });
   hideApproval();
 }
 
@@ -942,7 +952,7 @@ function handleMessage(msg) {
       break;
 
     case 'approval_request':
-      showApproval(msg.id, msg.command, msg.reason);
+      showApproval(msg.id, msg.command, msg.reason, msg.always_pattern);
       logActivity(`⚡ approval · ${msg.command || ''}`, 'tool');
       break;
 

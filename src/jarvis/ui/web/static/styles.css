@@ -828,6 +828,14 @@ body.chat-collapsed .chat-card .chev { transform: rotate(-90deg); }
   transition: all .15s;
 }
 .btn-deny:hover { background: rgba(240,95,95,0.08); }
+.btn-always {
+  background: transparent; border: 1px solid var(--accent);
+  color: var(--accent); font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.22em; padding: 8px 22px; cursor: pointer;
+  transition: all .15s;
+}
+.btn-always:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.btn-always.hidden { display: none; }
 
 /* ── Connection Banner ───────────────────────────────────────────────────────*/
 .connection-banner {

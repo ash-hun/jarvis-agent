@@ -69,6 +69,7 @@ class SessionManager:
         sandbox = DefaultSandbox(
             dangerous_patterns=s.security.dangerous_commands,
             require_approval_for=s.security.require_approval_for,
+            approval_rules=self._base_extra.get("approval_rules"),
         )
         # 접근 키가 있으면 키 → (이름, roles) 로 사용자를 식별한다. AuthContext.user_id 가 이름이 되어
         # rate limit 과 tool executor 의 사용자별 정책에 그대로 흐른다.
@@ -138,6 +139,11 @@ class SessionManager:
                 facts = await memory.consolidate(scope)
                 if facts:
                     print(f"[Memory] Session {session_id[:8]}: {facts} fact(s) consolidated")
+                from jarvis.ui.tui.startup import learn_procedures
+
+                learned = await learn_procedures(self._ctx, session._session_id, msgs)
+                if learned:
+                    print(f"[Procedures] Session {session_id[:8]}: draft(s) saved: {', '.join(learned)}")
             except Exception as exc:
                 print(f"[Episodic] Session {session_id[:8]} summary failed (non-fatal): {exc}")
 
@@ -265,7 +271,10 @@ def create_app(
             await adapter.send(payload)
 
     if ctx.scheduler is not None:
-        ctx.scheduler.set_notifier(broadcast_notice)
+        from jarvis.core.notify import fan_out
+
+        # 화면 방송 + 외부 채널(있으면). 둘 중 하나가 실패해도 다른 쪽은 받는다
+        ctx.scheduler.set_notifier(fan_out(broadcast_notice, ctx.notifier))
 
     # ── REST: Agenda(스케줄 + open loops) / 도구 ─────────────────────────────
     # HUD 오른쪽 카드가 쓴다. 변경 이벤트가 따로 없으므로 프론트가 접속·응답 종료·
@@ -439,6 +448,7 @@ def create_app(
                     await adapter.handle_approval_response(
                         approval_id=msg.get("id", ""),
                         approved=bool(msg.get("approved", False)),
+                        always=bool(msg.get("always", False)),
                     )
 
                 elif msg_type == "proactive_feedback":

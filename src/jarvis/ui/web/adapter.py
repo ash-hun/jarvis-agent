@@ -19,7 +19,7 @@ class PerConnectionAdapter:
 
     def __init__(self, ws: WebSocket) -> None:
         self._ws = ws
-        self._pending_approvals: dict[str, asyncio.Future[bool]] = {}
+        self._pending_approvals: dict[str, asyncio.Future[bool | str]] = {}
 
     async def on_agent_event(self, event: AgentEvent) -> None:
         payload = event.model_dump()
@@ -40,9 +40,9 @@ class PerConnectionAdapter:
         with contextlib.suppress(Exception):
             await self._ws.send_json({"type": "error", "message": error})
 
-    async def request_approval(self, command: str, reason: str) -> bool:
+    async def request_approval(self, command: str, reason: str, always_pattern: str = "") -> bool | str:
         approval_id = str(uuid.uuid4())
-        future: asyncio.Future[bool] = asyncio.get_event_loop().create_future()
+        future: asyncio.Future[bool | str] = asyncio.get_event_loop().create_future()
         self._pending_approvals[approval_id] = future
         try:
             await self._ws.send_json({
@@ -50,6 +50,7 @@ class PerConnectionAdapter:
                 "id": approval_id,
                 "command": command[:500],
                 "reason": reason,
+                "always_pattern": always_pattern,
             })
         except Exception:
             self._pending_approvals.pop(approval_id, None)
@@ -61,7 +62,8 @@ class PerConnectionAdapter:
         finally:
             self._pending_approvals.pop(approval_id, None)
 
-    async def handle_approval_response(self, approval_id: str, approved: bool) -> None:
+    async def handle_approval_response(self, approval_id: str, approved: bool, always: bool = False) -> None:
+        """always 는 "이 패턴을 앞으로 묻지 않기". 거부하면서 always 일 수는 없다."""
         future = self._pending_approvals.get(approval_id)
         if future and not future.done():
-            future.set_result(approved)
+            future.set_result("always" if approved and always else approved)

@@ -141,6 +141,50 @@ JARVIS_PROACTIVE__DAEMON_TRIGGER=both    # interval | idle | both
 
 > 사고 방식은 프롬프트 파일로 직접 조율할 수 있다: `~/.jarvis/inner_thought.md`(요청), `~/.jarvis/inner_thought_reflection.md`(성찰).
 
+### 절차 학습 (Procedural Learning)
+
+도구를 여러 번 써서 성공으로 끝난 작업은 세션 종료 때 **절차 초안**으로 증류된다(`~/.jarvis/procedures/<name>.md`). 사용자가 승인하면 그 절차는 LLM 도구 `procedure_<name>` 과 슬래시 스킬 `/<name>` 이 되어, 에이전트가 같은 종류의 요청에 스스로 꺼내 쓴다.
+
+```
+/procedures                    # 초안·승인 목록
+/procedures show run-tests     # 본문 보기
+/procedures approve run-tests  # 승인 → 도구 + 스킬 등록
+/procedures reject run-tests   # 삭제
+/procedures learn [session_id] # 지금 바로 학습 (기본: 세션 종료 때 자동)
+```
+
+- 자연 키는 `<session_id>#<메시지 인덱스>`. 같은 구간은 두 번 배우지 않고, 세션 종료 훅을 다시 돌려도 파일이 늘지 않는다.
+- 도구 오류가 하나라도 있었던 작업은 배우지 않는다. 도구 호출이 `JARVIS_PROCEDURES__MIN_TOOL_CALLS`(기본 3) 미만이어도 건너뛴다.
+- 절차 도구는 레시피를 돌려주고 에이전트가 그대로 따른다. 직접 실행하지 않는다.
+
+### 승인 기억 (Approval Memory)
+
+`bash`, `write_file`, `edit_file` 은 실행 전 승인을 묻는다. 승인 화면에서 **항상 허용**(TUI `a`, Web `ALWAYS`)을 고르면 제안된 패턴이 `~/.jarvis/approvals.yaml` 에 규칙으로 남고, 그 패턴은 다시 묻지 않는다. 규칙은 사용자가 그 버튼을 눌렀을 때만 생긴다.
+
+| 도구 | 제안 패턴 | 대조 방식 |
+|------|----------|----------|
+| `bash` | 명령의 앞 두 단어 (`git status`) | 토큰 접두. `git status --short` 는 통과, `git stash` 는 다시 묻는다 |
+| `write_file`, `edit_file` | 경로의 디렉토리 (`src/app/*`) | glob |
+| 그 외 | `*` | 도구 전체 |
+
+```yaml
+# ~/.jarvis/approvals.yaml — 손으로 고쳐도 된다
+rules:
+  - {tool: bash, pattern: uv run}
+  - {tool: write_file, pattern: "docs/*"}
+```
+
+### 외부 알림 (Slack)
+
+열린 화면이 없어도 스케줄 결과와 proactive 발화가 닿도록 슬랙 incoming webhook 으로 보낸다. TUI, Web 둘 다 같은 채널을 쓴다.
+
+```bash
+JARVIS_NOTIFY__SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+JARVIS_NOTIFY__KINDS=["reminder","proactive"]   # reminder=스케줄 결과, proactive=먼저 거는 말
+```
+
+> 슬랙 webhook 은 중복 제거 키가 없어 재시도하지 않는다(실패는 로그). 자체 앱으로 바꿀 때는 `core/notify` 에 채널 하나를 더하면 된다.
+
 ### 음성 (Web HUD)
 
 브라우저 HUD에서 구체를 클릭하면 음성 대화가 가능하다. STT/TTS 처리 위치는 설정으로 결정된다.
@@ -225,6 +269,7 @@ JARVIS_SECURITY__API_KEYS='{"<long-random-key>": {"name": "jh", "roles": ["admin
 | `/sessions` | — | 저장된 세션 목록 표시 |
 | `/branch` | — | `[session_id]` 세션을 특정 시점에서 분기 |
 | `/tools` | — | 현재 사용 가능한 도구 목록 표시 |
+| `/procedures` | — | 학습된 절차 (`approve <name>` \| `reject <name>` \| `show <name>` \| `learn [session_id]`) |
 | `/compact` | — | 현재 세션을 요약해 장기 기억에 저장 |
 | `/export` | — | 현재 세션 대화를 파일로 내보내기 (`md` \| `json`, `~/.jarvis/exports/`) |
 | `/cost` | — | 현재 세션 토큰 사용량·추정 비용 리포트 (모델별 집계) |
@@ -537,6 +582,14 @@ JARVIS_SESSION__POSTGRES_DSN=postgresql://user:pw@host:5432/db
 # ── 보안 ─────────────────────────────────────────────────────────────────────
 JARVIS_SECURITY__API_KEYS=            # Web HUD 접근 키 → 사용자 JSON. 비우면 web 인증 없음 (TUI는 항상 NoAuth)
 JARVIS_SECURITY__ALLOWED_DIRS=        # Sandbox 허용 디렉토리 (콤마 구분)
+JARVIS_SECURITY__APPROVALS_PATH=~/.jarvis/approvals.yaml   # "항상 허용" 규칙 파일
+
+# ── 절차 학습 / 외부 알림 ────────────────────────────────────────────────────
+JARVIS_PROCEDURES__ENABLED=true
+JARVIS_PROCEDURES__DIR=~/.jarvis/procedures
+JARVIS_PROCEDURES__MIN_TOOL_CALLS=3
+JARVIS_NOTIFY__SLACK_WEBHOOK_URL=     # 비우면 외부 알림 없음
+JARVIS_NOTIFY__KINDS=["reminder","proactive"]
 
 # ── 플러그인 ─────────────────────────────────────────────────────────────────
 JARVIS_PLUGIN__TOOLS_DIR=~/.jarvis/tools
@@ -587,7 +640,13 @@ uv run pytest -k "test_policy"   # 특정 테스트
 uv run ruff check .              # 린트
 uv run ruff format .             # 포매팅
 uv run mypy src/                 # 타입 체크
+
+uv run python -m jarvis.memory.eval                     # 메모리 기능별 평가 (LLM 없음)
+uv run python -m jarvis.core.proactive.eval -v          # proactive 게이팅 평가 (정책만, LLM 없음)
+uv run python -m jarvis.core.proactive.eval --engine llm  # 상황 사례까지 (사고 모델 호출)
 ```
+
+proactive 평가는 `src/jarvis/core/proactive/eval/datasets/` 의 사례로 "이 상황에서 먼저 말해야 했나"를 잰다. `policy.jsonl` 은 사고 프레임을 직접 주어 게이팅(임계치, 쿨다운, 위험도 분리)만 검사하고, `situation.jsonl` 은 상황을 주어 사고 엔진까지 거친다. 사례마다 정책을 새로 만들고 시계를 고정하므로 같은 입력은 같은 결과를 낸다.
 
 <details>
 <summary>테스트 구조</summary>

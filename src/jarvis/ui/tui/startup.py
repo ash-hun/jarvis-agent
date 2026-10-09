@@ -196,6 +196,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     # 스킬 레지스트리는 절차 기억(읽기 전용)으로 노출되므로 먼저 만든다.
     from jarvis.memory.consolidation.semantic_extract import llm_fact_extractor
     from jarvis.memory.long_term.procedural import SkillRegistryProcedures
+    from jarvis.memory.retrieval import ScoringParams
 
     skill_registry = SkillRegistry()
     memory = MemoryManager(
@@ -209,7 +210,11 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         inject_limit=settings.memory.recall_limit,
         fixed_facts=settings.memory.fixed_facts,
         importance_threshold=settings.memory.importance_threshold,
-        half_life_hours=settings.memory.recency_half_life_hours,
+        scoring=ScoringParams(
+            recency_half_life_hours=settings.memory.recency_half_life_hours,
+            importance_half_life_hours=settings.memory.importance_half_life_days * 24,
+        ),
+        interference_threshold=settings.memory.interference_threshold,
     )
     memory_chain = MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(memory)])
 

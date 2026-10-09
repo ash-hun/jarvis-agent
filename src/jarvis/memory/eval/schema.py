@@ -28,6 +28,7 @@ class SetupStep(BaseModel):
     scope: ScopeSpec | None = None  # 없으면 사례의 scope 를 쓴다
     at: str | None = None  # ISO 날짜. 지식 갱신처럼 순서가 중요한 사례용
     importance: float | None = None
+    rehearsal_count: int = 0  # 되뇌기 횟수. 감쇠 저항 검증용
     skill: str | None = None  # 절차 기억: 스킬 이름
     aliases: list[str] = Field(default_factory=list)
     description: str = ""

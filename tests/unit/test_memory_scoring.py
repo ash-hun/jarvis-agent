@@ -10,9 +10,11 @@ SCOPE = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
 NOW = datetime(2026, 10, 9, 12, 0)
 
 
-def _item(content: str, kind=MemoryKind.SEMANTIC, days_ago: float = 0, importance: float = 0.5, **kw) -> MemoryItem:
+def _item(
+    content: str, kind=MemoryKind.SEMANTIC, days_ago: float = 0, importance: float = 0.5, rehearsal_count: int = 0, **kw
+) -> MemoryItem:
     return MemoryItem(
-        content=content, kind=kind, scope=SCOPE, importance=importance,
+        content=content, kind=kind, scope=SCOPE, importance=importance, rehearsal_count=rehearsal_count,
         created_at=NOW - timedelta(days=days_ago), **kw,
     )
 
@@ -59,3 +61,28 @@ def test_importance_breaks_ties():
     a = _item("선호: 커피 아침", importance=0.9)
     b = _item("선호: 커피 파랑", importance=0.1)
     assert rank([b, a], "선호 커피", SCOPE, 1) == [a]
+
+
+# ── importance 감쇠와 되뇌기 저항 ─────────────────────────────────────────────
+
+
+def test_importance_decays_with_age_unless_rehearsed():
+    from jarvis.memory.retrieval import NO_DECAY, ScoringParams, effective_importance
+
+    params = ScoringParams(importance_half_life_hours=24 * 90, rehearsal_k=3)
+    fresh = _item("a", importance=0.8)
+    old = _item("b", importance=0.8, days_ago=90)
+    old_rehearsed = _item("c", importance=0.8, days_ago=90, rehearsal_count=30)
+    assert effective_importance(fresh, NOW, params) == 0.8
+    assert abs(effective_importance(old, NOW, params) - 0.4) < 1e-9  # 반감기 한 번
+    assert effective_importance(old_rehearsed, NOW, params) > 0.75  # 되뇌기가 보존한다
+    assert effective_importance(old, NOW, NO_DECAY) == 0.8
+
+
+def test_rehearsed_old_fact_outranks_unrehearsed_twin():
+    from jarvis.memory.retrieval import ScoringParams
+
+    params = ScoringParams()
+    a = _item("선호 음식: 김치찌개", days_ago=400, importance=0.8, rehearsal_count=12)
+    b = _item("선호 음식 메모: 김치찌개 된장찌개", days_ago=400, importance=0.8)
+    assert rank([b, a], "선호 음식 김치찌개", SCOPE, 1, now=NOW, params=params) == [a]

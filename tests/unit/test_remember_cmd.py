@@ -104,3 +104,18 @@ async def test_remember_empty_shows_usage(handler):
     result = await handler("")
     assert "사용법" in result
     assert "/remember" in result
+
+
+@pytest.mark.asyncio
+async def test_remember_conflicts_lists_marked_pairs(handler, ltm):
+    from jarvis.memory import MemoryScope
+
+    assert "없습니다" in await handler("conflicts")
+    a = await ltm.remember("출근 수단: 지하철로 출근", source="explicit", scope=MemoryScope(user_id="local"))
+    b = await ltm.remember("통근 방법: 지하철로 출근", source="explicit", scope=MemoryScope(user_id="local"))
+    item = await ltm.get(a)
+    item.metadata["conflicts_with"] = [b]
+    await ltm.store.store(item)
+
+    out = await handler("conflicts")
+    assert "어긋날 수 있는" in out and a[:8] in out and b[:8] in out

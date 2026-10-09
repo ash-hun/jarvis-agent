@@ -2,7 +2,7 @@
 
 import time
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Any
 
@@ -10,8 +10,8 @@ from jarvis.memory.consolidation.compaction import Summarizer
 from jarvis.memory.consolidation.semantic_extract import FactExtractor
 from jarvis.memory.long_term.episodic import prepare_episode
 from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
-from jarvis.memory.long_term.semantic import prepare_fact, supersede_conflicts
-from jarvis.memory.retrieval.scoring import DEFAULT_HALF_LIFE_HOURS, rank
+from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
+from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, scope_from_context
 from jarvis.memory.stores.protocol import ItemStore
 from jarvis.memory.types import MemoryItem, MemoryKind, Visibility
@@ -64,7 +64,8 @@ class MemoryManager:
         inject_limit: int = 3,
         fixed_facts: int = 3,
         importance_threshold: float = 0.5,
-        half_life_hours: float = DEFAULT_HALF_LIFE_HOURS,
+        scoring: ScoringParams = DEFAULT_PARAMS,
+        interference_threshold: float = 0.6,
     ) -> None:
         self._store = store
         self._working: WorkingStore = working or InMemoryWorkingStore()
@@ -77,7 +78,8 @@ class MemoryManager:
         self._inject_limit = inject_limit
         self._fixed_facts = fixed_facts
         self._importance_threshold = importance_threshold
-        self._half_life_hours = half_life_hours
+        self._scoring = scoring
+        self._interference_threshold = interference_threshold
 
     @property
     def store(self) -> ItemStore:
@@ -158,7 +160,9 @@ class MemoryManager:
             return []
         resolved = self.resolve_scope(scope)
         candidates = await self._store.recent(resolved, kinds=[MemoryKind.SEMANTIC], limit=self._fixed_facts * 4)
-        return rank(candidates, "", resolved, self._fixed_facts, half_life_hours=self._half_life_hours)
+        # 고정 블록은 감쇠 없는 원값으로 고른다. 오래됐다고 핵심 사실이 밀리면 안 된다
+        no_decay = replace(self._scoring, importance_half_life_hours=0.0)
+        return rank(candidates, "", resolved, self._fixed_facts, params=no_decay)
 
     def procedures(self, query: str) -> list[Procedure]:
         return self._procedures.match(query) if self._procedures is not None else []
@@ -236,7 +240,7 @@ class MemoryManager:
         candidates = await self._store.search(query, resolved, kinds, limit * 4)
         if exclude:
             candidates = [c for c in candidates if c.id not in exclude]
-        return rank(candidates, query, resolved, limit, half_life_hours=self._half_life_hours)
+        return rank(candidates, query, resolved, limit, params=self._scoring)
 
     async def recent(
         self,
@@ -265,8 +269,9 @@ class MemoryManager:
 
         1. 아직 추출하지 않은 이 소유자의 일화(요약)에서 사실을 뽑아 shared 의미 항목으로 쓴다.
            importance 가 임계 미만이면 버린다. 같은 주제의 옛 사실은 remember 가 대체한다.
-        2. 작업 기억의 되뇌기 횟수를 항목의 rehearsal_count 로 옮기고 비운다.
-        두 번 불러도 같은 상태: 추출한 일화는 metadata 로 표시하고 되뇌기는 비운다.
+        2. 주제가 달라도 내용이 비슷한 의미 항목 쌍을 간섭 후보로 표시한다(대체는 하지 않는다).
+        3. 작업 기억의 되뇌기 횟수를 항목의 rehearsal_count 로 옮기고 비운다.
+        두 번 불러도 같은 상태: 추출한 일화와 간섭 쌍은 metadata 로 표시하고 되뇌기는 비운다.
         """
         resolved = self.resolve_scope(scope)
         written = 0
@@ -294,6 +299,8 @@ class MemoryManager:
                     written += 1
                 episode.metadata[CONSOLIDATED] = True
                 await self._store.store(episode)
+
+        await mark_interference(self._store, resolved.with_session(None), self._interference_threshold)
 
         state = await self._working.load(resolved)
         if state.rehearsal:

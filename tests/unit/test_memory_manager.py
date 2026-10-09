@@ -2,7 +2,7 @@
 
 import pytest
 
-from jarvis.memory import WRITE_RULES, MemoryKind, MemoryManager, MemoryScope, current_scope
+from jarvis.memory import WRITE_RULES, MemoryItem, MemoryKind, MemoryManager, MemoryScope, current_scope
 from jarvis.memory.middleware import MemoryMiddlewareAdapter
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.stores.protocol import ItemStore
@@ -224,3 +224,35 @@ async def test_consolidate_extracts_shared_facts_once_and_flushes_rehearsal(memo
 
 async def test_consolidate_without_extractor_only_flushes(memory):
     assert await memory.consolidate(U1_MAIN) == 0
+
+
+# ── 5단계: 간섭 탐지 ─────────────────────────────────────────────────────────
+
+
+async def test_find_interference_pairs_similar_facts_with_different_keys():
+    from jarvis.memory.long_term.semantic import find_interference, similarity
+
+    a = MemoryItem(content="출근 수단: 지하철로 출근", kind=MemoryKind.SEMANTIC, scope=U1_MAIN)
+    b = MemoryItem(content="통근 방법: 지하철로 출근", kind=MemoryKind.SEMANTIC, scope=U1_MAIN)
+    c = MemoryItem(content="반려견 이름: 보리", kind=MemoryKind.SEMANTIC, scope=U1_MAIN)
+    assert similarity(a.content, b.content) >= 0.5
+    assert find_interference([a, b, c], threshold=0.5) == [(a.id, b.id)]
+    # 같은 주제는 대체 규칙 몫이라 간섭 후보가 아니다
+    d = MemoryItem(content="출근 수단: 버스로 출근", kind=MemoryKind.SEMANTIC, scope=U1_MAIN)
+    assert find_interference([a, d], threshold=0.1) == []
+
+
+async def test_consolidate_marks_interference_once(memory):
+    from jarvis.memory.long_term.semantic import CONFLICTS_KEY
+
+    mgr = MemoryManager(memory.store, memory.working, interference_threshold=0.5)
+    a = await mgr.remember("출근 수단: 지하철로 출근", source="explicit", scope=U1_MAIN)
+    b = await mgr.remember("통근 방법: 지하철로 출근", source="explicit", scope=U1_MAIN)
+
+    await mgr.consolidate(U1_MAIN)
+    await mgr.consolidate(U1_MAIN)  # 두 번 돌려도 목록이 늘지 않는다
+
+    assert (await mgr.get(a)).metadata[CONFLICTS_KEY] == [b]
+    assert (await mgr.get(b)).metadata[CONFLICTS_KEY] == [a]
+    # 여전히 둘 다 검색된다. 표시만 하고 대체하지 않는다
+    assert len(await mgr.recall("지하철 출근", scope=U1_MAIN)) == 2

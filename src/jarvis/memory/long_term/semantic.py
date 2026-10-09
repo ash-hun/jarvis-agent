@@ -1,6 +1,11 @@
-"""의미 기억 정책. "주제: 값" 형태의 사실은 같은 주제의 옛 사실을 대체한다(삭제가 아니라 superseded_by)."""
+"""의미 기억 정책.
 
-from jarvis.memory.stores.protocol import ItemStore
+"주제: 값" 형태의 사실은 같은 주제의 옛 사실을 대체한다(삭제가 아니라 superseded_by).
+주제가 달라도 내용이 비슷한 사실 쌍은 간섭 후보로 표시만 한다. 자동 대체는 오탐 시 사실을 잃는다.
+"""
+
+from jarvis.memory.scope import MemoryScope
+from jarvis.memory.stores.protocol import ItemStore, tokens_of
 from jarvis.memory.types import MemoryItem, MemoryKind
 
 KEY_TAG = "key:"
@@ -46,3 +51,57 @@ async def supersede_conflicts(store: ItemStore, item: MemoryItem) -> list[str]:
         await store.supersede(other.id, item.id)
         replaced.append(other.id)
     return replaced
+
+
+CONFLICTS_KEY = "conflicts_with"  # metadata 에 남기는 간섭 후보 id 목록
+DEFAULT_INTERFERENCE_THRESHOLD = 0.6
+
+
+def _body(content: str) -> str:
+    """'주제: 값' 이면 값만. 주제가 다른데 값이 같은 쌍이 간섭이다."""
+    return content.partition(":")[2].strip() if fact_key(content) is not None else content
+
+
+def similarity(a: str, b: str) -> float:
+    """값 부분의 토큰 자카드. 벡터가 생기면 코사인으로 바꿀 자리."""
+    ta, tb = set(tokens_of(_body(a))), set(tokens_of(_body(b)))
+    if not ta or not tb:
+        return 0.0
+    return len(ta & tb) / len(ta | tb)
+
+
+def find_interference(
+    items: list[MemoryItem], threshold: float = DEFAULT_INTERFERENCE_THRESHOLD
+) -> list[tuple[str, str]]:
+    """같은 주제 태그가 없는데(같은 주제면 대체 규칙이 처리) 내용이 threshold 이상 비슷한 의미 항목 쌍."""
+    pairs: list[tuple[str, str]] = []
+    for i, a in enumerate(items):
+        key_a = fact_key(a.content)
+        for b in items[i + 1 :]:
+            if key_a is not None and key_a == fact_key(b.content):
+                continue
+            if similarity(a.content, b.content) >= threshold:
+                pairs.append((a.id, b.id))
+    return pairs
+
+
+async def mark_interference(
+    store: ItemStore, scope: MemoryScope, threshold: float = DEFAULT_INTERFERENCE_THRESHOLD
+) -> int:
+    """소유자의 의미 항목에서 간섭 쌍을 찾아 양쪽 metadata 에 표시한다. 이미 표시된 쌍은 건너뛴다(멱등)."""
+    items = [
+        i for i in await store.recent(scope, kinds=[MemoryKind.SEMANTIC], limit=200)
+        if i.scope.user_id == scope.user_id and i.scope.agent_id == scope.agent_id
+    ]
+    by_id = {i.id: i for i in items}
+    marked = 0
+    for a_id, b_id in find_interference(items, threshold):
+        for this_id, other_id in ((a_id, b_id), (b_id, a_id)):
+            item = by_id[this_id]
+            existing = list(item.metadata.get(CONFLICTS_KEY, []))
+            if other_id in existing:
+                continue
+            item.metadata[CONFLICTS_KEY] = [*existing, other_id]
+            await store.store(item)
+            marked += 1
+    return marked

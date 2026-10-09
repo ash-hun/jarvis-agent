@@ -40,6 +40,7 @@ class OrchestratorPipeline:
                     "previous_agent": result.agent_name,
                 },
                 parent_task_id=task.task_id,  # 원본 부모 유지
+                scope=task.scope,
             )
 
         assert last_result is not None

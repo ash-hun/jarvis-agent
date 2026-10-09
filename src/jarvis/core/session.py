@@ -100,8 +100,11 @@ class AgentSession:
         user_model_store: UserModelStore | None = None,
         external_inbox: ExternalEventInbox | None = None,
         external_detail_in_prompt: bool = False,
+        inherit_scope: bool = False,
     ) -> None:
         self._security = security_pipeline
+        # 서브 에이전트: 사용자는 인증이 아니라 위임한 부모의 범위(current_scope)에서 받는다.
+        self._inherit_scope = inherit_scope
         self._plugins = plugin_runner
         self._tool_registry = tool_registry
         self._skill_registry = skill_registry
@@ -151,12 +154,15 @@ class AgentSession:
         if self._busy:
             raise SessionBusy(BUSY_MESSAGE)
         self._busy = True
+        outer_scope = current_scope.get()
         try:
             return await self._prompt(raw_input, credentials or {})
         except BaseException:
             # run_main 진입 전 실패(검증·인증·rate limit·사고) — run_main 의 finally 가 못 끈다.
             self._busy = False
             raise
+        finally:
+            current_scope.set(outer_scope)  # 이 세션이 설정한 범위가 호출자(부모 턴)에 새지 않도록
 
     async def _prompt(self, raw_input: str, creds: dict) -> AssistantMessage | None:
         # 사용자 활동 기록 — idle 트리거가 "조용해진 시점"을 알도록 리셋한다.
@@ -172,7 +178,8 @@ class AgentSession:
         if policy_result.rate_limit is not None:
             self._check_rate_limit(auth_ctx.user_id, policy_result.rate_limit)
 
-        self._last_user_id = auth_ctx.user_id
+        inherited = current_scope.get() if self._inherit_scope else None
+        self._last_user_id = (inherited.user_id if inherited and inherited.user_id else None) or auth_ctx.user_id
         current_scope.set(self.memory_scope)
 
         expanded = self._skill_registry.expand(validated.sanitized)
@@ -190,7 +197,7 @@ class AgentSession:
                     user_input=expanded,
                     tool_executor=tool_executor,
                     extra_context={
-                        "user_id": auth_ctx.user_id,
+                        "user_id": self._last_user_id,
                         "roles": list(auth_ctx.roles),
                         "inner_thought_prompt": inner_thought_prompt,
                     },

@@ -74,7 +74,9 @@ class AgentNode:
 
         try:
             msg = await self._session.prompt(task.content)
-            content = msg.text if msg else ""
+            # AssistantMessage.text 는 메서드다. 테스트 더블은 문자열 속성을 줄 수 있어 둘 다 받는다
+            text = getattr(msg, "text", "") if msg else ""
+            content = text() if callable(text) else (text or "")
             result = AgentResult(
                 task_id=task.task_id,
                 agent_name=self.name,

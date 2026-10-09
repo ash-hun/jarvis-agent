@@ -15,6 +15,8 @@ YAML 포맷 (단일):
       - web_search
       - read_file
     model_override: null   # null이면 메인 모델 상속
+    memory:
+      stm: per_parent_session   # per_parent_session | per_task | per_agent
 
 YAML 포맷 (리스트):
     - name: planner
@@ -28,11 +30,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .factory import AgentDefinition
+from .factory import AgentDefinition, AgentMemoryPolicy
 
 _VALID_FIELDS = frozenset({
     "name", "description", "capabilities",
-    "system_prompt", "tools", "model_override",
+    "system_prompt", "tools", "model_override", "memory",
 })
 
 
@@ -76,6 +78,9 @@ def _parse_definition(data: Any) -> AgentDefinition | None:
         return None
     filtered = {k: v for k, v in data.items() if k in _VALID_FIELDS}
     try:
+        if "memory" in filtered:
+            memory = filtered["memory"]
+            filtered["memory"] = AgentMemoryPolicy(**memory) if isinstance(memory, dict) else AgentMemoryPolicy()
         return AgentDefinition(**filtered)
     except Exception as exc:
         print(f"[AgentLoader] Invalid agent definition ({data.get('name')}): {exc}")

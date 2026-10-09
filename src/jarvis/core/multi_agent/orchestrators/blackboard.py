@@ -30,7 +30,8 @@ class BlackboardOrchestrator(BaseOrchestrator):
         self._last_scope: Any = None  # promote 가 기본으로 쓸 범위(마지막 dispatch 의 부모 범위)
 
     async def dispatch(self, task: AgentTask) -> AgentResult:
-        # 작업 공표
+        self._last_scope = task.scope
+        # 작업 공표. 블랙보드와 작업 공유 메모리 양쪽에
         await self.blackboard.write("task", task.content, author="orchestrator")
         await self.share(task, f"작업: {task.content}", author="orchestrator")
 
@@ -75,10 +76,14 @@ class BlackboardOrchestrator(BaseOrchestrator):
             error=None if successful else "All agents failed",
         )
 
-    async def promote(self, items: list[Any]) -> None:
-        """블랙보드의 result_* 항목(또는 지정한 키)을 shared 의미 사실로 올린다. 작업이 끝난 뒤 명시적으로."""
+    async def promote(self, items: list[Any], scope: Any = None) -> None:
+        """블랙보드의 result_* 항목(또는 지정한 키)을 부모 범위의 shared 의미 사실로 올린다.
+
+        작업이 끝난 뒤 명시적으로 부른다.
+        """
         if self.memory is None:
             return
+        scope = scope or self._last_scope
         keys = [str(k) for k in items] if items else [k for k in self.blackboard.snapshot() if k.startswith("result_")]
         for key in keys:
             entry = self.blackboard.read_entry(key)
@@ -87,6 +92,7 @@ class BlackboardOrchestrator(BaseOrchestrator):
             await self.memory.remember(
                 entry.value,
                 source="promoted",
+                scope=scope,
                 visibility="shared",
                 author=entry.author,
                 tags=[f"blackboard:{key}"],

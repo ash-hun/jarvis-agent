@@ -15,7 +15,8 @@ _USAGE = (
     "  /remember list               최근 기억 목록 (최대 10개)\n"
     "  /remember search <키워드>     기억 검색\n"
     "  /remember forget <id>        기억 삭제\n"
-    "  /remember conflicts          서로 어긋날 수 있는 사실 쌍(간섭 후보)"
+    "  /remember conflicts          서로 어긋날 수 있는 사실 쌍(간섭 후보)\n"
+    "  /remember reembed            임베딩 모델이 바뀐 뒤 벡터를 다시 만든다"
 )
 
 
@@ -40,6 +41,11 @@ def make_remember_handler(memory: MemoryManager) -> Handler:
             return await _handle_forget(memory, rest)
         if subcmd == "conflicts":
             return await _handle_conflicts(memory)
+        if subcmd == "reembed":
+            count = await memory.reembed()
+            if not count:
+                return "[Memory] 다시 만들 벡터가 없습니다."
+            return f"[Memory] {count}개 항목의 벡터를 다시 만들었습니다."
 
         return await _handle_save(memory, args)
 

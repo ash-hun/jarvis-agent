@@ -12,6 +12,7 @@ from jarvis.memory.retrieval.cues import cue_overlap
 from jarvis.memory.scope import MemoryScope
 from jarvis.memory.stores.protocol import tokens_of
 from jarvis.memory.types import MemoryItem, MemoryKind
+from jarvis.model_layer.embeddings import cosine
 
 DEFAULT_HALF_LIFE_HOURS = 24.0 * 7  # 일주일 지나면 recency 가 절반
 DEFAULT_IMPORTANCE_HALF_LIFE_HOURS = 24.0 * 90  # 석 달 지나면 importance 가 절반(되뇌기 없을 때)
@@ -67,8 +68,15 @@ def effective_importance(item: MemoryItem, now: datetime, params: ScoringParams 
     return item.importance * (decay + (1.0 - decay) * retention)
 
 
-def relevance(query: str, content: str) -> float:
-    """질의 토큰 중 내용에 등장하는 비율. 벡터 유사도로 바꿀 자리는 이 함수 하나다."""
+def relevance(
+    query: str,
+    content: str,
+    query_embedding: list[float] | None = None,
+    item_embedding: list[float] | None = None,
+) -> float:
+    """질의와 내용의 관련도 0..1. 양쪽 벡터가 있으면 코사인, 아니면 질의 토큰이 내용에 등장하는 비율."""
+    if query_embedding is not None and item_embedding is not None:
+        return max(0.0, cosine(query_embedding, item_embedding))
     tokens = tokens_of(query)
     if not tokens:
         return 0.0
@@ -83,13 +91,14 @@ def score(
     now: datetime | None = None,
     weights: Weights | None = None,
     params: ScoringParams = DEFAULT_PARAMS,
+    query_embedding: list[float] | None = None,
 ) -> float:
     now = now or datetime.now()
     w = weights or KIND_WEIGHTS[item.kind]
     return (
         w.recency * recency(item, now, params.recency_half_life_hours)
         + w.importance * effective_importance(item, now, params)
-        + w.relevance * relevance(query, item.content)
+        + w.relevance * relevance(query, item.content, query_embedding, item.embedding)
         + w.cue * cue_overlap(item, scope, query)
     )
 
@@ -101,11 +110,12 @@ def rank(
     limit: int,
     now: datetime | None = None,
     params: ScoringParams = DEFAULT_PARAMS,
+    query_embedding: list[float] | None = None,
 ) -> list[MemoryItem]:
     now = now or datetime.now()
     scored = sorted(
         items,
-        key=lambda i: (score(i, query, scope, now, params=params), i.created_at),
+        key=lambda i: (score(i, query, scope, now, params=params, query_embedding=query_embedding), i.created_at),
         reverse=True,
     )
     return scored[:limit]

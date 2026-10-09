@@ -256,3 +256,46 @@ async def test_consolidate_marks_interference_once(memory):
     assert (await mgr.get(b)).metadata[CONFLICTS_KEY] == [a]
     # 여전히 둘 다 검색된다. 표시만 하고 대체하지 않는다
     assert len(await mgr.recall("지하철 출근", scope=U1_MAIN)) == 2
+
+
+# ── 5단계: 의미 유사도 검색 ──────────────────────────────────────────────────
+
+
+async def test_remember_embeds_and_recall_finds_paraphrase():
+    from jarvis.memory.eval.fake_embedder import FakeEmbedder
+
+    mgr = MemoryManager(InMemoryItemStore(), embedder=FakeEmbedder())
+    item_id = await mgr.remember("거주지: 부산", source="explicit", scope=U1_MAIN)
+    item = await mgr.get(item_id)
+    assert item.embedding is not None and item.embedding_model == "fake-bow-64"
+
+    # 키워드로는 못 잡는 의역을 벡터로 잡는다
+    assert [i.content for i in await mgr.recall("사는 곳", scope=U1_MAIN)] == ["거주지: 부산"]
+    assert await mgr.recall("자동차 번호", scope=U1_MAIN) == []
+
+
+async def test_embedding_failure_does_not_block_remember():
+    class Broken:
+        model, dimensions = "broken", 2
+
+        async def embed(self, texts):
+            raise RuntimeError("down")
+
+    mgr = MemoryManager(InMemoryItemStore(), embedder=Broken())
+    item_id = await mgr.remember("거주지: 부산", source="explicit", scope=U1_MAIN)
+    assert (await mgr.get(item_id)).embedding is None
+    assert [i.content for i in await mgr.recall("거주지", scope=U1_MAIN)] == ["거주지: 부산"]  # 키워드로는 찾힌다
+
+
+async def test_reembed_only_touches_stale_items():
+    from jarvis.memory.eval.fake_embedder import FakeEmbedder
+
+    store = InMemoryItemStore()
+    plain = MemoryManager(store)
+    await plain.remember("거주지: 부산", source="explicit", scope=U1_MAIN)
+    await plain.remember("직장: 알파", source="explicit", scope=U1_MAIN)
+
+    mgr = MemoryManager(store, embedder=FakeEmbedder())
+    assert await mgr.reembed(U1_MAIN) == 2
+    assert await mgr.reembed(U1_MAIN) == 0  # 두 번째는 할 일이 없다
+    assert [i.content for i in await mgr.recall("사는 곳", scope=U1_MAIN)] == ["거주지: 부산"]

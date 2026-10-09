@@ -38,7 +38,7 @@ services:
   # app/web 프로파일에서 자동 기동. 외부 DB를 쓸 때는 JARVIS_SESSION__POSTGRES_DSN을
   # .env에 설정하면 해당 DSN이 우선 적용된다.
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16  # postgres 16 + pgvector. 메모리 의미 검색용
     environment:
       POSTGRES_USER: jarvis
       POSTGRES_PASSWORD: jarvis

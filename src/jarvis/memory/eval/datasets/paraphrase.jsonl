@@ -1,0 +1,6 @@
+{"suite": "paraphrase", "case": "residence_paraphrase", "setup": [{"remember": "거주지: 부산", "visibility": "shared"}], "scope": {"user_id": "u1"}, "probe": "사는 곳", "expect": {"contains": ["부산"]}}
+{"suite": "paraphrase", "case": "workplace_paraphrase", "setup": [{"remember": "직장: 알파", "visibility": "shared"}], "scope": {"user_id": "u1"}, "probe": "다니는 회사", "expect": {"contains": ["알파"]}}
+{"suite": "paraphrase", "case": "pet_paraphrase", "setup": [{"remember": "반려견 이름: 보리", "visibility": "shared"}], "scope": {"user_id": "u1"}, "probe": "강아지 이름", "expect": {"contains": ["보리"]}}
+{"suite": "paraphrase", "case": "deadline_paraphrase_ranks_first", "setup": [{"remember": "프로젝트 마감: 금요일", "visibility": "shared"}, {"remember": "거주지: 부산", "visibility": "shared"}], "scope": {"user_id": "u1"}, "probe": "프로젝트 데드라인", "expect": {"contains": ["금요일"], "top_k": 1}}
+{"suite": "paraphrase", "case": "unrelated_query_still_abstains", "setup": [{"remember": "거주지: 부산", "visibility": "shared"}], "scope": {"user_id": "u1"}, "probe": "자동차 번호", "expect": {"empty": true}}
+{"suite": "paraphrase", "case": "paraphrase_respects_scope", "setup": [{"remember": "거주지: 부산", "visibility": "shared", "scope": {"user_id": "u1"}}], "scope": {"user_id": "u2"}, "probe": "사는 곳", "expect": {"empty": true}}

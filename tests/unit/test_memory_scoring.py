@@ -86,3 +86,9 @@ def test_rehearsed_old_fact_outranks_unrehearsed_twin():
     a = _item("선호 음식: 김치찌개", days_ago=400, importance=0.8, rehearsal_count=12)
     b = _item("선호 음식 메모: 김치찌개 된장찌개", days_ago=400, importance=0.8)
     assert rank([b, a], "선호 음식 김치찌개", SCOPE, 1, now=NOW, params=params) == [a]
+
+
+def test_relevance_uses_cosine_when_both_vectors_present():
+    assert relevance("x", "y", [1.0, 0.0], [1.0, 0.0]) == 1.0
+    assert relevance("x", "y", [1.0, 0.0], [-1.0, 0.0]) == 0.0  # 음수는 0 으로
+    assert relevance("거주지", "거주지: 부산", None, [1.0]) == 1.0  # 한쪽만 있으면 키워드

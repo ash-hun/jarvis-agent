@@ -26,12 +26,16 @@ class StoreTarget:
 
     def __init__(self) -> None:
         self._procedures = InMemoryProcedures()
-        self._memory = MemoryManager(InMemoryItemStore(), procedures=self._procedures)
+        self._memory = self._build()
+
+    def _build(self) -> MemoryManager:
+        from jarvis.memory.eval.fake_embedder import FakeEmbedder
+
+        return MemoryManager(InMemoryItemStore(), procedures=self._procedures, embedder=FakeEmbedder())
 
     async def reset(self) -> None:
-        await self._memory.clear()
         self._procedures = InMemoryProcedures()
-        self._memory = MemoryManager(InMemoryItemStore(), procedures=self._procedures)
+        self._memory = self._build()
 
     async def setup(self, step: SetupStep, scope: MemoryScope) -> None:
         if step.skill is not None:

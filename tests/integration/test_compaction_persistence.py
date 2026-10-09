@@ -20,7 +20,7 @@ def postgres_dsn():
     from testcontainers.postgres import PostgresContainer
 
     try:
-        with PostgresContainer("postgres:16-alpine") as pg:
+        with PostgresContainer("pgvector/pgvector:pg16") as pg:
             dsn = pg.get_connection_url().replace("postgresql+psycopg2://", "postgresql://")
             yield dsn
     except Exception as exc:

@@ -19,7 +19,7 @@ def postgres_dsn():
     from testcontainers.postgres import PostgresContainer
 
     try:
-        with PostgresContainer("postgres:16-alpine") as pg:
+        with PostgresContainer("pgvector/pgvector:pg16") as pg:
             dsn = pg.get_connection_url().replace("postgresql+psycopg2://", "postgresql://")
             yield dsn
     except Exception as exc:
@@ -243,3 +243,41 @@ class TestItemStoreMigration:
         new = await ltm.remember("거주지: 부산", source="explicit", scope=u1)
         await ltm.supersede(old, new)
         assert [i.content for i in await ltm.recall("거주지", scope=u1)] == ["거주지: 부산"]
+
+
+# ── pgvector ─────────────────────────────────────────────────────────────────
+
+class TestPgvector:
+    async def test_vector_search_finds_paraphrase_and_survives_reopen(self, postgres_dsn):
+        from jarvis.memory import MemoryScope
+        from jarvis.memory.eval.fake_embedder import FakeEmbedder
+        from jarvis.memory.manager import MemoryManager
+        from jarvis.memory.stores.postgres import PostgresItemStore
+
+        scope = MemoryScope(user_id="vec", agent_id="main")
+        store = PostgresItemStore(dsn=postgres_dsn, dimensions=FakeEmbedder.dimensions)
+        memory = MemoryManager(store, embedder=FakeEmbedder())
+        await memory.clear(scope)
+        item_id = await memory.remember("거주지: 부산", source="explicit", scope=scope)
+        assert store.vector_enabled
+
+        stored = await memory.get(item_id)
+        assert stored.embedding is not None and len(stored.embedding) == FakeEmbedder.dimensions
+        assert [i.content for i in await memory.recall("사는 곳", scope=scope)] == ["거주지: 부산"]  # 키워드 불일치
+        assert await memory.recall("자동차 번호", scope=scope) == []
+        await store.close()
+
+        store2 = PostgresItemStore(dsn=postgres_dsn, dimensions=FakeEmbedder.dimensions)  # 마이그레이션 두 번째
+        memory2 = MemoryManager(store2, embedder=FakeEmbedder())
+        assert [i.content for i in await memory2.recall("사는 곳", scope=scope)] == ["거주지: 부산"]
+        assert await memory2.reembed(scope) == 0  # 같은 모델이면 할 일 없음
+        await store2.close()
+
+    async def test_store_without_dimensions_keeps_keyword_search(self, ltm):
+        from jarvis.memory import MemoryScope
+
+        scope = MemoryScope(user_id="kw", agent_id="main")
+        await ltm.clear(scope)
+        await ltm.remember("거주지: 부산", source="explicit", scope=scope)
+        assert ltm.store.vector_enabled is False
+        assert [i.content for i in await ltm.recall("거주지", scope=scope)] == ["거주지: 부산"]

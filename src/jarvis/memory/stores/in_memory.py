@@ -6,6 +6,7 @@ from datetime import datetime
 from jarvis.memory.scope import MemoryScope
 from jarvis.memory.stores.protocol import tokens_of
 from jarvis.memory.types import MemoryItem, MemoryKind
+from jarvis.model_layer.embeddings import cosine
 
 
 class InMemoryItemStore:
@@ -25,13 +26,20 @@ class InMemoryItemStore:
         scope: MemoryScope,
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
+        query_embedding: list[float] | None = None,
+        min_similarity: float = 0.3,
     ) -> list[MemoryItem]:
         tokens = tokens_of(query)
-        if not tokens:
+        if not tokens and query_embedding is None:
             return []
         hits = [
             i for i in self._visible(scope, kinds)
             if any(t in i.content.lower() for t in tokens)
+            or (
+                query_embedding is not None
+                and i.embedding is not None
+                and cosine(query_embedding, i.embedding) >= min_similarity
+            )
         ]
         return _latest(hits, limit)
 

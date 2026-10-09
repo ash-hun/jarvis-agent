@@ -10,7 +10,7 @@ from jarvis.memory.working.window import SUMMARY_HEADER
 from jarvis.model_layer.types import Message
 
 DATASETS_DIR = Path(__file__).parent / "datasets"
-STORE_SUITES = ("isolation", "semantic", "episodic", "procedural")
+STORE_SUITES = ("isolation", "semantic", "episodic", "procedural", "paraphrase")
 WORKING_SUITES = ("working",)
 SUITES = STORE_SUITES + WORKING_SUITES
 

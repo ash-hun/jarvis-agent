@@ -72,6 +72,7 @@ class MemoryConfig(BaseSettings):
     recall_limit: int = 3  # 질의로 회상해 넣는 항목 수(회상 블록)
     importance_threshold: float = 0.5  # 의미 추출 결과 중 이 값 미만은 버린다
     recency_half_life_hours: float = 168.0  # 검색 점수의 recency 반감기(일주일)
+    consolidate_on_idle: bool = True  # 사용자가 조용할 때(daemon idle 틱) 요약에서 사실을 추출한다
 
 
 class SessionConfig(BaseSettings):

@@ -121,6 +121,8 @@ class AppContext:
     # 외부 트리거(Phase 3) — _build_infra()에서 주입. 소스 YAML이 없으면 둘 다 None.
     external_inbox: Any = field(default=None)
     external_poller: Any = field(default=None)
+    # 메모리 매니저 — _build_infra()에서 주입. idle 공고화와 종료 요약이 쓴다
+    memory: Any = field(default=None)
 
 
 # ── 팩토리 헬퍼 ───────────────────────────────────────────────────────────────
@@ -314,6 +316,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     ctx.feedback_learner = feedback_learner
     ctx.external_inbox = external_inbox
     ctx.external_poller = external_poller
+    ctx.memory = memory
 
     _extra: dict[str, Any] = {
         "memory_chain": memory_chain,

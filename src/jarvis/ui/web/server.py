@@ -183,9 +183,19 @@ def create_app(
         pcfg = ctx.settings.proactive
         if pcfg.daemon_enabled:
             from jarvis.core.proactive import ProactivityDaemon
+            from jarvis.memory.consolidation.idle import consolidation_targets, should_consolidate_on_idle
+
+            memory = base_extra.get("memory")
+            consolidate = memory is not None and should_consolidate_on_idle(ctx.settings)
+
+            def targets() -> list:
+                sessions = manager.sessions_by_recency()
+                reflects = [s.reflect for s in sessions]
+                # 성찰 뒤에 공고화. 같은 틱에서 먼저 말할지 정한 다음 조용히 기억을 정리한다
+                return reflects + (consolidation_targets(memory, sessions) if consolidate else [])
 
             proactive_daemon = ProactivityDaemon(
-                lambda: [s.reflect for s in manager.sessions_by_recency()],
+                targets,
                 interval_sec=pcfg.daemon_interval_sec,
                 trigger=ctx.reflection_trigger,
             )

@@ -2,6 +2,7 @@
 
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 from jarvis.memory.eval.metrics import CaseResult, SuiteReport, judge, summarize
 from jarvis.memory.eval.schema import EvalCase, WorkingCase, load_cases, load_working_cases
@@ -12,7 +13,8 @@ from jarvis.model_layer.types import Message
 DATASETS_DIR = Path(__file__).parent / "datasets"
 STORE_SUITES = ("isolation", "semantic", "episodic", "procedural", "paraphrase")
 WORKING_SUITES = ("working",)
-SUITES = STORE_SUITES + WORKING_SUITES
+FAITHFULNESS_SUITES = ("faithfulness",)
+SUITES = STORE_SUITES + WORKING_SUITES + FAITHFULNESS_SUITES
 
 
 @dataclass
@@ -104,6 +106,25 @@ def _is_summary(message: Message) -> bool:
     return message.role == "user" and isinstance(message.content, str) and message.content.startswith(SUMMARY_HEADER)
 
 
+async def run_faithfulness_suite(names: list[str], summarizer: Any = None, judge: Any = None) -> EvalReport | None:
+    """faithfulness 스위트. 요약기와 판정기가 없으면 오프라인 기준선(추출 요약 + 문자열 포함)."""
+    from jarvis.memory.eval.faithfulness import (
+        contains_fact_judge,
+        extractive_summarizer,
+        load_faithfulness_cases,
+        run_faithfulness,
+    )
+
+    cases = []
+    for name in names:
+        if name in FAITHFULNESS_SUITES:
+            cases.extend(load_faithfulness_cases(DATASETS_DIR / f"{name}.jsonl"))
+    if not cases:
+        return None
+    results = await run_faithfulness(cases, summarizer or extractive_summarizer(), judge or contains_fact_judge())
+    return EvalReport(cases=results, suites=summarize(results))
+
+
 def merge(*reports: EvalReport) -> EvalReport:
     cases = [c for r in reports for c in r.cases]
     return EvalReport(
@@ -115,11 +136,11 @@ def merge(*reports: EvalReport) -> EvalReport:
 
 
 def format_report(report: EvalReport, verbose: bool = False) -> str:
-    lines = [f"{'suite':<12}{'pass':>8}{'recall':>9}{'leak':>8}{'abstain':>9}"]
+    lines = [f"{'suite':<13}{'pass':>8}{'recall':>9}{'leak':>8}{'abstain':>9}{'score':>8}"]
     for s in report.suites.values():
         lines.append(
-            f"{s.suite:<12}{f'{s.passed}/{s.total}':>8}"
-            f"{_fmt(s.recall):>9}{_fmt(s.leak_rate):>8}{_fmt(s.abstain_rate):>9}"
+            f"{s.suite:<13}{f'{s.passed}/{s.total}':>8}"
+            f"{_fmt(s.recall):>9}{_fmt(s.leak_rate):>8}{_fmt(s.abstain_rate):>9}{_fmt(s.mean_score):>8}"
         )
     lines.append(f"injected_chars={report.injected_chars} llm_calls={report.llm_calls}")
     if verbose:

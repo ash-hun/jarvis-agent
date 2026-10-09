@@ -478,7 +478,10 @@ class AgentSession:
                         is_error=True,
                     )
 
-            result = await self._tool_registry.execute(tool_call_id, tool_name, params)
+            from jarvis.core.tools.registry import ToolContext
+
+            context = ToolContext(scope=self.memory_scope, session_id=self._session_id, user_id=self._last_user_id)
+            result = await self._tool_registry.execute(tool_call_id, tool_name, params, context=context)
             await self._plugins.emit_after_tool_call(tool_name, params, {"is_error": result.is_error})
             return result
 

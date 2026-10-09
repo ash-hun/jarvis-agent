@@ -378,7 +378,12 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
                 print(f"[AgentLoader] Failed to load agent '{defn.name}': {exc}")
         if loaded_defs:
             # 오케스트레이션: 메인 LLM 이 패턴을 고르는 도구. /orchestrate 는 아래 디스패처에서
-            orchestration = OrchestrationService(loaded_defs, agent_factory, memory)
+            from jarvis.core.multi_agent.service import load_supervisor_prompt
+
+            orchestration = OrchestrationService(
+                loaded_defs, agent_factory, memory,
+                supervisor_prompt=load_supervisor_prompt(settings.agents.supervisor_prompt),
+            )
             tool_registry.register(OrchestrateTool(orchestration))
             print(f"[AgentLoader] orchestrate tool ready ({len(loaded_defs)} agent(s))")
 

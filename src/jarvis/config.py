@@ -147,6 +147,8 @@ class AgentConfig(BaseSettings):
 
     enabled: bool = True
     agents_dir: str = "~/.jarvis/agents"
+    # supervisor 패턴의 감독자 system_prompt. 비우면 기본 문구. 파일 경로면 그 내용을 읽는다
+    supervisor_prompt: str = ""
 
 
 class ThoughtConfig(BaseSettings):

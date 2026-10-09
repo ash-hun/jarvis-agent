@@ -57,6 +57,8 @@ class SecurityConfig(BaseSettings):
     )
     require_approval_for: list[str] = Field(default_factory=lambda: ["bash", "write_file", "edit_file"])
     input_max_length: int = 10_000
+    # 승인 기억. 승인 화면에서 "항상 허용"을 고르면 (도구, 패턴) 규칙이 여기 쌓이고 다음부터 묻지 않는다
+    approvals_path: str = "~/.jarvis/approvals.yaml"
 
 
 class MemoryConfig(BaseSettings):
@@ -226,6 +228,25 @@ class ExternalTriggerConfig(BaseSettings):
     store_detail_in_log: bool = False  # 사고 로그(LTM)에 원문 detail 저장 여부
 
 
+class ProcedureConfig(BaseSettings):
+    """절차 학습. 도구를 여러 번 써서 성공한 작업을 세션 종료 때 절차 초안으로 남기고, 승인하면 도구가 된다."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    enabled: bool = True
+    dir: str = "~/.jarvis/procedures"
+    min_tool_calls: int = 3  # 이보다 적게 도구를 쓴 작업은 절차로 볼 가치가 없다
+
+
+class NotifyConfig(BaseSettings):
+    """외부 알림 채널. 열린 UI 가 없어도 스케줄 결과와 proactive 발화가 닿는 곳."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    slack_webhook_url: SecretStr | None = None  # 비우면 외부 알림 없음
+    kinds: list[str] = Field(default_factory=lambda: ["reminder", "proactive"])  # reminder | proactive
+
+
 class VoiceConfig(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
@@ -268,6 +289,8 @@ class JarvisSettings(BaseSettings):
     openloop: OpenLoopConfig = Field(default_factory=OpenLoopConfig)
     user_model: UserModelConfig = Field(default_factory=UserModelConfig)
     external: ExternalTriggerConfig = Field(default_factory=ExternalTriggerConfig)
+    procedures: ProcedureConfig = Field(default_factory=ProcedureConfig)
+    notify: NotifyConfig = Field(default_factory=NotifyConfig)
     web_search: WebSearchConfig = Field(default_factory=WebSearchConfig)
     mcp_servers: list[MCPServerConfig] = Field(default_factory=list)
     debug: bool = False

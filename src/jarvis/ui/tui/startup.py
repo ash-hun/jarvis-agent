@@ -125,6 +125,10 @@ class AppContext:
     external_poller: Any = field(default=None)
     # 메모리 매니저 — _build_infra()에서 주입. idle 공고화와 종료 요약이 쓴다
     memory: Any = field(default=None)
+    # 외부 알림 채널(슬랙 등) — 설정이 없으면 None. 스케줄 결과와 proactive 발화를 받는다
+    notifier: Any = field(default=None)
+    # 절차 학습기 — 세션 종료 때 성공한 다단계 작업을 절차 초안으로 남긴다. 꺼져 있으면 None
+    procedure_learner: Any = field(default=None)
 
 
 # ── 팩토리 헬퍼 ───────────────────────────────────────────────────────────────
@@ -243,9 +247,14 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
         session_repo = JsonlSessionRepo(sessions_root=settings.session.sessions_dir)
 
+    from jarvis.core.policy.approval_rules import ApprovalRules
+
+    # 승인 기억은 앱에 하나. web 의 세션별 sandbox 도 같은 규칙 파일을 본다
+    approval_rules = ApprovalRules(settings.security.approvals_path)
     sandbox = DefaultSandbox(
         dangerous_patterns=settings.security.dangerous_commands,
         require_approval_for=settings.security.require_approval_for,
+        approval_rules=approval_rules,
     )
     pipeline = SecurityPipeline(
         validator=DefaultInputValidator(max_length=settings.security.input_max_length),
@@ -255,6 +264,17 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     )
 
     plugin_runner = PluginRunner()
+
+    from jarvis.core.procedures import ProcedureLearner, ProcedureStore, llm_distiller
+
+    procedure_store = ProcedureStore(settings.procedures.dir)
+    procedure_learner = (
+        ProcedureLearner(
+            procedure_store, llm_distiller(model_config), min_tool_calls=settings.procedures.min_tool_calls
+        )
+        if settings.procedures.enabled
+        else None
+    )
 
     # _async_setup() 에서 수집된 에이전트 정의 — 클로저로 공유
     _agent_defs: list[Any] = []
@@ -272,6 +292,14 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         skills_dir = Path(settings.plugin.skills_dir).expanduser()
         if skills_dir.exists():
             await skill_registry.load_directory(str(skills_dir))
+
+        # 승인된 절차 → procedure_<name> 도구 + /<name> 스킬. 저장소가 비어 있으면 아무것도 안 한다
+        if settings.procedures.enabled:
+            from jarvis.core.procedures import register_approved
+
+            names = register_approved(procedure_store, tool_registry, skill_registry)
+            if names:
+                print(f"[Procedures] {len(names)} approved procedure(s) registered as tools")
 
         plugins_dir = Path(settings.plugin.plugins_dir).expanduser()
         if plugins_dir.exists():
@@ -336,6 +364,11 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     ctx.external_inbox = external_inbox
     ctx.external_poller = external_poller
     ctx.memory = memory
+    ctx.notifier = _build_notifier(settings)
+    ctx.procedure_learner = procedure_learner
+    # TUI 모드엔 화면 방송이 없다. 외부 채널이 있으면 스케줄 결과가 거기로 간다(web 은 기동 시 fan_out 으로 덮는다)
+    if scheduler is not None and ctx.notifier is not None:
+        scheduler.set_notifier(ctx.notifier)
 
     _extra: dict[str, Any] = {
         "memory_chain": memory_chain,
@@ -343,6 +376,8 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         "plugin_runner": plugin_runner,
         "skill_registry": skill_registry,
         "sandbox": sandbox,  # approval_callback 나중에 주입용
+        "approval_rules": approval_rules,
+        "procedure_learner": procedure_learner,
         "memory": memory,
         "model_config": model_config,
         "openloop_store": openloop_store,
@@ -396,6 +431,7 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     ctx.dispatcher = SlashCommandDispatcher(
         scheduler=ctx.scheduler,
         schedule_classifier=make_llm_classifier(model_config),
+        skill_registry=skill_registry,
     )
     ctx.dispatcher.register(
         "remember",
@@ -453,6 +489,15 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
     )
     ctx.dispatcher.register(
         "tools", make_tools_handler(tool_registry), "사용 가능한 도구 목록 표시"
+    )
+    from jarvis.core.slash.procedures_cmd import make_procedures_handler
+
+    ctx.dispatcher.register(
+        "procedures",
+        make_procedures_handler(
+            procedure_store, tool_registry, skill_registry, learner=procedure_learner, session_repo=session_repo,
+        ),
+        "학습된 절차 (approve <name> | reject <name> | show <name> | learn [session_id])",
     )
     ctx.dispatcher.register(
         "compact",
@@ -519,7 +564,7 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
     )
     thought_engine, thought_log, thought_composer = _build_thought(ctx, extra, model)
 
-    return AgentSession(
+    session = AgentSession(
         model=model,
         session_id=session_id,
         security_pipeline=extra["pipeline"],
@@ -539,6 +584,34 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
         external_inbox=extra.get("external_inbox"),
         external_detail_in_prompt=settings.external.store_detail_in_log,
     )
+    # 먼저 거는 말은 열린 화면뿐 아니라 외부 채널에도 간다. 서브 에이전트와 스케줄 세션은 이 경로를 타지 않는다
+    if ctx.notifier is not None:
+        from jarvis.core.notify import proactive_forwarder
+
+        session.subscribe(proactive_forwarder(ctx.notifier))
+    return session
+
+
+def _build_notifier(settings: JarvisSettings) -> Any:
+    """NotifyConfig → 알림 콜백. 채널 설정이 하나도 없으면 None(기존 동작 그대로)."""
+    cfg = settings.notify
+    if cfg.slack_webhook_url is None:
+        return None
+    from jarvis.core.notify import only_kinds, slack_notifier
+
+    print("[Notify] slack channel enabled")
+    return only_kinds(cfg.kinds, slack_notifier(cfg.slack_webhook_url.get_secret_value()))
+
+
+async def learn_procedures(ctx: AppContext, session_id: str, messages: list[Any]) -> list[str]:
+    """세션 종료 때 절차 학습. 학습기가 없거나 실패하면 빈 목록(요약 저장을 막지 않는다)."""
+    if ctx.procedure_learner is None or not messages:
+        return []
+    try:
+        return await ctx.procedure_learner.learn(session_id, messages)
+    except Exception as exc:
+        print(f"[Procedures] learning failed (non-fatal): {exc}")
+        return []
 
 
 def _build_proactivity_factory(ctx: AppContext) -> Any:
@@ -940,6 +1013,9 @@ def main() -> None:
             facts = await memory.consolidate(session.memory_scope)
             if facts:
                 print(f"[Memory] {facts} fact(s) consolidated from this session")
+            learned = await learn_procedures(ctx, session._session_id, msgs)
+            if learned:
+                print(f"[Procedures] draft(s) saved: {', '.join(learned)} (approve: /procedures approve <name>)")
         except Exception as exc:
             print(f"[Episodic] Session summary failed (non-fatal): {exc}")
 

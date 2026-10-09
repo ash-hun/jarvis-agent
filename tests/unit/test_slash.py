@@ -306,3 +306,23 @@ class TestSchedulerRunUntilExpiry:
             task.enabled = False
 
         assert task.enabled is True
+
+
+# ── 스킬 통과 ─────────────────────────────────────────────────────────────────
+
+
+async def test_known_skill_is_passed_through_to_llm_path():
+    """스킬 이름은 디스패처가 삼키지 않는다. 세션의 expand 가 프롬프트로 바꿔야 하므로 원문 그대로 남긴다."""
+    from jarvis.core.skills.registry import Skill, SkillRegistry
+    from jarvis.core.slash.dispatcher import SlashCommandDispatcher
+
+    skills = SkillRegistry()
+    skills.register(Skill(name="deploy", description="d", aliases=["dep"], content="배포해: {{args}}", metadata={}))
+    dispatcher = SlashCommandDispatcher(skill_registry=skills)
+
+    result = await dispatcher.dispatch("/deploy staging")
+    assert result.remaining_text == "/deploy staging" and result.feedbacks == []
+    result = await dispatcher.dispatch("/dep staging")  # 별칭도 통과
+    assert result.remaining_text == "/dep staging"
+    result = await dispatcher.dispatch("/nope x")  # 스킬도 명령도 아니면 안내
+    assert result.fully_consumed and "알 수 없는 명령" in result.feedbacks[0]

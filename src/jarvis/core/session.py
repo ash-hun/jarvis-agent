@@ -190,6 +190,8 @@ class AgentSession:
         await self._plugins.emit_before_agent_start(expanded, {"session_id": self._session_id})
 
         tool_executor = self._make_tool_executor(auth_ctx, policy_result)
+        # 턴마다 도구 목록을 다시 읽는다. 승인된 절차처럼 세션 생성 뒤 등록된 도구가 보이도록
+        self._harness._tools = self._tool_registry.to_llm_tools()
 
         async def run_main() -> AssistantMessage | None:
             try:
@@ -463,20 +465,15 @@ class AgentSession:
                     is_error=True,
                 )
 
-            if self._security.sandbox.is_approval_required(tool_name):
-                approved = await self._security.sandbox.request_approval(
-                    command=str(params),
-                    reason=f"Tool '{tool_name}' requires approval",
-                )
-                if not approved:
-                    from jarvis.model_layer.types import TextContent, ToolResultMessage
+            if not await self._security.sandbox.authorize(tool_name, params):
+                from jarvis.model_layer.types import TextContent, ToolResultMessage
 
-                    return ToolResultMessage(
-                        tool_call_id=tool_call_id,
-                        tool_name=tool_name,
-                        content=[TextContent(text=f"Execution of '{tool_name}' was denied")],
-                        is_error=True,
-                    )
+                return ToolResultMessage(
+                    tool_call_id=tool_call_id,
+                    tool_name=tool_name,
+                    content=[TextContent(text=f"Execution of '{tool_name}' was denied")],
+                    is_error=True,
+                )
 
             from jarvis.core.tools.registry import ToolContext
 

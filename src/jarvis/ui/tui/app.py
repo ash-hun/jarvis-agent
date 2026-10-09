@@ -433,9 +433,11 @@ class JarvisTUI(App[None]):
         if self._chat is not None:
             self._chat.add_error(error)
 
-    async def request_approval(self, command: str, reason: str) -> bool:
-        """ApprovalDialog 모달을 표시하고 사용자 결정을 반환."""
-        result: bool = await self.push_screen_wait(ApprovalDialog(command=command, reason=reason))
+    async def request_approval(self, command: str, reason: str, always_pattern: str = "") -> bool | str:
+        """ApprovalDialog 모달을 표시하고 사용자 결정(True/False/"always")을 반환."""
+        result: bool | str = await self.push_screen_wait(
+            ApprovalDialog(command=command, reason=reason, always_pattern=always_pattern)
+        )
         return result
 
     # ── 액션 ──────────────────────────────────────────────────────────────────

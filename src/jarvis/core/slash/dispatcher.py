@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from jarvis.core.scheduler.service import SchedulerService
+    from jarvis.core.skills.registry import SkillRegistry
     from jarvis.core.slash.schedule_cmd import Classifier
 
 # /command at start-of-string or after whitespace.
@@ -39,9 +40,12 @@ class SlashCommandDispatcher:
         self,
         scheduler: SchedulerService | None = None,
         schedule_classifier: Classifier | None = None,
+        skill_registry: SkillRegistry | None = None,
     ) -> None:
         self._handlers: dict[str, Handler] = {}
         self._descriptions: dict[str, str] = {}
+        # 스킬(/test 처럼 프롬프트로 확장되는 매크로)은 여기서 실행하지 않고 LLM 경로로 넘긴다
+        self._skills = skill_registry
         self._register_builtins(scheduler, schedule_classifier)
 
     def register(self, name: str, handler: Handler, description: str = "") -> None:
@@ -63,6 +67,9 @@ class SlashCommandDispatcher:
         remaining, commands = self._extract_commands(text)
         if not commands:
             return ParseResult(remaining_text=text)
+        if any(self._is_skill(name) for name, _ in commands):
+            # 스킬은 세션의 SkillRegistry.expand 가 프롬프트로 바꾼다. 여기서 삼키면 LLM 에 닿지 않는다
+            return ParseResult(remaining_text=text)
 
         feedbacks: list[str] = []
         for cmd_name, args in commands:
@@ -75,6 +82,9 @@ class SlashCommandDispatcher:
         return ParseResult(remaining_text=remaining, feedbacks=feedbacks)
 
     # ── 내부 유틸 ──────────────────────────────────────────────────────────────
+
+    def _is_skill(self, name: str) -> bool:
+        return name.lower() not in self._handlers and self._skills is not None and self._skills.get(name) is not None
 
     def _extract_commands(self, text: str) -> tuple[str, list[tuple[str, str]]]:
         """

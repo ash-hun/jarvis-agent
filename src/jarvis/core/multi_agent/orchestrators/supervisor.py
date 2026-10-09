@@ -25,8 +25,9 @@ class SupervisorOrchestrator(BaseOrchestrator):
         self,
         topology: SupervisorTopology,
         orchestrator_session: AgentSession | Any,
+        memory: Any = None,
     ) -> None:
-        super().__init__(topology)
+        super().__init__(topology, memory)
         self._session = orchestrator_session
         self._registered: set[str] = set()
 
@@ -34,14 +35,19 @@ class SupervisorOrchestrator(BaseOrchestrator):
         """topology 노드 → ToolRegistry 동기화 (멱등)."""
         for node in self.topology.get_nodes():
             if node.name not in self._registered:
-                tool = AgentNodeTool(node)
-                self._session.tool_registry.register(tool)
+                tool = AgentNodeTool(node, memory=self.memory)
+                register = getattr(self._session, "register_tool", None)
+                if callable(register):
+                    register(tool)  # AgentSession: 레지스트리와 harness 도구 목록을 같이 갱신
+                else:
+                    self._session.tool_registry.register(tool)
                 self._registered.add(node.name)
 
     async def dispatch(self, task: AgentTask) -> AgentResult:
         self.sync_agents()
         msg = await self._session.prompt(task.content)
-        content = msg.text if msg else ""
+        text = getattr(msg, "text", "") if msg else ""
+        content = text() if callable(text) else (text or "")  # AssistantMessage.text 는 메서드
         return AgentResult(
             task_id=task.task_id,
             agent_name="supervisor",

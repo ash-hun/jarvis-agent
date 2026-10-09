@@ -12,7 +12,7 @@ from jarvis.memory.long_term.episodic import prepare_episode
 from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
 from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
 from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank
-from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, scope_from_context
+from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, current_task, scope_from_context, task_scope
 from jarvis.memory.stores.protocol import ItemStore
 from jarvis.memory.types import MemoryItem, MemoryKind, Visibility
 from jarvis.memory.working.in_memory import InMemoryWorkingStore
@@ -24,6 +24,7 @@ from jarvis.model_layer.types import Message, UserMessage
 FACTS_HEADER = "[핵심 사실]"  # 고정 블록: 질의와 무관하게 항상 넣는 상위 의미 사실
 LTM_HEADER = "[장기 기억]"  # 회상 블록: 이번 질의로 떠오른 항목
 PROCEDURES_HEADER = "[절차 기억]"  # 질의가 가리키는 스킬
+TASK_HEADER = "[작업 공유 메모리]"  # 같은 오케스트레이션 작업의 다른 에이전트가 남긴 결과
 CONSOLIDATED = "consolidated"  # 의미 추출을 마친 일화에 남기는 metadata 키
 CONSOLIDATABLE_SOURCES = frozenset({"session_end", "auto_summary", "manual_compact"})
 
@@ -147,6 +148,12 @@ class MemoryManager:
             blocks.append(_block(LTM_HEADER, recalled))
         if procedures:
             blocks.append(_procedures_block(procedures))
+        shared_task = current_task.get()
+        if shared_task is not None:
+            notes = await self.task_notes(shared_task, scope)
+            if notes:
+                blocks.append(UserMessage(content=f"{TASK_HEADER}\n" + "\n".join(f"- {n}" for n in notes),
+                                          timestamp=int(time.time() * 1000)))
         touched = fixed + recalled
         if touched:
             now = datetime.now()
@@ -171,6 +178,19 @@ class MemoryManager:
 
     def procedures(self, query: str) -> list[Procedure]:
         return self._procedures.match(query) if self._procedures is not None else []
+
+    # ── 작업 공유 메모리(오케스트레이션) ────────────────────────────────────
+
+    async def share(self, root_task_id: str, text: str, author: str, scope: MemoryScope | None = None) -> None:
+        """작업에 참여하는 에이전트 전원이 볼 메모를 남긴다. 블랙보드와 레벨 간 결과 전달이 이 통로를 쓴다."""
+        await self.add_note(f"[{author}] {text}", scope=task_scope(self.resolve_scope(scope).user_id, root_task_id))
+
+    async def task_notes(self, root_task_id: str, scope: MemoryScope | None = None) -> list[str]:
+        state = await self._working.load(task_scope(self.resolve_scope(scope).user_id, root_task_id))
+        return list(state.notes)
+
+    async def clear_task(self, root_task_id: str, scope: MemoryScope | None = None) -> None:
+        await self._working.clear(task_scope(self.resolve_scope(scope).user_id, root_task_id))
 
     async def add_note(self, text: str, scope: MemoryScope | None = None) -> None:
         resolved = self.resolve_scope(scope)

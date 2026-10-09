@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 from jarvis.core.multi_agent.task import AgentResult, AgentTask
 from jarvis.core.multi_agent.topologies.hierarchical import HierarchicalTopology
@@ -15,8 +16,8 @@ from .base import BaseOrchestrator
 
 
 class HierarchicalOrchestrator(BaseOrchestrator):
-    def __init__(self, topology: HierarchicalTopology) -> None:
-        super().__init__(topology)
+    def __init__(self, topology: HierarchicalTopology, memory: Any = None) -> None:
+        super().__init__(topology, memory)
 
     async def dispatch(self, task: AgentTask) -> AgentResult:
         topo: HierarchicalTopology = self.topology  # type: ignore[assignment]
@@ -37,6 +38,7 @@ class HierarchicalOrchestrator(BaseOrchestrator):
                     "previous_results": [r.content for r in last_results],
                 },
                 parent_task_id=task.task_id,
+                scope=task.scope,
             )
 
             # 동일 레벨: 병렬 실행
@@ -44,10 +46,11 @@ class HierarchicalOrchestrator(BaseOrchestrator):
                 *[node.invoke(level_task) for node in nodes]
             )
             last_results = list(results)
-
-            # 다음 레벨용 context 누적
+            # 다음 레벨용 context 누적 + 작업 공유 메모리(다음 레벨 에이전트의 프롬프트에 실제로 들어간다)
             for node, result in zip(nodes, results, strict=False):
                 accumulated[f"result_{node.name}"] = result.content
+                if result.success:
+                    await self.share(task, f"level {level} 결과: {result.content}", author=node.name)
 
         if not last_results:
             return AgentResult(

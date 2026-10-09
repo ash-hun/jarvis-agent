@@ -57,3 +57,13 @@ def scope_from_context(context: dict[str, Any]) -> MemoryScope:
 # AgentSession.prompt 와 web 핸들러가 설정한다. 없으면 LOCAL_USER 의 메인 범위로 본다.
 # ponytail: 전역 contextvar, 디스패처가 사용자를 인자로 받게 되면 제거
 current_scope: ContextVar[MemoryScope | None] = ContextVar("jarvis_memory_scope", default=None)
+
+# 오케스트레이션 작업 범위. 한 작업에 참여하는 에이전트들이 공유하는 작업 기억의 키(루트 task_id).
+# LazyAgentNode 가 위임 동안 설정하고, observe 가 읽어 [작업 공유 메모리] 블록을 넣는다.
+current_task: ContextVar[str | None] = ContextVar("jarvis_memory_task", default=None)
+TASK_AGENT = "task"
+
+
+def task_scope(user_id: str | None, root_task_id: str) -> MemoryScope:
+    """작업 공유 메모리의 범위. 참여 에이전트와 무관하게 (사용자, 작업) 으로만 정해진다."""
+    return MemoryScope(user_id=user_id or LOCAL_USER, agent_id=TASK_AGENT, session_id=f"task_{root_task_id}")

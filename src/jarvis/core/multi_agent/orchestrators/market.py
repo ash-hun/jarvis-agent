@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
+from typing import Any
 
 from jarvis.core.multi_agent.protocol import AgentNodeProtocol, TopologyProtocol
 from jarvis.core.multi_agent.task import AgentResult, AgentTask
@@ -23,13 +24,19 @@ class Bid:
 
 
 class MarketOrchestrator(BaseOrchestrator):
-    def __init__(self, topology: TopologyProtocol) -> None:
-        super().__init__(topology)
+    def __init__(self, topology: TopologyProtocol, memory: Any = None) -> None:
+        super().__init__(topology, memory)
 
     async def _collect_bids(self, task: AgentTask) -> list[Bid]:
+        """can_handle 로 입찰 여부, score(있으면) 로 우선순위. 점수가 없는 노드는 1.0."""
         nodes = self.topology.get_nodes()
         results = await asyncio.gather(*[node.can_handle(task) for node in nodes])
-        return [Bid(node=node, can_handle=can) for node, can in zip(nodes, results, strict=False)]
+        bids = []
+        for node, can in zip(nodes, results, strict=False):
+            scorer = getattr(node, "score", None)
+            priority = float(scorer(task)) if callable(scorer) else 1.0
+            bids.append(Bid(node=node, can_handle=can, priority=priority))
+        return bids
 
     def _select_winner(self, bids: list[Bid]) -> AgentNodeProtocol | None:
         eligible = [b for b in bids if b.can_handle]

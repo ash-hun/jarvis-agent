@@ -16,7 +16,7 @@
 from .blackboard import SharedBlackboard
 from .factory import AgentDefinition, AgentFactory, AgentMemoryPolicy
 from .loader import load_agent_definitions
-from .node import AgentNode
+from .node import AgentNode, LazyAgentNode
 from .orchestrators import (
     Bid,
     BlackboardOrchestrator,
@@ -45,6 +45,7 @@ __all__ = [
     "OrchestratorProtocol",
     # 노드
     "AgentNode",
+    "LazyAgentNode",
     "AgentNodeTool",
     # 블랙보드
     "SharedBlackboard",

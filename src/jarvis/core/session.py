@@ -406,6 +406,15 @@ class AgentSession:
         timestamps.append(now)
 
     @property
+    def tool_registry(self) -> ToolRegistry:
+        return self._tool_registry
+
+    def register_tool(self, tool: Any) -> None:
+        """세션 생성 뒤 도구를 더한다. harness 가 생성 시점 스냅샷을 쓰므로 LLM 도구 목록도 갱신한다."""
+        self._tool_registry.register(tool)
+        self._harness._tools = self._tool_registry.to_llm_tools()
+
+    @property
     def memory_scope(self) -> MemoryScope:
         """이 세션이 기억을 읽고 쓰는 범위. 사용자는 마지막 인증값, 없으면 로컬 사용자."""
         return MemoryScope(

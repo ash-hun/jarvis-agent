@@ -163,7 +163,9 @@ async def test_recall_block_is_injected_and_rehearsal_counted():
     item_id = await memory.remember("선호 음료: 커피", source="explicit", scope=SCOPE)
 
     out = await memory.observe([_u("선호 음료 뭐였지")], CTX)
-    assert out[0].content.startswith("[장기 기억]") and "커피" in out[0].content
+    # 의미 사실은 고정 블록으로 항상 들어가고, 회상 블록은 거기 없는 것만 싣는다
+    assert out[0].content.startswith("[핵심 사실]") and "커피" in out[0].content
+    assert not any(m.content.startswith("[장기 기억]") for m in out)
     assert (await memory.working_state(SCOPE)).rehearsal == {item_id: 1}
 
     await memory.observe([_u("선호 음료 뭐였지"), _a("커피"), _u("선호 음료 다시")], CTX)
@@ -182,12 +184,12 @@ async def test_notes_are_session_scoped():
 
 
 async def test_adapter_routes_chain_hooks_to_manager():
-    memory = MemoryManager(InMemoryItemStore())
+    memory = MemoryManager(InMemoryItemStore(), fixed_facts=0)
     await memory.remember("프로젝트 마감: 금요일", source="explicit", scope=SCOPE)
     chain = MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(memory)])
 
     out = await chain.transform([_u("프로젝트 마감 언제")], CTX)
-    assert "금요일" in out[0].content
+    assert out[0].content.startswith("[장기 기억]") and "금요일" in out[0].content
 
     recalled = await chain.retrieve("프로젝트 마감", CTX, limit=5)
     assert [m.content for m in recalled] == ["프로젝트 마감: 금요일"]

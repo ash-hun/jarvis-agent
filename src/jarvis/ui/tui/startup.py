@@ -191,12 +191,23 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         working_store = PostgresWorkingStore(dsn=dsn)
 
     # 메모리 모듈은 매니저 하나. harness 의 미들웨어 체인에는 어댑터 한 단계로 꽂힌다.
+    # 스킬 레지스트리는 절차 기억(읽기 전용)으로 노출되므로 먼저 만든다.
+    from jarvis.memory.consolidation.semantic_extract import llm_fact_extractor
+    from jarvis.memory.long_term.procedural import SkillRegistryProcedures
+
+    skill_registry = SkillRegistry()
     memory = MemoryManager(
         item_store,
         working_store,
         summarizer=llm_summarizer(model_config),
+        extractor=llm_fact_extractor(model_config),
+        procedures=SkillRegistryProcedures(skill_registry),
         threshold_chars=settings.memory.compaction_threshold,
         window_size=settings.memory.window_size,
+        inject_limit=settings.memory.recall_limit,
+        fixed_facts=settings.memory.fixed_facts,
+        importance_threshold=settings.memory.importance_threshold,
+        half_life_hours=settings.memory.recency_half_life_hours,
     )
     memory_chain = MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(memory)])
 
@@ -222,7 +233,6 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         sandbox=sandbox,
     )
 
-    skill_registry = SkillRegistry()
     plugin_runner = PluginRunner()
 
     # _async_setup() 에서 수집된 에이전트 정의 — 클로저로 공유
@@ -873,6 +883,9 @@ def main() -> None:
             entry_id = await summarizer.save_session(session._session_id, msgs, scope=session.memory_scope)
             if entry_id:
                 print(f"[Episodic] Session summary saved (id: {entry_id[:8]})")
+            facts = await memory.consolidate(session.memory_scope)
+            if facts:
+                print(f"[Memory] {facts} fact(s) consolidated from this session")
         except Exception as exc:
             print(f"[Episodic] Session summary failed (non-fatal): {exc}")
 

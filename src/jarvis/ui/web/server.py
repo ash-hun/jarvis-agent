@@ -135,6 +135,9 @@ class SessionManager:
                 entry_id = await summarizer.save_session(session._session_id, msgs, scope=scope)
                 if entry_id:
                     print(f"[Episodic] Session {session_id[:8]} summary saved (id: {entry_id[:8]})")
+                facts = await memory.consolidate(scope)
+                if facts:
+                    print(f"[Memory] Session {session_id[:8]}: {facts} fact(s) consolidated")
             except Exception as exc:
                 print(f"[Episodic] Session {session_id[:8]} summary failed (non-fatal): {exc}")
 

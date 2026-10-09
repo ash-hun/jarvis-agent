@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -19,13 +20,17 @@ class ScopeSpec(BaseModel):
 
 
 class SetupStep(BaseModel):
-    """저장소에 미리 넣어 둘 항목 하나."""
+    """저장소에 미리 넣어 둘 항목 하나. remember(기억) 또는 skill(절차) 중 하나."""
 
-    remember: str
+    remember: str | None = None
     kind: MemoryKind = MemoryKind.SEMANTIC
     visibility: Visibility = "private"
     scope: ScopeSpec | None = None  # 없으면 사례의 scope 를 쓴다
     at: str | None = None  # ISO 날짜. 지식 갱신처럼 순서가 중요한 사례용
+    importance: float | None = None
+    skill: str | None = None  # 절차 기억: 스킬 이름
+    aliases: list[str] = Field(default_factory=list)
+    description: str = ""
 
 
 class Expect(BaseModel):
@@ -41,6 +46,7 @@ class EvalCase(BaseModel):
     setup: list[SetupStep]
     scope: ScopeSpec
     probe: str
+    probe_kind: Literal["recall", "procedures"] = "recall"  # procedures 면 스킬 이름 목록을 결과로 본다
     expect: Expect
 
     def step_scope(self, step: SetupStep) -> MemoryScope:

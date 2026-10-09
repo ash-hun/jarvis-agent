@@ -57,7 +57,7 @@ def test_shipped_datasets_parse():
         cases = load_cases(DATASETS_DIR / f"{suite}.jsonl")
         assert cases and all(c.suite == suite for c in cases)
     assert load_working_suites(["working"])
-    assert set(SUITES) == {"isolation", "semantic", "working"}
+    assert set(SUITES) == {"isolation", "semantic", "episodic", "procedural", "working"}
 
 
 def _case(**expect) -> EvalCase:
@@ -90,7 +90,7 @@ class ScopedTarget:
         at = datetime.fromisoformat(step.at) if step.at else datetime.now()
         self._items.append((scope, step.visibility, step.remember, at))
 
-    async def probe(self, query: str, scope: MemoryScope, top_k: int) -> list[str]:
+    async def probe(self, query: str, scope: MemoryScope, top_k: int, kind: str = "recall") -> list[str]:
         tokens = query.split()
         hits = [
             (at, text)
@@ -111,14 +111,14 @@ class ScopedTarget:
 
 
 @pytest.mark.memory_eval
-async def test_isolation_and_semantic_suites_pass_with_scope_aware_target():
-    report = await run(load_suites(list(STORE_SUITES)), ScopedTarget())
+async def test_isolation_suite_is_satisfiable_by_scope_aware_reference():
+    """읽기 상속 규칙만 지키는 참조 구현으로 격리 스위트가 전부 통과한다(데이터셋 만족 가능성 증명)."""
+    report = await run(load_suites(["isolation"]), ScopedTarget())
     assert report.all_passed, format_report(report, verbose=True)
     assert report.suites["isolation"].leak_rate == 0.0
-    assert report.suites["semantic"].recall == 1.0
 
 
-# ── 실제 저장소: 격리는 1단계에서 해결, 지식 갱신은 3단계 ─────────────────────
+# ── 실제 저장소: 격리(1단계), 지식 갱신과 일화와 절차(3단계) ───────────────
 
 
 @pytest.mark.memory_eval
@@ -129,13 +129,19 @@ async def test_store_isolates_users_and_agents():
 
 
 @pytest.mark.memory_eval
-async def test_store_does_not_prefer_latest_fact_yet():
-    """3단계(의미 기억 정책, superseded_by)에서 이 테스트는 "전부 통과" 로 뒤집힌다."""
+async def test_store_prefers_latest_fact_and_abstains():
     report = await run(load_suites(["semantic"]), StoreTarget())
-    updates = [c for c in report.cases if c.case.startswith("knowledge_update")]
-    assert updates and all(c.leaked for c in updates)
-    assert report.suites["semantic"].recall == 1.0
+    assert report.all_passed, format_report(report, verbose=True)
+    assert report.suites["semantic"].leak_rate == 0.0
     assert report.suites["semantic"].abstain_rate == 1.0
+
+
+@pytest.mark.memory_eval
+async def test_store_episodic_and_procedural_suites_pass():
+    report = await run(load_suites(["episodic", "procedural"]), StoreTarget())
+    assert report.all_passed, format_report(report, verbose=True)
+    assert report.suites["episodic"].recall == 1.0
+    assert report.suites["procedural"].recall == 1.0
 
 
 # ── 비용 계측 ────────────────────────────────────────────────────────────────

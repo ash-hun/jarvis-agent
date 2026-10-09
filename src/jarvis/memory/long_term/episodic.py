@@ -1,0 +1,9 @@
+"""일화 기억 정책. 사건 시각이 붙고, 검색은 최근 것이 먼저 떠오른다(가중치는 retrieval.scoring)."""
+
+from jarvis.memory.types import MemoryItem
+
+
+def prepare_episode(item: MemoryItem) -> MemoryItem:
+    if item.occurred_at is None:
+        item.occurred_at = item.created_at
+    return item

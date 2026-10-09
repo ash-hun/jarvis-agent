@@ -10,7 +10,7 @@ from jarvis.memory.working.window import SUMMARY_HEADER
 from jarvis.model_layer.types import Message
 
 DATASETS_DIR = Path(__file__).parent / "datasets"
-STORE_SUITES = ("isolation", "semantic")
+STORE_SUITES = ("isolation", "semantic", "episodic", "procedural")
 WORKING_SUITES = ("working",)
 SUITES = STORE_SUITES + WORKING_SUITES
 
@@ -58,7 +58,7 @@ async def run(cases: list[EvalCase], target: EvalTarget) -> EvalReport:
         await target.reset()
         for step in case.setup:
             await target.setup(step, case.step_scope(step))
-        found = await target.probe(case.probe, case.scope.to_scope(), case.expect.top_k)
+        found = await target.probe(case.probe, case.scope.to_scope(), case.expect.top_k, case.probe_kind)
         injected += sum(len(s) for s in found)
         results.append(judge(case, found))
     return EvalReport(cases=results, suites=summarize(results), injected_chars=injected)

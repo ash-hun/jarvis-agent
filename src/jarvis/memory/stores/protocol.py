@@ -1,6 +1,7 @@
 """저장소 프로토콜. 조회는 scope 필수, 대체된(superseded) 항목은 기본적으로 제외한다."""
 
 from collections.abc import Sequence
+from datetime import datetime
 from typing import Protocol, runtime_checkable
 
 from jarvis.memory.scope import MemoryScope
@@ -31,6 +32,10 @@ class ItemStore(Protocol):
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
     ) -> list[MemoryItem]: ...
+
+    async def touch(self, item_ids: Sequence[str], at: datetime) -> None:
+        """회상된 항목의 last_accessed 를 갱신한다(점화)."""
+        ...
 
     async def supersede(self, old_id: str, new_id: str) -> None:
         """old 를 new 로 대체했다고 표시한다. old 는 조회에서 빠지지만 지워지지 않는다."""

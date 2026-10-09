@@ -180,6 +180,13 @@ class PostgresItemStore:
             rows = await conn.fetch(sql, *params)
         return [_row_to_item(r) for r in rows]
 
+    async def touch(self, item_ids: Sequence[str], at: datetime) -> None:
+        if not item_ids:
+            return
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute(f"UPDATE {TABLE} SET last_accessed = $2 WHERE id = ANY($1)", list(item_ids), at)
+
     async def supersede(self, old_id: str, new_id: str) -> None:
         pool = await self._get_pool()
         async with pool.acquire() as conn:

@@ -93,6 +93,21 @@ class PostgresWorkingStore:
                 f"DELETE FROM {TABLE} WHERE user_id = $1 AND agent_id = $2 AND session_id = $3", *_key(scope)
             )
 
+    async def legacy_stm_rows(self) -> int | None:
+        """범위 도입 전 STM 메시지 테이블의 행 수. 테이블이 없으면 None."""
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
+            exists = await conn.fetchval("SELECT to_regclass('jarvis_stm_messages') IS NOT NULL")
+            if not exists:
+                return None
+            return int(await conn.fetchval("SELECT count(*) FROM jarvis_stm_messages"))
+
+    async def drop_legacy_stm(self) -> None:
+        """옛 STM 테이블 삭제. 두 번 불러도 같은 상태(IF EXISTS)."""
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("DROP TABLE IF EXISTS jarvis_stm_messages")
+
     async def close(self) -> None:
         if self._pool:
             await self._pool.close()

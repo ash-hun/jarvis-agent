@@ -8,9 +8,7 @@ from jarvis.model_layer.types import (
     LLMContext,
     ModelConfig,
     StopEvent,
-    StreamOptions,
     TextDeltaEvent,
-    ToolCallDeltaEvent,
     UserMessage,
 )
 
@@ -88,3 +86,15 @@ async def test_unknown_provider_raises():
     with pytest.raises(KeyError, match="nonexistent"):
         async for _ in stream(bad_model, ctx):
             pass
+
+
+async def test_stream_to_message_surfaces_provider_error(faux_model, simple_context):
+    """ErrorEvent 가 오면 error_message 에 담긴다 — 호출자가 빈 응답과 실패를 구분할 수 있어야 한다."""
+    from jarvis.model_layer.registry import get_default_registry
+    from tests.fixtures.faux_provider import FauxProviderFactory
+
+    get_default_registry()._providers["faux"] = FauxProviderFactory.error()
+    msg = await stream_to_message(faux_model, simple_context)
+
+    assert msg.error_message == "Faux error for testing"
+    assert msg.text() == ""

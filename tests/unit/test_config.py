@@ -1,8 +1,6 @@
 """config.py — Pydantic Settings 로딩 테스트."""
 from __future__ import annotations
 
-import os
-
 import pytest
 
 from jarvis.config import JarvisSettings, get_settings, reset_settings
@@ -91,3 +89,19 @@ def test_brand_rejects_non_hex_color(monkeypatch):
     monkeypatch.setenv("JARVIS_BRAND__PALETTE__PRIMARY", "cyan")
     with pytest.raises(ValidationError):
         JarvisSettings()
+
+
+def test_api_keys_parse_from_env_json(monkeypatch):
+    monkeypatch.setenv(
+        "JARVIS_SECURITY__API_KEYS",
+        '{"k-123": {"name": "jh", "roles": ["admin"]}, "k-456": {"name": "guest"}}',
+    )
+    s = JarvisSettings()
+    assert s.security.api_keys["k-123"].name == "jh"
+    assert s.security.api_keys["k-123"].roles == ["admin"]
+    assert s.security.api_keys["k-456"].roles == ["user"]  # roles 생략 시 기본값
+
+
+def test_api_keys_default_empty_means_web_auth_off(monkeypatch):
+    monkeypatch.delenv("JARVIS_SECURITY__API_KEYS", raising=False)
+    assert JarvisSettings().security.api_keys == {}

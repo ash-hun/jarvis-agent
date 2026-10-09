@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import httpx
 
@@ -55,60 +55,59 @@ class VLLMProvider:
             headers["Authorization"] = f"Bearer {model.api_key}"
 
         try:
-            async with httpx.AsyncClient(timeout=model.timeout) as client:
-                async with client.stream(
-                    "POST",
-                    f"{base_url}/v1/chat/completions",
-                    json=payload,
-                    headers=headers,
-                ) as resp:
-                    resp.raise_for_status()
-                    tool_buffers: dict[int, dict] = {}
-                    usage = Usage()
+            async with httpx.AsyncClient(timeout=model.timeout) as client, client.stream(
+                "POST",
+                f"{base_url}/v1/chat/completions",
+                json=payload,
+                headers=headers,
+            ) as resp:
+                resp.raise_for_status()
+                tool_buffers: dict[int, dict] = {}
+                usage = Usage()
 
-                    async for line in resp.aiter_lines():
-                        if not line or line == "data: [DONE]":
-                            continue
-                        if line.startswith("data: "):
-                            line = line[6:]
+                async for line in resp.aiter_lines():
+                    if not line or line == "data: [DONE]":
+                        continue
+                    if line.startswith("data: "):
+                        line = line[6:]
 
-                        chunk = json.loads(line)
+                    chunk = json.loads(line)
 
-                        if "usage" in chunk and chunk["usage"]:
-                            u = chunk["usage"]
-                            usage = Usage(
-                                input=u.get("prompt_tokens", 0),
-                                output=u.get("completion_tokens", 0),
-                            )
+                    if "usage" in chunk and chunk["usage"]:
+                        u = chunk["usage"]
+                        usage = Usage(
+                            input=u.get("prompt_tokens", 0),
+                            output=u.get("completion_tokens", 0),
+                        )
 
-                        if not chunk.get("choices"):
-                            continue
+                    if not chunk.get("choices"):
+                        continue
 
-                        choice = chunk["choices"][0]
-                        delta = choice.get("delta", {})
+                    choice = chunk["choices"][0]
+                    delta = choice.get("delta", {})
 
-                        if content := delta.get("content"):
-                            yield TextDeltaEvent(delta=content)
+                    if content := delta.get("content"):
+                        yield TextDeltaEvent(delta=content)
 
-                        if tcs := delta.get("tool_calls"):
-                            for tc in tcs:
-                                idx = tc.get("index", 0)
-                                if idx not in tool_buffers:
-                                    tool_buffers[idx] = {"id": tc.get("id", ""), "name": "", "args": ""}
-                                fn = tc.get("function", {})
-                                if fn.get("name"):
-                                    tool_buffers[idx]["name"] = fn["name"]
-                                if fn.get("arguments"):
-                                    tool_buffers[idx]["args"] += fn["arguments"]
-                                    yield ToolCallDeltaEvent(
-                                        id=tool_buffers[idx]["id"],
-                                        name=tool_buffers[idx]["name"],
-                                        arguments_delta=fn["arguments"],
-                                    )
+                    if tcs := delta.get("tool_calls"):
+                        for tc in tcs:
+                            idx = tc.get("index", 0)
+                            if idx not in tool_buffers:
+                                tool_buffers[idx] = {"id": tc.get("id", ""), "name": "", "args": ""}
+                            fn = tc.get("function", {})
+                            if fn.get("name"):
+                                tool_buffers[idx]["name"] = fn["name"]
+                            if fn.get("arguments"):
+                                tool_buffers[idx]["args"] += fn["arguments"]
+                                yield ToolCallDeltaEvent(
+                                    id=tool_buffers[idx]["id"],
+                                    name=tool_buffers[idx]["name"],
+                                    arguments_delta=fn["arguments"],
+                                )
 
-                        if finish := choice.get("finish_reason"):
-                            stop_map = {"stop": "stop", "length": "length", "tool_calls": "tool_use"}
-                            yield StopEvent(reason=stop_map.get(finish, "stop"), usage=usage)  # type: ignore[arg-type]
+                    if finish := choice.get("finish_reason"):
+                        stop_map = {"stop": "stop", "length": "length", "tool_calls": "tool_use"}
+                        yield StopEvent(reason=stop_map.get(finish, "stop"), usage=usage)  # type: ignore[arg-type]
 
         except httpx.HTTPError as exc:
             yield ErrorEvent(message=str(exc))
@@ -132,7 +131,11 @@ def _convert_messages(context: LLMContext) -> list[dict]:
             tool_calls = [b for b in msg.content if b.type == "tool_call"]
             if tool_calls:
                 entry["tool_calls"] = [
-                    {"id": tc.id, "type": "function", "function": {"name": tc.name, "arguments": json.dumps(tc.arguments)}}  # type: ignore[union-attr]
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {"name": tc.name, "arguments": json.dumps(tc.arguments)},  # type: ignore[union-attr]
+                    }
                     for tc in tool_calls
                 ]
             result.append(entry)

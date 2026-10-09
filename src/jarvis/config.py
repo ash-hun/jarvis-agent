@@ -37,10 +37,20 @@ class LLMProviderConfig(BaseSettings):
     timeout: float = 120.0
 
 
+class ApiUser(BaseModel):
+    """Web HUD 접근 키 하나에 대응하는 사용자. 키 자체가 식별자이자 비밀값이다."""
+
+    name: str
+    roles: list[str] = Field(default_factory=lambda: ["user"])
+
+
 class SecurityConfig(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
     require_auth: bool = True
+    # Web HUD 접근 키 → 사용자. 비어 있으면 web 인증을 끈다(로컬 단독 사용). TUI 는 항상 NoAuth.
+    # 예: JARVIS_SECURITY__API_KEYS='{"<random-key>": {"name": "jh", "roles": ["admin"]}}'
+    api_keys: dict[str, ApiUser] = Field(default_factory=dict)
     allowed_roles: list[str] = Field(default_factory=lambda: ["user", "admin"])
     dangerous_commands: list[str] = Field(
         default_factory=lambda: ["rm -rf", "sudo", "curl | bash", "wget | bash", "> /dev/sda"]

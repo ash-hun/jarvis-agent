@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from jarvis.model_layer.types import Message
 
@@ -62,7 +63,7 @@ class VectorMemoryAdapter:
 
         results = await self._collection.query(**query_kwargs)  # type: ignore[union-attr]
         messages = []
-        for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
+        for doc, meta in zip(results["documents"][0], results["metadatas"][0], strict=False):
             import json
             data = json.loads(doc) if isinstance(doc, str) else doc
             msg = _deserialize(meta.get("role", "user"), data)

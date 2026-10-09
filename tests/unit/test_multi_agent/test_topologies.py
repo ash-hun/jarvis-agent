@@ -2,12 +2,9 @@
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from jarvis.core.multi_agent.topologies.hierarchical import HierarchicalTopology
 from jarvis.core.multi_agent.topologies.p2p import P2PTopology
 from jarvis.core.multi_agent.topologies.supervisor import SupervisorTopology
-
 
 # ── 헬퍼 ──────────────────────────────────────────────────────────────────────
 

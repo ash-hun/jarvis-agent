@@ -71,13 +71,16 @@ class EditFileTool:
                     tool_call_id=tool_call_id,
                     tool_name=self.name,
                     content=[TextContent(
-                        text=f"old_string found {count} times in {path}; set replace_all=true to replace all occurrences"
+                        text=(
+                            f"old_string found {count} times in {path}; "
+                            "set replace_all=true to replace all occurrences"
+                        )
                     )],
                     is_error=True,
                 )
 
             replaced_count = count if replace_all else 1
-            updated = original.replace(old_string, new_string) if replace_all else original.replace(old_string, new_string, 1)
+            updated = original.replace(old_string, new_string, -1 if replace_all else 1)
 
             async with aiofiles.open(path, "w", encoding="utf-8") as f:
                 await f.write(updated)

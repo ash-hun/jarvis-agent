@@ -5,23 +5,43 @@ import base64
 import contextlib
 import json
 import time
+import uuid
 from collections import deque
 from datetime import datetime
-import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 if TYPE_CHECKING:
-    from jarvis.config import BrandConfig
+    from jarvis.config import ApiUser, BrandConfig, JarvisSettings
     from jarvis.core.session import AgentSession
     from jarvis.ui.tui.startup import AppContext
     from jarvis.voice.service import VoiceService
 
 STATIC_DIR = Path(__file__).parent / "static"
+# 키 불일치로 서버가 끊을 때의 close code. 브라우저가 이 코드를 보고 키 입력을 띄운다.
+WS_UNAUTHORIZED = 4401
+
+
+def _auth_enabled(settings: JarvisSettings) -> bool:
+    """접근 키가 하나라도 설정돼 있으면 web 인증을 켠다. 비어 있으면 지금처럼 NoAuth."""
+    return bool(settings.security.api_keys)
+
+
+def _lookup_api_user(settings: JarvisSettings, token: str | None) -> ApiUser | None:
+    if not token:
+        return None
+    return settings.security.api_keys.get(token)
+
+
+def _bearer(authorization: str | None) -> str | None:
+    if not authorization:
+        return None
+    scheme, _, value = authorization.partition(" ")
+    return value.strip() if scheme.lower() == "bearer" and value else None
 
 
 class SessionManager:
@@ -37,7 +57,7 @@ class SessionManager:
 
     def _make_session_extra(self) -> tuple[dict[str, Any], Any]:
         """세션별 sandbox + pipeline을 새로 생성해 extra 복사본을 반환한다."""
-        from jarvis.core.policy.authenticator import NoAuthAuthenticator
+        from jarvis.core.policy.authenticator import ApiKeyAuthenticator, NoAuthAuthenticator
         from jarvis.core.policy.pipeline import SecurityPipeline
         from jarvis.core.policy.policy import AllowAllPolicy
         from jarvis.core.policy.sandbox import DefaultSandbox
@@ -48,9 +68,18 @@ class SessionManager:
             dangerous_patterns=s.security.dangerous_commands,
             require_approval_for=s.security.require_approval_for,
         )
+        # 접근 키가 있으면 키 → (이름, roles) 로 사용자를 식별한다. AuthContext.user_id 가 이름이 되어
+        # rate limit 과 tool executor 의 사용자별 정책에 그대로 흐른다.
+        authenticator: Any = NoAuthAuthenticator()
+        if _auth_enabled(s):
+            keys = s.security.api_keys
+            authenticator = ApiKeyAuthenticator(
+                valid_keys={k: frozenset(u.roles) for k, u in keys.items()},
+                user_names={k: u.name for k, u in keys.items()},
+            )
         pipeline = SecurityPipeline(
             validator=DefaultInputValidator(max_length=s.security.input_max_length),
-            authenticator=NoAuthAuthenticator(),
+            authenticator=authenticator,
             policy=AllowAllPolicy(),
             sandbox=sandbox,
         )
@@ -127,6 +156,15 @@ def create_app(
         )
     except Exception:
         pass
+
+    @app.middleware("http")
+    async def _require_api_key(request: Request, call_next: Any) -> Any:
+        # /api/* 만 보호한다. 정적 셸(index, js, css)은 키 없이 받아야 키 입력 화면이 뜬다.
+        if request.url.path.startswith("/api/") and _auth_enabled(ctx.settings):
+            token = _bearer(request.headers.get("authorization")) or request.query_params.get("token")
+            if _lookup_api_user(ctx.settings, token) is None:
+                return JSONResponse({"error": "unauthorized"}, status_code=401)
+        return await call_next(request)
 
     @app.on_event("startup")
     async def _startup() -> None:
@@ -312,10 +350,19 @@ def create_app(
     async def websocket_endpoint(
         ws: WebSocket,
         session_id: str = Query(default="default"),
+        token: str | None = Query(default=None),
     ) -> None:
         from jarvis.ui.web.adapter import PerConnectionAdapter
 
+        # accept 뒤에 닫아야 브라우저가 close code(4401)를 읽을 수 있다. accept 전에 닫으면 403 으로만 보인다.
         await ws.accept()
+        user: ApiUser | None = None
+        if _auth_enabled(ctx.settings):
+            user = _lookup_api_user(ctx.settings, token)
+            if user is None:
+                await ws.close(code=WS_UNAUTHORIZED, reason="invalid token")
+                return
+        credentials = {"api_key": token} if user is not None else {}
         session, sandbox = await manager.get_or_create(session_id)
 
         adapter = PerConnectionAdapter(ws)
@@ -327,6 +374,7 @@ def create_app(
             await ws.send_json({
                 "type": "connected",
                 "session_id": session._session_id,
+                "user": user.name if user is not None else None,
                 "model": session._harness._model.model,
                 "sessions": manager.list_ids(),
                 "slash_commands": [
@@ -365,7 +413,7 @@ def create_app(
                                 continue
                             text = result.remaining_text
                         if text.strip():
-                            asyncio.create_task(_run_prompt(session, adapter, text))
+                            asyncio.create_task(_run_prompt(session, adapter, text, credentials))
 
                 elif msg_type == "approval_response":
                     await adapter.handle_approval_response(
@@ -449,9 +497,9 @@ def render_manifest(brand: BrandConfig) -> dict[str, Any]:
     return manifest
 
 
-async def _run_prompt(session: Any, adapter: Any, text: str) -> None:
+async def _run_prompt(session: Any, adapter: Any, text: str, credentials: dict[str, Any]) -> None:
     try:
-        await session.prompt(text)
+        await session.prompt(text, credentials=credentials)
     except Exception as exc:
         await adapter.show_error(str(exc))
 

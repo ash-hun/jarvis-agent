@@ -48,7 +48,7 @@ class SchedulerService:
         self._running = False
         self._task_handle: asyncio.Task[None] | None = None
         self._notify: Notify | None = None
-        self._last_run: dict[str, float] = {}  # cron 작업별 마지막 실행 epoch
+        self._last_run: dict[str, datetime] = {}  # cron 작업별 마지막으로 실행한 cron 슬롯
         self._bg: set[asyncio.Task[None]] = set()
 
     def set_notifier(self, notify: Notify | None) -> None:
@@ -139,7 +139,6 @@ class SchedulerService:
 
     def _tick(self, now_dt: datetime, croniter: Any) -> list[asyncio.Task[None]]:
         """한 번 훑어 때가 된 작업을 띄운다. 띄운 백그라운드 task 목록을 돌려준다."""
-        now = now_dt.timestamp()
         fired: list[asyncio.Task[None]] = []
         for task in list(self._tasks):
             if not task.enabled:
@@ -160,14 +159,16 @@ class SchedulerService:
                 continue
             if croniter is None or not task.schedule:
                 continue
+            # datetime 으로 넘겨야 로컬 시간대로 해석된다 — float epoch 를 주면 croniter 가 UTC 로 계산해
+            # "매일 9시"가 18시(KST)에 뜬다.
             try:
-                prev = croniter(task.schedule, now).get_prev(float)
+                prev: datetime = croniter(task.schedule, now_dt).get_prev(datetime)
             except Exception as exc:
                 print(f"[Scheduler] Cron parse error for '{task.name}': {exc}")
                 continue
-            # 직전 cron 시각이 최근 60초 안이고 아직 안 돌았으면 실행
-            if now - prev < 60 and self._last_run.get(task.name, 0) < prev:
-                self._last_run[task.name] = now
+            # 직전 cron 슬롯이 최근 60초 안이고 그 슬롯을 아직 안 돌았으면 실행
+            if (now_dt - prev).total_seconds() < 60 and self._last_run.get(task.name) != prev:
+                self._last_run[task.name] = prev
                 fired.append(self._spawn(self._run_and_deliver(task)))
         return fired
 

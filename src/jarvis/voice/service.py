@@ -28,6 +28,6 @@ class VoiceService:
         return isinstance(self._stt, BrowserSTTProvider)
 
     @classmethod
-    def from_config(cls, stt_provider: str, tts_provider: str, **kwargs: object) -> "VoiceService":
+    def from_config(cls, stt_provider: str, tts_provider: str, **kwargs: object) -> VoiceService:
         from jarvis.voice.registry import make_stt, make_tts
         return cls(stt=make_stt(stt_provider), tts=make_tts(tts_provider))

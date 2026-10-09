@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -36,14 +36,14 @@ class AgentTask:
         content: str,
         context: dict[str, Any] | None = None,
         parent_task_id: str | None = None,
-    ) -> "AgentTask":
+    ) -> AgentTask:
         ctx = context or {}
         return cls(
             task_id=_make_task_id(content, ctx),
             content=content,
             context=ctx,
             parent_task_id=parent_task_id,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
 

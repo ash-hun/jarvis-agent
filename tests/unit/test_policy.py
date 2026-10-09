@@ -16,7 +16,6 @@ from jarvis.core.policy.policy import AllowAllPolicy, RoleBasedPolicy
 from jarvis.core.policy.sandbox import DefaultSandbox, PermissiveSandbox
 from jarvis.core.policy.validator import DefaultInputValidator
 
-
 # ── Step 1: InputValidator ────────────────────────────────────────────────────
 
 class TestInputValidator:
@@ -213,7 +212,6 @@ class TestSecurityPipelineFull:
             await permissive_pipeline.run(raw_input="<script>alert(1)</script>", credentials={})
 
     async def test_invalid_api_key_fails_at_step2(self):
-        from jarvis.core.policy.sandbox import PermissiveSandbox
         pipeline = SecurityPipeline(
             validator=DefaultInputValidator(),
             authenticator=ApiKeyAuthenticator({"valid-key": frozenset({"user"})}),
@@ -237,3 +235,25 @@ class TestSecurityPipelineFull:
                 ),
                 command="rm -rf /",
             )
+
+
+# ── ApiKeyAuthenticator: 키 → 사용자 이름 ───────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_api_key_authenticator_maps_key_to_user_name():
+    from jarvis.core.policy.authenticator import ApiKeyAuthenticator
+    from jarvis.core.policy.pipeline import AuthError, ValidatedInput
+
+    auth = ApiKeyAuthenticator(
+        valid_keys={"k-123": frozenset({"admin"})}, user_names={"k-123": "jh"}
+    )
+    v = ValidatedInput(raw="hi", sanitized="hi")
+
+    ctx = await auth.authenticate(v, {"api_key": "k-123"})
+    assert ctx.user_id == "jh" and ctx.roles == frozenset({"admin"})
+
+    with pytest.raises(AuthError):
+        await auth.authenticate(v, {"api_key": "nope"})
+    with pytest.raises(AuthError):
+        await auth.authenticate(v, {})

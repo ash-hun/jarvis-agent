@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import AsyncIterator, Protocol, runtime_checkable
+from collections.abc import AsyncIterator
+from typing import Protocol, runtime_checkable
 
 from jarvis.model_layer.types import LLMContext, ModelConfig, StreamEvent, StreamOptions
 

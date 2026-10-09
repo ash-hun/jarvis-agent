@@ -119,11 +119,10 @@ async def _list_mcp_tools(server: MCPServerConfig) -> list[dict[str, Any]]:
             args=server.command[1:],
             env=server.env or None,
         )
-        async with stdio_client(server_params) as (read, write):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                result = await session.list_tools()
-                return _tools_to_dicts(result.tools)
+        async with stdio_client(server_params) as (read, write), ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.list_tools()
+            return _tools_to_dicts(result.tools)
 
     if server.transport == "http":
         if not server.url:
@@ -149,11 +148,10 @@ async def call_mcp_tool(server: MCPServerConfig, tool_name: str, params: dict[st
             args=server.command[1:],
             env=server.env or None,
         )
-        async with stdio_client(server_params) as (read, write):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                result = await session.call_tool(tool_name, params)
-                return _extract_result_text(result)
+        async with stdio_client(server_params) as (read, write), ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(tool_name, params)
+            return _extract_result_text(result)
 
     if server.transport == "http":
         if not server.url:

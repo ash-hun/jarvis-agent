@@ -414,3 +414,41 @@ async def test_inner_thought_does_not_pollute_message_history():
     sent = provider.calls[0]
     assert sent.system_prompt == "기본\n\n블록"
     assert all("블록" not in str(getattr(m, "content", "")) for m in sent.messages)
+
+
+# ── 히스토리 무결성 ──────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_provider_error_leaves_no_empty_assistant_in_context():
+    model = _register(ScriptedProvider([[ErrorEvent(message="down", code="e")]]))
+    context = _context(model)
+
+    result = await run_agent_loop(context, AgentLoopConfig(), Recorder(), _ok_executor)
+
+    assert result is not None and result.error_message == "down"
+    assert context.messages == []
+
+
+@pytest.mark.asyncio
+async def test_max_turns_exhaustion_closes_dangling_tool_calls():
+    """마지막 턴이 tool_use 로 끝나면 에러 tool_result 를 붙여 히스토리를 provider 가 받는 형태로 유지한다."""
+    model = _register(ScriptedProvider([_tool_turn(("c1", "bash", {}))] * 2))
+    context = _context(model)
+
+    await run_agent_loop(context, AgentLoopConfig(max_turns=2), Recorder(), _ok_executor)
+
+    assert [type(m).__name__ for m in context.messages] == [
+        "AssistantMessage", "ToolResultMessage", "AssistantMessage", "ToolResultMessage",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_no_executor_closes_dangling_tool_calls_with_error_results():
+    model = _register(ScriptedProvider([_tool_turn(("c1", "bash", {}), ("c2", "grep", {}))]))
+    context = _context(model)
+
+    await run_agent_loop(context, AgentLoopConfig(), Recorder(), tool_executor=None)
+
+    results = [m for m in context.messages if isinstance(m, ToolResultMessage)]
+    assert [(r.tool_call_id, r.is_error) for r in results] == [("c1", True), ("c2", True)]

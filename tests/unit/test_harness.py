@@ -299,3 +299,41 @@ async def test_tool_executor_is_used_for_tool_calls(faux_model_with_response, re
 
     assert calls and calls[0][1] == "read_file"
     assert calls[0][2] == {"path": "a"}
+
+
+@pytest.mark.asyncio
+async def test_tool_turn_persists_tool_use_and_tool_result(faux_model_with_response, repo):
+    """세션 재개 시 provider 가 tool_use/tool_result 짝을 요구하므로 중간 메시지도 전부 남긴다."""
+    model = faux_model_with_response(
+        "", tool_calls=[{"id": "c1", "name": "read_file", "arguments": {"path": "a"}}]
+    )
+
+    async def executor(tool_call_id, tool_name, params):
+        return ToolResultMessage(
+            tool_call_id=tool_call_id, tool_name=tool_name, content=[TextContent(text="done")]
+        )
+
+    harness = _harness(model, repo, loop_config=AgentLoopConfig(max_turns=2))
+    await harness.run("파일 읽어", tool_executor=executor)
+
+    stored = await repo.get_messages("s1")
+    assert [type(m).__name__ for m in stored] == [
+        "UserMessage", "AssistantMessage", "ToolResultMessage", "AssistantMessage", "ToolResultMessage",
+    ]
+    assert stored[1].tool_calls()[0].id == stored[2].tool_call_id
+
+
+@pytest.mark.asyncio
+async def test_provider_error_persists_only_the_user_message(faux_model, repo):
+    from jarvis.model_layer.registry import get_default_registry
+    from tests.fixtures.faux_provider import FauxProviderFactory
+
+    get_default_registry()._providers["faux"] = FauxProviderFactory.error()
+    spy = SpyMemory()
+    harness = _harness(faux_model, repo, MemoryMiddlewareChain(stages=[spy]))
+
+    result = await harness.run("안녕")
+
+    assert result is not None and result.error_message is not None
+    assert [type(m).__name__ for m in await repo.get_messages("s1")] == ["UserMessage"]
+    assert spy.stored == []

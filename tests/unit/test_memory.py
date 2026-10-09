@@ -1,11 +1,9 @@
 """agent_layer/memory/ — 메모리 미들웨어 체인 테스트."""
 from __future__ import annotations
 
-import pytest
-
 from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.agent_layer.memory.in_memory import WindowMemory
-from jarvis.model_layer.types import AssistantMessage, TextContent, UserMessage, Usage
+from jarvis.model_layer.types import UserMessage
 
 
 def _make_messages(n: int) -> list:

@@ -52,7 +52,7 @@ class BlackboardOrchestrator(BaseOrchestrator):
         )
 
         # 결과를 블랙보드에 기록
-        for node, result in zip(nodes, results):
+        for node, result in zip(nodes, results, strict=False):
             if result.success:
                 await self.blackboard.write(
                     f"result_{node.name}", result.content, author=node.name

@@ -404,7 +404,7 @@ function renderAgenda({ schedules = [], open_loops = [] }) {
 
 async function fetchAgenda() {
   try {
-    const res = await fetch('/api/agenda');
+    const res = await apiFetch('/api/agenda');
     if (res.ok) renderAgenda(await res.json());
   } catch (e) {
     console.warn('agenda fetch failed:', e);
@@ -413,7 +413,7 @@ async function fetchAgenda() {
 
 async function closeOpenLoop(loop, status, li) {
   li.classList.add('leaving');
-  const res = await fetch(`/api/openloops/${encodeURIComponent(loop.id)}`, {
+  const res = await apiFetch(`/api/openloops/${encodeURIComponent(loop.id)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status }),
@@ -427,7 +427,7 @@ async function closeOpenLoop(loop, status, li) {
 }
 
 async function toggleSchedule(name, enabled) {
-  const res = await fetch(`/api/schedules/${encodeURIComponent(name)}`, {
+  const res = await apiFetch(`/api/schedules/${encodeURIComponent(name)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ enabled }),
@@ -489,7 +489,7 @@ const $toolsList   = document.getElementById('tools-list');
 
 async function fetchTools() {
   try {
-    const res = await fetch('/api/tools');
+    const res = await apiFetch('/api/tools');
     if (!res.ok) return;
     const { tools } = await res.json();
     document.getElementById('tools-count').textContent = tools.length;
@@ -611,7 +611,7 @@ function renderSessions(sessions) {
     if (isActive) {
       div.querySelector('.fork-btn')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const res = await fetch(`/api/sessions/${encodeURIComponent(sid)}/branch`, { method: 'POST' });
+        const res = await apiFetch(`/api/sessions/${encodeURIComponent(sid)}/branch`, { method: 'POST' });
         const { session_id } = await res.json();
         connect(session_id);
       });
@@ -621,7 +621,7 @@ function renderSessions(sessions) {
 }
 
 document.getElementById('new-session-btn').addEventListener('click', async () => {
-  const res = await fetch('/api/sessions', { method: 'POST' });
+  const res = await apiFetch('/api/sessions', { method: 'POST' });
   const { session_id } = await res.json();
   connect(session_id);
 });
@@ -629,7 +629,7 @@ document.getElementById('new-session-btn').addEventListener('click', async () =>
 // ── Session history ───────────────────────────────────────────────────────────
 async function fetchAndRenderHistory(sessionId) {
   try {
-    const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/messages`);
+    const res = await apiFetch(`/api/sessions/${encodeURIComponent(sessionId)}/messages`);
     if (!res.ok) return;
     // Guard: if session switched while fetching, discard stale results
     if (_currentSessionId !== sessionId) return;
@@ -689,16 +689,24 @@ function connect(sessionId = _currentSessionId) {
   });
 
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}/ws?session_id=${encodeURIComponent(sessionId)}`);
+  const tokenQs = getToken() ? `&token=${encodeURIComponent(getToken())}` : '';
+  ws = new WebSocket(`${proto}://${location.host}/ws?session_id=${encodeURIComponent(sessionId)}${tokenQs}`);
 
   ws.addEventListener('open', () => {
     $connBanner.classList.add('hidden');
     _reconnectDelay = 1000;
   });
 
-  ws.addEventListener('close', () => {
+  ws.addEventListener('close', (ev) => {
     if (_intentionalClose) { _intentionalClose = false; return; }
     ws = null;
+    if (ev.code === 4401) {
+      // 키 불일치 — 재시도 루프 대신 키를 묻고 바로 다시 연결한다
+      setInputEnabled(false);
+      if (askForToken()) connect(_currentSessionId);
+      else { $connBanner.classList.remove('hidden'); logActivity('접근 키 없음', 'err'); }
+      return;
+    }
     setInputEnabled(false);
     $connBanner.classList.remove('hidden');
     logActivity('link lost — retrying', 'err');
@@ -713,6 +721,25 @@ function connect(sessionId = _currentSessionId) {
     try { msg = JSON.parse(e.data); } catch { return; }
     handleMessage(msg);
   });
+}
+
+// ── 접근 키 ───────────────────────────────────────────────────────────────────
+// 서버에 JARVIS_SECURITY__API_KEYS 가 설정돼 있으면 /ws 와 /api 가 키를 요구한다.
+// 키는 이 브라우저에만 저장되는 편의 값이라 localStorage 에 둔다(없으면 서버가 4401 로 끊고 다시 묻는다).
+const TOKEN_KEY = 'jarvis_token';
+function getToken() { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } }
+function setToken(t) { try { localStorage.setItem(TOKEN_KEY, t); } catch { /* 무시 */ } }
+function apiFetch(path, opts = {}) {
+  const headers = { ...(opts.headers || {}) };
+  const t = getToken();
+  if (t) headers['Authorization'] = `Bearer ${t}`;
+  return fetch(path, { ...opts, headers });
+}
+function askForToken() {
+  const t = window.prompt('접근 키를 입력하세요 (JARVIS_SECURITY__API_KEYS)');
+  if (!t || !t.trim()) return false;
+  setToken(t.trim());
+  return true;
 }
 
 function send(obj) {

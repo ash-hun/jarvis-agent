@@ -4,6 +4,7 @@ import asyncio
 import io
 import wave
 from functools import partial
+from typing import Any
 
 
 class SupertonicTTSProvider:
@@ -31,14 +32,13 @@ class SupertonicTTSProvider:
         return await loop.run_in_executor(None, partial(self._synthesize_sync, text, lang))
 
     def _synthesize_sync(self, text: str, lang: str) -> bytes:
-        import numpy as np  # type: ignore[import]
 
-        audio: np.ndarray = self._tts.tts(text, language=lang)
+        audio = self._tts.tts(text, language=lang)
         sample_rate: int = getattr(self._tts, "sample_rate", 22050)
         return _array_to_wav(audio, sample_rate)
 
 
-def _array_to_wav(audio: "np.ndarray", sample_rate: int) -> bytes:  # type: ignore[name-defined]
+def _array_to_wav(audio: Any, sample_rate: int) -> bytes:
     import numpy as np
 
     audio_int16 = (np.clip(audio, -1.0, 1.0) * 32767).astype(np.int16)

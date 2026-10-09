@@ -6,7 +6,6 @@ import pytest
 from jarvis.core.tools.registry import ToolRegistry
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
-
 # ── ToolRegistry 기본 동작 ─────────────────────────────────────────────────────
 
 class MockTool:
@@ -56,11 +55,11 @@ class TestToolRegistry:
         registry = ToolRegistry()
 
         class T1:
-            name = "t"; description = "v1"; parameters = {}; execution_mode = "parallel"
+            name, description, parameters, execution_mode = "t", "v1", {}, "parallel"
             async def execute(self, *a, **k): ...
 
         class T2:
-            name = "t"; description = "v2"; parameters = {}; execution_mode = "parallel"
+            name, description, parameters, execution_mode = "t", "v2", {}, "parallel"
             async def execute(self, *a, **k): ...
 
         registry.register(T1())

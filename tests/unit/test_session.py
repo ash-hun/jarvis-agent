@@ -4,10 +4,7 @@ from __future__ import annotations
 import pytest
 
 from jarvis.agent_layer.types import (
-    AgentEndEvent,
     AgentEvent,
-    AgentStartEvent,
-    MessageUpdateEvent,
 )
 from jarvis.core.policy.pipeline import ValidationError
 from jarvis.model_layer.types import TextContent, ToolResultMessage
@@ -63,7 +60,6 @@ class TestAgentSessionPrompt:
         assert result is not None
 
     async def test_tool_execution_with_policy(self, agent_session, faux_model_with_response):
-        from jarvis.core.tools.registry import ToolRegistry
 
         call_log = []
 
@@ -101,7 +97,7 @@ class TestAgentSessionPrompt:
             agent_session.abort()
             return await task
 
-        result = await prompt_and_abort()
+        await prompt_and_abort()
 
 
 class TestAgentSessionSession:
@@ -123,3 +119,51 @@ class TestAgentSessionSession:
 
         messages = await agent_session._harness._session_repo.get_messages("test-session")
         assert len(messages) >= 4
+
+
+# ── 동시 프롬프트 거부 ─────────────────────────────────────────────────────────
+
+
+class TestConcurrentPromptIsRejected:
+    async def test_second_prompt_is_rejected_while_first_runs(self, agent_session, faux_model_with_response):
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        from jarvis.core.session import SessionBusy
+
+        faux_model_with_response("ok")
+        gate = asyncio.Event()
+
+        async def slow_run(**_kw):
+            await gate.wait()
+            return None
+
+        agent_session._harness.run = AsyncMock(side_effect=slow_run)
+        first = asyncio.create_task(agent_session.prompt("첫 요청"))
+        await asyncio.sleep(0)
+
+        assert agent_session.is_running is True
+        with pytest.raises(SessionBusy):
+            await agent_session.prompt("두 번째 요청")
+
+        gate.set()
+        await first
+        assert agent_session.is_running is False
+        # 첫 요청이 끝나면 다시 받는다.
+        await agent_session.prompt("세 번째 요청")
+
+    async def test_failure_before_main_loop_releases_the_session(self, agent_session, faux_model_with_response):
+        faux_model_with_response("ok")
+        with pytest.raises(ValidationError):
+            await agent_session.prompt("")
+        assert agent_session.is_running is False
+        assert (await agent_session.prompt("정상 요청")) is not None
+
+    async def test_main_loop_exception_releases_the_session(self, agent_session, faux_model_with_response):
+        from unittest.mock import AsyncMock
+
+        faux_model_with_response("ok")
+        agent_session._harness.run = AsyncMock(side_effect=RuntimeError("boom"))
+        with pytest.raises(RuntimeError):
+            await agent_session.prompt("터질 요청")
+        assert agent_session.is_running is False

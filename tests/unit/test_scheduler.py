@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import sys
 import textwrap
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -520,13 +519,29 @@ class TestSchedulerOnceFiring:
         payload = svc._notify.await_args[0][0]
         assert payload["once"] is False and payload["text"] == "브리핑 내용"
 
+    async def test_cron_slot_fires_once_across_ticks(self):
+        import asyncio
+        from datetime import datetime, timedelta
+
+        croniter = pytest.importorskip("croniter").croniter
+        slot = datetime(2026, 9, 24, 9, 0, 0)
+        svc = self._svc([ScheduledTask(name="brief", schedule="0 9 * * *", prompt="브리핑")])
+        with patch.object(svc, "_execute_task", AsyncMock(return_value="x")):
+            await asyncio.gather(*svc._tick(slot + timedelta(seconds=5), croniter))
+            await asyncio.gather(*svc._tick(slot + timedelta(seconds=15), croniter))
+            await asyncio.gather(*svc._tick(slot + timedelta(seconds=70), croniter))
+        assert svc._notify.await_count == 1
+
     def test_user_authored_once_file_is_disabled_not_deleted(self, tmp_path):
         import yaml
 
         from jarvis.core.scheduler.loader import load_tasks, remove_task_file
 
         path = tmp_path / "mine.yaml"
-        path.write_text('- name: a\n  prompt: p\n  run_at: "2026-09-24T19:00:00"\n- name: b\n  schedule: "0 9 * * *"\n  prompt: q\n')
+        path.write_text(
+            '- name: a\n  prompt: p\n  run_at: "2026-09-24T19:00:00"\n'
+            '- name: b\n  schedule: "0 9 * * *"\n  prompt: q\n'
+        )
         task = load_tasks(str(tmp_path))[0]
         remove_task_file(task, str(tmp_path))
         items = yaml.safe_load(path.read_text())

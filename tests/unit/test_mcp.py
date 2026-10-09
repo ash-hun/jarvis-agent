@@ -5,8 +5,6 @@ import asyncio
 import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 
 class TestMCPToolWrapper:
     def _make_wrapper(self):
@@ -50,8 +48,8 @@ class TestMCPToolWrapper:
 
 class TestMCPToolLoader:
     def _make_loader(self):
-        from jarvis.core.tools.registry import ToolRegistry
         from jarvis.core.tools.mcp_loader import MCPToolLoader
+        from jarvis.core.tools.registry import ToolRegistry
 
         registry = ToolRegistry()
         return MCPToolLoader(registry), registry
@@ -77,7 +75,11 @@ class TestMCPToolLoader:
 
         mock_tools = [
             {"name": "list-files", "description": "List files", "inputSchema": {}},
-            {"name": "read-file", "description": "Read a file", "inputSchema": {"type": "object", "properties": {"path": {"type": "string"}}}},
+            {
+                "name": "read-file",
+                "description": "Read a file",
+                "inputSchema": {"type": "object", "properties": {"path": {"type": "string"}}},
+            },
         ]
 
         with patch("jarvis.core.tools.mcp_loader._list_mcp_tools", new_callable=AsyncMock) as mock_list:

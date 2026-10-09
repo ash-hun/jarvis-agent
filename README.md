@@ -509,6 +509,7 @@ JARVIS_LLM__TEMPERATURE=0.7
 JARVIS_MEMORY__BACKEND=in_memory      # in_memory | postgres
 JARVIS_MEMORY__WINDOW_SIZE=20
 JARVIS_MEMORY__COMPACTION_THRESHOLD=30
+JARVIS_MEMORY__CONSOLIDATE_ON_IDLE=true  # 조용할 때 요약에서 사실 추출 (daemon_trigger 가 idle 또는 both 일 때)
 
 # ── 세션 영속성 ──────────────────────────────────────────────────────────────
 JARVIS_SESSION__BACKEND=jsonl         # jsonl | postgres

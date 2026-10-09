@@ -176,10 +176,18 @@ class JarvisTUI(App[None]):
         pcfg = self._ctx.settings.proactive
         if pcfg.daemon_enabled:
             from jarvis.core.proactive import ProactivityDaemon
+            from jarvis.memory.consolidation.idle import consolidation_targets, should_consolidate_on_idle
+
+            memory = self._ctx.memory
+            consolidate = memory is not None and should_consolidate_on_idle(self._ctx.settings)
 
             # provider는 매 틱 self._session을 다시 읽어 세션 전환을 자동 추종.
+            def targets() -> list:
+                reflects = [self._session.reflect]
+                return reflects + (consolidation_targets(memory, [self._session]) if consolidate else [])
+
             self._proactive_daemon = ProactivityDaemon(
-                lambda: [self._session.reflect],
+                targets,
                 interval_sec=pcfg.daemon_interval_sec,
                 trigger=self._ctx.reflection_trigger,
             )

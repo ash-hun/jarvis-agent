@@ -281,3 +281,26 @@ class TestPgvector:
         await ltm.remember("거주지: 부산", source="explicit", scope=scope)
         assert ltm.store.vector_enabled is False
         assert [i.content for i in await ltm.recall("거주지", scope=scope)] == ["거주지: 부산"]
+
+
+class TestLegacyStmCleanup:
+    async def test_report_and_drop_are_idempotent(self, postgres_dsn):
+        import asyncpg
+
+        from jarvis.memory.working.postgres import PostgresWorkingStore
+
+        conn = await asyncpg.connect(postgres_dsn)
+        try:
+            await conn.execute(
+                "CREATE TABLE IF NOT EXISTS jarvis_stm_messages (id SERIAL PRIMARY KEY, session_id TEXT)"
+            )
+            await conn.execute("INSERT INTO jarvis_stm_messages (session_id) VALUES ('a'), ('b')")
+        finally:
+            await conn.close()
+
+        store = PostgresWorkingStore(dsn=postgres_dsn)
+        assert await store.legacy_stm_rows() == 2
+        await store.drop_legacy_stm()
+        await store.drop_legacy_stm()  # 두 번째도 에러 없이
+        assert await store.legacy_stm_rows() is None
+        await store.close()

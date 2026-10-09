@@ -454,6 +454,14 @@ def _build_infra(settings: JarvisSettings) -> tuple[AppContext, dict[str, Any]]:
         make_compact_handler(model_config, session_repo, memory),
         "현재 세션을 요약해 장기 기억에 저장",
     )
+    from jarvis.core.slash.cleanup_cmd import make_cleanup_handler
+
+    per_agent_sessions = {f"agent_{d.name}" for d in _agent_defs if d.memory.stm == "per_agent"}
+    ctx.dispatcher.register(
+        "cleanup",
+        make_cleanup_handler(session_repo, memory, keep_agent_sessions=per_agent_sessions),
+        "옛 데이터 현황과 삭제 (agents | stm, confirm 필요)",
+    )
     if orchestration is not None:
         from jarvis.core.slash.orchestrate_cmd import make_orchestrate_handler
 

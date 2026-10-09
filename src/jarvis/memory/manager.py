@@ -192,6 +192,16 @@ class MemoryManager:
     async def clear_task(self, root_task_id: str, scope: MemoryScope | None = None) -> None:
         await self._working.clear(task_scope(self.resolve_scope(scope).user_id, root_task_id))
 
+    async def legacy_stm_rows(self) -> int | None:
+        """옛 STM 테이블 행 수. 저장소가 모르면(in-memory) None."""
+        probe = getattr(self._working, "legacy_stm_rows", None)
+        return await probe() if callable(probe) else None
+
+    async def drop_legacy_stm(self) -> None:
+        drop = getattr(self._working, "drop_legacy_stm", None)
+        if callable(drop):
+            await drop()
+
     async def add_note(self, text: str, scope: MemoryScope | None = None) -> None:
         resolved = self.resolve_scope(scope)
         state = await self._working.load(resolved)

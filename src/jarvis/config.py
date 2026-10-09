@@ -57,8 +57,6 @@ class SecurityConfig(BaseSettings):
     )
     require_approval_for: list[str] = Field(default_factory=lambda: ["bash", "write_file", "edit_file"])
     input_max_length: int = 10_000
-    jwt_secret: SecretStr | None = None
-    jwt_algorithm: str = "HS256"
 
 
 class MemoryConfig(BaseSettings):

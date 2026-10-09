@@ -50,36 +50,3 @@ class ApiKeyAuthenticator:
             roles=self._keys[api_key],
             token=api_key,
         )
-
-
-class JWTAuthenticator:
-    """JWT 토큰 기반 인증. credentials["token"] 검증."""
-
-    def __init__(self, secret: str, algorithm: str = "HS256") -> None:
-        self._secret = secret
-        self._algorithm = algorithm
-
-    async def authenticate(
-        self,
-        validated: ValidatedInput,
-        credentials: dict,
-    ) -> AuthContext:
-        try:
-            from jose import jwt
-        except ImportError as exc:
-            raise ImportError("python-jose is required: pip install python-jose[cryptography]") from exc
-
-        token = credentials.get("token", "")
-        if not token:
-            raise AuthError("JWT token is required")
-
-        try:
-            payload = jwt.decode(token, self._secret, algorithms=[self._algorithm])
-        except Exception as exc:
-            raise AuthError(f"Invalid token: {exc}") from exc
-
-        return AuthContext(
-            user_id=payload.get("sub", "unknown"),
-            roles=frozenset(payload.get("roles", ["user"])),
-            token=token,
-        )

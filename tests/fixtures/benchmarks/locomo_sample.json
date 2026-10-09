@@ -1,0 +1,22 @@
+[
+  {
+    "sample_id": "conv-1",
+    "conversation": {
+      "speaker_a": "Caroline",
+      "speaker_b": "Melanie",
+      "session_1_date_time": "1:56 pm on 8 May, 2023",
+      "session_1": [
+        {"speaker": "Caroline", "dia_id": "D1:1", "text": "I moved to Busan last year. 거주지: 부산"},
+        {"speaker": "Melanie", "dia_id": "D1:2", "text": "How do you like it?"}
+      ],
+      "session_2_date_time": "3:00 pm on 9 May, 2023",
+      "session_2": [
+        {"speaker": "Caroline", "dia_id": "D2:1", "text": "Nice weather today", "blip_caption": "a sunny park"}
+      ]
+    },
+    "qa": [
+      {"question": "Where does Caroline live? 사는 곳", "answer": "Busan", "evidence": ["D1:1"], "category": 4},
+      {"question": "What is Caroline's blood type?", "answer": "Not mentioned", "evidence": [], "category": 5}
+    ]
+  }
+]

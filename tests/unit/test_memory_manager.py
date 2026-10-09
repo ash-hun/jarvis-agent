@@ -2,8 +2,8 @@
 
 import pytest
 
-from jarvis.agent_layer.memory.long_term import LongTermMemory
 from jarvis.memory import WRITE_RULES, MemoryKind, MemoryManager, MemoryScope, current_scope
+from jarvis.memory.middleware import MemoryMiddlewareAdapter
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.stores.protocol import ItemStore
 from jarvis.model_layer.types import UserMessage
@@ -116,7 +116,7 @@ async def test_clear_with_scope_removes_only_that_owner(memory):
 async def test_long_term_middleware_scopes_by_context(memory):
     await memory.remember("선호 음료: 커피", source="explicit", scope=U1_MAIN)
     await memory.remember("세션 요약: 예산 논의", source="auto_summary", scope=U1_MAIN)
-    ltm = LongTermMemory(memory, inject_limit=5)
+    ltm = MemoryMiddlewareAdapter(MemoryManager(memory.store, inject_limit=5))
     msgs = [UserMessage(content="커피 그리고 예산 얘기", timestamp=0)]
 
     as_main = await ltm.transform(msgs, {"user_id": "u1", "agent_id": "main", "session_id": "s9"})
@@ -131,6 +131,6 @@ async def test_long_term_middleware_scopes_by_context(memory):
 
 async def test_middleware_without_user_in_context_falls_back_to_local(memory):
     await memory.remember("로컬 사용자 기억", source="explicit", scope=MemoryScope(user_id="local"))
-    ltm = LongTermMemory(memory)
+    ltm = MemoryMiddlewareAdapter(memory)
     out = await ltm.transform([UserMessage(content="사용자 기억", timestamp=0)], {"session_id": "s"})
     assert "로컬 사용자 기억" in out[0].content

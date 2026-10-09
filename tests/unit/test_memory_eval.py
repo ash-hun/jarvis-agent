@@ -7,7 +7,16 @@ import pytest
 from jarvis.memory import MemoryKind, MemoryScope
 from jarvis.memory.eval.metrics import judge
 from jarvis.memory.eval.probe import count_llm_calls
-from jarvis.memory.eval.runner import DATASETS_DIR, SUITES, format_report, load_suites, run
+from jarvis.memory.eval.runner import (
+    DATASETS_DIR,
+    STORE_SUITES,
+    SUITES,
+    format_report,
+    load_suites,
+    load_working_suites,
+    run,
+    run_working,
+)
 from jarvis.memory.eval.schema import EvalCase, Expect, ScopeSpec, SetupStep, load_cases
 from jarvis.memory.eval.target import StoreTarget
 
@@ -44,9 +53,11 @@ def test_working_set_requires_exact_match():
 
 
 def test_shipped_datasets_parse():
-    for suite in SUITES:
+    for suite in STORE_SUITES:
         cases = load_cases(DATASETS_DIR / f"{suite}.jsonl")
         assert cases and all(c.suite == suite for c in cases)
+    assert load_working_suites(["working"])
+    assert set(SUITES) == {"isolation", "semantic", "working"}
 
 
 def _case(**expect) -> EvalCase:
@@ -101,7 +112,7 @@ class ScopedTarget:
 
 @pytest.mark.memory_eval
 async def test_isolation_and_semantic_suites_pass_with_scope_aware_target():
-    report = await run(load_suites(list(SUITES)), ScopedTarget())
+    report = await run(load_suites(list(STORE_SUITES)), ScopedTarget())
     assert report.all_passed, format_report(report, verbose=True)
     assert report.suites["isolation"].leak_rate == 0.0
     assert report.suites["semantic"].recall == 1.0
@@ -146,3 +157,13 @@ async def test_count_llm_calls_wraps_provider(faux_model_with_response):
 
 def test_memory_kind_values():
     assert {k.value for k in MemoryKind} == {"episodic", "semantic", "procedural"}
+
+
+# ── 작업 기억 스위트 ─────────────────────────────────────────────────────────
+
+
+@pytest.mark.memory_eval
+async def test_working_suite_passes():
+    report = await run_working(load_working_suites(["working"]))
+    assert report.all_passed, format_report(report, verbose=True)
+    assert report.suites["working"].total >= 5

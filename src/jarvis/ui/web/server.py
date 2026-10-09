@@ -121,14 +121,14 @@ class SessionManager:
         items.sort(key=lambda kv: self._last_activity.get(kv[0], float("-inf")), reverse=True)
         return [session for _, session in items]
 
-    async def save_all_sessions(self, stm: Any, memory: Any, model: Any) -> None:
+    async def save_all_sessions(self, session_repo: Any, memory: Any, model: Any) -> None:
         """서버 종료 시 모든 활성 세션의 에피소딕 요약을 각 세션의 범위로 저장한다."""
-        from jarvis.agent_layer.memory.episodic import EpisodicSummarizer
+        from jarvis.memory.consolidation.episodic import EpisodicSummarizer
 
         summarizer = EpisodicSummarizer(model=model, memory=memory)
         for session_id, session in list(self._sessions.items()):
             try:
-                msgs = await stm.load(session._session_id)
+                msgs = await session_repo.get_messages(session._session_id)
                 if not msgs:
                     continue
                 scope = getattr(session, "memory_scope", None)
@@ -198,12 +198,11 @@ def create_app(
             await proactive_daemon.stop()
         if ctx.external_poller is not None:
             await ctx.external_poller.stop()
-        stm = base_extra.get("stm_backend")
         memory = base_extra.get("memory")
         model = base_extra.get("model_config")
-        if stm is None or memory is None or model is None:
+        if memory is None or model is None:
             return
-        await manager.save_all_sessions(stm, memory, model)
+        await manager.save_all_sessions(ctx.session_repo, memory, model)
 
     # ── REST: 세션 목록 / 생성 / 히스토리 ────────────────────────────────────
 

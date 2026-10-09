@@ -19,9 +19,9 @@ from jarvis.agent_layer.thought.engine import InnerThoughtEngine
 from jarvis.agent_layer.thought.log import (
     THOUGHT_SOURCE,
     LTMThoughtSink,
-    STMThoughtSink,
     ThoughtLog,
     ThoughtSink,
+    WorkingNotesSink,
 )
 from jarvis.agent_layer.thought.prompt import (
     DEFAULT_TEMPLATE,
@@ -42,7 +42,7 @@ __all__ = [
     "LTMThoughtSink",
     "ProactiveAction",
     "RecallFn",
-    "STMThoughtSink",
+    "WorkingNotesSink",
     "THOUGHT_SOURCE",
     "ThoughtComposer",
     "ThoughtEngine",

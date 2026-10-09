@@ -80,9 +80,9 @@ JARVIS_LLM__MODEL=llama3.2
 
 | 계층 | 설명 |
 |------|------|
-| **STM (Short-Term)** | 슬라이딩 윈도우 + LLM 압축 — 컨텍스트 초과 방지 |
-| **LTM (Long-Term)** | PostgreSQL 영속화 — 세션 간 기억 유지 |
-| **Episodic** | 세션 종료 시 자동 요약 → LTM 저장 |
+| **작업 기억 (STM)** | 세션 범위. 컨텍스트 창, 임계 초과 시 LLM 요약(요약은 저장되어 재요약 없음), 회상 항목 되뇌기 |
+| **장기 기억 (LTM)** | PostgreSQL 영속화. 사용자, 에이전트, 세션 범위와 가시성으로 격리 |
+| **Episodic** | 세션 종료 시 자동 요약 → 그 세션 범위의 일화로 저장 |
 
 ```bash
 JARVIS_MEMORY__BACKEND=postgres    # in_memory | postgres

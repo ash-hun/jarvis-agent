@@ -1,4 +1,4 @@
-"""PostgresSTMBackend + PostgresItemStore 통합 테스트.
+"""PostgresWorkingStore + PostgresItemStore 통합 테스트.
 
 testcontainers로 실제 PostgreSQL 컨테이너를 띄워 검증한다.
 Docker가 없거나 testcontainers/asyncpg가 설치되지 않으면 자동 skip.
@@ -27,10 +27,10 @@ def postgres_dsn():
 
 
 @pytest.fixture
-async def stm(postgres_dsn: str):
-    from jarvis.agent_layer.memory.backends.postgres_stm import PostgresSTMBackend
+async def working(postgres_dsn: str):
+    from jarvis.memory.working.postgres import PostgresWorkingStore
 
-    b = PostgresSTMBackend(dsn=postgres_dsn)
+    b = PostgresWorkingStore(dsn=postgres_dsn)
     yield b
     await b.close()
 
@@ -63,44 +63,64 @@ def _asst_msg(text: str):
     )
 
 
-# ── PostgresSTMBackend ────────────────────────────────────────────────────────
+# ── PostgresWorkingStore ──────────────────────────────────────────────────────
 
-class TestPostgresSTM:
-    async def test_append_and_load(self, stm):
-        await stm.append("s1", _user_msg("hello"))
-        await stm.append("s1", _asst_msg("hi there"))
+class TestPostgresWorkingStore:
+    async def test_load_empty(self, working):
+        from jarvis.memory import MemoryScope
 
-        msgs = await stm.load("s1")
-        assert len(msgs) == 2
-        assert msgs[0].content == "hello"
-        assert msgs[1].content[0].text == "hi there"
+        state = await working.load(MemoryScope(user_id="u1", session_id="nothing-here"))
+        assert state.summary is None and state.summary_covers == 0 and state.notes == []
 
-    async def test_sessions_are_isolated(self, stm):
-        await stm.append("iso-a", _user_msg("session a"))
-        await stm.append("iso-b", _user_msg("session b"))
+    async def test_save_load_and_upsert(self, working):
+        from jarvis.memory import MemoryScope
+        from jarvis.memory.working import WorkingState
 
-        assert len(await stm.load("iso-a")) == 1
-        assert (await stm.load("iso-a"))[0].content == "session a"
-        assert len(await stm.load("iso-b")) == 1
+        scope = MemoryScope(user_id="u1", agent_id="main", session_id="w1")
+        state = WorkingState(scope=scope, summary="첫 요약", summary_covers=3, rehearsal={"i": 1}, notes=["n"])
+        await working.save(state)
+        await working.save(state)  # 같은 키 두 번: 행 하나, 같은 상태
+        loaded = await working.load(scope)
+        assert (loaded.summary, loaded.summary_covers) == ("첫 요약", 3)
+        assert (loaded.rehearsal, loaded.notes) == ({"i": 1}, ["n"])
 
-    async def test_clear(self, stm):
-        await stm.append("clr", _user_msg("msg"))
-        await stm.clear("clr")
-        assert await stm.load("clr") == []
+        state.summary, state.summary_covers = "둘째 요약", 7
+        await working.save(state)
+        assert (await working.load(scope)).summary == "둘째 요약"
 
-    async def test_load_empty(self, stm):
-        assert await stm.load("nonexistent-stm-session") == []
+    async def test_sessions_and_users_are_separate_rows(self, working):
+        from jarvis.memory import MemoryScope
+        from jarvis.memory.working import WorkingState
+
+        a = MemoryScope(user_id="u1", session_id="iso")
+        b = MemoryScope(user_id="u2", session_id="iso")
+        await working.save(WorkingState(scope=a, summary="A"))
+        await working.save(WorkingState(scope=b, summary="B"))
+        assert (await working.load(a)).summary == "A"
+        assert (await working.load(b)).summary == "B"
+        assert (await working.load(a.with_session("other"))).summary is None
+
+    async def test_clear(self, working):
+        from jarvis.memory import MemoryScope
+        from jarvis.memory.working import WorkingState
+
+        scope = MemoryScope(user_id="u1", session_id="clr")
+        await working.save(WorkingState(scope=scope, summary="x"))
+        await working.clear(scope)
+        assert (await working.load(scope)).summary is None
 
     async def test_close_and_reopen(self, postgres_dsn):
-        from jarvis.agent_layer.memory.backends.postgres_stm import PostgresSTMBackend
+        from jarvis.memory import MemoryScope
+        from jarvis.memory.working import WorkingState
+        from jarvis.memory.working.postgres import PostgresWorkingStore
 
-        b = PostgresSTMBackend(dsn=postgres_dsn)
-        await b.append("reopen", _user_msg("before close"))
+        scope = MemoryScope(user_id="u1", session_id="reopen")
+        b = PostgresWorkingStore(dsn=postgres_dsn)
+        await b.save(WorkingState(scope=scope, summary="before close", summary_covers=2))
         await b.close()
 
-        b2 = PostgresSTMBackend(dsn=postgres_dsn)
-        msgs = await b2.load("reopen")
-        assert len(msgs) == 1
+        b2 = PostgresWorkingStore(dsn=postgres_dsn)
+        assert (await b2.load(scope)).summary == "before close"
         await b2.close()
 
 

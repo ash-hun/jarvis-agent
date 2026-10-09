@@ -54,7 +54,7 @@ class VectorMemoryAdapter:
 
     async def retrieve(self, query: str, context: dict[str, Any], limit: int = 10) -> list[Message]:
         await self._ensure_init()
-        from jarvis.agent_layer.memory.backends.postgres_stm import _deserialize
+        from jarvis.agent_layer.session.protocol import deserialize_message
 
         where = {"session_id": context.get("session_id", "default")}
         query_kwargs: dict[str, Any] = {"query_texts": [query], "n_results": limit, "where": where}
@@ -66,7 +66,7 @@ class VectorMemoryAdapter:
         for doc, meta in zip(results["documents"][0], results["metadatas"][0], strict=False):
             import json
             data = json.loads(doc) if isinstance(doc, str) else doc
-            msg = _deserialize(meta.get("role", "user"), data)
+            msg = deserialize_message({**data, "role": meta.get("role", "user")})
             if msg:
                 messages.append(msg)
         return messages

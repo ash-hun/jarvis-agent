@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class MCPServerConfig(BaseModel):
-    """MCP 서버 연결 설정. BaseModel (list 항목이라 BaseSettings 불필요)."""
+    """MCP 서버 연결 설정."""
 
     name: str
     transport: Literal["stdio", "http"] = "stdio"
@@ -19,14 +19,14 @@ class MCPServerConfig(BaseModel):
     auth_token: SecretStr | None = None  # http transport용 Bearer 토큰 (Authorization 헤더로 변환)
 
 
-class WebSearchConfig(BaseSettings):
-    model_config = SettingsConfigDict(extra="ignore")
+class WebSearchConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
 
     brave_api_key: SecretStr | None = None  # 미설정 시 DuckDuckGo fallback
 
 
-class LLMProviderConfig(BaseSettings):
-    model_config = SettingsConfigDict(extra="ignore")
+class LLMProviderConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
 
     provider: str = "anthropic"
     model: str = "claude-sonnet-4-5"
@@ -44,8 +44,8 @@ class ApiUser(BaseModel):
     roles: list[str] = Field(default_factory=lambda: ["user"])
 
 
-class SecurityConfig(BaseSettings):
-    model_config = SettingsConfigDict(extra="ignore")
+class SecurityConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
 
     require_auth: bool = True
     # Web HUD 접근 키 → 사용자. 비어 있으면 web 인증을 끈다(로컬 단독 사용). TUI 는 항상 NoAuth.
@@ -61,8 +61,8 @@ class SecurityConfig(BaseSettings):
     approvals_path: str = "~/.jarvis/approvals.yaml"
 
 
-class MemoryConfig(BaseSettings):
-    model_config = SettingsConfigDict(extra="ignore")
+class MemoryConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
 
     backend: Literal["in_memory", "postgres"] = "postgres"
     postgres_dsn: str | None = None  # None이면 session.postgres_dsn fallback
@@ -84,16 +84,16 @@ class MemoryConfig(BaseSettings):
     min_similarity: float = 0.3  # 이 코사인 미만은 의미 검색 후보에서 제외
 
 
-class SessionConfig(BaseSettings):
-    model_config = SettingsConfigDict(extra="ignore")
+class SessionConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
 
     persistence_backend: Literal["jsonl", "postgres"] = "jsonl"
     sessions_dir: str = "~/.jarvis/sessions"
     postgres_dsn: str | None = None
 
 
-class UIConfig(BaseSettings):
-    model_config = SettingsConfigDict(extra="ignore")
+class UIConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
 
     mode: Literal["tui", "web"] = "tui"
     theme: str = "dark"
@@ -114,22 +114,22 @@ class BrandPalette(BaseModel):
     )
 
 
-class BrandConfig(BaseSettings):
+class BrandConfig(BaseModel):
     """에이전트 정체성 — 워드마크·명언·색감. 에이전트마다 다르게 둔다.
 
     지금은 env(JARVIS_BRAND__*)로 한 에이전트분을 읽는다. 한 서버에 여러 에이전트를
     띄우게 되면 에이전트별 파일에서 이 모델을 채우는 로더만 추가하면 된다.
     """
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore")
 
     name: str = "J.A.R.V.I.S."
     quote: str = "Proof the Heart"
     palette: BrandPalette = Field(default_factory=BrandPalette)
 
 
-class PluginConfig(BaseSettings):
-    model_config = SettingsConfigDict(extra="ignore")
+class PluginConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
 
     plugins_dir: str = "~/.jarvis/plugins"
     skills_dir: str = "~/.jarvis/skills"
@@ -137,15 +137,15 @@ class PluginConfig(BaseSettings):
     watch_files: bool = True
 
 
-class SchedulerConfig(BaseSettings):
-    model_config = SettingsConfigDict(extra="ignore")
+class SchedulerConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
 
     enabled: bool = True
     schedules_dir: str = "~/.jarvis/schedules"
 
 
-class AgentConfig(BaseSettings):
-    model_config = SettingsConfigDict(extra="ignore")
+class AgentConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
 
     enabled: bool = True
     agents_dir: str = "~/.jarvis/agents"
@@ -153,10 +153,10 @@ class AgentConfig(BaseSettings):
     supervisor_prompt: str = ""
 
 
-class ThoughtConfig(BaseSettings):
+class ThoughtConfig(BaseModel):
     """Inner Thought Engine 설정 (Tier 0). 기본 on — JARVIS_THOUGHT__ENABLED=false로 끈다."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore")
 
     enabled: bool = True
     model: str = ""  # 비우면 메인 LLM 모델, 지정 시 별도 모델
@@ -175,20 +175,20 @@ class ThoughtConfig(BaseSettings):
     composer: str = "default"  # default | interpretation_only — 메인 프롬프트 조립 전략
 
 
-class OpenLoopConfig(BaseSettings):
+class OpenLoopConfig(BaseModel):
     """Open-loop 추적 영속화 설정 (Tier 2)."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore")
 
     backend: Literal["jsonl", "in_memory", "postgres"] = "jsonl"
     path: str = "~/.jarvis/openloops.jsonl"  # jsonl 백엔드 경로
     postgres_dsn: str | None = None  # None이면 session/memory DSN fallback
 
 
-class UserModelConfig(BaseSettings):
+class UserModelConfig(BaseModel):
     """User Model 설정 (Tier 3 D1). ThoughtConfig.enabled가 선행 조건."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore")
 
     enabled: bool = True
     backend: Literal["jsonl", "in_memory"] = "jsonl"
@@ -196,10 +196,10 @@ class UserModelConfig(BaseSettings):
     build_source_limit: int = 30  # /usermodel build 시 증류에 쓸 최근 기억 개수
 
 
-class ProactiveConfig(BaseSettings):
+class ProactiveConfig(BaseModel):
     """Proactive 설정 (Tier 1). 기본 on. ThoughtConfig.enabled가 선행 조건."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore")
 
     enabled: bool = True  # Dual-Channel(요청 시 filler+백그라운드) 마스터 스위치
     confidence_threshold: float = 0.6  # daemon 발화 게이팅 임계치
@@ -211,10 +211,10 @@ class ProactiveConfig(BaseSettings):
     daemon_idle_sec: int = 180  # idle 트리거 — 이만큼 조용하면 1회 성찰
 
 
-class ExternalTriggerConfig(BaseSettings):
+class ExternalTriggerConfig(BaseModel):
     """외부 트리거 설정 (Proactive Phase 3). 소스 YAML이 없으면 전 구간 no-op."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore")
 
     enabled: bool = True
     sources_dir: str = "~/.jarvis/external_sources"
@@ -228,27 +228,27 @@ class ExternalTriggerConfig(BaseSettings):
     store_detail_in_log: bool = False  # 사고 로그(LTM)에 원문 detail 저장 여부
 
 
-class ProcedureConfig(BaseSettings):
+class ProcedureConfig(BaseModel):
     """절차 학습. 도구를 여러 번 써서 성공한 작업을 세션 종료 때 절차 초안으로 남기고, 승인하면 도구가 된다."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore")
 
     enabled: bool = True
     dir: str = "~/.jarvis/procedures"
     min_tool_calls: int = 3  # 이보다 적게 도구를 쓴 작업은 절차로 볼 가치가 없다
 
 
-class NotifyConfig(BaseSettings):
+class NotifyConfig(BaseModel):
     """외부 알림 채널. 열린 UI 가 없어도 스케줄 결과와 proactive 발화가 닿는 곳."""
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore")
 
     slack_webhook_url: SecretStr | None = None  # 비우면 외부 알림 없음
     kinds: list[str] = Field(default_factory=lambda: ["reminder", "proactive"])  # reminder | proactive
 
 
-class VoiceConfig(BaseSettings):
-    model_config = SettingsConfigDict(extra="ignore")
+class VoiceConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
 
     stt_provider: str = "browser"    # browser | whisper
     tts_provider: str = "browser"    # browser | supertonic

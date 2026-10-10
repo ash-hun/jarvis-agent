@@ -105,3 +105,16 @@ def test_api_keys_parse_from_env_json(monkeypatch):
 def test_api_keys_default_empty_means_web_auth_off(monkeypatch):
     monkeypatch.delenv("JARVIS_SECURITY__API_KEYS", raising=False)
     assert JarvisSettings().security.api_keys == {}
+
+
+def test_nested_config_ignores_bare_env(monkeypatch):
+    # 중첩 설정이 BaseSettings 이면 자체 생성 시 PATH 같은 bare 환경변수를 필드로 읽는다.
+    monkeypatch.setenv("PATH", "/bogus/bin")
+    monkeypatch.setenv("MODEL", "bogus-model")
+    monkeypatch.delenv("JARVIS_OPENLOOP__PATH", raising=False)
+    monkeypatch.delenv("JARVIS_USER_MODEL__PATH", raising=False)
+    monkeypatch.delenv("JARVIS_LLM__MODEL", raising=False)
+    settings = JarvisSettings()
+    assert settings.openloop.path == "~/.jarvis/openloops.jsonl"
+    assert settings.user_model.path != "/bogus/bin"
+    assert settings.llm.model != "bogus-model"

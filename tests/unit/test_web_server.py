@@ -137,16 +137,32 @@ def test_index_links_pwa_assets_and_registers_worker(client):
     assert "viewport-fit=cover" in html
 
 
-def test_shell_precache_version_matches_asset_query(client):
-    """sw.js가 프리캐시하는 URL과 index.html이 실제로 요청하는 URL이 어긋나면
-    셸이 캐시되지 않은 채 오프라인에서 깨진다 — 버전 문자열을 함께 묶어 둔다."""
+def test_shell_precache_lists_every_script_and_stylesheet(client):
+    """sw.js 의 SHELL 목록이 디스크의 js/css 와 어긋나면 오프라인에서 셸이 깨진다.
+    모듈을 추가하거나 지우면 이 테스트가 목록 갱신을 강제한다."""
     import re
 
+    from jarvis.ui.web.server import STATIC_DIR
+
     sw = client.get("/sw.js").text
+    listed = set(re.findall(r"^\s*'([^']+\.(?:js|css))',", sw, re.M))
+    on_disk = {
+        str(p.relative_to(STATIC_DIR))
+        for p in STATIC_DIR.rglob("*")
+        if p.suffix in (".js", ".css") and p.name != "sw.js"
+    }
+    assert listed == on_disk
+
+
+def test_shell_assets_are_not_versioned_and_revalidate(client):
+    """캐시 우선 + 수동 버전 대신 네트워크 우선 + no-cache. 버전 문자열이 다시 생기면
+    사람이 올리는 걸 잊는 순간 HTML 과 CSS 가 섞인다."""
     html = client.get("/").text
-    version = re.search(r"SHELL_VERSION = '(\d+)'", sw).group(1)
-    assert f"app.js?v={version}" in html
-    assert f"styles.css?v={version}" in html
+    assert "?v=" not in html
+    assert 'type="module" src="app/main.js"' in html
+    assert "SHELL_VERSION" not in client.get("/sw.js").text
+    for path in ("/", "/styles.css", "/app/main.js"):
+        assert client.get(path).headers["cache-control"] == "no-cache", path
 
 
 # ── 브랜드 (에이전트별 이름·명언·색) ─────────────────────────────────────────

@@ -176,7 +176,11 @@ def create_app(
             token = _bearer(request.headers.get("authorization")) or request.query_params.get("token")
             if _lookup_api_user(ctx.settings, token) is None:
                 return JSONResponse({"error": "unauthorized"}, status_code=401)
-        return await call_next(request)
+        response = await call_next(request)
+        # 정적 셸은 매번 재검증(ETag). nginx 설정과 같은 이유 — 고친 js/css 가 바로 보여야 한다.
+        if not request.url.path.startswith("/api/") and "cache-control" not in response.headers:
+            response.headers["cache-control"] = "no-cache"
+        return response
 
     @app.on_event("startup")
     async def _startup() -> None:

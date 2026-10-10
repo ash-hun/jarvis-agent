@@ -732,7 +732,7 @@ GET /ws?session_id=<id>&token=<key>   (Upgrade: websocket)
 | `type` | 필드 | 동작 |
 |---|---|---|
 | `user_message` | `text` | 슬래시 명령이면 디스패처가 처리하고 결과를 `agent_start`, `stream_delta`, `agent_end` 로 돌려준다. 남는 텍스트는 에이전트 프롬프트로. 비어 있으면 무시 |
-| `approval_response` | `id`, `approved`, `always` | `approval_request` 에 대한 답. `always=true` 는 `approved=true` 일 때만 의미 있고 제안된 패턴을 `approvals.yaml` 에 남긴다 |
+| `approval_response` | `id`, `approved`, `always` | `approval_request` 에 대한 답. 같은 `id` 에 먼저 온 답만 쓰고 나머지는 버린다. `always=true` 는 `approved=true` 일 때만 의미 있고 제안된 패턴을 `approvals.yaml` 에 남긴다 |
 | `proactive_feedback` | `id`, `accepted` | 🔔 에 대한 수락/무시. 임계치 학습기에 반영 |
 | `voice_tts_request` | `text`, `lang?` | 음성 합성. 서버 TTS 가 없으면 `voice_tts_audio{data:"", text}` 로 되돌려 브라우저가 읽게 한다 |
 | `voice_stt_submit` | `data`(base64), `mime`, `sample_rate` | 서버 STT. 서버 STT 가 없으면 무시 |
@@ -752,7 +752,8 @@ GET /ws?session_id=<id>&token=<key>   (Upgrade: websocket)
 | `agent_error` | `message`, `code?` | 루프 실패 |
 | `inner_thought` | `session_id`, `interpretation`, `decision`, `confidence`, `frame` | 요청 시점과 성찰 시점의 사고 1회 |
 | `proactive_message` | `session_id`, `text`, `kind`(`filler`/`proactive`/`answer`), `speak`, `message_id` | 먼저 건네는 말. `proactive` 면 피드백 대상 |
-| `approval_request` | `id`, `command`, `reason`, `always_pattern` | 도구 실행 승인 요청. 120초 안에 답이 없으면 거부로 처리 |
+| `approval_request` | `id`, `command`, `reason`, `always_pattern` | 도구 실행 승인 요청. 같은 세션의 열린 연결 전부에 보내고, 기다리는 중에 새로 붙은 연결에도 보낸다. 120초 안에 답이 없으면 거부로 처리 |
+| `approval_resolved` | `id` | 그 요청이 끝났다(어느 연결의 답, 또는 시간 초과). 아직 모달을 띄운 연결은 닫는다 |
 | `reminder` | `id`, `name`, `kind`, `once`, `title`, `text`, `error`, `delayed_sec`, `fired_at`, `missed?` | 스케줄 실행 결과. 열린 연결 전부에 방송하고, 없으면 최근 20건을 쌓아 다음 접속 때 `missed: true` 로 보낸다 |
 | `voice_tts_audio` | `data`(base64), `mime`, `text` | 합성 결과. `data` 가 비면 브라우저 TTS 로 |
 | `voice_stt_result` | `text`, `error?` | 전사 결과 |
@@ -768,7 +769,7 @@ ws.send(JSON.stringify({ type: "user_message", text: "안녕" }));
 
 #### 특이사항
 
-**재호출** — 같은 `session_id` 로 다시 붙으면 같은 세션이다. 재접속 자체는 멱등하다. 다만 `approval_request` 콜백은 마지막 연결로 옮겨가므로, 먼저 붙어 있던 탭은 그 뒤로 승인 모달을 못 본다. `user_message` 는 멱등하지 않다(보낼 때마다 한 턴).
+**재호출** — 같은 `session_id` 로 다시 붙으면 같은 세션이다. 재접속 자체는 멱등하다. `approval_request` 는 세션의 연결 전부가 받고 먼저 온 답이 채택되므로 탭을 여럿 열어도 같다. `user_message` 는 멱등하지 않다(보낼 때마다 한 턴).
 
 `reminder` 의 보류 큐는 메모리에만 있어 서버가 재시작되면 사라진다.
 

@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope
+from jarvis.ui.web.approvals import SessionApprovals
 
 if TYPE_CHECKING:
     from jarvis.config import ApiUser, BrandConfig, JarvisSettings
@@ -265,6 +266,8 @@ def create_app(
     # 스케줄 실행 결과를 열린 HUD 전부에 보낸다. 열린 HUD 가 없으면 최근 20건을 쌓아
     # 두었다가 다음 접속 때 missed 로 보낸다(메모리에만 — 서버 재시작 시 사라진다).
     live_clients: set[Any] = set()
+    # 세션별 승인 브로커. 같은 세션의 모든 연결이 모달을 받고 먼저 온 답을 쓴다
+    approvals: dict[str, SessionApprovals] = {}
     pending_notices: deque[dict[str, Any]] = deque(maxlen=20)
 
     async def broadcast_notice(payload: dict[str, Any]) -> None:
@@ -394,7 +397,9 @@ def create_app(
         session, sandbox = await manager.get_or_create(session_id)
 
         adapter = PerConnectionAdapter(ws)
-        sandbox.set_approval_callback(adapter.request_approval)
+        broker = approvals.setdefault(session_id, SessionApprovals())
+        await broker.attach(adapter)
+        sandbox.set_approval_callback(broker.request)
         unsubscribe = session.subscribe(adapter.on_agent_event)
 
         try:
@@ -449,7 +454,7 @@ def create_app(
                             asyncio.create_task(_run_prompt(session, adapter, text, credentials))
 
                 elif msg_type == "approval_response":
-                    await adapter.handle_approval_response(
+                    broker.resolve(
                         approval_id=msg.get("id", ""),
                         approved=bool(msg.get("approved", False)),
                         always=bool(msg.get("always", False)),
@@ -482,6 +487,7 @@ def create_app(
             pass
         finally:
             live_clients.discard(adapter)
+            broker.detach(adapter)
             unsubscribe()
 
     # ── 브랜드: 에이전트별 워드마크·명언·색감 ────────────────────────────────

@@ -9,6 +9,7 @@ from jarvis.agent_layer.openloop import (
     OpenLoopStore,
     normalize_description,
 )
+from jarvis.agent_layer.openloop.types import same_loop
 
 
 def test_store_satisfies_protocol():
@@ -81,3 +82,24 @@ async def test_update_status_validation():
 def test_normalize_description():
     assert normalize_description("  배포   결과 ") == "배포 결과"
     assert normalize_description("ABC") == "abc"
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "same"),
+    [
+        ("배포 결과 공유", "배포  결과 공유", True),
+        ("로그 확인해줘", "내일 배포 전에 로그 확인해줘", True),  # 포함
+        ("로그", "배포 로그 확인", False),  # 6자 미만 조각은 우연
+        ("배포 결과 공유", "회의록 정리", False),
+        ("", "배포", False),
+    ],
+)
+def test_same_loop_containment(a, b, same):
+    assert same_loop(a, b) is same
+
+
+async def test_add_unique_treats_contained_description_as_same():
+    store = InMemoryOpenLoopStore()
+    assert await store.add_unique(OpenLoop(description="내일 배포 전에 로그 확인해줘", origin_session="s1"))
+    assert await store.add_unique(OpenLoop(description="로그 확인해줘", origin_session="s1")) is None
+    assert await store.add_unique(OpenLoop(description="로그 확인해줘", origin_session="s2"))

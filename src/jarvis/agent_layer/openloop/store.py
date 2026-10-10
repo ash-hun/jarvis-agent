@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from typing import Protocol, runtime_checkable
 
-from jarvis.agent_layer.openloop.types import OpenLoop, normalize_description
+from jarvis.agent_layer.openloop.types import OpenLoop, normalize_description, same_loop
 
 
 @runtime_checkable
@@ -38,14 +38,13 @@ class InMemoryOpenLoopStore:
 
     async def add_unique(self, loop: OpenLoop) -> str | None:
         """같은 세션의 열린 항목 중 설명이 중복이면 추가하지 않고 None 반환."""
-        key = normalize_description(loop.description)
-        if not key:
+        if not normalize_description(loop.description):
             return None
         for existing in self._loops.values():
             if (
                 existing.status == "open"
                 and existing.origin_session == loop.origin_session
-                and normalize_description(existing.description) == key
+                and same_loop(existing.description, loop.description)
             ):
                 return None
         return await self.add(loop)

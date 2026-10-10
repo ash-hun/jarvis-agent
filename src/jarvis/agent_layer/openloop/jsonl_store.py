@@ -6,7 +6,7 @@ from pathlib import Path
 
 import aiofiles
 
-from jarvis.agent_layer.openloop.types import OpenLoop, normalize_description
+from jarvis.agent_layer.openloop.types import OpenLoop, normalize_description, same_loop
 
 
 class JsonlOpenLoopStore:
@@ -55,14 +55,13 @@ class JsonlOpenLoopStore:
 
     async def add_unique(self, loop: OpenLoop) -> str | None:
         await self._ensure_loaded()
-        key = normalize_description(loop.description)
-        if not key:
+        if not normalize_description(loop.description):
             return None
         for existing in self._loops.values():
             if (
                 existing.status == "open"
                 and existing.origin_session == loop.origin_session
-                and normalize_description(existing.description) == key
+                and same_loop(existing.description, loop.description)
             ):
                 return None
         return await self.add(loop)

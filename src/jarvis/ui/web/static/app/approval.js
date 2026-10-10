@@ -25,6 +25,14 @@ export function showApproval(id, command, reason, alwaysPattern) {
   $overlay.classList.remove('hidden');
 }
 
+// 다른 창이 먼저 답했거나 시간이 지났다. 같은 요청을 보여주고 있을 때만 닫는다
+export function closeApproval(id) {
+  if (!_currentId || _currentId !== id) return false;
+  $overlay.classList.add('hidden');
+  _currentId = null;
+  return true;
+}
+
 function answer(approved, always = false) {
   if (!_currentId) return;
   send({ type: 'approval_response', id: _currentId, approved, always });

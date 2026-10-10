@@ -226,4 +226,8 @@ develop_plan.md
 # Claude Code local settings (per-machine, not tracked)
 .claude/
 # 설계, 조사 문서는 로컬에서만 관리한다
-docs/
+
+# docs/ 는 개인 메모가 섞여 있어 통째로 뺀다. 명세 두 개만 레포에 둔다 (CLAUDE.md)
+docs/*
+!docs/api-spec.md
+!docs/screen-spec.md

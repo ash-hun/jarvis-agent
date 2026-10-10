@@ -21,7 +21,3 @@
 
 - **모션그래픽 mp4 판.** `assets/hud-motion/` 의 `ponytail` 자리(그레인, 배경 드리프트, 카드 숨쉬기)는 GIF 크기 때문에 껐다. mp4 를 올릴 곳이 생기면 되살린다. 녹화 소재(`public/*.mp4`)는 gitignore 라 `capture_video.py` 로 다시 찍는다.
 - **e2e 자동화는 시나리오 2, 3 만.** `scripts/e2e/hud_flow.py` 는 스크립트 프로바이더로 승인 기억과 절차 학습을 돈다. 시나리오 1(성찰 → 🔔 → 피드백)은 수동(`hud-scenario.md`). 스크립트 프로바이더에 성찰 프레임을 넣으면 자동화할 수 있다.
-
-## 확인 필요
-
-- DB 에 세션 `5b711946` 이 남아 있다. 오늘 작업에서 만든 것이 아니라 두지 않았다. 필요 없으면 `/cleanup` 또는 `delete from jarvis_sessions where session_id='5b711946'`.

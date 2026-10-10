@@ -128,7 +128,8 @@ jarvis --list-sessions      # 세션 목록
 JARVIS_THOUGHT__ENABLED=true
 JARVIS_PROACTIVE__ENABLED=true
 
-# 별도(저렴) 사고 모델 분리 — 메인=anthropic / 사고=ollama 등
+# 별도(저렴) 사고 모델 분리 — 메인=anthropic / 사고=ollama 등. 로컬 Ollama 면 소형 모델로 성찰이 메인 모델을
+# 점유하지 않게 한다. 사고 프레임은 JSON 이라 0.8b 급은 형식을 못 지킨다. 2b 이상, structured output 되는 모델로
 JARVIS_THOUGHT__MODEL=claude-haiku-4-5
 
 # 자율 성찰 daemon: 기본 ON — 요청 없이 먼저 말 검 (false로 끔)
@@ -136,6 +137,8 @@ JARVIS_PROACTIVE__DAEMON_ENABLED=true
 JARVIS_PROACTIVE__DAEMON_TRIGGER=interval   # interval | idle | both
 JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120   # 로컬과 배포 모두 같은 값
 ```
+
+호스트 Ollama 하나로 메인과 사고를 같이 돌리면 성찰 중 사용자 요청이 줄을 선다. brew 서비스면 `launchctl setenv OLLAMA_NUM_PARALLEL 2 && brew services restart ollama` 로 동시 처리 수를 늘린다(재부팅하면 다시 설정).
 
 🔔 가 안 뜨는 이유는 백엔드 로그 `[Thought] proactive silent: <이유>` 에 남는다. `cooldown`(300초), `confidence … < 임계치`, `empty utterance`(모델이 건넬 말을 안 채움) 중 하나다.
 

@@ -16,7 +16,10 @@ TOOL_PARAMETERS = {
     },
     "required": [],
 }
-INSTRUCTION = "아래 절차를 순서대로 도구를 호출해 수행하고, 끝나면 결과를 요약하라.\n\n"
+INSTRUCTION = (
+    "아래 절차를 순서대로 도구를 호출해 수행하고, 끝나면 결과를 요약하라. "
+    "결과가 뻔해 보여도 단계를 건너뛰지 말고 각 단계의 도구 호출을 실제로 실행하라.\n\n"
+)
 
 
 class ProcedureTool:

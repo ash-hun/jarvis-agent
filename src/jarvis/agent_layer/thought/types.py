@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from jarvis.model_layer.types import Message
 
@@ -48,6 +48,14 @@ class ThoughtFrame(BaseModel):
     # 세션이 이를 OpenLoopStore에 저장하고, daemon 성찰 시 다시 주입한다.
     open_loops: list[str] = Field(default_factory=list)
 
+    @field_validator("recalled", "options", "open_loops", mode="before")
+    @classmethod
+    def _items_to_text(cls, value: Any) -> Any:
+        # 작은 모델은 문자열 목록 자리에 {"option": "..."} 같은 객체를 넣는다. 프레임을 버리는 대신 글자만 건진다.
+        if not isinstance(value, list):
+            return value
+        return [_item_text(item) for item in value if _item_text(item)]
+
     def context_block(self) -> str:
         """
         메인 턴 system_prompt에 덧붙일 사람이 읽을 수 있는 한 블록.
@@ -85,3 +93,11 @@ class ThoughtRequest(BaseModel):
     external_events: list[str] = Field(default_factory=list)
     # 요청 시점이 아닌 백그라운드 성찰(Tier 1 daemon)도 같은 계약을 재사용한다.
     mode: Literal["request", "reflection"] = "request"
+
+
+def _item_text(item: Any) -> str:
+    if isinstance(item, str):
+        return item.strip()
+    if isinstance(item, dict):
+        return " ".join(str(v).strip() for v in item.values() if isinstance(v, str) and v.strip())
+    return str(item).strip()

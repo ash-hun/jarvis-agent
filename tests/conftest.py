@@ -19,6 +19,11 @@ os.environ.setdefault("JARVIS_LLM__MODEL", "faux-model")
 os.environ.setdefault("JARVIS_MEMORY__BACKEND", "in_memory")
 os.environ.setdefault("JARVIS_SECURITY__REQUIRE_AUTH", "false")
 
+# 개발자의 로컬 .env 가 테스트 기본값을 덮지 않게. 테스트는 환경변수와 monkeypatch 로만 설정을 바꾼다
+from jarvis.config import JarvisSettings  # noqa: E402
+
+JarvisSettings.model_config["env_file"] = None
+
 
 # ── FauxProvider를 ProviderRegistry에 등록 ─────────────────────────────────────
 

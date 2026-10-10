@@ -5,7 +5,7 @@ Docker 로 띄운 Web HUD 에서 proactive 성찰, 승인 기억, 절차 학습�
 
 ## 준비
 
-`.env` 에서 아래 값을 확인한다. 모델은 도구 호출과 JSON 출력이 되는 것이어야 한다. qwen3.5:0.8b 는 "생각" 에 토큰을 다 써서 안 된다.
+`.env` 에서 아래 값을 확인한다. 메인 모델은 도구 호출이 되는 것이어야 한다(qwen3.5:0.8b 는 안 된다). 사고 모델은 `JARVIS_THOUGHT__MODEL` 로 분리할 수 있다(프로바이더가 `think` 를 꺼서 본문은 비지 않지만, 0.8b 급은 프레임 JSON 을 못 지킨다).
 
 ```bash
 JARVIS_LLM__PROVIDER=ollama

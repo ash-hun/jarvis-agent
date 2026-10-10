@@ -78,7 +78,7 @@ def test_gated_pass_speaks_and_splits_risk():
     frame = ThoughtFrame(
         decision="act",
         confidence=0.8,
-        interpretation="배포 상태가 궁금한 듯",
+        utterance="배포 상태가 궁금한 듯",
         proactive_actions=[
             ProactiveAction(kind="tool", description="로그 읽기", risk="low"),
             ProactiveAction(kind="tool", description="재배포", risk="high"),
@@ -94,7 +94,7 @@ def test_gated_pass_speaks_and_splits_risk():
 def test_cooldown_blocks_second_speak():
     clock = _Clock()
     policy = DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=300, clock=clock)
-    frame = ThoughtFrame(decision="ask", confidence=0.9, interpretation="x")
+    frame = ThoughtFrame(decision="ask", confidence=0.9, utterance="x")
 
     first = policy.decide_proactive(frame, session_id="s1")
     assert first.speak is True
@@ -111,10 +111,26 @@ def test_cooldown_blocks_second_speak():
 def test_cooldown_is_per_session():
     clock = _Clock()
     policy = DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=300, clock=clock)
-    frame = ThoughtFrame(decision="ask", confidence=0.9, interpretation="x")
+    frame = ThoughtFrame(decision="ask", confidence=0.9, utterance="x")
     assert policy.decide_proactive(frame, session_id="a").speak is True
     # 다른 세션은 독립적으로 발화 가능.
     assert policy.decide_proactive(frame, session_id="b").speak is True
+
+
+def test_empty_utterance_is_silent_and_does_not_consume_cooldown():
+    clock = _Clock()
+    policy = DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=300, clock=clock)
+    # 분석문(interpretation)만 있고 건넬 말이 없으면 침묵한다. 분석문을 대신 내보내지 않는다.
+    muted = policy.decide_proactive(
+        ThoughtFrame(decision="act", confidence=0.9, interpretation="사용자는 불안해 보인다", rationale="r"),
+        session_id="s1",
+    )
+    assert muted.speak is False and muted.reason == "empty utterance"
+    # 침묵은 쿨다운을 소비하지 않는다.
+    spoken = policy.decide_proactive(
+        ThoughtFrame(decision="act", confidence=0.9, utterance="배포 결과 공유 잊지 마세요"), session_id="s1"
+    )
+    assert spoken.speak is True and spoken.message == "배포 결과 공유 잊지 마세요"
 
 
 # ── ProactivityCore: Dual-Channel dispatch ────────────────────────────────────
@@ -190,7 +206,7 @@ async def test_reflect_pushes_when_gated_pass():
         emit_proactive=lambda m: _collect(emitted, m),
         policy=DefaultProactivityPolicy(confidence_threshold=0.5),
     )
-    frame = ThoughtFrame(decision="ask", confidence=0.9, interpretation="먼저 알려줄 것")
+    frame = ThoughtFrame(decision="ask", confidence=0.9, utterance="먼저 알려줄 것")
 
     decision = await core.reflect(frame, session_id="s1")
     assert decision.speak is True
@@ -226,7 +242,7 @@ async def test_reflect_executes_autonomous_and_augments_message():
     frame = ThoughtFrame(
         decision="act",
         confidence=0.9,
-        interpretation="배포 상태 확인이 필요해 보임",
+        utterance="배포 상태 확인이 필요해 보임",
         proactive_actions=[ProactiveAction(kind="tool", description="로그 읽기", risk="low")],
     )
     decision = await core.reflect(frame, session_id="s1", execute=execute)
@@ -248,7 +264,7 @@ async def test_reflect_execute_failure_falls_back_to_message():
         emit_proactive=lambda m: _collect(emitted, m),
         policy=DefaultProactivityPolicy(confidence_threshold=0.5),
     )
-    frame = ThoughtFrame(decision="ask", confidence=0.9, interpretation="알림")
+    frame = ThoughtFrame(decision="ask", confidence=0.9, utterance="알림")
     decision = await core.reflect(frame, session_id="s1", execute=boom)
 
     # 실행이 터져도 메시지는 나간다.

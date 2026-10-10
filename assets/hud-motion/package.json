@@ -1,0 +1,19 @@
+{
+  "name": "jarvis-hud-motion",
+  "version": "1.0.0",
+  "description": "README 용 Web HUD 모션그래픽. 소재는 capture.py, 렌더는 npm run render",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts HudPromo out/hud-motion.mp4 --codec h264 --crf 18 --overwrite && python3 togif.py",
+    "still": "remotion still src/index.ts HudPromo"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "@remotion/cli": "^4.0.534",
+    "@remotion/google-fonts": "^4.0.534",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "remotion": "^4.0.534"
+  },
+  "private": true
+}

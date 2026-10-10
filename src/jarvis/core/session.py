@@ -235,9 +235,13 @@ class AgentSession:
         )
         if frame is None:
             return None
-        return await self._proactivity.reflect(
+        decision = await self._proactivity.reflect(
             frame, session_id=self._session_id, execute=self._execute_autonomous
         )
+        if not decision.speak:
+            # 🔔 가 안 뜨는 이유(임계치 미달, 쿨다운, utterance 비움)를 로그에서 볼 수 있게.
+            print(f"[Thought] proactive silent: {decision.reason}")
+        return decision
 
     async def _execute_autonomous(self, actions: list[Any]) -> str:
         """저위험 자율 행동(E2)을 실행하고 사람이 읽을 요약을 반환.
@@ -327,7 +331,9 @@ class AgentSession:
         if frame is None:
             return None
 
-        await self._persist_open_loops(frame)
+        # 성찰은 기존 약속을 보는 자리다. 모델이 매번 바꿔 말한 항목을 저장하면 같은 약속이 쌓인다.
+        if mode == "request":
+            await self._persist_open_loops(frame)
 
         await self._harness.emit_event(
             InnerThoughtEvent(

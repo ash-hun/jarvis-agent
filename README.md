@@ -3,8 +3,10 @@
 개인 AI 비서 에이전트. 터미널 TUI와 브라우저 Web HUD 두 가지 모드로 동작하며, 멀티프로바이더 LLM · 멀티 에이전트 오케스트레이션 · 장기 메모리에 더해, 요청에만 답하지 않고 스스로 사고하고 먼저 행동하는 **proactive agent** 기능을 지원한다.
 
 <div align="center">
-    <img src="./assets/screenshot.png" />
+    <img src="./assets/hud-motion.gif" alt="Web HUD 모션그래픽 — 내적 사고, 마크다운 응답, 먼저 건네는 말, 승인 기억" />
 </div>
+
+<sub>모션그래픽은 `assets/hud-motion/` 의 Remotion 프로젝트에서 나온다. 소재 캡처 `capture.py`, 렌더 `npm run render`.</sub>
 
 ---
 
@@ -616,7 +618,7 @@ JARVIS_PROACTIVE__CONFIDENCE_THRESHOLD=0.6
 JARVIS_PROACTIVE__COOLDOWN_SEC=300
 JARVIS_PROACTIVE__DAEMON_ENABLED=true     # 자율 성찰 루프 (기본 on)
 JARVIS_PROACTIVE__DAEMON_TRIGGER=interval # interval | idle | both
-JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=900
+JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120
 JARVIS_PROACTIVE__DAEMON_IDLE_SEC=180
 
 # ── Proactive: Open-loop / User Model (Tier 2~3) ─────────────────────────────

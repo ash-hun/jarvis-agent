@@ -122,7 +122,7 @@ async def test_reflect_pushes_proactive_when_gated(fx):
     await fx["repo"].create(session_id="test-session")
     # decision=ask + 높은 confidence → 게이팅 통과 → proactive push.
     engine = StubEngine(
-        ThoughtFrame(decision="ask", confidence=0.9, interpretation="먼저 알려줄 게 있어요")
+        ThoughtFrame(decision="ask", confidence=0.9, utterance="먼저 알려줄 게 있어요")
     )
     session = _build_session(fx, engine=engine, proactivity_factory=_factory)
 
@@ -198,7 +198,7 @@ async def test_reflect_executes_only_safelisted_tool(fx):
     frame = ThoughtFrame(
         decision="act",
         confidence=0.9,
-        interpretation="확인 필요",
+        utterance="확인 필요",
         proactive_actions=[
             ProactiveAction(kind="tool", tool_name="read_file", description="로그", risk="low"),
             ProactiveAction(kind="tool", tool_name="mutate_db", description="변경", risk="low"),
@@ -244,7 +244,7 @@ async def test_record_feedback_noop_without_learner(fx):
 @pytest.mark.asyncio
 async def test_proactive_event_carries_message_id(fx):
     await fx["repo"].create(session_id="test-session")
-    engine = StubEngine(ThoughtFrame(decision="ask", confidence=0.9, interpretation="알림"))
+    engine = StubEngine(ThoughtFrame(decision="ask", confidence=0.9, utterance="알림"))
     session = _build_session(fx, engine=engine, proactivity_factory=_factory)
 
     events: list = []

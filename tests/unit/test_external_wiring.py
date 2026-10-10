@@ -198,7 +198,7 @@ async def test_external_event_is_consumed_by_first_reflecting_session(fx):
         if isinstance(event, ProactiveMessageEvent):
             spoken.append(event)
 
-    frame = ThoughtFrame(decision="act", confidence=0.9, interpretation="회의 임박")
+    frame = ThoughtFrame(decision="act", confidence=0.9, utterance="회의 임박")
     first = _build_session(fx, "s1", engine=StubEngine(frame), inbox=inbox,
                            factory=_speaking_factory())
     second = _build_session(fx, "s2", engine=StubEngine(frame), inbox=inbox,
@@ -340,7 +340,7 @@ async def test_poller_to_proactive_message_end_to_end(fx):
 
     assert await poller.tick() == 1
 
-    engine = StubEngine(ThoughtFrame(decision="act", confidence=0.9, interpretation="곧 회의"))
+    engine = StubEngine(ThoughtFrame(decision="act", confidence=0.9, utterance="곧 회의"))
     spoken: list[ProactiveMessageEvent] = []
 
     async def sink(event):

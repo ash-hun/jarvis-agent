@@ -52,7 +52,7 @@ def test_build_policy_simulates_prior_speech():
         suite="policy", case="c", frame={}, policy=PolicySpec(cooldown_sec=100, spoke_before_sec=10),
         expect=ProactiveExpect(speak=False),
     )
-    frame = ThoughtFrame(decision="act", confidence=0.9)
+    frame = ThoughtFrame(decision="act", confidence=0.9, utterance="x")
     assert build_policy(case, now=1000.0).decide_proactive(frame, session_id="eval", now=1000.0).speak is False
     case.policy.spoke_before_sec = 200
     assert build_policy(case, now=1000.0).decide_proactive(frame, session_id="eval", now=1000.0).speak is True
@@ -94,7 +94,7 @@ async def test_situation_cases_use_engine_and_reflection_request():
         ),
         expect=ProactiveExpect(speak=True, mentions=["보고"]),
     )
-    engine = _ScriptedEngine(ThoughtFrame(decision="act", confidence=0.9, interpretation="보고 상기"))
+    engine = _ScriptedEngine(ThoughtFrame(decision="act", confidence=0.9, utterance="보고 상기"))
     report = await run_cases([case], engine=engine)
     assert report.all_passed and not report.results[0].skipped
     request = engine.requests[0]

@@ -6,7 +6,7 @@
     <img src="./assets/hud-motion.gif" alt="Web HUD 모션그래픽 — 내적 사고, 마크다운 응답, 먼저 건네는 말, 승인 기억" />
 </div>
 
-<sub>모션그래픽은 `assets/hud-motion/` 의 Remotion 프로젝트에서 나온다. 소재 캡처 `capture.py`, 렌더 `npm run render`.</sub>
+<sub>모션그래픽은 `assets/hud-motion/` 의 Remotion 프로젝트에서 나온다. 떠 있는 HUD 에서 `capture.py`(화면)와 `capture_video.py`(구체 녹화)로 소재를 찍고 `npm run render`.</sub>
 
 ---
 

@@ -205,7 +205,7 @@ class ProactiveConfig(BaseModel):
     confidence_threshold: float = 0.6  # daemon 발화 게이팅 임계치
     cooldown_sec: int = 300  # 세션별 proactive 발화 쿨다운
     daemon_enabled: bool = True  # B3 백그라운드 성찰 루프 (기본 on, false로 끔)
-    daemon_interval_sec: int = 900  # 성찰 주기(초) — interval 트리거용
+    daemon_interval_sec: int = 120  # 성찰 주기(초) — interval 트리거용. 로컬과 배포 모두 이 값
     # 성찰 트리거: interval(주기) | idle(조용해지면) | both(둘 중 먼저)
     daemon_trigger: Literal["interval", "idle", "both"] = "interval"
     daemon_idle_sec: int = 180  # idle 트리거 — 이만큼 조용하면 1회 성찰

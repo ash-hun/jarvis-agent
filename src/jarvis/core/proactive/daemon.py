@@ -26,7 +26,7 @@ class ProactivityDaemon:
         self,
         targets: ReflectTargets,
         *,
-        interval_sec: float = 900.0,
+        interval_sec: float = 120.0,
         sleep: Sleeper = asyncio.sleep,
         trigger: ReflectionTrigger | None = None,
     ) -> None:

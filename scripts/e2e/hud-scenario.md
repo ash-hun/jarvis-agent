@@ -12,7 +12,7 @@ JARVIS_LLM__PROVIDER=ollama
 JARVIS_LLM__BASE_URL=http://host.docker.internal:11434
 JARVIS_LLM__MODEL=gemma4:e4b
 JARVIS_PROACTIVE__DAEMON_ENABLED=true
-JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=90      # 확인용. 평소엔 900
+JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120     # 기본값과 같다
 ```
 
 ```bash
@@ -27,7 +27,7 @@ docker compose --profile web logs -f jarvis-backend | grep "\[Thought\]"   # 성
 
 1. 입력: `내일 오전 10시에 팀에 배포 결과를 공유하기로 했어. 기억해줘`
 2. 기대: 💭 줄(act · 100%) 뒤에 본 응답. 모델이 없는 도구(`calendar_tool` 등)를 부르면 CONVERSATION 에 `Error` 한 줄이 뜨고 텍스트로 회복한다. 모델의 환각이지 버그가 아니다.
-3. 아무것도 하지 않고 기다린다. 주기 90초에 성찰 자체가 30~90초 걸리므로 2~3분 뒤 💭 줄이 한 번 더 뜨고(접혀 있다. 클릭하면 해석 전문), 바로 아래 🔔 proactive 발화와 "이 제안이 도움이 됐나요? 네 / 아니오 로 답해 주세요." 가 보인다.
+3. 아무것도 하지 않고 기다린다. 주기 120초에 성찰 자체가 30~90초 걸리므로 3~4분 뒤 💭 줄이 한 번 더 뜨고(접혀 있다. 클릭하면 해석 전문), 바로 아래 🔔 proactive 발화와 "이 제안이 도움이 됐나요? 네 / 아니오 로 답해 주세요." 가 보인다.
 4. 입력창에 `아니오` 를 보낸다. `피드백: 무시` 한 줄이 뜨고 LLM 으로는 가지 않는다. 다음 성찰은 💭 만 뜨고 🔔 는 뜨지 않는다. 쿨다운 300초가 걸려 있고, 임계치가 0.6 에서 0.65 로 올라갔기 때문이다.
 5. 오른쪽 AGENDA 의 OPEN LOOPS 에 "배포 결과 공유" 가 들어 있는지 본다.
 
@@ -58,14 +58,6 @@ docker compose --profile web exec jarvis-backend cat /root/.jarvis/approvals.yam
 | 💭 가 2~3분 간격으로 안 뜬다 | 백엔드 로그. `frame invalid` 면 모델 출력 형식 문제, `call failed` 면 Ollama 연결 문제 |
 | 💭 는 뜨는데 🔔 가 안 뜬다 | 백엔드 로그의 `proactive silent: <이유>`. `empty utterance` 면 모델이 utterance 를 안 채운 것, `cooldown` 이면 300초 대기 |
 | 승인 모달에 ALWAYS 가 없다 | 백엔드가 옛 소스. `docker compose --profile web up -d` 로 재생성 |
-| 응답이 1분 넘게 안 온다 | 성찰과 겹쳐 Ollama 가 직렬 처리 중. 기다리면 온다. 주기를 900 으로 되돌리면 사라진다 |
+| 응답이 1분 넘게 안 온다 | 성찰과 겹쳐 Ollama 가 직렬 처리 중. 기다리면 온다 |
 | Ollama 가 모든 요청에 500 | 호스트 Ollama 서버와 러너 버전 불일치. `brew services restart ollama` |
 
-## 정리
-
-확인이 끝나면 주기를 되돌린다.
-
-```bash
-# .env: JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=900
-docker compose --profile web up -d
-```

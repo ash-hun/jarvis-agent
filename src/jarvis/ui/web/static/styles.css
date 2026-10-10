@@ -287,6 +287,9 @@ body::after {
   line-height: 16px;
 }
 .fork-btn:hover { color: var(--pri-bright); border-color: var(--pri-bright); }
+.delete-btn { opacity: 0; }
+.session:hover .delete-btn { opacity: 1; }
+.delete-btn:hover { color: var(--accent); border-color: var(--accent); }
 
 /* ── Chat card — 접히는 대화 기록 ────────────────────────────────────────────*/
 .chat-card .panel-head { cursor: pointer; user-select: none; }

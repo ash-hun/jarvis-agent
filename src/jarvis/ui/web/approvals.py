@@ -35,6 +35,10 @@ class SessionApprovals:
         self._connections.discard(conn)
 
     @property
+    def connection_count(self) -> int:
+        return len(self._connections)
+
+    @property
     def pending_ids(self) -> list[str]:
         return list(self._pending)
 

@@ -402,3 +402,21 @@ def test_ws_prompt_carries_identified_user_into_session(auth_client, faux_model_
 def test_open_mode_connected_payload_has_no_user(client):
     with client.websocket_connect("/ws?session_id=default") as ws:
         assert ws.receive_json()["user"] is None
+
+
+# ── DELETE /api/sessions/{id} ─────────────────────────────────────────────────
+
+
+def test_delete_session_removes_it_and_is_idempotent(client):
+    sid = client.post("/api/sessions").json()["session_id"]
+    assert sid in client.get("/api/sessions").json()["sessions"]
+    assert client.delete(f"/api/sessions/{sid}").json() == {"deleted": sid}
+    assert sid not in client.get("/api/sessions").json()["sessions"]
+    assert client.delete(f"/api/sessions/{sid}").status_code == 200  # 두 번째도 같은 결과
+
+
+def test_delete_session_with_live_connection_is_refused(client):
+    with client.websocket_connect("/ws?session_id=wsdel") as ws:
+        ws.receive_json()
+        assert client.delete("/api/sessions/wsdel").status_code == 409
+    assert client.delete("/api/sessions/wsdel").status_code == 200

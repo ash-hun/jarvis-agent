@@ -395,3 +395,13 @@ def test_parse_valid_frame_is_silent(capsys):
     frame = _engine()._parse('{"decision": "silent", "confidence": 0.2}')
     assert frame is not None and frame.decision == "silent"
     assert capsys.readouterr().out == ""
+
+
+def test_parse_keeps_frame_when_list_items_are_objects(capsys):
+    """작은 모델은 options 에 객체를 넣는다. 글자만 건지고 프레임은 산다."""
+    raw = ('{"decision": "act", "confidence": 0.8, "options": [{"option": "바로 답한다"}, "되묻는다", 3],'
+           ' "open_loops": [{"description": "배포 로그 확인", "due": "오늘"}]}')
+    frame = _engine()._parse(raw)
+    assert frame is not None and frame.options == ["바로 답한다", "되묻는다", "3"]
+    assert frame.open_loops == ["배포 로그 확인 오늘"]
+    assert capsys.readouterr().out == ""

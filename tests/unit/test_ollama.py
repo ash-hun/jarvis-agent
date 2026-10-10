@@ -12,6 +12,7 @@ from jarvis.model_layer.types import (
     LLMContext,
     ModelConfig,
     StopEvent,
+    StreamOptions,
     TextContent,
     Tool,
     ToolCall,
@@ -51,8 +52,10 @@ def _ndjson(*chunks: dict) -> bytes:
     return "".join(json.dumps(c) + "\n" for c in chunks).encode()
 
 
-async def _stream_with(monkeypatch, body: bytes):
+async def _stream_with(monkeypatch, body: bytes, options: StreamOptions | None = None, sent: list | None = None):
     def handler(request: httpx.Request) -> httpx.Response:
+        if sent is not None:
+            sent.append(json.loads(request.content))
         return httpx.Response(200, content=body, headers={"content-type": "application/x-ndjson"})
 
     real = httpx.AsyncClient
@@ -65,7 +68,7 @@ async def _stream_with(monkeypatch, body: bytes):
     model = ModelConfig(provider="ollama", model="m", base_url="http://ollama.test")
     tool = Tool(name="bash", description="d", parameters={"type": "object", "properties": {}})
     ctx = LLMContext(messages=[UserMessage(content="run")], tools=[tool])
-    return [ev async for ev in OllamaProvider().stream(model, ctx)]
+    return [ev async for ev in OllamaProvider().stream(model, ctx, options)]
 
 
 async def test_stream_with_tool_call_ends_with_tool_use(monkeypatch):
@@ -90,3 +93,12 @@ async def test_stream_text_only_ends_with_stop(monkeypatch):
     )
     events = await _stream_with(monkeypatch, body)
     assert [e for e in events if isinstance(e, StopEvent)][0].reason == "stop"
+
+
+@pytest.mark.parametrize(("options", "think"), [(None, False), (StreamOptions(enable_thinking=True), True)])
+async def test_thinking_is_off_unless_requested(monkeypatch, options, think):
+    """생각하는 모델은 think 기본값이 on 이라 content 가 비어 온다. 요청하지 않으면 끈다."""
+    body = _ndjson({"message": {"role": "assistant", "content": ""}, "done": True, "done_reason": "stop"})
+    sent: list[dict] = []
+    await _stream_with(monkeypatch, body, options, sent)
+    assert sent[0]["think"] is think

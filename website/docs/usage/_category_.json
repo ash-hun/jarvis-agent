@@ -1,0 +1,9 @@
+{
+  "label": "이용 방법",
+  "position": 5,
+  "link": {
+    "type": "generated-index",
+    "description": "설치부터 화면 사용법, 설정, 확장, 문제 해결까지.",
+    "slug": "/usage"
+  }
+}

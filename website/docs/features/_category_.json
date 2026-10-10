@@ -1,0 +1,9 @@
+{
+  "label": "주요 기능",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "기능마다 무엇을 하는지, 어떤 흐름으로 동작하는지, 코드의 어디에 있는지를 적는다.",
+    "slug": "/features"
+  }
+}

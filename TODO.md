@@ -10,7 +10,6 @@
 ## 화면
 
 - **오른쪽 여백(사용자 보고).** 헤더와 스테이지가 창보다 좁게 보인 스크린샷. headless 1000~2000px, DPR 1~2 에서 재현 안 됨. 브라우저 콘솔에서 `innerWidth`, `.stage` 의 `getBoundingClientRect().right`, `document.documentElement.clientWidth` 값을 받아야 다음 단계.
-- **세션 삭제 UI 없음.** `/cleanup` 과 DB 직접 삭제뿐. API(`DELETE /api/sessions/{id}`)와 SESSIONS 카드의 ✕ 가 필요하면 `docs/api-spec.md`, `docs/screen-spec.md` 를 같이 갱신.
 - **TUI 화면 명세 없음.** `docs/screen-spec.md` 는 Web HUD 만 다룬다. TUI 도 넣으려면 `src/jarvis/ui/tui/` 를 읽어 같은 형식으로.
 
 ## 문서·자산

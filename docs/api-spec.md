@@ -23,6 +23,7 @@
    - [GET /api/sessions](#get-apisessions)
    - [POST /api/sessions](#post-apisessions)
    - [GET /api/sessions/{session_id}/messages](#get-apisessionssession_idmessages)
+   - [DELETE /api/sessions/{session_id}](#delete-apisessionssession_id)
    - [POST /api/sessions/{session_id}/branch](#post-apisessionssession_idbranch)
    - [GET /api/slash-commands](#get-apislash-commands)
    - [GET /api/tools](#get-apitools)
@@ -363,7 +364,7 @@ $ curl -s -X POST http://localhost:7777/api/sessions
 
 #### 특이사항
 
-**재호출** — 멱등하지 않다. 부를 때마다 새 세션이 저장소와 메모리에 생긴다. 클라이언트가 재시도하면 빈 세션이 쌓이므로, 응답을 받은 뒤에만 `/ws` 에 붙이고 실패 시 그냥 다시 부르지 말 것. 삭제 API 는 없다(슬래시 명령 `/cleanup` 또는 DB 직접 삭제).
+**재호출** — 멱등하지 않다. 부를 때마다 새 세션이 저장소와 메모리에 생긴다. 클라이언트가 재시도하면 빈 세션이 쌓이므로, 응답을 받은 뒤에만 `/ws` 에 붙이고 실패 시 그냥 다시 부르지 말 것. 지우는 것은 `DELETE /api/sessions/{session_id}`.
 
 ---
 
@@ -424,6 +425,62 @@ $ curl -s http://localhost:7777/api/sessions/nope/messages
 **재호출** — 상태를 바꾸지 않는다.
 
 없는 세션과 빈 세션을 구분하지 않는다. 텍스트는 마크다운 원문이고 렌더는 클라이언트 몫이다.
+
+---
+
+### DELETE /api/sessions/{session_id}
+
+세션과 그 대화를 지운다. 메모리의 세션 객체와 저장소(jsonl 파일 또는 Postgres 행, 메시지는 cascade)가 함께 사라진다.
+
+#### Endpoint
+
+```
+DELETE /api/sessions/{session_id}
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `DELETE` |
+| 인증 | 설정 시 필요 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| `session_id` | path | string | 예 | — | 지울 세션 |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `deleted` | string | 아니오 | 지운 세션 id |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 지웠거나 원래 없었다 | `{"deleted"}` |
+| `409` | 그 세션에 붙어 있는 WebSocket 이 있다 | `{"error"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s -X DELETE http://localhost:7777/api/sessions/2e076b96
+{"deleted":"2e076b96"}
+```
+
+#### 특이사항
+
+**재호출** — 멱등하다. 없는 세션을 지워도 `200` 이고 상태는 같다. 붙어 있는 연결이 있으면 `409` 로 거절하므로, 보고 있는 세션을 지우려면 먼저 다른 세션으로 옮긴다. `default` 도 지울 수 있고, 다음 접속 때 빈 세션으로 다시 생긴다.
 
 ---
 

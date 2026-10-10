@@ -36,8 +36,18 @@ function renderSessions(sessions) {
       <span class="marker"></span>
       <span class="title">${escapeHtml(sid)}</span>
       <span class="meta">${isActive ? 'NOW' : ''}</span>
-      ${isActive ? '<button class="fork-btn" title="Fork session">⑂</button>' : ''}`;
+      ${isActive ? '<button class="fork-btn" title="Fork session">⑂</button>'
+                 : '<button class="fork-btn delete-btn" title="세션 삭제">✕</button>'}`;
     div.querySelector('.title')?.addEventListener('click', () => { if (!isActive) connect(sid); });
+    // 보고 있는 세션은 못 지운다. 지우려면 다른 세션으로 옮긴 뒤.
+    div.querySelector('.delete-btn')?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm(`세션 "${sid}" 과 그 대화를 지웁니다. 되돌릴 수 없습니다.`)) return;
+      const res = await apiFetch(`/api/sessions/${encodeURIComponent(sid)}`, { method: 'DELETE' });
+      if (!res.ok) { logActivity(`세션 삭제 실패 · ${sid} · ${res.status}`, 'err'); return; }
+      logActivity(`세션 삭제 · ${sid}`);
+      renderSessions((await (await apiFetch('/api/sessions')).json()).sessions);
+    });
     if (isActive) {
       div.querySelector('.fork-btn')?.addEventListener('click', async (e) => {
         e.stopPropagation();

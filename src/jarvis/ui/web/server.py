@@ -103,6 +103,13 @@ class SessionManager:
         await self.get_or_create(sid)
         return sid
 
+    async def remove(self, session_id: str) -> None:
+        """메모리와 저장소에서 지운다. 없는 세션도 같은 결과(저장소 delete 는 no-op)."""
+        self._sessions.pop(session_id, None)
+        self._sandboxes.pop(session_id, None)
+        self._last_activity.pop(session_id, None)
+        await self._ctx.session_repo.delete(session_id)
+
     def list_ids(self) -> list[str]:
         return list(self._sessions.keys())
 
@@ -251,6 +258,15 @@ def create_app(
         # Pre-create the AgentSession for the branch
         await manager.get_or_create(meta.session_id)
         return JSONResponse({"session_id": meta.session_id, "parent_id": meta.parent_id})
+
+    @app.delete("/api/sessions/{session_id}")  # type: ignore[untyped-decorator]
+    async def delete_session(session_id: str) -> JSONResponse:
+        broker = approvals.get(session_id)
+        if broker is not None and broker.connection_count > 0:
+            return JSONResponse({"error": "session has live connections"}, status_code=409)
+        await manager.remove(session_id)
+        approvals.pop(session_id, None)
+        return JSONResponse({"deleted": session_id})
 
     @app.get("/api/slash-commands")  # type: ignore[untyped-decorator]
     async def get_slash_commands() -> JSONResponse:

@@ -156,6 +156,7 @@ class ModelConfig(BaseModel):
 
 class StreamOptions(BaseModel):
     enable_thinking: bool = False
+    json_schema: dict[str, Any] | None = None  # 응답을 이 스키마로 강제. 지원하는 프로바이더만 쓴다(Ollama format)
     thinking_budget: int = 10_000
     system_prompt: str | None = None
     stop_sequences: list[str] = Field(default_factory=list)

@@ -405,3 +405,9 @@ def test_parse_keeps_frame_when_list_items_are_objects(capsys):
     assert frame is not None and frame.options == ["바로 답한다", "되묻는다", "3"]
     assert frame.open_loops == ["배포 로그 확인 오늘"]
     assert capsys.readouterr().out == ""
+
+
+def test_thought_schema_is_frame_schema():
+    from jarvis.agent_layer.thought.engine import THOUGHT_SCHEMA
+
+    assert set(THOUGHT_SCHEMA["properties"]) >= {"decision", "confidence", "utterance", "open_loops"}

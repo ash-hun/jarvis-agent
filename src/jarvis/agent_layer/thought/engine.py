@@ -19,6 +19,8 @@ from jarvis.model_layer.types import (
     UserMessage,
 )
 
+THOUGHT_SCHEMA = ThoughtFrame.model_json_schema()  # 프레임 필드는 안정적이라 기동 때 한 번
+
 
 class InnerThoughtEngine:
     """
@@ -118,7 +120,7 @@ class InnerThoughtEngine:
     async def _call_model(self, prompt: str) -> str:
         """단발 LLM 호출. 사고 전용이므로 툴 없이 텍스트만 받는다."""
         ctx = LLMContext(messages=[UserMessage(content=prompt)], tools=None)
-        msg = await stream_to_message(self._model, ctx, StreamOptions())
+        msg = await stream_to_message(self._model, ctx, StreamOptions(json_schema=THOUGHT_SCHEMA))
         return msg.text()
 
     def _parse(self, raw: str) -> ThoughtFrame | None:

@@ -53,6 +53,9 @@ class OllamaProvider:
         }
         if tools:
             payload["tools"] = tools
+        if options and options.json_schema:
+            # 작은 모델은 사고 프레임 JSON 을 자주 깨뜨린다. 스키마를 못 받는 모델은 501 이고 호출자가 생략 처리한다
+            payload["format"] = options.json_schema
 
         try:
             async with httpx.AsyncClient(timeout=model.timeout) as client:

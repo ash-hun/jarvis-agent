@@ -102,3 +102,11 @@ async def test_thinking_is_off_unless_requested(monkeypatch, options, think):
     sent: list[dict] = []
     await _stream_with(monkeypatch, body, options, sent)
     assert sent[0]["think"] is think
+
+
+@pytest.mark.parametrize("schema", [None, {"type": "object", "properties": {"a": {"type": "string"}}}])
+async def test_format_is_sent_only_with_schema(monkeypatch, schema):
+    body = _ndjson({"message": {"role": "assistant", "content": ""}, "done": True, "done_reason": "stop"})
+    sent: list[dict] = []
+    await _stream_with(monkeypatch, body, StreamOptions(json_schema=schema), sent)
+    assert sent[0].get("format") == schema

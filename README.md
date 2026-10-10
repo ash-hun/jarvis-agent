@@ -116,11 +116,11 @@ jarvis --list-sessions      # 세션 목록
 
 | 계층 | 설명 |
 |------|------|
-| **Inner Thought** | 매 요청 시 메인 응답과 분리된 별도 LLM 호출로 구조화된 사고(`ThoughtFrame`) 생성 → 컨텍스트 증강 + 사고 로그·이벤트 노출 (TUI 💭 / Web 시안 라인) |
+| **Inner Thought** | 매 요청 시 메인 응답과 분리된 별도 LLM 호출로 구조화된 사고(`ThoughtFrame`) 생성 → 컨텍스트 증강 + 사고 로그·이벤트 노출 (TUI 💭 / Web 은 💭 한 줄로 접혀 있고 클릭하면 해석 전문) |
 | **Dual-Channel** | 오래 걸릴 작업이면 filler("잠깐만요, 확인할게요")를 **즉시 발화**(voice는 TTS)하고 메인 루프는 백그라운드 수행 — 대기 체감 감소 |
-| **Proactivity Daemon** | 요청 없이 주기적/idle 시점에 성찰해, 게이팅을 통과하면 **먼저 말 검**. 저위험 읽기 작업은 자율로 미리 처리(이중 안전 게이트) |
-| **Open-loop 추적** | 대화에서 흘린 약속·미완 작업을 감지·저장 → 이후 성찰 시 상기/처리 (`/openloop`) |
-| **피드백 학습** | proactive 발화의 수락(👍)/무시(👎)를 학습해 발화 임계치를 자동 조정 |
+| **Proactivity Daemon** | 요청 없이 주기(기본 120초)/idle 시점에 성찰해, 게이팅을 통과하면 **먼저 말 검**. 건네는 말은 사고 프레임의 `utterance` 이고 비어 있으면 침묵한다(해석문을 대신 내보내지 않는다). 저위험 읽기 작업은 자율로 미리 처리(이중 안전 게이트) |
+| **Open-loop 추적** | 대화에서 흘린 약속·미완 작업을 요청 시점에 감지·저장 → 이후 성찰 시 상기/처리 (`/openloop`). 성찰은 기존 약속을 볼 뿐 새로 저장하지 않는다 |
+| **피드백 학습** | proactive 발화의 수락/무시를 학습해 발화 임계치를 자동 조정. Web 은 🔔 뒤에 "도움이 됐나요?" 를 묻고 다음 짧은 답(네/아니오)을 읽는다 |
 | **User Model · 저널** | 누적 기억을 증류한 사용자 모델(`/usermodel`)을 사고에 주입, 자기 성찰 저널(`/journal`)을 남겨 회상에 반영 |
 
 ```bash
@@ -132,16 +132,21 @@ JARVIS_PROACTIVE__ENABLED=true
 JARVIS_THOUGHT__MODEL=claude-haiku-4-5
 
 # 자율 성찰 daemon: 기본 ON — 요청 없이 먼저 말 검 (false로 끔)
-JARVIS_PROACTIVE__DAEMON_ENABLED=false
-JARVIS_PROACTIVE__DAEMON_TRIGGER=both    # interval | idle | both
+JARVIS_PROACTIVE__DAEMON_ENABLED=true
+JARVIS_PROACTIVE__DAEMON_TRIGGER=interval   # interval | idle | both
+JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120   # 로컬과 배포 모두 같은 값
 ```
 
-| 피드백 단축키 | 동작 |
-|--------------|------|
-| `Ctrl+Y` (TUI) / 👍 (Web) | proactive 발화 "도움됨" |
-| `Ctrl+G` (TUI) / 👎 (Web) | proactive 발화 "무시" |
+🔔 가 안 뜨는 이유는 백엔드 로그 `[Thought] proactive silent: <이유>` 에 남는다. `cooldown`(300초), `confidence … < 임계치`, `empty utterance`(모델이 건넬 말을 안 채움) 중 하나다.
 
-> 사고 방식은 프롬프트 파일로 직접 조율할 수 있다: `~/.jarvis/inner_thought.md`(요청), `~/.jarvis/inner_thought_reflection.md`(성찰).
+| 피드백 | 동작 |
+|--------|------|
+| `Ctrl+Y` (TUI) / `네`, `좋아`, `고마워` 로 답 (Web, 음성) | proactive 발화 "도움됨" |
+| `Ctrl+G` (TUI) / `아니오`, `됐어`, `무시` 로 답 (Web, 음성) | proactive 발화 "무시" |
+
+Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는다. 다른 말을 하면 보통 메시지로 흘러가고 질문은 닫힌다.
+
+> 사고 방식은 프롬프트 파일로 직접 조율할 수 있다: `~/.jarvis/inner_thought.md`(요청), `~/.jarvis/inner_thought_reflection.md`(성찰). 직접 쓴 템플릿에도 `utterance` 키는 있어야 한다. 없으면 daemon 이 항상 침묵한다.
 
 ### 절차 학습 (Procedural Learning)
 
@@ -186,6 +191,20 @@ JARVIS_NOTIFY__KINDS=["reminder","proactive"]   # reminder=스케줄 결과, pro
 ```
 
 > 슬랙 webhook 은 중복 제거 키가 없어 재시도하지 않는다(실패는 로그). 자체 앱으로 바꿀 때는 `core/notify` 에 채널 하나를 더하면 된다.
+
+### Web HUD 화면
+
+`docker compose --profile web up -d` 뒤 http://localhost:7777. 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/app/`)이고, nginx 가 그대로 서빙한다.
+
+| 영역 | 내용 |
+|------|------|
+| 왼쪽 열 | AGENDA(스케줄, open loop ✓/✕), ACTIVITY, SYSTEM(모델, 토큰·비용, 도구 목록) |
+| 가운데 | 리액터. 상태(대기, 생각, 실행, 듣기, 말하기)가 구체와 링에 보인다. 클릭하면 음성 모드 |
+| 오른쪽 열 | SESSIONS, CONVERSATION. 헤더를 클릭하면 접히고 아래 카드가 자리를 채운다 |
+
+대화에는 네 종류가 섞인다. 💭 는 접힌 한 줄(decision, 확신도)이고 클릭하면 해석 전문. 🔔 는 먼저 건넨 말이고 아래에 "도움이 됐나요?" 가 붙는다. 전송 직후 첫 이벤트까지는 THINKING 자리표시가 뜬다. 응답과 세션 복원 메시지는 마크다운으로 렌더된다. 승인이 필요한 도구는 모달(ALLOW, ALWAYS, DENY)로 묻는다.
+
+정적 파일은 서비스 워커가 네트워크 우선으로 받고 끊겼을 때만 캐시를 쓴다. 버전 문자열이 없으므로 파일을 고치면 새로고침만으로 반영된다. 860px 이하에서는 왼쪽 열이 드로어가 된다. 수동 확인 절차는 `scripts/e2e/hud-scenario.md`, 자동 e2e 는 `scripts/e2e/hud_flow.py`.
 
 ### 음성 (Web HUD)
 
@@ -637,7 +656,7 @@ JARVIS_USER_MODEL__PATH=~/.jarvis/user_model.json
 
 ```bash
 uv sync                          # 의존성 설치 (dev 포함)
-uv run pytest                    # 전체 테스트 (실 API 호출 없음, 612개)
+uv run pytest                    # 전체 테스트 (실 API 호출 없음, 920여 개)
 uv run pytest -k "test_policy"   # 특정 테스트
 uv run ruff check .              # 린트
 uv run ruff format .             # 포매팅
@@ -646,6 +665,9 @@ uv run mypy src/                 # 타입 체크
 uv run python -m jarvis.memory.eval                     # 메모리 기능별 평가 (LLM 없음)
 uv run python -m jarvis.core.proactive.eval -v          # proactive 게이팅 평가 (정책만, LLM 없음)
 uv run python -m jarvis.core.proactive.eval --engine llm  # 상황 사례까지 (사고 모델 호출)
+
+uv run python scripts/e2e/launch_hud.py &                 # 스크립트 프로바이더로 HUD 를 7799 에 띄우고
+uv run --with playwright python scripts/e2e/hud_flow.py   # 승인 기억·절차 학습 흐름을 브라우저로 검증
 ```
 
 proactive 평가는 `src/jarvis/core/proactive/eval/datasets/` 의 사례로 "이 상황에서 먼저 말해야 했나"를 잰다. `policy.jsonl` 은 사고 프레임을 직접 주어 게이팅(임계치, 쿨다운, 위험도 분리)만 검사하고, `situation.jsonl` 은 상황을 주어 사고 엔진까지 거친다. 사례마다 정책을 새로 만들고 시계를 고정하므로 같은 입력은 같은 결과를 낸다.

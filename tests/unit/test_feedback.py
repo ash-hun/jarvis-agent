@@ -34,7 +34,7 @@ def test_threshold_clamped_to_bounds():
 def test_policy_uses_dynamic_threshold():
     learner = FeedbackLearner(base_threshold=0.6, step=0.05)
     policy = DefaultProactivityPolicy(threshold_provider=learner.threshold)
-    frame = ThoughtFrame(decision="ask", confidence=0.58, interpretation="x")
+    frame = ThoughtFrame(decision="ask", confidence=0.58, utterance="x")
 
     # 초기 임계 0.6 → 0.58은 미달 → silent.
     assert policy.decide_proactive(frame, session_id="s1").speak is False
@@ -47,5 +47,5 @@ def test_policy_uses_dynamic_threshold():
 
 def test_policy_static_threshold_without_provider():
     policy = DefaultProactivityPolicy(confidence_threshold=0.6)
-    frame = ThoughtFrame(decision="ask", confidence=0.7, interpretation="x")
+    frame = ThoughtFrame(decision="ask", confidence=0.7, utterance="x")
     assert policy.decide_proactive(frame).speak is True

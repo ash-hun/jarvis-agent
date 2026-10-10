@@ -18,7 +18,7 @@ SESSION = "eval"
 REFLECTION_INPUT = (
     "(자율 성찰) 지금은 사용자의 직접 요청이 없는 시점이다. 먼저 알릴 가치가 있으면 act/ask, 없으면 silent."
 )
-PASSING_FRAME = ThoughtFrame(decision="act", confidence=1.0, interpretation="prior")
+PASSING_FRAME = ThoughtFrame(decision="act", confidence=1.0, utterance="prior")
 
 
 @dataclass

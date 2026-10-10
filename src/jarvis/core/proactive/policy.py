@@ -80,6 +80,11 @@ class DefaultProactivityPolicy:
                 reason=f"confidence {frame.confidence:.2f} < {threshold:.2f}",
             )
 
+        # 건넬 말이 없으면 침묵. interpretation 으로 대체하면 사용자 분석문이 그대로 나간다.
+        utterance = frame.utterance.strip()
+        if not utterance:
+            return ProactiveDecision(speak=False, reason="empty utterance")
+
         t = self._clock() if now is None else now
         last = self._last_spoke.get(session_id)
         if last is not None and (t - last) < self._cooldown:
@@ -90,7 +95,7 @@ class DefaultProactivityPolicy:
         high = [a for a in frame.proactive_actions if a.risk == "high"]
         return ProactiveDecision(
             speak=True,
-            message=frame.interpretation or frame.rationale,
+            message=utterance,
             reason="gated-pass",
             autonomous_actions=low,
             approval_actions=high,

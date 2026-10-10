@@ -24,13 +24,16 @@ DEFAULT_TEMPLATE = """\
 - decision (string): "act" | "ask" | "silent"  (확신 없으면 silent로 기울여라)
 - confidence (number): 0.0 ~ 1.0
 - rationale (string): 위 결정의 이유
+- utterance (string): decision 이 act/ask 일 때 사용자에게 직접 건넬 한두 문장. 사용자를
+    분석하는 문장이 아니라 사용자에게 말을 거는 문장으로 쓴다. silent 면 빈 문자열.
 - needs_background (boolean): 답하려면 도구 사용·검색·다단계 작업 등으로 시간이
     걸릴 것 같으면 true. 즉답 가능한 단순 질문이면 false.
 - filler (string): needs_background가 true일 때만 채운다. 사용자에게 먼저 건넬
     짧은 즉답으로, 반드시 "지금 알아보는 중이라 시간이 조금 걸린다"는 뜻을 자연스럽게
     담아라(예: "잠깐만요, 배포 로그 확인하고 바로 알려드릴게요"). false면 빈 문자열.
 - open_loops (string[]): 이 입력에서 사용자가 새로 흘린 약속·미완 작업·나중에 챙길
-    일을 짧게 적어라(예: "내일 배포 후 결과 공유하기"). 없으면 빈 배열.
+    일을 짧게 적어라(예: "내일 배포 후 결과 공유하기"). [열린 약속]에 이미 있는 것과
+    같은 뜻이면 다시 적지 마라. 없으면 빈 배열.
 
 원칙: 도움이 안 되면 침묵하라(silent). 저위험 행동만 자율 제안하라.
 """
@@ -59,6 +62,8 @@ DEFAULT_REFLECTION_TEMPLATE = """\
 - decision (string): "act" | "ask" | "silent"
 - confidence (number): 0.0 ~ 1.0
 - rationale (string): 위 결정의 이유
+- utterance (string): decision 이 act/ask 일 때 사용자에게 직접 건넬 한두 문장. 사용자를
+    분석하는 문장이 아니라 사용자에게 말을 거는 문장으로 쓴다. silent 면 빈 문자열.
 - needs_background (boolean): 성찰에서는 보통 false
 - filler (string): 보통 빈 문자열
 - open_loops (string[]): 보통 빈 배열(성찰은 새 약속을 만들기보다 기존 것을 본다)

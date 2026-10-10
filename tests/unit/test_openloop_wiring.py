@@ -5,6 +5,7 @@ import pytest
 
 from jarvis.agent_layer.openloop import InMemoryOpenLoopStore, OpenLoop
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
+from jarvis.core.proactive import DefaultProactivityCore
 
 
 class CapturingEngine:
@@ -19,7 +20,7 @@ class CapturingEngine:
         return self._frame
 
 
-def _build_session(fx, engine, store, user_model_store=None):
+def _build_session(fx, engine, store, user_model_store=None, proactivity_factory=None):
     from jarvis.core.session import AgentSession
 
     return AgentSession(
@@ -34,6 +35,7 @@ def _build_session(fx, engine, store, user_model_store=None):
         thought_engine=engine,
         openloop_store=store,
         user_model_store=user_model_store,
+        proactivity_factory=proactivity_factory,
     )
 
 
@@ -136,3 +138,20 @@ async def test_user_model_absent_is_blank(fx):
 
     await session.prompt("입력")
     assert engine.requests[0].user_model == ""
+
+
+@pytest.mark.asyncio
+async def test_reflection_does_not_persist_open_loops(fx):
+    await fx["repo"].create(session_id="test-session")
+    store = InMemoryOpenLoopStore()
+    await store.add(OpenLoop(description="참석자 목록 확정", origin_session="test-session"))
+    # 성찰이 기존 약속을 바꿔 말해도 새 항목으로 쌓이면 안 된다.
+    engine = CapturingEngine(ThoughtFrame(open_loops=["참석자들의 최종 리스트 확정"]))
+    session = _build_session(
+        fx, engine, store, proactivity_factory=lambda emit: DefaultProactivityCore(emit_proactive=emit)
+    )
+
+    await session.reflect()
+
+    assert engine.requests[0].mode == "reflection"
+    assert [x.description for x in await store.list_open()] == ["참석자 목록 확정"]

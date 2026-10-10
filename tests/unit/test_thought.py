@@ -358,3 +358,40 @@ def test_interpretation_only_composer_is_lean():
 
     # interpretation이 없으면 빈 문자열(주입 안 함).
     assert InterpretationOnlyComposer().compose(ThoughtFrame()) == ""
+
+
+# ── 관대한 파싱 ───────────────────────────────────────────────────────────────
+
+
+def _engine():
+    from jarvis.agent_layer.thought.engine import InnerThoughtEngine
+    from jarvis.model_layer.types import ModelConfig
+
+    return InnerThoughtEngine(model=ModelConfig(provider="faux", model="m"))
+
+
+def test_parse_drops_invalid_actions_but_keeps_frame(capsys):
+    raw = """```json
+{"decision": "act", "confidence": 0.9, "interpretation": "상기",
+ "proactive_actions": [
+   {"kind": "calendar", "description": "캘린더 등록", "risk": "medium"},
+   {"kind": "tool", "description": "로그 읽기", "tool_name": "read_file", "risk": "low"}
+ ]}
+```"""
+    frame = _engine()._parse(raw)
+    assert frame is not None and frame.decision == "act"
+    assert [a.tool_name for a in frame.proactive_actions] == ["read_file"]
+    assert "dropped invalid proactive_actions" in capsys.readouterr().out
+
+
+def test_parse_logs_reason_when_frame_itself_invalid(capsys):
+    frame = _engine()._parse('{"decision": "maybe", "confidence": "high"}')
+    assert frame is None
+    out = capsys.readouterr().out
+    assert "frame invalid" in out and "decision" in out
+
+
+def test_parse_valid_frame_is_silent(capsys):
+    frame = _engine()._parse('{"decision": "silent", "confidence": 0.2}')
+    assert frame is not None and frame.decision == "silent"
+    assert capsys.readouterr().out == ""

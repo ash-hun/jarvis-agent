@@ -5,9 +5,11 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
+from pydantic import ValidationError
+
 from jarvis.agent_layer.thought.prompt import ThoughtPromptTemplate
 from jarvis.agent_layer.thought.protocol import RecallFn
-from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame, ThoughtRequest
 from jarvis.model_layer.stream import stream_to_message
 from jarvis.model_layer.types import (
     LLMContext,
@@ -64,11 +66,16 @@ class InnerThoughtEngine:
 
         try:
             raw = await self._call_model(prompt)
-        except Exception:
-            # 사고는 부가 기능 — 모델 호출 실패는 조용히 생략한다.
+        except Exception as exc:
+            # 사고는 부가 기능 — 모델 호출 실패는 생략하되 이유는 남긴다.
+            print(f"[Thought] {request.mode} call failed: {exc!r}")
             return None
 
-        return self._parse(raw)
+        frame = self._parse(raw)
+        if frame is None:
+            # 조용히 None 이면 "왜 안 말하지"를 영영 모른다. 꼬리만 남겨 모델 출력 형식 문제를 드러낸다
+            print(f"[Thought] {request.mode} frame unparsable (len={len(raw)}): {raw[-200:]!r}")
+        return frame
 
     # ── override seams ─────────────────────────────────────────────────────────
 
@@ -115,14 +122,25 @@ class InnerThoughtEngine:
         return msg.text()
 
     def _parse(self, raw: str) -> ThoughtFrame | None:
-        """모델 출력에서 JSON을 추출해 검증. 실패 시 graceful fallback(None)."""
+        """모델 출력에서 JSON을 추출해 검증. 실패 시 graceful fallback(None).
+
+        작은 모델은 proactive_actions 의 kind/risk 에 스키마 밖 값을 자주 넣는다. 그 항목만 버리고
+        프레임은 살린다. 프레임 전체가 틀리면 어디가 틀렸는지 남기고 None.
+        """
         payload = _extract_json(raw)
         if payload is None:
             return None
         try:
             return ThoughtFrame.model_validate(payload)
-        except Exception:
+        except ValidationError as exc:
+            first_error = _describe(exc)
+        try:
+            frame = ThoughtFrame.model_validate(_drop_invalid_actions(payload))
+        except ValidationError as exc:
+            print(f"[Thought] frame invalid: {_describe(exc)}")
             return None
+        print(f"[Thought] dropped invalid proactive_actions: {first_error}")
+        return frame
 
     def _format_history(self, history: list[Message]) -> str:
         recent = history[-self._history_window :]
@@ -142,6 +160,23 @@ def _message_text(message: Message, max_chars: int = 400) -> str:
         parts = [str(getattr(b, "text", "")) for b in content if getattr(b, "text", "")]
         return " ".join(parts)[:max_chars]
     return ""
+
+
+def _drop_invalid_actions(payload: dict[str, Any]) -> dict[str, Any]:
+    actions = payload.get("proactive_actions")
+    if not isinstance(actions, list):
+        return {**payload, "proactive_actions": []}
+    kept = []
+    for action in actions:
+        try:
+            kept.append(ProactiveAction.model_validate(action).model_dump())
+        except ValidationError:
+            continue
+    return {**payload, "proactive_actions": kept}
+
+
+def _describe(exc: ValidationError, limit: int = 3) -> str:
+    return "; ".join(f"{'.'.join(str(p) for p in e['loc'])}: {e['msg']}" for e in exc.errors()[:limit])
 
 
 def _extract_json(raw: str) -> dict[str, Any] | None:

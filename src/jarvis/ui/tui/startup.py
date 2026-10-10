@@ -576,6 +576,8 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
         thought_engine=thought_engine,
         thought_log=thought_log,
         thought_composer=thought_composer,
+        thought_timing=ctx.settings.thought.request_timing,
+        thought_wait_sec=ctx.settings.thought.wait_sec,
         proactivity_factory=_build_proactivity_factory(ctx),
         openloop_store=extra.get("openloop_store"),
         activity_clock=extra.get("activity_clock"),
@@ -801,6 +803,8 @@ def _build_thought(
         recall=extra["memory_chain"].retrieve,
         recall_limit=tcfg.recall_limit,
         skip_if_shorter_than=tcfg.skip_if_shorter_than,
+        history_window=tcfg.history_turns,
+        history_chars=tcfg.history_chars,
     )
 
     # A2 — 사고 로그 싱크: 설정된 것만, 알 수 없는 이름은 무시.

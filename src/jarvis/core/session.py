@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import time
 from collections import deque
@@ -62,6 +63,8 @@ class SessionBusy(Exception):
     """같은 세션에 이전 요청이 아직 돌고 있을 때 새 prompt 를 거부한다."""
 
 
+THOUGHT_WAIT_SEC = 3.0
+
 BUSY_MESSAGE = "이전 요청을 아직 처리 중입니다. 끝나길 기다리거나 중단(abort)한 뒤 다시 보내세요."
 
 
@@ -93,6 +96,8 @@ class AgentSession:
         thought_engine: ThoughtEngine | None = None,
         thought_log: ThoughtLog | None = None,
         thought_composer: ThoughtComposer | None = None,
+        thought_timing: str = "race",
+        thought_wait_sec: float = THOUGHT_WAIT_SEC,
         proactivity_factory: Callable[[EmitProactive], ProactivityCore] | None = None,
         openloop_store: OpenLoopStore | None = None,
         activity_clock: ActivityClock | None = None,
@@ -114,6 +119,9 @@ class AgentSession:
         self._thought_engine = thought_engine
         self._thought_log = thought_log
         self._thought_composer = thought_composer or DefaultThoughtComposer()
+        self._thought_timing = thought_timing
+        self._thought_wait_sec = thought_wait_sec
+        self._late_thoughts: set[asyncio.Task[Any]] = set()  # 참조를 잃으면 GC 가 끊는다
         self._openloop_store = openloop_store
         self._activity_clock = activity_clock
         self._feedback_learner = feedback_learner
@@ -184,7 +192,7 @@ class AgentSession:
 
         expanded = self._skill_registry.expand(validated.sanitized)
 
-        frame = await self._run_inner_thought(expanded)
+        frame = None if self._thought_timing == "after" else await self._await_thought(expanded)
         inner_thought_prompt = self._thought_composer.compose(frame) or None if frame is not None else None
 
         await self._plugins.emit_before_agent_start(expanded, {"session_id": self._session_id})
@@ -213,9 +221,13 @@ class AgentSession:
 
         # Dual-Channel: proactivity가 있으면 needs_background 시 filler 즉시 발화 후
         # 백그라운드 수행(반환 None). 없거나 즉시 모드면 현재 동작 그대로.
-        if self._proactivity is not None:
-            return await self._proactivity.dispatch_request(frame, run_main)
-        return await run_main()
+        try:
+            if self._proactivity is not None:
+                return await self._proactivity.dispatch_request(frame, run_main)
+            return await run_main()
+        finally:
+            if self._thought_timing == "after":
+                self._spawn_thought(expanded)
 
     async def reflect(self) -> ProactiveDecision | None:
         """daemon 자율 성찰(B3) — 요청 없이 한 번 성찰해 먼저 말할지 게이팅한다.
@@ -300,6 +312,34 @@ class AgentSession:
             event.as_line(include_detail=self._external_detail_in_prompt)
             for event in self._external_inbox.drain()
         ]
+
+    def _spawn_thought(self, user_input: str) -> asyncio.Task[Any] | None:
+        """사고를 뒤에서 돌린다. 끝나면 _run_inner_thought 가 기록과 이벤트를 알아서 남긴다."""
+        if self._thought_engine is None:
+            return None
+        task = asyncio.create_task(self._run_inner_thought(user_input))
+        self._late_thoughts.add(task)
+        task.add_done_callback(self._on_thought_done)
+        return task
+
+    async def _await_thought(self, user_input: str) -> ThoughtFrame | None:
+        """before 면 끝까지, race 면 wait_sec 까지만 기다린다. 늦으면 메인 응답을 먼저 시작한다."""
+        if self._thought_engine is None:
+            return None
+        if self._thought_timing == "before":
+            return await self._run_inner_thought(user_input)
+        task = self._spawn_thought(user_input)
+        assert task is not None
+        try:
+            return await asyncio.wait_for(asyncio.shield(task), timeout=self._thought_wait_sec)
+        except TimeoutError:
+            print(f"[Thought] request frame late (>{self._thought_wait_sec}s): main turn starts without it")
+            return None
+
+    def _on_thought_done(self, task: asyncio.Task[Any]) -> None:
+        self._late_thoughts.discard(task)
+        if not task.cancelled() and task.exception() is not None:
+            print(f"[Thought] request thought failed: {task.exception()!r}")
 
     async def _run_inner_thought(
         self,

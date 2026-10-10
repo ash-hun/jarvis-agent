@@ -1,6 +1,8 @@
 """Inner Thought 배선 테스트 — session 삽입 + loop system_prompt 증강."""
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 from jarvis.agent_layer.loop import _augment_system_prompt
@@ -23,13 +25,15 @@ class StubEngine:
     def __init__(self, frame: ThoughtFrame | None) -> None:
         self._frame = frame
         self.calls: list[ThoughtRequest] = []
+        self.delay = 0.0
 
     async def think(self, request: ThoughtRequest) -> ThoughtFrame | None:
         self.calls.append(request)
+        await asyncio.sleep(self.delay)
         return self._frame
 
 
-def _build_session(fixtures: dict, engine=None, log=None):
+def _build_session(fixtures: dict, engine=None, log=None, wait_sec: float = 3.0, timing: str = "race"):
     from jarvis.core.session import AgentSession
 
     return AgentSession(
@@ -43,6 +47,8 @@ def _build_session(fixtures: dict, engine=None, log=None):
         session_repo=fixtures["repo"],
         thought_engine=engine,
         thought_log=log,
+        thought_timing=timing,
+        thought_wait_sec=wait_sec,
     )
 
 
@@ -165,3 +171,49 @@ async def test_session_silent_engine_does_not_break_turn(session_fixtures):
 
 async def _noop():
     return None
+
+
+@pytest.mark.asyncio
+async def test_late_thought_does_not_block_turn_and_still_records(session_fixtures):
+    """사고가 wait_sec 를 넘기면 메인 턴이 먼저 간다. 사고는 뒤에서 끝나 이벤트를 남긴다."""
+    await session_fixtures["repo"].create(session_id="test-session")
+    engine = StubEngine(ThoughtFrame(interpretation="늦은 해석", decision="silent", confidence=0.3))
+    engine.delay = 0.3
+    session = _build_session(session_fixtures, engine=engine, wait_sec=0.05)
+    events: list = []
+    session.subscribe(lambda e: events.append(e) or _noop())
+
+    started = asyncio.get_running_loop().time()
+    await session.prompt("배포 상태 알려줘")
+    thought_before_reply = [e for e in events if isinstance(e, InnerThoughtEvent)]
+    assert thought_before_reply == []
+    assert asyncio.get_running_loop().time() - started < 0.3
+
+    await asyncio.sleep(0.4)
+    assert [e.interpretation for e in events if isinstance(e, InnerThoughtEvent)] == ["늦은 해석"]
+
+
+@pytest.mark.asyncio
+async def test_after_timing_runs_thought_once_reply_is_done(session_fixtures):
+    await session_fixtures["repo"].create(session_id="test-session")
+    engine = StubEngine(ThoughtFrame(interpretation="뒤늦은 해석", decision="silent", confidence=0.3))
+    session = _build_session(session_fixtures, engine=engine, timing="after")
+    events: list = []
+    session.subscribe(lambda e: events.append(e) or _noop())
+
+    await session.prompt("배포 상태 알려줘")
+    assert engine.calls == [] or not [e for e in events if isinstance(e, InnerThoughtEvent)]
+    await asyncio.sleep(0.05)
+    assert [e.interpretation for e in events if isinstance(e, InnerThoughtEvent)] == ["뒤늦은 해석"]
+
+
+@pytest.mark.asyncio
+async def test_before_timing_waits_even_when_slow(session_fixtures):
+    await session_fixtures["repo"].create(session_id="test-session")
+    engine = StubEngine(ThoughtFrame(interpretation="느린 해석", decision="silent", confidence=0.3))
+    engine.delay = 0.1
+    session = _build_session(session_fixtures, engine=engine, timing="before", wait_sec=0.01)
+    events: list = []
+    session.subscribe(lambda e: events.append(e) or _noop())
+    await session.prompt("배포 상태 알려줘")
+    assert [e.interpretation for e in events if isinstance(e, InnerThoughtEvent)] == ["느린 해석"]

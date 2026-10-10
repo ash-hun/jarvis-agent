@@ -171,6 +171,12 @@ class ThoughtConfig(BaseModel):
     proactive_cooldown_sec: int = 300  # Tier 1 발화 쿨다운 (예약)
     skip_if_shorter_than: int = 0  # 이보다 짧은 입력은 사고 생략(지연/비용 완화)
     recall_limit: int = 5  # 사고 시 회상할 기억 개수
+    # 요청 사고 시점. before: 사고 뒤 응답(해석이 이번 응답에 섞임). race: wait_sec 까지만 기다림.
+    # after: 응답 뒤 사고. 사고와 메인이 같은 GPU 면 after 가 가장 빠르다. race, after 의 늦은 사고는 기록만 남긴다
+    request_timing: Literal["before", "race", "after"] = "race"
+    wait_sec: float = 3.0  # race 에서 기다리는 상한
+    history_turns: int = 8  # 사고 프롬프트에 넣는 최근 대화 턴 수
+    history_chars: int = 240  # 턴당 글자 수 상한
     log_sinks: list[str] = Field(default_factory=lambda: ["ltm"])  # ltm | stm (복수 가능)
     composer: str = "default"  # default | interpretation_only — 메인 프롬프트 조립 전략
 

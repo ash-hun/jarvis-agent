@@ -20,6 +20,8 @@ from jarvis.model_layer.types import (
 )
 
 THOUGHT_SCHEMA = ThoughtFrame.model_json_schema()  # 프레임 필드는 안정적이라 기동 때 한 번
+HISTORY_TURNS = 8
+HISTORY_CHARS = 240
 
 
 class InnerThoughtEngine:
@@ -42,7 +44,8 @@ class InnerThoughtEngine:
         recall: RecallFn | None = None,
         recall_limit: int = 5,
         skip_if_shorter_than: int = 0,
-        history_window: int = 12,
+        history_window: int = HISTORY_TURNS,
+        history_chars: int = HISTORY_CHARS,
         clock: Callable[[], datetime] | None = None,
         reflection_template: ThoughtPromptTemplate | None = None,
     ) -> None:
@@ -54,6 +57,7 @@ class InnerThoughtEngine:
         self._recall_limit = recall_limit
         self._skip_if_shorter_than = skip_if_shorter_than
         self._history_window = history_window
+        self._history_chars = history_chars
         self._clock = clock or datetime.now
 
     async def think(self, request: ThoughtRequest) -> ThoughtFrame | None:
@@ -148,7 +152,7 @@ class InnerThoughtEngine:
         recent = history[-self._history_window :]
         lines: list[str] = []
         for m in recent:
-            text = _message_text(m)
+            text = _message_text(m, self._history_chars)
             if text:
                 lines.append(f"{m.role}: {text}")
         return "\n".join(lines)

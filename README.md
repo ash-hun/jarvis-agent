@@ -633,6 +633,10 @@ JARVIS_THOUGHT__PROMPT_PATH=~/.jarvis/inner_thought.md
 JARVIS_THOUGHT__REFLECTION_PROMPT_PATH=~/.jarvis/inner_thought_reflection.md
 JARVIS_THOUGHT__LOG_SINKS=["ltm"]         # ltm | stm (복수 가능)
 JARVIS_THOUGHT__COMPOSER=default          # default | interpretation_only
+JARVIS_THOUGHT__REQUEST_TIMING=race       # before | race | after. 로컬 Ollama(한 GPU)는 after 가 가장 빠르다
+JARVIS_THOUGHT__WAIT_SEC=3.0              # race 에서 사고를 기다리는 상한. 넘기면 응답 먼저, 사고는 기록만
+JARVIS_THOUGHT__HISTORY_TURNS=8           # 사고 프롬프트의 최근 대화 턴 수
+JARVIS_THOUGHT__HISTORY_CHARS=240         # 턴당 글자 상한
 
 # ── Proactive: Dual-Channel + Daemon (Tier 1~2) ──────────────────────────────
 JARVIS_PROACTIVE__ENABLED=true            # 기본 ON (요청 시 filler+백그라운드)

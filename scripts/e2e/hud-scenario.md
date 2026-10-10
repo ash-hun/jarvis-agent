@@ -5,12 +5,13 @@ Docker 로 띄운 Web HUD 에서 proactive 성찰, 승인 기억, 절차 학습�
 
 ## 준비
 
-`.env` 에서 아래 값을 확인한다. 메인 모델은 도구 호출이 되는 것이어야 한다(qwen3.5:0.8b 는 안 된다). 사고 모델은 `JARVIS_THOUGHT__MODEL` 로 분리할 수 있다(프로바이더가 `think` 를 꺼서 본문은 비지 않지만, 0.8b 급은 프레임 JSON 을 못 지킨다).
+`.env` 에서 아래 값을 확인한다. 메인 모델은 도구 호출이 되는 것이어야 한다(qwen3.5:0.8b 는 안 된다). 사고 모델은 `JARVIS_THOUGHT__MODEL=gemma4:e2b-it-qat` 로 분리한다(0.8b 급은 프레임 JSON 을 못 지킨다).
 
 ```bash
 JARVIS_LLM__PROVIDER=ollama
 JARVIS_LLM__BASE_URL=http://host.docker.internal:11434
 JARVIS_LLM__MODEL=gemma4:e4b
+JARVIS_THOUGHT__MODEL=gemma4:e2b-it-qat
 JARVIS_PROACTIVE__DAEMON_ENABLED=true
 JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120     # 기본값과 같다
 ```

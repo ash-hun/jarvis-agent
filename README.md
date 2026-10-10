@@ -128,9 +128,9 @@ jarvis --list-sessions      # 세션 목록
 JARVIS_THOUGHT__ENABLED=true
 JARVIS_PROACTIVE__ENABLED=true
 
-# 별도(저렴) 사고 모델 분리 — 메인=anthropic / 사고=ollama 등. 로컬 Ollama 면 소형 모델로 성찰이 메인 모델을
-# 점유하지 않게 한다. 사고 프레임은 JSON 이라 0.8b 급은 형식을 못 지킨다. 2b 이상, structured output 되는 모델로
-JARVIS_THOUGHT__MODEL=claude-haiku-4-5
+# 별도(저렴) 사고 모델 분리 — 메인=anthropic / 사고=ollama 등. 로컬 Ollama 는 gemma4:e2b-it-qat 로 고정한다.
+# 사고 프레임은 JSON 이라 0.8b 급은 형식을 못 지킨다
+JARVIS_THOUGHT__MODEL=gemma4:e2b-it-qat     # 메인이 anthropic 이면 claude-haiku-4-5 같은 값
 
 # 자율 성찰 daemon: 기본 ON — 요청 없이 먼저 말 검 (false로 끔)
 JARVIS_PROACTIVE__DAEMON_ENABLED=true

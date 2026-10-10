@@ -5,6 +5,7 @@ import { loadFont as loadNotoSansKR } from "@remotion/google-fonts/NotoSansKR";
 import { loadFont as loadJetBrainsMono } from "@remotion/google-fonts/JetBrainsMono";
 import { BgMesh, Grade, Vignette } from "./components/layers";
 import { Intro } from "./scenes/Intro";
+import { Reactor } from "./scenes/Reactor";
 import { Feature, FeatureProps } from "./scenes/Feature";
 import { Outro } from "./scenes/Outro";
 
@@ -50,10 +51,12 @@ const FEATURES: FeatureProps[] = [
 ];
 
 const INTRO = sec(2.8);
+const REACTOR = sec(4.8);
+const REACTOR_FROM_SEC = 4.5;  // sphere.mp4 의 thinking 구간부터 tool_running 까지
 const FEATURE = sec(3.6);
 const OUTRO = sec(3.0);
 
-export const PROMO_FRAMES = INTRO + FEATURES.length * (FEATURE - OVERLAP) + OUTRO;
+export const PROMO_FRAMES = INTRO + (REACTOR - OVERLAP) + FEATURES.length * (FEATURE - OVERLAP) + OUTRO;
 
 export const HudPromo: React.FC = () => {
   let cursor = 0;
@@ -62,6 +65,7 @@ export const HudPromo: React.FC = () => {
     <AbsoluteFill>
       <BgMesh />
       <Sequence from={at(INTRO)} durationInFrames={INTRO}><Intro /></Sequence>
+      <Sequence from={at(REACTOR)} durationInFrames={REACTOR}><Reactor startFromSec={REACTOR_FROM_SEC} /></Sequence>
       {FEATURES.map((f) => (
         <Sequence key={f.kicker} from={at(FEATURE)} durationInFrames={FEATURE}><Feature {...f} /></Sequence>
       ))}

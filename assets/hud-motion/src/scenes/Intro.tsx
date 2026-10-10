@@ -1,10 +1,11 @@
 // HOOK — 어두운 HUD 위로 워드마크와 한 줄 주장. 첫 15 프레임 안에 움직인다.
 import React from "react";
-import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, OffthreadVideo, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { theme } from "../theme";
-import { KenBurns, WordReveal, Entrance, SceneExit } from "../components/motion";
+import { WordReveal, Entrance, SceneExit } from "../components/motion";
 
 const WORDMARK = "J.A.R.V.I.S.";
+const INTRO_VIDEO_FROM_SEC = 4;
 
 export const Intro: React.FC = () => {
   const frame = useCurrentFrame();
@@ -13,8 +14,10 @@ export const Intro: React.FC = () => {
   const glowPulse = 0.7 + Math.sin(frame / 18) * 0.3;
   return (
     <SceneExit>
-      <AbsoluteFill style={{ opacity: 0.55 }}>
-        <KenBurns src="hud_idle.png" zoomFrom={1.02} zoomTo={1.1} focus="50% 45%" panX={0} />
+      <AbsoluteFill style={{ opacity: 0.6 }}>
+        {/* 녹화 앞 4초는 구체가 아직 흐리다(로딩 페이드). thinking 구간부터 쓴다 */}
+        <OffthreadVideo src={staticFile("hud_full.mp4")} startFrom={Math.round(INTRO_VIDEO_FROM_SEC * fps)} muted
+          style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       </AbsoluteFill>
       <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(5,8,15,0.35), rgba(5,8,15,0.75))" }} />
       <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", gap: 22 }}>

@@ -170,32 +170,32 @@ body::after {
   letter-spacing: 0.18em;
 }
 
-/* ── Stage — 중앙 리액터 + 좌우 HUD 카드 ─────────────────────────────────────*/
-/* 데스크탑: 리액터가 가운데 두 행을 차지하고, 카드 넷이 좌우 위/아래에 뜬다.
- * .hud-side 는 데스크탑에서 display:contents 라 자식 카드가 그리드에 직접 참여하고,
- * 좁은 화면에서는 그 자체가 드로어가 된다. */
+/* ── Stage — 중앙 리액터 + 좌우 HUD 열 ───────────────────────────────────────*/
+/* 데스크탑: 그리드는 열만 나눈다. 열 안은 세로 flex 라 카드를 접으면 아래 카드가 그 자리를 채운다.
+ * 왼쪽 열(.hud-side) = Agenda · Activity · System, 좁은 화면에서는 드로어.
+ * 오른쪽 열(.chat-col) = Sessions · Conversation. */
 .stage {
   position: absolute;
   inset: var(--header-h) 0 var(--dock-h) 0;
   z-index: 5;
   display: grid;
-  grid-template-columns: minmax(250px, 330px) 1fr minmax(230px, 300px);
-  /* 오른쪽 가운데(Activity)는 최소 높이를 지켜서 System 이 펼쳐져도 눌려 사라지지 않게 한다 */
-  grid-template-rows: auto minmax(96px, 1fr) auto;
-  grid-template-areas:
-    "sessions reactor agenda"
-    "chat     reactor log"
-    "chat     reactor system";
+  grid-template-columns: minmax(230px, 300px) 1fr minmax(250px, 330px);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: "side reactor chat";
   gap: 14px var(--gutter);
   padding: 16px var(--gutter) 10px;
 }
-.hud-side { display: contents; }
-.sessions-card { grid-area: sessions; max-height: 34vh; }
-.chat-card     { grid-area: chat; }
-.agenda-card   { grid-area: agenda; max-height: 30vh; }
-.log-card      { grid-area: log; }
-.system-card   { grid-area: system; }
-.reactor       { grid-area: reactor; }
+.hud-col  { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.hud-side { grid-area: side; }
+.chat-col { grid-area: chat; }
+.reactor  { grid-area: reactor; }
+.sessions-card { flex: 0 0 auto; max-height: 34vh; }
+.chat-card     { flex: 1 1 auto; }
+.agenda-card   { flex: 0 1 auto; max-height: 30vh; }
+/* Activity 는 최소 높이를 지켜서 System 이 펼쳐져도 눌려 사라지지 않게 한다(.hud-card 의 min-height:0 보다 구체적으로) */
+.log-card      { flex: 1 1 auto; }
+.hud-col .log-card { min-height: 96px; }
+.system-card   { flex: 0 0 auto; }
 
 /* ── HUD card — 반투명 바탕 + 얇은 테두리 + 모서리 브래킷 ───────────────────*/
 .hud-card {
@@ -292,10 +292,18 @@ body::after {
 .chat-card .panel-head { cursor: pointer; user-select: none; }
 .chat-card .panel-head:hover { color: var(--pri-bright); }
 .chat-card .chev { transition: transform .2s ease; display: inline-block; color: var(--text-faint); }
-body.chat-collapsed .chat-card { align-self: end; }
+body.chat-collapsed .chat-card { flex: 0 0 auto; }  /* 접히면 위 카드 바로 아래에 붙는다 */
 body.chat-collapsed .chat-card .panel-head { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
 body.chat-collapsed .chat-card .messages { display: none; }
 body.chat-collapsed .chat-card .chev { transform: rotate(-90deg); }
+
+.sessions-card .panel-head { cursor: pointer; user-select: none; }
+.sessions-card .panel-head:hover { color: var(--pri-bright); }
+.sessions-card .chev { transition: transform .2s ease; display: inline-block; color: var(--text-faint); }
+body.sessions-collapsed .sessions-card { max-height: none; }
+body.sessions-collapsed .sessions-card .panel-head { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+body.sessions-collapsed .sessions-card .session-list { display: none; }
+body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
 
 .messages {
   flex: 1;
@@ -444,6 +452,12 @@ body.chat-collapsed .chat-card .chev { transform: rotate(-90deg); }
   border-left: 1px solid color-mix(in srgb, var(--primary) 30%, transparent); padding-left: 10px;
 }
 .msg.thought .thought-meta { opacity: 0.6; font-style: normal; }
+.msg.thought .thought-head { cursor: pointer; user-select: none; display: flex; gap: 6px; align-items: center; }
+.msg.thought .thought-head:hover .thought-meta { opacity: 1; }
+.msg.thought .thought-head .chev { display: inline-block; transition: transform .15s ease; font-style: normal; }
+.msg.thought.open .thought-head .chev { transform: rotate(90deg); }
+.msg.thought .thought-detail { display: none; margin-top: 4px; }
+.msg.thought.open .thought-detail { display: block; }
 /* 스케줄 작업 알림의 제목 줄 */
 .notice-title { color: var(--accent); font-size: 11px; letter-spacing: 0.06em; margin-bottom: 4px; }
 
@@ -453,15 +467,13 @@ body.chat-collapsed .chat-card .chev { transform: rotate(-90deg); }
   color: var(--pri-bright); font-size: 13px;
   border-left: 2px solid rgba(217,140,255,0.45); padding-left: 10px;
 }
-.proactive-fb { margin-top: 6px; display: flex; gap: 8px; }
-.proactive-fb button {
-  background: transparent; color: var(--text-faint);
-  border: 1px solid rgba(217,140,255,0.35); border-radius: 4px;
-  font-size: 11px; padding: 2px 8px; cursor: pointer; letter-spacing: 0.05em;
-}
-.proactive-fb button:hover:not(:disabled) { color: var(--pri-bright); border-color: var(--primary); }
-.proactive-fb button:disabled { opacity: 0.4; cursor: default; }
-.proactive-fb.done { opacity: 0.6; }
+/* 🔔 뒤에 붙는 피드백 질문. 답이 오면 흐려진다 */
+.proactive-ask { margin-top: 6px; font-size: 11px; color: var(--text-faint); letter-spacing: 0.04em; }
+.proactive-ask::before { content: "?"; color: var(--magenta, #d98cff); margin-right: 6px; }
+.proactive-ask.done { opacity: 0.4; }
+
+/* 전송 직후 ~ 첫 agent_start 사이의 thinking 자리표시 */
+.msg.await .body { display: flex; align-items: center; gap: 8px; color: var(--text-faint); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
 
 /* tool trace — JARVIS 메시지 안 도구 실행 표시 */
 .tool-trace {
@@ -1104,7 +1116,7 @@ button, .session, .sphere-hit, .panel-head {
 
 /* 좁은 데스크탑 — 좌우 카드 폭을 줄인다 */
 @media (max-width: 1180px) {
-  .stage { grid-template-columns: minmax(220px, 270px) 1fr minmax(200px, 240px); }
+  .stage { grid-template-columns: minmax(200px, 240px) 1fr minmax(220px, 270px); }
 }
 
 /* 태블릿 세로 이하 — 리액터 위, 대화 아래. 나머지 카드는 드로어로. */
@@ -1130,7 +1142,7 @@ button, .session, .sphere-hit, .panel-head {
   .reactor-caption.live { font-size: 12px; }
 
   .hud-side {
-    display: flex; flex-direction: column; gap: 12px;
+    gap: 12px;
     position: fixed;
     top: var(--header-h); bottom: 0; left: 0;
     width: min(300px, 86vw);

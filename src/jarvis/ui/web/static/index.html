@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,400;1,500&family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026092504">
+  <link rel="stylesheet" href="styles.css">
   <!-- 에이전트 브랜드(이름·명언·색). 동기 로드 — 첫 페인트 전에 CSS 변수를 채운다. -->
   <script src="brand.js"></script>
 </head>
@@ -63,26 +63,9 @@
     <p class="reactor-caption quote" id="reactor-caption" aria-live="polite"></p>
   </section>
 
-  <!-- CONVERSATION (접히는 카드) -->
-  <section class="hud-card chat-card">
-    <div class="panel-head" id="chat-toggle" title="클릭해서 접기/펼치기">
-      <span class="chev">▾</span>
-      <span>Conversation</span>
-      <span class="count"><span id="msg-count">0</span> MSG</span>
-    </div>
-    <div class="messages" id="messages"></div>
-  </section>
 
-  <!-- 데스크탑에선 그리드에 직접 참여, 좁은 화면에선 드로어 -->
-  <div class="hud-side" id="hud-side">
-    <section class="hud-card sessions-card">
-      <div class="panel-head">
-        <span>Sessions</span>
-        <span class="count" id="session-count">01</span>
-        <button class="icon-btn" id="new-session-btn" type="button" title="새 세션">+</button>
-      </div>
-      <div class="session-list" id="session-list"></div>
-    </section>
+  <!-- 왼쪽 열 — Agenda · Activity · System. 좁은 화면에선 드로어 -->
+  <div class="hud-col hud-side" id="hud-side">
 
     <section class="hud-card agenda-card">
       <div class="panel-head"><span>Agenda</span><span class="count" id="agenda-count">0</span></div>
@@ -117,6 +100,28 @@
       </dl>
       <ul class="tools-list" id="tools-list" hidden></ul>
       <div class="usage-sparkline" id="usage-sparkline"></div>
+    </section>
+  </div>
+
+  <!-- 오른쪽 열 — Sessions · Conversation. 카드를 접으면 아래 카드가 자리를 채운다 -->
+  <div class="hud-col chat-col">
+    <section class="hud-card sessions-card">
+      <div class="panel-head" id="sessions-toggle" title="클릭해서 접기/펼치기">
+        <span class="chev">▾</span>
+        <span>Sessions</span>
+        <span class="count" id="session-count">01</span>
+        <button class="icon-btn" id="new-session-btn" type="button" title="새 세션">+</button>
+      </div>
+      <div class="session-list" id="session-list"></div>
+    </section>
+
+    <section class="hud-card chat-card">
+      <div class="panel-head" id="chat-toggle" title="클릭해서 접기/펼치기">
+        <span class="chev">▾</span>
+        <span>Conversation</span>
+        <span class="count"><span id="msg-count">0</span> MSG</span>
+      </div>
+      <div class="messages" id="messages"></div>
     </section>
   </div>
 </main>
@@ -189,11 +194,11 @@
       "three": "./vendor/three/three.module.min.js"
   } }
 </script>
-<script src="hud.js?v=2026092504"></script>
-<script src="voice.js?v=2026092504"></script>
-<script src="app.js?v=2026092504"></script>
-<!-- 모듈은 defer — hud.js 의 window.HUD 가 준비된 뒤 실행된다 -->
-<script type="module" src="sphere.js?v=2026092504"></script>
+<script src="hud.js"></script>
+<script src="voice.js"></script>
+<!-- 모듈은 defer — hud.js 의 window.HUD, voice.js 의 VoiceManager 가 준비된 뒤 실행된다 -->
+<script type="module" src="app/main.js"></script>
+<script type="module" src="sphere.js"></script>
 
 <!-- PWA: service worker 등록 (http/https에서만, 실패해도 앱 동작엔 영향 없음) -->
 <script>

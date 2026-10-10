@@ -21,12 +21,14 @@
 git clone https://github.com/ash-hun/jarvis.git
 cd jarvis
 
-uv sync
+uv sync --extra web --extra scheduler
 cp .env.example .env
 # .env에서 최소 JARVIS_LLM__API_KEY 설정
+# .env.example 은 세션·메모리가 postgres 다. Docker 없이 띄우려면 jsonl / in_memory 로
 
-jarvis           # TUI 실행
-jarvis --web     # Web HUD 실행 (http://localhost:7777)
+jarvis                                   # TUI 실행
+jarvis --web                             # Web HUD 실행 (http://localhost:7777)
+jarvis --web --host 0.0.0.0 --port 8080  # 바인딩은 플래그로. 환경변수 없음
 ```
 
 <details>
@@ -171,7 +173,7 @@ Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는�
 
 ### 승인 기억 (Approval Memory)
 
-`bash`, `write_file`, `edit_file` 은 실행 전 승인을 묻는다. 승인 화면에서 **항상 허용**(TUI `a`, Web `ALWAYS`)을 고르면 제안된 패턴이 `~/.jarvis/approvals.yaml` 에 규칙으로 남고, 그 패턴은 다시 묻지 않는다. 규칙은 사용자가 그 버튼을 눌렀을 때만 생긴다.
+`bash`, `write_file`, `edit_file` 은 실행 전 승인을 묻는다(`JARVIS_SECURITY__REQUIRE_APPROVAL_FOR`). 위험 명령 정규식 설정은 도구 호출 경로에서 검사되지 않으므로 안전장치는 이 승인과 규칙이다. 승인 화면에서 **항상 허용**(TUI `a`, Web `ALWAYS`)을 고르면 제안된 패턴이 `~/.jarvis/approvals.yaml` 에 규칙으로 남고, 그 패턴은 다시 묻지 않는다. 규칙은 사용자가 그 버튼을 눌렀을 때만 생긴다.
 
 | 도구 | 제안 패턴 | 대조 방식 |
 |------|----------|----------|
@@ -221,10 +223,8 @@ JARVIS_NOTIFY__KINDS=["reminder","proactive"]   # reminder=스케줄 결과, pro
 | **TTS** | Web Speech API (브라우저 합성) | `supertonic` — 백엔드 ONNX 합성 → WAV 스트림 |
 
 ```bash
-JARVIS_VOICE__STT_PROVIDER=whisper       # browser | whisper
+JARVIS_VOICE__STT_PROVIDER=whisper       # browser | whisper (한국어 고정)
 JARVIS_VOICE__TTS_PROVIDER=supertonic    # browser | supertonic
-JARVIS_VOICE__WHISPER_MODEL_SIZE=base    # tiny | base | small | medium | large-v3
-JARVIS_VOICE__STT_LANG=ko-KR
 
 # 서버 STT/TTS 사용 시 추가 의존성
 uv sync --extra voice
@@ -346,7 +346,7 @@ JARVIS_LLM__PROVIDER=my-provider
 <details>
 <summary>새 도구(Tool) 추가</summary>
 
-`~/.jarvis/tools/` 에 파일을 놓으면 핫리로드된다.
+`~/.jarvis/tools/` 에 파일을 놓고 재시작하면 등록된다. 같은 이름의 내장 도구를 덮어쓴다.
 
 **방식 1 — Python 파일:**
 
@@ -450,18 +450,17 @@ class MyPlugin:
     name = "my-plugin"
     version = "1.0.0"
 
-    async def before_agent_start(self, context): ...
-    async def before_tool_call(self, tool_name: str, args: dict, auth) -> dict:
-        print(f"툴 호출: {tool_name}")
-        return args  # 수정된 args 반환 가능
-    async def after_tool_call(self, tool_name: str, result: dict) -> dict:
-        return result
-    async def on_message_end(self, message): ...
-    async def transform_context(self, messages: list) -> list:
-        return messages  # 컨텍스트 변형 가능
+    async def before_agent_start(self, prompt, context): ...
+    async def before_tool_call(self, tool_name: str, args: dict, auth):
+        return None  # {"block": True, "reason": "..."} 을 돌려주면 호출을 막는다
+    async def after_tool_call(self, tool_name: str, args: dict, result: dict): ...
+    async def on_message_end(self, message):
+        return None  # 메시지를 돌려주면 응답이 그것으로 바뀐다
+    async def transform_context(self, messages: list):
+        return messages  # 프로토콜에만 있고 아직 호출되지 않는다
 ```
 
-파일을 놓으면 자동 감지·로드된다. `JARVIS_PLUGIN__PLUGINS_DIR` (기본: `~/.jarvis/plugins/`).
+`JARVIS_PLUGIN__PLUGINS_DIR` (기본: `~/.jarvis/plugins/`) 를 기동 때 읽는다. 파일을 더했으면 재시작. 훅은 다섯 개를 다 두어야 빈 훅 오류 로그가 안 남는다.
 
 </details>
 
@@ -594,15 +593,15 @@ JARVIS_LLM__TEMPERATURE=0.7
 
 # ── 메모리 ───────────────────────────────────────────────────────────────────
 JARVIS_MEMORY__BACKEND=in_memory      # in_memory | postgres
-JARVIS_MEMORY__WINDOW_SIZE=20
-JARVIS_MEMORY__COMPACTION_THRESHOLD=30
+JARVIS_MEMORY__WINDOW_SIZE=50
+JARVIS_MEMORY__COMPACTION_THRESHOLD=100000   # 글자 수
 JARVIS_MEMORY__CONSOLIDATE_ON_IDLE=true  # 조용할 때 요약에서 사실 추출 (daemon_trigger 가 idle 또는 both 일 때)
 JARVIS_MEMORY__EMBEDDING_PROVIDER=       # 의미 유사도 검색: openai | ollama | vllm (비우면 키워드만, Postgres 는 pgvector 필요)
 JARVIS_MEMORY__EMBEDDING_MODEL=          # 비우면 provider 기본값
 
 # ── 세션 영속성 ──────────────────────────────────────────────────────────────
-JARVIS_SESSION__BACKEND=jsonl         # jsonl | postgres
-JARVIS_SESSION__JSONL_DIR=~/.jarvis/sessions
+JARVIS_SESSION__PERSISTENCE_BACKEND=jsonl   # jsonl | postgres
+JARVIS_SESSION__SESSIONS_DIR=~/.jarvis/sessions
 JARVIS_SESSION__POSTGRES_DSN=postgresql://user:pw@host:5432/db
 
 # ── 보안 ─────────────────────────────────────────────────────────────────────
@@ -622,10 +621,10 @@ JARVIS_PLUGIN__TOOLS_DIR=~/.jarvis/tools
 JARVIS_PLUGIN__SKILLS_DIR=~/.jarvis/skills
 JARVIS_PLUGIN__PLUGINS_DIR=~/.jarvis/plugins
 JARVIS_PLUGIN__AGENTS_DIR=~/.jarvis/agents
+# 위 디렉토리는 기동 때 읽는다. 파일 감시(WATCH_FILES)는 아직 아무것도 감시하지 않는다
 
 # ── Web HUD ──────────────────────────────────────────────────────────────────
-JARVIS_WEB__HOST=127.0.0.1
-JARVIS_WEB__PORT=7777
+# 호스트와 포트는 환경변수가 아니라 `jarvis --web --host 0.0.0.0 --port 7777` 플래그다
 
 # ── Proactive: Inner Thought (Tier 0) ────────────────────────────────────────
 JARVIS_THOUGHT__ENABLED=true             # 기본 ON

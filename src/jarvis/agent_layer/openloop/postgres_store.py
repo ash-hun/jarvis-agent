@@ -4,7 +4,7 @@ import asyncio
 import time
 from typing import Any
 
-from jarvis.agent_layer.openloop.types import OpenLoop, normalize_description
+from jarvis.agent_layer.openloop.types import OpenLoop, normalize_description, same_loop
 
 
 class PostgresOpenLoopStore:
@@ -78,24 +78,18 @@ class PostgresOpenLoopStore:
         return loop.id
 
     async def add_unique(self, loop: OpenLoop) -> str | None:
-        key = normalize_description(loop.description)
-        if not key:
+        if not normalize_description(loop.description):
             return None
         pool = await self._get_pool()
         async with pool.acquire() as conn:
-            row = await conn.fetchrow(
-                """
-                SELECT id FROM jarvis_open_loops
-                WHERE status = 'open'
-                  AND origin_session IS NOT DISTINCT FROM $1
-                  AND lower(regexp_replace(description, '\\s+', ' ', 'g')) = $2
-                LIMIT 1
-                """,
+            # 판정은 파이썬 same_loop 한 곳에서. 세션당 열린 약속은 몇 건이라 다 가져와도 싸다
+            rows = await conn.fetch(
+                "SELECT description FROM jarvis_open_loops"
+                " WHERE status = 'open' AND origin_session IS NOT DISTINCT FROM $1",
                 loop.origin_session,
-                key,
             )
-            if row is not None:
-                return None
+        if any(same_loop(r["description"], loop.description) for r in rows):
+            return None
         return await self.add(loop)
 
     async def list_open(self, session_id: str | None = None, limit: int = 20) -> list[OpenLoop]:

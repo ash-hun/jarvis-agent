@@ -4,10 +4,8 @@
 
 ## 코드
 
-- **승인 모달이 마지막 연결에만 간다.** `server.py` 의 `sandbox.set_approval_callback(adapter.request_approval)` 이 연결마다 덮어쓴다. 같은 세션의 열린 연결 전부에 보내고 먼저 온 답을 쓰거나, 세션당 연결을 하나로 제한하는 것 중 하나. 탭 둘로 시나리오 2 를 돌리면 한쪽에서 ALWAYS 가 눌려 `ls` 규칙이 남은 적이 있다.
 - **피드백이 완전 일치 키워드만 읽는다.** `static/app/proactive.js` 의 `ponytail`. "응 그걸로 해줘" 같은 문장을 수락으로 읽으려면 서버 쪽 분류(사고 모델에 한 줄 물어보기)가 필요하다. 키워드 목록을 늘리는 것으로는 안 된다.
 - **성찰 지연.** gemma4:e4b 로 성찰 1회 30초(기록 간격 150초). 사고 모델을 qwen3.5:0.8b 로 분리하면 2~4초(간격 124초)지만 성찰 프레임 JSON 을 2회 중 2회 못 지켰다(디코드 실패 1, `filler` 비문자열 1). Ollama 0.40 의 qwen3.5 는 `format`(structured output)도 501 이라 스키마 강제가 안 된다. 다음: 2b 급 이상이면서 `format` 을 받는 모델을 골라 `JARVIS_THOUGHT__MODEL` 로 재측정(gemma4 는 `format` 으로 1.4초/3.5초). 그래도 느리면 트리거 `idle`, 성찰 프롬프트 다이어트(history 12턴 × 400자 + 회상 5건). 호스트 `OLLAMA_NUM_PARALLEL=2` 는 적용됨(재부팅 시 다시).
-- **open loop 의미 중복.** 저장은 완전 일치 dedup 뿐이다. 요청 모드에서도 바꿔 말하면 쌓인다. 성찰 저장을 막아 증식은 멈췄지만, 포함 관계나 임베딩 기반 dedup 은 없다.
 
 ## 화면
 

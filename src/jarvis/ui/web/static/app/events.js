@@ -8,7 +8,7 @@ import {
 import { updateUsage } from './usage.js';
 import { fetchAgenda, showNotice } from './agenda.js';
 import { fetchTools } from './tools.js';
-import { showApproval } from './approval.js';
+import { showApproval, closeApproval } from './approval.js';
 import { setInputEnabled, endAwaitingReply } from './composer.js';
 import { askFeedback } from './proactive.js';
 import { voice, isVoiceMode, clearVoiceMode, requestSpeech } from './voice-ui.js';
@@ -144,6 +144,10 @@ export function handleMessage(msg) {
     case 'approval_request':
       showApproval(msg.id, msg.command, msg.reason, msg.always_pattern);
       logActivity(`⚡ approval · ${msg.command || ''}`, 'tool');
+      break;
+
+    case 'approval_resolved':
+      if (closeApproval(msg.id)) logActivity('⚡ approval · 다른 창에서 처리됨', 'tool');
       break;
 
     case 'voice_tts_audio':

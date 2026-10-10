@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+MIN_CONTAINMENT_CHARS = 6  # 이보다 짧은 조각의 포함은 우연이 많다
+
 
 class OpenLoop(BaseModel):
     """추적 중인 약속/미완 작업 1건 (Tier 2).
@@ -27,3 +29,15 @@ class OpenLoop(BaseModel):
 def normalize_description(text: str) -> str:
     """중복 판정용 정규화 — 공백 정리 + 소문자."""
     return " ".join(text.split()).lower()
+
+
+def same_loop(a: str, b: str) -> bool:
+    """정규화해 같거나, 짧은 쪽이 긴 쪽에 통째로 들어가면 같은 약속으로 본다."""
+    x, y = normalize_description(a), normalize_description(b)
+    if not x or not y:
+        return False
+    if x == y:
+        return True
+    short, long = sorted((x, y), key=len)
+    # ponytail: 포함 관계만 본다("로그 확인" ⊂ "배포 로그 확인"), 바꿔 말한 약속이 계속 쌓이면 임베딩 유사도로
+    return len(short) >= MIN_CONTAINMENT_CHARS and short in long

@@ -84,10 +84,17 @@ class OllamaProvider:
                                 input=chunk.get("prompt_eval_count", 0),
                                 output=chunk.get("eval_count", 0),
                             )
-                            yield StopEvent(reason="stop", usage=usage)
+                            # 도구 호출이 있었는데 "stop" 으로 끝내면 루프가 도구를 실행하지 않고 빈 답으로 끝난다
+                            yield StopEvent(reason=_stop_reason(chunk, bool(tool_buffers)), usage=usage)
 
         except httpx.HTTPError as exc:
             yield ErrorEvent(message=str(exc))
+
+
+def _stop_reason(chunk: dict, had_tool_calls: bool) -> str:
+    if had_tool_calls:
+        return "tool_use"
+    return "length" if chunk.get("done_reason") == "length" else "stop"
 
 
 def _convert_messages(context: LLMContext) -> list[dict]:
@@ -106,7 +113,7 @@ def _convert_messages(context: LLMContext) -> list[dict]:
             tool_calls = [b for b in msg.content if b.type == "tool_call"]
             if tool_calls:
                 entry["tool_calls"] = [
-                    {"function": {"name": tc.id, "arguments": tc.arguments}}  # type: ignore[union-attr]
+                    {"function": {"name": tc.name, "arguments": tc.arguments}}  # type: ignore[union-attr]
                     for tc in tool_calls
                 ]
             result.append(entry)

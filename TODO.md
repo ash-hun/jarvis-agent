@@ -18,6 +18,5 @@
 
 ## 문서·자산
 
-- **문서 사이트 배포.** `website/docusaurus.config.ts` 는 `https://ash-hun.github.io/jarvis-agent/` 를 가리키지만 배포 워크플로가 없고 GitHub Pages 도 꺼져 있어 404 다. Pages 소스를 GitHub Actions 로 켜고, `website/` 를 `npm ci && npm run build` 해서 `website/build` 를 올리는 워크플로를 `.github/workflows/` 에 추가하면 된다.
 - **모션그래픽 mp4 판.** `assets/hud-motion/` 의 `ponytail` 자리(그레인, 배경 드리프트, 카드 숨쉬기)는 GIF 크기 때문에 껐다. mp4 를 올릴 곳이 생기면 되살린다. 녹화 소재(`public/*.mp4`)는 gitignore 라 `capture_video.py` 로 다시 찍는다.
 - **e2e 자동화는 시나리오 2, 3 만.** `scripts/e2e/hud_flow.py` 는 스크립트 프로바이더로 승인 기억과 절차 학습을 돈다. 시나리오 1(성찰 → 🔔 → 피드백)은 수동(`hud-scenario.md`). 스크립트 프로바이더에 성찰 프레임을 넣으면 자동화할 수 있다.

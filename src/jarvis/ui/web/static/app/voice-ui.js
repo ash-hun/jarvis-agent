@@ -3,7 +3,7 @@ import { sendUserText, setInputEnabled, updateHighlight } from './composer.js';
 import { setStatus, currentStatus, logActivity } from './shell.js';
 import { isFullVoice, onModeChange, setMode } from './mode.js';
 import { tryProactiveFeedback } from './proactive.js';
-import { answerApprovalByVoice } from './approval.js';
+import { answerApprovalByVoice, isApprovalOpen } from './approval.js';
 import { escapeHtml } from './markdown.js';
 import { isAgentBusy } from './events.js';
 import { appendMsg } from './messages.js';
@@ -32,21 +32,20 @@ function showUser(text) {
 }
 
 export const voice = new VoiceManager({
-  onTranscript(transcript) {
+  async onTranscript(transcript) {
     if (!transcript.trim()) return;
     // Full-voice 에서 승인 모달이 열려 있으면 이 답은 승인이다. 메시지로 보내지 않는다.
-    if (isFullVoice()) {
-      const heard = answerApprovalByVoice(transcript);
-      if (heard) {
-        showUser(transcript);
-        appendMsg('SYS', 'sys', escapeHtml(heard));
-        logActivity(`⚡ approval · 음성 · ${heard}`, 'tool');
-        requestSpeech(heard);
-        return;
-      }
+    if (isFullVoice() && isApprovalOpen()) {
+      showUser(transcript);
+      const heard = await answerApprovalByVoice(transcript);
+      if (!heard) { voice.setIdle(); return; }  // 분류 중에 클릭이나 다른 창이 먼저 답했다
+      appendMsg('SYS', 'sys', escapeHtml(heard));
+      logActivity(`⚡ approval · 음성 · ${heard}`, 'tool');
+      requestSpeech(heard);
+      return;
     }
     // proactive 직후 짧은 음성 답을 수락/무시로 해석 (C3, voice).
-    if (tryProactiveFeedback(transcript)) { voice.setIdle(); return; }
+    if (await tryProactiveFeedback(transcript)) { voice.setIdle(); return; }
     _voiceMode = true;
     showUser(transcript);
     sendUserText(transcript);

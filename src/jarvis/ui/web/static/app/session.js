@@ -11,6 +11,7 @@ import { fetchAgenda } from './agenda.js';
 import { fetchTools } from './tools.js';
 import { voice } from './voice-ui.js';
 import { handleMessage, resetAgentStack } from './events.js';
+import { setReplyClassifier } from './reply.js';
 
 const $list         = document.getElementById('session-list');
 const $count        = document.getElementById('session-count');
@@ -101,6 +102,7 @@ function onConnected(msg) {
   if (msg.sessions) renderSessions(msg.sessions);
   if (msg.slash_commands) setSlashCommands(msg.slash_commands);
   if (msg.voice && msg.voice.stt_mode) voice.setSttMode(msg.voice.stt_mode);
+  setReplyClassifier(msg.reply_classifier);
   setStatus('READY');
   setInputEnabled(true);
   HUD.setState('idle');

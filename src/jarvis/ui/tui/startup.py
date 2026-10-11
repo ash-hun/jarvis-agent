@@ -763,6 +763,31 @@ def _build_openloop_store(settings: JarvisSettings) -> Any:
     return JsonlOpenLoopStore(path=cfg.path)
 
 
+def _thought_model(settings: JarvisSettings, main_model: Any) -> Any:
+    """A1 — 사고 모델: 지정된 항목만 메인에서 분리, 비우면 메인 값 상속."""
+    from jarvis.model_layer.types import ModelConfig
+
+    tcfg = settings.thought
+    api_key = tcfg.api_key.get_secret_value() if tcfg.api_key is not None else main_model.api_key
+    return ModelConfig(
+        provider=tcfg.provider or main_model.provider,
+        model=tcfg.model or main_model.model,
+        api_key=api_key,
+        base_url=tcfg.base_url or main_model.base_url,
+        temperature=main_model.temperature,
+        max_tokens=main_model.max_tokens,
+    )
+
+
+def build_reply_classifier(settings: JarvisSettings, main_model: Any) -> Any:
+    """🔔 짧은 답과 음성 승인 답 분류기. 사고가 꺼져 있으면 None(화면은 키워드만 쓴다)."""
+    if not settings.thought.enabled:
+        return None
+    from jarvis.agent_layer.thought.reply import ReplyClassifier
+
+    return ReplyClassifier(_thought_model(settings, main_model))
+
+
 def _build_thought(
     ctx: AppContext, extra: dict[str, Any], main_model: Any
 ) -> tuple[Any, Any, Any]:
@@ -787,22 +812,9 @@ def _build_thought(
         WorkingNotesSink,
     )
     from jarvis.agent_layer.thought.prompt import DEFAULT_REFLECTION_TEMPLATE
-    from jarvis.model_layer.types import ModelConfig
 
     tcfg = settings.thought
-
-    # A1 — 사고 모델: 지정된 항목만 메인에서 분리, 비우면 메인 값 상속.
-    api_key = (
-        tcfg.api_key.get_secret_value() if tcfg.api_key is not None else main_model.api_key
-    )
-    thought_model = ModelConfig(
-        provider=tcfg.provider or main_model.provider,
-        model=tcfg.model or main_model.model,
-        api_key=api_key,
-        base_url=tcfg.base_url or main_model.base_url,
-        temperature=main_model.temperature,
-        max_tokens=main_model.max_tokens,
-    )
+    thought_model = _thought_model(settings, main_model)
 
     engine = InnerThoughtEngine(
         model=thought_model,

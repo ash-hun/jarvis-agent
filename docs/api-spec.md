@@ -790,7 +790,8 @@ GET /ws?session_id=<id>&token=<key>   (Upgrade: websocket)
 |---|---|---|
 | `user_message` | `text` | 슬래시 명령이면 디스패처가 처리하고 결과를 `agent_start`, `stream_delta`, `agent_end` 로 돌려준다. 남는 텍스트는 에이전트 프롬프트로. 비어 있으면 무시 |
 | `approval_response` | `id`, `approved`, `always` | `approval_request` 에 대한 답. 같은 `id` 에 먼저 온 답만 쓰고 나머지는 버린다. `always=true` 는 `approved=true` 일 때만 의미 있고 제안된 패턴을 `approvals.yaml` 에 남긴다 |
-| `proactive_feedback` | `id`, `accepted` | 🔔 에 대한 수락/무시. 임계치 학습기에 반영 |
+| `proactive_feedback` | `id`, `accepted` | 🔔 에 대한 수락/무시. 임계치 학습기에 반영. 한 연결에서 같은 `id` 는 처음 한 번만 반영 |
+| `reply_classify` | `kind`(`feedback`/`approval`), `id`, `text`, `context`, `has_always` | 키워드로 판정이 안 되는 짧은 답을 사고 모델로 분류. `feedback` 이면 `id` 는 🔔 의 `message_id`, `context` 는 🔔 본문. `approval` 이면 `id` 는 승인 요청 id, `context` 는 명령, `has_always` 는 항상 허용 패턴이 있는지. 결과는 `reply_classified`. 🔔 가 `accept`/`dismiss` 로 판정되면 서버가 바로 학습기에 반영한다(같은 `id` 는 한 번만). 승인은 판정만 돌려주고 승인 자체는 화면이 `approval_response` 로 보낸다 |
 | `voice_tts_request` | `text`, `lang?` | 음성 합성. 서버 TTS 가 없으면 `voice_tts_audio{data:"", text}` 로 되돌려 브라우저가 읽게 한다 |
 | `voice_stt_submit` | `data`(base64), `mime`, `sample_rate` | 서버 STT. 서버 STT 가 없으면 무시 |
 | `abort` | 없음 | 진행 중인 에이전트 루프 중단 |
@@ -799,7 +800,7 @@ GET /ws?session_id=<id>&token=<key>   (Upgrade: websocket)
 
 | `type` | 필드 | 언제 |
 |---|---|---|
-| `connected` | `session_id`, `user`, `model`, `sessions[]`, `slash_commands[]`, `voice{stt_mode, stt_lang}` | 접속 직후 한 번 |
+| `connected` | `session_id`, `user`, `model`, `sessions[]`, `slash_commands[]`, `voice{stt_mode, stt_lang}`, `reply_classifier` | 접속 직후 한 번. `reply_classifier` 는 사고가 켜져 있어 `reply_classify` 를 쓸 수 있는지 |
 | `agent_start` | `session_id`, `prompt`, `agent_name?` | 루프 시작. 서브 에이전트는 `agent_name` 이 있다 |
 | `message_update` | `text_delta`, `thinking_delta` | 스트리밍 조각 |
 | `stream_delta` | `text` | 슬래시 명령 결과 등 비스트림 텍스트 |
@@ -814,6 +815,7 @@ GET /ws?session_id=<id>&token=<key>   (Upgrade: websocket)
 | `reminder` | `id`, `name`, `kind`, `once`, `title`, `text`, `error`, `delayed_sec`, `fired_at`, `missed?` | 스케줄 실행 결과. 열린 연결 전부에 방송하고, 없으면 최근 20건을 쌓아 다음 접속 때 `missed: true` 로 보낸다 |
 | `voice_tts_audio` | `data`(base64), `mime`, `text` | 합성 결과. `data` 가 비면 브라우저 TTS 로 |
 | `voice_stt_result` | `text`, `error?` | 전사 결과 |
+| `reply_classified` | `kind`, `id`, `verdict` | `reply_classify` 의 결과. `feedback` 은 `accept`/`dismiss`/`other`, `approval` 은 `allow`/`always`/`deny`/`unclear`. 사고 모델이 없거나 6초 안에 답하지 못하면 `other`, `unclear`. 항상 허용 패턴이 없는데 `always` 면 `allow` 로 낮춘다 |
 | `error` | `message` | TTS 오류 등 |
 
 #### 호출 예시
@@ -826,7 +828,7 @@ ws.send(JSON.stringify({ type: "user_message", text: "안녕" }));
 
 #### 특이사항
 
-**재호출** — 같은 `session_id` 로 다시 붙으면 같은 세션이다. 재접속 자체는 멱등하다. `approval_request` 는 세션의 연결 전부가 받고 먼저 온 답이 채택되므로 탭을 여럿 열어도 같다. `user_message` 는 멱등하지 않다(보낼 때마다 한 턴).
+**재호출** — 같은 `session_id` 로 다시 붙으면 같은 세션이다. 재접속 자체는 멱등하다. `approval_request` 는 세션의 연결 전부가 받고 먼저 온 답이 채택되므로 탭을 여럿 열어도 같다. `user_message` 는 멱등하지 않다(보낼 때마다 한 턴). `reply_classify` 는 같은 답을 다시 보내면 모델을 다시 부르지만 🔔 학습은 연결당 `id` 하나에 한 번이다. 연결을 새로 열면 그 기록은 비므로 재접속 뒤 같은 `id` 를 다시 보내면 한 번 더 반영된다.
 
 `reminder` 의 보류 큐는 메모리에만 있어 서버가 재시작되면 사라진다.
 

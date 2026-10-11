@@ -178,6 +178,13 @@ def create_app(
     except Exception:
         pass
 
+    # 🔔 짧은 답·음성 승인 답 분류기. 사고가 꺼져 있으면 None 이고 화면은 키워드만 쓴다
+    reply_classifier: Any = None
+    if base_extra.get("model_config") is not None:
+        from jarvis.ui.tui.startup import build_reply_classifier
+
+        reply_classifier = build_reply_classifier(ctx.settings, base_extra["model_config"])
+
     @app.middleware("http")
     async def _require_api_key(request: Request, call_next: Any) -> Any:
         # /api/* 만 보호한다. 정적 셸(index, js, css)은 키 없이 받아야 키 입력 화면이 뜬다.
@@ -423,6 +430,8 @@ def create_app(
         await broker.attach(adapter)
         sandbox.set_approval_callback(broker.request)
         unsubscribe = session.subscribe(adapter.on_agent_event)
+        # 같은 🔔 에 피드백이 두 번 와도(재전송, 키워드와 분류가 겹침) 학습은 한 번만
+        feedback_ids: set[str] = set()
 
         try:
             stt_browser = voice_service is None or voice_service.stt_is_browser
@@ -442,6 +451,7 @@ def create_app(
                     "stt_mode": "browser" if stt_browser else "server",
                     "stt_lang": ctx.settings.voice.stt_lang,
                 },
+                "reply_classifier": reply_classifier is not None,
             })
 
             # 스케줄 알림 방송 대상에 넣고, 아무도 없을 때 쌓인 알림을 먼저 보낸다
@@ -484,7 +494,11 @@ def create_app(
 
                 elif msg_type == "proactive_feedback":
                     # proactive 발화 수락/무시 → 피드백 학습기 (C3).
-                    await session.record_feedback(bool(msg.get("accepted", False)))
+                    if _first_feedback(feedback_ids, msg.get("id")):
+                        await session.record_feedback(bool(msg.get("accepted", False)))
+
+                elif msg_type == "reply_classify":
+                    asyncio.create_task(_run_reply_classify(ws, reply_classifier, session, feedback_ids, msg))
 
                 elif msg_type == "voice_tts_request":
                     text = msg.get("text", "").strip()
@@ -575,6 +589,38 @@ async def _run_stt(ws: Any, voice_service: Any, audio_b64: str, sample_rate: int
     except Exception as exc:
         with contextlib.suppress(Exception):
             await ws.send_json({"type": "voice_stt_result", "text": "", "error": str(exc)})
+
+
+def _first_feedback(seen: set[str], message_id: Any) -> bool:
+    """이 연결에서 처음 받는 🔔 피드백이면 True. id 가 없으면(옛 화면) 매번 True."""
+    if not isinstance(message_id, str) or not message_id:
+        return True
+    if message_id in seen:
+        return False
+    seen.add(message_id)
+    return True
+
+
+async def _run_reply_classify(
+    ws: Any, classifier: Any, session: Any, feedback_ids: set[str], msg: dict[str, Any]
+) -> None:
+    """짧은 답을 분류해 돌려준다. 🔔 피드백이면 여기서 학습까지 하고, 승인은 화면이 답을 보낸다."""
+    from jarvis.agent_layer.thought.reply import FALLBACK
+
+    kind = msg.get("kind")
+    if kind not in FALLBACK:
+        return
+    text = str(msg.get("text", ""))
+    context = str(msg.get("context", ""))
+    has_always = bool(msg.get("has_always", False))
+    if classifier is None:
+        verdict = FALLBACK[kind]
+    else:
+        verdict = await classifier.classify(kind, text, context, has_always)
+    if kind == "feedback" and verdict in ("accept", "dismiss") and _first_feedback(feedback_ids, msg.get("id")):
+        await session.record_feedback(verdict == "accept")
+    with contextlib.suppress(Exception):
+        await ws.send_json({"type": "reply_classified", "kind": kind, "id": msg.get("id"), "verdict": verdict})
 
 
 async def _run_tts(ws: Any, voice_service: Any, text: str, lang: str) -> None:

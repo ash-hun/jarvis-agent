@@ -49,4 +49,4 @@ JARVIS_VOICE__TUI_RECORD_SECONDS=5
 ## 알아 둘 것
 
 - `JARVIS_VOICE__WHISPER_MODEL_SIZE`, `SUPERTONIC_MODEL`, `STT_LANG` 은 설정에 있지만 현재 프로바이더가 읽지 않는다. whisper 언어는 한국어로 고정이다
-- Full-voice 모드(승인 모달까지 음성으로 묻고 답하기)는 계획 단계다. 레포의 `TODO.md` 에 설계가 있다
+- Full-voice 모드(헤더의 `FULL-VOICE`)는 응답, 승인 모달, 🔔 피드백을 읽고 답을 듣는다. 승인 답은 부정어가 있으면 거부, 분명한 긍정이면 허용, 그 밖의 말("그거 돌려")은 사고 모델에 물어 `allow`/`always` 일 때만 허용하고 나머지는 거부한다. 실측(gemma4:e2b): 승인 답 11문장 중 허용하면 안 되는 말을 허용한 경우 0

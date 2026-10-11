@@ -83,6 +83,54 @@ def test_ws_connected_handshake(client):
         assert "slash_commands" in msg
 
 
+def _reply_client(monkeypatch, tmp_path, thought_enabled):
+    # .env 와 무관하게 사고 on/off 를 정한다(CI 에는 .env 가 없다)
+    monkeypatch.setenv("JARVIS_THOUGHT__ENABLED", "true" if thought_enabled else "false")
+    monkeypatch.setenv("JARVIS_PROACTIVE__DAEMON_ENABLED", "false")
+    monkeypatch.setenv("JARVIS_SCHEDULER__ENABLED", "false")
+    monkeypatch.setenv("JARVIS_MEMORY__BACKEND", "in_memory")
+    monkeypatch.setenv("JARVIS_SESSION__PERSISTENCE_BACKEND", "jsonl")
+    monkeypatch.setenv("JARVIS_SESSION__SESSIONS_DIR", str(tmp_path / "sessions"))
+    ctx, base_extra = _build_infra(JarvisSettings())
+    return TestClient(create_app(ctx, base_extra, initial_session_id="default"))
+
+
+def test_ws_reply_classify_records_feedback_once(monkeypatch, tmp_path):
+    from jarvis.agent_layer.thought.reply import ReplyClassifier
+    from jarvis.core.session import AgentSession
+
+    calls: list[bool] = []
+
+    async def fake_classify(self, kind, text, context="", has_always=False):
+        return "accept" if kind == "feedback" else "allow"
+
+    async def fake_record(self, accepted):
+        calls.append(accepted)
+
+    monkeypatch.setattr(ReplyClassifier, "classify", fake_classify)
+    monkeypatch.setattr(AgentSession, "record_feedback", fake_record)
+    with _reply_client(monkeypatch, tmp_path, True) as c, c.websocket_connect("/ws?session_id=wsreply") as ws:
+        assert ws.receive_json()["reply_classifier"] is True
+        for _ in range(2):  # 같은 🔔 에 두 번 와도 학습은 한 번
+            ws.send_json({"type": "reply_classify", "kind": "feedback", "id": "p1", "text": "응 그걸로 해줘"})
+            want = {"type": "reply_classified", "kind": "feedback", "id": "p1", "verdict": "accept"}
+            assert ws.receive_json() == want
+        ws.send_json({"type": "proactive_feedback", "id": "p1", "accepted": False})
+        # 승인 분류는 판정만 돌려주고 승인 자체는 화면이 approval_response 로 보낸다
+        ws.send_json({"type": "reply_classify", "kind": "approval", "id": "a1", "text": "그거 돌려", "context": "ls"})
+        assert ws.receive_json()["verdict"] == "allow"
+    assert calls == [True]
+
+
+def test_ws_reply_classify_without_thought_falls_back(monkeypatch, tmp_path):
+    with _reply_client(monkeypatch, tmp_path, False) as c, c.websocket_connect("/ws?session_id=default") as ws:
+        assert ws.receive_json()["reply_classifier"] is False
+        ws.send_json({"type": "reply_classify", "kind": "approval", "id": "a1", "text": "그거 돌려"})
+        assert ws.receive_json()["verdict"] == "unclear"
+        ws.send_json({"type": "reply_classify", "kind": "feedback", "id": "p1", "text": "응 그걸로"})
+        assert ws.receive_json()["verdict"] == "other"
+
+
 def test_ws_session_appears_in_manager(client):
     with client.websocket_connect("/ws?session_id=wsnew") as ws:
         ws.receive_json()  # connected

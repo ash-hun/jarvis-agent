@@ -151,7 +151,7 @@ JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120   # 로컬과 배포 모두 같은 값
 | `Ctrl+Y` (TUI) / `네`, `좋아`, `고마워` 로 답 (Web, 음성) | proactive 발화 "도움됨" |
 | `Ctrl+G` (TUI) / `아니오`, `됐어`, `무시` 로 답 (Web, 음성) | proactive 발화 "무시" |
 
-Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는다. 다른 말을 하면 보통 메시지로 흘러가고 질문은 닫힌다.
+Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는다. "응 그걸로 해줘" 처럼 키워드가 아닌 40자 이하 답은 사고 모델이 수락/무시/다른 말로 분류한다(사고가 켜져 있을 때). 다른 말이면 보통 메시지로 흘러가고 질문은 닫힌다. Full-voice 의 음성 승인 답도 같은 분류기를 쓰되, 허용이 분명할 때만 허용한다.
 
 > 사고 방식은 프롬프트 파일로 직접 조율할 수 있다: `~/.jarvis/inner_thought.md`(요청), `~/.jarvis/inner_thought_reflection.md`(성찰). 직접 쓴 템플릿에도 `utterance` 키는 있어야 한다. 없으면 daemon 이 항상 침묵한다.
 

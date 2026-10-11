@@ -65,14 +65,16 @@ export function sendUserText(text) {
   if (/(^|\s)\/schedule\b/.test(text)) askNotificationPermission();
 }
 
-function submitMessage() {
+async function submitMessage() {
   const text = $input.value.trim();
   if (!text) return;
   if (_slashVisible) return; // 팝업이 열려 있으면 keydown 이 처리한다
   appendMsg('USER', 'user', escapeHtml(text));
   $input.value = '';
   updateHighlight();
-  if (tryProactiveFeedback(text)) return;
+  // 🔔 답 분류를 기다리는 동안 다음 입력이 끼어들지 않게 잠근다
+  setInputEnabled(false);
+  if (await tryProactiveFeedback(text)) { setInputEnabled(true); return; }
   sendUserText(text);
 }
 

@@ -19,6 +19,12 @@
  *   'browser' (기본) — Web Speech API가 브라우저에서 인식
  *   'server'         — MediaRecorder로 녹음 → onAudioCaptured로 백엔드 전송 → receiveTranscript로 결과 수신
  */
+// 블루투스 헤드셋은 마이크가 닫히면 통화 프로필에서 음악 프로필로 넘어가며 그사이 소리를 버린다.
+// 마이크를 놓은 직후의 읽기는 넘어갈 시간을 준 뒤 시작한다.
+const MIC_SETTLE_MS = 400;
+// onend 가 오지 않는 브라우저에서도 읽기가 막히지 않게 기다림에 상한을 둔다
+const MIC_RELEASE_TIMEOUT_MS = 1500;
+
 class VoiceManager {
   constructor({ onTranscript, onStateChange, onError, onAudioCaptured, lang = 'ko-KR' } = {}) {
     this._state         = 'idle';
@@ -28,6 +34,13 @@ class VoiceManager {
     this._onAudioCaptured = onAudioCaptured || (() => {});
     this._lang          = lang;
     this._audioCtx      = null;
+
+    // ── 마이크 점유: 인식 중인지, 언제 놓았는지, 계속 잡아 둘 스트림 ─────────────────
+    this._micOpen       = false;
+    this._micReleasedAt = -Infinity;
+    this._releaseWaiters = [];
+    this._holdWanted    = false;
+    this._heldStream    = null;
 
     // ── 서버 STT 모드용 녹음 상태 ───────────────────────────────────────────────
     this._sttMode       = 'browser';
@@ -49,15 +62,19 @@ class VoiceManager {
         const transcript = results.map(r => r[0].transcript).join('');
         if (results[results.length - 1].isFinal) {
           this._setState('processing');
+          // 최종 결과 뒤에도 인식은 잠깐 열려 있다. 바로 닫아 읽기가 기다리는 시간을 줄인다.
+          try { this._recognition.stop(); } catch (_) {}
           this._onTranscript(transcript);
         }
       };
 
       this._recognition.onend = () => {
+        this._markMicReleased();
         if (this._state === 'listening') this._setState('idle');
       };
 
       this._recognition.onerror = (e) => {
+        this._markMicReleased();
         this._setState('idle');
         if (e.error !== 'no-speech' && e.error !== 'aborted') {
           this._onError(`STT 오류: ${e.error}`);
@@ -95,8 +112,10 @@ class VoiceManager {
       this._onError('이 브라우저는 Web Speech API를 지원하지 않습니다. Chrome을 사용해 주세요.');
       return;
     }
+    this._acquireHeldMic();
     try {
       this._recognition.start();
+      this._micOpen = true;
       this._setState('listening');
     } catch (e) {
       this._setState('idle');
@@ -112,6 +131,18 @@ class VoiceManager {
     }
     try { this._recognition?.stop(); } catch (_) {}
     this._setState('idle');
+  }
+
+  /**
+   * 켜 두면 마이크 스트림을 계속 잡아 블루투스 헤드셋이 듣기와 읽기 사이에 프로필을 바꾸지 않게 한다.
+   * 대신 그동안 출력은 통화 음질이 된다. 스트림은 다음 start() 에서 잡는다(권한 요청이 그 시점에 뜨도록).
+   */
+  setHoldMic(on) {
+    this._holdWanted = !!on;
+    if (!on && this._heldStream) {
+      this._heldStream.getTracks().forEach(t => t.stop());
+      this._heldStream = null;
+    }
   }
 
   /** 서버 STT 결과(전사 텍스트)를 수신해 onTranscript로 전달한다. */
@@ -132,6 +163,7 @@ class VoiceManager {
    */
   async playAudioBase64(base64Data, mimeType = 'audio/wav') {
     this._setState('speaking');
+    await this._afterMicReleased();
     try {
       if (!this._audioCtx || this._audioCtx.state === 'closed') {
         this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -157,15 +189,17 @@ class VoiceManager {
    * @param {string} text
    * @param {string} lang
    */
-  speakBrowser(text, lang = this._lang) {
+  async speakBrowser(text, lang = this._lang) {
     if (!window.speechSynthesis) { this._setState('idle'); return; }
     this._setState('speaking');
+    await this._afterMicReleased();
     const u  = new SpeechSynthesisUtterance(text);
     u.lang   = lang;
     u.rate   = 1.0;
     u.onend  = () => this._setState('idle');
     u.onerror = () => this._setState('idle');
-    window.speechSynthesis.cancel();
+    // Chrome 은 cancel 직후의 speak 를 소리 없이 버릴 때가 있어, 읽는 게 있을 때만 끊는다
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
   }
 
@@ -226,6 +260,39 @@ class VoiceManager {
   }
 
   // ── 내부 ────────────────────────────────────────────────────────────────────
+
+  _markMicReleased() {
+    if (!this._micOpen) return;
+    this._micOpen = false;
+    this._micReleasedAt = performance.now();
+    this._releaseWaiters.splice(0).forEach(fn => fn());
+  }
+
+  // 인식이 닫히고 헤드셋이 출력 쪽으로 넘어간 뒤에 풀린다. 잡아 둔 스트림이 있으면 프로필이 안 바뀌므로 넘어갈 시간은 주지 않는다.
+  async _afterMicReleased() {
+    if (this._micOpen) {
+      await new Promise((resolve) => {
+        this._releaseWaiters.push(resolve);
+        setTimeout(resolve, MIC_RELEASE_TIMEOUT_MS);
+      });
+      this._markMicReleased();
+    }
+    if (this._heldStream) return;
+    const left = MIC_SETTLE_MS - (performance.now() - this._micReleasedAt);
+    if (left > 0) await new Promise(r => setTimeout(r, left));
+  }
+
+  async _acquireHeldMic() {
+    if (!this._holdWanted || this._heldStream || !navigator.mediaDevices?.getUserMedia) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // 기다리는 사이 Default 로 돌아갔으면 바로 놓는다
+      if (this._holdWanted && !this._heldStream) this._heldStream = stream;
+      else stream.getTracks().forEach(t => t.stop());
+    } catch (_) {
+      // 권한이 없으면 잡지 않고 예전처럼 매번 열고 닫는다. 인식 쪽 오류가 따로 알린다.
+    }
+  }
 
   _setState(s) {
     if (this._state === s) return;

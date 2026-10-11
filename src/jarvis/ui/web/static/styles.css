@@ -464,8 +464,10 @@ body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
 }
 
 /* inner thought — 메인 응답과 구분된 메타인지 라인 */
-.msg.thought .role { color: var(--primary); opacity: 0.7; }
+.msg.thought { flex-direction: row; align-items: baseline; gap: 8px; }
+.msg.thought .role { color: var(--primary); opacity: 0.7; flex: none; }
 .msg.thought .body {
+  flex: 1; min-width: 0;
   color: var(--text-faint); font-size: 11px; font-style: italic;
   border-left: 1px solid color-mix(in srgb, var(--primary) 30%, transparent); padding-left: 10px;
 }

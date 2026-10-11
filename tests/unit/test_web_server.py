@@ -263,6 +263,23 @@ def test_openloop_done_removes_it_from_agenda(agenda):
     assert client.get("/api/agenda").json()["open_loops"] == []
 
 
+def test_agenda_drops_long_overdue_loops(agenda):
+    import asyncio
+    import time
+
+    from jarvis.agent_layer.openloop.types import OpenLoop
+
+    client, store, _ = agenda
+    now_ms = int(time.time() * 1000)
+    # 기본 여유(6시간)보다 오래 지난 기한은 화면에 오기 전에 expired 로 닫힌다
+    old = asyncio.run(store.add(OpenLoop(description="어제 회의 준비", due_ms=now_ms - 7 * 3600 * 1000)))
+    asyncio.run(store.add(OpenLoop(description="곧 할 일", due_ms=now_ms + 3600 * 1000)))
+
+    body = client.get("/api/agenda").json()
+    assert [x["description"] for x in body["open_loops"]] == ["곧 할 일"]
+    assert asyncio.run(store.get(old)).status == "expired"
+
+
 def test_openloop_rejects_bad_status_and_unknown_id(agenda):
     client, _, _ = agenda
     assert client.post("/api/openloops/nope", json={"status": "open"}).status_code == 400

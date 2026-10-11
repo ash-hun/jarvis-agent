@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from pydantic import SecretStr
 
 if TYPE_CHECKING:
+    from jarvis.agent_layer.openloop import LoopExpiry
     from jarvis.agent_layer.session.protocol import SessionRepo
     from jarvis.config import JarvisSettings
     from jarvis.core.scheduler.service import SchedulerService
@@ -580,6 +581,7 @@ def _build_agent_session(session_id: str, ctx: AppContext, extra: dict[str, Any]
         thought_wait_sec=ctx.settings.thought.wait_sec,
         proactivity_factory=_build_proactivity_factory(ctx),
         openloop_store=extra.get("openloop_store"),
+        openloop_expiry=_openloop_expiry(settings),
         activity_clock=extra.get("activity_clock"),
         feedback_learner=extra.get("feedback_learner"),
         user_model_store=extra.get("user_model_store"),
@@ -730,6 +732,13 @@ def _build_user_model_store(settings: JarvisSettings) -> Any:
     from jarvis.agent_layer.usermodel import JsonlUserModelStore
 
     return JsonlUserModelStore(path=cfg.path)
+
+
+def _openloop_expiry(settings: JarvisSettings) -> LoopExpiry:
+    from jarvis.agent_layer.openloop import LoopExpiry
+
+    cfg = settings.openloop
+    return LoopExpiry(grace_ms=cfg.expire_after_sec * 1000, max_age_ms=cfg.max_age_sec * 1000)
 
 
 def _build_openloop_store(settings: JarvisSettings) -> Any:

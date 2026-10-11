@@ -15,6 +15,7 @@ from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from jarvis.agent_layer.openloop import close_expired
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope
 from jarvis.ui.web.approvals import SessionApprovals
 
@@ -330,6 +331,11 @@ def create_app(
         loops: list[dict[str, Any]] = []
         store = base_extra.get("openloop_store")
         if store is not None:
+            # 화면이 사고 tick 을 기다리지 않고 지난 약속을 내리게, 목록을 줄 때도 만료를 맞춘다
+            cfg = ctx.settings.openloop
+            await close_expired(
+                store, int(time.time() * 1000), cfg.expire_after_sec * 1000, cfg.max_age_sec * 1000
+            )
             for loop in await store.list_open(limit=20):
                 loops.append({
                     "id": loop.id,

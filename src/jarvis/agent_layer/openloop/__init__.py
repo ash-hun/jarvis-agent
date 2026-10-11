@@ -9,14 +9,30 @@ from __future__ import annotations
 
 from jarvis.agent_layer.openloop.jsonl_store import JsonlOpenLoopStore
 from jarvis.agent_layer.openloop.postgres_store import PostgresOpenLoopStore
-from jarvis.agent_layer.openloop.store import InMemoryOpenLoopStore, OpenLoopStore
-from jarvis.agent_layer.openloop.types import OpenLoop, normalize_description
+from jarvis.agent_layer.openloop.store import InMemoryOpenLoopStore, OpenLoopStore, close_expired
+from jarvis.agent_layer.openloop.types import (
+    LoopExpiry,
+    OpenLoop,
+    cancelled_ids,
+    grounded,
+    matching_ids,
+    normalize_description,
+    parse_loop_note,
+    refers_to,
+)
 
 __all__ = [
     "InMemoryOpenLoopStore",
+    "LoopExpiry",
     "JsonlOpenLoopStore",
     "OpenLoop",
     "OpenLoopStore",
     "PostgresOpenLoopStore",
+    "cancelled_ids",
+    "close_expired",
+    "grounded",
+    "matching_ids",
     "normalize_description",
+    "parse_loop_note",
+    "refers_to",
 ]

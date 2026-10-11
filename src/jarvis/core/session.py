@@ -5,11 +5,22 @@ import contextlib
 import time
 from collections import deque
 from collections.abc import Awaitable, Callable
+from datetime import datetime
 from typing import Any
 
 from jarvis.agent_layer.harness import AgentHarness
 from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
-from jarvis.agent_layer.openloop import OpenLoop, OpenLoopStore
+from jarvis.agent_layer.openloop import (
+    LoopExpiry,
+    OpenLoop,
+    OpenLoopStore,
+    cancelled_ids,
+    close_expired,
+    grounded,
+    matching_ids,
+    parse_loop_note,
+    refers_to,
+)
 from jarvis.agent_layer.session.protocol import SessionRepo
 from jarvis.agent_layer.thought import (
     DefaultThoughtComposer,
@@ -102,6 +113,7 @@ class AgentSession:
         thought_wait_sec: float = THOUGHT_WAIT_SEC,
         proactivity_factory: Callable[[EmitProactive], ProactivityCore] | None = None,
         openloop_store: OpenLoopStore | None = None,
+        openloop_expiry: LoopExpiry | None = None,
         activity_clock: ActivityClock | None = None,
         feedback_learner: FeedbackLearner | None = None,
         user_model_store: UserModelStore | None = None,
@@ -125,6 +137,7 @@ class AgentSession:
         self._thought_wait_sec = thought_wait_sec
         self._late_thoughts: set[asyncio.Task[Any]] = set()  # 참조를 잃으면 GC 가 끊는다
         self._openloop_store = openloop_store
+        self._openloop_expiry = openloop_expiry
         self._activity_clock = activity_clock
         self._feedback_learner = feedback_learner
         self._user_model_store = user_model_store
@@ -377,12 +390,13 @@ class AgentSession:
         if self._thought_engine is None:
             return None
 
+        shown_loops = await self._load_open_loops()
         frame = await self._thought_engine.think(
             ThoughtRequest(
                 user_input=user_input,
                 history=await self._session_repo.get_messages(self._session_id),
                 session_id=self._session_id,
-                open_loops=await self._load_open_loops(),
+                open_loops=[f"[{i}] {_loop_line(loop)}" for i, loop in enumerate(shown_loops, 1)],
                 user_model=await self._load_user_model(),
                 external_events=external_events or [],
                 recent_proactive=list(self._recent_proactive),
@@ -394,7 +408,8 @@ class AgentSession:
 
         # 성찰은 기존 약속을 보는 자리다. 모델이 매번 바꿔 말한 항목을 저장하면 같은 약속이 쌓인다.
         if mode == "request":
-            await self._persist_open_loops(frame)
+            await self._close_open_loops(frame, shown_loops, user_input)
+            await self._persist_open_loops(frame, user_input)
 
         await self._harness.emit_event(
             InnerThoughtEvent(
@@ -433,15 +448,22 @@ class AgentSession:
         if self._proactivity is not None:
             self._proactivity.note_user_activity(self._session_id)
 
-    async def _load_open_loops(self) -> list[str]:
-        """열린 open-loop 설명을 사고 컨텍스트로 주입(없거나 store 미설정이면 빈 목록)."""
+    async def _load_open_loops(self) -> list[OpenLoop]:
+        """기한이 지난 약속을 닫은 뒤 사고에 보여줄 열린 open-loop(store 미설정이면 빈 목록)."""
         if self._openloop_store is None:
             return []
         try:
-            loops = await self._openloop_store.list_open(session_id=self._session_id)
+            if self._openloop_expiry is not None:
+                await close_expired(
+                    self._openloop_store,
+                    now_ms=int(time.time() * 1000),
+                    grace_ms=self._openloop_expiry.grace_ms,
+                    max_age_ms=self._openloop_expiry.max_age_ms,
+                    session_id=self._session_id,
+                )
+            return await self._openloop_store.list_open(session_id=self._session_id)
         except Exception:
             return []
-        return [loop.description for loop in loops]
 
     async def _load_user_model(self) -> str:
         """증류된 사용자 모델을 사고 컨텍스트 블록으로 주입(없으면 빈 문자열)."""
@@ -453,17 +475,33 @@ class AgentSession:
             return ""
         return model.as_context() if model is not None else ""
 
-    async def _persist_open_loops(self, frame: ThoughtFrame) -> None:
-        """사고가 새로 감지한 open-loop를 저장(중복은 store가 건너뜀). 부가 작업이라 실패 무시."""
+    async def _close_open_loops(self, frame: ThoughtFrame, shown: list[OpenLoop], user_input: str) -> None:
+        """사고가 닫으라고 짚은 약속(보여준 번호 또는 문구)은 done, 사용자가 거둔 약속은 dismissed 로 닫는다.
+        두 번 닫아도 결과는 같다."""
+        if self._openloop_store is None:
+            return
+        done = matching_ids(shown, frame.closed_loops)
+        dropped = [i for i in cancelled_ids(shown, user_input) if i not in done]
+        with contextlib.suppress(Exception):
+            for loop_id in done:
+                await self._openloop_store.update_status(loop_id, "done")
+            for loop_id in dropped:
+                await self._openloop_store.update_status(loop_id, "dismissed")
+
+    async def _persist_open_loops(self, frame: ThoughtFrame, user_input: str) -> None:
+        """사고가 새로 감지한 open-loop를 저장(같은 약속이면 store가 기한만 갱신). 부가 작업이라 실패 무시."""
         if self._openloop_store is None or not frame.open_loops:
             return
-        for desc in frame.open_loops:
-            text = desc.strip()
-            if not text:
+        for note in frame.open_loops:
+            text, due_ms = parse_loop_note(note)
+            # 작은 모델은 취소하는 턴에 그 약속을 open_loops 에도 적는다. 같은 프레임에서 닫으라고 한 건 열지 않는다
+            if not text or not grounded(text, user_input):
+                continue
+            if any(refers_to(c, text) for c in frame.closed_loops):
                 continue
             with contextlib.suppress(Exception):
                 await self._openloop_store.add_unique(
-                    OpenLoop(description=text, origin_session=self._session_id)
+                    OpenLoop(description=text, due_ms=due_ms, origin_session=self._session_id)
                 )
 
     def _check_rate_limit(self, user_id: str, rate_limit: int, window: float = 60.0) -> None:
@@ -554,3 +592,11 @@ class AgentSession:
             return result
 
         return executor
+
+
+def _loop_line(loop: OpenLoop) -> str:
+    """사고에 보여줄 약속 한 줄. 기한은 [지금]과 같은 로컬 시각으로 붙인다."""
+    if loop.due_ms is None:
+        return loop.description
+    due = datetime.fromtimestamp(loop.due_ms / 1000).strftime("%Y-%m-%d %H:%M")
+    return f"{loop.description} (기한 {due})"

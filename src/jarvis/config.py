@@ -189,6 +189,8 @@ class OpenLoopConfig(BaseModel):
     backend: Literal["jsonl", "in_memory", "postgres"] = "jsonl"
     path: str = "~/.jarvis/openloops.jsonl"  # jsonl 백엔드 경로
     postgres_dsn: str | None = None  # None이면 session/memory DSN fallback
+    expire_after_sec: int = 21_600  # 기한이 이만큼 지나면 expired 로 닫는다(6시간)
+    max_age_sec: int = 604_800  # 기한 없는 약속의 수명(7일). 0 이면 기한 없는 약속은 닫지 않는다
 
 
 class UserModelConfig(BaseModel):

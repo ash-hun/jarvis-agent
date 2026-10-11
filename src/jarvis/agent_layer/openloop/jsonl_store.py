@@ -6,7 +6,7 @@ from pathlib import Path
 
 import aiofiles
 
-from jarvis.agent_layer.openloop.types import OpenLoop, normalize_description, same_loop
+from jarvis.agent_layer.openloop.types import LOOP_STATUSES, OpenLoop, merge_loop, normalize_description
 
 
 class JsonlOpenLoopStore:
@@ -57,14 +57,8 @@ class JsonlOpenLoopStore:
         await self._ensure_loaded()
         if not normalize_description(loop.description):
             return None
-        for existing in self._loops.values():
-            if (
-                existing.status == "open"
-                and existing.origin_session == loop.origin_session
-                and same_loop(existing.description, loop.description)
-            ):
-                return None
-        return await self.add(loop)
+        record = merge_loop(list(self._loops.values()), loop)
+        return await self.add(record) if record is not None else None
 
     async def list_open(self, session_id: str | None = None, limit: int = 20) -> list[OpenLoop]:
         await self._ensure_loaded()
@@ -83,7 +77,7 @@ class JsonlOpenLoopStore:
     async def update_status(self, loop_id: str, status: str) -> bool:
         await self._ensure_loaded()
         loop = self._loops.get(loop_id)
-        if loop is None or status not in ("open", "done", "dismissed"):
+        if loop is None or status not in LOOP_STATUSES:
             return False
         loop.status = status  # type: ignore[assignment]
         loop.updated_at = int(time.time() * 1000)

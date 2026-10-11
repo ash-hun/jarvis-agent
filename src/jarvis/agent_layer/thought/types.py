@@ -47,8 +47,10 @@ class ThoughtFrame(BaseModel):
     # Open-loop (Tier 2): 이번 입력에서 새로 감지한 약속/미완 작업 설명 목록.
     # 세션이 이를 OpenLoopStore에 저장하고, daemon 성찰 시 다시 주입한다.
     open_loops: list[str] = Field(default_factory=list)
+    # [열린 약속] 중 이번 입력으로 끝났거나 사용자가 그만두게 한 항목. 세션이 같은 약속을 찾아 닫는다.
+    closed_loops: list[str] = Field(default_factory=list)
 
-    @field_validator("recalled", "options", "open_loops", mode="before")
+    @field_validator("recalled", "options", "open_loops", "closed_loops", mode="before")
     @classmethod
     def _items_to_text(cls, value: Any) -> Any:
         # 작은 모델은 문자열 목록 자리에 {"option": "..."} 같은 객체를 넣는다. 프레임을 버리는 대신 글자만 건진다.

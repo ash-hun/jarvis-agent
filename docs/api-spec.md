@@ -105,7 +105,7 @@ GET /api/agenda
 | 필드 | 타입 | 널 허용 | 설명 |
 |---|---|---|---|
 | `schedules` | `Schedule[]` | 아니오 | 스케줄러가 없으면 빈 배열. 다음 실행이 가까운 순, 다음 실행이 없는 것(꺼짐·만료)은 뒤 |
-| `open_loops` | `OpenLoop[]` | 아니오 | 상태가 `open` 인 것만, 최신순 최대 20개 |
+| `open_loops` | `OpenLoop[]` | 아니오 | 상태가 `open` 인 것만, 최신순 최대 20개. 기한이 지난 것은 응답 전에 닫혀 빠진다 |
 
 #### 응답 코드
 
@@ -122,7 +122,7 @@ $ curl -s http://localhost:7777/api/agenda
 
 #### 특이사항
 
-**재호출** — 상태를 바꾸지 않는다. `next_run` 은 호출 시각 기준으로 계산하므로 같은 요청이라도 값이 흘러간다.
+**재호출** — 응답 전에 기한이 지난 open loop 를 `expired` 로 닫는다. 기한 뒤 `JARVIS_OPENLOOP__EXPIRE_AFTER_SEC`(기본 6시간)가 지났거나, 기한 없이 `JARVIS_OPENLOOP__MAX_AGE_SEC`(기본 7일)보다 오래된 것이다. 이미 닫힌 건 다시 보지 않으므로 몇 번 불러도 결과가 같다. 그 밖의 상태는 바꾸지 않는다. `next_run` 은 호출 시각 기준으로 계산하므로 같은 요청이라도 값이 흘러간다.
 
 `next_run`, `run_until` 은 서버 로컬 시간대 오프셋이 붙은 ISO 8601 이다. 컨테이너의 `TZ` 를 따른다.
 
@@ -854,7 +854,7 @@ ws.send(JSON.stringify({ type: "user_message", text: "안녕" }));
 |---|---|---|---|
 | `id` | string | 아니오 | 32자 hex |
 | `description` | string | 아니오 | 약속·미완 작업 설명 |
-| `due_ms` | integer | 예 | 만기 힌트(epoch ms) |
+| `due_ms` | integer | 예 | 기한(epoch ms). 사고가 "내일 10시" 같은 시각을 읽었을 때만 채워진다 |
 | `created_at` | integer | 아니오 | epoch ms |
 | `origin_session` | string | 예 | 감지된 세션 |
 

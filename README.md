@@ -144,7 +144,7 @@ JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120   # 로컬과 배포 모두 같은 값
 
 호스트 Ollama 하나로 메인과 사고를 같이 돌리면 성찰 중 사용자 요청이 줄을 선다. brew 서비스면 `launchctl setenv OLLAMA_NUM_PARALLEL 2 && brew services restart ollama` 로 동시 처리 수를 늘린다(재부팅하면 다시 설정).
 
-🔔 가 안 뜨는 이유는 백엔드 로그 `[Thought] proactive silent: <이유>` 에 남는다. `cooldown`(300초), `confidence … < 임계치`, `empty utterance`(모델이 건넬 말을 안 채움) 중 하나다.
+🔔 가 안 뜨는 이유는 백엔드 로그 `[Thought] proactive silent: <이유>` 에 남는다. `awaiting reply`(🔔 뒤 사용자가 아직 아무 답도 하지 않음), `cooldown`(300초), `confidence … < 임계치`, `empty utterance`(모델이 건넬 말을 안 채움) 중 하나다. 답을 기다리는 동안은 성찰도 건너뛴다.
 
 | 피드백 | 동작 |
 |--------|------|
@@ -643,6 +643,7 @@ JARVIS_THOUGHT__HISTORY_CHARS=240         # 턴당 글자 상한
 JARVIS_PROACTIVE__ENABLED=true            # 기본 ON (요청 시 filler+백그라운드)
 JARVIS_PROACTIVE__CONFIDENCE_THRESHOLD=0.6
 JARVIS_PROACTIVE__COOLDOWN_SEC=300
+JARVIS_PROACTIVE__IGNORE_AFTER_SEC=600  # 🔔 뒤 답이 없으면 이만큼 지나 약한 무시로 학습
 JARVIS_PROACTIVE__DAEMON_ENABLED=true     # 자율 성찰 루프 (기본 on)
 JARVIS_PROACTIVE__DAEMON_TRIGGER=interval # interval | idle | both
 JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120
@@ -678,7 +679,7 @@ uv run python scripts/e2e/launch_hud.py &                 # 스크립트 프로�
 uv run --with playwright python scripts/e2e/hud_flow.py   # 승인 기억·절차 학습 흐름을 브라우저로 검증
 ```
 
-proactive 평가는 `src/jarvis/core/proactive/eval/datasets/` 의 사례로 "이 상황에서 먼저 말해야 했나"를 잰다. `policy.jsonl` 은 사고 프레임을 직접 주어 게이팅(임계치, 쿨다운, 위험도 분리)만 검사하고, `situation.jsonl` 은 상황을 주어 사고 엔진까지 거친다. 사례마다 정책을 새로 만들고 시계를 고정하므로 같은 입력은 같은 결과를 낸다.
+proactive 평가는 `src/jarvis/core/proactive/eval/datasets/` 의 사례로 "이 상황에서 먼저 말해야 했나"를 잰다. `policy.jsonl` 은 사고 프레임을 직접 주어 게이팅(응답 대기, 임계치, 쿨다운, 위험도 분리)만 검사하고, `situation.jsonl` 은 상황을 주어 사고 엔진까지 거친다. 사례마다 정책을 새로 만들고 시계를 고정하므로 같은 입력은 같은 결과를 낸다.
 
 <details>
 <summary>테스트 구조</summary>

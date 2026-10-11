@@ -411,3 +411,25 @@ def test_thought_schema_is_frame_schema():
     from jarvis.agent_layer.thought.engine import THOUGHT_SCHEMA
 
     assert set(THOUGHT_SCHEMA["properties"]) >= {"decision", "confidence", "utterance", "open_loops"}
+
+
+@pytest.mark.asyncio
+async def test_reflection_renders_recent_proactive(faux_model_with_response):
+    captured: list[str] = []
+
+    class SpyEngine(InnerThoughtEngine):
+        async def _call_model(self, prompt: str) -> str:
+            captured.append(prompt)
+            return _frame_json()
+
+    model = faux_model_with_response(response=_frame_json())
+    with_slot = SpyEngine(
+        model=model, reflection_template=ThoughtPromptTemplate("[R] {{recent_proactive}}"), clock=_clock
+    )
+    await with_slot.think(ThoughtRequest(user_input="s", mode="reflection", recent_proactive=["잘 되나요?"]))
+    assert captured[-1] == "[R] - 잘 되나요?"
+
+    # 사용자가 편집한 옛 템플릿엔 자리가 없다. 끝에 덧붙여 유실을 막는다
+    no_slot = SpyEngine(model=model, reflection_template=ThoughtPromptTemplate("[R] {{history}}"), clock=_clock)
+    await no_slot.think(ThoughtRequest(user_input="s", mode="reflection", recent_proactive=["잘 되나요?"]))
+    assert "- 잘 되나요?" in captured[-1]

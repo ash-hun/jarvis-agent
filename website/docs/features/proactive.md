@@ -35,8 +35,10 @@ filler 가 비어 있으면 내장 문구 셋을 돌아가며 쓴다. 사고가 
 flowchart TD
   D[ProactivityDaemon] -->|interval 120초 / idle 180초 / 외부 이벤트| T[tick]
   T --> R[session.reflect]
-  R --> X[외부 이벤트 inbox drain]
-  R --> E[사고 엔진 think mode=reflection]
+  R --> W{답을 기다리는 🔔 가 있나?}
+  W -- 예 --> LW[로그: awaiting reply. 사고 모델을 부르지 않음]
+  W -- 아니오 --> X[외부 이벤트 inbox drain]
+  X --> E[사고 엔진 think mode=reflection]
   E --> F{프레임}
   F -- None --> Q[조용히 끝]
   F --> G1{decision 이 act 또는 ask?}
@@ -54,14 +56,16 @@ flowchart TD
 
 - **daemon** (`daemon.py`): 트리거를 먼저 기다리고 tick 한다. 기동 직후에는 말하지 않는다. Web 은 최근 활동 순으로 모든 세션을 성찰하고, TUI 는 현재 세션만
 - **트리거** (`triggers.py`): `interval`(기본 120초), `idle`(마지막 입력 뒤 180초, 한 번 울리면 다음 활동까지 재장전), `both`. 외부 소스가 있으면 새 이벤트도 트리거가 된다
-- **성찰 프롬프트**: 사용자 입력 자리가 없고 대신 `[외부 이벤트]` 가 있다. "확신이 없으면 반드시 silent"
-- **게이트** (`policy.py`, `decide_proactive`): 순서대로 결정, 확신도, 빈 발화, 쿨다운. 전부 지나야 발화 시각을 기록한다. 침묵 이유는 `[Thought] proactive silent: <이유>` 로그로 남는다
+- **응답 대기** (`policy.py`, `check_awaiting`): 🔔 를 낸 세션은 사용자가 메시지나 피드백을 보낼 때까지 다시 말하지 않는다. 성찰 자체를 건너뛰어 사고 모델도 부르지 않고, 외부 이벤트도 꺼내지 않고 남겨 둔다. 대기 상태는 메모리에만 있어 재시작하면 풀린다
+- **성찰 프롬프트**: 사용자 입력 자리가 없고 대신 `[외부 이벤트]` 와 `[최근에 먼저 건넨 말]`(세션의 최근 🔔 3개)이 있다. "확신이 없으면 반드시 silent", "이미 한 말과 같은 취지면 표현을 바꿔도 silent"
+- **게이트** (`policy.py`, `decide_proactive`): 순서대로 응답 대기, 결정, 확신도, 빈 발화, 쿨다운. 전부 지나야 발화 시각을 기록하고 응답 대기에 들어간다. 침묵 이유는 `[Thought] proactive silent: <이유>` 로그로 남는다
 - **발화 내용**: `utterance` 만. 해석문을 대신 내보내지 않는다
 
 | 게이트 | 설정 | 기본 |
 |---|---|---|
 | 확신도 | `JARVIS_PROACTIVE__CONFIDENCE_THRESHOLD` | 0.6, 피드백으로 변함 |
 | 쿨다운 | `JARVIS_PROACTIVE__COOLDOWN_SEC` | 300초, 세션별 |
+| 무응답 판정 | `JARVIS_PROACTIVE__IGNORE_AFTER_SEC` | 600초. 🔔 뒤 이만큼 답이 없으면 한 번 약한 무시 |
 | 주기 | `JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC` | 120초 |
 | 유휴 | `JARVIS_PROACTIVE__DAEMON_IDLE_SEC` | 180초 |
 
@@ -79,7 +83,8 @@ flowchart TD
 
 🔔 가 도움이 됐는지에 따라 확신도 임계치를 움직인다(`feedback.py`).
 
-- 수락: 임계치 −0.05, 무시: +0.05. 범위 0.3 에서 0.95
+- 수락: 임계치 −0.05, 무시: +0.05, 무응답: +0.025. 범위 0.3 에서 0.95
+- 무응답은 🔔 뒤 `IGNORE_AFTER_SEC` 동안 아무 답이 없을 때 그 발화 하나에 한 번만 센다. 자리를 비웠을 수도 있어 무시의 절반만 반영한다. 판정은 성찰 tick 에서 하므로 `idle` 트리거 단독이면(다음 활동 전까지 tick 이 없다) 세지 않는다
 - 앱에 하나인 `FeedbackLearner` 를 모든 세션의 정책이 공유한다. 메모리에만 있어 재시작하면 기본값으로 돌아간다
 - 입력: TUI 는 `Ctrl+Y`(도움됨), `Ctrl+G`(무시). Web 은 🔔 뒤에 "도움이 됐나요?" 를 붙이고 다음 짧은 답을 읽는다. `네`, `좋아`, `고마워` 류는 수락, `아니오`, `됐어`, `무시` 류는 무시. 완전 일치 키워드만 보고, 다른 말은 보통 메시지로 흘러간다
 

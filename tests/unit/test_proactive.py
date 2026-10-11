@@ -98,6 +98,7 @@ def test_cooldown_blocks_second_speak():
 
     first = policy.decide_proactive(frame, session_id="s1")
     assert first.speak is True
+    policy.note_user_activity("s1")  # 답이 왔다고 두고 쿨다운만 본다
 
     clock.t += 100  # 쿨다운 이내
     second = policy.decide_proactive(frame, session_id="s1")
@@ -392,3 +393,52 @@ async def _collect(bucket: list, msg: ProactiveMessage) -> None:
 
 async def _noop() -> None:
     return None
+
+
+# ── 응답 대기 게이트 ──────────────────────────────────────────────────────────
+
+
+def test_awaiting_reply_blocks_even_after_cooldown():
+    clock = _Clock()
+    policy = DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=300, clock=clock)
+    frame = ThoughtFrame(decision="ask", confidence=0.95, utterance="x")
+    assert policy.check_awaiting("s1") is None
+    assert policy.decide_proactive(frame, session_id="s1").speak is True
+
+    clock.t += 3600  # 쿨다운은 한참 지났지만 답이 없다
+    blocked = policy.decide_proactive(frame, session_id="s1")
+    assert blocked.speak is False and blocked.reason == "awaiting reply"
+    # 다른 세션은 막지 않는다
+    assert policy.decide_proactive(frame, session_id="s2").speak is True
+
+
+def test_user_activity_releases_gate_and_is_idempotent():
+    clock = _Clock()
+    policy = DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0, clock=clock)
+    frame = ThoughtFrame(decision="ask", confidence=0.95, utterance="x")
+    policy.decide_proactive(frame, session_id="s1")
+    policy.note_user_activity("s1")
+    policy.note_user_activity("s1")
+    policy.note_user_activity("never-spoke")
+    assert policy.check_awaiting("s1") is None
+    assert policy.decide_proactive(frame, session_id="s1").speak is True
+
+
+def test_ignored_reported_once_after_ignore_window():
+    clock = _Clock()
+    policy = DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0, ignore_after_sec=600, clock=clock)
+    frame = ThoughtFrame(decision="ask", confidence=0.95, utterance="x")
+    policy.decide_proactive(frame, session_id="s1")
+
+    clock.t += 300
+    assert policy.check_awaiting("s1").ignored is False
+    clock.t += 300
+    assert policy.check_awaiting("s1").ignored is True
+    clock.t += 300
+    assert policy.check_awaiting("s1").ignored is False  # 같은 발화는 한 번만 센다
+
+    # 답 뒤 새 발화는 다시 셀 수 있다
+    policy.note_user_activity("s1")
+    policy.decide_proactive(frame, session_id="s1")
+    clock.t += 600
+    assert policy.check_awaiting("s1").ignored is True

@@ -93,4 +93,4 @@ gantt
 
 ## 템플릿 직접 쓰기
 
-`~/.jarvis/inner_thought.md` 와 `~/.jarvis/inner_thought_reflection.md`. 자리표시자는 `{{now}}`, `{{open_loops}}`, `{{external_events}}`, `{{recalled_memories}}`, `{{history}}`, `{{user_input}}`, `{{user_model}}`. 없는 값은 빈 문자열이 된다. 외부 이벤트가 있는데 자리가 없으면 끝에 `[외부 이벤트]` 로 덧붙여 조용히 사라지지 않게 한다. 프레임 키 중 `utterance` 가 빠지면 먼저 말하는 기능이 꺼진 것과 같다.
+`~/.jarvis/inner_thought.md` 와 `~/.jarvis/inner_thought_reflection.md`. 자리표시자는 `{{now}}`, `{{open_loops}}`, `{{external_events}}`, `{{recalled_memories}}`, `{{history}}`, `{{user_input}}`, `{{user_model}}`, `{{recent_proactive}}`(성찰 전용, 최근 🔔). 없는 값은 빈 문자열이 된다. 외부 이벤트나 최근 🔔 가 있는데 자리가 없으면 끝에 덧붙여 조용히 사라지지 않게 한다. 프레임 키 중 `utterance` 가 빠지면 먼저 말하는 기능이 꺼진 것과 같다.

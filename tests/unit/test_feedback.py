@@ -49,3 +49,16 @@ def test_policy_static_threshold_without_provider():
     policy = DefaultProactivityPolicy(confidence_threshold=0.6)
     frame = ThoughtFrame(decision="ask", confidence=0.7, utterance="x")
     assert policy.decide_proactive(frame).speak is True
+
+
+def test_ignored_raises_threshold_by_half_step():
+    learner = FeedbackLearner(base_threshold=0.6, step=0.05)
+    learner.record_ignored()
+    assert learner.threshold() == pytest.approx(0.625)
+    assert learner.stats()["ignores"] == 1
+
+
+def test_ignored_clamped_to_max():
+    learner = FeedbackLearner(base_threshold=0.95, step=0.05)
+    learner.record_ignored()
+    assert learner.threshold() == pytest.approx(0.95)

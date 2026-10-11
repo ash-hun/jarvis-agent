@@ -64,6 +64,8 @@ class SessionBusy(Exception):
 
 
 THOUGHT_WAIT_SEC = 3.0
+# 성찰이 같은 말을 바꿔 다시 하지 않도록 최근 🔔 몇 개를 보여준다
+RECENT_PROACTIVE_MAX = 3
 
 BUSY_MESSAGE = "이전 요청을 아직 처리 중입니다. 끝나길 기다리거나 중단(abort)한 뒤 다시 보내세요."
 
@@ -128,6 +130,8 @@ class AgentSession:
         self._user_model_store = user_model_store
         self._external_inbox = external_inbox
         self._external_detail_in_prompt = external_detail_in_prompt
+        # ponytail: 최근 🔔 는 메모리에만 있어 재시작하면 빈다, 재시작 뒤 같은 말이 문제면 세션 저장소로
+        self._recent_proactive: deque[str] = deque(maxlen=RECENT_PROACTIVE_MAX)
         # 코어는 세션별 emit에 바인딩되어야 하므로 팩토리로 주입받아 여기서 생성.
         self._proactivity: ProactivityCore | None = (
             proactivity_factory(self._emit_proactive) if proactivity_factory else None
@@ -176,6 +180,9 @@ class AgentSession:
         # 사용자 활동 기록 — idle 트리거가 "조용해진 시점"을 알도록 리셋한다.
         if self._activity_clock is not None:
             self._activity_clock.touch()
+        # 사용자가 말했으니 먼저 건넨 말에 대한 대기는 끝났다
+        if self._proactivity is not None:
+            self._proactivity.note_user_activity(self._session_id)
 
         validated, auth_ctx, policy_result = await self._security.run(
             raw_input=raw_input,
@@ -240,6 +247,12 @@ class AgentSession:
         """
         if self._thought_engine is None or self._proactivity is None:
             return None
+        # 답을 기다리는 🔔 가 있으면 사고 모델을 부르지 않는다. 외부 이벤트도 꺼내지 않고 남겨 둔다.
+        awaiting = self._proactivity.check_awaiting(self._session_id)
+        if awaiting is not None:
+            self._learn_ignored(awaiting)
+            print(f"[Thought] proactive silent: {awaiting.reason}")
+            return awaiting
         frame = await self._run_inner_thought(
             REFLECTION_SEED,
             mode="reflection",
@@ -250,10 +263,17 @@ class AgentSession:
         decision = await self._proactivity.reflect(
             frame, session_id=self._session_id, execute=self._execute_autonomous
         )
+        self._learn_ignored(decision)
         if not decision.speak:
             # 🔔 가 안 뜨는 이유(임계치 미달, 쿨다운, utterance 비움)를 로그에서 볼 수 있게.
             print(f"[Thought] proactive silent: {decision.reason}")
         return decision
+
+    def _learn_ignored(self, decision: ProactiveDecision) -> None:
+        # 게이트는 발화 하나당 한 번만 ignored 를 세우므로 여기서 중복 기록되지 않는다
+        if decision.ignored and self._feedback_learner is not None:
+            self._feedback_learner.record_ignored()
+            print("[Thought] proactive ignored: 답 없이 지나 약한 무시로 기록")
 
     async def _execute_autonomous(self, actions: list[Any]) -> str:
         """저위험 자율 행동(E2)을 실행하고 사람이 읽을 요약을 반환.
@@ -365,6 +385,7 @@ class AgentSession:
                 open_loops=await self._load_open_loops(),
                 user_model=await self._load_user_model(),
                 external_events=external_events or [],
+                recent_proactive=list(self._recent_proactive),
                 mode=mode,  # type: ignore[arg-type]
             )
         )
@@ -391,6 +412,8 @@ class AgentSession:
 
     async def _emit_proactive(self, message: ProactiveMessage) -> None:
         """ProactivityCore의 push 콜백 — ProactiveMessage → ProactiveMessageEvent."""
+        if message.kind == "proactive":
+            self._recent_proactive.append(message.text)
         await self._harness.emit_event(
             ProactiveMessageEvent(
                 session_id=self._session_id,
@@ -407,6 +430,8 @@ class AgentSession:
         """
         if self._feedback_learner is not None:
             self._feedback_learner.record(accepted)
+        if self._proactivity is not None:
+            self._proactivity.note_user_activity(self._session_id)
 
     async def _load_open_loops(self) -> list[str]:
         """열린 open-loop 설명을 사고 컨텍스트로 주입(없거나 store 미설정이면 빈 목록)."""

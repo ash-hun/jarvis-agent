@@ -25,6 +25,7 @@ class PolicySpec(BaseModel):
     confidence_threshold: float = 0.6
     cooldown_sec: int = 300
     spoke_before_sec: float | None = None  # 같은 세션이 이만큼 전에 이미 말했다(쿨다운 검증용)
+    awaiting_reply: bool = False  # 그 말에 사용자가 아직 답하지 않았다. 거짓이면 답한 뒤로 본다
 
 
 class ProactiveExpect(BaseModel):

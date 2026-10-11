@@ -107,7 +107,10 @@ $sphereHit.addEventListener('click', () => {
   voice.toggle();
 });
 
-// Full-voice 로 바꾼 클릭이 사용자 제스처라 그때 마이크를 연다. 되돌리면 듣던 것을 멈춘다.
+// Full-voice 동안은 마이크를 잡아 둔다. 듣기와 읽기를 오갈 때마다 블루투스 프로필이 바뀌면 연결이 흔들린다.
+voice.setHoldMic(isFullVoice());
+
+// Full-voice 로 바꾼 클릭이 사용자 제스처라 그때 마이크를 연다. 되돌리면 듣던 것을 멈추고 마이크를 놓는다.
 onModeChange((mode) => {
   if (mode === 'full-voice') {
     if (!voice.supported) {
@@ -115,9 +118,11 @@ onModeChange((mode) => {
       setMode('default');
       return;
     }
+    voice.setHoldMic(true);
     voice.start();
   } else {
     _thenListen = null;
+    voice.setHoldMic(false);
     voice.stop();
   }
 });

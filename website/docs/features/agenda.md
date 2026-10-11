@@ -65,6 +65,26 @@ flowchart LR
 /schedule 0 9 * * * date && uptime                  # cron
 ```
 
+```mermaid
+sequenceDiagram
+  participant U as 사용자
+  participant D as 디스패처 /schedule
+  participant F as schedules/*.yaml
+  participant S as SchedulerService
+  participant R as 실행 세션
+  participant H as 열린 Web 연결
+  U->>D: /schedule 내일 오전 9시에 배포 로그 확인해줘
+  D->>D: 시각과 종류 해석 (한 번이면 LLM 이 reminder / task 분류)
+  D->>F: 작업 파일 저장
+  loop 10초마다
+    S->>F: 다음 실행 시각 확인
+  end
+  S->>R: 시각이 되면 새 세션에서 프롬프트 (task) 또는 문장 그대로 (reminder)
+  R-->>S: 결과
+  S->>H: reminder 이벤트 (없으면 놓친 알림 20건에 쌓음)
+  S->>S: Slack 이 있으면 거기도
+```
+
 - 한 번 실행(`...에`): LLM 분류기가 `reminder`(그 문장을 그대로 알림)인지 `task`(프롬프트를 실행)인지 한 번 묻는다. 분류 실패면 reminder
 - 마감까지 반복(`...까지`): 남은 시간으로 주기를 고른다. 7일 이상이면 매일 9시, 하루 이상이면 6시간마다, 1시간 이상이면 매시, 그 아래는 10분마다
 - 파일: `~/.jarvis/schedules/<name>.yaml`. 켜고 끄기는 `enabled` 키만 바뀐다. 한 번 실행한 작업은 파일을 지우거나 `enabled: false` 로
@@ -93,6 +113,16 @@ flowchart LR
 - 성찰 프롬프트는 이벤트를 "말하라는 명령이 아니라 사실" 로 다루고 긴급성과 관련성이 분명할 때만 말한다
 
 ## 사용자 모델과 저널
+
+```mermaid
+flowchart LR
+  MEM[(최근 기억 30건)] --> B[UserModelBuilder<br/>/usermodel build]
+  B --> UM[(~/.jarvis/user_model.json<br/>요약과 성향 8개)]
+  UM --> TP[모든 사고 프롬프트의<br/>user_model 자리]
+  TL[(최근 사고 기록 40건)] --> J[ReflectionJournaler<br/>/journal write]
+  J --> EP[(일화 기억)]
+  EP --> RC[다음 회상에 섞임]
+```
 
 - **사용자 모델** (`agent_layer/usermodel/`): 최근 기억 30건을 LLM 이 요약과 성향(최대 8개)으로 증류한 것. `/usermodel build` 로 만들고 `~/.jarvis/user_model.json` 에 덮어쓴다. 모든 사고 프롬프트의 `{{user_model}}` 에 들어간다. 자동으로는 안 돈다
 - **저널** (`agent_layer/journal/`): 최근 사고 기록 40건을 보고 1 에서 3 문장의 메타 성찰을 쓴다. `/journal write`. 일화 기억으로 저장되어 회상에 섞여 들어온다

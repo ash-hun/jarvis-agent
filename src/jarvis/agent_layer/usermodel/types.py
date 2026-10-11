@@ -1,3 +1,5 @@
+"""[agent_layer] 누적 기억에서 증류한 안정적 사용자 모델과 사고 프롬프트용 블록 변환을 정의한다."""
+
 from __future__ import annotations
 
 import time

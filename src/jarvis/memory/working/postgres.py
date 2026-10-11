@@ -1,4 +1,4 @@
-"""PostgreSQL 작업 기억 저장소. (user, agent, session) 당 한 행, 저장은 upsert."""
+"""[memory] (user, agent, session) 당 한 행을 upsert 하는 PostgreSQL 작업 기억 저장소."""
 
 import asyncio
 import json
@@ -6,15 +6,16 @@ from datetime import UTC, datetime
 from typing import Any
 
 from jarvis.memory.scope import LOCAL_USER, MemoryScope
-from jarvis.memory.working.state import WorkingState
+from jarvis.memory.working.state import WorkingState, WorkingStore
 
 TABLE = "jarvis_working_memory"
 
 
-class PostgresWorkingStore:
+class PostgresWorkingStore(WorkingStore):
     def __init__(self, dsn: str) -> None:
+        super().__init__()
         self._dsn = dsn
-        self._pool: Any = None
+        self._pool: Any = None  # asyncpg 는 스텁이 없어 Pool 타입을 쓸 수 없다
         self._loop: asyncio.AbstractEventLoop | None = None
 
     async def _get_pool(self) -> Any:

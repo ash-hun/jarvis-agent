@@ -1,8 +1,4 @@
-"""P2PTopology — 피어-투-피어 라우팅 테이블.
-
-add_node() 시 기본값은 full-mesh (모든 기존 노드와 양방향 연결).
-connect() / disconnect() 로 라우팅을 명시적으로 제어할 수 있다.
-"""
+"""[core] 노드마다 이웃 라우팅 테이블을 두고 등록 시 full-mesh 로 잇는 P2P 토폴로지."""
 
 from __future__ import annotations
 
@@ -12,13 +8,15 @@ from .base import BaseTopology
 
 
 class P2PTopology(BaseTopology):
+    """add_node() 는 기존 노드 전부와 양방향으로 잇는다. connect() / disconnect() 로 라우팅을 명시적으로 제어한다."""
+
     def __init__(self) -> None:
         super().__init__()
         self._routing: dict[str, list[str]] = {}  # name → [neighbor_names]
 
     # ── 노드 등록 ──────────────────────────────────────────────────────────────
 
-    def add_node(self, node: AgentNodeProtocol) -> None:  # type: ignore[override]
+    def add_node(self, node: AgentNodeProtocol) -> None:
         """멱등 + 기존 노드와 full-mesh 자동 연결."""
         if node.name in self._nodes:
             return
@@ -58,6 +56,6 @@ class P2PTopology(BaseTopology):
 
     # ── 조회 ──────────────────────────────────────────────────────────────────
 
-    def get_neighbors(self, name: str) -> list[AgentNodeProtocol]:  # type: ignore[override]
+    def get_neighbors(self, name: str) -> list[AgentNodeProtocol]:
         neighbor_names = self._routing.get(name, [])
         return [self._nodes[n] for n in neighbor_names if n in self._nodes]

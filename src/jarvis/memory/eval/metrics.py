@@ -1,4 +1,4 @@
-"""사례 판정과 스위트 집계."""
+"""[memory] 평가 사례를 기대값으로 판정하고 스위트별 지표로 집계한다."""
 
 from dataclasses import dataclass, field
 

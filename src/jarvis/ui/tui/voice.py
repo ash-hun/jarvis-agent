@@ -1,14 +1,6 @@
-"""TUI 음성 입출력 컨트롤러.
+"""[ui] TuiVoiceController: 서버 음성 프로바이더와 시스템 오디오 도구(afplay, sox 등)로 TUI 음성 입출력을 한다."""
 
-터미널에는 브라우저 Web Speech API가 없으므로 음성은 서버 사이드 프로바이더
-(Whisper STT / Supertonic TTS)와 시스템 오디오 도구를 통해 동작한다.
-
-- TTS: VoiceService.synthesize() → WAV → 시스템 플레이어(afplay/paplay/aplay/ffplay)
-- STT: 시스템 레코더(sox/arecord)로 녹음 → VoiceService.transcribe()
-
-오디오 백엔드(player/recorder)는 주입 가능하다 (테스트는 fake 주입).
-브라우저 프로바이더이거나 시스템 도구가 없으면 graceful하게 비활성화된다.
-"""
+# 터미널엔 Web Speech API 가 없어 서버 프로바이더를 쓴다. player/recorder 는 주입 가능(테스트는 fake)
 from __future__ import annotations
 
 import asyncio

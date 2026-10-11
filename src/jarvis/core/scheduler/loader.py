@@ -1,10 +1,15 @@
+"""[core] 스케줄 YAML 을 읽고, 작업 저장, enabled 토글, 끝난 한 번 실행 작업 정리를 맡는다."""
+
 from __future__ import annotations
 
 from pathlib import Path
 
 import yaml
 
+from jarvis.common.logger import get_logger
 from jarvis.core.scheduler.task import ScheduledTask
+
+logger = get_logger(__name__)
 
 
 def load_tasks(schedules_dir: str) -> list[ScheduledTask]:
@@ -28,14 +33,14 @@ def load_tasks(schedules_dir: str) -> list[ScheduledTask]:
                     task._source = path
                     tasks.append(task)
         except Exception as exc:
-            print(f"[SchedulerLoader] Failed to load '{path}': {exc}")
+            logger.info(f"[SchedulerLoader] Failed to load '{path}': {exc}")
     return tasks
 
 
 def save_task(task: ScheduledTask, schedules_dir: str) -> Path:
     """작업을 `<schedules_dir>/<name>.yaml` 로 저장한다. 같은 작업을 다시 저장해도 결과가 같다.
 
-    항상 작업 전용 파일에만 쓴다 — 여러 작업이 든 사용자 YAML 을 통째로 덮어쓰지 않도록
+    항상 작업 전용 파일에만 쓴다. 여러 작업이 든 사용자 YAML 을 통째로 덮어쓰지 않도록
     `_source` 를 따라가지 않는다(기존 파일의 토글은 write_enabled 가 맡는다).
     """
     root = Path(schedules_dir).expanduser()

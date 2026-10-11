@@ -1,8 +1,4 @@
-"""HierarchicalTopology — 트리 구조 레벨 관리.
-
-레벨 0 = 루트(controller), 레벨 1 = 1차 하위, ...
-동일 레벨 노드는 HierarchicalOrchestrator에서 병렬 실행된다.
-"""
+"""[core] 노드를 레벨(0 = 루트, 같은 레벨은 병렬 실행)과 부모로 묶는 트리 토폴로지."""
 
 from __future__ import annotations
 
@@ -12,6 +8,8 @@ from .base import BaseTopology
 
 
 class HierarchicalTopology(BaseTopology):
+    """레벨 0 = 루트(controller), 레벨 1 = 1차 하위. 동일 레벨 노드는 HierarchicalOrchestrator 에서 병렬 실행된다."""
+
     def __init__(self) -> None:
         super().__init__()
         self._levels: dict[int, list[str]] = {}       # level → [node_name, ...]
@@ -19,13 +17,13 @@ class HierarchicalTopology(BaseTopology):
 
     # ── 노드 등록 ──────────────────────────────────────────────────────────────
 
-    def add_node(  # type: ignore[override]
+    def add_node(
         self,
         node: AgentNodeProtocol,
         level: int = 0,
         parent: str | None = None,
     ) -> None:
-        """멱등 — 동일 name 재등록은 무시."""
+        """멱등. 동일 name 재등록은 무시."""
         if node.name in self._nodes:
             return
         super().add_node(node)
@@ -35,7 +33,7 @@ class HierarchicalTopology(BaseTopology):
         if parent:
             self._parent_map[node.name] = parent
 
-    def add_node_force(  # type: ignore[override]
+    def add_node_force(
         self,
         node: AgentNodeProtocol,
         level: int = 0,

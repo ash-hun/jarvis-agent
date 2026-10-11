@@ -1,4 +1,4 @@
-"""/cleanup. 범위 도입 전 남은 데이터를 보여주고, 확인어가 있을 때만 지운다. 자동으로는 절대 지우지 않는다."""
+"""[core] 범위 도입 전 남은 데이터를 보여 주고 확인어가 있을 때만 지우는 /cleanup 핸들러 factory."""
 
 from __future__ import annotations
 

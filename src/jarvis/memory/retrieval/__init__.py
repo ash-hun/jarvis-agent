@@ -1,4 +1,4 @@
-"""검색. 후보 항목에 recency, importance(감쇠), relevance, 단서 겹침을 합성한 점수를 매겨 고른다."""
+"""[memory] recency, importance(감쇠), relevance, 단서 겹침을 합성한 점수로 후보를 고르는 검색을 내보낸다."""
 
 from jarvis.memory.retrieval.cues import cue_overlap
 from jarvis.memory.retrieval.scoring import (

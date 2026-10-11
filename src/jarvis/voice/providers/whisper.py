@@ -1,11 +1,15 @@
+"""[voice] faster-whisper 로 서버에서 음성을 전사하는 로컬 STT 프로바이더."""
+
 from __future__ import annotations
 
 import asyncio
 import io
 from functools import partial
 
+from jarvis.voice.protocol import DEFAULT_SAMPLE_RATE, STTProvider
 
-class WhisperSTTProvider:
+
+class WhisperSTTProvider(STTProvider):
     """faster-whisper 기반 로컬 STT 프로바이더.
 
     설치: pip install faster-whisper
@@ -14,14 +18,14 @@ class WhisperSTTProvider:
 
     def __init__(self, model_size: str = "base", device: str = "cpu") -> None:
         try:
-            from faster_whisper import WhisperModel  # type: ignore[import]
+            from faster_whisper import WhisperModel  # type: ignore[import-untyped]  # 스텁 없는 선택 의존성
         except ImportError as exc:
             raise ImportError(
                 "faster-whisper가 설치되지 않았습니다. `pip install faster-whisper` 로 설치하세요."
             ) from exc
         self._model = WhisperModel(model_size, device=device, compute_type="int8")
 
-    async def transcribe(self, audio_bytes: bytes, sample_rate: int = 16000) -> str:
+    async def transcribe(self, audio_bytes: bytes, sample_rate: int = DEFAULT_SAMPLE_RATE) -> str:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, partial(self._transcribe_sync, audio_bytes))
 

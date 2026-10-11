@@ -1,27 +1,29 @@
-"""OrchestrationService. 패턴 이름과 작업 문구로 토폴로지를 조립해 실행한다. 슬래시 명령과 도구의 공통 뒷단."""
+"""[core] 패턴 이름과 작업 문구로 토폴로지와 오케스트레이터를 조립해 실행하는 슬래시 명령과 도구의 공통 뒷단."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, current_task
 
 from .blackboard import SharedBlackboard
 from .factory import AgentDefinition, AgentFactory
 from .node import LazyAgentNode, _clip
+from .orchestrators.base import BaseOrchestrator
 from .orchestrators.blackboard import BlackboardOrchestrator
 from .orchestrators.hierarchical import HierarchicalOrchestrator
 from .orchestrators.market import MarketOrchestrator
 from .orchestrators.pipeline import OrchestratorPipeline
 from .orchestrators.supervisor import SupervisorOrchestrator
+from .protocol import OrchestratorProtocol
 from .task import AgentResult, AgentTask
 from .topologies.blackboard import BlackboardTopology
 from .topologies.hierarchical import HierarchicalTopology
 from .topologies.supervisor import SupervisorTopology
 
 if TYPE_CHECKING:
-    from jarvis.memory.manager import MemoryManager
+    from jarvis.memory.memory_service import MemoryService
 
 PATTERNS: dict[str, str] = {
     "supervisor": "LLM 감독자가 어느 에이전트를 언제 부를지 스스로 정한다. 판단이 필요한 열린 작업",
@@ -41,7 +43,7 @@ class OrchestrationService:
         self,
         definitions: Sequence[AgentDefinition],
         factory: AgentFactory,
-        memory: MemoryManager | None = None,
+        memory: MemoryService | None = None,
         supervisor_prompt: str | None = None,
     ) -> None:
         self._definitions = {d.name: d for d in definitions}
@@ -90,7 +92,9 @@ class OrchestrationService:
         parent = parent_scope or current_scope.get() or MemoryScope(user_id=LOCAL_USER)
         task = AgentTask.create(task_text, context={"pattern": pattern}, scope=parent)
         orchestrators = [await self._build(stage, definitions, parent, task) for stage in stages]
-        orchestrator: Any = orchestrators[0] if len(orchestrators) == 1 else OrchestratorPipeline(orchestrators)
+        orchestrator: OrchestratorProtocol = (
+            orchestrators[0] if len(orchestrators) == 1 else OrchestratorPipeline(orchestrators)
+        )
 
         token = current_task.set(task.task_id)
         try:
@@ -107,7 +111,7 @@ class OrchestrationService:
 
     async def _build(
         self, stage: str, definitions: list[AgentDefinition], parent: MemoryScope, task: AgentTask
-    ) -> Any:
+    ) -> BaseOrchestrator:
         nodes = [LazyAgentNode(d, self._factory, self._memory) for d in definitions]
         if stage == "hierarchical":
             topo = HierarchicalTopology()

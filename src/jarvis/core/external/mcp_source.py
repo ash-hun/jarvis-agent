@@ -1,11 +1,15 @@
+"""[core] 지정한 MCP 서버의 툴을 한 번 불러 그 원문을 외부 이벤트로 바꾸는 소스."""
+
 from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
+from jarvis.common.logger import get_logger
 from jarvis.core.external.dedup import derive_events
 from jarvis.core.external.loader import ExternalSourceSpec
+from jarvis.core.external.protocol import ExternalSource
 from jarvis.core.external.types import ExternalEvent
 
 if TYPE_CHECKING:
@@ -14,11 +18,13 @@ if TYPE_CHECKING:
 # (server, tool_name, params) -> 원문 텍스트. 기본은 mcp_loader.call_mcp_tool.
 CallMcpTool = Callable[["MCPServerConfig", str, dict[str, Any]], Awaitable[str]]
 
+logger = get_logger(__name__)
 
-class McpToolSource:
+
+class McpToolSource(ExternalSource):
     """MCP 툴을 1회 호출해 원문을 이벤트로 변환하는 소스.
 
-    ToolRegistry를 경유하지 않고 서버를 직접 지정 호출한다 — 서로 다른 서버가
+    ToolRegistry를 경유하지 않고 서버를 직접 지정 호출한다. 서로 다른 서버가
     같은 툴 이름을 쓰면 register_force로 덮여 충돌하기 때문(설계 §5).
     poll()은 예외를 던지지 않는다: 서버 무응답·오류는 빈 목록 + 로그로 끝난다.
     """
@@ -31,8 +37,7 @@ class McpToolSource:
         call: CallMcpTool | None = None,
         detail_max_chars: int = 500,
     ) -> None:
-        self.name = spec.name
-        self.interval_sec = spec.interval_sec
+        super().__init__(spec.name, spec.interval_sec)
         self._spec = spec
         self._server = server
         self._call = call
@@ -51,13 +56,13 @@ class McpToolSource:
                 timeout=self._server.timeout,
             )
         except TimeoutError:
-            print(
+            logger.info(
                 f"[McpToolSource] '{self.name}': '{self._spec.tool}' timed out after "
                 f"{self._server.timeout}s (server '{self._server.name}') — skipping"
             )
             return []
         except Exception as exc:
-            print(f"[McpToolSource] '{self.name}': poll failed: {exc}")
+            logger.info(f"[McpToolSource] '{self.name}': poll failed: {exc}")
             return []
 
         return derive_events(self.name, raw, detail_max_chars=self._detail_max_chars)
@@ -82,7 +87,7 @@ def build_mcp_sources(
             continue
         server = by_name.get(spec.server)
         if server is None:
-            print(
+            logger.info(
                 f"[ExternalSourceLoader] '{spec.name}': unknown MCP server "
                 f"'{spec.server}' — skipping"
             )

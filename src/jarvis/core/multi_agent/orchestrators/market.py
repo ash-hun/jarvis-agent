@@ -1,8 +1,4 @@
-"""MarketOrchestrator — 입찰 기반 작업 할당.
-
-모든 노드에게 can_handle()로 입찰을 받고, 가장 높은 priority를 가진 노드가 작업을 수행.
-priority를 재정의하려면 Bid를 반환하는 _collect_bids()를 서브클래스에서 오버라이드.
-"""
+"""[core] 모든 노드의 입찰(can_handle, score)을 받아 가장 높은 priority 노드 하나에 작업을 맡기는 오케스트레이터."""
 
 from __future__ import annotations
 
@@ -24,6 +20,8 @@ class Bid:
 
 
 class MarketOrchestrator(BaseOrchestrator):
+    """priority 를 재정의하려면 Bid 를 반환하는 _collect_bids() 를 서브클래스에서 오버라이드한다."""
+
     def __init__(self, topology: TopologyProtocol, memory: Any = None) -> None:
         super().__init__(topology, memory)
 
@@ -31,7 +29,7 @@ class MarketOrchestrator(BaseOrchestrator):
         """can_handle 로 입찰 여부, score(있으면) 로 우선순위. 점수가 없는 노드는 1.0."""
         nodes = self.topology.get_nodes()
         results = await asyncio.gather(*[node.can_handle(task) for node in nodes])
-        bids = []
+        bids: list[Bid] = []
         for node, can in zip(nodes, results, strict=False):
             scorer = getattr(node, "score", None)
             priority = float(scorer(task)) if callable(scorer) else 1.0

@@ -1,10 +1,11 @@
+"""[core] daemon 이 언제 성찰할지 정하는 트리거들(주기, 유휴, 외부 이벤트, 합성)."""
+
 from __future__ import annotations
 
 import asyncio
 import contextlib
 import time
 from collections.abc import Awaitable, Callable
-from typing import Protocol, runtime_checkable
 
 Sleeper = Callable[[float], Awaitable[None]]
 Clock = Callable[[], float]
@@ -24,21 +25,23 @@ class ActivityClock:
         return self._clock() - self._last
 
 
-@runtime_checkable
-class ReflectionTrigger(Protocol):
-    """daemon이 "언제 성찰할지" 결정하는 교체 가능한 트리거.
+class ReflectionTrigger:
+    """daemon이 "언제 성찰할지" 결정하는 교체 가능한 트리거의 기본 클래스.
 
     wait()는 다음 성찰 시점까지 블록한다. notify_activity()는 사용자 활동을
     트리거에 알린다(idle 류만 의미 있음, 그 외엔 no-op).
+    기본 구현은 영영 발화하지 않는 트리거다. AnyTrigger 에 섞여도 다른 트리거를 막지 않는다.
     """
 
-    async def wait(self) -> None: ...
+    async def wait(self) -> None:
+        await asyncio.Event().wait()
 
-    def notify_activity(self) -> None: ...
+    def notify_activity(self) -> None:
+        pass
 
 
-class IntervalTrigger:
-    """고정 주기 트리거 — 기존 동작(시간 기반)."""
+class IntervalTrigger(ReflectionTrigger):
+    """고정 주기 트리거. 기존 동작(시간 기반)."""
 
     def __init__(self, interval_sec: float, sleep: Sleeper = asyncio.sleep) -> None:
         self._interval = interval_sec
@@ -47,12 +50,9 @@ class IntervalTrigger:
     async def wait(self) -> None:
         await self._sleep(self._interval)
 
-    def notify_activity(self) -> None:
-        pass
 
-
-class IdleTrigger:
-    """사용자가 idle_sec 동안 조용할 때 1회 발화 — 대화 중엔 끼어들지 않는다.
+class IdleTrigger(ReflectionTrigger):
+    """사용자가 idle_sec 동안 조용할 때 1회 발화. 대화 중엔 끼어들지 않는다.
 
     활동(touch)이 들어오면 카운트가 리셋되고 다시 발화 가능해진다.
     """
@@ -90,7 +90,7 @@ class IdleTrigger:
             await self._sleep(min(self._poll, remaining) if remaining > 0 else self._poll)
 
 
-class ExternalTrigger:
+class ExternalTrigger(ReflectionTrigger):
     """외부 이벤트로 발화하는 트리거. fire()로 즉시 깨운다.
 
     MCP 캘린더·메일 폴러 등 외부 감지기가 이 fire()에 꽂힌다(플러그 지점).
@@ -106,11 +106,8 @@ class ExternalTrigger:
         await self._event.wait()
         self._event.clear()
 
-    def notify_activity(self) -> None:
-        pass
 
-
-class AnyTrigger:
+class AnyTrigger(ReflectionTrigger):
     """여러 트리거 중 하나라도 발화하면 깨어나는 합성 트리거(race)."""
 
     def __init__(self, triggers: list[ReflectionTrigger]) -> None:

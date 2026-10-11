@@ -1,3 +1,5 @@
+"""[core] 스케줄 루프. 때가 된 cron 작업과 한 번 실행 작업을 새 세션에서 돌리고 결과를 알린다."""
+
 from __future__ import annotations
 
 import asyncio
@@ -6,10 +8,13 @@ from collections.abc import Awaitable, Callable, Coroutine
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from jarvis.common.logger import get_logger
 from jarvis.core.scheduler.task import ScheduledTask
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
+    from jarvis.core.plugins.runner import PluginRunner
+    from jarvis.core.skills.registry import SkillRegistry
     from jarvis.core.tools.registry import ToolRegistry
     from jarvis.model_layer.types import ModelConfig
 
@@ -20,10 +25,12 @@ Notify = Callable[[dict[str, Any]], Awaitable[None]]
 # 루프 주기. 한 번 실행(run_at) 알림이 이만큼까지 늦을 수 있다.
 TICK_SEC = 10
 
+logger = get_logger(__name__)
+
 
 class SchedulerService:
-    """
-    스케줄 루프 — cron 반복 작업(croniter)과 정한 시각 한 번 실행(run_at) 작업.
+    """스케줄 루프. cron 반복 작업(croniter)과 정한 시각 한 번 실행(run_at) 작업.
+
     - 각 작업은 PermissiveSandbox + 필터된 ToolRegistry로 실행
     - HITL approval 없이 자율 실행
     - 결과는 notify 콜백으로 전달한다(설정돼 있을 때)
@@ -35,8 +42,9 @@ class SchedulerService:
         session_repo: SessionRepo,
         tool_registry: ToolRegistry,
         model: ModelConfig,
-        base_extra: dict[str, Any],
         schedules_dir: str | None = None,
+        plugin_runner: PluginRunner | None = None,
+        skill_registry: SkillRegistry | None = None,
     ) -> None:
         self._tasks = tasks
         # 설정되면 새 작업·토글을 이 디렉토리의 YAML 로 저장해 재시작 후에도 남긴다.
@@ -44,7 +52,8 @@ class SchedulerService:
         self._session_repo = session_repo
         self._tool_registry = tool_registry
         self._model = model
-        self._base_extra = base_extra
+        self._plugin_runner = plugin_runner
+        self._skill_registry = skill_registry
         self._running = False
         self._task_handle: asyncio.Task[None] | None = None
         self._notify: Notify | None = None
@@ -114,7 +123,7 @@ class SchedulerService:
             return
         self._running = True
         self._task_handle = asyncio.create_task(self._loop())
-        print(f"[Scheduler] Started with {self.task_count} enabled task(s)")
+        logger.info(f"[Scheduler] Started with {self.task_count} enabled task(s)")
 
     async def stop(self) -> None:
         import contextlib
@@ -123,15 +132,17 @@ class SchedulerService:
             self._task_handle.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._task_handle
-        print("[Scheduler] Stopped")
+        logger.info("[Scheduler] Stopped")
 
     async def _loop(self) -> None:
         try:
             from croniter import croniter
         except ImportError:
             croniter = None
-            print("[Scheduler] croniter not installed — cron tasks disabled (one-shot still run). "
-                  "Run: uv sync --extra scheduler")
+            logger.info(
+                "[Scheduler] croniter not installed — cron tasks disabled (one-shot still run). "
+                "Run: uv sync --extra scheduler"
+            )
 
         while self._running:
             self._tick(datetime.now(), croniter)
@@ -144,7 +155,7 @@ class SchedulerService:
             if not task.enabled:
                 continue
 
-            # 정한 시각 한 번 — 서버가 꺼져 있어 지난 것도 켜지는 즉시 보낸다(지연 초 표시)
+            # 정한 시각 한 번. 서버가 꺼져 있어 지난 것도 켜지는 즉시 보낸다(지연 초 표시)
             if task.run_at is not None:
                 if now_dt >= task.run_at:
                     delay = int((now_dt - task.run_at).total_seconds())
@@ -155,16 +166,16 @@ class SchedulerService:
             # 마감 시각이 지난 슬래시 명령 작업은 자동 만료
             if task.run_until is not None and now_dt >= task.run_until:
                 task.enabled = False
-                print(f"[Scheduler] Task '{task.name}' expired (run_until={task.run_until})")
+                logger.info(f"[Scheduler] Task '{task.name}' expired (run_until={task.run_until})")
                 continue
             if croniter is None or not task.schedule:
                 continue
-            # datetime 으로 넘겨야 로컬 시간대로 해석된다 — float epoch 를 주면 croniter 가 UTC 로 계산해
+            # datetime 으로 넘겨야 로컬 시간대로 해석된다. float epoch 를 주면 croniter 가 UTC 로 계산해
             # "매일 9시"가 18시(KST)에 뜬다.
             try:
                 prev: datetime = croniter(task.schedule, now_dt).get_prev(datetime)
             except Exception as exc:
-                print(f"[Scheduler] Cron parse error for '{task.name}': {exc}")
+                logger.info(f"[Scheduler] Cron parse error for '{task.name}': {exc}")
                 continue
             # 직전 cron 슬롯이 최근 60초 안이고 그 슬롯을 아직 안 돌았으면 실행
             if (now_dt - prev).total_seconds() < 60 and self._last_run.get(task.name) != prev:
@@ -218,12 +229,12 @@ class SchedulerService:
         try:
             await self._notify(payload)
         except Exception as exc:
-            print(f"[Scheduler] notify failed for '{task.name}': {exc!r}")
+            logger.info(f"[Scheduler] notify failed for '{task.name}': {exc!r}")
 
     def _on_task_done(self, future: asyncio.Task[None]) -> None:
         """fire-and-forget task의 예외가 소실되지 않도록 로깅."""
         if not future.cancelled() and (exc := future.exception()):
-            print(f"[Scheduler] Unhandled exception in background task: {exc!r}")
+            logger.info(f"[Scheduler] Unhandled exception in background task: {exc!r}")
 
     async def _execute_task(self, task: ScheduledTask) -> str | None:
         """작업 프롬프트를 새 세션에서 실행하고 최종 답을 돌려준다. 실패하면 None."""
@@ -234,7 +245,7 @@ class SchedulerService:
         from jarvis.core.policy.sandbox import PermissiveSandbox
         from jarvis.core.session import AgentSession
 
-        print(f"[Scheduler] Executing task '{task.name}'")
+        logger.info(f"[Scheduler] Executing task '{task.name}'")
 
         # Filtered ToolRegistry — only tools_allowed (empty = all tools)
         if task.tools_allowed:
@@ -260,8 +271,6 @@ class SchedulerService:
         session_id = task.session_id or f"sched-{task.name}-{uuid.uuid4().hex[:8]}"
         await self._session_repo.create(session_id=session_id)
 
-        extra = {**self._base_extra, "pipeline": pipeline, "sandbox": sandbox}
-
         # Reuse memory chain from base_extra but create fresh for isolation
         memory_chain = MemoryMiddlewareChain(stages=[])
 
@@ -269,17 +278,18 @@ class SchedulerService:
             model=self._model,
             session_id=session_id,
             security_pipeline=pipeline,
-            plugin_runner=extra.get("plugin_runner"),
+            # None 이면 세션이 훅 호출에서 AttributeError 로 실패한다(작업 실패로 보고됨). 앱 조립은 늘 넘긴다
+            plugin_runner=self._plugin_runner,  # type: ignore[arg-type]
             memory_chain=memory_chain,
             tool_registry=filtered,
-            skill_registry=extra.get("skill_registry"),
+            skill_registry=self._skill_registry,  # type: ignore[arg-type]
             session_repo=self._session_repo,
         )
 
         try:
             result = await session.prompt(task.prompt)
-            print(f"[Scheduler] Task '{task.name}' completed → session {session_id}")
+            logger.info(f"[Scheduler] Task '{task.name}' completed → session {session_id}")
             return result.text() if result is not None else ""
         except Exception as exc:
-            print(f"[Scheduler] Task '{task.name}' failed: {exc}")
+            logger.info(f"[Scheduler] Task '{task.name}' failed: {exc}")
             return None

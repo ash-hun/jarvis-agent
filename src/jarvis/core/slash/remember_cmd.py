@@ -1,10 +1,12 @@
+"""[core] 장기 기억을 저장, 나열, 검색, 삭제, 점검하는 /remember 핸들러 factory."""
+
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from jarvis.memory.manager import MemoryManager
+    from jarvis.memory.memory_service import MemoryService
 
 Handler = Callable[[str], Awaitable[str]]
 
@@ -20,7 +22,7 @@ _USAGE = (
 )
 
 
-def make_remember_handler(memory: MemoryManager) -> Handler:
+def make_remember_handler(memory: MemoryService) -> Handler:
     """SlashCommandDispatcher에 등록할 /remember 핸들러 factory."""
 
     async def handle(args: str) -> str:
@@ -52,7 +54,7 @@ def make_remember_handler(memory: MemoryManager) -> Handler:
     return handle
 
 
-async def _handle_list(memory: MemoryManager) -> str:
+async def _handle_list(memory: MemoryService) -> str:
     entries = await memory.recent(limit=10)
     if not entries:
         return "[Memory] 저장된 장기 기억이 없습니다."
@@ -63,7 +65,7 @@ async def _handle_list(memory: MemoryManager) -> str:
     return "\n".join(lines)
 
 
-async def _handle_search(memory: MemoryManager, query: str) -> str:
+async def _handle_search(memory: MemoryService, query: str) -> str:
     if not query:
         return "[Memory] 검색 키워드를 입력해주세요."
     entries = await memory.recall(query, limit=5)
@@ -76,19 +78,19 @@ async def _handle_search(memory: MemoryManager, query: str) -> str:
     return "\n".join(lines)
 
 
-async def _handle_forget(memory: MemoryManager, entry_id: str) -> str:
+async def _handle_forget(memory: MemoryService, entry_id: str) -> str:
     if not entry_id:
         return "[Memory] 삭제할 기억의 id를 입력해주세요. (/remember list 에서 확인)"
     await memory.forget(entry_id)
     return f"[Memory] 기억 [{entry_id}]을 삭제했습니다."
 
 
-async def _handle_save(memory: MemoryManager, content: str) -> str:
+async def _handle_save(memory: MemoryService, content: str) -> str:
     entry_id = await memory.remember(content, source="explicit")
     return f"[Memory] 장기 기억에 저장했습니다. (id: {entry_id[:8]})"
 
 
-async def _handle_conflicts(memory: MemoryManager) -> str:
+async def _handle_conflicts(memory: MemoryService) -> str:
     """간섭 후보: 주제는 다른데 내용이 비슷한 사실 쌍. 사람이 보고 /remember forget 으로 정리한다."""
     from jarvis.memory.long_term.semantic import CONFLICTS_KEY
     from jarvis.memory.types import MemoryKind

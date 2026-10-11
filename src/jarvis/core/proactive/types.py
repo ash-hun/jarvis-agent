@@ -1,3 +1,5 @@
+"""[core] proactive 서브시스템이 주고받는 값(발화 메시지, 응답 계획, 게이팅 판정)."""
+
 from __future__ import annotations
 
 import uuid
@@ -12,7 +14,7 @@ class ProactiveMessage(BaseModel):
     """시스템 → 사용자 비요청 발화. Push 채널(B2)이 운반하는 단위.
 
     kind:
-    - filler    : Dual-Channel fast channel — "오래 걸림"을 알리는 즉답
+    - filler    : Dual-Channel fast channel. "오래 걸림"을 알리는 즉답
     - proactive : daemon이 먼저 거는 말 (B3)
     - answer    : deferred 작업 완료 후의 실제 답(스트리밍이 아닌 단발 push 경로용)
     """
@@ -26,7 +28,7 @@ class ProactiveMessage(BaseModel):
 class ResponsePlan(BaseModel):
     """요청-기반 Dual-Channel 실행 계획.
 
-    immediate : 현재 동작 — 메인 루프를 그대로 수행(스트리밍).
+    immediate : 현재 동작. 메인 루프를 그대로 수행(스트리밍).
     deferred  : fast channel로 filler 즉시 발화 후, slow channel(메인 루프)을
                 백그라운드에서 수행.
     """

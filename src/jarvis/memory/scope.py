@@ -1,4 +1,4 @@
-"""메모리 범위. 누가(user), 어느 에이전트에서(agent), 어느 세션에서(session) 기억하는지."""
+"""[memory] 누가(user), 어느 에이전트에서(agent), 어느 세션에서(session) 기억하는지 정하는 메모리 범위와 읽기 규칙."""
 
 from contextvars import ContextVar
 from dataclasses import dataclass, replace

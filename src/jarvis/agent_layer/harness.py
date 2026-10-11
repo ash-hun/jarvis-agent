@@ -1,3 +1,5 @@
+"""[agent_layer] 세션 이력, 메모리 미들웨어, 이벤트 구독을 묶어 한 턴의 에이전트 루프를 돌리는 상태 있는 래퍼."""
+
 from __future__ import annotations
 
 import asyncio
@@ -43,7 +45,7 @@ class AgentHarness:
 
     def subscribe(self, listener: AgentEventSink) -> Callable[[], None]:
         self._listeners.append(listener)
-        def unsubscribe():
+        def unsubscribe() -> None:
             self._listeners.remove(listener)
         return unsubscribe
 

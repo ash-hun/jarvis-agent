@@ -1,4 +1,4 @@
-"""평가 사례(jsonl 한 줄)의 형식. 사고 프레임을 직접 주거나(정책만 잰다) 상황을 줘서 엔진까지 잰다."""
+"""[core] proactive 평가 사례(jsonl 한 줄)의 형식. 프레임을 주면 정책만, 상황을 주면 엔진까지 잰다."""
 
 import json
 from pathlib import Path

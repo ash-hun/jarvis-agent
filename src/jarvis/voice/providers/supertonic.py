@@ -1,3 +1,5 @@
+"""[voice] Supertonic-3 ONNX 로 서버에서 음성을 합성하는 로컬 TTS 프로바이더."""
+
 from __future__ import annotations
 
 import asyncio
@@ -6,8 +8,12 @@ import wave
 from functools import partial
 from typing import Any
 
+from jarvis.voice.protocol import DEFAULT_LANG, TTSProvider
 
-class SupertonicTTSProvider:
+DEFAULT_SAMPLE_RATE = 22050
+
+
+class SupertonicTTSProvider(TTSProvider):
     """Supertonic-3 ONNX 기반 로컬 TTS 프로바이더.
 
     설치: pip install supertonic
@@ -20,25 +26,24 @@ class SupertonicTTSProvider:
 
     def __init__(self, model_name: str = "Supertone/supertonic-3") -> None:
         try:
-            import supertonic  # type: ignore[import]
+            import supertonic  # type: ignore[import-untyped]  # 스텁 없는 선택 의존성
         except ImportError as exc:
             raise ImportError(
                 "supertonic이 설치되지 않았습니다. `pip install supertonic` 으로 설치하세요."
             ) from exc
         self._tts = supertonic.TTS(model_name)
 
-    async def synthesize(self, text: str, lang: str = "ko") -> bytes:
+    async def synthesize(self, text: str, lang: str = DEFAULT_LANG) -> bytes:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, partial(self._synthesize_sync, text, lang))
 
     def _synthesize_sync(self, text: str, lang: str) -> bytes:
-
         audio = self._tts.tts(text, language=lang)
-        sample_rate: int = getattr(self._tts, "sample_rate", 22050)
+        sample_rate: int = getattr(self._tts, "sample_rate", DEFAULT_SAMPLE_RATE)
         return _array_to_wav(audio, sample_rate)
 
 
-def _array_to_wav(audio: Any, sample_rate: int) -> bytes:
+def _array_to_wav(audio: Any, sample_rate: int) -> bytes:  # audio: supertonic 이 돌려주는 float 배열(스텁 없음)
     import numpy as np
 
     audio_int16 = (np.clip(audio, -1.0, 1.0) * 32767).astype(np.int16)

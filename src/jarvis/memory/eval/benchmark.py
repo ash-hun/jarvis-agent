@@ -1,11 +1,4 @@
-"""외부 벤치마크 공통 실행기. 긴 다중 세션 대화를 메모리에 넣고 질문으로 회상해 증거 재현율을 잰다.
-
-두 모드가 있다.
-- raw: 턴마다 일화 항목 하나. LLM 없이 검색 품질만 본다(기본, 빠름)
-- full: 하네스처럼 observe 로 흘리고 세션 끝에 요약과 공고화. 실제 LLM 이 필요해 비싸다
-
-증거 재현율은 LLM 없이 계산한다. 정답 포함 여부(accuracy)는 --judge 일 때만 LLM 으로 판정한다.
-"""
+"""[memory] 외부 벤치마크의 긴 다중 세션 대화를 메모리에 넣고 질문으로 회상해 증거 재현율을 잰다."""
 
 import random
 from collections.abc import Awaitable, Callable
@@ -13,12 +6,16 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any
 
-from jarvis.memory.manager import MemoryManager
+from jarvis.memory.memory_service import MemoryService
 from jarvis.memory.scope import MemoryScope
 from jarvis.memory.types import MemoryItem
 from jarvis.model_layer.types import AssistantMessage, Message, TextContent, UserMessage
 
 USER = "benchmark"
+
+# mode raw: 턴마다 일화 하나, LLM 없이 검색 품질만 본다(기본, 빠름).
+# mode full: 하네스처럼 observe 로 흘리고 세션 끝에 요약과 공고화. 실제 LLM 이 필요해 비싸다.
+# 증거 재현율은 LLM 없이 계산하고, 정답 포함 여부(accuracy)는 --judge 일 때만 LLM 으로 판정한다.
 
 
 @dataclass
@@ -96,7 +93,7 @@ def sample(questions: list[BenchmarkQuestion], limit: int | None, seed: int = 0)
 # ── 메모리에 넣기 ──────────────────────────────────────────────────────────────
 
 
-async def ingest_raw(memory: MemoryManager, question: BenchmarkQuestion) -> None:
+async def ingest_raw(memory: MemoryService, question: BenchmarkQuestion) -> None:
     """턴마다 일화 하나. 세션과 턴 id 를 태그로 남겨 증거 재현율을 계산한다."""
     for session in question.sessions:
         scope = MemoryScope(user_id=USER, agent_id="main", session_id=session.session_id)
@@ -114,7 +111,7 @@ async def ingest_raw(memory: MemoryManager, question: BenchmarkQuestion) -> None
 Summarize = Callable[[str, list[Message], MemoryScope], Awaitable[str | None]]
 
 
-async def ingest_full(memory: MemoryManager, question: BenchmarkQuestion, save_session: Summarize) -> None:
+async def ingest_full(memory: MemoryService, question: BenchmarkQuestion, save_session: Summarize) -> None:
     """하네스처럼: user 턴마다 observe(컴팩션 포함), 세션 끝에 종료 요약과 공고화."""
     for session in question.sessions:
         scope = MemoryScope(user_id=USER, agent_id="main", session_id=session.session_id)
@@ -141,7 +138,7 @@ def _item_turns(item: MemoryItem) -> set[str]:
     return {t.removeprefix("turn:") for t in item.tags if t.startswith("turn:")}
 
 
-async def ask(memory: MemoryManager, question: BenchmarkQuestion, k: int) -> QuestionResult:
+async def ask(memory: MemoryService, question: BenchmarkQuestion, k: int) -> QuestionResult:
     scope = MemoryScope(user_id=USER, agent_id="main")
     items = await memory.recall(question.question, scope, limit=k)
     session_hit = any(_item_session(i) in question.evidence_session_ids for i in items)
@@ -163,7 +160,7 @@ Judge = Callable[[BenchmarkQuestion, list[str]], Awaitable[tuple[str, bool]]]
 async def run_benchmark(
     name: str,
     questions: list[BenchmarkQuestion],
-    memory_factory: Callable[[], MemoryManager],
+    memory_factory: Callable[[], MemoryService],
     *,
     k: int = 5,
     mode: str = "raw",

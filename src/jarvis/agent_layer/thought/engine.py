@@ -1,3 +1,5 @@
+"""[agent_layer] 별도 LLM 호출로 ThoughtFrame 을 만드는 기본 inner thought 엔진."""
+
 from __future__ import annotations
 
 import json
@@ -8,8 +10,9 @@ from typing import Any
 from pydantic import ValidationError
 
 from jarvis.agent_layer.thought.prompt import ThoughtPromptTemplate
-from jarvis.agent_layer.thought.protocol import RecallFn
+from jarvis.agent_layer.thought.protocol import RecallFn, ThoughtEngine
 from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame, ThoughtRequest
+from jarvis.common.logger import get_logger
 from jarvis.model_layer.stream import stream_to_message
 from jarvis.model_layer.types import (
     LLMContext,
@@ -19,19 +22,21 @@ from jarvis.model_layer.types import (
     UserMessage,
 )
 
+logger = get_logger(__name__)
+
 THOUGHT_SCHEMA = ThoughtFrame.model_json_schema()  # 프레임 필드는 안정적이라 기동 때 한 번
 HISTORY_TURNS = 8
 HISTORY_CHARS = 240
 
 
-class InnerThoughtEngine:
+class InnerThoughtEngine(ThoughtEngine):
     """
-    기본 `ThoughtEngine` 구현 — 메인 응답과 분리된 별도 LLM 호출로
+    기본 `ThoughtEngine` 구현: 메인 응답과 분리된 별도 LLM 호출로
     구조화된 `ThoughtFrame`을 생성한다.
 
     독립 객체로 격리했으므로 고도화는 두 축으로 가능하다:
-    1. 통째 교체   — `ThoughtEngine` Protocol을 구현하는 다른 클래스로 swap.
-    2. 부분 확장   — 아래 `_`-prefixed seam 메서드(_recall/_render/_call_model/
+    1. 통째 교체: `ThoughtEngine` 을 상속한 다른 클래스로 swap.
+    2. 부분 확장: 아래 `_`-prefixed seam 메서드(_recall/_render/_call_model/
        _parse)를 서브클래스에서 오버라이드.
 
     `model_layer`에만 의존한다(Hard Rule #1). 오케스트레이션·정책은 core가 맡는다.
@@ -61,7 +66,7 @@ class InnerThoughtEngine:
         self._clock = clock or datetime.now
 
     async def think(self, request: ThoughtRequest) -> ThoughtFrame | None:
-        # 짧은 입력(인사 등)은 사고 생략 — 지연/비용 완화. 성찰은 적용 제외.
+        # 짧은 입력(인사 등)은 사고 생략: 지연/비용 완화. 성찰은 적용 제외.
         if request.mode != "reflection" and (
             len(request.user_input.strip()) < self._skip_if_shorter_than
         ):
@@ -73,14 +78,14 @@ class InnerThoughtEngine:
         try:
             raw = await self._call_model(prompt)
         except Exception as exc:
-            # 사고는 부가 기능 — 모델 호출 실패는 생략하되 이유는 남긴다.
-            print(f"[Thought] {request.mode} call failed: {exc!r}")
+            # 사고는 부가 기능: 모델 호출 실패는 생략하되 이유는 남긴다.
+            logger.info(f"[Thought] {request.mode} call failed: {exc!r}")
             return None
 
         frame = self._parse(raw)
         if frame is None:
             # 조용히 None 이면 "왜 안 말하지"를 영영 모른다. 꼬리만 남겨 모델 출력 형식 문제를 드러낸다
-            print(f"[Thought] {request.mode} frame unparsable (len={len(raw)}): {raw[-200:]!r}")
+            logger.info(f"[Thought] {request.mode} frame unparsable (len={len(raw)}): {raw[-200:]!r}")
         return frame
 
     # ── override seams ─────────────────────────────────────────────────────────
@@ -117,7 +122,7 @@ class InnerThoughtEngine:
             user_input=request.user_input,
             user_model=request.user_model,
         )
-        # 템플릿 드리프트 방어 — 사용자가 이미 편집한 템플릿엔 새 플레이스홀더가
+        # 템플릿 드리프트 방어: 사용자가 이미 편집한 템플릿엔 새 플레이스홀더가
         # 없다. 이벤트가 있는데 자리가 없으면 뒤에 덧붙여 조용한 유실을 막는다.
         if external and not template.has_placeholder("external_events"):
             rendered = f"{rendered}\n\n[외부 이벤트]\n{external}"
@@ -147,9 +152,9 @@ class InnerThoughtEngine:
         try:
             frame = ThoughtFrame.model_validate(_drop_invalid_actions(payload))
         except ValidationError as exc:
-            print(f"[Thought] frame invalid: {_describe(exc)}")
+            logger.info(f"[Thought] frame invalid: {_describe(exc)}")
             return None
-        print(f"[Thought] dropped invalid proactive_actions: {first_error}")
+        logger.info(f"[Thought] dropped invalid proactive_actions: {first_error}")
         return frame
 
     def _format_history(self, history: list[Message]) -> str:

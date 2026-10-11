@@ -1,3 +1,5 @@
+"""[agent_layer] open loop 모델과 기한 표기 해석, 같은 약속 판정, 병합과 만료 같은 순수 규칙을 둔다."""
+
 from __future__ import annotations
 
 import re
@@ -55,7 +57,7 @@ class OpenLoop(BaseModel):
 
 
 def normalize_description(text: str) -> str:
-    """중복 판정용 정규화 — 공백 정리 + 소문자."""
+    """중복 판정용 정규화: 공백 정리 + 소문자."""
     return " ".join(text.split()).lower()
 
 

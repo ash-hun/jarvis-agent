@@ -1,7 +1,10 @@
-"""사례마다 정책을 새로 만들고 고정 시계로 판정한다. 공유 상태가 없어 실행 순서와 횟수에 의존하지 않는다."""
+"""[core] proactive 평가 사례를 사례마다 새 정책과 고정 시계로 판정하고 지표로 요약한다."""
+
+# 공유 상태가 없어 실행 순서와 횟수에 의존하지 않는다.
 
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Any
 
 from jarvis.agent_layer.thought.protocol import ThoughtEngine
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
@@ -60,7 +63,7 @@ class ProactiveReport:
             by_suite.setdefault(r.suite, []).append(r)
         return {name: summarize(name, rs) for name, rs in by_suite.items()}
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {"suites": {k: asdict(v) for k, v in self.suites().items()}, "cases": [asdict(r) for r in self.results]}
 
 

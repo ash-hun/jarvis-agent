@@ -1,4 +1,4 @@
-"""컴팩션 요약기. 메시지 묶음(과 이전 요약)을 한 단락으로 줄인다. 실패하면 None."""
+"""[memory] 메시지 묶음(과 이전 요약)을 한 단락으로 줄이는 컴팩션 요약기로, 실패하면 None 이다."""
 
 from collections.abc import Awaitable, Callable
 

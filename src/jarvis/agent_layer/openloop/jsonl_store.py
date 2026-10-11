@@ -1,25 +1,29 @@
+"""[agent_layer] open-loop 을 JSONL append 로그에 영속하고 읽을 때 id별 마지막 레코드로 상태를 되살린다."""
+
 from __future__ import annotations
 
 import asyncio
-import time
 from pathlib import Path
 
 import aiofiles
 
-from jarvis.agent_layer.openloop.types import LOOP_STATUSES, OpenLoop, merge_loop, normalize_description
+from jarvis.agent_layer.openloop.store import OpenLoopStore
+from jarvis.agent_layer.openloop.types import OpenLoop
+
+DEFAULT_PATH = "~/.jarvis/openloops.jsonl"
 
 
-class JsonlOpenLoopStore:
+class JsonlOpenLoopStore(OpenLoopStore):
     """JSONL append-only 기반 open-loop 영속 저장소 (로컬, git-friendly).
 
     각 변경(add/update_status)을 한 줄씩 append하고, 로드 시 id별 마지막 레코드로
-    상태를 재구성한다(event-log replay). 상태는 메모리에 캐싱하고 변경 시 append.
+    상태를 재구성한다(event-log replay). 상태는 기본 클래스의 메모리에 캐싱하고 변경 시 append.
     JsonlSessionRepo와 동일한 영속 철학.
     """
 
-    def __init__(self, path: str = "~/.jarvis/openloops.jsonl") -> None:
+    def __init__(self, path: str = DEFAULT_PATH) -> None:
+        super().__init__()
         self._path = Path(path).expanduser()
-        self._loops: dict[str, OpenLoop] = {}
         self._loaded = False
         self._lock = asyncio.Lock()
 
@@ -49,41 +53,29 @@ class JsonlOpenLoopStore:
 
     async def add(self, loop: OpenLoop) -> str:
         await self._ensure_loaded()
-        self._loops[loop.id] = loop
+        await super().add(loop)
         await self._append(loop)
         return loop.id
 
     async def add_unique(self, loop: OpenLoop) -> str | None:
         await self._ensure_loaded()
-        if not normalize_description(loop.description):
-            return None
-        record = merge_loop(list(self._loops.values()), loop)
-        return await self.add(record) if record is not None else None
+        return await super().add_unique(loop)
 
     async def list_open(self, session_id: str | None = None, limit: int = 20) -> list[OpenLoop]:
         await self._ensure_loaded()
-        items = [
-            x
-            for x in self._loops.values()
-            if x.status == "open" and (session_id is None or x.origin_session == session_id)
-        ]
-        items.sort(key=lambda x: x.created_at, reverse=True)
-        return items[:limit]
+        return await super().list_open(session_id=session_id, limit=limit)
 
     async def get(self, loop_id: str) -> OpenLoop | None:
         await self._ensure_loaded()
-        return self._loops.get(loop_id)
+        return await super().get(loop_id)
 
     async def update_status(self, loop_id: str, status: str) -> bool:
         await self._ensure_loaded()
-        loop = self._loops.get(loop_id)
-        if loop is None or status not in LOOP_STATUSES:
+        if not await super().update_status(loop_id, status):
             return False
-        loop.status = status  # type: ignore[assignment]
-        loop.updated_at = int(time.time() * 1000)
-        await self._append(loop)  # 변경분을 새 레코드로 append (replay에서 last-wins)
+        await self._append(self._loops[loop_id])  # 변경분을 새 레코드로 append (replay에서 last-wins)
         return True
 
     async def all(self) -> list[OpenLoop]:
         await self._ensure_loaded()
-        return list(self._loops.values())
+        return await super().all()

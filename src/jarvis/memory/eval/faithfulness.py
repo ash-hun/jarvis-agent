@@ -1,8 +1,4 @@
-"""컴팩션 충실도. 대화에 심은 사실이 요약을 거친 뒤에도 남아 있는 비율(retention)을 잰다.
-
-요약기와 판정기를 주입한다. 오프라인 기본은 추출 요약기(사용자 턴을 그대로 잘라 붙임) + 문자열 포함 판정.
-실제 측정은 LLM 요약기 + LLM 판정(--summarizer llm --judge llm).
-"""
+"""[memory] 대화에 심은 사실이 컴팩션 요약을 거친 뒤에도 남아 있는 비율(retention)을 잰다."""
 
 import json
 from collections.abc import Awaitable, Callable
@@ -12,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from jarvis.memory.consolidation.compaction import Summarizer
 from jarvis.memory.eval.metrics import CaseResult
-from jarvis.memory.manager import MemoryManager
+from jarvis.memory.memory_service import MemoryService
 from jarvis.memory.scope import MemoryScope
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.model_layer.types import (
@@ -25,6 +21,7 @@ from jarvis.model_layer.types import (
     UserMessage,
 )
 
+# 요약기와 판정기는 주입한다. 오프라인 기본은 추출 요약기 + 문자열 포함 판정, 실제 측정은 --summarizer llm --judge llm
 FactJudge = Callable[[str, str], Awaitable[bool]]  # (summary, fact) -> 보존됐는가
 EXTRACTIVE_CHARS_PER_TURN = 200
 
@@ -111,7 +108,7 @@ def _messages(case: FaithfulnessCase) -> list[Message]:
 
 
 async def run_faithfulness_case(case: FaithfulnessCase, summarizer: Summarizer, judge: FactJudge) -> CaseResult:
-    memory = MemoryManager(
+    memory = MemoryService(
         InMemoryItemStore(), summarizer=summarizer, threshold_chars=case.threshold_chars, keep_recent=case.keep_recent
     )
     context = {"user_id": "eval", "agent_id": "main", "session_id": case.case}

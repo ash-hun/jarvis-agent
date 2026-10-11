@@ -1,8 +1,4 @@
-"""의미 기억 정책.
-
-"주제: 값" 형태의 사실은 같은 주제의 옛 사실을 대체한다(삭제가 아니라 superseded_by).
-주제가 달라도 내용이 비슷한 사실 쌍은 간섭 후보로 표시만 한다. 자동 대체는 오탐 시 사실을 잃는다.
-"""
+"""[memory] 의미 기억 정책으로, "주제: 값" 사실은 같은 주제의 옛 사실을 대체하고 비슷한 쌍은 간섭 후보로 표시한다."""
 
 from jarvis.memory.scope import MemoryScope
 from jarvis.memory.stores.protocol import ItemStore, tokens_of
@@ -53,6 +49,7 @@ async def supersede_conflicts(store: ItemStore, item: MemoryItem) -> list[str]:
     return replaced
 
 
+# 주제가 다른 비슷한 쌍은 표시만 한다. 자동 대체는 오탐 시 사실을 잃는다
 CONFLICTS_KEY = "conflicts_with"  # metadata 에 남기는 간섭 후보 id 목록
 DEFAULT_INTERFERENCE_THRESHOLD = 0.6
 

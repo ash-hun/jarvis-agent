@@ -1,12 +1,16 @@
+"""[core] 셸 명령을 실행해 stdout/stderr 를 돌려주는 bash 내장 도구."""
+
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
+from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
 TOOL_NAME = "bash"
 TOOL_DESCRIPTION = "Execute a bash command and return stdout/stderr. Use with caution."
-TOOL_PARAMETERS = {
+TOOL_PARAMETERS: dict[str, Any] = {
     "type": "object",
     "properties": {
         "command": {"type": "string", "description": "The bash command to execute"},
@@ -16,7 +20,7 @@ TOOL_PARAMETERS = {
 }
 
 
-class BashTool:
+class BashTool(JarvisTool):
     name = TOOL_NAME
     description = TOOL_DESCRIPTION
     parameters = TOOL_PARAMETERS
@@ -25,7 +29,7 @@ class BashTool:
     async def execute(
         self,
         tool_call_id: str,
-        params: dict,
+        params: dict[str, Any],
         signal: asyncio.Event | None = None,
     ) -> ToolResultMessage:
         command = params["command"]

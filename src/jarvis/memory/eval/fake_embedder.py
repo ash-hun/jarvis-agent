@@ -1,8 +1,9 @@
-"""결정론 임베더. 토큰을 동의어 사전으로 정규화해 고정 차원에 해싱한다. 배선 검증용이지 임베딩 품질 평가가 아니다."""
+"""[memory] 토큰을 동의어 사전으로 정규화해 고정 차원에 해싱하는 결정론 임베더(배선 검증용, 품질 평가 아님)."""
 
 import hashlib
 
 from jarvis.memory.stores.protocol import tokens_of
+from jarvis.model_layer.embeddings import Embedder
 
 DIMENSIONS = 64
 
@@ -25,7 +26,7 @@ def canonical_tokens(text: str) -> list[str]:
     return out
 
 
-class FakeEmbedder:
+class FakeEmbedder(Embedder):
     model = "fake-bow-64"
     dimensions = DIMENSIONS
 

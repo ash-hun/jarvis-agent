@@ -1,3 +1,5 @@
+"""[core] 최근 자기 성찰 저널을 보이거나 새로 쓰는 /journal 핸들러 factory."""
+
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable

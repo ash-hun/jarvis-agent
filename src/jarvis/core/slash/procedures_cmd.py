@@ -1,4 +1,4 @@
-"""/procedures — 학습된 절차 목록, 승인, 삭제, 현재 세션에서 학습."""
+"""[core] 학습된 절차를 나열, 승인, 삭제하고 세션에서 새로 학습하는 /procedures 핸들러 factory."""
 
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
@@ -41,9 +41,9 @@ def make_procedures_handler(
                     "도구를 여러 번 쓴 작업이 성공으로 끝나면 세션 종료 때 초안이 생깁니다."
                 )
             lines = ["[Procedures] 학습된 절차:"]
-            for p in procedures:
-                mark = "✓" if p.approved else "·"
-                lines.append(f"  {mark} {p.name} [{p.status}] {p.description}")
+            for proc in procedures:
+                mark = "✓" if proc.approved else "·"
+                lines.append(f"  {mark} {proc.name} [{proc.status}] {proc.description}")
             lines.append("승인: /procedures approve <name>  (승인하면 procedure_<name> 도구와 /<name> 스킬이 된다)")
             return "\n".join(lines)
 

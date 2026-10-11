@@ -1,15 +1,15 @@
-"""승인된 절차를 LLM 도구와 슬래시 스킬로 노출한다. 도구는 절차 본문을 돌려주고 에이전트가 그대로 따른다."""
+"""[core] 승인된 절차를 LLM 도구와 슬래시 스킬로 노출한다(도구는 절차 본문을 돌려준다)."""
 
 import asyncio
 from typing import Any
 
 from jarvis.core.procedures.store import Procedure, ProcedureStore
 from jarvis.core.skills.registry import Skill, SkillRegistry
-from jarvis.core.tools.registry import ToolRegistry
+from jarvis.core.tools.registry import JarvisTool, ToolRegistry
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
 TOOL_PREFIX = "procedure_"
-TOOL_PARAMETERS = {
+TOOL_PARAMETERS: dict[str, Any] = {
     "type": "object",
     "properties": {
         "args": {"type": "string", "description": "절차에 넘길 입력(대상 파일, 경로, 조건 등). 없으면 빈 문자열"},
@@ -22,7 +22,7 @@ INSTRUCTION = (
 )
 
 
-class ProcedureTool:
+class ProcedureTool(JarvisTool):
     # ponytail: 본문(레시피)만 돌려주고 직접 실행하지 않는다, 인자 치환만으로 결정되는 절차가 쌓이면 순차 실행기로 승격
 
     execution_mode = "parallel"

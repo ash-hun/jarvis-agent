@@ -1,3 +1,5 @@
+"""[core] 추적 중인 약속/미완 작업(open loop)을 나열하고 완료, 무시 처리하는 /openloop 핸들러 factory."""
+
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
@@ -52,7 +54,7 @@ async def _handle_list(store: OpenLoopStore) -> str:
 async def _handle_status(store: OpenLoopStore, loop_id: str, status: str) -> str:
     if not loop_id:
         return "[OpenLoop] id가 필요합니다."
-    # 짧은 prefix(8자)로도 찾도록 보조 — 전체/접두 일치 모두 허용.
+    # 짧은 prefix(8자)로도 찾도록 보조. 전체/접두 일치 모두 허용.
     target = await store.get(loop_id)
     if target is None:
         for loop in await store.all():

@@ -5,7 +5,7 @@ title: 메모리
 
 # 메모리
 
-`memory/` 의 `MemoryManager` 가 작업 기억과 장기 기억을 가진다. 턴마다 `agent_layer/memory/chain.py` 의 미들웨어 체인을 통해 주입되고, 장기 기억 쓰기는 명시적인 순간에만 일어난다.
+`memory/` 의 `MemoryService` 가 작업 기억과 장기 기억을 가진다. 턴마다 `agent_layer/memory/chain.py` 의 미들웨어 체인을 통해 주입되고, 장기 기억 쓰기는 명시적인 순간에만 일어난다.
 
 ## 계층
 
@@ -23,7 +23,7 @@ title: 메모리
 sequenceDiagram
   participant H as 하네스
   participant C as MemoryChain
-  participant M as MemoryManager
+  participant M as MemoryService
   participant S as 장기 저장소
   H->>C: transform(history, scope)
   C->>M: observe

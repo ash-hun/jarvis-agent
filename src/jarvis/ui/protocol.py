@@ -1,21 +1,22 @@
-from __future__ import annotations
+"""[ui] UIAdapter: 화면(TUI, Web)이 에이전트 이벤트, 스트림, 승인, 오류를 받는 기본 어댑터."""
 
-from typing import Protocol, runtime_checkable
+from __future__ import annotations
 
 from jarvis.agent_layer.types import AgentEvent
 
 
-@runtime_checkable
-class UIAdapter(Protocol):
-    """
-    UI 레이어 Protocol — core layer가 ui를 역방향으로 의존하지 않도록 분리.
-    TUI와 WebUI 모두 이 Protocol을 구현.
-    """
+class UIAdapter:
+    """화면 구현(JarvisTUI, PerConnectionAdapter)의 부모. 기본은 받은 것을 버리고 승인은 거절한다."""
 
-    async def on_agent_event(self, event: AgentEvent) -> None: ...
+    async def on_agent_event(self, event: AgentEvent) -> None:
+        return None
 
-    async def on_stream_text(self, delta: str) -> None: ...
+    async def on_stream_text(self, delta: str) -> None:
+        return None
 
-    async def request_approval(self, command: str, reason: str, always_pattern: str = "") -> bool | str: ...
+    async def request_approval(self, command: str, reason: str, always_pattern: str = "") -> bool | str:
+        # 승인 화면이 없는 어댑터는 실행을 막는 쪽이 안전하다
+        return False
 
-    async def show_error(self, error: str) -> None: ...
+    async def show_error(self, error: str) -> None:
+        return None

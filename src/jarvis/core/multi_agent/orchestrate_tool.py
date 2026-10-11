@@ -1,16 +1,17 @@
-"""OrchestrateTool. 메인 LLM 이 작업에 맞는 패턴과 참여 에이전트를 골라 오케스트레이션을 시작하는 도구."""
+"""[core] 메인 LLM 이 작업에 맞는 패턴과 참여 에이전트를 골라 오케스트레이션을 시작하는 도구."""
 
 from __future__ import annotations
 
 import asyncio
 from typing import Any
 
+from jarvis.core.tools.registry import JarvisTool, ToolContext
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
 from .service import PATTERNS, OrchestrationService
 
 
-class OrchestrateTool:
+class OrchestrateTool(JarvisTool):
     name = "orchestrate"
     execution_mode = "sequential"
 
@@ -50,7 +51,7 @@ class OrchestrateTool:
         tool_call_id: str,
         params: dict[str, Any],
         signal: asyncio.Event | None = None,
-        context: Any = None,
+        context: ToolContext | None = None,
     ) -> ToolResultMessage:
         try:
             result = await self._service.run(

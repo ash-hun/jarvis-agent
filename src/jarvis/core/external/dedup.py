@@ -1,15 +1,20 @@
+"""[core] MCP 원문 응답을 외부 이벤트로 쪼개고, 이미 본 이벤트를 걸러 재발화를 막는다."""
+
 from __future__ import annotations
 
 import asyncio
 import hashlib
 import json
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Protocol, runtime_checkable
+from typing import Any
 
 import aiofiles
 
 from jarvis.core.external.types import ExternalEvent
+
+Clock = Callable[[], float]
 
 # 아이템 목록이 들어있을 법한 필드 이름(벤더 공통 관례). 첫 list 필드를 쓴다.
 _LIST_FIELDS = ("items", "events", "messages", "results", "data")
@@ -38,6 +43,7 @@ def derive_events(source: str, raw: str, *, detail_max_chars: int = 500) -> list
     return events
 
 
+# 아이템은 json.loads 결과(dict, list, 원시값) 또는 원문 문자열이라 Any 로 받는다.
 def _split_items(raw: str) -> list[Any]:
     """원문을 아이템 단위로 쪼갠다. 실패하면 전체를 1건으로 본다."""
     text = (raw or "").strip()
@@ -102,21 +108,24 @@ def _canonical_text(item: Any) -> str:
         return str(item)
 
 
-@runtime_checkable
-class SeenStore(Protocol):
-    """이미 본 이벤트 키를 기억해 재발화를 막는 저장소."""
+class SeenStore:
+    """이미 본 이벤트 키를 기억해 재발화를 막는 저장소의 기본 클래스.
 
-    async def filter_new(self, events: list[ExternalEvent]) -> list[ExternalEvent]: ...
+    기본 구현은 아무것도 기억하지 않아 모든 이벤트를 새것으로 통과시킨다.
+    """
+
+    async def filter_new(self, events: list[ExternalEvent]) -> list[ExternalEvent]:
+        return list(events)
 
 
-class InMemorySeenStore:
-    """휘발성 dedup 저장소 — 테스트·일회성 운용."""
+class InMemorySeenStore(SeenStore):
+    """휘발성 dedup 저장소. 테스트, 일회성 운용."""
 
     def __init__(
         self,
         ttl_sec: float = 604_800.0,
         max_keys: int = 10_000,
-        clock: Any = time.time,
+        clock: Clock = time.time,
     ) -> None:
         self._ttl = ttl_sec
         self._max_keys = max_keys
@@ -150,10 +159,10 @@ class InMemorySeenStore:
         return len(self._seen)
 
 
-class JsonlSeenStore:
+class JsonlSeenStore(SeenStore):
     """JSONL append-only dedup 저장소 (기본). JsonlOpenLoopStore와 동일한 영속 철학.
 
-    로드 시 TTL 초과 키를 버리고 max_keys만 유지한다 — 무한 증식 방지.
+    로드 시 TTL 초과 키를 버리고 max_keys만 유지한다(무한 증식 방지).
     """
 
     def __init__(
@@ -161,7 +170,7 @@ class JsonlSeenStore:
         path: str = "~/.jarvis/external_seen.jsonl",
         ttl_sec: float = 604_800.0,
         max_keys: int = 10_000,
-        clock: Any = time.time,
+        clock: Clock = time.time,
     ) -> None:
         self._path = Path(path).expanduser()
         self._ttl = ttl_sec

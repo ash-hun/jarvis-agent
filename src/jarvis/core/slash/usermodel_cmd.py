@@ -1,3 +1,5 @@
+"""[core] 증류된 사용자 모델을 보이거나 최근 기억으로 갱신하는 /usermodel 핸들러 factory."""
+
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
@@ -5,7 +7,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.usermodel import UserModelBuilder, UserModelStore
-    from jarvis.memory.manager import MemoryManager
+    from jarvis.memory.memory_service import MemoryService
 
 Handler = Callable[[str], Awaitable[str]]
 
@@ -20,7 +22,7 @@ _USAGE = (
 def make_usermodel_handler(
     store: UserModelStore,
     builder: UserModelBuilder,
-    memory: MemoryManager,
+    memory: MemoryService,
     build_source_limit: int = 30,
 ) -> Handler:
     """SlashCommandDispatcher에 등록할 /usermodel 핸들러 factory."""
@@ -50,7 +52,7 @@ async def _handle_show(store: UserModelStore) -> str:
 async def _handle_build(
     store: UserModelStore,
     builder: UserModelBuilder,
-    memory: MemoryManager,
+    memory: MemoryService,
     limit: int,
 ) -> str:
     entries = await memory.recent(limit=limit)

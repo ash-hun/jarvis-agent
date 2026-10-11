@@ -1,10 +1,4 @@
-"""AgentNode. AgentSession 을 멱등한 그래프 노드로 감싼다.
-
-- AgentNode: 이미 만들어진 세션 하나(정적 배선, 테스트)
-- LazyAgentNode: 정의 + 팩토리. 위임 시점의 부모 범위로 자식 세션을 정하고, 위임 동안 메모리 범위와
-  작업 공유 키를 contextvar 로 바꿨다 되돌리며, 끝나면 부모 범위에 위임 기록을 남긴다.
-  네 오케스트레이션 패턴과 AgentNodeTool 이 전부 이 하나를 거친다(메모리 결합점).
-"""
+"""[core] AgentSession 을 멱등한 그래프 노드(정적 AgentNode, 위임 시점에 세션을 정하는 LazyAgentNode)로 감싼다."""
 
 from __future__ import annotations
 
@@ -15,11 +9,12 @@ from jarvis.agent_layer.types import AgentEvent
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, current_task
 from jarvis.memory.stores.protocol import tokens_of
 
+from .protocol import AgentNodeProtocol
 from .task import AgentResult, AgentTask
 
 if TYPE_CHECKING:
     from jarvis.core.session import AgentSession
-    from jarvis.memory.manager import MemoryManager
+    from jarvis.memory.memory_service import MemoryService
 
     from .factory import AgentDefinition, AgentFactory
 
@@ -56,7 +51,7 @@ def capability_score(task: AgentTask, name: str, capabilities: list[str]) -> flo
 
 
 async def record_delegation(
-    memory: MemoryManager | None, parent_scope: MemoryScope, agent_name: str, task: AgentTask, result: AgentResult
+    memory: MemoryService | None, parent_scope: MemoryScope, agent_name: str, task: AgentTask, result: AgentResult
 ) -> None:
     """부모가 "무엇을 누구에게 맡겼고 어떻게 됐는지" 를 일화로 기억한다. 저장 실패는 위임 결과를 깨지 않는다."""
     if memory is None:
@@ -83,11 +78,11 @@ def _clip(text: str, limit: int) -> str:
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
-class AgentNode:
-    """AgentSession을 감싸는 그래프 노드.
+class AgentNode(AgentNodeProtocol):
+    """이미 만들어진 세션 하나를 감싸는 그래프 노드(정적 배선, 테스트).
 
-    - invoke(): 멱등 — 동일 task_id는 캐시 반환
-    - can_handle(): Market-Based 패턴 입찰용 (기본값 True)
+    - invoke(): 멱등. 동일 task_id 는 캐시 반환
+    - can_handle(): Market-Based 패턴 입찰용. AgentNodeProtocol 의 기본값 True 를 그대로 쓴다
     - capabilities: 이 노드가 잘 처리하는 작업 레이블 (라우팅 힌트)
     """
 
@@ -143,22 +138,22 @@ class AgentNode:
         self._cache.set(task.task_id, result)
         return result
 
-    async def can_handle(self, task: AgentTask) -> bool:
-        """기본값 True. Market 패턴에서 특화 에이전트는 이를 오버라이드한다."""
-        return True
-
     def clear_cache(self) -> None:
         self._cache.clear()
 
 
-class LazyAgentNode:
-    """정의 + 팩토리로 위임 시점에 자식 세션을 정하는 노드. 범위 상속, 작업 공유 키, 위임 기록을 책임진다."""
+class LazyAgentNode(AgentNodeProtocol):
+    """정의 + 팩토리로 위임 시점에 자식 세션을 정하는 노드. 범위 상속, 작업 공유 키, 위임 기록을 책임진다.
+
+    위임 동안 메모리 범위와 작업 공유 키를 contextvar 로 바꿨다 되돌린다.
+    네 오케스트레이션 패턴과 AgentNodeTool 이 전부 이 하나를 거친다(메모리 결합점).
+    """
 
     def __init__(
         self,
         definition: AgentDefinition,
         factory: AgentFactory,
-        memory: MemoryManager | None = None,
+        memory: MemoryService | None = None,
     ) -> None:
         self.definition = definition
         self.factory = factory

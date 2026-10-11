@@ -1,37 +1,26 @@
-"""평가 대상 어댑터. 실행기는 이 프로토콜만 알고, 어느 저장소를 재는지는 주입으로 정한다."""
+"""[memory] 평가 대상 어댑터로, 실행기는 EvalTarget 만 알고 어느 저장소를 재는지는 주입으로 정한다."""
 
 from datetime import datetime
-from typing import Protocol
 
 from jarvis.memory.eval.schema import SetupStep, WorkingCase
 from jarvis.memory.long_term.procedural import InMemoryProcedures, Procedure
-from jarvis.memory.manager import MemoryManager
+from jarvis.memory.memory_service import MemoryService
 from jarvis.memory.scope import MemoryScope
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.model_layer.types import Message
 
 
-class EvalTarget(Protocol):
-    async def reset(self) -> None: ...
-
-    async def setup(self, step: SetupStep, scope: MemoryScope) -> None: ...
-
-    async def probe(self, query: str, scope: MemoryScope, top_k: int, kind: str = "recall") -> list[str]:
-        """scope 에서 query 로 회상한 내용을 점수 순으로 돌려준다. kind=procedures 면 스킬 이름 목록."""
-        ...
-
-
-class StoreTarget:
-    """jarvis.memory 의 매니저 + in-memory 저장소 + in-memory 절차 소스. 기본 평가 대상."""
+class EvalTarget:
+    """평가 대상. 기본은 MemoryService + in-memory 저장소 + in-memory 절차 소스, 다른 저장소는 _build 를 덮어쓴다."""
 
     def __init__(self) -> None:
         self._procedures = InMemoryProcedures()
         self._memory = self._build()
 
-    def _build(self) -> MemoryManager:
+    def _build(self) -> MemoryService:
         from jarvis.memory.eval.fake_embedder import FakeEmbedder
 
-        return MemoryManager(InMemoryItemStore(), procedures=self._procedures, embedder=FakeEmbedder())
+        return MemoryService(InMemoryItemStore(), procedures=self._procedures, embedder=FakeEmbedder())
 
     async def reset(self) -> None:
         self._procedures = InMemoryProcedures()
@@ -57,19 +46,24 @@ class StoreTarget:
                 await self._memory.store.store(item)
 
     async def probe(self, query: str, scope: MemoryScope, top_k: int, kind: str = "recall") -> list[str]:
+        """scope 에서 query 로 회상한 내용을 점수 순으로 돌려준다. kind=procedures 면 스킬 이름 목록."""
         if kind == "procedures":
             return [p.name for p in self._memory.procedures(query)][:top_k]
         return [i.content for i in await self._memory.recall(query, scope, limit=top_k)]
 
 
-TARGETS = {"store": StoreTarget}
+class StoreTarget(EvalTarget):
+    """jarvis.memory 의 서비스 + in-memory 저장소 + in-memory 절차 소스. 기본 평가 대상."""
+
+
+TARGETS: dict[str, type[EvalTarget]] = {"store": StoreTarget}
 
 
 class WorkingTarget:
-    """MemoryManager.observe 를 턴 단위로 돌리며 요약기 호출 수와 컨텍스트를 기록한다.
+    """MemoryService.observe 를 턴 단위로 돌리며 요약기 호출 수와 컨텍스트를 기록한다.
 
     요약기는 LLM 대신 결정론 스텁(호출 수를 센다). 저장소는 in-memory 이고 사례 안에서 공유되므로
-    rebuild_between_turns 로 매니저를 새로 만들어도 요약이 살아 있어야 한다.
+    rebuild_between_turns 로 서비스를 새로 만들어도 요약이 살아 있어야 한다.
     """
 
     def __init__(self) -> None:
@@ -85,9 +79,9 @@ class WorkingTarget:
             self.calls += 1
             return f"요약: {len(messages)}개 메시지" + (f" (이전: {prior})" if prior else "")
 
-        def build() -> MemoryManager:
+        def build() -> MemoryService:
             c = case.config
-            return MemoryManager(
+            return MemoryService(
                 store, working, summarizer=stub_summarizer,
                 threshold_chars=c.threshold_chars, keep_recent=c.keep_recent, window_size=c.window_size,
             )

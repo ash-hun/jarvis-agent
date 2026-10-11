@@ -1,15 +1,17 @@
-"""세션 하나의 승인 요청을 붙어 있는 모든 연결에 보내고 먼저 온 답을 쓴다."""
+"""[ui] SessionApprovals: 세션 하나의 승인 요청을 붙어 있는 모든 연결에 보내고 먼저 온 답을 쓴다."""
 
 import asyncio
 import uuid
 from collections.abc import Callable
-from typing import Any, Protocol
 
 APPROVAL_TIMEOUT_SEC = 120.0
 
 
-class Connection(Protocol):
-    async def send(self, payload: dict) -> None: ...
+class Connection:
+    """승인 요청을 받는 연결 하나의 부모. 기본 send 는 아무것도 보내지 않는다."""
+
+    async def send(self, payload: dict[str, object]) -> None:
+        return None
 
 
 class SessionApprovals:
@@ -22,8 +24,8 @@ class SessionApprovals:
     ) -> None:
         self._timeout_sec = timeout_sec
         self._new_id = new_id
-        self._connections: set[Any] = set()
-        self._pending: dict[str, tuple[asyncio.Future[bool | str], dict]] = {}
+        self._connections: set[Connection] = set()
+        self._pending: dict[str, tuple[asyncio.Future[bool | str], dict[str, object]]] = {}
 
     async def attach(self, conn: Connection) -> None:
         """기다리는 요청이 있으면 새 연결에도 바로 보여준다."""
@@ -47,7 +49,7 @@ class SessionApprovals:
             return False
         approval_id = self._new_id()
         future: asyncio.Future[bool | str] = asyncio.get_running_loop().create_future()
-        payload = {
+        payload: dict[str, object] = {
             "type": "approval_request",
             "id": approval_id,
             "command": command[:500],
@@ -72,6 +74,6 @@ class SessionApprovals:
         entry[0].set_result("always" if approved and always else approved)
         return True
 
-    async def _broadcast(self, payload: dict) -> None:
+    async def _broadcast(self, payload: dict[str, object]) -> None:
         for conn in list(self._connections):
             await conn.send(payload)

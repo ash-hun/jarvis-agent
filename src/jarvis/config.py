@@ -1,3 +1,5 @@
+"""[config] JarvisSettings: env 와 .env 에서 읽는 전체 설정 모델."""
+
 from __future__ import annotations
 
 from typing import Annotated, Any, Literal
@@ -13,7 +15,7 @@ class MCPServerConfig(BaseModel):
     transport: Literal["stdio", "http"] = "stdio"
     command: list[str] = Field(default_factory=list)  # stdio transport용 명령
     url: str | None = None  # http/sse transport용 엔드포인트
-    env: dict[str, Any] = Field(default_factory=dict)
+    env: dict[str, Any] = Field(default_factory=dict)  # MCP 서버 환경 변수. 값 타입을 좁히면 기존 설정 검증이 깨진다
     timeout: float = 30.0  # 연결/툴 호출 타임아웃(초) — 응답 없는 서버가 startup을 막지 않도록
     headers: dict[str, str] = Field(default_factory=dict)  # http transport용 커스텀 헤더
     auth_token: SecretStr | None = None  # http transport용 Bearer 토큰 (Authorization 헤더로 변환)

@@ -1,16 +1,24 @@
+"""[core] MCP 서버의 툴을 열거해 JarvisTool 로 감싸 ToolRegistry 에 등록하고 호출을 중계한다."""
+
 from __future__ import annotations
 
 import asyncio
 import json
 from typing import TYPE_CHECKING, Any
 
+from jarvis.common.logger import get_logger
+from jarvis.core.tools.registry import JarvisTool
+
 if TYPE_CHECKING:
     from jarvis.config import MCPServerConfig
     from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.model_layer.types import ToolResultMessage
+
+logger = get_logger(__name__)
 
 
-class MCPToolWrapper:
-    """MCP 서버 단일 툴을 JarvisTool Protocol로 래핑."""
+class MCPToolWrapper(JarvisTool):
+    """MCP 서버 단일 툴을 JarvisTool 로 래핑."""
 
     def __init__(
         self,
@@ -25,7 +33,7 @@ class MCPToolWrapper:
         self.execution_mode = "parallel"
         self._server = server_config
 
-    async def execute(self, tool_call_id: str, params: dict[str, Any], signal: Any = None) -> Any:
+    async def execute(self, tool_call_id: str, params: dict[str, Any], signal: Any = None) -> ToolResultMessage:
         from jarvis.model_layer.types import TextContent, ToolResultMessage
 
         try:
@@ -68,31 +76,31 @@ class MCPToolLoader:
         try:
             import mcp  # noqa: F401
         except ImportError:
-            print("[MCPToolLoader] mcp package not installed — skipping. Run: uv add mcp")
+            logger.info("[MCPToolLoader] mcp package not installed — skipping. Run: uv add mcp")
             return []
 
         loaded: list[str] = []
         for server in servers:
-            # 서버별 격리 — 한 서버의 실패/타임아웃이 다른 서버 로딩을 막지 않는다.
+            # 서버별 격리. 한 서버의 실패/타임아웃이 다른 서버 로딩을 막지 않는다.
             try:
                 tools = await asyncio.wait_for(
                     _list_mcp_tools(server), timeout=server.timeout
                 )
             except TimeoutError:
-                print(
+                logger.info(
                     f"[MCPToolLoader] '{server.name}' timed out after {server.timeout}s "
                     f"— skipping"
                 )
                 continue
             except Exception as exc:
-                print(f"[MCPToolLoader] Failed to load from '{server.name}': {exc}")
+                logger.info(f"[MCPToolLoader] Failed to load from '{server.name}': {exc}")
                 continue
 
             count = 0
             for tool in tools:
                 name = tool.get("name")
                 if not name:
-                    print(f"[MCPToolLoader] '{server.name}': skipping tool with no name")
+                    logger.info(f"[MCPToolLoader] '{server.name}': skipping tool with no name")
                     continue
                 wrapper = MCPToolWrapper(
                     server_config=server,
@@ -103,7 +111,7 @@ class MCPToolLoader:
                 self._registry.register_force(wrapper)
                 loaded.append(name)
                 count += 1
-            print(f"[MCPToolLoader] Loaded {count} tool(s) from '{server.name}'")
+            logger.info(f"[MCPToolLoader] Loaded {count} tool(s) from '{server.name}'")
 
         return loaded
 

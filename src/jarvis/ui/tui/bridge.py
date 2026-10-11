@@ -1,3 +1,5 @@
+"""[ui] EventBridge: 에이전트 이벤트를 TUI 가 그릴 UIAction 목록으로 바꾼다."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

@@ -1,3 +1,5 @@
+"""[core] URL 을 가져와 HTML 을 걷어낸 읽기 쉬운 텍스트로 돌려주는 web_fetch 내장 도구."""
+
 from __future__ import annotations
 
 import html
@@ -6,6 +8,7 @@ from typing import Any
 
 import httpx
 
+from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
 TOOL_NAME = "web_fetch"
@@ -14,7 +17,7 @@ TOOL_DESCRIPTION = (
     "Use this to read a specific web page when you already have its URL — "
     "complements web_search, which only returns result snippets."
 )
-TOOL_PARAMETERS = {
+TOOL_PARAMETERS: dict[str, Any] = {
     "type": "object",
     "properties": {
         "url": {
@@ -34,7 +37,7 @@ _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\n\s*\n\s*\n+")
 
 
-class WebFetchTool:
+class WebFetchTool(JarvisTool):
     name = TOOL_NAME
     description = TOOL_DESCRIPTION
     parameters = TOOL_PARAMETERS

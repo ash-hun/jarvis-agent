@@ -1,3 +1,5 @@
+"""[core] 텍스트 어디서나 /command 를 찾아 등록된 슬래시 명령 핸들러로 실행하고 남은 텍스트를 LLM 으로 넘긴다."""
+
 from __future__ import annotations
 
 import re

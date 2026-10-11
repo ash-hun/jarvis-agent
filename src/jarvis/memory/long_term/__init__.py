@@ -1,4 +1,4 @@
-"""장기 기억의 종류별 정책. 일화(언제 무슨 일), 의미(사실, 갱신은 대체), 절차(어떻게, 스킬)."""
+"""[memory] 장기 기억의 종류별 정책(일화는 언제 무슨 일, 의미는 대체되는 사실, 절차는 스킬)을 내보낸다."""
 
 from jarvis.memory.long_term.episodic import prepare_episode
 from jarvis.memory.long_term.procedural import InMemoryProcedures, ProceduralSource, Procedure, SkillRegistryProcedures

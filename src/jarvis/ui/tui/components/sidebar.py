@@ -1,3 +1,5 @@
+"""[ui] SidebarPane: TUI 사이드바에 세션 목록과 도구 목록을 보여 준다."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -7,7 +9,7 @@ from textual.containers import Vertical
 from textual.widgets import Label, ListItem, ListView
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.protocol import SessionRepo
+    from jarvis.agent_layer.session.protocol import SessionMetadata, SessionRepo
     from jarvis.core.tools.registry import ToolRegistry
 
 
@@ -46,7 +48,7 @@ class SidebarPane(Vertical):
 
         # Build tree: roots first, then children indented
         roots = [s for s in sessions if s.parent_id is None]
-        children_map: dict[str, list] = {}
+        children_map: dict[str, list[SessionMetadata]] = {}
         for s in sessions:
             if s.parent_id is not None:
                 children_map.setdefault(s.parent_id, []).append(s)

@@ -1,17 +1,4 @@
-"""Multi-Agent 오케스트레이션 패키지.
-
-사용 예:
-    from jarvis.core.multi_agent import (
-        AgentTask, AgentResult,
-        AgentNode, AgentNodeTool,
-        SupervisorTopology, HierarchicalTopology, P2PTopology, BlackboardTopology,
-        SupervisorOrchestrator, HierarchicalOrchestrator,
-        MarketOrchestrator, BlackboardOrchestrator,
-        OrchestratorPipeline,
-        SharedBlackboard,
-        AgentFactory, AgentDefinition,
-    )
-"""
+"""[core] multi-agent 오케스트레이션의 작업 타입, 기반 클래스, 노드, 토폴로지, 오케스트레이터, 팩토리를 내보낸다."""
 
 from .blackboard import SharedBlackboard
 from .factory import AgentDefinition, AgentFactory, AgentMemoryPolicy

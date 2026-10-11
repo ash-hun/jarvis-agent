@@ -1,3 +1,5 @@
+"""[core] 스케줄된 작업 하나의 정의(YAML 또는 /schedule 명령으로 생성)."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -8,10 +10,10 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 
 class ScheduledTask(BaseModel):
-    """스케줄된 작업 정의 — ~/.jarvis/schedules/*.yaml 또는 /schedule 슬래시 명령으로 생성."""
+    """스케줄된 작업 정의. ~/.jarvis/schedules/*.yaml 또는 /schedule 슬래시 명령으로 생성."""
 
     name: str
-    schedule: str = ""  # cron expression: "0 9 * * *" — 한 번 실행(run_at) 작업은 비어 있다
+    schedule: str = ""  # cron expression: "0 9 * * *". 한 번 실행(run_at) 작업은 비어 있다
     prompt: str
     session_id: str | None = None  # None = 실행마다 새 세션
     tools_allowed: list[str] = Field(default_factory=list)  # 빈 리스트 = 전체 허용
@@ -24,5 +26,5 @@ class ScheduledTask(BaseModel):
     kind: Literal["reminder", "task"] = "task"
 
     # 이 작업을 읽어 온(또는 저장한) YAML 파일. 토글을 원본 파일에 되쓰는 데 쓴다.
-    # 직렬화 대상이 아니다 — None 이면 아직 파일이 없는 메모리 전용 작업.
+    # 직렬화 대상이 아니다. None 이면 아직 파일이 없는 메모리 전용 작업.
     _source: Path | None = PrivateAttr(default=None)

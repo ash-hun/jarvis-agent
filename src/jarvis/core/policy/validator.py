@@ -1,16 +1,16 @@
+"""[core] 보안 파이프라인 Step 1 의 기본 입력 검증기(길이, 금지 패턴, 정규화, 이스케이프)를 제공한다."""
+
 from __future__ import annotations
 
 import html
 import re
 import unicodedata
 
-from jarvis.core.policy.pipeline import ValidatedInput, ValidationError
+from jarvis.core.policy.pipeline import InputValidatorProtocol, ValidatedInput, ValidationError
 
 
-class DefaultInputValidator:
-    """
-    Step 1: 입력 검증 — 길이/패턴/인코딩 정규화, XSS 방어.
-    """
+class DefaultInputValidator(InputValidatorProtocol):
+    """Step 1: 입력 검증. 길이/패턴/인코딩 정규화, XSS 방어."""
 
     def __init__(
         self,

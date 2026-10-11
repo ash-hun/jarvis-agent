@@ -1,4 +1,4 @@
-"""PostgreSQL 저장소. 기존 jarvis_ltm_entries 테이블을 그대로 쓰고 범위 컬럼을 멱등하게 덧붙인다."""
+"""[memory] 기존 jarvis_ltm_entries 테이블에 범위 컬럼을 멱등하게 덧붙여 쓰는 PostgreSQL 장기 기억 저장소."""
 
 import asyncio
 import contextlib
@@ -7,9 +7,12 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any
 
+from jarvis.common.logger import get_logger
 from jarvis.memory.scope import MAIN_AGENT, SHARED, MemoryScope
-from jarvis.memory.stores.protocol import tokens_of
+from jarvis.memory.stores.protocol import ItemStore, tokens_of
 from jarvis.memory.types import MemoryItem, MemoryKind
+
+logger = get_logger(__name__)
 
 TABLE = "jarvis_ltm_entries"
 
@@ -37,13 +40,14 @@ _VISIBLE = (
 )
 
 
-class PostgresItemStore:
+class PostgresItemStore(ItemStore):
     def __init__(self, dsn: str, dimensions: int = 0) -> None:
         """dimensions > 0 이면 pgvector 컬럼을 만들고 의미 검색을 켠다. 확장이 없으면 키워드 검색으로 내려간다."""
+        super().__init__()
         self._dsn = dsn
         self._dimensions = dimensions
         self._vector = False  # 마이그레이션 뒤 실제로 vector 컬럼을 쓸 수 있는지
-        self._pool: Any = None
+        self._pool: Any = None  # asyncpg 는 스텁이 없어 Pool 타입을 쓸 수 없다
         self._loop: asyncio.AbstractEventLoop | None = None
 
     @property
@@ -118,7 +122,7 @@ class PostgresItemStore:
             await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
             await conn.execute(f"ALTER TABLE {TABLE} ADD COLUMN IF NOT EXISTS embedding vector({self._dimensions})")
         except Exception as exc:
-            print(f"[Memory] pgvector unavailable, keyword search only: {exc}")
+            logger.info(f"[Memory] pgvector unavailable, keyword search only: {exc}")
             return False
         # hnsw 는 pgvector 0.5 이상. 없으면 순차 스캔으로도 동작한다
         with contextlib.suppress(Exception):
@@ -282,11 +286,10 @@ def _parse_vec(text: str | None) -> list[float] | None:
 def _naive(value: Any) -> datetime | None:
     if value is None:
         return None
-    if isinstance(value, str):
-        value = datetime.fromisoformat(value)
-    if value.tzinfo is not None:  # asyncpg 는 aware 로 돌려준다. 코드 전체가 naive 를 쓴다
-        value = value.astimezone(UTC).replace(tzinfo=None)
-    return value
+    parsed: datetime = datetime.fromisoformat(value) if isinstance(value, str) else value
+    if parsed.tzinfo is not None:  # asyncpg 는 aware 로 돌려준다. 코드 전체가 naive 를 쓴다
+        parsed = parsed.astimezone(UTC).replace(tzinfo=None)
+    return parsed
 
 
 def _row_to_item(row: Any) -> MemoryItem:

@@ -1,19 +1,15 @@
-"""OrchestratorPipeline — 다중 오케스트레이터 순차 합성.
-
-각 단계의 결과가 다음 단계의 입력으로 전달된다.
-실패(success=False) 발생 시 fail-fast로 파이프라인을 즉시 중단.
-패턴 조합 예: Hierarchical(계획) → Blackboard(실행) → Supervisor(검증)
-"""
+"""[core] 여러 오케스트레이터를 순차 합성해 앞 단계 결과를 다음 단계 입력으로 넘기는 fail-fast 파이프라인."""
 
 from __future__ import annotations
 
+from jarvis.core.multi_agent.protocol import OrchestratorProtocol
 from jarvis.core.multi_agent.task import AgentResult, AgentTask
 
 from .base import BaseOrchestrator
 
 
-class OrchestratorPipeline:
-    """OrchestratorProtocol을 구현하는 합성 오케스트레이터."""
+class OrchestratorPipeline(OrchestratorProtocol):
+    """실패(success=False) 시 즉시 중단. 패턴 조합 예: Hierarchical(계획) → Blackboard(실행) → Supervisor(검증)."""
 
     def __init__(self, orchestrators: list[BaseOrchestrator]) -> None:
         if not orchestrators:

@@ -1,8 +1,4 @@
-"""HierarchicalOrchestrator — 레벨 순서 직렬, 동일 레벨 병렬 실행.
-
-각 레벨의 누적 결과가 다음 레벨의 context로 주입되어
-상위 에이전트의 판단이 하위 에이전트에 전달된다.
-"""
+"""[core] 레벨 순서는 직렬, 같은 레벨은 병렬로 실행하고 누적 결과를 다음 레벨 context 로 넘기는 오케스트레이터."""
 
 from __future__ import annotations
 
@@ -16,12 +12,14 @@ from .base import BaseOrchestrator
 
 
 class HierarchicalOrchestrator(BaseOrchestrator):
+    """각 레벨의 누적 결과가 다음 레벨의 context 로 주입되어 상위 에이전트의 판단이 하위 에이전트에 전달된다."""
+
     def __init__(self, topology: HierarchicalTopology, memory: Any = None) -> None:
         super().__init__(topology, memory)
 
     async def dispatch(self, task: AgentTask) -> AgentResult:
         topo: HierarchicalTopology = self.topology  # type: ignore[assignment]
-        accumulated: dict = dict(task.context)
+        accumulated: dict[str, Any] = dict(task.context)
         last_results: list[AgentResult] = []
 
         for level in range(topo.max_level() + 1):
@@ -42,7 +40,7 @@ class HierarchicalOrchestrator(BaseOrchestrator):
             )
 
             # 동일 레벨: 병렬 실행
-            results: tuple[AgentResult, ...] = await asyncio.gather(
+            results: list[AgentResult] = await asyncio.gather(
                 *[node.invoke(level_task) for node in nodes]
             )
             last_results = list(results)

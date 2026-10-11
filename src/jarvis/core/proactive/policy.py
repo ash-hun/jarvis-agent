@@ -1,8 +1,9 @@
+"""[core] proactive 게이팅 정책. 요청 시점 Dual-Channel 계획과 자율 발화의 말할지 말지를 판정한다."""
+
 from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from typing import Protocol, runtime_checkable
 
 from jarvis.agent_layer.thought.types import ThoughtFrame
 from jarvis.core.proactive.types import ProactiveDecision, ResponsePlan
@@ -15,33 +16,39 @@ DEFAULT_FILLERS = (
 )
 # 먼저 건넨 말에 이만큼 답이 없으면 한 번만 약한 무시로 본다.
 DEFAULT_IGNORE_AFTER_SEC = 600
+# 게이팅 없는 기본 정책이 침묵할 때 남기는 판정 근거
+SILENT_REASON = "proactivity disabled"
 
 
-@runtime_checkable
-class ProactivityPolicy(Protocol):
-    """proactive 게이팅 전략 — 교체 가능.
+class ProactivityPolicy:
+    """proactive 게이팅 전략의 기본 클래스. 교체 가능.
 
     두 판정을 제공한다:
     - plan_response : 요청 시점 Dual-Channel(즉시/지연) 계획
     - decide_proactive : daemon 자율 발화의 speak/silent 게이팅
     - check_awaiting / note_user_activity : 먼저 건넨 말에 답이 올 때까지 다시 말하지 않는 게이트
+    기본 구현은 늘 즉시 응답하고 먼저 말하지 않는다(proactive 를 끈 것과 같다).
     """
 
-    def plan_response(self, frame: ThoughtFrame) -> ResponsePlan: ...
+    def plan_response(self, frame: ThoughtFrame) -> ResponsePlan:
+        return ResponsePlan(mode="immediate")
 
     def check_awaiting(
         self, session_id: str = "default", now: float | None = None
-    ) -> ProactiveDecision | None: ...
+    ) -> ProactiveDecision | None:
+        return None
 
-    def note_user_activity(self, session_id: str = "default") -> None: ...
+    def note_user_activity(self, session_id: str = "default") -> None:
+        pass
 
     def decide_proactive(
         self, frame: ThoughtFrame, *, session_id: str = "default", now: float | None = None
-    ) -> ProactiveDecision: ...
+    ) -> ProactiveDecision:
+        return ProactiveDecision(speak=False, reason=SILENT_REASON)
 
 
-class DefaultProactivityPolicy:
-    """기본 게이팅 — 응답 대기 + confidence 임계치 + 쿨다운 + 위험도 분리.
+class DefaultProactivityPolicy(ProactivityPolicy):
+    """기본 게이팅. 응답 대기 + confidence 임계치 + 쿨다운 + 위험도 분리.
 
     순수 로직(설정·시계 주입)이라 단위 테스트가 쉽고, 호출부(core/daemon)와 분리된다.
     """
@@ -76,7 +83,7 @@ class DefaultProactivityPolicy:
     def plan_response(self, frame: ThoughtFrame) -> ResponsePlan:
         if not frame.needs_background:
             return ResponsePlan(mode="immediate")
-        # filler는 항상 비어있지 않게 보장 — 사용자에게 "오래 걸림"을 반드시 전달.
+        # filler는 항상 비어있지 않게 보장. 사용자에게 "오래 걸림"을 반드시 전달.
         filler = frame.filler.strip() or self._next_fallback()
         return ResponsePlan(mode="deferred", filler=filler)
 

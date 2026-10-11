@@ -170,6 +170,15 @@
   fill: #02060c !important;
 }
 
+[data-theme='dark'] .docusaurus-mermaid-container .cluster rect {
+  fill: rgba(95, 200, 226, 0.04) !important;
+  stroke: rgba(95, 200, 226, 0.22) !important;
+}
+
+[data-theme='dark'] .docusaurus-mermaid-container .cluster-label {
+  color: var(--jarvis-gold);
+}
+
 [data-theme='dark'] .docusaurus-mermaid-container :is(rect.note, .labelBox) {
   fill: #1d1708 !important;
   stroke: var(--jarvis-gold) !important;

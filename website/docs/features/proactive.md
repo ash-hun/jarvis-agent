@@ -83,6 +83,33 @@ flowchart TD
 
 🔔 가 도움이 됐는지에 따라 확신도 임계치를 움직인다(`feedback.py`).
 
+```mermaid
+sequenceDiagram
+  participant U as 사용자
+  participant H as 화면 (proactive.js)
+  participant S as 서버 /ws
+  participant C as ReplyClassifier
+  participant L as FeedbackLearner
+  S->>H: proactive_message 🔔 (+ "도움이 됐나요?")
+  U->>H: 짧은 답
+  alt 완전 일치 키워드 (네, 좋아 / 아니오, 됐어)
+    H->>S: proactive_feedback {id, accepted}
+    S->>L: record (같은 id 는 연결당 한 번)
+  else 40자 이하이고 사고가 켜져 있음
+    H->>S: reply_classify {kind: feedback, id, text, context: 🔔 본문}
+    S->>C: classify (6초 제한)
+    C-->>S: accept / dismiss / other
+    opt accept 또는 dismiss
+      S->>L: record
+    end
+    S-->>H: reply_classified {verdict}
+    H->>H: other 거나 8초 넘으면 보통 메시지로 보냄
+  else 그 밖
+    H->>S: user_message (질문은 닫힘)
+  end
+  Note over S,L: 답이 없으면 IGNORE_AFTER_SEC 뒤 성찰 tick 이 약한 무시로 한 번 센다
+```
+
 - 수락: 임계치 −0.05, 무시: +0.05, 무응답: +0.025. 범위 0.3 에서 0.95
 - 무응답은 🔔 뒤 `IGNORE_AFTER_SEC` 동안 아무 답이 없을 때 그 발화 하나에 한 번만 센다. 자리를 비웠을 수도 있어 무시의 절반만 반영한다. 판정은 성찰 tick 에서 하므로 `idle` 트리거 단독이면(다음 활동 전까지 tick 이 없다) 세지 않는다
 - 앱에 하나인 `FeedbackLearner` 를 모든 세션의 정책이 공유한다. 메모리에만 있어 재시작하면 기본값으로 돌아간다

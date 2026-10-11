@@ -273,16 +273,22 @@ class AgentSession:
             self._learn_ignored(awaiting)
             logger.info(f"[Thought] proactive silent: {awaiting.reason}")
             return awaiting
-        frame = await self._run_inner_thought(
-            REFLECTION_SEED,
-            mode="reflection",
-            external_events=self._drain_external_events(),
-        )
-        if frame is None:
-            return None
-        decision = await self._proactivity.reflect(
-            frame, session_id=self._session_id, execute=self._execute_autonomous
-        )
+        # 성찰은 daemon 태스크에서 세션을 차례로 돈다. 이 세션의 범위를 걸고 끝나면 되돌려야
+        # 사고 기록과 자율 행동이 main 범위나 앞 세션의 범위로 새지 않는다
+        token = current_scope.set(self.memory_scope)
+        try:
+            frame = await self._run_inner_thought(
+                REFLECTION_SEED,
+                mode="reflection",
+                external_events=self._drain_external_events(),
+            )
+            if frame is None:
+                return None
+            decision = await self._proactivity.reflect(
+                frame, session_id=self._session_id, execute=self._execute_autonomous
+            )
+        finally:
+            current_scope.reset(token)
         self._learn_ignored(decision)
         if not decision.speak:
             # 🔔 가 안 뜨는 이유(임계치 미달, 쿨다운, utterance 비움)를 로그에서 볼 수 있게.

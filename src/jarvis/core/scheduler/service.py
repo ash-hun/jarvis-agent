@@ -52,8 +52,12 @@ class SchedulerService:
         self._session_repo = session_repo
         self._tool_registry = tool_registry
         self._model = model
-        self._plugin_runner = plugin_runner
-        self._skill_registry = skill_registry
+        # 주지 않으면 빈 것으로 둔다. None 을 세션에 넘기면 훅 호출에서 작업이 실패한다
+        from jarvis.core.plugins.runner import PluginRunner
+        from jarvis.core.skills.registry import SkillRegistry
+
+        self._plugin_runner = plugin_runner if plugin_runner is not None else PluginRunner()
+        self._skill_registry = skill_registry if skill_registry is not None else SkillRegistry()
         self._running = False
         self._task_handle: asyncio.Task[None] | None = None
         self._notify: Notify | None = None
@@ -278,11 +282,10 @@ class SchedulerService:
             model=self._model,
             session_id=session_id,
             security_pipeline=pipeline,
-            # None 이면 세션이 훅 호출에서 AttributeError 로 실패한다(작업 실패로 보고됨). 앱 조립은 늘 넘긴다
-            plugin_runner=self._plugin_runner,  # type: ignore[arg-type]
+            plugin_runner=self._plugin_runner,
             memory_chain=memory_chain,
             tool_registry=filtered,
-            skill_registry=self._skill_registry,  # type: ignore[arg-type]
+            skill_registry=self._skill_registry,
             session_repo=self._session_repo,
         )
 

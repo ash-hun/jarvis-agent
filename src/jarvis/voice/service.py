@@ -30,6 +30,14 @@ class VoiceService:
         return isinstance(self._stt, BrowserSTTProvider)
 
     @classmethod
-    def from_config(cls, stt_provider: str, tts_provider: str, **kwargs: object) -> VoiceService:
+    def from_config(
+        cls,
+        stt_provider: str,
+        tts_provider: str,
+        stt_options: dict[str, object] | None = None,
+        tts_options: dict[str, object] | None = None,
+    ) -> VoiceService:
+        """프로바이더 이름과 각자의 생성 옵션으로 만든다. 옵션은 그 프로바이더 팩토리에만 넘긴다."""
         from jarvis.voice.registry import make_stt, make_tts
-        return cls(stt=make_stt(stt_provider), tts=make_tts(tts_provider))
+
+        return cls(stt=make_stt(stt_provider, **(stt_options or {})), tts=make_tts(tts_provider, **(tts_options or {})))

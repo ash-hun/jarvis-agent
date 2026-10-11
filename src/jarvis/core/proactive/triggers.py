@@ -115,6 +115,8 @@ class AnyTrigger(ReflectionTrigger):
 
     async def wait(self) -> None:
         tasks = [asyncio.ensure_future(t.wait()) for t in self._triggers]
+        # wait 도중 취소되면 결과를 받지 못하므로 처음엔 전부 남은 것으로 둔다. 그래야 하위 작업이 새지 않는다
+        pending: set[asyncio.Future[None]] = set(tasks)
         try:
             _, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
         finally:

@@ -215,7 +215,10 @@ async def _execute_tools(
             tasks.append(executor(tc.id, tc.name, tc.arguments))
         completed = await asyncio.gather(*tasks, return_exceptions=True)
         for tc, outcome in zip(tool_calls, completed, strict=False):
-            if isinstance(outcome, Exception):
+            # 도구 하나가 취소돼도(CancelledError) 오류 결과로 남긴다. 프로세스 종료 신호는 그대로 올린다
+            if isinstance(outcome, (KeyboardInterrupt, SystemExit)):
+                raise outcome
+            if isinstance(outcome, BaseException):
                 result = ToolResultMessage(
                     tool_call_id=tc.id,
                     tool_name=tc.name,
@@ -223,8 +226,7 @@ async def _execute_tools(
                     is_error=True,
                 )
             else:
-                # Exception 이 아닌 BaseException(취소 등)은 여기서 걸러지지 않는다. 기존 동작 그대로 둔다
-                result = cast(ToolResultMessage, outcome)
+                result = outcome
             await emit(ToolExecutionEndEvent(tool_call_id=tc.id, tool_name=tc.name, is_error=result.is_error))
             results.append(result)
     else:

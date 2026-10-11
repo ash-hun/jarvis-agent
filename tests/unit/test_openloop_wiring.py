@@ -1,9 +1,12 @@
 """Open-loop session 배선 — 감지 저장 + 회상 주입 (Tier 2 C1)."""
 from __future__ import annotations
 
+import time
+from datetime import datetime
+
 import pytest
 
-from jarvis.agent_layer.openloop import InMemoryOpenLoopStore, OpenLoop
+from jarvis.agent_layer.openloop import InMemoryOpenLoopStore, LoopExpiry, OpenLoop
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
 from jarvis.core.proactive import DefaultProactivityCore
 
@@ -20,7 +23,7 @@ class CapturingEngine:
         return self._frame
 
 
-def _build_session(fx, engine, store, user_model_store=None, proactivity_factory=None):
+def _build_session(fx, engine, store, user_model_store=None, proactivity_factory=None, openloop_expiry=None):
     from jarvis.core.session import AgentSession
 
     return AgentSession(
@@ -34,6 +37,7 @@ def _build_session(fx, engine, store, user_model_store=None, proactivity_factory
         session_repo=fx["repo"],
         thought_engine=engine,
         openloop_store=store,
+        openloop_expiry=openloop_expiry,
         user_model_store=user_model_store,
         proactivity_factory=proactivity_factory,
     )
@@ -67,7 +71,7 @@ async def test_detected_open_loops_are_persisted(fx):
     engine = CapturingEngine(ThoughtFrame(open_loops=["내일 배포 결과 공유", "리뷰 답변"]))
     session = _build_session(fx, engine, store)
 
-    await session.prompt("배포 끝나면 알려줄게")
+    await session.prompt("내일 배포 결과 공유하고 리뷰 답변도 할게")
 
     loops = await store.list_open(session_id="test-session")
     descs = {x.description for x in loops}
@@ -82,8 +86,8 @@ async def test_open_loops_deduped_across_turns(fx):
     engine = CapturingEngine(ThoughtFrame(open_loops=["같은 약속"]))
     session = _build_session(fx, engine, store)
 
-    await session.prompt("첫 턴")
-    await session.prompt("둘째 턴")  # 같은 open_loop 재감지
+    await session.prompt("같은 약속 첫 턴")
+    await session.prompt("같은 약속 둘째 턴")  # 같은 open_loop 재감지
 
     assert len(await store.list_open()) == 1  # 중복 저장 안 됨
 
@@ -98,8 +102,8 @@ async def test_existing_open_loops_recalled_into_request(fx):
 
     await session.prompt("새 입력")
 
-    # 엔진에 전달된 ThoughtRequest.open_loops에 기존 항목이 주입됐다.
-    assert engine.requests[0].open_loops == ["기존 약속 A"]
+    # 엔진에 전달된 ThoughtRequest.open_loops에 기존 항목이 번호와 함께 주입됐다.
+    assert engine.requests[0].open_loops == ["[1] 기존 약속 A"]
 
 
 @pytest.mark.asyncio
@@ -155,3 +159,130 @@ async def test_reflection_does_not_persist_open_loops(fx):
 
     assert engine.requests[0].mode == "reflection"
     assert [x.description for x in await store.list_open()] == ["참석자 목록 확정"]
+
+
+@pytest.mark.asyncio
+async def test_closed_loops_are_closed_as_done(fx):
+    await fx["repo"].create(session_id="test-session")
+    store = InMemoryOpenLoopStore()
+    target = await store.add(OpenLoop(description="핵심 메시지 3가지 구조화", origin_session="test-session"))
+    keep = await store.add(OpenLoop(description="리뷰 답변", origin_session="test-session"))
+    engine = CapturingEngine(ThoughtFrame(closed_loops=["핵심 메시지 3가지 구조화"]))
+    session = _build_session(fx, engine, store)
+
+    await session.prompt("그거 하지 말라고")
+    await session.prompt("다시 한 번")  # 이미 닫힌 건 다시 건드리지 않는다
+
+    assert (await store.get(target)).status == "done"
+    assert [x.id for x in await store.list_open()] == [keep]
+
+
+@pytest.mark.asyncio
+async def test_due_suffix_saved_and_shown_back(fx):
+    await fx["repo"].create(session_id="test-session")
+    store = InMemoryOpenLoopStore()
+    engine = CapturingEngine(ThoughtFrame(open_loops=["배포 결과 공유 회의 준비 @2099-10-12 10:00"]))
+    session = _build_session(fx, engine, store)
+
+    await session.prompt("내일 10시 배포 결과 공유 회의 준비해야 해")
+    await session.prompt("다음")
+
+    [loop] = await store.list_open()
+    assert loop.description == "배포 결과 공유 회의 준비"
+    assert loop.due_ms == int(datetime(2099, 10, 12, 10, 0).timestamp() * 1000)
+    assert engine.requests[1].open_loops == ["[1] 배포 결과 공유 회의 준비 (기한 2099-10-12 10:00)"]
+
+
+@pytest.mark.asyncio
+async def test_expired_loops_closed_before_thought(fx):
+    await fx["repo"].create(session_id="test-session")
+    store = InMemoryOpenLoopStore()
+    now_ms = int(time.time() * 1000)
+    past = await store.add(
+        OpenLoop(description="어제 회의 준비", due_ms=now_ms - 7_200_000, origin_session="test-session")
+    )
+    await store.add(OpenLoop(description="리뷰 답변", origin_session="test-session"))
+    engine = CapturingEngine(ThoughtFrame())
+    session = _build_session(fx, engine, store, openloop_expiry=LoopExpiry(grace_ms=3_600_000, max_age_ms=0))
+
+    await session.prompt("안녕")
+
+    assert (await store.get(past)).status == "expired"
+    assert engine.requests[0].open_loops == ["[1] 리뷰 답변"]
+
+
+@pytest.mark.asyncio
+async def test_reflection_does_not_close_loops(fx):
+    await fx["repo"].create(session_id="test-session")
+    store = InMemoryOpenLoopStore()
+    await store.add(OpenLoop(description="참석자 목록 확정", origin_session="test-session"))
+    engine = CapturingEngine(ThoughtFrame(closed_loops=["참석자 목록 확정"]))
+    session = _build_session(
+        fx, engine, store, proactivity_factory=lambda emit: DefaultProactivityCore(emit_proactive=emit)
+    )
+
+    await session.reflect()
+
+    assert [x.description for x in await store.list_open()] == ["참석자 목록 확정"]
+
+
+@pytest.mark.asyncio
+async def test_closed_loops_by_shown_number(fx):
+    await fx["repo"].create(session_id="test-session")
+    store = InMemoryOpenLoopStore()
+    older = await store.add(OpenLoop(description="리뷰 답변", origin_session="test-session", created_at=1))
+    newer = await store.add(OpenLoop(description="분기 보고서 초안 제출", origin_session="test-session", created_at=2))
+    # 최신순으로 [1] 분기 보고서, [2] 리뷰 답변 이 보인다
+    engine = CapturingEngine(ThoughtFrame(closed_loops=["1"]))
+    session = _build_session(fx, engine, store)
+
+    await session.prompt("보고서는 취소됐어")
+
+    assert engine.requests[0].open_loops == ["[1] 분기 보고서 초안 제출", "[2] 리뷰 답변"]
+    assert (await store.get(newer)).status == "done"
+    assert (await store.get(older)).status == "open"
+
+
+@pytest.mark.asyncio
+async def test_open_loops_not_in_input_are_dropped(fx):
+    await fx["repo"].create(session_id="test-session")
+    store = InMemoryOpenLoopStore()
+    # 회상된 기억 속 약속을 새로 흘린 것처럼 옮겨 적은 경우
+    engine = CapturingEngine(ThoughtFrame(open_loops=["핵심 메시지 3가지 구조화 작업", "분기 보고서 초안 제출"]))
+    session = _build_session(fx, engine, store)
+
+    await session.prompt("내일까지 분기 보고서 초안 보내야 해")
+
+    assert [x.description for x in await store.list_open()] == ["분기 보고서 초안 제출"]
+
+
+@pytest.mark.asyncio
+async def test_loop_closed_in_same_frame_is_not_reopened(fx):
+    await fx["repo"].create(session_id="test-session")
+    store = InMemoryOpenLoopStore()
+    engine = CapturingEngine(
+        ThoughtFrame(
+            open_loops=["내일 오후 3시까지 분기 보고서 초안을 팀장님께 보내야 해."],
+            closed_loops=["분기 보고서 초안을 팀장님께 보내는 일정은 취소되었습니다."],
+        )
+    )
+    session = _build_session(fx, engine, store)
+
+    await session.prompt("분기 보고서 초안 팀장님께 보내는 건 취소됐어")
+
+    assert await store.list_open() == []
+
+
+@pytest.mark.asyncio
+async def test_user_cancel_closes_loop_without_model(fx):
+    await fx["repo"].create(session_id="test-session")
+    store = InMemoryOpenLoopStore()
+    target = await store.add(OpenLoop(description="분기 보고서 초안 보냄", origin_session="test-session"))
+    keep = await store.add(OpenLoop(description="리뷰 답변", origin_session="test-session"))
+    engine = CapturingEngine(ThoughtFrame())  # 사고가 closed_loops 를 놓친 경우
+    session = _build_session(fx, engine, store)
+
+    await session.prompt("분기 보고서 초안 보내는 건 취소됐어. 안 챙겨도 돼")
+
+    assert (await store.get(target)).status == "dismissed"
+    assert [x.id for x in await store.list_open()] == [keep]

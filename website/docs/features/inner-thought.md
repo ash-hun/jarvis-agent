@@ -23,7 +23,8 @@ title: 내적 사고 (Inner Thought)
 | `rationale` | 결정 근거 |
 | `utterance` | 사용자에게 실제로 건넬 말. 비어 있으면 침묵 |
 | `needs_background`, `filler` | 오래 걸릴 작업이면 true 와 즉답 문구 |
-| `open_loops` | 이번 입력에서 새로 감지한 약속과 미완 작업 |
+| `open_loops` | 이번 입력에서 새로 감지한 약속과 미완 작업. 기한이 분명하면 끝에 ` @YYYY-MM-DD HH:MM` |
+| `closed_loops` | [열린 약속] 중 이번 입력으로 끝났거나 취소된 것의 번호. 세션이 그 약속을 done 으로 닫는다 |
 
 `utterance` 와 `interpretation` 을 분리한 이유: 해석문은 "사용자가 불안해한다" 같은 문장이라 그대로 말하면 안 된다. 먼저 건네는 말은 `utterance` 만 쓴다.
 
@@ -42,7 +43,7 @@ flowchart LR
   P -- 행동 후보만 틀림 --> F2[후보 버리고 프레임 유지]
   P -- 전체 틀림 --> N[None, 로그]
   F --> E[inner_thought 이벤트 💭]
-  F --> S[open loop 저장<br/>요청 모드만]
+  F --> S[open loop 저장과 닫기<br/>요청 모드만]
   F --> C[composer → 시스템 프롬프트 블록]
   F --> D[dual channel 판단]
 ```
@@ -52,14 +53,14 @@ flowchart LR
 1. 회상: 메모리 체인에서 입력과 관련된 기억을 `recall_limit`(5)만큼 가져온다
 2. 렌더: 요청 템플릿(`~/.jarvis/inner_thought.md`, 없으면 내장 기본)에 `now`, `open_loops`, `recalled_memories`, `history`, `user_input`, `user_model` 을 채운다. 히스토리는 최근 `history_turns`(8) 턴, 턴당 `history_chars`(240) 자
 3. 호출: 도구 없이 한 번. Ollama 프로바이더는 프레임의 JSON 스키마를 `format` 으로 넘겨 형식을 강제한다
-4. 파싱: 첫 `{` 부터 마지막 `}` 까지 잘라 검증한다. `proactive_actions` 만 틀리면 그 항목만 버리고 프레임을 살린다. `recalled`, `options`, `open_loops` 에 객체가 와도 글자만 건진다
+4. 파싱: 첫 `{` 부터 마지막 `}` 까지 잘라 검증한다. `proactive_actions` 만 틀리면 그 항목만 버리고 프레임을 살린다. `recalled`, `options`, `open_loops`, `closed_loops` 에 객체가 와도 글자만 건진다
 5. 기록: `inner_thought` 이벤트, 사고 로그 싱크(`ltm` 이면 일화 기억으로, `stm` 이면 작업 메모로)
 
 ## 사고 결과가 가는 곳
 
 - **composer**: `[내적 사고] 해석: ... 회상: ... 고려한 대응: ...` 블록을 만들어 메인 호출의 시스템 프롬프트 끝에 붙인다. 히스토리에는 남지 않는다. `interpretation_only` 로 바꾸면 해석 한 줄만
 - **dual channel**: `needs_background` 면 filler 를 먼저 말하고 메인은 뒤에서 돈다. [먼저 행동하기](./proactive.md)
-- **open loop**: 요청 모드에서만 저장한다. 성찰 모드는 기존 약속을 볼 뿐 새로 쌓지 않는다. 바꿔 말한 같은 약속이 쌓이는 것을 막기 위해서다
+- **open loop**: 요청 모드에서만 저장하고 닫는다. 성찰 모드는 기존 약속을 볼 뿐 새로 쌓지도 닫지도 않는다. 바꿔 말한 같은 약속이 쌓이는 것과, 사용자 말 없이 약속이 사라지는 것을 막기 위해서다. 자세한 규칙은 [약속, 스케줄, 외부 이벤트](./agenda.md)
 - **화면**: 💭 한 줄(decision, 확신도). 클릭하면 해석 전문
 
 ## 시점: before, race, after

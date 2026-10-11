@@ -3,7 +3,13 @@ from __future__ import annotations
 import time
 from typing import Protocol, runtime_checkable
 
-from jarvis.agent_layer.openloop.types import OpenLoop, normalize_description, same_loop
+from jarvis.agent_layer.openloop.types import (
+    LOOP_STATUSES,
+    OpenLoop,
+    expired_ids,
+    merge_loop,
+    normalize_description,
+)
 
 
 @runtime_checkable
@@ -26,6 +32,21 @@ class OpenLoopStore(Protocol):
     async def all(self) -> list[OpenLoop]: ...
 
 
+# 만료 검사 때 보는 열린 항목 상한. 세션마다 몇 건이라 넉넉하다
+EXPIRE_SCAN_LIMIT = 200
+
+
+async def close_expired(
+    store: OpenLoopStore, now_ms: int, grace_ms: int, max_age_ms: int, session_id: str | None = None
+) -> list[str]:
+    """기한이 지난 열린 항목을 expired 로 닫는다. 이미 닫힌 건 다시 보지 않으므로 두 번 불러도 같다."""
+    loops = await store.list_open(session_id=session_id, limit=EXPIRE_SCAN_LIMIT)
+    ids = expired_ids(loops, now_ms, grace_ms, max_age_ms)
+    for loop_id in ids:
+        await store.update_status(loop_id, "expired")
+    return ids
+
+
 class InMemoryOpenLoopStore:
     """테스트·로컬용 in-memory 구현. 프로세스 재시작 시 소멸(영속화는 후속)."""
 
@@ -37,17 +58,11 @@ class InMemoryOpenLoopStore:
         return loop.id
 
     async def add_unique(self, loop: OpenLoop) -> str | None:
-        """같은 세션의 열린 항목 중 설명이 중복이면 추가하지 않고 None 반환."""
+        """같은 세션의 열린 같은 약속이 있으면 기한만 갱신하고, 바뀔 게 없으면 None 반환."""
         if not normalize_description(loop.description):
             return None
-        for existing in self._loops.values():
-            if (
-                existing.status == "open"
-                and existing.origin_session == loop.origin_session
-                and same_loop(existing.description, loop.description)
-            ):
-                return None
-        return await self.add(loop)
+        record = merge_loop(list(self._loops.values()), loop)
+        return await self.add(record) if record is not None else None
 
     async def list_open(self, session_id: str | None = None, limit: int = 20) -> list[OpenLoop]:
         items = [
@@ -63,7 +78,7 @@ class InMemoryOpenLoopStore:
 
     async def update_status(self, loop_id: str, status: str) -> bool:
         loop = self._loops.get(loop_id)
-        if loop is None or status not in ("open", "done", "dismissed"):
+        if loop is None or status not in LOOP_STATUSES:
             return False
         loop.status = status  # type: ignore[assignment]
         loop.updated_at = int(time.time() * 1000)

@@ -4,7 +4,7 @@ import asyncio
 import time
 from typing import Any
 
-from jarvis.agent_layer.openloop.types import OpenLoop, normalize_description, same_loop
+from jarvis.agent_layer.openloop.types import LOOP_STATUSES, OpenLoop, merge_loop, normalize_description
 
 
 class PostgresOpenLoopStore:
@@ -82,15 +82,14 @@ class PostgresOpenLoopStore:
             return None
         pool = await self._get_pool()
         async with pool.acquire() as conn:
-            # 판정은 파이썬 same_loop 한 곳에서. 세션당 열린 약속은 몇 건이라 다 가져와도 싸다
+            # 판정은 파이썬 merge_loop 한 곳에서. 세션당 열린 약속은 몇 건이라 다 가져와도 싸다
             rows = await conn.fetch(
-                "SELECT description FROM jarvis_open_loops"
+                "SELECT * FROM jarvis_open_loops"
                 " WHERE status = 'open' AND origin_session IS NOT DISTINCT FROM $1",
                 loop.origin_session,
             )
-        if any(same_loop(r["description"], loop.description) for r in rows):
-            return None
-        return await self.add(loop)
+        record = merge_loop([_row_to_loop(r) for r in rows], loop)
+        return await self.add(record) if record is not None else None
 
     async def list_open(self, session_id: str | None = None, limit: int = 20) -> list[OpenLoop]:
         pool = await self._get_pool()
@@ -117,7 +116,7 @@ class PostgresOpenLoopStore:
         return _row_to_loop(row) if row is not None else None
 
     async def update_status(self, loop_id: str, status: str) -> bool:
-        if status not in ("open", "done", "dismissed"):
+        if status not in LOOP_STATUSES:
             return False
         pool = await self._get_pool()
         async with pool.acquire() as conn:

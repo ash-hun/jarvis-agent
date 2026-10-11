@@ -123,7 +123,7 @@ jarvis --list-sessions      # 세션 목록
 | **Inner Thought** | 매 요청 시 메인 응답과 분리된 별도 LLM 호출로 구조화된 사고(`ThoughtFrame`) 생성 → 컨텍스트 증강 + 사고 로그·이벤트 노출 (TUI 💭 / Web 은 💭 한 줄로 접혀 있고 클릭하면 해석 전문) |
 | **Dual-Channel** | 오래 걸릴 작업이면 filler("잠깐만요, 확인할게요")를 **즉시 발화**(voice는 TTS)하고 메인 루프는 백그라운드 수행 — 대기 체감 감소 |
 | **Proactivity Daemon** | 요청 없이 주기(기본 120초)/idle 시점에 성찰해, 게이팅을 통과하면 **먼저 말 검**. 건네는 말은 사고 프레임의 `utterance` 이고 비어 있으면 침묵한다(해석문을 대신 내보내지 않는다). 저위험 읽기 작업은 자율로 미리 처리(이중 안전 게이트) |
-| **Open-loop 추적** | 대화에서 흘린 약속·미완 작업을 요청 시점에 감지·저장 → 이후 성찰 시 상기/처리 (`/openloop`). 성찰은 기존 약속을 볼 뿐 새로 저장하지 않는다 |
+| **Open-loop 추적** | 대화에서 흘린 약속·미완 작업을 요청 시점에 감지·저장 → 이후 성찰 시 상기/처리 (`/openloop`). 성찰은 기존 약속을 볼 뿐 새로 저장하지 않는다. 대화에서 끝나거나 취소되면 사고가 닫고(done), 기한이 지나면 expired 로 닫힌다. 바꿔 말한 같은 약속은 기한만 갱신한다 |
 | **피드백 학습** | proactive 발화의 수락/무시를 학습해 발화 임계치를 자동 조정. Web 은 🔔 뒤에 "도움이 됐나요?" 를 묻고 다음 짧은 답(네/아니오)을 읽는다 |
 | **User Model · 저널** | 누적 기억을 증류한 사용자 모델(`/usermodel`)을 사고에 주입, 자기 성찰 저널(`/journal`)을 남겨 회상에 반영 |
 
@@ -652,6 +652,8 @@ JARVIS_PROACTIVE__DAEMON_IDLE_SEC=180
 # ── Proactive: Open-loop / User Model (Tier 2~3) ─────────────────────────────
 JARVIS_OPENLOOP__BACKEND=jsonl            # jsonl | in_memory | postgres
 JARVIS_OPENLOOP__PATH=~/.jarvis/openloops.jsonl
+JARVIS_OPENLOOP__EXPIRE_AFTER_SEC=21600   # 기한 뒤 이만큼 지나면 expired 로 닫음(6시간)
+JARVIS_OPENLOOP__MAX_AGE_SEC=604800       # 기한 없는 약속의 수명(7일). 0 이면 닫지 않음
 JARVIS_USER_MODEL__ENABLED=true
 JARVIS_USER_MODEL__BACKEND=jsonl          # jsonl | in_memory
 JARVIS_USER_MODEL__PATH=~/.jarvis/user_model.json

@@ -84,3 +84,19 @@ def test_config_default_and_startup_builder(tmp_path, monkeypatch):
     from jarvis.agent_layer.openloop import InMemoryOpenLoopStore
 
     assert isinstance(_build_openloop_store(settings), InMemoryOpenLoopStore)
+
+
+@pytest.mark.asyncio
+async def test_due_update_and_expired_survive_reload(tmp_path):
+    path = str(tmp_path / "openloops.jsonl")
+    s1 = JsonlOpenLoopStore(path=path)
+    first = await s1.add_unique(OpenLoop(description="배포 결과 공유 회의 준비", origin_session="s"))
+    paraphrase = OpenLoop(description="배포 결과 공유 회의 준비 및 진행", due_ms=1000, origin_session="s")
+    assert await s1.add_unique(paraphrase) == first
+    other = await s1.add(OpenLoop(description="리뷰 답변", origin_session="s"))
+    assert await s1.update_status(other, "expired")
+
+    s2 = JsonlOpenLoopStore(path=path)
+    loops = await s2.list_open()
+    assert [(x.id, x.due_ms) for x in loops] == [(first, 1000)]
+    assert (await s2.get(other)).status == "expired"

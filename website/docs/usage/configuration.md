@@ -78,6 +78,8 @@ JARVIS_SESSION__POSTGRES_DSN=postgresql://user:pw@host:5432/jarvis
 
 JARVIS_OPENLOOP__BACKEND=jsonl             # jsonl | in_memory | postgres
 JARVIS_OPENLOOP__PATH=~/.jarvis/openloops.jsonl
+JARVIS_OPENLOOP__EXPIRE_AFTER_SEC=21600    # 기한 뒤 이만큼 지나면 expired 로 닫음(6시간)
+JARVIS_OPENLOOP__MAX_AGE_SEC=604800        # 기한 없는 약속의 수명(7일). 0 이면 닫지 않음
 JARVIS_USER_MODEL__ENABLED=true
 JARVIS_USER_MODEL__PATH=~/.jarvis/user_model.json
 ```

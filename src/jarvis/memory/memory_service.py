@@ -402,5 +402,6 @@ def _block(header: str, items: list[MemoryItem]) -> UserMessage:
 
 
 def _procedures_block(procedures: list[Procedure]) -> UserMessage:
-    body = "\n".join(f"- /{p.name}: {p.description}".rstrip(": ") for p in procedures)
+    # 설명이 없을 때만 "이름: " 꼬리를 뺀다. 설명 끝의 ":" 나 공백은 그대로 둔다
+    body = "\n".join(f"- /{p.name}: {p.description}" if p.description else f"- /{p.name}" for p in procedures)
     return UserMessage(content=f"{PROCEDURES_HEADER}\n{body}", timestamp=int(time.time() * 1000))

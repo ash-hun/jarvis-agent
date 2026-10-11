@@ -77,28 +77,41 @@ class SkillRegistry:
         return loaded
 
 
+def _skill_fields(meta: dict[str, Any], default_name: str) -> tuple[str, str, list[str]]:
+    """YAML 이 정한 아무 타입을 이름, 설명, 별칭으로 검사한다. 틀리면 ValueError(그 파일만 건너뛴다)."""
+    name = meta.get("name", default_name)
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError(f"name must be a non-empty string, got {name!r}")
+    description = meta.get("description", "")
+    if description is None:
+        description = ""
+    if not isinstance(description, str):
+        raise ValueError(f"description must be a string, got {description!r}")
+    aliases = meta.get("aliases", [])
+    if aliases is None:
+        aliases = []
+    if isinstance(aliases, str):
+        aliases = [aliases]
+    if not isinstance(aliases, list) or not all(isinstance(a, str) for a in aliases):
+        raise ValueError(f"aliases must be a list of strings, got {aliases!r}")
+    return name, description, aliases
+
+
 def _parse_skill_file(path: Path) -> Skill | None:
     if path.suffix == ".md":
         post = frontmatter.load(str(path))
-        # frontmatter 값은 YAML 이 정한 아무 타입이다. 검증 없이 그대로 넘기던 동작을 유지해 Any
+        # frontmatter 값은 YAML 이 정한 아무 타입이라 Any. 쓰는 세 필드는 _skill_fields 가 검사한다
         meta: dict[str, Any] = dict(post.metadata)
-        name = meta.get("name", path.stem)
-        return Skill(
-            name=name,
-            description=meta.get("description", ""),
-            aliases=meta.get("aliases", []),
-            content=post.content,
-            metadata=meta,
-        )
+        name, description, aliases = _skill_fields(meta, path.stem)
+        return Skill(name=name, description=description, aliases=aliases, content=post.content, metadata=meta)
     elif path.suffix == ".yaml":
         with open(path) as f:
             data = yaml.safe_load(f)
-        name = data.get("name", path.stem)
-        return Skill(
-            name=name,
-            description=data.get("description", ""),
-            aliases=data.get("aliases", []),
-            content=data.get("content", ""),
-            metadata=data,
-        )
+        if not isinstance(data, dict):
+            raise ValueError("skill yaml must be a mapping")
+        name, description, aliases = _skill_fields(data, path.stem)
+        content = data.get("content", "")
+        if not isinstance(content, str):
+            raise ValueError(f"content must be a string, got {type(content).__name__}")
+        return Skill(name=name, description=description, aliases=aliases, content=content, metadata=data)
     return None

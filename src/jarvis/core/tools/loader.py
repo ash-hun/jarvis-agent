@@ -18,6 +18,7 @@ from jarvis.core.tools.registry import JarvisTool, ToolRegistry
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
 # 사용자 도구는 JarvisTool 을 상속하지 않아도 된다. 예전 runtime_checkable Protocol 검사와 같은 멤버로 모양만 본다
+TOOL_MODULE_PREFIX = "_jarvis_tool_"
 TOOL_MEMBERS = ("name", "description", "parameters", "execution_mode", "execute")
 TOOL_METHODS = frozenset({"execute"})
 DEFAULT_EXECUTION_MODE = "parallel"
@@ -147,9 +148,11 @@ class ToolLoader:
 
 
 def _load_module(py_file: Path) -> ModuleType:
-    spec = importlib.util.spec_from_file_location(py_file.stem, py_file)
+    # 접두를 붙여 등록한다. 파일 이름 그대로(json.py 등) 넣으면 같은 이름의 표준 모듈을 덮는다
+    module_name = f"{TOOL_MODULE_PREFIX}{py_file.stem}"
+    spec = importlib.util.spec_from_file_location(module_name, py_file)
     module = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
-    sys.modules[py_file.stem] = module
+    sys.modules[module_name] = module
     spec.loader.exec_module(module)  # type: ignore[union-attr]
     return module
 

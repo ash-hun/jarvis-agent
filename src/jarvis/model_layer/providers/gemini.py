@@ -74,12 +74,13 @@ class GeminiProvider(Provider):
             usage = Usage()
             last_finish_reason = "stop"
 
-            # 버그: generate_content_stream 은 코루틴이라 await 가 빠져 있다. 동작 보존 리팩터라 고치지 않고 보고만 한다
-            async for chunk in client.aio.models.generate_content_stream(  # type: ignore[attr-defined]  # 위 버그
+            # generate_content_stream 은 스트림을 돌려주는 코루틴이다. await 한 결과를 순회한다
+            stream = await client.aio.models.generate_content_stream(
                 model=model.model,
                 contents=messages,
                 config=generate_config,
-            ):
+            )
+            async for chunk in stream:
                 if chunk.usage_metadata:
                     usage = Usage(
                         input=chunk.usage_metadata.prompt_token_count or 0,

@@ -22,6 +22,7 @@ class HierarchicalOrchestrator(BaseOrchestrator):
         accumulated: dict[str, Any] = dict(task.context)
         last_results: list[AgentResult] = []
 
+        failures: list[AgentResult] = []
         for level in range(topo.max_level() + 1):
             nodes = topo.get_level(level)
             if not nodes:
@@ -44,6 +45,8 @@ class HierarchicalOrchestrator(BaseOrchestrator):
                 *[node.invoke(level_task) for node in nodes]
             )
             last_results = list(results)
+            # 앞 레벨의 실패도 최종 결과에 남긴다. 마지막 레벨만 보면 중간 실패가 성공으로 보고된다
+            failures.extend(r for r in results if not r.success)
             # 다음 레벨용 context 누적 + 작업 공유 메모리(다음 레벨 에이전트의 프롬프트에 실제로 들어간다)
             for node, result in zip(nodes, results, strict=False):
                 accumulated[f"result_{node.name}"] = result.content
@@ -60,11 +63,11 @@ class HierarchicalOrchestrator(BaseOrchestrator):
             )
 
         combined = "\n".join(r.content for r in last_results if r.success)
-        success = all(r.success for r in last_results)
+        success = not failures
         return AgentResult(
             task_id=task.task_id,
             agent_name="hierarchical_orchestrator",
             content=combined,
             success=success,
-            error=next((r.error for r in last_results if not r.success), None),
+            error=next((r.error for r in failures), None),
         )

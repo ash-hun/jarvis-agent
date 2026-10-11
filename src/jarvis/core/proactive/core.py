@@ -37,6 +37,10 @@ class ProactivityCore(Protocol):
         execute: ExecuteActions | None = None,
     ) -> ProactiveDecision: ...
 
+    def check_awaiting(self, session_id: str = "default") -> ProactiveDecision | None: ...
+
+    def note_user_activity(self, session_id: str = "default") -> None: ...
+
 
 class DefaultProactivityCore:
     """기본 Dual-Channel 오케스트레이터.
@@ -95,6 +99,12 @@ class DefaultProactivityCore:
         if text:
             await self._emit(ProactiveMessage(text=text, kind="proactive"))
         return decision
+
+    def check_awaiting(self, session_id: str = "default") -> ProactiveDecision | None:
+        return self._policy.check_awaiting(session_id)
+
+    def note_user_activity(self, session_id: str = "default") -> None:
+        self._policy.note_user_activity(session_id)
 
     async def _run_deferred(self, run_main: RunMain) -> None:
         # 메인 루프는 자체 이벤트(stream/agent_end)를 그대로 emit → 답은 그 경로로 전달.

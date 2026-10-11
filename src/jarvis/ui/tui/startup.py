@@ -635,6 +635,7 @@ def _build_proactivity_factory(ctx: AppContext) -> Any:
         policy = DefaultProactivityPolicy(
             confidence_threshold=pcfg.confidence_threshold,
             cooldown_sec=pcfg.cooldown_sec,
+            ignore_after_sec=pcfg.ignore_after_sec,
             # C3 — 피드백 학습기의 동적 임계치를 사용(없으면 고정값).
             threshold_provider=learner.threshold if learner is not None else None,
         )

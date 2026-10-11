@@ -91,6 +91,8 @@ class ThoughtRequest(BaseModel):
     # Phase 3 — 외부 세계(캘린더·메일 등)에서 새로 감지한 사실의 한 줄 목록.
     # 문자열만 받는다 — 사고 층은 MCP도 벤더 스키마도 모른다(Hard Rule #1).
     external_events: list[str] = Field(default_factory=list)
+    # 이 세션에서 최근 먼저 건넨 말(🔔). 성찰이 같은 취지를 바꿔 말해 반복하지 않게 보여준다.
+    recent_proactive: list[str] = Field(default_factory=list)
     # 요청 시점이 아닌 백그라운드 성찰(Tier 1 daemon)도 같은 계약을 재사용한다.
     mode: Literal["request", "reflection"] = "request"
 

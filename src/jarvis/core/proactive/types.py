@@ -47,3 +47,5 @@ class ProactiveDecision(BaseModel):
     reason: str = ""  # 판정 근거(관찰 가능성)
     autonomous_actions: list[ProactiveAction] = Field(default_factory=list)  # low risk
     approval_actions: list[ProactiveAction] = Field(default_factory=list)  # high risk
+    # 응답 대기 게이트가 이번 판정에서 처음으로 "답 없이 오래 지남" 을 확인했다. 호출부가 약한 무시로 학습한다.
+    ignored: bool = False

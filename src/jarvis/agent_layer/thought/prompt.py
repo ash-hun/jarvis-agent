@@ -50,6 +50,7 @@ DEFAULT_REFLECTION_TEMPLATE = """\
 [열린 약속] {{open_loops}}
 [회상된 기억] {{recalled_memories}}
 [외부 이벤트] {{external_events}}
+[최근에 먼저 건넨 말] {{recent_proactive}}
 [최근 대화] {{history}}
 
 다음 키를 가진 JSON 객체 하나만 출력하라:
@@ -71,6 +72,9 @@ DEFAULT_REFLECTION_TEMPLATE = """\
 [열린 약속]을 보고, 지금 시점에 먼저 상기하거나 처리할 가치가 분명한 항목이
 있으면 act/ask로, 없으면 silent로 판단하라.
 
+[최근에 먼저 건넨 말]은 이미 사용자에게 한 말이다. 같은 취지라면 표현을 바꿔도
+다시 말하지 말고 silent로 판단하라. 그 뒤로 사용자가 답하지 않았다면 더더욱 그렇다.
+
 [외부 이벤트]는 방금 외부 세계(캘린더·메일 등)에서 감지된 사실이지 발화 명령이
 아니다. 시급성과 사용자 관련성이 둘 다 분명할 때만 act/ask로 판단하고, 단순히
 새 항목이 생겼다는 이유만으로는 말하지 마라.
@@ -84,6 +88,7 @@ PLACEHOLDERS = (
     "now",
     "open_loops",
     "external_events",
+    "recent_proactive",
     "recalled_memories",
     "history",
     "user_input",

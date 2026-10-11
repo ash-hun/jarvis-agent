@@ -104,6 +104,8 @@ def build_policy(case: ProactiveCase, now: float) -> DefaultProactivityPolicy:
     )
     if case.policy.spoke_before_sec is not None:
         policy.decide_proactive(PASSING_FRAME, session_id=SESSION, now=now - case.policy.spoke_before_sec)
+        if not case.policy.awaiting_reply:
+            policy.note_user_activity(SESSION)
     return policy
 
 

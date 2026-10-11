@@ -106,10 +106,12 @@ class InnerThoughtEngine:
             else self._template
         )
         external = "\n".join(f"- {x}" for x in request.external_events)
+        recent = "\n".join(f"- {x}" for x in request.recent_proactive)
         rendered = template.render(
             now=self._clock().isoformat(timespec="seconds"),
             open_loops="\n".join(f"- {x}" for x in request.open_loops),
             external_events=external,
+            recent_proactive=recent,
             recalled_memories="\n".join(f"- {x}" for x in recalled),
             history=self._format_history(request.history),
             user_input=request.user_input,
@@ -119,6 +121,8 @@ class InnerThoughtEngine:
         # 없다. 이벤트가 있는데 자리가 없으면 뒤에 덧붙여 조용한 유실을 막는다.
         if external and not template.has_placeholder("external_events"):
             rendered = f"{rendered}\n\n[외부 이벤트]\n{external}"
+        if recent and request.mode == "reflection" and not template.has_placeholder("recent_proactive"):
+            rendered = f"{rendered}\n\n[최근에 먼저 건넨 말] 같은 취지면 다시 말하지 마라\n{recent}"
         return rendered
 
     async def _call_model(self, prompt: str) -> str:

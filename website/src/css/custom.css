@@ -1,30 +1,176 @@
-/**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
- */
+/* Jarvis HUD 팔레트(src/jarvis/ui/web/static/styles.css)를 문서에도 쓴다. 다크가 기본, 라이트는 대비를 위해 시안을 어둡게 둔다. */
 
-/* You can override the default Infima variables here. */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --jarvis-cyan: #5fc8e2;
+  --jarvis-gold: #f0b35f;
+  --jarvis-glow: rgba(95, 200, 226, 0.45);
+
+  --ifm-color-primary: #1b86a3;
+  --ifm-color-primary-dark: #187993;
+  --ifm-color-primary-darker: #17728b;
+  --ifm-color-primary-darkest: #135e72;
+  --ifm-color-primary-light: #209dbe;
+  --ifm-color-primary-lighter: #22a8cc;
+  --ifm-color-primary-lightest: #3fbddf;
+
+  --ifm-font-family-base: 'Space Grotesk', system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --ifm-heading-font-family: var(--ifm-font-family-base);
+  --ifm-font-family-monospace: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --ifm-code-font-size: 92%;
+  --ifm-heading-font-weight: 600;
+
+  --jarvis-hairline: rgba(27, 134, 163, 0.18);
+  --docusaurus-highlighted-code-line-bg: rgba(27, 134, 163, 0.12);
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --ifm-color-primary: #5fc8e2;
+  --ifm-color-primary-dark: #44bfdd;
+  --ifm-color-primary-darker: #36badb;
+  --ifm-color-primary-darkest: #229fbe;
+  --ifm-color-primary-light: #6fcde5;
+  --ifm-color-primary-lighter: #77d0e6;
+  --ifm-color-primary-lightest: #8fd8eb;
+
+  --ifm-background-color: #02060c;
+  --ifm-background-surface-color: #050c14;
+  --ifm-navbar-background-color: rgba(2, 6, 12, 0.72);
+  --ifm-footer-background-color: #03080f;
+  --ifm-font-color-base: #d3eef5;
+  --ifm-color-content-secondary: #8aa4ad;
+  --ifm-toc-border-color: rgba(95, 200, 226, 0.14);
+  --ifm-hr-background-color: rgba(95, 200, 226, 0.14);
+  --ifm-code-background: rgba(95, 200, 226, 0.08);
+  --ifm-menu-color-background-active: rgba(95, 200, 226, 0.1);
+  --ifm-menu-color-background-hover: rgba(95, 200, 226, 0.06);
+  --ifm-table-border-color: rgba(95, 200, 226, 0.16);
+  --ifm-table-stripe-background: rgba(95, 200, 226, 0.03);
+  --ifm-link-hover-color: var(--jarvis-gold);
+
+  --jarvis-hairline: rgba(95, 200, 226, 0.16);
+  --docusaurus-highlighted-code-line-bg: rgba(95, 200, 226, 0.14);
+}
+
+/* HUD 화면처럼 중앙 시안 광원과 아래쪽 성운을 깐다. 고정 배경이라 스크롤해도 움직이지 않는다. */
+[data-theme='dark'] body {
+  background:
+    radial-gradient(900px 640px at 50% 0%, rgba(95, 200, 226, 0.08), transparent 70%),
+    radial-gradient(1200px 800px at 50% 120%, rgba(138, 77, 255, 0.06), transparent 65%),
+    #02060c;
+  background-attachment: fixed;
+}
+
+[data-theme='dark'] .main-wrapper,
+[data-theme='dark'] .theme-doc-sidebar-container {
+  background: transparent;
+}
+
+.navbar {
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--jarvis-hairline);
+  box-shadow: none;
+}
+
+.navbar__title {
+  font-family: var(--ifm-font-family-monospace);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+}
+
+.navbar__logo img {
+  filter: drop-shadow(0 0 6px var(--jarvis-glow));
+}
+
+.theme-doc-sidebar-container {
+  border-right-color: var(--jarvis-hairline) !important;
+}
+
+.menu__link--active:not(.menu__link--sublist) {
+  box-shadow: inset 2px 0 0 var(--ifm-color-primary);
+}
+
+.markdown h1:first-child {
+  letter-spacing: 0.02em;
+}
+
+[data-theme='dark'] .markdown h1:first-child {
+  color: #e8f8fc;
+  text-shadow: 0 0 18px var(--jarvis-glow);
+}
+
+.markdown h2 {
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--jarvis-hairline);
+}
+
+/* h2 앞의 짧은 금색 눈금은 HUD 패널 머리의 강조선을 따른 것 */
+.markdown h2::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.55rem;
+  border: 1px solid var(--jarvis-gold);
+  transform: rotate(45deg) translateY(-0.12rem);
+}
+
+.markdown img {
+  border: 1px solid var(--jarvis-hairline);
+  border-radius: 6px;
+}
+
+[data-theme='dark'] .markdown img {
+  box-shadow: 0 0 28px rgba(95, 200, 226, 0.12);
+}
+
+[data-theme='dark'] pre,
+[data-theme='dark'] .theme-code-block {
+  border: 1px solid var(--jarvis-hairline);
+  background-color: #050c14 !important;
+}
+
+[data-theme='dark'] .table-of-contents__link--active {
+  color: var(--jarvis-gold);
+}
+
+.footer {
+  border-top: 1px solid var(--jarvis-hairline);
+}
+
+.footer__copyright {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+/* mermaid themeVariables 는 라이트에도 같이 들어가 라이트 도표가 깨지므로, 다크 전용 색은 CSS 로 덮는다 */
+[data-theme='dark'] .docusaurus-mermaid-container {
+  --jarvis-node: #0a1a24;
+}
+
+[data-theme='dark'] .docusaurus-mermaid-container :is(.node rect, .node polygon, .node circle, .node path, rect.actor) {
+  fill: var(--jarvis-node) !important;
+  stroke: var(--jarvis-cyan) !important;
+}
+
+[data-theme='dark'] .docusaurus-mermaid-container :is(.flowchart-link, .messageLine0, .messageLine1, line.actor-line) {
+  stroke: var(--jarvis-cyan) !important;
+}
+
+[data-theme='dark'] .docusaurus-mermaid-container :is(marker path, #arrowhead path) {
+  fill: var(--jarvis-cyan) !important;
+  stroke: var(--jarvis-cyan) !important;
+}
+
+[data-theme='dark'] .docusaurus-mermaid-container :is(.edgeLabel, .edgeLabel rect, .labelBkg) {
+  background-color: #02060c !important;
+  fill: #02060c !important;
+}
+
+[data-theme='dark'] .docusaurus-mermaid-container :is(rect.note, .labelBox) {
+  fill: #1d1708 !important;
+  stroke: var(--jarvis-gold) !important;
 }

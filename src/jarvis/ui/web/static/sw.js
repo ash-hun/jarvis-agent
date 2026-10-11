@@ -26,6 +26,7 @@ const SHELL = [
   'app/main.js',
   'app/markdown.js',
   'app/messages.js',
+  'app/mode.js',
   'app/proactive.js',
   'app/session.js',
   'app/shell.js',

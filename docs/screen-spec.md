@@ -2,7 +2,7 @@
 
 | 항목 | 값 |
 |---|---|
-| Last Updated | 2026-10-10 |
+| Last Updated | 2026-10-11 |
 | 소스 | `src/jarvis/ui/web/static/` (`index.html`, `styles.css`, `app/*.js`, `hud.js`, `sphere.js`, `voice.js`, `sw.js`) |
 | 범위 | 브라우저 Web HUD. 터미널 TUI(`src/jarvis/ui/tui/`)는 이 문서 밖 |
 
@@ -30,7 +30,7 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ SYS:ONLINE / 버전      J.A.R.V.I.S.          READY  HH:MM:SS  │ 헤더
+│ SYS:ONLINE / 버전  J.A.R.V.I.S.  [DEFAULT|FULL-VOICE] READY 시각 │ 헤더
 ├───────────────┬──────────────────────────┬───────────────────┤
 │ AGENDA        │                          │ SESSIONS          │
 │  UPCOMING     │        리액터(구체)       │  default  NOW ⑂   │
@@ -72,9 +72,10 @@
 | `jarvis_token` | localStorage | 없음 | 접근 키. `4401` 로 끊기면 `prompt()` 로 묻고 저장 |
 | `hud.chatCollapsed` | localStorage | `0` | CONVERSATION 접힘 |
 | `hud.sessionsCollapsed` | localStorage | `0` | SESSIONS 접힘 |
+| `hud.mode` | localStorage, `body[data-mode]` | `default` | `default` 또는 `full-voice`. 모르는 값이면 `default`. 새로고침 뒤에도 유지되지만 마이크는 사용자 클릭 전에는 켜지 않는다 |
 | 상태 pill | 메모리 | `READY` | `THINKING`(서브 에이전트면 `THINKING · a → b`), `EXECUTING`, `LISTENING`, `SPEAKING`, `ERROR` |
 | 리액터 상태 | `window.HUD.state` | `idle` | `thinking`, `tool_running`, `listening`, `speaking`, `error`. 링 발광과 구체 움직임이 따라간다 |
-| 음성 모드 | 메모리 | 꺼짐 | 구체 클릭으로 토글. 켜져 있으면 응답과 🔔 를 읽어준다 |
+| 음성 모드 | 메모리 | 꺼짐 | 구체 클릭으로 토글. 켜져 있으면 응답과 🔔 를 읽어준다. Full-voice 에서는 입력 방식과 상관없이 늘 읽는다 |
 
 **인터랙션**
 
@@ -95,6 +96,10 @@
 | TOOLS ▾ | 도구 목록 펼침. 🔒 는 승인 필요 도구 |
 | 승인 모달의 ALLOW / ALWAYS · 패턴 / DENY, Enter | `approval_response`. ALWAYS 는 서버가 패턴을 제안했을 때만 보인다. Enter 는 ALLOW. 같은 세션의 다른 창이 먼저 답하면 `approval_resolved` 로 모달이 닫히고 ACTIVITY 에 `다른 창에서 처리됨` |
 | 구체 클릭 | 음성 모드 토글. 미지원 브라우저면 SYS 에러 한 줄 |
+| 헤더의 DEFAULT / FULL-VOICE | 모드 전환. 좁은 화면(560px 이하)에서는 DEF / VOICE. 같은 쪽을 다시 누르면 아무 일 없음. FULL-VOICE 로 바꾸면 바로 듣기 시작. 음성 미지원 브라우저면 SYS 에러 후 DEFAULT 로 돌아간다. DEFAULT 로 바꾸면 듣던 것을 멈춘다 |
+| Full-voice: 응답 끝 | 응답을 읽고, 다 읽으면 다시 듣는다(LISTENING). 말이 없으면 READY 로 멈춘다 |
+| Full-voice: 승인 요청 | 모달을 띄운 채 `명령 X 를 실행할까요. 허용, 항상, 거부.` 를 읽고 듣는다(항상은 패턴 제안이 있을 때만). 답은 거부 쪽으로 기운다. 부정어(거부, 아니, 안 돼, 하지 마, 취소 등)가 있으면 DENY, 항상(패턴 있을 때)은 ALWAYS, 허용, 승인, 실행해 같은 긍정이나 `네`, `응`, `좋아` 단독이면 ALLOW, 나머지는 DENY. 결과를 `허용으로 들었습니다` 처럼 되읽고 SYS 한 줄, ACTIVITY 한 줄. 되읽은 뒤에는 듣지 않는다. 읽는 동안 모달을 클릭으로 답하면 다 읽어도 듣지 않는다 |
+| Full-voice: 🔔 | 본문과 `이 제안이 도움이 됐나요? 네 또는 아니오로 답해 주세요.` 를 읽고 듣는다. 답은 🔔 짧은 답 규칙과 같다. 💬 filler 는 읽기만 한다 |
 | Ctrl+K | `abort` 전송, 스트림 종료, 입력 복원 |
 | Esc | 드로어 닫기 |
 | 코드블록의 COPY | 클립보드 복사. 8줄 이상 코드블록이 응답에 있으면 오른쪽 아티팩트 패널에도 뜬다(COPY, ✕) |
@@ -113,7 +118,8 @@
 | `panel-head` + `setupCollapse` | `shell.js` | 토글 id, body 클래스, localStorage 키 | SESSIONS, CONVERSATION |
 | 메시지(`appendMsg`, `appendThought`, 스트림, 도구 흔적, 대기 자리표시, 히스토리) | `messages.js` | 역할 라벨, 종류, HTML | CONVERSATION |
 | 마크다운 렌더(`renderMarkdown`, `attachCopyBtns`) | `markdown.js` | 텍스트 | 응답, 히스토리, 🔔, 스케줄 작업 알림 |
-| 승인 오버레이 | `approval.js` | `approval_request` | 전역 모달 |
+| 승인 오버레이, 음성 답 해석(`parseApprovalAnswer`) | `approval.js` | `approval_request`, 전사 텍스트 | 전역 모달 |
+| 모드 세그먼트 | `mode.js` | 클릭, `hud.mode` | 헤더 |
 | 슬래시 팝업, 입력 하이라이트 | `composer.js` | 명령 목록 | 입력 독 |
 | 아티팩트 패널 | `artifact.js` | 언어, 코드 | 오른쪽 슬라이드 패널 |
 | 리액터 캔버스(링·눈금·별), 입자 구 | `hud.js`, `sphere.js` | `HUD.state`, `BRAND.palette` | 가운데 |
@@ -126,6 +132,10 @@
 ## 미구현 / 알려진 제약
 
 - 피드백 답은 완전 일치 키워드만 읽는다. "응 그걸로 해줘" 는 피드백이 아니라 보통 메시지다.
+- Full-voice 승인 답도 키워드 판정이다. 모르는 말은 거부가 되므로 "그거 돌려" 같은 허용 의도도 거부된다. 모달 버튼은 그대로 쓸 수 있다.
+- Full-voice 의 자동 듣기는 읽기가 끝난 직후 한 번뿐이다. 말이 없으면 멈추고, 다시 시작하려면 구체를 누른다.
+- 읽기가 겹치면(💬 filler 를 읽는 중에 승인 요청이 오면) 소리가 겹치고, 먼저 끝난 쪽에서 듣기가 시작될 수 있다.
+- Focus 모드는 없다. 🔔 를 세션 단위로 끄려면 서버 쪽 게이팅이 필요하다.
 - 세션 목록은 프로세스가 띄운 것만 보인다. 저장소에만 있는 세션은 화면에 없다.
 - Postgres 저장소에서 ⑂ 분기는 빈 새 세션이다. 히스토리가 복사되지 않는다.
 - open loop 중복 판정은 정규화 일치와 포함 관계(6자 이상)뿐이다. 바꿔 말한 약속은 따로 쌓인다.

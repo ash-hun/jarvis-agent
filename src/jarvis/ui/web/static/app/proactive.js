@@ -6,6 +6,7 @@ import { appendMsg } from './messages.js';
 const ACCEPT = ['좋아', '좋아요', '고마워', '고마워요', '응', '네', '예', '그래', '확인', '오케이', '도움됨', '도움돼', '도움이 됐어'];
 const DISMISS = ['아니', '아니요', '아니야', '됐어', '무시', '괜찮아', '괜찮아요', '나중에', '필요없어', '싫어'];
 const QUESTION = '이 제안이 도움이 됐나요? 네 / 아니오 로 답해 주세요.';
+export const QUESTION_SPOKEN = '이 제안이 도움이 됐나요? 네 또는 아니오로 답해 주세요.';
 
 let _pendingId = null;  // 피드백 대기 중인 proactive 메시지 id
 
@@ -13,6 +14,8 @@ function closeAsk() {
   _pendingId = null;
   document.querySelectorAll('.proactive-ask:not(.done)').forEach((el) => el.classList.add('done'));
 }
+
+export function isFeedbackPending() { return _pendingId !== null; }
 
 // 🔔 메시지 아래에 질문을 붙이고 다음 답을 기다린다.
 export function askFeedback(msgDiv, messageId) {

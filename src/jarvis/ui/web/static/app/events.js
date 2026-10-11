@@ -8,10 +8,11 @@ import {
 import { updateUsage } from './usage.js';
 import { fetchAgenda, showNotice } from './agenda.js';
 import { fetchTools } from './tools.js';
-import { showApproval, closeApproval } from './approval.js';
-import { setInputEnabled, endAwaitingReply } from './composer.js';
-import { askFeedback } from './proactive.js';
 import { voice, isVoiceMode, clearVoiceMode, requestSpeech } from './voice-ui.js';
+import { showApproval, closeApproval, isApprovalOpen, approvalSpeech } from './approval.js';
+import { askFeedback, isFeedbackPending, QUESTION_SPOKEN } from './proactive.js';
+import { setInputEnabled, endAwaitingReply } from './composer.js';
+import { isFullVoice } from './mode.js';
 
 const ERROR_FLASH_MS = 3000;
 let _agentStack = []; // [{name: string|null}, ...] — 서브 에이전트 계층 추적
@@ -37,6 +38,7 @@ function flashError(message) {
 }
 
 export function resetAgentStack() { _agentStack = []; }
+export function isAgentBusy() { return _agentStack.length > 0; }
 
 export function handleMessage(msg) {
   switch (msg.type) {
@@ -71,9 +73,11 @@ export function handleMessage(msg) {
       fetchTools();   // /procedures approve 처럼 턴 안에서 도구가 늘었을 수 있다
       const usage = msg.final_message?.usage;
       if (usage) updateUsage(usage);
-      if (isVoiceMode() && lastStreamText()) {
-        requestSpeech(lastStreamText());
+      if ((isVoiceMode() || isFullVoice()) && lastStreamText()) {
+        requestSpeech(lastStreamText(), { thenListen: isFullVoice });
       } else {
+        // 음성 요청에 말 없는 응답(도구만)이 오면 음성 처리 중 상태를 풀어 준다
+        if (voice.state === 'processing') voice.setIdle();
         setInputEnabled(true);
       }
       clearVoiceMode();
@@ -131,9 +135,16 @@ export function handleMessage(msg) {
       logActivity(`${isFiller ? '💬' : '🔔'} ${ptext}`, 'proactive');
       showLive(lastLine(ptext), CAPTION_HOLD_MS);
       // filler가 아닌 먼저 건넨 말엔 대화로 피드백을 묻는다 (C3). 다음 짧은 답이 수락/무시가 된다.
-      if (!isFiller && msg.message_id) askFeedback(div, msg.message_id);
-      // voice 모드면 비요청 발화도 즉시 읽어준다 — filler는 대기 체감을 줄이는 핵심.
-      if (isVoiceMode() || msg.speak) requestSpeech(ptext);
+      const asks = !isFiller && !!msg.message_id;
+      if (asks) askFeedback(div, msg.message_id);
+      // voice 모드면 비요청 발화도 즉시 읽어준다. filler는 대기 체감을 줄이는 핵심.
+      // Full-voice 는 피드백 질문까지 읽고 답을 듣는다.
+      if (isFullVoice()) {
+        requestSpeech(asks ? `${ptext} ${QUESTION_SPOKEN}` : ptext,
+          { thenListen: () => asks && isFullVoice() && isFeedbackPending() });
+      } else if (isVoiceMode() || msg.speak) {
+        requestSpeech(ptext);
+      }
       break;
     }
 
@@ -144,6 +155,10 @@ export function handleMessage(msg) {
     case 'approval_request':
       showApproval(msg.id, msg.command, msg.reason, msg.always_pattern);
       logActivity(`⚡ approval · ${msg.command || ''}`, 'tool');
+      if (isFullVoice()) {
+        requestSpeech(approvalSpeech(msg.command, msg.always_pattern),
+          { thenListen: () => isFullVoice() && isApprovalOpen() });
+      }
       break;
 
     case 'approval_resolved':

@@ -8,10 +8,24 @@ const $allow   = document.getElementById('btn-allow');
 const $deny    = document.getElementById('btn-deny');
 const $always  = document.getElementById('btn-always');
 
+// 음성 답 해석은 거부 쪽으로 기운다. 부정어가 섞이면 거부, 긍정 표현이 분명할 때만 허용, 나머지도 거부.
+const VOICE_DENY = ['거부', '거절', '아니', '안돼', '안되', '안해', '하지마', '하지말', '취소', '멈춰', '그만', 'no', 'deny', 'stop'];
+const VOICE_ALWAYS = ['항상', '언제나', '앞으로도', 'always'];
+const VOICE_ALLOW = ['허용', '허락', '승인', '실행해', '진행해', 'allow'];
+const VOICE_YES = ['응', '네', '예', '그래', '좋아', '오케이', '해', '해줘', 'ok', 'okay', 'yes'];
+const SPEECH_COMMAND_MAX = 120;
+const HEARD_SPEECH = {
+  allow:  '허용으로 들었습니다.',
+  always: '항상 허용으로 들었습니다.',
+  deny:   '거부로 들었습니다.',
+};
+
 let _currentId = null;
+let _alwaysPattern = null;
 
 export function showApproval(id, command, reason, alwaysPattern) {
   _currentId = id;
+  _alwaysPattern = alwaysPattern || null;
   $reason.textContent  = reason || '도구 실행 승인이 필요합니다.';
   $command.textContent = command;
   // 항상 허용: 서버가 제안한 패턴이 있을 때만. 규칙은 사용자가 이 버튼을 눌러야 생긴다.
@@ -30,7 +44,34 @@ export function closeApproval(id) {
   if (!_currentId || _currentId !== id) return false;
   $overlay.classList.add('hidden');
   _currentId = null;
+  _alwaysPattern = null;
   return true;
+}
+
+export function isApprovalOpen() { return _currentId !== null; }
+
+// 모달 내용을 읽어 줄 한 문장. 항상 허용은 서버가 패턴을 제안했을 때만 선택지에 넣는다.
+export function approvalSpeech(command, alwaysPattern) {
+  let cmd = command || '';
+  if (cmd.length > SPEECH_COMMAND_MAX) cmd = cmd.slice(0, SPEECH_COMMAND_MAX) + '…';
+  return `명령 ${cmd} 를 실행할까요. ${alwaysPattern ? '허용, 항상, 거부' : '허용, 거부'}.`;
+}
+
+// 전사 한 줄을 allow / always / deny 로. 순수 함수라 몇 번 불러도 같다.
+export function parseApprovalAnswer(text, hasAlways) {
+  const t = text.toLowerCase().replace(/[\s.,!?…~]/g, '');
+  if (VOICE_DENY.some((w) => t.includes(w))) return 'deny';
+  if (hasAlways && VOICE_ALWAYS.some((w) => t.includes(w))) return 'always';
+  if (VOICE_ALLOW.some((w) => t.includes(w)) || VOICE_YES.includes(t)) return 'allow';
+  return 'deny';
+}
+
+// 열린 모달에 음성으로 답한다. 처리했으면 되읽을 문장, 모달이 없으면 null.
+export function answerApprovalByVoice(text) {
+  if (!_currentId) return null;
+  const choice = parseApprovalAnswer(text, !!_alwaysPattern);
+  answer(choice !== 'deny', choice === 'always');
+  return HEARD_SPEECH[choice];
 }
 
 function answer(approved, always = false) {
@@ -38,6 +79,7 @@ function answer(approved, always = false) {
   send({ type: 'approval_response', id: _currentId, approved, always });
   $overlay.classList.add('hidden');
   _currentId = null;
+  _alwaysPattern = null;
 }
 
 $allow.addEventListener('click',  () => answer(true));

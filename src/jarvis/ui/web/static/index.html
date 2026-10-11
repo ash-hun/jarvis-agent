@@ -40,6 +40,10 @@
     <span class="agent-name" data-brand="name">J.A.R.V.I.S.</span>
   </div>
   <div class="right">
+    <div class="mode-seg" id="mode-seg" role="radiogroup" aria-label="모드">
+      <button type="button" role="radio" data-mode="default" aria-checked="true" title="응답은 화면으로, 음성은 구체를 눌렀을 때만"><span class="seg-long">DEFAULT</span><span class="seg-short">DEF</span></button>
+      <button type="button" role="radio" data-mode="full-voice" aria-checked="false" title="응답, 승인, 🔔 피드백을 읽고 답을 듣는다"><span class="seg-long">FULL-VOICE</span><span class="seg-short">VOICE</span></button>
+    </div>
     <span class="status-pill" id="status-pill">
       <span class="tick-sm" id="status-tick"></span><span id="status-text">READY</span>
     </span>

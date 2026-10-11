@@ -163,6 +163,21 @@ body::after {
 .status-pill.error { border-color: var(--red); color: var(--red); }
 .status-pill.error .tick-sm { background: var(--red); box-shadow: 0 0 6px var(--red); animation: none; }
 
+/* 모드 세그먼트 — 고른 쪽만 밝힌다. Full-voice 는 음성 상태색(보라)을 빌린다 */
+.mode-seg { display: inline-flex; border: 1px solid var(--primary); }
+.mode-seg button {
+  background: transparent; border: 0; cursor: pointer;
+  color: var(--text-dim); font: inherit; font-size: 10px; letter-spacing: 0.12em;
+  padding: 4px 8px; white-space: nowrap;
+}
+.mode-seg .seg-short { display: none; }
+.mode-seg button + button { border-left: 1px solid var(--primary); }
+.mode-seg button[aria-checked="true"] {
+  color: var(--pri-bright);
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+body[data-mode="full-voice"] .mode-seg button[data-mode="full-voice"] { color: #e879f9; }
+
 .clock {
   font-variant-numeric: tabular-nums;
   color: var(--primary);
@@ -1177,6 +1192,10 @@ button, .session, .sphere-hit, .panel-head {
 @media (max-width: 560px) {
   :root { --header-h: 48px; }
   .header .left .dimtext { display: none; }
+  .mode-seg button { padding: 4px 6px; letter-spacing: 0.06em; }
+  .mode-seg .seg-long { display: none; }
+  .mode-seg .seg-short { display: inline; }
+  .header .right { gap: 10px; }
   .slash-popup { max-height: 40vh; }
 }
 

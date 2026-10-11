@@ -1,31 +1,54 @@
-// 음성 입출력 배선 — 구체 클릭으로 켜고, 전사는 입력창과 같은 길로 보낸다.
-import { send } from './ws.js';
-import { escapeHtml } from './markdown.js';
-import { setStatus, currentStatus } from './shell.js';
-import { appendMsg } from './messages.js';
-import { tryProactiveFeedback } from './proactive.js';
+// 음성 입출력 배선 — 구체 클릭으로 켜고, 전사는 입력창과 같은 길로 보낸다. Full-voice 면 읽은 뒤 다시 듣는다.
 import { sendUserText, setInputEnabled, updateHighlight } from './composer.js';
+import { setStatus, currentStatus, logActivity } from './shell.js';
+import { isFullVoice, onModeChange, setMode } from './mode.js';
+import { tryProactiveFeedback } from './proactive.js';
+import { answerApprovalByVoice } from './approval.js';
+import { escapeHtml } from './markdown.js';
+import { isAgentBusy } from './events.js';
+import { appendMsg } from './messages.js';
+import { send } from './ws.js';
+
+// TTS 꼬리가 마이크에 들어가지 않게 읽기가 끝난 뒤 잠깐 쉬고 듣는다
+const LISTEN_AFTER_SPEECH_MS = 250;
+const UNSUPPORTED_MSG = 'Web Speech API를 지원하지 않는 브라우저입니다. Chrome을 사용해 주세요.';
 
 const $sphereWrap = document.querySelector('.sphere-wrap');
 const $sphereHit  = document.getElementById('sphere-hit');
 const $input      = document.getElementById('chat-input');
 
-let _voiceMode = false;  // 현재 요청이 음성으로 시작됐는지 — 응답을 읽어줄지 정한다
+let _voiceMode = false;    // 현재 요청이 음성으로 시작됐는지 — 응답을 읽어줄지 정한다
+let _thenListen = null;    // 마지막 읽기 요청이 끝났을 때 다시 들을지 묻는 함수
 
 export function isVoiceMode() { return _voiceMode; }
 export function clearVoiceMode() { _voiceMode = false; }
 
+function showUser(text) {
+  $input.value = text;   // 인식된 텍스트를 잠깐 입력창에 비춘다
+  updateHighlight();
+  appendMsg('USER', 'user', escapeHtml(text));
+  $input.value = '';
+  updateHighlight();
+}
+
 export const voice = new VoiceManager({
   onTranscript(transcript) {
     if (!transcript.trim()) return;
+    // Full-voice 에서 승인 모달이 열려 있으면 이 답은 승인이다. 메시지로 보내지 않는다.
+    if (isFullVoice()) {
+      const heard = answerApprovalByVoice(transcript);
+      if (heard) {
+        showUser(transcript);
+        appendMsg('SYS', 'sys', escapeHtml(heard));
+        logActivity(`⚡ approval · 음성 · ${heard}`, 'tool');
+        requestSpeech(heard);
+        return;
+      }
+    }
     // proactive 직후 짧은 음성 답을 수락/무시로 해석 (C3, voice).
-    if (tryProactiveFeedback(transcript)) return;
+    if (tryProactiveFeedback(transcript)) { voice.setIdle(); return; }
     _voiceMode = true;
-    $input.value = transcript;   // 인식된 텍스트를 잠깐 입력창에 비춘다
-    updateHighlight();
-    appendMsg('USER', 'user', escapeHtml(transcript));
-    $input.value = '';
-    updateHighlight();
+    showUser(transcript);
     sendUserText(transcript);
   },
   onStateChange(state) {
@@ -41,12 +64,20 @@ export const voice = new VoiceManager({
     } else if (state === 'processing') {
       // 에이전트 처리 중 — 기존 UI가 담당
     } else {
-      // idle: TTS 종료 or 오류 → input 복원 + 상태 표시 초기화
-      if (currentStatus() === 'LISTENING' || currentStatus() === 'SPEAKING') {
-        setStatus('READY');
-        HUD.setState('idle');
+      // idle: TTS 종료 or 오류. 에이전트가 아직 일하는 중이면(승인 되읽기 등) 입력을 열지 않는다.
+      if (isAgentBusy()) {
+        setStatus('THINKING', 'thinking');
+        HUD.setState('thinking');
+      } else {
+        if (currentStatus() === 'LISTENING' || currentStatus() === 'SPEAKING') {
+          setStatus('READY');
+          HUD.setState('idle');
+        }
+        setInputEnabled(true);
       }
-      setInputEnabled(true);
+      const thenListen = _thenListen;
+      _thenListen = null;
+      if (thenListen && thenListen()) setTimeout(() => voice.start(), LISTEN_AFTER_SPEECH_MS);
     }
   },
   onError(msg) {
@@ -60,7 +91,9 @@ export const voice = new VoiceManager({
 window.voiceManager = voice;
 
 // 텍스트를 읽어 달라고 서버에 요청한다. 응답은 voice_tts_audio 로 온다.
-export function requestSpeech(text) {
+// thenListen 은 읽기가 끝난 시점에 평가한다. 그사이 모달이 닫혔으면 듣지 않는다.
+export function requestSpeech(text, { thenListen = null } = {}) {
+  _thenListen = thenListen;
   voice.setProcessing();
   send({ type: 'voice_tts_request', text });
 }
@@ -68,8 +101,23 @@ export function requestSpeech(text) {
 // 구체 클릭 → voice mode 토글
 $sphereHit.addEventListener('click', () => {
   if (!voice.supported) {
-    appendMsg('SYS', 'err', 'Web Speech API를 지원하지 않는 브라우저입니다. Chrome을 사용해 주세요.');
+    appendMsg('SYS', 'err', UNSUPPORTED_MSG);
     return;
   }
   voice.toggle();
+});
+
+// Full-voice 로 바꾼 클릭이 사용자 제스처라 그때 마이크를 연다. 되돌리면 듣던 것을 멈춘다.
+onModeChange((mode) => {
+  if (mode === 'full-voice') {
+    if (!voice.supported) {
+      appendMsg('SYS', 'err', UNSUPPORTED_MSG);
+      setMode('default');
+      return;
+    }
+    voice.start();
+  } else {
+    _thenListen = null;
+    voice.stop();
+  }
 });

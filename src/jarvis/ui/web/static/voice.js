@@ -19,11 +19,14 @@
  *   'browser' (기본) — Web Speech API가 브라우저에서 인식
  *   'server'         — MediaRecorder로 녹음 → onAudioCaptured로 백엔드 전송 → receiveTranscript로 결과 수신
  */
-// 블루투스 헤드셋은 마이크가 닫히면 통화 프로필에서 음악 프로필로 넘어가며 그사이 소리를 버린다.
-// 마이크를 놓은 직후의 읽기는 넘어갈 시간을 준 뒤 시작한다.
-const MIC_SETTLE_MS = 400;
+// 블루투스 헤드셋은 인식이 닫힌 직후 오디오 경로를 다시 잡으며 그사이 소리를 버린다.
+// 마이크 스트림을 잡아 둬도 인식 쪽 캡처는 닫히므로, 인식 직후의 읽기는 늘 잠깐 쉬고 시작한다.
+const MIC_SETTLE_MS = 600;
 // onend 가 오지 않는 브라우저에서도 읽기가 막히지 않게 기다림에 상한을 둔다
 const MIC_RELEASE_TIMEOUT_MS = 1500;
+// speak 뒤 이 시간 안에 start 가 오지 않으면 브라우저가 문장을 버린 것으로 보고 한 번만 다시 읽는다
+const TTS_START_TIMEOUT_MS = 1500;
+const TTS_RETRY_GAP_MS = 150;
 
 class VoiceManager {
   constructor({ onTranscript, onStateChange, onError, onAudioCaptured, lang = 'ko-KR' } = {}) {
@@ -193,14 +196,32 @@ class VoiceManager {
     if (!window.speechSynthesis) { this._setState('idle'); return; }
     this._setState('speaking');
     await this._afterMicReleased();
+    // Chrome 은 cancel 직후의 speak 를 소리 없이 버릴 때가 있어, 읽는 게 있을 때만 끊는다
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) window.speechSynthesis.cancel();
+    this._speakUtterance(text, lang, true);
+  }
+
+  _speakUtterance(text, lang, retry) {
     const u  = new SpeechSynthesisUtterance(text);
     u.lang   = lang;
     u.rate   = 1.0;
-    u.onend  = () => this._setState('idle');
-    u.onerror = () => this._setState('idle');
-    // Chrome 은 cancel 직후의 speak 를 소리 없이 버릴 때가 있어, 읽는 게 있을 때만 끊는다
-    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) window.speechSynthesis.cancel();
+    this._utterance = u;  // Chrome 이 재생 중인 utterance 를 수거해 onend 를 잃지 않게 잡아 둔다
+    let started = false;
+    u.onstart = () => { started = true; console.info('[voice] tts start', text.slice(0, 20)); };
+    u.onend   = () => { if (this._utterance === u) this._setState('idle'); };
+    u.onerror = (e) => {
+      console.warn('[voice] tts error', e.error, text.slice(0, 20));
+      if (this._utterance === u) this._setState('idle');
+    };
     window.speechSynthesis.speak(u);
+    setTimeout(() => {
+      if (started || this._utterance !== u) return;
+      console.warn('[voice] tts did not start', retry ? 'retrying' : 'giving up', text.slice(0, 20));
+      this._utterance = null;  // 끊긴 문장의 onerror 가 상태를 idle 로 돌리지 않게
+      window.speechSynthesis.cancel();
+      if (retry) setTimeout(() => this._speakUtterance(text, lang, false), TTS_RETRY_GAP_MS);
+      else this._setState('idle');
+    }, TTS_START_TIMEOUT_MS);
   }
 
   // ── 서버 STT 녹음 (MediaRecorder) ─────────────────────────────────────────────
@@ -268,7 +289,7 @@ class VoiceManager {
     this._releaseWaiters.splice(0).forEach(fn => fn());
   }
 
-  // 인식이 닫히고 헤드셋이 출력 쪽으로 넘어간 뒤에 풀린다. 잡아 둔 스트림이 있으면 프로필이 안 바뀌므로 넘어갈 시간은 주지 않는다.
+  // 인식이 닫히고 헤드셋이 출력 쪽으로 넘어간 뒤에 풀린다
   async _afterMicReleased() {
     if (this._micOpen) {
       await new Promise((resolve) => {
@@ -277,7 +298,6 @@ class VoiceManager {
       });
       this._markMicReleased();
     }
-    if (this._heldStream) return;
     const left = MIC_SETTLE_MS - (performance.now() - this._micReleasedAt);
     if (left > 0) await new Promise(r => setTimeout(r, left));
   }

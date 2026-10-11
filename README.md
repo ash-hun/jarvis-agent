@@ -6,7 +6,7 @@
     <img src="./assets/hud-motion.gif" alt="Web HUD 모션그래픽 — 내적 사고, 마크다운 응답, 먼저 건네는 말, 승인 기억" />
 </div>
 
-**문서 사이트**: `website/` 의 Docusaurus. `cd website && npm install && npm start`. 소개, 구현 철학, 기능별 동작 흐름, 이용 방법이 있다.
+**문서 사이트**: https://ash-hun.github.io/jarvis-agent/ (`website/` 의 Docusaurus, main 에 머지되면 자동 배포). 로컬은 `cd website && npm install && npm start`. 소개, 구현 철학, 기능별 동작 흐름, 이용 방법이 있다.
 
 <sub>모션그래픽은 `assets/hud-motion/` 의 Remotion 프로젝트에서 나온다. 떠 있는 HUD 에서 `capture.py`(화면)와 `capture_video.py`(구체 녹화)로 소재를 찍고 `npm run render`.</sub>
 

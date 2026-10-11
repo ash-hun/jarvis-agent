@@ -1,9 +1,5 @@
-"""
-User Model 서브시스템 (Tier 3 D1).
+"""[agent_layer] 누적 기억에서 사용자 모델을 증류해 저장하는 서브시스템의 공개 이름을 모은다."""
 
-누적 기억에서 사용자의 안정적 특성(선호·작업 방식·반복 패턴)을 LLM으로 증류해
-저장하고, 사고 시 컨텍스트로 주입해 "사용자를 아는" 판단을 돕는다.
-"""
 from __future__ import annotations
 
 from jarvis.agent_layer.usermodel.builder import DEFAULT_PROMPT, UserModelBuilder

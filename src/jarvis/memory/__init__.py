@@ -1,6 +1,6 @@
-"""에이전트 메모리 모듈. 범위(scope), 종류(kind), 항목(item), 저장소와 매니저, 평가 도구를 담는다."""
+"""[memory] 에이전트 메모리 패키지 입구로, 범위, 종류, 항목, 서비스와 쓰기 규칙을 내보낸다."""
 
-from jarvis.memory.manager import WRITE_RULES, MemoryManager
+from jarvis.memory.memory_service import WRITE_RULES, MemoryService
 from jarvis.memory.scope import (
     LOCAL_USER,
     MAIN_AGENT,
@@ -18,7 +18,7 @@ __all__ = [
     "WRITE_RULES",
     "MemoryItem",
     "MemoryKind",
-    "MemoryManager",
+    "MemoryService",
     "MemoryScope",
     "Visibility",
     "current_scope",

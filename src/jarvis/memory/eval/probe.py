@@ -1,8 +1,9 @@
-"""비용 계측. 평가 중 LLM 호출 횟수를 provider 의 stream 을 감싸서 센다."""
+"""[memory] 평가 중 provider 의 stream 을 감싸 LLM 호출 횟수를 세는 비용 계측."""
 
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -19,7 +20,8 @@ def count_llm_calls(provider_name: str) -> Iterator[CallCounter]:
     counter = CallCounter()
     original = provider.stream
 
-    def counted(*args, **kwargs):
+    # provider 마다 stream 시그니처가 달라 인자와 반환값을 그대로 넘긴다
+    def counted(*args: Any, **kwargs: Any) -> Any:
         counter.calls += 1
         return original(*args, **kwargs)
 

@@ -1,14 +1,18 @@
-"""사례를 대상에 넣고 질의해 판정한다. 사례마다 저장소를 비우므로 실행 순서에 의존하지 않는다."""
+"""[memory] 사례를 대상에 넣고 질의해 판정한다(사례마다 저장소를 비우므로 실행 순서에 의존하지 않는다)."""
 
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from jarvis.memory.eval.metrics import CaseResult, SuiteReport, judge, summarize
 from jarvis.memory.eval.schema import EvalCase, WorkingCase, load_cases, load_working_cases
 from jarvis.memory.eval.target import EvalTarget, WorkingTarget
 from jarvis.memory.working.window import SUMMARY_HEADER
 from jarvis.model_layer.types import Message
+
+if TYPE_CHECKING:
+    from jarvis.memory.consolidation.compaction import Summarizer
+    from jarvis.memory.eval.faithfulness import FactJudge
 
 DATASETS_DIR = Path(__file__).parent / "datasets"
 STORE_SUITES = ("isolation", "semantic", "episodic", "procedural", "paraphrase")
@@ -28,7 +32,7 @@ class EvalReport:
     def all_passed(self) -> bool:
         return all(c.passed for c in self.cases)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "suites": {k: asdict(v) for k, v in self.suites.items()},
             "cases": [asdict(c) for c in self.cases],
@@ -68,7 +72,7 @@ async def run(cases: list[EvalCase], target: EvalTarget) -> EvalReport:
 
 async def run_working(cases: list[WorkingCase], target: WorkingTarget | None = None) -> EvalReport:
     target = target or WorkingTarget()
-    results = []
+    results: list[CaseResult] = []
     for case in cases:
         calls, contexts = await target.run_case(case)
         results.append(judge_working(case, calls, contexts))
@@ -106,16 +110,19 @@ def _is_summary(message: Message) -> bool:
     return message.role == "user" and isinstance(message.content, str) and message.content.startswith(SUMMARY_HEADER)
 
 
-async def run_faithfulness_suite(names: list[str], summarizer: Any = None, judge: Any = None) -> EvalReport | None:
+async def run_faithfulness_suite(
+    names: list[str], summarizer: "Summarizer | None" = None, judge: "FactJudge | None" = None
+) -> EvalReport | None:
     """faithfulness 스위트. 요약기와 판정기가 없으면 오프라인 기준선(추출 요약 + 문자열 포함)."""
     from jarvis.memory.eval.faithfulness import (
+        FaithfulnessCase,
         contains_fact_judge,
         extractive_summarizer,
         load_faithfulness_cases,
         run_faithfulness,
     )
 
-    cases = []
+    cases: list[FaithfulnessCase] = []
     for name in names:
         if name in FAITHFULNESS_SUITES:
             cases.extend(load_faithfulness_cases(DATASETS_DIR / f"{name}.jsonl"))

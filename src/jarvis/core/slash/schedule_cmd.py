@@ -1,3 +1,5 @@
+"""[core] 한국어 시각 표현을 해석해 한 번 실행 또는 반복 작업으로 스케줄러에 등록하는 /schedule 핸들러 factory."""
+
 from __future__ import annotations
 
 import re
@@ -47,7 +49,7 @@ def parse_deadline(args: str) -> tuple[datetime, str] | None:
     return None
 
 
-# ── "~에" — 정한 시각에 한 번 ─────────────────────────────────────────────────
+# ── "~에": 정한 시각에 한 번 ──────────────────────────────────────────────────
 # N분/시간/일 뒤(후)에 <prompt>
 _REL_RE = re.compile(r"^(\d+)\s*(분|시간|일)\s*(?:뒤|후)에?\s+(.*)", re.DOTALL)
 # YYYY.MM.DD 오전/오후 N시[ M분]에 <prompt>

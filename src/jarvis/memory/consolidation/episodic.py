@@ -1,4 +1,4 @@
-"""세션 종료 요약. 세션 전체 대화를 요약해 그 세션 범위의 private 일화로 남긴다."""
+"""[memory] 세션 종료 때 세션 전체 대화를 요약해 그 세션 범위의 private 일화로 남긴다."""
 
 from typing import TYPE_CHECKING
 
@@ -6,7 +6,7 @@ from jarvis.memory.scope import MemoryScope
 from jarvis.model_layer.types import LLMContext, Message, ModelConfig, StreamOptions, UserMessage
 
 if TYPE_CHECKING:
-    from jarvis.memory.manager import MemoryManager
+    from jarvis.memory.memory_service import MemoryService
 
 SYSTEM_PROMPT = (
     "You are a summarization assistant. "
@@ -15,7 +15,7 @@ SYSTEM_PROMPT = (
 
 
 class EpisodicSummarizer:
-    def __init__(self, model: ModelConfig, memory: "MemoryManager") -> None:
+    def __init__(self, model: ModelConfig, memory: "MemoryService") -> None:
         self._model = model
         self._memory = memory
 

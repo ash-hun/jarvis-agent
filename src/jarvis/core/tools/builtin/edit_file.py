@@ -1,10 +1,14 @@
+"""[core] 파일 안의 정확한 문자열을 바꾸는 edit_file 내장 도구."""
+
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from typing import Any
 
 import aiofiles
 
+from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
 TOOL_NAME = "edit_file"
@@ -13,7 +17,7 @@ TOOL_DESCRIPTION = (
     "Fails if old_string is not found. "
     "Set replace_all=true to replace every occurrence; otherwise fails when multiple matches exist."
 )
-TOOL_PARAMETERS = {
+TOOL_PARAMETERS: dict[str, Any] = {
     "type": "object",
     "properties": {
         "path": {"type": "string", "description": "File path to edit"},
@@ -29,7 +33,7 @@ TOOL_PARAMETERS = {
 }
 
 
-class EditFileTool:
+class EditFileTool(JarvisTool):
     name = TOOL_NAME
     description = TOOL_DESCRIPTION
     parameters = TOOL_PARAMETERS
@@ -38,7 +42,7 @@ class EditFileTool:
     async def execute(
         self,
         tool_call_id: str,
-        params: dict,
+        params: dict[str, Any],
         signal: asyncio.Event | None = None,
     ) -> ToolResultMessage:
         path = Path(params["path"]).expanduser()

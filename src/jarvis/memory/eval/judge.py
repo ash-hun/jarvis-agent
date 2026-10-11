@@ -1,4 +1,4 @@
-"""정답 판정. 회상된 증거로 답을 만들고(LLM 1회) 정답과 맞는지 판정한다(LLM 1회). 비싸서 --judge 일 때만."""
+"""[memory] 회상된 증거로 답을 만들고(LLM 1회) 정답과 맞는지 판정한다(LLM 1회, 비싸서 --judge 일 때만)."""
 
 from jarvis.memory.eval.benchmark import BenchmarkQuestion, Judge
 from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage

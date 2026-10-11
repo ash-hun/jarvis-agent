@@ -1,10 +1,10 @@
-"""메모리 항목의 종류와 데이터 모델. 심리학의 장기 기억 분류(일화, 의미, 절차)를 그대로 쓴다."""
+"""[memory] 심리학의 장기 기억 분류(일화, 의미, 절차)를 그대로 쓴 메모리 항목의 종류와 데이터 모델."""
 
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from jarvis.memory.scope import MemoryScope
 
@@ -36,7 +36,7 @@ class MemoryItem:
     embedding_model: str | None = None  # 어떤 모델로 만든 벡터인지. 모델이 바뀌면 재임베딩 대상
     id: str = field(default_factory=lambda: uuid.uuid4().hex)
     created_at: datetime = field(default_factory=datetime.now)
-    metadata: dict = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def session_id(self) -> str | None:

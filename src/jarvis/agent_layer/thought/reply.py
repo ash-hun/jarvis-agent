@@ -1,11 +1,14 @@
-"""🔔 에 대한 짧은 답과 음성 승인 답을 사고 모델로 분류한다(키워드로 판정이 안 될 때만)."""
+"""[agent_layer] 🔔 에 대한 짧은 답과 음성 승인 답을 사고 모델로 분류한다(키워드로 판정이 안 될 때만)."""
 
 import asyncio
 import json
 from typing import Literal
 
+from jarvis.common.logger import get_logger
 from jarvis.model_layer.stream import stream_to_message
 from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
+
+logger = get_logger(__name__)
 
 ReplyKind = Literal["feedback", "approval"]
 
@@ -100,7 +103,7 @@ class ReplyClassifier:
         try:
             raw = await asyncio.wait_for(self._call_model(prompt, kind), self._timeout_sec)
         except Exception as exc:
-            print(f"[Reply] {kind} classify failed: {exc!r}")
+            logger.info(f"[Reply] {kind} classify failed: {exc!r}")
             return FALLBACK[kind]
         return parse_verdict(kind, raw, has_always)
 

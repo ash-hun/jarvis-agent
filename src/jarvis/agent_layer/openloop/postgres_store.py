@@ -1,20 +1,26 @@
+"""[agent_layer] open-loop 을 PostgreSQL 테이블에 영속한다(asyncpg 풀, 상태 변경은 UPDATE)."""
+
 from __future__ import annotations
 
 import asyncio
 import time
 from typing import Any
 
+from jarvis.agent_layer.openloop.store import OpenLoopStore
 from jarvis.agent_layer.openloop.types import LOOP_STATUSES, OpenLoop, merge_loop, normalize_description
 
 
-class PostgresOpenLoopStore:
+class PostgresOpenLoopStore(OpenLoopStore):
     """PostgreSQL 기반 open-loop 저장소 (docker/외부 DB 영속). asyncpg 풀 패턴.
 
     PostgresLTMBackend와 동일한 풀/테이블 초기화 패턴. 상태 변경은 UPDATE.
+    기본 클래스의 메모리 저장은 쓰지 않고 모든 메서드를 DB 질의로 재정의한다.
     """
 
     def __init__(self, dsn: str) -> None:
+        super().__init__()
         self._dsn = dsn
+        # asyncpg 는 타입 스텁이 없어 풀과 레코드를 Any 로 다룬다
         self._pool: Any = None
         self._loop: asyncio.AbstractEventLoop | None = None
 
@@ -120,7 +126,7 @@ class PostgresOpenLoopStore:
             return False
         pool = await self._get_pool()
         async with pool.acquire() as conn:
-            result = await conn.execute(
+            result: str = await conn.execute(
                 "UPDATE jarvis_open_loops SET status = $2, updated_at = $3 WHERE id = $1",
                 loop_id,
                 status,

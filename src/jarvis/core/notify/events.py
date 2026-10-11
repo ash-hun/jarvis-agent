@@ -1,12 +1,15 @@
-"""AgentEvent 흐름에서 밖으로 보낼 것(proactive 발화)만 골라 알림 payload 로 바꾼다."""
+"""[core] AgentEvent 흐름에서 밖으로 보낼 것(proactive 발화)만 골라 알림 payload 로 바꾼다."""
 
 from collections.abc import Awaitable, Callable
 from typing import Any
 
 from jarvis.agent_layer.types import AgentEvent, ProactiveMessageEvent
+from jarvis.common.logger import get_logger
 
 # filler 는 "잠깐만요" 류 대기 신호라 밖으로 내보낼 가치가 없다.
 FORWARD_KINDS = frozenset({"proactive", "answer"})
+
+logger = get_logger(__name__)
 
 
 def proactive_payload(event: AgentEvent) -> dict[str, Any] | None:
@@ -33,6 +36,6 @@ def proactive_forwarder(
         try:
             await notify(payload)
         except Exception as exc:
-            print(f"[Notify] proactive forward failed: {exc!r}")
+            logger.info(f"[Notify] proactive forward failed: {exc!r}")
 
     return listener

@@ -7,13 +7,18 @@ title: 아키텍처
 
 ## 계층
 
-`src/jarvis/` 는 네 층이다. 아래층은 위층을 모른다.
+`src/jarvis/` 는 아래에서 위로 model_layer, memory, agent_layer, core, app, ui 순서다. 아래층은 위층을 모른다. `common/`(로거)은 어느 층이든 쓸 수 있고 자신은 아무 층도 모른다.
 
 ```mermaid
 flowchart TB
   subgraph UI["ui/  화면"]
-    TUI["tui/  Textual 터미널"]
-    WEB["web/  FastAPI + 정적 HUD"]
+    TUI["tui/  Textual 터미널, startup.py 진입점"]
+    WEB["web/  server.py, router/, session_registry.py, 정적 HUD"]
+  end
+  subgraph APP["app/  조립"]
+    INFRA["infra_builder.py  InfraBuilder"]
+    PROFILE["agent_profile.py  AgentProfile"]
+    SB["session_builder.py  SessionBuilder"]
   end
   subgraph CORE["core/  오케스트레이션과 정책"]
     SESSION["session.py  AgentSession"]
@@ -36,7 +41,7 @@ flowchart TB
     STREAM["stream.py  types.py  embeddings.py"]
   end
   MEMORY["memory/  작업 기억, 장기 기억, 회상, 통합"]
-  UI --> CORE --> AGENT --> MODEL
+  UI --> APP --> CORE --> AGENT --> MODEL
   AGENT --> MEMORY
   CORE --> MEMORY
 ```
@@ -44,8 +49,9 @@ flowchart TB
 - **model_layer**: 프로바이더마다 `stream()` 하나. 텍스트 델타, 도구 호출 델타, 정지 이벤트를 같은 모양으로 낸다. 임베딩도 여기
 - **agent_layer**: 에이전트 루프(`run_agent_loop`), 세션 저장소, 내적 사고 엔진, 메모리 미들웨어. 벤더를 모른다
 - **core**: `AgentSession` 이 한 턴을 지휘한다. 보안, 도구, 승인, proactive 정책, 슬래시, 절차 학습, 멀티 에이전트, 스케줄러
-- **ui**: TUI 와 Web. 둘 다 `ui/tui/startup.py` 의 같은 배선 함수로 세션을 만든다
-- **memory**: 작업 기억(요약과 창)과 장기 기억(의미, 일화, 절차)을 가진 `MemoryManager`
+- **app**: 조립 층. `InfraBuilder` 가 설정 하나로 도구, 메모리, 저장소, 보안, 스케줄러, proactive, 슬래시 명령을 만들고, `AgentProfile`(에이전트 한 명분 설정과 피드백 학습기)과 `SessionBuilder` 가 세션을 만든다
+- **ui**: TUI 와 Web. 둘 다 `app` 의 조립 결과(`AppAssembly`)를 받아 화면만 담당한다
+- **memory**: 작업 기억(요약과 창)과 장기 기억(의미, 일화, 절차)을 가진 `MemoryService`
 
 ## 요청 한 번의 흐름
 
@@ -98,7 +104,7 @@ sequenceDiagram
 
 ## 두 화면, 한 배선
 
-TUI 와 Web 모두 `ui/tui/startup.py` 의 `_build_infra`(도구, 스케줄러, 알림, 에이전트, 디스패처)와 `_build_agent_session`(사고 엔진, proactive 코어, open loop, 사용자 모델)을 쓴다. Web 은 세션마다 샌드박스와 보안 파이프라인을 따로 두고, 승인은 세션 단위 브로커가 모든 연결에 방송한다. 차이는 화면과 승인 입력 방식뿐이다.
+TUI 와 Web 모두 `app/infra_builder.py` 의 `build_app`(도구, 스케줄러, 알림, 서브 에이전트, 디스패처)과 `app/session_builder.py` 의 `SessionBuilder`(사고 엔진, proactive 코어, open loop, 사용자 모델)를 쓴다. 에이전트마다 달라질 수 있는 값(브랜드, 모델, 사고와 proactive 설정, 피드백 학습기)은 `AgentProfile` 에 모여 있고 지금은 `main` 하나다. Web 은 세션마다 샌드박스와 보안 파이프라인을 따로 두고, 승인은 세션 단위 브로커가 모든 연결에 방송한다. 차이는 화면과 승인 입력 방식뿐이다.
 
 ## 저장 위치
 

@@ -1,4 +1,4 @@
-"""의미 추출. 일화(세션 요약)에서 '주제: 값' 사실을 뽑는다. 반복된 경험이 일반 지식으로 추상화되는 자리."""
+"""[memory] 일화(세션 요약)에서 "주제: 값" 사실을 뽑아 반복된 경험을 일반 지식으로 추상화한다."""
 
 import json
 from collections.abc import Awaitable, Callable

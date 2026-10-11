@@ -1,3 +1,5 @@
+"""[agent_layer] 에이전트 루프가 내보내는 이벤트와 실행 컨텍스트, 루프 설정 모델을 정의한다."""
+
 from __future__ import annotations
 
 import time
@@ -78,7 +80,7 @@ class ProactiveMessageEvent(BaseModel):
     """시스템 → 사용자 비요청 발화 (Tier 1 Push 채널).
 
     kind:
-    - filler    : Dual-Channel — "오래 걸림"을 알리는 즉답 (voice는 즉시 TTS)
+    - filler    : Dual-Channel: "오래 걸림"을 알리는 즉답 (voice는 즉시 TTS)
     - proactive : daemon이 먼저 거는 말
     - answer    : deferred 작업 완료 후 단발 push 답
     """

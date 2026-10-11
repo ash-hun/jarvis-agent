@@ -1,4 +1,4 @@
-"""평가 사례(jsonl 한 줄)의 형식."""
+"""[memory] 평가 사례(jsonl 한 줄)의 형식과 로더."""
 
 import json
 from pathlib import Path

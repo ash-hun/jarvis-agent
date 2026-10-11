@@ -1,10 +1,4 @@
-"""BlackboardOrchestrator — 공유 블랙보드 기반 협업 실행.
-
-1. 초기 task를 블랙보드에 기록
-2. 모든 노드가 블랙보드 스냅샷을 context로 받아 병렬 실행
-3. 각 노드의 결과를 블랙보드에 기록
-4. 전체 결과를 합산하여 반환
-"""
+"""[core] 작업을 블랙보드에 공표하고 모든 노드를 병렬 실행해 결과를 블랙보드에 모으는 오케스트레이터."""
 
 from __future__ import annotations
 
@@ -19,6 +13,11 @@ from .base import BaseOrchestrator
 
 
 class BlackboardOrchestrator(BaseOrchestrator):
+    """작업을 블랙보드에 기록하고, 모든 노드가 그 스냅샷을 context 로 받아 병렬 실행한다.
+
+    각 노드의 결과를 블랙보드에 기록한 뒤 전체 결과를 합산하여 반환한다.
+    """
+
     def __init__(
         self,
         topology: BlackboardTopology,
@@ -53,7 +52,7 @@ class BlackboardOrchestrator(BaseOrchestrator):
                 error="No nodes in topology",
             )
 
-        results: tuple[AgentResult, ...] = await asyncio.gather(
+        results: list[AgentResult] = await asyncio.gather(
             *[node.invoke(bb_task) for node in nodes]
         )
 

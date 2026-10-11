@@ -1,24 +1,32 @@
+"""[model_layer] Ollama /api/chat NDJSON 스트림을 공통 스트림 이벤트로 바꾸는 프로바이더."""
+
 from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator
+from typing import Any
 
 import httpx
 
+from jarvis.model_layer.providers.base import Provider
 from jarvis.model_layer.types import (
     ErrorEvent,
+    ImageContent,
     LLMContext,
     ModelConfig,
     StopEvent,
+    StopReason,
     StreamEvent,
     StreamOptions,
+    TextContent,
     TextDeltaEvent,
+    Tool,
     ToolCallDeltaEvent,
     Usage,
 )
 
 
-class OllamaProvider:
+class OllamaProvider(Provider):
     """Ollama 로컬 모델 프로바이더. base_url 기본값: http://localhost:11434"""
 
     provider_name = "ollama"
@@ -39,7 +47,7 @@ class OllamaProvider:
         messages = _convert_messages(context)
         tools = [_tool_to_ollama(t) for t in context.tools] if context.tools else []
 
-        payload: dict = {
+        payload: dict[str, Any] = {
             "model": model.model,
             "messages": messages,
             "stream": True,
@@ -61,7 +69,7 @@ class OllamaProvider:
             async with httpx.AsyncClient(timeout=model.timeout) as client:
                 async with client.stream("POST", f"{base_url}/api/chat", json=payload) as resp:
                     resp.raise_for_status()
-                    tool_buffers: dict[str, dict] = {}
+                    tool_buffers: dict[str, dict[str, Any]] = {}
 
                     async for line in resp.aiter_lines():
                         if not line:
@@ -97,14 +105,14 @@ class OllamaProvider:
             yield ErrorEvent(message=str(exc))
 
 
-def _stop_reason(chunk: dict, had_tool_calls: bool) -> str:
+def _stop_reason(chunk: dict[str, Any], had_tool_calls: bool) -> StopReason:
     if had_tool_calls:
         return "tool_use"
     return "length" if chunk.get("done_reason") == "length" else "stop"
 
 
-def _convert_messages(context: LLMContext) -> list[dict]:
-    result = []
+def _convert_messages(context: LLMContext) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
     if context.system_prompt:
         result.append({"role": "system", "content": context.system_prompt})
 
@@ -114,12 +122,12 @@ def _convert_messages(context: LLMContext) -> list[dict]:
             result.append({"role": "user", "content": content})
 
         elif msg.role == "assistant":
-            text = "".join(b.text for b in msg.content if b.type == "text")  # type: ignore[union-attr]
-            entry: dict = {"role": "assistant", "content": text}
+            text = "".join(b.text for b in msg.content if b.type == "text")
+            entry: dict[str, Any] = {"role": "assistant", "content": text}
             tool_calls = [b for b in msg.content if b.type == "tool_call"]
             if tool_calls:
                 entry["tool_calls"] = [
-                    {"function": {"name": tc.name, "arguments": tc.arguments}}  # type: ignore[union-attr]
+                    {"function": {"name": tc.name, "arguments": tc.arguments}}
                     for tc in tool_calls
                 ]
             result.append(entry)
@@ -133,11 +141,11 @@ def _convert_messages(context: LLMContext) -> list[dict]:
     return result
 
 
-def _content_to_api(content: list) -> str:
+def _content_to_api(content: list[TextContent | ImageContent]) -> str:
     return " ".join(block.text for block in content if block.type == "text")
 
 
-def _tool_to_ollama(tool) -> dict:
+def _tool_to_ollama(tool: Tool) -> dict[str, Any]:
     return {
         "type": "function",
         "function": {

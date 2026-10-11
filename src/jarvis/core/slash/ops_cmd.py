@@ -1,4 +1,5 @@
-"""운영용 슬래시 커맨드 핸들러 factory — /sessions, /branch, /tools, /compact."""
+"""[core] 운영용 슬래시 명령(/sessions, /branch, /tools, /compact) 핸들러 factory."""
+
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
@@ -7,14 +8,14 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
     from jarvis.core.tools.registry import ToolRegistry
-    from jarvis.memory.manager import MemoryManager
+    from jarvis.memory.memory_service import MemoryService
     from jarvis.model_layer.types import ModelConfig
 
 Handler = Callable[[str], Awaitable[str]]
 
 
 def make_sessions_handler(session_repo: SessionRepo) -> Handler:
-    """/sessions — 저장된 세션 목록을 표시."""
+    """/sessions: 저장된 세션 목록을 표시."""
 
     async def handle(_args: str) -> str:
         sessions = await session_repo.list("")
@@ -31,7 +32,7 @@ def make_sessions_handler(session_repo: SessionRepo) -> Handler:
 
 
 def make_branch_handler(session_repo: SessionRepo, default_session_id: str = "default") -> Handler:
-    """/branch [session_id] — 세션을 특정 시점에서 분기."""
+    """/branch [session_id]: 세션을 특정 시점에서 분기."""
 
     async def handle(args: str) -> str:
         parent_id = args.strip() or default_session_id
@@ -52,7 +53,7 @@ def make_branch_handler(session_repo: SessionRepo, default_session_id: str = "de
 
 
 def make_tools_handler(tool_registry: ToolRegistry) -> Handler:
-    """/tools — 현재 사용 가능한 도구 목록을 표시."""
+    """/tools: 현재 사용 가능한 도구 목록을 표시."""
 
     async def handle(_args: str) -> str:
         tools = sorted(tool_registry.list_all(), key=lambda t: t.name)
@@ -72,10 +73,10 @@ def make_tools_handler(tool_registry: ToolRegistry) -> Handler:
 def make_compact_handler(
     model: ModelConfig,
     session_repo: SessionRepo,
-    memory: MemoryManager | None = None,
+    memory: MemoryService | None = None,
     session_id: str = "default",
 ) -> Handler:
-    """/compact — 현재 세션을 요약해 장기 기억(LTM)에 저장."""
+    """/compact: 현재 세션을 요약해 장기 기억(LTM)에 저장."""
 
     async def handle(_args: str) -> str:
         messages = await session_repo.get_messages(session_id)

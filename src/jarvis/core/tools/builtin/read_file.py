@@ -1,15 +1,19 @@
+"""[core] 파일을 줄 번호와 함께 읽어 주는 read_file 내장 도구."""
+
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from typing import Any
 
 import aiofiles
 
+from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
 TOOL_NAME = "read_file"
 TOOL_DESCRIPTION = "Read the contents of a file."
-TOOL_PARAMETERS = {
+TOOL_PARAMETERS: dict[str, Any] = {
     "type": "object",
     "properties": {
         "path": {"type": "string", "description": "File path to read"},
@@ -20,7 +24,7 @@ TOOL_PARAMETERS = {
 }
 
 
-class ReadFileTool:
+class ReadFileTool(JarvisTool):
     name = TOOL_NAME
     description = TOOL_DESCRIPTION
     parameters = TOOL_PARAMETERS
@@ -29,7 +33,7 @@ class ReadFileTool:
     async def execute(
         self,
         tool_call_id: str,
-        params: dict,
+        params: dict[str, Any],
         signal: asyncio.Event | None = None,
     ) -> ToolResultMessage:
         path = Path(params["path"]).expanduser()

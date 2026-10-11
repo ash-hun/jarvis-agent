@@ -1,14 +1,19 @@
+"""[core] 폴러가 넣고 성찰하는 세션이 한 번에 비우는 앱 레벨 외부 이벤트 큐."""
+
 from __future__ import annotations
 
 from collections import deque
 
+from jarvis.common.logger import get_logger
 from jarvis.core.external.types import ExternalEvent
+
+logger = get_logger(__name__)
 
 
 class ExternalEventInbox:
-    """앱 레벨 단일 큐 — 폴러가 넣고, 성찰하는 세션이 한 번에 비운다.
+    """앱 레벨 단일 큐. 폴러가 넣고, 성찰하는 세션이 한 번에 비운다.
 
-    ExternalTrigger는 "깨우기"만, payload는 이 inbox가 나른다 —
+    ExternalTrigger는 "깨우기"만, payload는 이 inbox가 나른다.
     트리거 시그니처와 AnyTrigger race 의미론을 건드리지 않기 위한 분리다.
     drain()이 drain-once이므로 이벤트 1건은 정확히 한 세션에서만 발화된다.
     """
@@ -24,7 +29,7 @@ class ExternalEventInbox:
         self._events.extend(events)
         if overflow:
             self._dropped += overflow
-            print(
+            logger.info(
                 f"[ExternalEventInbox] maxlen={self._maxlen} 초과 — 오래된 이벤트 "
                 f"{overflow}건 드롭 (누적 {self._dropped}건)"
             )

@@ -1,13 +1,16 @@
+"""[core] Brave Search(키 없으면 DuckDuckGo)로 웹을 검색하는 web_search 내장 도구."""
+
 from __future__ import annotations
 
 from typing import Any
 
 import httpx
 
+from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
 
-class WebSearchTool:
+class WebSearchTool(JarvisTool):
     name = "web_search"
     description = (
         "Search the web for current information. "
@@ -88,7 +91,7 @@ async def _search_brave(query: str, max_results: int, api_key: str) -> list[dict
 
 
 async def _search_ddg(query: str, max_results: int) -> list[dict[str, str]]:
-    """DuckDuckGo Instant Answers API — 무료, 키 불필요."""
+    """DuckDuckGo Instant Answers API. 무료, 키 불필요."""
     url = "https://api.duckduckgo.com/"
     params: dict[str, Any] = {
         "q": query,

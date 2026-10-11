@@ -1,21 +1,18 @@
-"""LoCoMo (Maharana et al. 2024). https://github.com/snap-research/locomo
-
-샘플 하나가 두 화자의 긴 대화(session_N, session_N_date_time)와 qa 목록을 가진다.
-qa 의 evidence 는 dia_id 목록(턴 단위). category 는 논문 기준 1 multi-hop, 2 temporal,
-3 open-domain, 4 single-hop, 5 adversarial(답 없음).
-"""
+"""[memory] LoCoMo(Maharana et al. 2024) 샘플의 두 화자 대화와 qa 를 BenchmarkQuestion 으로 바꾼다."""
 
 import json
 import re
 from pathlib import Path
+from typing import Any
 
 from jarvis.memory.eval.benchmark import BenchmarkQuestion, BenchmarkSession, BenchmarkTurn
 
+# 원본 https://github.com/snap-research/locomo. qa 의 evidence 는 dia_id 목록(턴 단위), category 는 논문 기준 번호다
 CATEGORY = {1: "multi-hop", 2: "temporal", 3: "open-domain", 4: "single-hop", 5: "adversarial"}
 _SESSION_KEY = re.compile(r"^session_(\d+)$")
 
 
-def parse_locomo(samples: list[dict]) -> list[BenchmarkQuestion]:
+def parse_locomo(samples: list[dict[str, Any]]) -> list[BenchmarkQuestion]:
     questions: list[BenchmarkQuestion] = []
     for sample in samples:
         sample_id = str(sample.get("sample_id", len(questions)))

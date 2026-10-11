@@ -89,9 +89,17 @@ ignore = ["B008", "SIM117"]
 python_version = "3.11"
 strict = true
 plugins = ["pydantic.mypy"]
+# 패키지 모드로 본다. 경로 모드(src/jarvis)는 jarvis 를 설치된 외부 모듈로 보고 import-untyped 를 쏟아낸다
+mypy_path = "src"
+packages = ["jarvis"]
 
 [[tool.mypy.overrides]]
 module = ["google.*", "mcp.*"]
+ignore_missing_imports = true
+
+# 스텁 없이 쓰는 서드파티. 개발 의존성을 늘리지 않으려고 모듈 단위로만 건다
+[[tool.mypy.overrides]]
+module = ["yaml", "aiofiles", "aiofiles.*", "asyncpg", "asyncpg.*", "croniter"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

@@ -99,10 +99,10 @@ def jsonl_repo(tmp_session_dir):
 @pytest.fixture
 def memory_chain():
     from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
-    from jarvis.memory.manager import MemoryManager
-    from jarvis.memory.middleware import MemoryMiddlewareAdapter
+    from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
+    from jarvis.memory.memory_service import MemoryService
     from jarvis.memory.stores.in_memory import InMemoryItemStore
-    return MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(MemoryManager(InMemoryItemStore(), window_size=20))])
+    return MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(MemoryService(InMemoryItemStore(), window_size=20))])
 
 
 @pytest.fixture

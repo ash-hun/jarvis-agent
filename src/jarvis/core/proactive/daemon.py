@@ -1,3 +1,5 @@
+"""[core] 요청 없이 도는 백그라운드 성찰 루프. 트리거가 깨울 때마다 활성 세션들을 성찰시킨다."""
+
 from __future__ import annotations
 
 import asyncio
@@ -6,7 +8,7 @@ from collections.abc import Awaitable, Callable, Iterable
 
 from jarvis.core.proactive.triggers import IntervalTrigger, ReflectionTrigger
 
-# 성찰 1회 — 보통 AgentSession.reflect 바인딩.
+# 성찰 1회. 보통 AgentSession.reflect 바인딩.
 ReflectOnce = Callable[[], Awaitable[object]]
 # 매 틱마다 "지금 성찰할 대상들"을 돌려주는 provider. 세션 전환/추가를 자동 추종.
 ReflectTargets = Callable[[], Iterable[ReflectOnce]]
@@ -14,7 +16,7 @@ Sleeper = Callable[[float], Awaitable[None]]
 
 
 class ProactivityDaemon:
-    """요청 없이 도는 백그라운드 성찰 루프 (B3) — SchedulerService의 형제.
+    """요청 없이 도는 백그라운드 성찰 루프 (B3). SchedulerService의 형제.
 
     "무엇을 성찰할지"는 주입된 targets provider(보통 활성 세션들의 reflect)가
     소유하고, 데몬은 순수하게 주기·생명주기만 관리한다 → session/UI와 분리,
@@ -34,7 +36,7 @@ class ProactivityDaemon:
         # 트리거 미지정 시 기존 동작(고정 주기)으로 폴백.
         self._trigger: ReflectionTrigger = trigger or IntervalTrigger(interval_sec, sleep)
         self._running = False
-        self._task: asyncio.Task | None = None
+        self._task: asyncio.Task[None] | None = None
 
     async def start(self) -> None:
         if self._running:

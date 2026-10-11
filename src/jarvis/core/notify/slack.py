@@ -1,13 +1,17 @@
-"""슬랙 incoming webhook 으로 알림 payload 를 보낸다."""
+"""[core] 슬랙 incoming webhook 으로 알림 payload 를 보낸다."""
 
 from collections.abc import Awaitable, Callable
 from typing import Any
+
+from jarvis.common.logger import get_logger
 
 TIMEOUT_SEC = 10.0
 MAX_TEXT = 2800  # 슬랙 메시지 한도(약 3000자) 아래로 자른다
 
 # (url, json body) -> HTTP 상태. 기본은 httpx. 테스트는 가짜를 넣는다.
 Post = Callable[[str, dict[str, Any]], Awaitable[int]]
+
+logger = get_logger(__name__)
 
 
 def format_slack(payload: dict[str, Any]) -> dict[str, Any]:
@@ -43,6 +47,6 @@ def slack_notifier(webhook_url: str, *, post: Post | None = None) -> Callable[[d
     async def notify(payload: dict[str, Any]) -> None:
         status = await send(webhook_url, format_slack(payload))
         if status >= 400:
-            print(f"[Notify] slack webhook returned {status}")
+            logger.info(f"[Notify] slack webhook returned {status}")
 
     return notify

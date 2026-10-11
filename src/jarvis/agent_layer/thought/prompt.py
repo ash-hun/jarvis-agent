@@ -1,3 +1,5 @@
+"""[agent_layer] inner thought 프롬프트 템플릿을 파일에서 읽어 플레이스홀더를 채운다."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -46,7 +48,7 @@ DEFAULT_TEMPLATE = """\
 원칙: 도움이 안 되면 침묵하라(silent). 저위험 행동만 자율 제안하라.
 """
 
-# daemon 자율 성찰(mode="reflection")용 템플릿 — 사용자 요청이 없는 시점.
+# daemon 자율 성찰(mode="reflection")용 템플릿: 사용자 요청이 없는 시점.
 # "절제 우선" 원칙을 강하게 걸어 과잉 발화를 막는다.
 DEFAULT_REFLECTION_TEMPLATE = """\
 너는 Jarvis의 "내적 사고" 모듈이다. 지금은 사용자의 직접 요청이 없는 자율 성찰 시점이다.
@@ -107,7 +109,7 @@ PLACEHOLDERS = (
 
 class ThoughtPromptTemplate:
     """
-    inner thought 프롬프트 템플릿 — 로딩 + 렌더를 캡슐화한 독립 객체.
+    inner thought 프롬프트 템플릿: 로딩 + 렌더를 캡슐화한 독립 객체.
 
     고도화 여지: few-shot 예시 주입, 모드별(request/reflection) 분기 템플릿,
     토큰 예산에 따른 history 절단 등을 이 클래스 안에서 확장한다.

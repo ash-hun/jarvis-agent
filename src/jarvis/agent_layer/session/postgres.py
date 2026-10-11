@@ -1,16 +1,17 @@
+"""[agent_layer] 세션 메타와 메시지를 PostgreSQL 테이블에 영속한다(asyncpg 풀)."""
+
 from __future__ import annotations
 
 import asyncio
+import builtins
 import json
-import time
-import uuid
 from typing import Any
 
-from jarvis.agent_layer.session.protocol import SessionMetadata, deserialize_message
+from jarvis.agent_layer.session.protocol import SessionMetadata, SessionRepo, deserialize_message
 from jarvis.model_layer.types import Message
 
 
-class PostgresSessionRepo:
+class PostgresSessionRepo(SessionRepo):
     """
     PostgreSQL 기반 세션 영속성.
     asyncpg 커넥션 풀을 사용하며 이벤트 루프가 바뀌면 풀을 자동 재생성한다.
@@ -22,6 +23,7 @@ class PostgresSessionRepo:
 
     def __init__(self, dsn: str) -> None:
         self._dsn = dsn
+        # asyncpg 는 타입 스텁이 없어 풀을 Any 로 다룬다
         self._pool: Any = None
         self._loop: asyncio.AbstractEventLoop | None = None
 
@@ -75,8 +77,8 @@ class PostgresSessionRepo:
 
     async def create(self, session_id: str | None = None, cwd: str = ".") -> SessionMetadata:
         pool = await self._get_pool()
-        sid = session_id or str(uuid.uuid4())
-        now = int(time.time() * 1000)
+        sid = session_id or self._new_id()
+        now = self._now_ms()
         async with pool.acquire() as conn:
             await conn.execute(
                 """
@@ -90,7 +92,7 @@ class PostgresSessionRepo:
             session_id=sid, cwd=cwd, created_at=now, updated_at=now, message_count=0
         )
 
-    async def list(self, cwd: str = "") -> list[SessionMetadata]:
+    async def list(self, cwd: str = "") -> builtins.list[SessionMetadata]:
         pool = await self._get_pool()
         async with pool.acquire() as conn:
             if cwd:
@@ -105,8 +107,8 @@ class PostgresSessionRepo:
 
     async def create_branch(self, parent_session_id: str) -> SessionMetadata:
         pool = await self._get_pool()
-        branch_id = str(uuid.uuid4())
-        now = int(time.time() * 1000)
+        branch_id = self._new_id()
+        now = self._now_ms()
         async with pool.acquire() as conn:
             parent_row = await conn.fetchrow(
                 "SELECT * FROM jarvis_sessions WHERE session_id = $1", parent_session_id
@@ -144,7 +146,7 @@ class PostgresSessionRepo:
             parent_id=parent_session_id,
         )
 
-    async def get_messages(self, session_id: str) -> list[Message]:
+    async def get_messages(self, session_id: str) -> builtins.list[Message]:
         pool = await self._get_pool()
         async with pool.acquire() as conn:
             rows = await conn.fetch(
@@ -155,7 +157,7 @@ class PostgresSessionRepo:
                 """,
                 session_id,
             )
-        messages: list[Message] = []
+        messages: builtins.list[Message] = []
         for row in rows:
             raw = row["content"]
             # asyncpg는 JSONB를 버전/설정에 따라 str 또는 dict로 반환
@@ -167,9 +169,9 @@ class PostgresSessionRepo:
 
     async def append(self, session_id: str, message: Message) -> str:
         pool = await self._get_pool()
-        entry_id = str(uuid.uuid4())
-        now = int(time.time() * 1000)
-        content = json.loads(message.model_dump_json())
+        entry_id = self._new_id()
+        now = self._now_ms()
+        content = self._message_content(message)
         async with pool.acquire() as conn:
             await conn.execute(
                 """

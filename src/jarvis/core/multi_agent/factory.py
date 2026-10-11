@@ -1,10 +1,4 @@
-"""AgentFactory. 에이전트 정의와 부모 범위로 격리된 자식 세션(AgentNode)을 만들고 수명을 관리한다.
-
-자식 세션 id 는 memory.stm 정책이 정한다.
-- per_parent_session: 부모 세션마다 하나. 같은 부모와의 대화는 이어지고, 다른 부모와는 섞이지 않는다
-- per_task: 위임마다 새로 만들고 끝나면 지운다. 도구형 에이전트용
-- per_agent: 에이전트당 하나(범위 도입 전 동작). 모든 부모가 한 이력을 공유한다
-"""
+"""[core] 에이전트 정의와 부모 범위로 격리된 자식 세션 노드를 만들고 memory.stm 정책대로 수명을 관리한다."""
 
 from __future__ import annotations
 
@@ -63,7 +57,13 @@ SessionBuilder = Callable[[AgentDefinition, str], Any]
 
 
 class AgentFactory:
-    """AgentDefinition → AgentNode 생성 + 수명 관리."""
+    """AgentDefinition → AgentNode 생성 + 수명 관리.
+
+    자식 세션 id 는 memory.stm 정책이 정한다.
+    - per_parent_session: 부모 세션마다 하나. 같은 부모와의 대화는 이어지고, 다른 부모와는 섞이지 않는다
+    - per_task: 위임마다 새로 만들고 끝나면 지운다. 도구형 에이전트용
+    - per_agent: 에이전트당 하나(범위 도입 전 동작). 모든 부모가 한 이력을 공유한다
+    """
 
     def __init__(
         self,
@@ -82,11 +82,11 @@ class AgentFactory:
             name=definition.name,
             session=base_session,
             capabilities=definition.capabilities,
-            event_sink=self._event_sink,  # type: ignore[arg-type]
+            event_sink=self._event_sink,
         )
 
     def get_or_create(self, definition: AgentDefinition, base_session: object) -> AgentNode:
-        """멱등 — 동일 name이 이미 있으면 캐시 반환."""
+        """멱등. 동일 name이 이미 있으면 캐시 반환."""
         key = f"agent_{definition.name}"
         if key not in self._nodes:
             self._nodes[key] = self.create(definition, base_session)

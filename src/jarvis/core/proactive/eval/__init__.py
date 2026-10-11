@@ -1,4 +1,4 @@
-"""proactive 품질 평가. "이 상황에서 먼저 말해야 했나"를 사례로 적어 두고 정책(과 사고 엔진)을 잰다."""
+"""[core] proactive 품질 평가 패키지. "이 상황에서 먼저 말해야 했나"를 사례로 적어 정책(과 사고 엔진)을 잰다."""
 
 from jarvis.core.proactive.eval.runner import (
     DATASETS_DIR,

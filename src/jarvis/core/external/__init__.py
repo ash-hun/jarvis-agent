@@ -1,7 +1,6 @@
-"""외부 트리거 (Proactive Phase 3) — 캘린더·메일 등 외부 변화를 사고에 먹인다.
+"""[core] 외부 트리거(Proactive Phase 3) 패키지. 캘린더, 메일 등 외부 변화를 사고에 먹인다."""
 
-소스 YAML이 없으면 전 구간 no-op. 발화 게이팅은 기존 proactive policy를 그대로 쓴다.
-"""
+# 소스 YAML이 없으면 전 구간 no-op. 발화 게이팅은 기존 proactive policy를 그대로 쓴다.
 
 from jarvis.core.external.dedup import (
     InMemorySeenStore,

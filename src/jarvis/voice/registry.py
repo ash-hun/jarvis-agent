@@ -1,27 +1,30 @@
+"""[voice] 이름으로 STT/TTS 프로바이더를 지연 임포트해 만드는 레지스트리를 제공한다."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
 
 from jarvis.voice.protocol import STTProvider, TTSProvider
 
 # ── STT 레지스트리 ─────────────────────────────────────────────────────────────
-# 키: provider 이름(소문자), 값: (module_path, class_name) — 지연 임포트로 선택적 deps 보호
+# 키: provider 이름(소문자), 값: 팩토리. 팩토리는 지연 임포트로 선택적 deps 를 보호한다
 _STT_REGISTRY: dict[str, Callable[..., STTProvider]] = {}
 _TTS_REGISTRY: dict[str, Callable[..., TTSProvider]] = {}
 
 
 def _lazy_stt(module: str, cls: str) -> Callable[..., STTProvider]:
-    def factory(**kwargs: Any) -> STTProvider:
+    def factory(**kwargs: object) -> STTProvider:
         import importlib
-        return getattr(importlib.import_module(module), cls)(**kwargs)
+        provider: STTProvider = getattr(importlib.import_module(module), cls)(**kwargs)
+        return provider
     return factory
 
 
 def _lazy_tts(module: str, cls: str) -> Callable[..., TTSProvider]:
-    def factory(**kwargs: Any) -> TTSProvider:
+    def factory(**kwargs: object) -> TTSProvider:
         import importlib
-        return getattr(importlib.import_module(module), cls)(**kwargs)
+        provider: TTSProvider = getattr(importlib.import_module(module), cls)(**kwargs)
+        return provider
     return factory
 
 
@@ -44,12 +47,12 @@ def register_tts(name: str, factory: Callable[..., TTSProvider]) -> None:
     _TTS_REGISTRY[name.lower()] = factory
 
 
-def make_stt(provider_name: str, **kwargs: Any) -> STTProvider:
+def make_stt(provider_name: str, **kwargs: object) -> STTProvider:
     """STT 프로바이더 팩토리.
 
     provider_name:
-        "browser"  — Web Speech API 위임 (서버 처리 없음, 기본값)
-        "whisper"  — faster-whisper 로컬 STT (pip install faster-whisper)
+        "browser"  : Web Speech API 위임 (서버 처리 없음, 기본값)
+        "whisper"  : faster-whisper 로컬 STT (pip install faster-whisper)
     """
     name = provider_name.lower()
     factory = _STT_REGISTRY.get(name)
@@ -59,12 +62,12 @@ def make_stt(provider_name: str, **kwargs: Any) -> STTProvider:
     return factory(**kwargs)
 
 
-def make_tts(provider_name: str, **kwargs: Any) -> TTSProvider:
+def make_tts(provider_name: str, **kwargs: object) -> TTSProvider:
     """TTS 프로바이더 팩토리.
 
     provider_name:
-        "browser"     — Web Speech API 위임 (서버 처리 없음, 기본값)
-        "supertonic"  — Supertonic-3 ONNX TTS (pip install supertonic)
+        "browser"     : Web Speech API 위임 (서버 처리 없음, 기본값)
+        "supertonic"  : Supertonic-3 ONNX TTS (pip install supertonic)
     """
     name = provider_name.lower()
     factory = _TTS_REGISTRY.get(name)

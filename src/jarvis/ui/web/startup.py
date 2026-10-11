@@ -1,28 +1,20 @@
-from __future__ import annotations
+"""[ui] Web HUD 실행: 조립 결과로 FastAPI 앱을 만들어 uvicorn 으로 띄운다."""
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+
+from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from jarvis.ui.tui.startup import AppContext
+    from jarvis.app.app_assembly import AppAssembly
+
+logger = get_logger(__name__)
 
 
-def run_web(
-    ctx: AppContext,
-    extra: dict[str, Any],
-    session_id: str,
-    host: str = "127.0.0.1",
-    port: int = 7777,
-) -> None:
-    """Web HUD 서버 실행. ctx/extra를 SessionManager에 위임하여 다중 세션을 지원한다."""
+def run_web(assembly: "AppAssembly", session_id: str, host: str = "127.0.0.1", port: int = 7777) -> None:
     import uvicorn
 
     from jarvis.ui.web.server import create_app
 
-    app = create_app(
-        ctx=ctx,
-        base_extra=extra,
-        initial_session_id=session_id or "default",
-    )
-
-    print(f"[Jarvis] Web HUD started → http://{host}:{port}")
+    app = create_app(assembly, initial_session_id=session_id or "default")
+    logger.info(f"[Jarvis] Web HUD started → http://{host}:{port}")
     uvicorn.run(app, host=host, port=port, log_level="warning")

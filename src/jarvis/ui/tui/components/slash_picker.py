@@ -1,3 +1,5 @@
+"""[ui] SlashPicker: TUI 입력창 위에 뜨는 슬래시 명령 자동완성 팝업."""
+
 from __future__ import annotations
 
 from textual.widgets import OptionList

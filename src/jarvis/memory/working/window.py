@@ -1,4 +1,4 @@
-"""컨텍스트 창. 요약이 덮지 않은 꼬리를 창 크기로 자르되 tool_use/tool_result 짝은 가르지 않는다."""
+"""[memory] 요약이 덮지 않은 꼬리를 창 크기로 자르되 tool_use/tool_result 짝은 가르지 않는 컨텍스트 창."""
 
 from jarvis.model_layer.types import Message, UserMessage
 

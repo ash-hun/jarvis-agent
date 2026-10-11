@@ -1,9 +1,11 @@
+"""[core] 도구의 기반 클래스(JarvisTool)와 이름으로 등록, 조회, 실행하는 ToolRegistry 를 제공한다."""
+
 from __future__ import annotations
 
 import asyncio
 import inspect
 from dataclasses import dataclass
-from typing import Any, Protocol, runtime_checkable
+from typing import Any
 
 from jarvis.model_layer.types import TextContent, Tool, ToolResultMessage
 
@@ -17,6 +19,7 @@ class ToolContext:
     user_id: str | None = None
 
 
+# 기반을 상속하지 않은 덕 타이핑 도구(사용자 디렉터리 도구, 테스트 더블)도 받으므로 Any
 def accepts_context(tool: Any) -> bool:
     try:
         return "context" in inspect.signature(tool.execute).parameters
@@ -24,28 +27,28 @@ def accepts_context(tool: Any) -> bool:
         return False
 
 
-@runtime_checkable
-class JarvisTool(Protocol):
-    """모든 툴이 구현해야 할 Protocol."""
+class JarvisTool:
+    """모든 툴의 기반. name, description, parameters 는 도구마다 정하고 execute 를 오버라이드한다.
+
+    ToolRegistry 는 상속하지 않았어도 같은 모양(이름, 설명, 스키마, 실행 모드, execute)이면 받는다.
+    """
+
     name: str
     description: str
     parameters: dict[str, Any]
-    execution_mode: str  # "parallel" | "sequential"
+    execution_mode: str = "parallel"  # "parallel" | "sequential"
 
     async def execute(
         self,
         tool_call_id: str,
         params: dict[str, Any],
         signal: asyncio.Event | None = None,
-    ) -> ToolResultMessage: ...
+    ) -> ToolResultMessage:
+        raise NotImplementedError("도구마다 하는 일이 달라 기본 실행이 없다")
 
 
 class ToolRegistry:
-    """
-    툴 등록/조회/삭제 레지스트리.
-    first-registration-wins 정책.
-    Pi: SkillsManager + AgentTool 패턴.
-    """
+    """툴 등록/조회/삭제 레지스트리. first-registration-wins 정책. Pi: SkillsManager + AgentTool 패턴."""
 
     def __init__(self) -> None:
         self._tools: dict[str, JarvisTool] = {}
@@ -72,7 +75,7 @@ class ToolRegistry:
                 name=t.name,
                 description=t.description,
                 parameters=t.parameters,
-                execution_mode=t.execution_mode,  # type: ignore[arg-type]
+                execution_mode=t.execution_mode,
             )
             for t in self._tools.values()
         ]
@@ -96,7 +99,8 @@ class ToolRegistry:
             )
         try:
             if context is not None and accepts_context(tool):
-                return await tool.execute(tool_call_id, params, signal, context=context)
+                # context 를 받는 도구만 이 분기로 온다(accepts_context 가 런타임에 확인). 기반 시그니처에는 없다
+                return await tool.execute(tool_call_id, params, signal, context=context)  # type: ignore[call-arg]
             return await tool.execute(tool_call_id, params, signal)
         except Exception as exc:
             return ToolResultMessage(

@@ -1,8 +1,12 @@
+"""[core] 디렉터리 항목을 종류와 크기와 함께 나열하는 list_dir 내장 도구."""
+
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from typing import Any
 
+from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
 TOOL_NAME = "list_dir"
@@ -11,7 +15,7 @@ TOOL_DESCRIPTION = (
     "(dir/file) and size. Use this to explore directory structure without "
     "running shell commands."
 )
-TOOL_PARAMETERS = {
+TOOL_PARAMETERS: dict[str, Any] = {
     "type": "object",
     "properties": {
         "path": {
@@ -27,7 +31,7 @@ TOOL_PARAMETERS = {
 }
 
 
-class ListDirTool:
+class ListDirTool(JarvisTool):
     name = TOOL_NAME
     description = TOOL_DESCRIPTION
     parameters = TOOL_PARAMETERS
@@ -36,7 +40,7 @@ class ListDirTool:
     async def execute(
         self,
         tool_call_id: str,
-        params: dict,
+        params: dict[str, Any],
         signal: asyncio.Event | None = None,
     ) -> ToolResultMessage:
         path = Path(params.get("path", ".")).expanduser()

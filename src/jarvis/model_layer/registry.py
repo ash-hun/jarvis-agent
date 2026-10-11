@@ -1,13 +1,12 @@
+"""[model_layer] 이름으로 LLM 프로바이더를 등록하고 조회하는 레지스트리를 제공한다."""
+
 from __future__ import annotations
 
 from jarvis.model_layer.providers.base import Provider
 
 
 class ProviderRegistry:
-    """
-    프로바이더 등록/조회 레지스트리.
-    first-registration-wins 정책.
-    """
+    """프로바이더 등록/조회 레지스트리. 먼저 등록한 쪽이 이긴다(first-registration-wins)."""
 
     def __init__(self) -> None:
         self._providers: dict[str, Provider] = {}

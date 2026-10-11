@@ -1,13 +1,13 @@
+"""[core] 외부 세계(캘린더, 메일 등)에서 감지한 사실 1건의 모델."""
+
 from __future__ import annotations
 
 from pydantic import BaseModel
 
 
 class ExternalEvent(BaseModel):
-    """외부 세계(캘린더·메일 등)에서 새로 감지한 사실 1건.
-
-    벤더 스키마를 해석하지 않는다 — 원문을 그대로 실어 나르고, 의미 부여는
-    inner thought LLM이 한다(설계 §2 "원문 패스스루").
+    """벤더 스키마를 해석하지 않는다. 원문을 그대로 실어 나르고, 의미 부여는
+    inner thought LLM 이 한다(설계 §2 "원문 패스스루").
     """
 
     source: str  # YAML의 소스 이름 (예: "calendar-upcoming")
@@ -19,7 +19,7 @@ class ExternalEvent(BaseModel):
     def as_line(self, include_detail: bool = True) -> str:
         """사고 프롬프트에 넣을 한 줄.
 
-        include_detail=False면 원문을 싣지 않는다(프라이버시) — 제목만으로 판단하게
+        include_detail=False면 원문을 싣지 않는다(프라이버시). 제목만으로 판단하게
         한다. 다만 제목을 추론하지 못한 소스(비정형 원문)는 제목 대신 원문으로
         폴백한다: 그마저 없으면 이벤트가 키만 남아 판단 불가가 되기 때문이다.
         """

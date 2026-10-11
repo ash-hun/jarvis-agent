@@ -1,4 +1,4 @@
-"""/orchestrate 슬래시 명령. 사용자가 패턴과 참여 에이전트를 직접 지정해 오케스트레이션을 돌린다."""
+"""[core] 사용자가 패턴과 참여 에이전트를 직접 지정해 오케스트레이션을 돌리는 /orchestrate 핸들러 factory."""
 
 from __future__ import annotations
 

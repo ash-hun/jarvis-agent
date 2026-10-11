@@ -1,10 +1,14 @@
+"""[core] 정규식으로 파일 내용을 검색해 'path:line: text' 로 돌려주는 grep 내장 도구."""
+
 from __future__ import annotations
 
 import asyncio
 import re
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
+from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
 TOOL_NAME = "grep"
@@ -13,7 +17,7 @@ TOOL_DESCRIPTION = (
     "'path:line_number: text'. Use this to find where code/text lives without "
     "running shell commands. Binary and undecodable files are skipped."
 )
-TOOL_PARAMETERS = {
+TOOL_PARAMETERS: dict[str, Any] = {
     "type": "object",
     "properties": {
         "pattern": {
@@ -44,7 +48,7 @@ TOOL_PARAMETERS = {
 _SKIP_DIRS = {".git", "__pycache__", "node_modules", ".venv", "venv", ".mypy_cache", ".pytest_cache"}
 
 
-class GrepTool:
+class GrepTool(JarvisTool):
     name = TOOL_NAME
     description = TOOL_DESCRIPTION
     parameters = TOOL_PARAMETERS
@@ -53,7 +57,7 @@ class GrepTool:
     async def execute(
         self,
         tool_call_id: str,
-        params: dict,
+        params: dict[str, Any],
         signal: asyncio.Event | None = None,
     ) -> ToolResultMessage:
         pattern = params["pattern"]

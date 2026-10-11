@@ -1,8 +1,4 @@
-"""AgentTask / AgentResult — 멱등성의 기반.
-
-AgentTask는 frozen dataclass. 동일 (content, context) 조합은 항상 동일 task_id를
-생성하므로 재시도/중복 실행에 안전하다.
-"""
+"""[core] 같은 (content, context) 가 항상 같은 task_id 를 갖는 불변 AgentTask 와 그 결과 AgentResult 를 정한다."""
 
 from __future__ import annotations
 
@@ -26,6 +22,8 @@ def _make_task_id(content: str, context: dict[str, Any]) -> str:
 
 @dataclass(frozen=True)
 class AgentTask:
+    """frozen dataclass. 동일 (content, context) 조합은 항상 동일 task_id 라 재시도/중복 실행에 안전하다."""
+
     task_id: str
     content: str
     context: dict[str, Any]

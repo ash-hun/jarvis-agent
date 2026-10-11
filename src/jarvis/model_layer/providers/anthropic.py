@@ -1,16 +1,22 @@
+"""[model_layer] Anthropic Messages 스트리밍을 프롬프트 캐싱과 함께 공통 스트림 이벤트로 바꾸는 프로바이더."""
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from typing import Any
 
 import anthropic
 
+from jarvis.model_layer.providers.base import Provider
 from jarvis.model_layer.types import (
     ErrorEvent,
+    ImageContent,
     LLMContext,
     ModelConfig,
     StopEvent,
     StreamEvent,
     StreamOptions,
+    TextContent,
     TextDeltaEvent,
     ThinkingDeltaEvent,
     ToolCallDeltaEvent,
@@ -18,7 +24,7 @@ from jarvis.model_layer.types import (
 )
 
 
-class AnthropicProvider:
+class AnthropicProvider(Provider):
     provider_name = "anthropic"
 
     def supports_thinking(self) -> bool:
@@ -43,7 +49,7 @@ class AnthropicProvider:
         _inject_cache_breakpoint(messages)
         tools = [t.to_llm_schema() for t in context.tools] if context.tools else []
 
-        kwargs: dict = {
+        kwargs: dict[str, Any] = {
             "model": model.model,
             "max_tokens": model.max_tokens,
             "messages": messages,
@@ -59,9 +65,11 @@ class AnthropicProvider:
 
         try:
             async with client.messages.stream(**kwargs) as stream_ctx:
-                tool_buffers: dict[int, dict] = {}
+                tool_buffers: dict[int, dict[str, Any]] = {}
 
-                async for event in stream_ctx:
+                async for sdk_event in stream_ctx:
+                    # SDK 이벤트 유니온을 클래스 이름으로 가른다. isinstance 로 좁히면 분기 조건이 바뀌어 Any 로 받는다
+                    event: Any = sdk_event
                     event_type = type(event).__name__
 
                     if event_type == "RawContentBlockStartEvent":
@@ -107,13 +115,13 @@ class AnthropicProvider:
                     "stop_sequence": "stop",
                 }
                 reason = stop_map.get(str(final.stop_reason), "stop")
-                yield StopEvent(reason=reason, usage=usage)  # type: ignore[arg-type]
+                yield StopEvent(reason=reason, usage=usage)
 
         except anthropic.APIError as exc:
             yield ErrorEvent(message=str(exc), code=str(getattr(exc, "status_code", None)))
 
 
-def _inject_cache_breakpoint(messages: list[dict]) -> None:
+def _inject_cache_breakpoint(messages: list[dict[str, Any]]) -> None:
     """두 번째-마지막 메시지의 마지막 content block에 cache_control 삽입.
 
     이 지점까지의 히스토리를 캐시해서 매 턴마다 재전송 비용을 줄인다.
@@ -129,15 +137,15 @@ def _inject_cache_breakpoint(messages: list[dict]) -> None:
         target["content"] = [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}]
 
 
-def _convert_messages(context: LLMContext) -> list[dict]:
-    result = []
+def _convert_messages(context: LLMContext) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
     for msg in context.messages:
         if msg.role == "user":
             content = msg.content if isinstance(msg.content, str) else _content_to_api(msg.content)
             result.append({"role": "user", "content": content})
 
         elif msg.role == "assistant":
-            parts: list[dict] = []
+            parts: list[dict[str, Any]] = []
             for block in msg.content:
                 if block.type == "text":
                     parts.append({"type": "text", "text": block.text})
@@ -166,8 +174,8 @@ def _convert_messages(context: LLMContext) -> list[dict]:
     return result
 
 
-def _content_to_api(content: list) -> list[dict]:
-    result = []
+def _content_to_api(content: list[TextContent | ImageContent]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
     for block in content:
         if block.type == "text":
             result.append({"type": "text", "text": block.text})

@@ -1,3 +1,5 @@
+"""[model_layer] 레지스트리에서 프로바이더를 골라 스트리밍하고 결과를 메시지로 모은다."""
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
@@ -7,6 +9,7 @@ from jarvis.model_layer.types import (
     AssistantMessage,
     LLMContext,
     ModelConfig,
+    StopReason,
     StreamEvent,
     StreamOptions,
     TextContent,
@@ -20,10 +23,7 @@ async def stream(
     context: LLMContext,
     options: StreamOptions | None = None,
 ) -> AsyncIterator[StreamEvent]:
-    """
-    주어진 ModelConfig와 LLMContext로 스트리밍 이벤트를 생성.
-    Pi: stream() 진입점과 동일한 역할.
-    """
+    """주어진 ModelConfig와 LLMContext로 스트리밍 이벤트를 생성한다(Pi 의 stream() 진입점과 같은 역할)."""
     registry = get_default_registry()
     provider = registry.get(model.provider)
     async for event in provider.stream(model, context, options):
@@ -47,10 +47,10 @@ async def stream_to_message(
 
     text_buffer = ""
     thinking_buffer = ""
-    tool_buffers: dict[str, dict] = {}
-    usage = None
-    stop_reason = "stop"
-    error_msg = None
+    tool_buffers: dict[str, dict[str, str]] = {}
+    usage: Usage | None = None
+    stop_reason: StopReason = "stop"
+    error_msg: str | None = None
 
     async for event in stream(model, context, options):
         if isinstance(event, TextDeltaEvent):
@@ -70,7 +70,7 @@ async def stream_to_message(
             error_msg = event.message
             break
 
-    content = []
+    content: list[TextContent | ThinkingContent | ToolCall] = []
     if thinking_buffer:
         content.append(ThinkingContent(thinking=thinking_buffer))
     if text_buffer:
@@ -88,6 +88,6 @@ async def stream_to_message(
         provider=model.provider,
         model=model.model,
         usage=usage or Usage(),
-        stop_reason=stop_reason,  # type: ignore[arg-type]
+        stop_reason=stop_reason,
         error_message=error_msg,
     )

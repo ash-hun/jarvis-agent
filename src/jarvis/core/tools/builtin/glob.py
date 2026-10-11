@@ -1,8 +1,12 @@
+"""[core] glob 패턴으로 파일을 찾아 최근 수정순으로 돌려주는 glob 내장 도구."""
+
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from typing import Any
 
+from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
 TOOL_NAME = "glob"
@@ -11,7 +15,7 @@ TOOL_DESCRIPTION = (
     "Returns matching file paths sorted by most-recently-modified first. "
     "Use this to locate files by name without running shell commands."
 )
-TOOL_PARAMETERS = {
+TOOL_PARAMETERS: dict[str, Any] = {
     "type": "object",
     "properties": {
         "pattern": {
@@ -31,7 +35,7 @@ TOOL_PARAMETERS = {
 }
 
 
-class GlobTool:
+class GlobTool(JarvisTool):
     name = TOOL_NAME
     description = TOOL_DESCRIPTION
     parameters = TOOL_PARAMETERS
@@ -40,7 +44,7 @@ class GlobTool:
     async def execute(
         self,
         tool_call_id: str,
-        params: dict,
+        params: dict[str, Any],
         signal: asyncio.Event | None = None,
     ) -> ToolResultMessage:
         pattern = params["pattern"]

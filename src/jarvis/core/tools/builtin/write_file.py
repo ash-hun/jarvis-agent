@@ -1,15 +1,19 @@
+"""[core] 상위 디렉터리를 만들며 파일 내용을 덮어쓰는 write_file 내장 도구."""
+
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from typing import Any
 
 import aiofiles
 
+from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
 TOOL_NAME = "write_file"
 TOOL_DESCRIPTION = "Write content to a file, creating parent directories if needed. Overwrites existing content."
-TOOL_PARAMETERS = {
+TOOL_PARAMETERS: dict[str, Any] = {
     "type": "object",
     "properties": {
         "path": {"type": "string", "description": "File path to write"},
@@ -20,7 +24,7 @@ TOOL_PARAMETERS = {
 }
 
 
-class WriteFileTool:
+class WriteFileTool(JarvisTool):
     name = TOOL_NAME
     description = TOOL_DESCRIPTION
     parameters = TOOL_PARAMETERS
@@ -29,7 +33,7 @@ class WriteFileTool:
     async def execute(
         self,
         tool_call_id: str,
-        params: dict,
+        params: dict[str, Any],
         signal: asyncio.Event | None = None,
     ) -> ToolResultMessage:
         path = Path(params["path"]).expanduser()

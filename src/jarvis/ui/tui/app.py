@@ -1,7 +1,10 @@
+"""[ui] JarvisTUI: Textual 앱으로 채팅, 사이드바, 승인 모달, proactive daemon 을 묶는다."""
+
 from __future__ import annotations
 
 import re
 import time
+from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
 from textual.app import App, ComposeResult
@@ -13,6 +16,7 @@ from textual.widgets import Footer, Header, Input
 
 from jarvis.agent_layer.types import AgentEvent
 from jarvis.core.session import AgentSession
+from jarvis.ui.protocol import UIAdapter
 from jarvis.ui.tui.bridge import (
     AgentPopAction,
     AgentPushAction,
@@ -35,10 +39,12 @@ from jarvis.ui.tui.components.status_bar import StatusBar
 from jarvis.ui.tui.state import ActiveTool
 
 if TYPE_CHECKING:
-    from jarvis.ui.tui.startup import AppContext
+    from jarvis.app.app_context import AppContext
+    from jarvis.core.proactive import ProactivityDaemon
+    from jarvis.ui.tui.voice import TuiVoiceController
 
 
-class JarvisTUI(App[None]):
+class JarvisTUI(App[None], UIAdapter):
     """
     Jarvis 터미널 UI — Textual 기반.
 
@@ -111,15 +117,18 @@ class JarvisTUI(App[None]):
         self,
         session: AgentSession,
         ctx: AppContext,
-        **kwargs: Any,
+        voice_controller: TuiVoiceController | None = None,
+        **kwargs: Any,  # Textual App 생성 인자(driver_class, css_path 등)를 그대로 넘긴다
     ) -> None:
         super().__init__(**kwargs)
         self._session = session
         self._ctx = ctx  # Warp: ctx, 마지막 파라미터
+        # voice.tui_enabled 일 때만 진입점이 넘긴다
+        self._voice_controller = voice_controller
 
         # 한 번만 생성 (Warp: MouseStateHandle 원칙)
         self._bridge = EventBridge()
-        self._proactive_daemon: Any = None  # on_mount에서 조건부 기동
+        self._proactive_daemon: ProactivityDaemon | None = None  # on_mount에서 조건부 기동
         self._last_proactive_id: str | None = None  # 피드백(ctrl+y/g) 대상
 
         # 내부 상태 (순수 Python, Textual 독립)
@@ -182,9 +191,12 @@ class JarvisTUI(App[None]):
             consolidate = memory is not None and should_consolidate_on_idle(self._ctx.settings)
 
             # provider는 매 틱 self._session을 다시 읽어 세션 전환을 자동 추종.
-            def targets() -> list:
-                reflects = [self._session.reflect]
-                return reflects + (consolidation_targets(memory, [self._session]) if consolidate else [])
+            def targets() -> list[Callable[[], Awaitable[object]]]:
+                reflects: list[Callable[[], Awaitable[object]]] = [self._session.reflect]
+                # consolidate 가 참이면 memory 는 None 이 아니다. 클로저 안이라 mypy 가 좁히지 못해 다시 적는다
+                if not consolidate or memory is None:
+                    return reflects
+                return reflects + consolidation_targets(memory, [self._session])
 
             self._proactive_daemon = ProactivityDaemon(
                 targets,
@@ -369,7 +381,7 @@ class JarvisTUI(App[None]):
                     spoken = self._stream_buffer
                     self._chat.add_assistant(spoken)
                     self._stream_buffer = ""
-                    if self.speak_mode and self._ctx.voice_controller is not None:
+                    if self.speak_mode and self._voice_controller is not None:
                         self.run_worker(self._speak(spoken))
                 self.is_streaming = False
 
@@ -398,7 +410,7 @@ class JarvisTUI(App[None]):
                         self._last_proactive_id = mid
                         self._chat.add_status("ctrl+y 도움됨 / ctrl+g 무시")
                     # voice 모드면 비요청 발화도 즉시 읽어준다(filler는 특히 중요).
-                    if (spk or self.speak_mode) and self._ctx.voice_controller is not None:
+                    if (spk or self.speak_mode) and self._voice_controller is not None:
                         self.run_worker(self._speak(ptext))
 
             case AgentPushAction(agent_name=name):
@@ -415,21 +427,19 @@ class JarvisTUI(App[None]):
                 else:
                     self._status.set_status("Ready")
 
-    # ── UIAdapter Protocol 구현 ───────────────────────────────────────────────
-    # protocol.py의 UIAdapter와 메서드 시그니처 일치: on_agent_event, on_stream_text,
-    # request_approval, show_error
+    # ── UIAdapter 구현 ────────────────────────────────────────────────────────
 
     async def on_agent_event(self, event: AgentEvent) -> None:
-        """UIAdapter Protocol 구현 — session.subscribe 경로와 동일."""
+        """UIAdapter 구현 — session.subscribe 경로와 동일."""
         await self._on_agent_event(event)
 
     async def on_stream_text(self, delta: str) -> None:
-        """UIAdapter Protocol 구현 — 스트림 델타를 버퍼에 누적."""
+        """UIAdapter 구현 — 스트림 델타를 버퍼에 누적."""
         self._stream_buffer += delta
         self.is_streaming = True
 
     async def show_error(self, error: str) -> None:
-        """UIAdapter Protocol 구현 — 에러 메시지를 채팅 영역에 표시."""
+        """UIAdapter 구현 — 에러 메시지를 채팅 영역에 표시."""
         if self._chat is not None:
             self._chat.add_error(error)
 
@@ -449,7 +459,7 @@ class JarvisTUI(App[None]):
 
     def action_toggle_speak(self) -> None:
         """Ctrl+T: 에이전트 응답 음성 출력(TTS) 토글."""
-        vc = self._ctx.voice_controller
+        vc = self._voice_controller
         if self._chat is None or self._status is None:
             return
         if vc is None:
@@ -468,7 +478,7 @@ class JarvisTUI(App[None]):
 
     def action_voice_input(self) -> None:
         """Ctrl+R: 마이크로 녹음 → 전사 → 입력창에 채운다 (자동 전송하지 않음)."""
-        vc = self._ctx.voice_controller
+        vc = self._voice_controller
         if self._chat is None:
             return
         if vc is None:
@@ -485,7 +495,7 @@ class JarvisTUI(App[None]):
         self.run_worker(self._voice_input())
 
     async def _voice_input(self) -> None:
-        vc = self._ctx.voice_controller
+        vc = self._voice_controller
         if vc is None or self._status is None or self._input is None or self._chat is None:
             return
         seconds = self._ctx.settings.voice.tui_record_seconds
@@ -519,7 +529,7 @@ class JarvisTUI(App[None]):
         self.run_worker(self._session.record_feedback(accepted))
 
     async def _speak(self, text: str) -> None:
-        vc = self._ctx.voice_controller
+        vc = self._voice_controller
         if vc is None:
             return
         try:

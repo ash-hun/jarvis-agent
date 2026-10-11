@@ -1,3 +1,5 @@
+"""[core] 보안 파이프라인 Step 4 의 샌드박스 구현체(위험 명령 차단과 승인 흐름, 전부 허용)를 제공한다."""
+
 from __future__ import annotations
 
 import re
@@ -5,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from jarvis.core.policy.approval_rules import ApprovalRule, ApprovalRules, describe, suggest_pattern
-from jarvis.core.policy.pipeline import ApprovalResult, PolicyResult, SandboxBlocked
+from jarvis.core.policy.pipeline import ApprovalResult, PolicyResult, SandboxBlocked, SandboxProtocol
 
 # 승인 콜백의 답. True/False 는 이번 한 번, "always" 는 제안된 패턴을 규칙으로 남긴다.
 ApprovalChoice = bool | str
@@ -13,9 +15,9 @@ ApprovalCallback = Callable[[str, str, str], Awaitable[ApprovalChoice]]
 ALWAYS = "always"
 
 
-class DefaultSandbox:
-    """
-    Step 4: 실행 샌드박스.
+class DefaultSandbox(SandboxProtocol):
+    """Step 4: 실행 샌드박스.
+
     - 위험 명령어 패턴 차단
     - require_approval 툴 목록에 대해 Human-in-the-loop 승인 플로우
     - 승인 기억(approval_rules): 사용자가 "항상 허용"한 패턴은 다시 묻지 않는다
@@ -93,17 +95,5 @@ class DefaultSandbox:
         return tool_name in self._require_approval
 
 
-class PermissiveSandbox:
-    """모든 명령 허용. 개발/테스트 전용."""
-
-    async def approve(self, policy_result: PolicyResult, command: str) -> ApprovalResult:
-        return ApprovalResult(approved=True)
-
-    async def request_approval(self, command: str, reason: str, always_pattern: str = "") -> ApprovalChoice:
-        return True
-
-    async def authorize(self, tool_name: str, params: dict[str, Any]) -> bool:
-        return True
-
-    def is_approval_required(self, tool_name: str) -> bool:
-        return False
+class PermissiveSandbox(SandboxProtocol):
+    """모든 명령 허용. 개발/테스트 전용. 네 메서드 모두 기반의 Permissive 동작을 쓴다."""

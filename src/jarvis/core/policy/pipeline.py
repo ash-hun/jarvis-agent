@@ -1,7 +1,15 @@
+"""[core] 4단계 보안 파이프라인(검증, 인증, 정책, 샌드박스)의 데이터 타입, 예외, 단계 기반 클래스를 정한다."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Protocol, runtime_checkable  # noqa: UP035
+from typing import Any
+
+from jarvis.memory.scope import LOCAL_USER
+
+# 단계 기반 클래스의 기본 동작은 개인 비서 단독 사용(검증 없음, 익명 사용자, 전부 허용)이다
+ANONYMOUS_ROLES: frozenset[str] = frozenset({"user"})
+ANY_GRANT: frozenset[str] = frozenset({"*"})
 
 # ── 파이프라인 데이터 타입 (불변) ─────────────────────────────────────────────
 
@@ -9,7 +17,7 @@ from typing import Any, Protocol, runtime_checkable  # noqa: UP035
 class ValidatedInput:
     raw: str
     sanitized: str
-    metadata: dict = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -56,38 +64,58 @@ class SandboxBlocked(Exception):
         self.reason = reason
 
 
-# ── 각 단계 Protocol ──────────────────────────────────────────────────────────
+# ── 각 단계 기반 클래스 ────────────────────────────────────────────────────────
 
-@runtime_checkable
-class InputValidatorProtocol(Protocol):
-    async def validate(self, raw_input: str) -> ValidatedInput: ...
+class InputValidatorProtocol:
+    """Step 1 기반. 기본은 검증 없이 원문을 그대로 통과시킨다. DefaultInputValidator 가 실제 검증을 한다."""
 
-
-@runtime_checkable
-class AuthenticatorProtocol(Protocol):
-    async def authenticate(self, validated: ValidatedInput, credentials: dict) -> AuthContext: ...
+    async def validate(self, raw_input: str) -> ValidatedInput:
+        return ValidatedInput(raw=raw_input, sanitized=raw_input)
 
 
-@runtime_checkable
-class PolicyEngineProtocol(Protocol):
-    async def check(self, auth_ctx: AuthContext, requested_tools: list[str]) -> PolicyResult: ...
+class AuthenticatorProtocol:
+    """Step 2 기반. 기본은 인증 없이 _roles 를 가진 익명 로컬 사용자로 통과(NoAuth)."""
+
+    _roles: frozenset[str] = ANONYMOUS_ROLES
+
+    async def authenticate(self, validated: ValidatedInput, credentials: dict[str, Any]) -> AuthContext:
+        return AuthContext(
+            user_id=LOCAL_USER,
+            roles=self._roles,
+            is_anonymous=True,
+        )
 
 
-@runtime_checkable
-class SandboxProtocol(Protocol):
-    async def approve(self, policy_result: PolicyResult, command: str) -> ApprovalResult: ...
-    async def request_approval(self, command: str, reason: str, always_pattern: str = "") -> bool | str: ...
-    def is_approval_required(self, tool_name: str) -> bool: ...
-    async def authorize(self, tool_name: str, params: dict[str, Any]) -> bool: ...
+class PolicyEngineProtocol:
+    """Step 3 기반. 기본은 요청한 툴(없으면 전부)과 모든 스킬을 허용(AllowAll)."""
+
+    async def check(self, auth_ctx: AuthContext, requested_tools: list[str]) -> PolicyResult:
+        return PolicyResult(
+            allowed_tools=frozenset(requested_tools) if requested_tools else ANY_GRANT,
+            allowed_skills=ANY_GRANT,
+        )
+
+
+class SandboxProtocol:
+    """Step 4 기반. 기본은 모든 명령 허용, 승인 불필요(Permissive)."""
+
+    async def approve(self, policy_result: PolicyResult, command: str) -> ApprovalResult:
+        return ApprovalResult(approved=True)
+
+    async def request_approval(self, command: str, reason: str, always_pattern: str = "") -> bool | str:
+        return True
+
+    def is_approval_required(self, tool_name: str) -> bool:
+        return False
+
+    async def authorize(self, tool_name: str, params: dict[str, Any]) -> bool:
+        return True
 
 
 # ── SecurityPipeline 오케스트레이터 ──────────────────────────────────────────
 
 class SecurityPipeline:
-    """
-    4단계 보안 파이프라인 — agent loop 실행 전 강제 통과.
-    순서 변경 불가, 구현체만 교체 가능.
-    """
+    """4단계 보안 파이프라인. agent loop 실행 전 강제 통과. 순서 변경 불가, 구현체만 교체 가능."""
 
     def __init__(
         self,
@@ -104,7 +132,7 @@ class SecurityPipeline:
     async def run(
         self,
         raw_input: str,
-        credentials: dict,
+        credentials: dict[str, Any],
         requested_tools: list[str] | None = None,
     ) -> tuple[ValidatedInput, AuthContext, PolicyResult]:
         validated = await self._validator.validate(raw_input)

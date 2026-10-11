@@ -1,0 +1,160 @@
+"""[app] SessionBuilder: AgentProfile 과 앱 서비스로 AgentSession 하나를 조립한다(TUI, Web 공용)."""
+
+import uuid
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+from jarvis.common.logger import get_logger
+
+if TYPE_CHECKING:
+    from jarvis.agent_layer.openloop import LoopExpiry
+    from jarvis.agent_layer.thought import ThoughtComposer, ThoughtEngine, ThoughtLog, ThoughtSink
+    from jarvis.app.agent_profile import AgentProfile
+    from jarvis.app.app_context import AppContext
+    from jarvis.app.app_services import AppServices
+    from jarvis.core.session import AgentSession
+    from jarvis.model_layer.types import Message
+
+logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class ThoughtParts:
+    """사고가 켜져 있을 때 세션에 꽂는 세 부품. 꺼져 있으면 모두 None."""
+
+    engine: "ThoughtEngine | None" = None
+    log: "ThoughtLog | None" = None
+    composer: "ThoughtComposer | None" = None
+
+
+class SessionBuilder:
+    """세션 id 하나를 받아 사고, proactive, open loop, 알림까지 연결된 AgentSession 을 만든다."""
+
+    def __init__(self, ctx: "AppContext", services: "AppServices", profile: "AgentProfile") -> None:
+        self._ctx = ctx
+        self._services = services
+        self._profile = profile
+
+    @property
+    def profile(self) -> "AgentProfile":
+        return self._profile
+
+    def build(self, session_id: str, services: "AppServices | None" = None) -> "AgentSession":
+        """services 를 주면(세션 전용 보안 파이프라인) 그것으로, 아니면 앱 기본 서비스로 만든다."""
+        from jarvis.core.session import AgentSession
+
+        svc = services or self._services
+        settings = self._ctx.settings
+        thought = self.thought_parts(svc)
+        session = AgentSession(
+            model=self._profile.model,
+            session_id=session_id,
+            security_pipeline=svc.pipeline,
+            plugin_runner=svc.plugin_runner,
+            memory_chain=svc.memory_chain,
+            tool_registry=self._ctx.tool_registry,
+            skill_registry=svc.skill_registry,
+            session_repo=self._ctx.session_repo,
+            thought_engine=thought.engine,
+            thought_log=thought.log,
+            thought_composer=thought.composer,
+            thought_timing=self._profile.thought.request_timing,
+            thought_wait_sec=self._profile.thought.wait_sec,
+            proactivity_factory=self._profile.proactivity_factory(),
+            openloop_store=svc.openloop_store,
+            openloop_expiry=self.openloop_expiry(),
+            activity_clock=svc.activity_clock,
+            feedback_learner=self._profile.feedback_learner,
+            user_model_store=svc.user_model_store,
+            external_inbox=svc.external_inbox,
+            external_detail_in_prompt=settings.external.store_detail_in_log,
+        )
+        # 먼저 거는 말은 열린 화면뿐 아니라 외부 채널에도 간다. 서브 에이전트와 스케줄 세션은 이 경로를 타지 않는다
+        if self._ctx.notifier is not None:
+            from jarvis.core.notify import proactive_forwarder
+
+            session.subscribe(proactive_forwarder(self._ctx.notifier))
+        return session
+
+    def thought_parts(self, services: "AppServices") -> ThoughtParts:
+        """사고 엔진(분리된 사고 모델), 사고 로그 싱크, composer. 사고가 꺼져 있으면 빈 ThoughtParts."""
+        tcfg = self._profile.thought
+        if not tcfg.enabled:
+            return ThoughtParts()
+
+        from jarvis.agent_layer.thought import (
+            DefaultThoughtComposer,
+            InnerThoughtEngine,
+            InterpretationOnlyComposer,
+            LTMThoughtSink,
+            ThoughtLog,
+            ThoughtPromptTemplate,
+            WorkingNotesSink,
+        )
+        from jarvis.agent_layer.thought.prompt import DEFAULT_REFLECTION_TEMPLATE
+
+        engine = InnerThoughtEngine(
+            model=self._profile.thought_model(),
+            template=ThoughtPromptTemplate.load(tcfg.prompt_path),
+            reflection_template=ThoughtPromptTemplate.load(
+                tcfg.reflection_prompt_path, default=DEFAULT_REFLECTION_TEMPLATE
+            ),
+            recall=services.memory_chain.retrieve,
+            recall_limit=tcfg.recall_limit,
+            skip_if_shorter_than=tcfg.skip_if_shorter_than,
+            history_window=tcfg.history_turns,
+            history_chars=tcfg.history_chars,
+        )
+        # 설정된 싱크만, 모르는 이름은 무시한다
+        sink_factories: dict[str, Callable[[], ThoughtSink]] = {
+            "ltm": lambda: LTMThoughtSink(services.memory),
+            "stm": lambda: WorkingNotesSink(services.memory),
+        }
+        log = ThoughtLog([sink_factories[name]() for name in tcfg.log_sinks if name in sink_factories])
+        composers: dict[str, Callable[[], ThoughtComposer]] = {
+            "default": DefaultThoughtComposer,
+            "interpretation_only": InterpretationOnlyComposer,
+        }
+        composer = composers.get(tcfg.composer, DefaultThoughtComposer)()
+        return ThoughtParts(engine=engine, log=log, composer=composer)
+
+    def openloop_expiry(self) -> "LoopExpiry":
+        from jarvis.agent_layer.openloop import LoopExpiry
+
+        cfg = self._ctx.settings.openloop
+        return LoopExpiry(grace_ms=cfg.expire_after_sec * 1000, max_age_ms=cfg.max_age_sec * 1000)
+
+    def new_session_factory(self) -> "Callable[[], Awaitable[AgentSession]]":
+        """Ctrl+N: 새 UUID 세션을 저장소에 만들고 조립한다. TUI on_mount 뒤에만 부른다."""
+
+        async def factory() -> "AgentSession":
+            new_id = str(uuid.uuid4())
+            await self._ctx.session_repo.create(session_id=new_id)
+            return self.build(new_id)
+
+        return factory
+
+    def branch_factory(self) -> "Callable[[str], Awaitable[AgentSession]]":
+        """Ctrl+F: 부모 세션의 메시지를 복사한 분기 세션을 조립한다."""
+
+        async def factory(parent_session_id: str) -> "AgentSession":
+            repo = self._ctx.session_repo
+            if hasattr(repo, "create_branch"):
+                meta = await repo.create_branch(parent_session_id)
+            else:
+                meta = await repo.create(session_id=str(uuid.uuid4()))
+            return self.build(meta.session_id)
+
+        return factory
+
+
+async def learn_procedures(ctx: "AppContext", session_id: str, messages: "list[Message]") -> list[str]:
+    """세션 종료 때 절차 학습. 학습기가 없거나 실패하면 빈 목록(요약 저장을 막지 않는다)."""
+    if ctx.procedure_learner is None or not messages:
+        return []
+    try:
+        return await ctx.procedure_learner.learn(session_id, messages)
+    except Exception as exc:
+        logger.info(f"[Procedures] learning failed (non-fatal): {exc}")
+        return []

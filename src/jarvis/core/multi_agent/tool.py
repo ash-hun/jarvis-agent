@@ -1,40 +1,41 @@
-"""AgentNodeTool. 서브 에이전트를 JarvisTool 로 노출해 LLM 이 tool_call 로 위임하게 한다.
-
-두 모드가 있다.
-- 정적: 미리 만든 AgentNode 하나(테스트, 단순 배선)
-- 지연: AgentDefinition + AgentFactory 를 LazyAgentNode 로 감싼다. 범위 상속과 위임 기록은 노드가 한다.
-  부모 범위는 ToolContext 로 받는다. 레지스트리를 거치지 않는 호출(테스트, 정적 배선)은 contextvar 로 폴백.
-"""
+"""[core] 서브 에이전트를 JarvisTool 로 노출해 LLM 이 tool_call 로 위임하게 하는 AgentNodeTool."""
 
 from __future__ import annotations
 
 import asyncio
 from typing import TYPE_CHECKING, Any
 
+from jarvis.core.tools.registry import JarvisTool, ToolContext
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 
-from .node import AgentNode, LazyAgentNode, record_delegation
+from .node import LazyAgentNode, record_delegation
+from .protocol import AgentNodeProtocol
 from .task import AgentTask
 
 if TYPE_CHECKING:
-    from jarvis.memory.manager import MemoryManager
+    from jarvis.memory.memory_service import MemoryService
 
     from .factory import AgentDefinition, AgentFactory
 
 
-class AgentNodeTool:
-    """JarvisTool Protocol을 구현하는 sub-agent 래퍼."""
+class AgentNodeTool(JarvisTool):
+    """sub-agent 래퍼. 두 모드가 있다.
+
+    - 정적: 미리 만든 노드 하나(테스트, 단순 배선)
+    - 지연: AgentDefinition + AgentFactory 를 LazyAgentNode 로 감싼다. 범위 상속과 위임 기록은 노드가 한다.
+      부모 범위는 ToolContext 로 받는다. 레지스트리를 거치지 않는 호출(테스트, 정적 배선)은 contextvar 로 폴백.
+    """
 
     execution_mode: str = "sequential"
 
     def __init__(
         self,
-        node: AgentNode | LazyAgentNode | None = None,
+        node: AgentNodeProtocol | None = None,
         *,
         definition: AgentDefinition | None = None,
         factory: AgentFactory | None = None,
-        memory: MemoryManager | None = None,
+        memory: MemoryService | None = None,
     ) -> None:
         if node is None:
             if definition is None or factory is None:
@@ -57,7 +58,7 @@ class AgentNodeTool:
         }
 
     @property
-    def node(self) -> AgentNode | LazyAgentNode:
+    def node(self) -> AgentNodeProtocol:
         return self._node
 
     @property
@@ -69,7 +70,7 @@ class AgentNodeTool:
         tool_call_id: str,
         params: dict[str, Any],
         signal: asyncio.Event | None = None,
-        context: Any = None,
+        context: ToolContext | None = None,
     ) -> ToolResultMessage:
         parent_scope = getattr(context, "scope", None) or current_scope.get() or MemoryScope(user_id=LOCAL_USER)
         task = AgentTask.create(content=params["task"], scope=parent_scope)

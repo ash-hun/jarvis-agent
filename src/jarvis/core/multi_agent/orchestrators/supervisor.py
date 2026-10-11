@@ -1,8 +1,4 @@
-"""SupervisorOrchestrator — LLM이 tool_call로 sub-agent를 선택.
-
-노드를 AgentNodeTool로 래핑해 orchestrator_session의 ToolRegistry에 등록.
-LLM이 어떤 에이전트를 언제 쓸지 직접 결정하는 Supervisor 패턴.
-"""
+"""[core] 노드를 AgentNodeTool 로 감독자 세션에 꽂아 LLM 이 tool_call 로 sub-agent 를 고르게 하는 오케스트레이터."""
 
 from __future__ import annotations
 

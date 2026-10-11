@@ -1,12 +1,13 @@
-"""/cost — 현재 세션의 토큰 사용량과 추정 비용 리포트."""
+"""[core] 현재 세션의 모델별 토큰 사용량과 추정 비용을 보고하는 /cost 핸들러 factory."""
+
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
-    from jarvis.model_layer.types import Usage
+    from jarvis.model_layer.types import AssistantMessage, Usage
 
 Handler = Callable[[str], Awaitable[str]]
 
@@ -48,8 +49,10 @@ def make_cost_handler(session_repo: SessionRepo, session_id: str = "default") ->
         for msg in messages:
             if getattr(msg, "role", None) != "assistant":
                 continue
-            usage: Usage = msg.usage
-            model = msg.model or "(unknown)"
+            # role 로 거른 뒤라 assistant 메시지다. isinstance 로 바꾸면 role 만 맞춘 테스트 더블이 빠진다
+            assistant = cast("AssistantMessage", msg)
+            usage: Usage = assistant.usage
+            model = assistant.model or "(unknown)"
             agg = per_model.setdefault(
                 model, {"input": 0, "output": 0, "cache_read": 0, "cache_write": 0}
             )

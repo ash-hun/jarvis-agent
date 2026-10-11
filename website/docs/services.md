@@ -39,9 +39,12 @@ flowchart LR
   subgraph UI[화면]
     HUD[Web HUD<br/>app/composer.js]
     TUI[TUI app.py]
+    WS["ui/web/router/ws_router.py<br/>ws /ws"]
+  end
+  subgraph APP[app 조립]
+    SB[SessionBuilder<br/>AgentProfile]
   end
   subgraph CORE[core]
-    WS["ui/web/server.py<br/>ws /ws"]
     SES[AgentSession<br/>core/session.py]
     SEC[SecurityPipeline<br/>policy/]
     REG[ToolRegistry<br/>tools/]
@@ -56,6 +59,7 @@ flowchart LR
   REPO[(세션 저장소<br/>jsonl, Postgres)]
   HUD --> WS --> SES
   TUI --> SES
+  SB -. 세션 조립 .-> SES
   SES --> SEC
   SES --> HAR --> LOOP --> PROV
   LOOP --> REG
@@ -162,7 +166,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   SES[AgentSession] --> CHAIN[MemoryMiddlewareChain]
-  CHAIN --> MGR[MemoryManager<br/>memory/manager.py]
+  CHAIN --> MGR[MemoryService<br/>memory/memory_service.py]
   MGR --> WM[작업 메모리<br/>working/]
   MGR --> LT[장기 기억<br/>episodic, semantic, procedural]
   MGR --> RET[회상<br/>retrieval/scoring.py]
@@ -201,7 +205,7 @@ flowchart LR
 flowchart LR
   HUD[SESSIONS 카드] --> API["REST /api/sessions"]
   HUD --> WS["ws /ws?session_id="]
-  API --> MGR[SessionManager<br/>ui/web/server.py]
+  API --> MGR[SessionRegistry<br/>ui/web/session_registry.py]
   WS --> MGR
   MGR --> SES[AgentSession 하나씩]
   SES --> REPO[SessionRepo<br/>jsonl.py, postgres.py]

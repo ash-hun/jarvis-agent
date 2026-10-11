@@ -1,0 +1,130 @@
+"""[ui] SessionRegistry: Web HUD 의 세션을 id 로 만들고 찾고 지운다. 세션마다 보안 파이프라인을 따로 둔다."""
+
+import time
+import uuid
+from typing import TYPE_CHECKING
+
+from jarvis.common.logger import get_logger
+from jarvis.ui.web.web_auth import auth_enabled
+
+if TYPE_CHECKING:
+    from jarvis.agent_layer.session.protocol import SessionRepo
+    from jarvis.app.app_context import AppContext
+    from jarvis.app.app_services import AppServices
+    from jarvis.app.session_builder import SessionBuilder
+    from jarvis.core.policy.sandbox import DefaultSandbox
+    from jarvis.core.session import AgentSession
+    from jarvis.memory.memory_service import MemoryService
+    from jarvis.model_layer.types import ModelConfig
+
+logger = get_logger(__name__)
+
+
+class SessionRegistry:
+    """열린 세션과 그 sandbox 를 기억한다. 프로세스 메모리라 재시작하면 목록이 비고, 세션 이력은 저장소에 남는다."""
+
+    def __init__(self, ctx: "AppContext", services: "AppServices", builder: "SessionBuilder") -> None:
+        self._ctx = ctx
+        self._services = services
+        self._builder = builder
+        self._sessions: dict[str, AgentSession] = {}
+        self._sandboxes: dict[str, DefaultSandbox] = {}
+        # 최근 사용자 활동 시각(monotonic). 외부 이벤트를 어느 세션이 소비할지 정렬용
+        self._last_activity: dict[str, float] = {}
+
+    def _session_services(self) -> "tuple[AppServices, DefaultSandbox]":
+        """세션 전용 sandbox 와 pipeline 을 새로 만들어 끼운 서비스 사본."""
+        from jarvis.core.policy.authenticator import ApiKeyAuthenticator, NoAuthAuthenticator
+        from jarvis.core.policy.pipeline import AuthenticatorProtocol, SecurityPipeline
+        from jarvis.core.policy.policy import AllowAllPolicy
+        from jarvis.core.policy.sandbox import DefaultSandbox
+        from jarvis.core.policy.validator import DefaultInputValidator
+
+        s = self._ctx.settings
+        sandbox = DefaultSandbox(
+            dangerous_patterns=s.security.dangerous_commands,
+            require_approval_for=s.security.require_approval_for,
+            approval_rules=self._services.approval_rules,
+        )
+        # 접근 키가 있으면 키 → (이름, roles) 로 사용자를 식별한다. AuthContext.user_id 가 이름이 되어
+        # rate limit 과 tool executor 의 사용자별 정책에 그대로 흐른다
+        authenticator: AuthenticatorProtocol = NoAuthAuthenticator()
+        if auth_enabled(s):
+            keys = s.security.api_keys
+            authenticator = ApiKeyAuthenticator(
+                valid_keys={k: frozenset(u.roles) for k, u in keys.items()},
+                user_names={k: u.name for k, u in keys.items()},
+            )
+        pipeline = SecurityPipeline(
+            validator=DefaultInputValidator(max_length=s.security.input_max_length),
+            authenticator=authenticator,
+            policy=AllowAllPolicy(),
+            sandbox=sandbox,
+        )
+        return self._services.with_security(pipeline, sandbox), sandbox
+
+    async def get_or_create(self, session_id: str) -> "tuple[AgentSession, DefaultSandbox]":
+        """있으면 그대로, 없으면 저장소에 만들고 조립한다. 두 번 불러도 같은 세션이다."""
+        if session_id not in self._sessions:
+            await self._ctx.session_repo.create(session_id=session_id)
+            services, sandbox = self._session_services()
+            self._sessions[session_id] = self._builder.build(session_id, services)
+            self._sandboxes[session_id] = sandbox
+        return self._sessions[session_id], self._sandboxes[session_id]
+
+    async def create_new(self) -> str:
+        sid = uuid.uuid4().hex[:8]
+        await self.get_or_create(sid)
+        return sid
+
+    async def remove(self, session_id: str) -> None:
+        """메모리와 저장소에서 지운다. 없는 세션도 같은 결과(저장소 delete 는 no-op)."""
+        self._sessions.pop(session_id, None)
+        self._sandboxes.pop(session_id, None)
+        self._last_activity.pop(session_id, None)
+        await self._ctx.session_repo.delete(session_id)
+
+    def list_ids(self) -> list[str]:
+        return list(self._sessions.keys())
+
+    def active_sessions(self) -> "list[AgentSession]":
+        return list(self._sessions.values())
+
+    def touch(self, session_id: str) -> None:
+        """사용자 메시지를 받은 시점. 세션 recency 를 갱신한다."""
+        self._last_activity[session_id] = time.monotonic()
+
+    def sessions_by_recency(self) -> "list[AgentSession]":
+        """최근 활동순. 한 번도 touch 되지 않았으면 삽입 순서.
+
+        외부 이벤트는 inbox drain-once 라 첫 세션이 전부 소비한다. 그 첫 세션을 가장 최근에 대화한 세션으로 만든다.
+        """
+        items = list(self._sessions.items())
+        items.sort(key=lambda kv: self._last_activity.get(kv[0], float("-inf")), reverse=True)
+        return [session for _, session in items]
+
+    async def save_all_sessions(
+        self, session_repo: "SessionRepo", memory: "MemoryService", model: "ModelConfig"
+    ) -> None:
+        """서버 종료 때 활성 세션마다 일화 요약, 사실 공고화, 절차 학습. 한 세션의 실패가 다른 세션을 막지 않는다."""
+        from jarvis.app.session_builder import learn_procedures
+        from jarvis.memory.consolidation.episodic import EpisodicSummarizer
+
+        summarizer = EpisodicSummarizer(model=model, memory=memory)
+        for session_id, session in list(self._sessions.items()):
+            try:
+                msgs = await session_repo.get_messages(session._session_id)
+                if not msgs:
+                    continue
+                scope = getattr(session, "memory_scope", None)
+                entry_id = await summarizer.save_session(session._session_id, msgs, scope=scope)
+                if entry_id:
+                    logger.info(f"[Episodic] Session {session_id[:8]} summary saved (id: {entry_id[:8]})")
+                facts = await memory.consolidate(scope)
+                if facts:
+                    logger.info(f"[Memory] Session {session_id[:8]}: {facts} fact(s) consolidated")
+                learned = await learn_procedures(self._ctx, session._session_id, msgs)
+                if learned:
+                    logger.info(f"[Procedures] Session {session_id[:8]}: draft(s) saved: {', '.join(learned)}")
+            except Exception as exc:
+                logger.info(f"[Episodic] Session {session_id[:8]} summary failed (non-fatal): {exc}")

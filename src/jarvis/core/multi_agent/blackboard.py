@@ -1,8 +1,4 @@
-"""SharedBlackboard — Blackboard 아키텍처의 공유 상태 저장소.
-
-에이전트들은 write()로 결과를 게시하고 read()로 타 에이전트 결과를 참조한다.
-watch() / watch_all()은 asyncio.Queue 기반 알림 — 폴링 없이 변경을 구독한다.
-"""
+"""[core] 에이전트가 결과를 게시하고 읽으며 asyncio.Queue 로 변경을 구독하는 공유 블랙보드 저장소."""
 
 from __future__ import annotations
 
@@ -15,12 +11,14 @@ from typing import Any
 @dataclass
 class BlackboardEntry:
     key: str
-    value: Any
+    value: Any  # 블랙보드는 작업 문구, 결과 문자열, 임의 구조를 함께 담는다
     author: str
     written_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 class SharedBlackboard:
+    """write() 로 게시, read() 로 참조. watch() / watch_all() 은 폴링 없이 변경을 구독하는 Queue 를 준다."""
+
     def __init__(self) -> None:
         self._data: dict[str, BlackboardEntry] = {}
         self._key_watchers: dict[str, list[asyncio.Queue[BlackboardEntry]]] = {}

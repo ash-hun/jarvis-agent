@@ -1,10 +1,5 @@
-"""
-Open-loop 추적 서브시스템 (Tier 2).
+"""[agent_layer] 사용자가 흘린 약속과 미완 작업(open loop)을 추적하는 서브시스템의 공개 이름을 모은다."""
 
-사용자가 흘린 약속·미완 작업을 추적한다. InnerThought가 감지(ThoughtFrame.open_loops)
-→ OpenLoopStore에 저장 → daemon 성찰 시 열린 항목을 다시 컨텍스트로 주입해
-만기/조건 충족 시 먼저 상기하거나 처리한다.
-"""
 from __future__ import annotations
 
 from jarvis.agent_layer.openloop.jsonl_store import JsonlOpenLoopStore

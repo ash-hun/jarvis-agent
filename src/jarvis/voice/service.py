@@ -1,6 +1,8 @@
+"""[voice] STT 와 TTS 프로바이더를 묶어 하나의 음성 파이프라인으로 제공한다."""
+
 from __future__ import annotations
 
-from jarvis.voice.protocol import STTProvider, TTSProvider
+from jarvis.voice.protocol import DEFAULT_LANG, DEFAULT_SAMPLE_RATE, STTProvider, TTSProvider
 
 
 class VoiceService:
@@ -10,10 +12,10 @@ class VoiceService:
         self._stt = stt
         self._tts = tts
 
-    async def transcribe(self, audio_bytes: bytes, sample_rate: int = 16000) -> str:
+    async def transcribe(self, audio_bytes: bytes, sample_rate: int = DEFAULT_SAMPLE_RATE) -> str:
         return await self._stt.transcribe(audio_bytes, sample_rate)
 
-    async def synthesize(self, text: str, lang: str = "ko") -> bytes:
+    async def synthesize(self, text: str, lang: str = DEFAULT_LANG) -> bytes:
         """텍스트 → WAV bytes. 빈 bytes이면 클라이언트가 browser TTS를 사용해야 함."""
         return await self._tts.synthesize(text, lang)
 

@@ -1,4 +1,5 @@
-"""/export — 현재 세션 대화를 markdown 또는 json 파일로 내보낸다."""
+"""[core] 현재 세션 대화를 markdown 또는 json 파일로 내보내는 /export 핸들러 factory."""
+
 from __future__ import annotations
 
 import json

@@ -1,12 +1,4 @@
-"""
-Inner Thought 서브시스템 — 요청 시점 메타인지 층.
-
-메인 응답과 분리된 별도 LLM 호출로 구조화된 `ThoughtFrame`을 만들어
-① 메인 턴 컨텍스트를 증강하고 ② 사고 로그/이벤트로 노출한다.
-
-엔진은 `ThoughtEngine` Protocol 뒤에 격리되어 있어, 통째 교체(swap) 또는
-`InnerThoughtEngine`의 seam 메서드 오버라이드로 독립 고도화할 수 있다.
-"""
+"""[agent_layer] 요청 시점 메타인지 층(inner thought) 서브시스템의 공개 이름을 모은다."""
 
 from __future__ import annotations
 

@@ -1,17 +1,18 @@
-"""LongMemEval (Wu et al. 2024). https://github.com/xiaowu0162/LongMemEval
-
-질문 하나에 haystack 세션 묶음이 붙는다. 증거는 answer_session_ids(세션 단위)와
-턴의 has_answer(턴 단위) 둘 다 있다. 질문 유형: single-session-user, single-session-assistant,
-single-session-preference, temporal-reasoning, knowledge-update, multi-session, abstention(_abs).
-"""
+"""[memory] LongMemEval(Wu et al. 2024) 질문과 haystack 세션 묶음을 BenchmarkQuestion 으로 바꾼다."""
 
 import json
 from pathlib import Path
+from typing import Any
 
 from jarvis.memory.eval.benchmark import BenchmarkQuestion, BenchmarkSession, BenchmarkTurn
 
+# 원본 https://github.com/xiaowu0162/LongMemEval
+# 증거는 answer_session_ids(세션 단위)와 턴의 has_answer(턴 단위) 둘 다 있다.
+# 질문 유형: single-session-user, single-session-assistant, single-session-preference, temporal-reasoning,
+# knowledge-update, multi-session, abstention(_abs)
 
-def parse_longmemeval(records: list[dict]) -> list[BenchmarkQuestion]:
+
+def parse_longmemeval(records: list[dict[str, Any]]) -> list[BenchmarkQuestion]:
     questions: list[BenchmarkQuestion] = []
     for rec in records:
         qid = str(rec["question_id"])

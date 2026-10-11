@@ -1,8 +1,4 @@
-"""SupervisorTopology — 1:N 단일 조율자 패턴.
-
-오케스트레이터(LLM)가 tool_call로 어떤 노드를 호출할지 결정.
-Base 구현으로 충분하므로 별도 오버라이드 없음.
-"""
+"""[core] 모든 노드가 감독자(LLM)에게 평등하게 보이는 1:N flat 토폴로지."""
 
 from __future__ import annotations
 

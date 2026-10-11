@@ -1,21 +1,22 @@
-"""python -m jarvis.core.proactive.eval [--suite all|policy|situation] [--engine none|llm] [--json] [-v]
-
-engine 이 none 이면 frame 이 있는 사례만 판정하고 상황 사례는 건너뛴다(LLM 없이 정책 회귀 검사).
-"""
+"""[core] proactive 평가 CLI: python -m jarvis.core.proactive.eval [--suite S] [--engine none|llm] [--json] [-v]."""
 
 import argparse
 import asyncio
 import json
 import sys
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from jarvis.core.proactive.eval.runner import SUITES, format_report, load_suites, run_cases
+
+if TYPE_CHECKING:
+    from jarvis.agent_layer.thought import InnerThoughtEngine
 
 # 엔진 프롬프트의 [지금] 값. 고정해야 같은 상황이 같은 프롬프트가 된다
 FIXED_CLOCK = datetime(2026, 1, 1, 9, 0, 0)
 
 
-def _llm_engine():  # type: ignore[no-untyped-def]
+def _llm_engine() -> "InnerThoughtEngine":
     from jarvis.agent_layer.thought import InnerThoughtEngine, ThoughtPromptTemplate
     from jarvis.agent_layer.thought.prompt import DEFAULT_REFLECTION_TEMPLATE
     from jarvis.config import get_settings
@@ -49,6 +50,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
 
+    # engine 이 none 이면 frame 이 있는 사례만 판정하고 상황 사례는 건너뛴다(LLM 없이 정책 회귀 검사).
     names = list(SUITES) if args.suite == "all" else [args.suite]
     engine = _llm_engine() if args.engine == "llm" else None
     report = asyncio.run(run_cases(load_suites(names), engine))

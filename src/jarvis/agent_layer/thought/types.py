@@ -1,3 +1,5 @@
+"""[agent_layer] inner thought 의 입력(ThoughtRequest), 출력(ThoughtFrame), 먼저 할 행동 후보 모델을 정의한다."""
+
 from __future__ import annotations
 
 from typing import Any, Literal
@@ -26,7 +28,7 @@ class ThoughtFrame(BaseModel):
     """
     inner thought 1회의 구조화된 산출물.
 
-    스키마는 안정적으로 유지한다 — 사용자는 주로 프롬프트 템플릿을 편집해
+    스키마는 안정적으로 유지한다: 사용자는 주로 프롬프트 템플릿을 편집해
     이 프레임이 "채워지는 방식"을 조율한다(필드 자체는 바꾸지 않는다).
     """
 
@@ -89,9 +91,9 @@ class ThoughtRequest(BaseModel):
     history: list[Message] = Field(default_factory=list)
     session_id: str | None = None
     open_loops: list[str] = Field(default_factory=list)  # Tier 2에서 채워짐
-    user_model: str = ""  # Tier 3 — 증류된 사용자 모델 컨텍스트(주입용)
-    # Phase 3 — 외부 세계(캘린더·메일 등)에서 새로 감지한 사실의 한 줄 목록.
-    # 문자열만 받는다 — 사고 층은 MCP도 벤더 스키마도 모른다(Hard Rule #1).
+    user_model: str = ""  # Tier 3: 증류된 사용자 모델 컨텍스트(주입용)
+    # Phase 3: 외부 세계(캘린더·메일 등)에서 새로 감지한 사실의 한 줄 목록.
+    # 문자열만 받는다: 사고 층은 MCP도 벤더 스키마도 모른다(Hard Rule #1).
     external_events: list[str] = Field(default_factory=list)
     # 이 세션에서 최근 먼저 건넨 말(🔔). 성찰이 같은 취지를 바꿔 말해 반복하지 않게 보여준다.
     recent_proactive: list[str] = Field(default_factory=list)

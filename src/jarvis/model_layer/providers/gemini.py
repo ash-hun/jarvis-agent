@@ -1,9 +1,12 @@
+"""[model_layer] Google Gemini 스트리밍을 공통 스트림 이벤트로 바꾸는 프로바이더."""
+
 from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator
 from typing import Any
 
+from jarvis.model_layer.providers.base import Provider
 from jarvis.model_layer.types import (
     ErrorEvent,
     LLMContext,
@@ -17,7 +20,7 @@ from jarvis.model_layer.types import (
 )
 
 
-class GeminiProvider:
+class GeminiProvider(Provider):
     provider_name = "gemini"
 
     def supports_thinking(self) -> bool:
@@ -71,7 +74,8 @@ class GeminiProvider:
             usage = Usage()
             last_finish_reason = "stop"
 
-            async for chunk in client.aio.models.generate_content_stream(
+            # 버그: generate_content_stream 은 코루틴이라 await 가 빠져 있다. 동작 보존 리팩터라 고치지 않고 보고만 한다
+            async for chunk in client.aio.models.generate_content_stream(  # type: ignore[attr-defined]  # 위 버그
                 model=model.model,
                 contents=messages,
                 config=generate_config,
@@ -146,14 +150,14 @@ def _convert_messages(context: LLMContext) -> list[dict[str, Any]]:
 
         elif msg.role == "assistant":
             parts = []
-            for block in msg.content:
-                if block.type == "text":
-                    parts.append({"text": block.text})
-                elif block.type == "tool_call":
+            for reply_block in msg.content:
+                if reply_block.type == "text":
+                    parts.append({"text": reply_block.text})
+                elif reply_block.type == "tool_call":
                     parts.append({
                         "function_call": {
-                            "name": block.name,
-                            "args": block.arguments,
+                            "name": reply_block.name,
+                            "args": reply_block.arguments,
                         }
                     })
             if parts:

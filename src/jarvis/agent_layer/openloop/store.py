@@ -1,7 +1,8 @@
+"""[agent_layer] open-loop 저장소 기본 클래스(메모리 저장 동작)와 기한 지난 항목 닫기를 둔다."""
+
 from __future__ import annotations
 
 import time
-from typing import Protocol, runtime_checkable
 
 from jarvis.agent_layer.openloop.types import (
     LOOP_STATUSES,
@@ -11,44 +12,16 @@ from jarvis.agent_layer.openloop.types import (
     normalize_description,
 )
 
-
-@runtime_checkable
-class OpenLoopStore(Protocol):
-    """open-loop 저장소 — 교체 가능(in_memory / postgres 등).
-
-    LTM과 달리 상태 변경(open→done/dismissed)이 잦아 전용 update API를 제공한다.
-    """
-
-    async def add(self, loop: OpenLoop) -> str: ...
-
-    async def add_unique(self, loop: OpenLoop) -> str | None: ...
-
-    async def list_open(self, session_id: str | None = None, limit: int = 20) -> list[OpenLoop]: ...
-
-    async def get(self, loop_id: str) -> OpenLoop | None: ...
-
-    async def update_status(self, loop_id: str, status: str) -> bool: ...
-
-    async def all(self) -> list[OpenLoop]: ...
-
-
 # 만료 검사 때 보는 열린 항목 상한. 세션마다 몇 건이라 넉넉하다
 EXPIRE_SCAN_LIMIT = 200
 
 
-async def close_expired(
-    store: OpenLoopStore, now_ms: int, grace_ms: int, max_age_ms: int, session_id: str | None = None
-) -> list[str]:
-    """기한이 지난 열린 항목을 expired 로 닫는다. 이미 닫힌 건 다시 보지 않으므로 두 번 불러도 같다."""
-    loops = await store.list_open(session_id=session_id, limit=EXPIRE_SCAN_LIMIT)
-    ids = expired_ids(loops, now_ms, grace_ms, max_age_ms)
-    for loop_id in ids:
-        await store.update_status(loop_id, "expired")
-    return ids
+class OpenLoopStore:
+    """open-loop 저장소 기본 클래스. 그대로 쓰면 프로세스 메모리에 담는 저장소로 동작한다.
 
-
-class InMemoryOpenLoopStore:
-    """테스트·로컬용 in-memory 구현. 프로세스 재시작 시 소멸(영속화는 후속)."""
+    LTM과 달리 상태 변경(open→done/dismissed)이 잦아 전용 update API를 제공한다.
+    영속 저장소(jsonl / postgres)는 상속해서 저장 매체에 맞게 재정의한다.
+    """
 
     def __init__(self) -> None:
         self._loops: dict[str, OpenLoop] = {}
@@ -86,3 +59,18 @@ class InMemoryOpenLoopStore:
 
     async def all(self) -> list[OpenLoop]:
         return list(self._loops.values())
+
+
+class InMemoryOpenLoopStore(OpenLoopStore):
+    """테스트·로컬용 in-memory 구현. 프로세스 재시작 시 소멸(영속화는 후속). 동작은 기본 클래스 그대로다."""
+
+
+async def close_expired(
+    store: OpenLoopStore, now_ms: int, grace_ms: int, max_age_ms: int, session_id: str | None = None
+) -> list[str]:
+    """기한이 지난 열린 항목을 expired 로 닫는다. 이미 닫힌 건 다시 보지 않으므로 두 번 불러도 같다."""
+    loops = await store.list_open(session_id=session_id, limit=EXPIRE_SCAN_LIMIT)
+    ids = expired_ids(loops, now_ms, grace_ms, max_age_ms)
+    for loop_id in ids:
+        await store.update_status(loop_id, "expired")
+    return ids

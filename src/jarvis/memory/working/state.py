@@ -1,8 +1,7 @@
-"""작업 기억 상태와 저장소 프로토콜. 세션 이력의 사본이 아니라 이력 위에 얹는 메타데이터다."""
+"""[memory] 세션 이력의 사본이 아니라 이력 위에 얹는 작업 기억 상태와, 그 상태를 dict 로 드는 저장소 기반 클래스."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
-from typing import Protocol, runtime_checkable
 
 from jarvis.memory.scope import MemoryScope
 
@@ -27,12 +26,34 @@ class WorkingState:
         return self.rehearsal[item_id]
 
 
-@runtime_checkable
-class WorkingStore(Protocol):
+class WorkingStore:
+    """작업 기억 저장소. 기본 동작은 프로세스 메모리의 dict 이고, 영속 저장소는 메서드를 덮어쓴다."""
+
+    def __init__(self) -> None:
+        self._states: dict[MemoryScope, WorkingState] = {}
+
     async def load(self, scope: MemoryScope) -> WorkingState:
         """없으면 빈 상태를 돌려준다. 저장은 save 가 한다."""
-        ...
+        state = self._states.get(scope)
+        if state is None:
+            return WorkingState(scope=scope)
+        # 호출자가 고친 뒤 save 하지 않으면 반영되지 않도록 사본을 준다
+        return _copy(state)
 
-    async def save(self, state: WorkingState) -> None: ...
+    async def save(self, state: WorkingState) -> None:
+        self._states[state.scope] = _copy(state)
 
-    async def clear(self, scope: MemoryScope) -> None: ...
+    async def clear(self, scope: MemoryScope) -> None:
+        self._states.pop(scope, None)
+
+    async def legacy_stm_rows(self) -> int | None:
+        """범위 도입 전 STM 메시지 테이블의 행 수. 그런 테이블을 모르는 저장소는 None."""
+        return None
+
+    async def drop_legacy_stm(self) -> None:
+        """옛 STM 테이블 삭제. 모르는 저장소에는 지울 것이 없다."""
+        return None
+
+
+def _copy(state: WorkingState) -> WorkingState:
+    return replace(state, rehearsal=dict(state.rehearsal), notes=list(state.notes))

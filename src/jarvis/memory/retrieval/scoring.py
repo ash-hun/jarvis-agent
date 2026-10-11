@@ -1,8 +1,4 @@
-"""합성 점수. Generative Agents 의 recency + importance + relevance 에 부호화 단서 겹침을 더한다.
-
-importance 는 저장값을 깎지 않고 검색 시점에 감쇠시킨다(쇠퇴). 되뇌기가 많은 항목은 덜 잊힌다.
-저장값을 주기적으로 깎으면 재실행마다 상태가 달라지므로 순수 함수로 둔다.
-"""
+"""[memory] Generative Agents 의 recency, importance, relevance 에 단서 겹침을 더한 합성 점수(순수 함수)."""
 
 import math
 from dataclasses import dataclass
@@ -15,6 +11,7 @@ from jarvis.memory.types import MemoryItem, MemoryKind
 from jarvis.model_layer.embeddings import cosine
 
 DEFAULT_HALF_LIFE_HOURS = 24.0 * 7  # 일주일 지나면 recency 가 절반
+# importance 는 저장값을 깎지 않고 검색 시점에 감쇠시킨다. 저장값을 주기적으로 깎으면 재실행마다 상태가 달라진다
 DEFAULT_IMPORTANCE_HALF_LIFE_HOURS = 24.0 * 90  # 석 달 지나면 importance 가 절반(되뇌기 없을 때)
 DEFAULT_REHEARSAL_K = 3.0  # 되뇌기 포화 상수. 3회면 보존력이 절반
 

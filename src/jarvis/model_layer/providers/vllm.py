@@ -1,10 +1,14 @@
+"""[model_layer] vLLM 의 OpenAI 호환 SSE 스트림을 공통 스트림 이벤트로 바꾸는 프로바이더."""
+
 from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator
+from typing import Any
 
 import httpx
 
+from jarvis.model_layer.providers.base import Provider
 from jarvis.model_layer.types import (
     ErrorEvent,
     LLMContext,
@@ -13,12 +17,13 @@ from jarvis.model_layer.types import (
     StreamEvent,
     StreamOptions,
     TextDeltaEvent,
+    Tool,
     ToolCallDeltaEvent,
     Usage,
 )
 
 
-class VLLMProvider:
+class VLLMProvider(Provider):
     """vLLM 로컬 서버 프로바이더. OpenAI 호환 API 사용. base_url 기본값: http://localhost:8000"""
 
     provider_name = "vllm"
@@ -39,7 +44,7 @@ class VLLMProvider:
         messages = _convert_messages(context)
         tools = [_tool_to_openai(t) for t in context.tools] if context.tools else []
 
-        payload: dict = {
+        payload: dict[str, Any] = {
             "model": model.model,
             "messages": messages,
             "temperature": model.temperature,
@@ -62,7 +67,7 @@ class VLLMProvider:
                 headers=headers,
             ) as resp:
                 resp.raise_for_status()
-                tool_buffers: dict[int, dict] = {}
+                tool_buffers: dict[int, dict[str, Any]] = {}
                 usage = Usage()
 
                 async for line in resp.aiter_lines():
@@ -107,34 +112,34 @@ class VLLMProvider:
 
                     if finish := choice.get("finish_reason"):
                         stop_map = {"stop": "stop", "length": "length", "tool_calls": "tool_use"}
-                        yield StopEvent(reason=stop_map.get(finish, "stop"), usage=usage)  # type: ignore[arg-type]
+                        yield StopEvent(reason=stop_map.get(finish, "stop"), usage=usage)
 
         except httpx.HTTPError as exc:
             yield ErrorEvent(message=str(exc))
 
 
-def _convert_messages(context: LLMContext) -> list[dict]:
-    result = []
+def _convert_messages(context: LLMContext) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
     if context.system_prompt:
         result.append({"role": "system", "content": context.system_prompt})
 
     for msg in context.messages:
         if msg.role == "user":
             content = msg.content if isinstance(msg.content, str) else " ".join(
-                b.text for b in msg.content if b.type == "text"  # type: ignore[union-attr]
+                b.text for b in msg.content if b.type == "text"
             )
             result.append({"role": "user", "content": content})
 
         elif msg.role == "assistant":
-            text = "".join(b.text for b in msg.content if b.type == "text")  # type: ignore[union-attr]
-            entry: dict = {"role": "assistant", "content": text}
+            text = "".join(b.text for b in msg.content if b.type == "text")
+            entry: dict[str, Any] = {"role": "assistant", "content": text}
             tool_calls = [b for b in msg.content if b.type == "tool_call"]
             if tool_calls:
                 entry["tool_calls"] = [
                     {
                         "id": tc.id,
                         "type": "function",
-                        "function": {"name": tc.name, "arguments": json.dumps(tc.arguments)},  # type: ignore[union-attr]
+                        "function": {"name": tc.name, "arguments": json.dumps(tc.arguments)},
                     }
                     for tc in tool_calls
                 ]
@@ -150,7 +155,7 @@ def _convert_messages(context: LLMContext) -> list[dict]:
     return result
 
 
-def _tool_to_openai(tool) -> dict:
+def _tool_to_openai(tool: Tool) -> dict[str, Any]:
     return {
         "type": "function",
         "function": {

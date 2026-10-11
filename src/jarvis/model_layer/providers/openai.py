@@ -1,24 +1,31 @@
+"""[model_layer] OpenAI Chat Completions 스트리밍을 공통 스트림 이벤트로 바꾸는 프로바이더."""
+
 from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator
+from typing import Any
 
 import openai as openai_sdk
 
+from jarvis.model_layer.providers.base import Provider
 from jarvis.model_layer.types import (
     ErrorEvent,
+    ImageContent,
     LLMContext,
     ModelConfig,
     StopEvent,
     StreamEvent,
     StreamOptions,
+    TextContent,
     TextDeltaEvent,
+    Tool,
     ToolCallDeltaEvent,
     Usage,
 )
 
 
-class OpenAIProvider:
+class OpenAIProvider(Provider):
     provider_name = "openai"
 
     def supports_thinking(self) -> bool:
@@ -42,7 +49,7 @@ class OpenAIProvider:
         messages = _convert_messages(context)
         tools = [_tool_to_openai(t) for t in context.tools] if context.tools else []
 
-        kwargs: dict = {
+        kwargs: dict[str, Any] = {
             "model": model.model,
             "messages": messages,
             "temperature": model.temperature,
@@ -55,7 +62,7 @@ class OpenAIProvider:
             kwargs["tool_choice"] = "auto"
 
         try:
-            tool_buffers: dict[int, dict] = {}
+            tool_buffers: dict[int, dict[str, Any]] = {}
             usage = Usage()
 
             async with await client.chat.completions.create(**kwargs) as stream_ctx:
@@ -97,14 +104,14 @@ class OpenAIProvider:
                             "tool_calls": "tool_use",
                         }
                         reason = stop_map.get(choice.finish_reason, "stop")
-                        yield StopEvent(reason=reason, usage=usage)  # type: ignore[arg-type]
+                        yield StopEvent(reason=reason, usage=usage)
 
         except openai_sdk.APIError as exc:
             yield ErrorEvent(message=str(exc), code=str(getattr(exc, "status_code", None)))
 
 
-def _convert_messages(context: LLMContext) -> list[dict]:
-    result = []
+def _convert_messages(context: LLMContext) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
     if context.system_prompt:
         result.append({"role": "system", "content": context.system_prompt})
 
@@ -116,15 +123,15 @@ def _convert_messages(context: LLMContext) -> list[dict]:
         elif msg.role == "assistant":
             text_parts = [b for b in msg.content if b.type == "text"]
             tool_calls = [b for b in msg.content if b.type == "tool_call"]
-            entry: dict = {"role": "assistant"}
+            entry: dict[str, Any] = {"role": "assistant"}
             if text_parts:
-                entry["content"] = "".join(b.text for b in text_parts)  # type: ignore[union-attr]
+                entry["content"] = "".join(b.text for b in text_parts)
             if tool_calls:
                 entry["tool_calls"] = [
                     {
                         "id": tc.id,
                         "type": "function",
-                        "function": {"name": tc.name, "arguments": json.dumps(tc.arguments)},  # type: ignore[union-attr]
+                        "function": {"name": tc.name, "arguments": json.dumps(tc.arguments)},
                     }
                     for tc in tool_calls
                 ]
@@ -140,8 +147,8 @@ def _convert_messages(context: LLMContext) -> list[dict]:
     return result
 
 
-def _content_to_api(content: list) -> list[dict]:
-    result = []
+def _content_to_api(content: list[TextContent | ImageContent]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
     for block in content:
         if block.type == "text":
             result.append({"type": "text", "text": block.text})
@@ -153,7 +160,7 @@ def _content_to_api(content: list) -> list[dict]:
     return result
 
 
-def _tool_to_openai(tool) -> dict:
+def _tool_to_openai(tool: Tool) -> dict[str, Any]:
     return {
         "type": "function",
         "function": {

@@ -1,15 +1,18 @@
+"""[agent_layer] 여러 메모리 미들웨어를 순서대로 적용하는 체인."""
+
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from jarvis.agent_layer.memory.protocol import MemoryMiddleware
 from jarvis.model_layer.types import Message
 
 
-class MemoryMiddlewareChain:
+class MemoryMiddlewareChain(MemoryMiddleware):
     """
-    미들웨어 체인 — 각 stage를 순서대로 적용.
-    store()는 모든 stage에 병렬 전파.
+    미들웨어 체인: 각 stage를 순서대로 적용.
+    store()는 모든 stage에 병렬 전파. 체인 자신도 미들웨어라 다른 체인의 stage 로 끼울 수 있다.
     Pi: middleware chain 패턴.
     """
 
@@ -33,7 +36,6 @@ class MemoryMiddlewareChain:
         message: Message,
         context: dict[str, Any],
     ) -> None:
-        import asyncio
         await asyncio.gather(*[stage.store(message, context) for stage in self._stages])
 
     async def retrieve(
@@ -48,5 +50,4 @@ class MemoryMiddlewareChain:
         return await self._stages[-1].retrieve(query, context, limit)
 
     async def clear(self, context: dict[str, Any]) -> None:
-        import asyncio
         await asyncio.gather(*[stage.clear(context) for stage in self._stages])

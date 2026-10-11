@@ -1,9 +1,11 @@
+"""[agent_layer] LLM 호출과 툴 실행을 max_turns 안에서 반복하는 에이전트 루프 본체."""
+
 from __future__ import annotations
 
 import asyncio
 import json
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Any, cast
 
 from jarvis.agent_layer.types import (
     AgentContext,
@@ -22,6 +24,7 @@ from jarvis.model_layer.types import (
     AssistantMessage,
     ErrorEvent,
     LLMContext,
+    Message,
     StopEvent,
     TextContent,
     TextDeltaEvent,
@@ -50,7 +53,7 @@ async def run_agent_loop(
     """
     await emit(AgentStartEvent(session_id=context.session_id, prompt="", agent_name=agent_name))
     final_message: AssistantMessage | None = None
-    turn = -1  # max_turns=0이면 루프가 한 번도 돌지 않는다 — turns=0으로 보고
+    turn = -1  # max_turns=0이면 루프가 한 번도 돌지 않는다: turns=0으로 보고
 
     for turn in range(config.max_turns):
         if signal and signal.is_set():
@@ -61,7 +64,7 @@ async def run_agent_loop(
         assistant_msg = await _stream_assistant(context, config, emit, signal)
         final_message = assistant_msg
         if assistant_msg.error_message is not None:
-            # provider 에러 — 빈 assistant 메시지를 히스토리에 남기면 다음 호출이 400으로 깨진다
+            # provider 에러: 빈 assistant 메시지를 히스토리에 남기면 다음 호출이 400으로 깨진다
             break
         context.messages.append(assistant_msg)
 
@@ -86,7 +89,7 @@ async def run_agent_loop(
     return final_message
 
 
-def _close_dangling_tool_calls(messages: list) -> None:
+def _close_dangling_tool_calls(messages: list[Message]) -> None:
     """마지막 assistant tool_use 중 결과가 없는 것에 에러 결과를 붙인다.
 
     max_turns 소진·abort·executor 부재로 루프가 끊기면 tool_use만 남는데, 그 히스토리로
@@ -101,7 +104,9 @@ def _close_dangling_tool_calls(messages: list) -> None:
     answered = {
         m.tool_call_id for m in messages[last_assistant + 1 :] if isinstance(m, ToolResultMessage)
     }
-    for tc in messages[last_assistant].tool_calls():
+    # 위 next() 가 AssistantMessage 인 위치만 골랐다
+    last = cast(AssistantMessage, messages[last_assistant])
+    for tc in last.tool_calls():
         if tc.id in answered:
             continue
         messages.append(ToolResultMessage(
@@ -139,7 +144,7 @@ async def _stream_assistant(
 
     text_buffer = ""
     thinking_buffer = ""
-    tool_buffers: dict[str, dict] = {}
+    tool_buffers: dict[str, dict[str, str]] = {}
     usage = Usage()
     stop_reason = "stop"
 
@@ -173,7 +178,7 @@ async def _stream_assistant(
                 error_message=event.message,
             )
 
-    content = []
+    content: list[TextContent | ThinkingContent | ToolCall] = []
     if thinking_buffer:
         content.append(ThinkingContent(thinking=thinking_buffer))
     if text_buffer:
@@ -190,7 +195,7 @@ async def _stream_assistant(
         provider=context.model.provider,
         model=context.model.model,
         usage=usage,
-        stop_reason=stop_reason,  # type: ignore[arg-type]
+        stop_reason=stop_reason,
     )
 
 
@@ -204,19 +209,22 @@ async def _execute_tools(
     results: list[ToolResultMessage] = []
 
     if config.tool_execution_mode == "parallel":
-        tasks = []
+        tasks: list[Awaitable[ToolResultMessage]] = []
         for tc in tool_calls:
             await emit(ToolExecutionStartEvent(tool_call_id=tc.id, tool_name=tc.name, args=tc.arguments))
             tasks.append(executor(tc.id, tc.name, tc.arguments))
         completed = await asyncio.gather(*tasks, return_exceptions=True)
-        for tc, result in zip(tool_calls, completed, strict=False):
-            if isinstance(result, Exception):
+        for tc, outcome in zip(tool_calls, completed, strict=False):
+            if isinstance(outcome, Exception):
                 result = ToolResultMessage(
                     tool_call_id=tc.id,
                     tool_name=tc.name,
                     content=[],
                     is_error=True,
                 )
+            else:
+                # Exception 이 아닌 BaseException(취소 등)은 여기서 걸러지지 않는다. 기존 동작 그대로 둔다
+                result = cast(ToolResultMessage, outcome)
             await emit(ToolExecutionEndEvent(tool_call_id=tc.id, tool_name=tc.name, is_error=result.is_error))
             results.append(result)
     else:

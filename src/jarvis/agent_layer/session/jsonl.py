@@ -1,17 +1,18 @@
+"""[agent_layer] 세션 메타와 메시지를 세션별 JSONL 파일에 append 로 영속한다."""
+
 from __future__ import annotations
 
+import builtins
 import json
-import time
-import uuid
 from pathlib import Path
 
 import aiofiles
 
-from jarvis.agent_layer.session.protocol import SessionEntry, SessionMetadata, deserialize_message
+from jarvis.agent_layer.session.protocol import SessionEntry, SessionMetadata, SessionRepo, deserialize_message
 from jarvis.model_layer.types import Message
 
 
-class JsonlSessionRepo:
+class JsonlSessionRepo(SessionRepo):
     """
     JSONL 기반 세션 영속성. Pi: jsonl-repo.ts 완전 동일 패턴.
     - append-only, git-friendly
@@ -29,14 +30,14 @@ class JsonlSessionRepo:
 
     async def create(self, session_id: str | None = None, cwd: str = ".") -> SessionMetadata:
         self._root.mkdir(parents=True, exist_ok=True)
-        sid = session_id or str(uuid.uuid4())
+        sid = session_id or self._new_id()
         meta_path = self._meta_path(sid)
         # Idempotent: return existing meta rather than overwriting
         if meta_path.exists():
             async with aiofiles.open(meta_path) as f:
                 data = json.loads(await f.read())
             return SessionMetadata.model_validate(data)
-        now = int(time.time() * 1000)
+        now = self._now_ms()
         meta = SessionMetadata(
             session_id=sid,
             cwd=cwd,
@@ -49,7 +50,7 @@ class JsonlSessionRepo:
         self._session_path(sid).touch()
         return meta
 
-    async def list(self, cwd: str = "") -> list[SessionMetadata]:
+    async def list(self, cwd: str = "") -> builtins.list[SessionMetadata]:
         if not self._root.exists():
             return []
         metas = []
@@ -64,7 +65,7 @@ class JsonlSessionRepo:
                 continue
         return sorted(metas, key=lambda m: m.updated_at, reverse=True)
 
-    async def get_messages(self, session_id: str) -> list[Message]:
+    async def get_messages(self, session_id: str) -> builtins.list[Message]:
         path = self._session_path(session_id)
         if not path.exists():
             return []
@@ -85,13 +86,13 @@ class JsonlSessionRepo:
         return messages
 
     async def append(self, session_id: str, message: Message) -> str:
-        entry_id = str(uuid.uuid4())
+        entry_id = self._new_id()
         entry = SessionEntry(
             id=entry_id,
             parent_id=None,
-            timestamp=int(time.time() * 1000),
+            timestamp=self._now_ms(),
             type="message",
-            content=json.loads(message.model_dump_json()),
+            content=self._message_content(message),
         )
         async with aiofiles.open(self._session_path(session_id), "a") as f:
             await f.write(entry.model_dump_json() + "\n")
@@ -106,8 +107,8 @@ class JsonlSessionRepo:
     async def create_branch(self, parent_session_id: str) -> SessionMetadata:
         """부모 세션의 모든 메시지를 복사한 새 세션을 생성하고 parent_id를 설정한다."""
         self._root.mkdir(parents=True, exist_ok=True)
-        branch_id = str(uuid.uuid4())
-        now = int(time.time() * 1000)
+        branch_id = self._new_id()
+        now = self._now_ms()
 
         # Read parent messages
         parent_messages = await self.get_messages(parent_session_id)
@@ -117,11 +118,11 @@ class JsonlSessionRepo:
         async with aiofiles.open(branch_path, "w") as f:
             for msg in parent_messages:
                 entry = SessionEntry(
-                    id=str(uuid.uuid4()),
+                    id=self._new_id(),
                     parent_id=parent_session_id,
                     timestamp=now,
                     type="message",
-                    content=json.loads(msg.model_dump_json()),
+                    content=self._message_content(msg),
                 )
                 await f.write(entry.model_dump_json() + "\n")
 
@@ -143,7 +144,7 @@ class JsonlSessionRepo:
             return
         async with aiofiles.open(meta_path) as f:
             data = json.loads(await f.read())
-        data["updated_at"] = int(time.time() * 1000)
+        data["updated_at"] = self._now_ms()
         data["message_count"] = data.get("message_count", 0) + 1
         async with aiofiles.open(meta_path, "w") as f:
             await f.write(json.dumps(data))

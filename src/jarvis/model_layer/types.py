@@ -1,8 +1,10 @@
+"""[model_layer] 메시지, 콘텐츠 블록, 스트리밍 이벤트, 모델 설정의 공통 타입을 정의한다."""
+
 from __future__ import annotations
 
 import time
-from collections.abc import AsyncIterator
-from typing import Any, Literal, Protocol
+from collections.abc import AsyncIterator, Callable
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -168,12 +170,6 @@ class LLMContext(BaseModel):
     system_prompt: str | None = None
 
 
-# ── Provider Protocol ─────────────────────────────────────────────────────────
+# ── Provider stream 함수 모양 ─────────────────────────────────────────────────
 
-class ProviderStreamFn(Protocol):
-    def __call__(
-        self,
-        model: ModelConfig,
-        context: LLMContext,
-        options: StreamOptions | None = None,
-    ) -> AsyncIterator[StreamEvent]: ...
+ProviderStreamFn = Callable[[ModelConfig, LLMContext, StreamOptions | None], AsyncIterator[StreamEvent]]

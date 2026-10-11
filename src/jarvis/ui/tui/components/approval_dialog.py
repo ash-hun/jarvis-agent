@@ -1,3 +1,5 @@
+"""[ui] ApprovalDialog: 보안 파이프라인의 승인 요청을 TUI 모달로 묻는다."""
+
 from __future__ import annotations
 
 from textual.app import ComposeResult
@@ -11,10 +13,7 @@ ALWAYS = "always"
 
 
 class ApprovalDialog(ModalScreen[bool | str]):
-    """
-    보안 파이프라인이 승인을 요청할 때 표시하는 모달.
-    UIAdapter.request_approval() 구현체.
-    """
+    """보안 파이프라인이 승인을 요청할 때 표시하는 모달. JarvisTUI.request_approval 이 띄운다."""
 
     DEFAULT_CSS = """
     ApprovalDialog {

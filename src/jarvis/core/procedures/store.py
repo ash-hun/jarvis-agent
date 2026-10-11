@@ -1,15 +1,20 @@
-"""절차 파일 저장소. `~/.jarvis/procedures/<name>.md` 하나가 절차 하나이고 파일명이 자연 키다."""
+"""[core] 절차 파일 저장소. `~/.jarvis/procedures/<name>.md` 하나가 절차 하나이고 파일명이 자연 키다."""
 
 import os
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import Any, cast
 
 import frontmatter
+
+from jarvis.common.logger import get_logger
 
 DEFAULT_DIR = "~/.jarvis/procedures"
 STATUS_DRAFT = "draft"
 STATUS_APPROVED = "approved"
 STATUSES = (STATUS_DRAFT, STATUS_APPROVED)
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -53,7 +58,8 @@ def parse_procedure(text: str, fallback_name: str) -> Procedure:
         body=body + "\n" if body else "",  # frontmatter 가 끝 개행을 떼므로 여기서 한 줄로 고정한다
         status=status if status in STATUSES else STATUS_DRAFT,
         source=str(meta.get("source", "")),
-        tools=tuple(str(t) for t in (meta.get("tools") or [])),
+        # frontmatter 메타는 object 로 타입이 잡힌다. tools 는 to_markdown 이 list 로 쓴다
+        tools=tuple(str(t) for t in cast(list[Any], meta.get("tools") or [])),
         parameters=str(meta.get("parameters", "")),
     )
 
@@ -77,7 +83,7 @@ class ProcedureStore:
             try:
                 out.append(parse_procedure(path.read_text(encoding="utf-8"), path.stem))
             except Exception as exc:
-                print(f"[ProcedureStore] Skipping '{path.name}': {exc}")
+                logger.info(f"[ProcedureStore] Skipping '{path.name}': {exc}")
         return out
 
     def get(self, name: str) -> Procedure | None:

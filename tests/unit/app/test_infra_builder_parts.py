@@ -37,7 +37,7 @@ def test_build_tool_registry_twice_gives_same_tool_names():
 def test_agent_tools_are_kept_out_of_the_app_registry():
     builder = _builder()
     agent_only = {t.name for t in builder.build_agent_tools().list_all()}
-    assert agent_only == {"lh_notice", "sh_notice", "housing_loan"}
+    assert agent_only == {"lh_notice", "sh_notice", "housing_loan", "housing_budget"}
     assert not agent_only & {t.name for t in builder.build_tool_registry().list_all()}
 
 

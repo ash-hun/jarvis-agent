@@ -19,12 +19,12 @@ jarvis-agent 가 제공하는 기능 전체를 한 곳에 모은 페이지다. �
 | [Open loop](./features/agenda.md) | 대화에서 흘린 약속을 기억하고, 끝나거나 취소되거나 기한이 지나면 닫는다 | AGENDA, `/openloop` |
 | [스케줄](./features/agenda.md#스케줄) | 한 번, 마감까지 반복, cron 으로 알림이나 작업을 돌린다 | `/schedule`, AGENDA |
 | [외부 이벤트](./features/agenda.md#외부-이벤트) | MCP 도구를 주기적으로 불러 새 항목을 성찰에 먹인다 | 🔔 |
-| [메모리](./features/memory.md) | 작업 메모리, 일화, 의미, 절차 기억. 회상, 통합, 임베딩 | 사고와 응답의 맥락 |
+| [메모리](./features/memory.md) | 작업 메모리, 일화, 의미, 절차 기억, 에이전트별 작업 패턴(사용자가 알려 준 방식). 회상, 통합, 임베딩 | 사고와 응답의 맥락 |
 | [사용자 모델과 저널](./features/agenda.md#사용자-모델과-저널) | 기억에서 사용자 성향을 증류하고, 사고 기록으로 메타 성찰을 쓴다 | `/usermodel`, `/journal` |
 | [도구, 승인, 절차 학습](./features/tools-and-approval.md) | 내장 도구와 MCP, 실행 전 승인과 승인 기억, 반복 작업을 절차 도구로 | 승인 모달, `/procedures` |
 | [세션](./features/sessions.md) | 대화 단위. 만들기, 전환, 분기, 이어 붙이기 | SESSIONS 카드, TUI 사이드바 |
 | [최상위 에이전트 팀](./features/team.md) | JARVIS 와 같은 층의 에이전트(KAREN 등)를 파일 하나로 늘린다. 세션, 기억, 승인 규칙, 색을 따로 갖고 `ask_agent` 로 서로 일을 맡긴다 | 에이전트 칩, AGENDA 라벨, 구체 색 섞임 |
-| [청약 공고와 대출 계산](./features/housing.md) | KAREN 이 LH, SH 청약 공고를 조회해 KST 기준 마감을 붙이고, 공고의 분양가나 보증금으로 월, 연간 원리금 상환액을 계산한다 | KAREN 세션, JARVIS 에게 물으면 KAREN 에게 위임 |
+| [청약 공고와 대출 계산](./features/housing.md) | KAREN 이 LH, SH 청약 공고를 조회해 KST 기준 마감을 붙이고, 총예산과 현금으로 공고를 추천하며, 공고의 분양가나 보증금으로 월, 연간 원리금 상환액을 계산한다 | KAREN 세션, JARVIS 에게 물으면 KAREN 에게 위임 |
 | [멀티 에이전트](./features/multi-agent.md) | 정의 파일의 서브 에이전트에게 일을 나눈다. 다섯 가지 패턴 | `/orchestrate`, 위임 도구 |
 | [음성과 Full-voice](./features/voice.md) | 음성 입력과 읽기. Full-voice 는 응답, 승인, 🔔 피드백까지 말로 묻고 답한다 | 구체 클릭, 헤더 `FULL-VOICE` |
 | [외부 알림](./features/proactive.md#외부-알림) | 열린 화면이 없어도 🔔 와 스케줄 결과를 Slack 으로 보낸다 | Slack |
@@ -260,6 +260,10 @@ flowchart LR
   K[KAREN 세션] --> LH[lh_notice<br/>housing/lh_notice.py]
   K --> SH[sh_notice<br/>housing/sh_notice.py]
   K --> LOAN[housing_loan<br/>housing/loan.py]
+  K --> BUD[housing_budget<br/>housing/budget.py]
+  BUD --> LH
+  BUD --> PDF[notice_pdf.py<br/>공고문 임대조건]
+  BUD --> CPX[rental_complex.py<br/>임대주택검색]
   LOAN -->|notice_id, unit| LH
   LH --> FETCH[fetch_html<br/>housing/fetch.py]
   SH --> FETCH
@@ -313,5 +317,7 @@ flowchart LR
 | 세션 생애 | [세션 → 생애](./features/sessions.md#생애) |
 | 에이전트끼리 묻고 답하기 | [최상위 에이전트 팀 → 에이전트끼리 대화](./features/team.md#에이전트끼리-대화) |
 | 청약 공고 조회와 대출 계산 | [청약 공고와 대출 계산 → 흐름](./features/housing.md#흐름) |
+| 작업 패턴 저장과 적용 | [메모리 → 작업 패턴](./features/memory.md#작업-패턴) |
+| 예산으로 공고 추천 | [청약 공고와 대출 계산 → 예산으로 공고 추천](./features/housing.md#예산으로-공고-추천) |
 | 멀티 에이전트 패턴 | [멀티 에이전트 → 패턴](./features/multi-agent.md#패턴) |
 | 음성 상태와 Full-voice | [음성 → Web HUD](./features/voice.md#web-hud) |

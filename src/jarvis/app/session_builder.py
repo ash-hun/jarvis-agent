@@ -95,12 +95,13 @@ class SessionBuilder:
             return registry
         from jarvis.app.agent_conversation import ASK_AGENT_TOOL
         from jarvis.core.tools.registry import ToolRegistry
+        from jarvis.core.tools.task_pattern import TASK_PATTERN_TOOL
 
         # ponytail: 세션을 만들 때 고른다, 뒤에 등록된 도구(승인된 절차)는 다음 세션부터 보인다
         picked = ToolRegistry()
-        # 팀 대화 도구는 정의에 적지 않아도 늘 쓴다. 팀이 한 명이면 등록돼 있지 않다
+        # 팀 대화와 작업 패턴 저장은 정의에 적지 않아도 늘 쓴다. 팀이 한 명이면 팀 대화는 등록돼 있지 않다
         opt_in = self._ctx.agent_tools
-        for name in (*self._profile.tools, ASK_AGENT_TOOL):
+        for name in (*self._profile.tools, ASK_AGENT_TOOL, TASK_PATTERN_TOOL):
             tool = registry.get(name) or (opt_in.get(name) if opt_in is not None else None)
             if tool is not None:
                 picked.register(tool)

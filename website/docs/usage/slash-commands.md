@@ -13,6 +13,7 @@ title: 슬래시 커맨드
 | `/test` | `/t`, `/pytest` | 유닛 테스트 실행과 결과 리포트 |
 | `/schedule` | | `<시각>에 <내용>` 한 번, `<날짜 시각>까지 <내용>` 마감까지 반복, cron 식 |
 | `/remember` | | `<text>` 로 사실 저장. `list`, `search <키워드>`, `forget <id>`, `conflicts`, `reembed` |
+| `/patterns` | | 지금 에이전트의 작업 패턴(사용자가 알려 준 방식) 목록. `forget <이름>` 으로 지운다 |
 | `/sessions` | | 저장된 세션 목록 |
 | `/branch` | | `[session_id]` 세션을 특정 시점에서 분기 |
 | `/tools` | | 현재 사용 가능한 도구 목록 |

@@ -206,3 +206,16 @@ def test_main_does_not_see_agent_only_tools(tmp_path):
     session, registry = _agent_session({}, tmp_path, _housing_registry())
     assert session._tool_registry is registry
     assert registry.get("lh_notice") is None
+
+
+def test_every_agent_gets_the_task_pattern_tool(tmp_path):
+    from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.core.tools.task_pattern import TaskPatternTool
+
+    session, registry = _agent_session({"agent_id": "karen", "tools": ("read_file",)}, tmp_path)
+    assert "remember_task_pattern" not in [t.name for t in session._tool_registry.list_all()]
+
+    with_tool = ToolRegistry()
+    with_tool.register(TaskPatternTool(MagicMock()))
+    session, _ = _agent_session({"agent_id": "karen", "tools": ("read_file",)}, tmp_path, with_tool)
+    assert "remember_task_pattern" in [t.name for t in session._tool_registry.list_all()]

@@ -11,6 +11,17 @@ from jarvis.memory.consolidation.semantic_extract import FactExtractor
 from jarvis.memory.long_term.episodic import prepare_episode
 from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
 from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
+from jarvis.memory.long_term.task_pattern import (
+    SAVE_HINT,
+    SAVE_HINT_HEADER,
+    TASK_PATTERN_SOURCE,
+    TaskPattern,
+    best_matches,
+    from_item,
+    pattern_id,
+    render_block,
+    teaches,
+)
 from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, current_task, scope_from_context, task_scope
 from jarvis.memory.stores.protocol import ItemStore
@@ -47,7 +58,14 @@ WRITE_RULES: dict[str, WriteRule] = {
     "thought": WriteRule(MemoryKind.EPISODIC, "private", None),  # 사고 로그
     "journal": WriteRule(MemoryKind.EPISODIC, "private", None),  # 자기 성찰 저널
     "delegation": WriteRule(MemoryKind.EPISODIC, "private", "orchestrator"),  # 위임 기록
+    # 사용자가 알려 준 작업 방식. 그 에이전트만 본다(같은 말도 에이전트마다 하는 일이 다르다)
+    TASK_PATTERN_SOURCE: WriteRule(MemoryKind.PROCEDURAL, "private", "user"),
 }
+# 한 턴에 넣는 작업 패턴 수와, 고를 때 보는 후보 수
+PATTERN_INJECT_LIMIT = 2
+PATTERN_SCAN_LIMIT = 100
+# 일반 회상 블록은 일화와 사실만. 작업 패턴은 따로 고른다
+RECALL_KINDS = (MemoryKind.EPISODIC, MemoryKind.SEMANTIC)
 _DEFAULT_RULE = WriteRule(MemoryKind.SEMANTIC, "private", None)
 
 
@@ -137,8 +155,12 @@ class MemoryService:
         query = _last_user_text(messages)
         fixed = await self.fixed_facts(scope)
         recalled: list[MemoryItem] = []
+        patterns: list[TaskPattern] = []
         if query:
-            recalled = await self.recall(query, scope, limit=self._inject_limit, exclude={i.id for i in fixed})
+            recalled = await self.recall(
+                query, scope, kinds=RECALL_KINDS, limit=self._inject_limit, exclude={i.id for i in fixed}
+            )
+            patterns = best_matches(await self.task_patterns(scope), query, PATTERN_INJECT_LIMIT)
         procedures = self.procedures(query) if query else []
 
         blocks: list[Message] = []
@@ -148,6 +170,10 @@ class MemoryService:
             blocks.append(_block(LTM_HEADER, recalled))
         if procedures:
             blocks.append(_procedures_block(procedures))
+        if patterns:
+            blocks.append(UserMessage(content=render_block(patterns), timestamp=int(time.time() * 1000)))
+        if query and teaches(query):
+            blocks.append(UserMessage(content=f"{SAVE_HINT_HEADER} {SAVE_HINT}", timestamp=int(time.time() * 1000)))
         shared_task = current_task.get()
         if shared_task is not None:
             notes = await self.task_notes(shared_task, scope)
@@ -175,6 +201,31 @@ class MemoryService:
         # 고정 블록은 감쇠 없는 원값으로 고른다. 오래됐다고 핵심 사실이 밀리면 안 된다
         no_decay = replace(self._scoring, importance_half_life_hours=0.0)
         return rank(candidates, "", resolved, self._fixed_facts, params=no_decay)
+
+    # ── 작업 패턴(사용자가 알려 준 방식, 에이전트 전용) ─────────────────────────
+
+    async def remember_pattern(self, pattern: TaskPattern, scope: MemoryScope | None = None) -> str:
+        """같은 (사용자, 에이전트, 이름)이면 같은 항목을 덮는다. 다시 불러도 하나만 남는다."""
+        resolved = self.resolve_scope(scope).with_session(None)
+        return await self.remember(
+            pattern.content(), source=TASK_PATTERN_SOURCE, scope=resolved, metadata=pattern.metadata(),
+            importance=0.8, item_id=pattern_id(resolved, pattern.name),
+        )
+
+    async def task_patterns(self, scope: MemoryScope | None = None) -> list[TaskPattern]:
+        """이 에이전트가 받은 작업 패턴. 다른 에이전트의 패턴은 private 이라 보이지 않는다."""
+        resolved = self.resolve_scope(scope)
+        items = await self._store.recent(resolved, kinds=[MemoryKind.PROCEDURAL], limit=PATTERN_SCAN_LIMIT)
+        mine = [i for i in items if i.scope.agent_id == resolved.agent_id]
+        return [p for p in (from_item(i) for i in mine) if p is not None]
+
+    async def forget_pattern(self, name: str, scope: MemoryScope | None = None) -> bool:
+        resolved = self.resolve_scope(scope).with_session(None)
+        item_id = pattern_id(resolved, name)
+        if await self._store.get(item_id) is None:
+            return False
+        await self._store.delete(item_id)
+        return True
 
     def procedures(self, query: str) -> list[Procedure]:
         return self._procedures.match(query) if self._procedures is not None else []

@@ -14,7 +14,7 @@ JARVIS 와 같은 층에 에이전트를 더 둔다. 첫 번째이자 전체를 
 | id | 이름 | 맡은 일 | 메인 색 | 정의 |
 |---|---|---|---|---|
 | `main` | J.A.R.V.I.S. | 전체 총괄. 사용자의 기본 대화 상대 | <span style={{color: '#5fc8e2'}}>■</span> `#5fc8e2` | env(`JARVIS_BRAND__*`) |
-| `karen` | K.A.R.E.N. | 특정 분야 정보 수집과 출처 있는 요약. LH, SH 청약 공고 조회와 대출 계산([청약 공고와 대출 계산](./housing.md)) | <span style={{color: '#97BC62'}}>■</span> `#97BC62` | `team/karen.yaml` |
+| `karen` | K.A.R.E.N. | 특정 분야 정보 수집과 출처 있는 요약. LH, SH 청약 공고 조회, 예산에 맞는 공고 추천, 대출 계산([청약 공고와 대출 계산](./housing.md)) | <span style={{color: '#97BC62'}}>■</span> `#97BC62` | `team/karen.yaml` |
 
 메인 색(palette.primary)은 HUD 의 링, 입자 구, 패널, 에이전트 칩, 세션 표식, AGENDA 라벨에 쓰인다. 두 에이전트가 함께 일하면 입자 구가 두 메인 색(시안과 녹색)으로 섞인다. 색을 바꾸려면 정의 파일의 `palette.primary` 를 고치고 서버를 다시 띄운다.
 
@@ -37,7 +37,8 @@ proactive: false              # 비우면 JARVIS 의 proactive 설정
 
 - id 는 `^[a-z][a-z0-9_-]{0,31}$`. `main.yaml` 은 무시한다. JARVIS 는 env(`JARVIS_BRAND__*`, `JARVIS_LLM__*`)가 정본이다
 - 잘못된 파일은 로그만 남기고 그 파일만 건너뛴다
-- `tools` 에는 에이전트만 쓰는 도구(`lh_notice`, `sh_notice`, `housing_loan`)도 적을 수 있다. 이 도구는 `tools` 가 빈 JARVIS 에게는 보이지 않는다
+- `tools` 에는 에이전트만 쓰는 도구(`lh_notice`, `sh_notice`, `housing_loan`, `housing_budget`)도 적을 수 있다. 이 도구는 `tools` 가 빈 JARVIS 에게는 보이지 않는다
+- `ask_agent` 와 `remember_task_pattern` 은 `tools` 에 적지 않아도 모든 에이전트에게 붙는다. 작업 패턴은 에이전트마다 따로 기억한다([메모리 → 작업 패턴](./memory.md#작업-패턴))
 - 사고 설정은 JARVIS 것을 같이 쓰고, proactive 피드백 학습기는 에이전트마다 따로 둔다
 
 ## 무엇을 공유하나

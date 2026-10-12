@@ -1,4 +1,4 @@
-"""[core] 공고 게시판 HTML 을 가져오는 HTTP 경계와 KST 오늘 날짜. 둘 다 도구 밖에서 주입할 수 있다."""
+"""[core] 공고 게시판 HTML 과 첨부 파일을 가져오는 HTTP 경계와 KST 오늘 날짜. 모두 도구 밖에서 주입할 수 있다."""
 
 from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime, timedelta
@@ -12,6 +12,10 @@ KST_OFFSET = timedelta(hours=9)
 
 # (url, query) → 본문 HTML. 실패하면 FetchError
 Fetch = Callable[[str, dict[str, str]], Awaitable[str]]
+# (url, query, referer) → 파일 바이트(공고문 PDF). 실패하면 FetchError
+FetchBytes = Callable[[str, dict[str, str], str], Awaitable[bytes]]
+# 공고문 PDF 는 수 MB 다
+FILE_TIMEOUT_SEC = 60.0
 
 
 class FetchError(Exception):
@@ -29,6 +33,19 @@ async def fetch_html(url: str, query: dict[str, str]) -> str:
     if response.status_code != httpx.codes.OK:
         raise FetchError(f"{url} 가 HTTP {response.status_code} 로 답했다")
     return response.text
+
+
+async def fetch_bytes(url: str, query: dict[str, str], referer: str) -> bytes:
+    try:
+        async with httpx.AsyncClient(
+            timeout=FILE_TIMEOUT_SEC, follow_redirects=True, headers={"User-Agent": USER_AGENT, "Referer": referer}
+        ) as client:
+            response = await client.get(url, params=query)
+    except httpx.HTTPError as exc:
+        raise FetchError(f"{url} 에서 파일을 받지 못했다: {exc}") from exc
+    if response.status_code != httpx.codes.OK:
+        raise FetchError(f"{url} 가 HTTP {response.status_code} 로 답했다")
+    return response.content
 
 
 def kst_today() -> date:

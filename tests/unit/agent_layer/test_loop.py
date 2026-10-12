@@ -452,3 +452,42 @@ async def test_no_executor_closes_dangling_tool_calls_with_error_results():
 
     results = [m for m in context.messages if isinstance(m, ToolResultMessage)]
     assert [(r.tool_call_id, r.is_error) for r in results] == [("c1", True), ("c2", True)]
+
+
+# ── 도구 결과 뒤 빈 답 ─────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_empty_reply_after_tools_is_retried_once_with_a_nudge():
+    from jarvis.agent_layer.loop import EMPTY_REPLY_NUDGE
+
+    empty = [StopEvent(reason="stop", usage=Usage(output=1))]
+    provider = ScriptedProvider([_tool_turn(("c1", "t", {})), empty, _text_turn("정리한 답")])
+    model = _register(provider)
+    context = _context(model)
+
+    result = await run_agent_loop(context, AgentLoopConfig(), Recorder(), tool_executor=_ok_executor)
+
+    assert result is not None and result.text() == "정리한 답"
+    assert len(provider.calls) == 3
+    assert provider.calls[2].messages[-1].content == EMPTY_REPLY_NUDGE
+    # 안내 문구도, 빈 답도 대화 기록에는 남지 않는다
+    assert [type(m).__name__ for m in context.messages] == ["AssistantMessage", "ToolResultMessage", "AssistantMessage"]
+
+
+@pytest.mark.asyncio
+async def test_empty_reply_without_tools_is_not_retried():
+    provider = ScriptedProvider([[StopEvent(reason="stop", usage=Usage())]])
+    model = _register(provider)
+    await run_agent_loop(_context(model), AgentLoopConfig(), Recorder())
+    assert len(provider.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_second_empty_reply_ends_the_turn():
+    empty = [StopEvent(reason="stop", usage=Usage())]
+    provider = ScriptedProvider([_tool_turn(("c1", "t", {})), empty, empty])
+    model = _register(provider)
+    result = await run_agent_loop(_context(model), AgentLoopConfig(), Recorder(), tool_executor=_ok_executor)
+    assert len(provider.calls) == 3
+    assert result is not None and result.text() == ""

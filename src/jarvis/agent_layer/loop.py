@@ -34,9 +34,14 @@ from jarvis.model_layer.types import (
     ToolCallDeltaEvent,
     ToolResultMessage,
     Usage,
+    UserMessage,
 )
 
 AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
+
+# 도구 결과를 받고 빈 답으로 끝내면 한 번만 다시 묻는다. 실서버에서 gemma4:e4b 가 출력 1토큰으로 끝내
+# 사용자가 도구 결과를 못 받는 것을 봤다. 이 문구는 LLM 호출에만 붙고 대화 기록에는 남지 않는다
+EMPTY_REPLY_NUDGE = "위 도구 결과를 바탕으로 사용자에게 답을 정리해 주세요. 결과에 있는 숫자와 링크를 그대로 씁니다."
 
 
 async def run_agent_loop(
@@ -62,6 +67,8 @@ async def run_agent_loop(
         await emit(TurnStartEvent(turn=turn))
 
         assistant_msg = await _stream_assistant(context, config, emit, signal)
+        if _empty_after_tools(assistant_msg, context.messages) and not (signal and signal.is_set()):
+            assistant_msg = await _stream_assistant(context, config, emit, signal, nudge=EMPTY_REPLY_NUDGE)
         final_message = assistant_msg
         if assistant_msg.error_message is not None:
             # provider 에러: 빈 assistant 메시지를 히스토리에 남기면 다음 호출이 400으로 깨진다
@@ -87,6 +94,17 @@ async def run_agent_loop(
         agent_name=agent_name,
     ))
     return final_message
+
+
+def _empty_after_tools(message: AssistantMessage, history: list[Message]) -> bool:
+    """도구 결과 바로 다음 답이 글도 도구 호출도 없이 끝났는가(오류 답은 아니다)."""
+    return (
+        message.error_message is None
+        and not message.text().strip()
+        and not message.tool_calls()
+        and bool(history)
+        and isinstance(history[-1], ToolResultMessage)
+    )
 
 
 def _close_dangling_tool_calls(messages: list[Message]) -> None:
@@ -135,9 +153,11 @@ async def _stream_assistant(
     config: AgentLoopConfig,
     emit: AgentEventSink,
     signal: asyncio.Event | None,
+    nudge: str | None = None,
 ) -> AssistantMessage:
+    messages = context.messages if nudge is None else [*context.messages, UserMessage(content=nudge, timestamp=0)]
     llm_ctx = LLMContext(
-        messages=context.messages,
+        messages=messages,
         tools=context.tools if context.tools else None,
         system_prompt=_augment_system_prompt(context),
     )

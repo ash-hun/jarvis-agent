@@ -18,6 +18,8 @@ PAGE_SIZE = 10
 MAX_PAGE = 1000
 CONTENT_LIMIT = 3000
 KEYWORD_MAX = 100
+# 검색어로 들어오면 버리는 지역 말
+REGION_WORDS = frozenset({"서울", "서울시", "서울특별시", "경기", "경기도", "인천", "수도권", "전국"})
 
 
 @dataclass(frozen=True)
@@ -61,7 +63,7 @@ TOOL_PARAMETERS: dict[str, Any] = {
     "properties": {
         "seq": {"type": "string", "description": "상세를 볼 글 번호. 목록 결과의 seq 그대로"},
         "category": {"type": "string", "enum": list(BOARDS), "description": "공고 종류. 기본 임대"},
-        "keyword": {"type": "string", "description": "찾을 말. 예: 행복주택, 장기전세"},
+        "keyword": {"type": "string", "description": "찾을 말. 예: 행복주택. 지역 이름은 넣지 않는다(SH 는 서울뿐)"},
         "search_in": {"type": "string", "enum": ["제목", "본문"], "description": "keyword 를 찾을 곳. 기본 제목"},
         "status": {"type": "string", "enum": list(STATUSES), "description": "제목으로 짐작한 상태로 거른다"},
         "page": {"type": "integer", "description": f"쪽 번호(한 쪽 {PAGE_SIZE}건, 기본 1)"},
@@ -198,6 +200,9 @@ class ShNoticeTool(JarvisTool):
         self, tool_call_id: str, board: Board, category: str, params: dict[str, Any]
     ) -> ToolResultMessage:
         keyword = str(params.get("keyword") or "").strip()[:KEYWORD_MAX]
+        # 실서버에서 모델이 지역을 검색어로 넣어 제목에 '서울'이 든 옛 글만 받았다. 지역 말은 버린다
+        dropped = keyword if keyword in REGION_WORDS else ""
+        keyword = "" if dropped else keyword
         search_in = str(params.get("search_in") or "제목")
         status = str(params.get("status") or "")
         if status and status not in STATUSES:
@@ -217,6 +222,8 @@ class ShNoticeTool(JarvisTool):
         lines = [f"{head}. 전체 {total if total is not None else '?'}건, 이 쪽 {len(posts)}건"]
         if status:
             lines.append(f"상태 '{status}'는 제목 말로 짐작해 거른 결과다")
+        if dropped:
+            lines.append(f"'{dropped}'는 지역이라 검색어에서 뺐다. SH 게시판은 서울 공고만 있다")
         for p in posts:
             lines.append(
                 f"- {p.title}\n  등록 {p.registered} | {p.department} | 조회 {p.views} | 상태(제목 짐작) {p.status}"

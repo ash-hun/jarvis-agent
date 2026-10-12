@@ -10,7 +10,7 @@ AGENTS_EXAMPLE = {"agents": [
     {"id": "main", "name": "J.A.R.V.I.S.", "description": "", "quote": "Proof the Heart",
      "palette": {"primary": "#5fc8e2", "accent": "#f0b35f", "background": "#02060c", "nebula": []}, "main": True},
     {"id": "karen", "name": "K.A.R.E.N.", "description": "정보 수집 담당", "quote": "Eyes on everything",
-     "palette": {"primary": "#f0607c", "accent": "#ffd166", "background": "#02060c", "nebula": []}, "main": False},
+     "palette": {"primary": "#97BC62", "accent": "#ffd166", "background": "#02060c", "nebula": []}, "main": False},
 ]}
 
 

@@ -18,7 +18,7 @@ JARVIS 와 같은 층에 에이전트를 더 둔다. 첫 번째이자 전체를 
 name: K.A.R.E.N.              # 워드마크이자 다른 에이전트가 부르는 이름
 description: 정보 수집 담당      # 다른 에이전트가 누구에게 맡길지 고를 때 읽는다
 quote: Eyes on everything
-palette: { primary: "#f0607c", accent: "#ffd166" }
+palette: { primary: "#97BC62", accent: "#ffd166" }
 system_prompt: |
   당신은 K.A.R.E.N. 입니다 ...
 model: null                   # 모델 이름만 바꾼다. 프로바이더와 키는 JARVIS 것

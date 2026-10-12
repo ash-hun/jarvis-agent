@@ -14,7 +14,7 @@ JARVIS 와 같은 층에 에이전트를 더 둔다. 첫 번째이자 전체를 
 | id | 이름 | 맡은 일 | 메인 색 | 정의 |
 |---|---|---|---|---|
 | `main` | J.A.R.V.I.S. | 전체 총괄. 사용자의 기본 대화 상대 | <span style={{color: '#5fc8e2'}}>■</span> `#5fc8e2` | env(`JARVIS_BRAND__*`) |
-| `karen` | K.A.R.E.N. | 특정 분야 정보 수집과 출처 있는 요약 | <span style={{color: '#97BC62'}}>■</span> `#97BC62` | `team/karen.yaml` |
+| `karen` | K.A.R.E.N. | 특정 분야 정보 수집과 출처 있는 요약. LH, SH 청약 공고 조회와 대출 계산([청약 공고와 대출 계산](./housing.md)) | <span style={{color: '#97BC62'}}>■</span> `#97BC62` | `team/karen.yaml` |
 
 메인 색(palette.primary)은 HUD 의 링, 입자 구, 패널, 에이전트 칩, 세션 표식, AGENDA 라벨에 쓰인다. 두 에이전트가 함께 일하면 입자 구가 두 메인 색(시안과 녹색)으로 섞인다. 색을 바꾸려면 정의 파일의 `palette.primary` 를 고치고 서버를 다시 띄운다.
 
@@ -31,12 +31,13 @@ palette: { primary: "#97BC62", accent: "#ffd166" }
 system_prompt: |
   당신은 K.A.R.E.N. 입니다 ...
 model: null                   # 모델 이름만 바꾼다. 프로바이더와 키는 JARVIS 것
-tools: [web_search, web_fetch, read_file]   # 비우면 전체
+tools: [lh_notice, web_search, read_file]   # 비우면 앱 레지스트리 전체
 proactive: false              # 비우면 JARVIS 의 proactive 설정
 ```
 
 - id 는 `^[a-z][a-z0-9_-]{0,31}$`. `main.yaml` 은 무시한다. JARVIS 는 env(`JARVIS_BRAND__*`, `JARVIS_LLM__*`)가 정본이다
 - 잘못된 파일은 로그만 남기고 그 파일만 건너뛴다
+- `tools` 에는 에이전트만 쓰는 도구(`lh_notice`, `sh_notice`, `housing_loan`)도 적을 수 있다. 이 도구는 `tools` 가 빈 JARVIS 에게는 보이지 않는다
 - 사고 설정은 JARVIS 것을 같이 쓰고, proactive 피드백 학습기는 에이전트마다 따로 둔다
 
 ## 무엇을 공유하나
@@ -83,7 +84,7 @@ sequenceDiagram
   participant K as KAREN (peer-main-karen)
   participant J2 as JARVIS (peer-karen-main)
   U->>J: 카렌에게 AI 반도체 키워드 물어봐
-  J->>K: ask_agent(karen, ...)  "[J.A.R.V.I.S. 의 요청] ..."
+  J->>K: ask_agent(karen, ...)  "[J.A.R.V.I.S. 의 요청] ... (규칙)"
   K->>J2: ask_agent(main, 관심 분야?)
   J2-->>K: AI 반도체
   K-->>J: [K.A.R.E.N. 의 답] ...
@@ -92,6 +93,7 @@ sequenceDiagram
 
 - 받는 쪽은 에이전트 쌍마다 세션 하나(`peer-<부른 쪽>-<받는 쪽>`)에서 답한다. 같은 쌍은 앞 대화를 이어 가고 HUD 세션 목록에 보인다
 - 받는 쪽 세션은 사용자를 부른 쪽 범위에서 받는다. 기억은 받는 쪽 에이전트 범위로 남는다
+- 요청 끝에 규칙 한 줄이 붙는다: 받은 일이니 필요하면 가진 도구를 먼저 부르고 도구 결과에 있는 것만 답한다(`PEER_REQUEST_RULE`). 실서버에서 gemma4:e4b 가 위임받은 세션에서만 도구를 부르지 않고 조회한 척 답하는 것을 봤다
 - 받는 쪽 도구의 승인 요청은 부른 세션의 화면에 뜬다
 - 깊이 제한: A → B → A 까지. 그보다 깊으면 도구가 거절하고 지금 아는 것으로 답하게 한다
 - 받은 일을 보낸 쪽에 되돌리기 금지: 받은 요청과 글자가 거의 같은(bigram Jaccard 0.4 이상) 일을 그 요청을 보낸 에이전트에게 다시 맡기면 도구가 거절한다. 실서버에서 gemma4:e4b 가 도구 설명의 지시를 무시하고 받은 일을 그대로 되돌려 서로 미루는 것을 봤다. 되묻기("관심 분야가 뭐야?")처럼 다른 질문은 된다

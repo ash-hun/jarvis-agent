@@ -9,6 +9,7 @@ pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from jarvis.app.agent_conversation import PEER_REQUEST_RULE  # noqa: E402
 from jarvis.app.infra_builder import build_app  # noqa: E402
 from jarvis.config import JarvisSettings  # noqa: E402
 from jarvis.ui.web.server import create_app  # noqa: E402
@@ -97,7 +98,8 @@ def test_jarvis_delegates_to_karen_who_asks_back(assembly, provider):
         assert agents["peer-main-karen"] == "karen"
         assert agents["peer-karen-main"] == "main"
         karen_side = client.get("/api/sessions/peer-main-karen/messages").json()["messages"]
-        assert karen_side[0] == {"role": "user", "text": "[J.A.R.V.I.S. 의 요청] AI 뉴스 3개를 찾아 줘"}
+        request = f"[J.A.R.V.I.S. 의 요청] AI 뉴스 3개를 찾아 줘\n({PEER_REQUEST_RULE})"
+        assert karen_side[0] == {"role": "user", "text": request}
 
 
 def test_conversation_continues_in_same_peer_session(assembly, provider):
@@ -108,6 +110,6 @@ def test_conversation_continues_in_same_peer_session(assembly, provider):
             _run_turn(ws, "카렌에게 한 번 더 물어봐")
         karen_side = client.get("/api/sessions/peer-main-karen/messages").json()["messages"]
         assert [m["text"] for m in karen_side if m["role"] == "user"] == [
-            "[J.A.R.V.I.S. 의 요청] AI 뉴스 3개를 찾아 줘",
-            "[J.A.R.V.I.S. 의 요청] AI 뉴스 3개를 찾아 줘",
+            f"[J.A.R.V.I.S. 의 요청] AI 뉴스 3개를 찾아 줘\n({PEER_REQUEST_RULE})",
+            f"[J.A.R.V.I.S. 의 요청] AI 뉴스 3개를 찾아 줘\n({PEER_REQUEST_RULE})",
         ]

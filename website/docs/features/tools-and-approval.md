@@ -21,6 +21,8 @@ title: 도구와 승인
 | `web_search` | Brave(키 있으면) 또는 DuckDuckGo | |
 | `web_fetch` | URL 본문을 텍스트로 | |
 
+에이전트만 쓰는 도구: `lh_notice`, `sh_notice`, `housing_loan`. 앱 레지스트리에 넣지 않고 에이전트 정의의 `tools` 에 이름을 적은 에이전트만 받는다([청약 공고와 대출 계산](./housing.md)).
+
 동적으로 더해지는 도구: `orchestrate` 와 `agent_<name>`(에이전트 정의가 있을 때), `procedure_<name>`(승인된 절차), MCP 서버의 도구, `~/.jarvis/tools/` 의 사용자 도구. 사용자 도구와 MCP 도구는 같은 이름의 내장 도구를 덮어쓴다. 도구 목록은 턴마다 다시 읽으므로 새로 등록된 도구가 재시작 없이 보인다.
 
 ## 도구 호출 한 번

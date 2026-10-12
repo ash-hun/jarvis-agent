@@ -24,6 +24,8 @@ MAX_PEER_HOPS = 3
 PEER_TIMEOUT_SEC = 300.0
 # 받는 쪽이 백그라운드로 답할 때(Dual-Channel) 끝났는지 보는 간격
 PEER_POLL_SEC = 0.2
+# 요청 끝에 붙는 규칙. 실서버에서 gemma4:e4b 가 위임받은 세션에서 도구를 부르지 않고 조회한 척 답하는 것을 봤다
+PEER_REQUEST_RULE = "받은 일이다. 필요하면 가진 도구를 먼저 부르고, 도구 결과에 있는 것만 답한다."
 
 # (받는 에이전트 id, 대화 세션 id, 부른 세션 id) → 받는 쪽 세션. 화면마다 여는 방식이 다르다(web 은 세션 목록에 띄운다)
 PeerOpener = Callable[[str, str, str | None], Awaitable["AgentSession"]]
@@ -39,6 +41,11 @@ logger = get_logger(__name__)
 def peer_session_id(caller: str, target: str) -> str:
     """부른 쪽과 받는 쪽 쌍마다 세션 하나. 같은 쌍은 앞 대화를 이어 가고, 다시 열어도 같은 세션이다."""
     return f"{PEER_SESSION_PREFIX}-{caller}-{target}"
+
+
+def peer_request_text(caller_name: str, message: str) -> str:
+    """받는 쪽 세션에 들어가는 사용자 메시지. 누가 보냈는지와 지킬 규칙을 붙인다."""
+    return f"[{caller_name} 의 요청] {message}\n({PEER_REQUEST_RULE})"
 
 
 def refusal(
@@ -138,7 +145,8 @@ class AskAgentTool(JarvisTool):
         try:
             session = await self._opener(target, peer_session_id(caller, target), getattr(context, "session_id", None))
             logger.info(f"[Team] {caller} 가 {target} 에게 요청: {message[:80]}")
-            reply = await asyncio.wait_for(ask(session, f"[{caller_name} 의 요청] {message}"), PEER_TIMEOUT_SEC)
+            request = peer_request_text(caller_name, message)
+            reply = await asyncio.wait_for(ask(session, request), PEER_TIMEOUT_SEC)
         except SessionBusy:
             busy = f"{target_name} 가 지금 같은 대화에서 다른 일을 하고 있다. 잠시 뒤 다시 묻는다"
             return _result(tool_call_id, busy, True)

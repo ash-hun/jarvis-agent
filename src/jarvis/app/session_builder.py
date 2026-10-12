@@ -99,8 +99,9 @@ class SessionBuilder:
         # ponytail: 세션을 만들 때 고른다, 뒤에 등록된 도구(승인된 절차)는 다음 세션부터 보인다
         picked = ToolRegistry()
         # 팀 대화 도구는 정의에 적지 않아도 늘 쓴다. 팀이 한 명이면 등록돼 있지 않다
+        opt_in = self._ctx.agent_tools
         for name in (*self._profile.tools, ASK_AGENT_TOOL):
-            tool = registry.get(name)
+            tool = registry.get(name) or (opt_in.get(name) if opt_in is not None else None)
             if tool is not None:
                 picked.register(tool)
         return picked

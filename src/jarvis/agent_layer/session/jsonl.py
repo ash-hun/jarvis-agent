@@ -9,6 +9,7 @@ from pathlib import Path
 import aiofiles
 
 from jarvis.agent_layer.session.protocol import SessionEntry, SessionMetadata, SessionRepo, deserialize_message
+from jarvis.memory.scope import MAIN_AGENT
 from jarvis.model_layer.types import Message
 
 
@@ -28,15 +29,15 @@ class JsonlSessionRepo(SessionRepo):
     def _meta_path(self, session_id: str) -> Path:
         return self._root / f"{session_id}.meta.json"
 
-    async def create(self, session_id: str | None = None, cwd: str = ".") -> SessionMetadata:
+    async def create(
+        self, session_id: str | None = None, cwd: str = ".", agent_id: str = MAIN_AGENT
+    ) -> SessionMetadata:
         self._root.mkdir(parents=True, exist_ok=True)
         sid = session_id or self._new_id()
-        meta_path = self._meta_path(sid)
         # Idempotent: return existing meta rather than overwriting
-        if meta_path.exists():
-            async with aiofiles.open(meta_path) as f:
-                data = json.loads(await f.read())
-            return SessionMetadata.model_validate(data)
+        existing = await self.get_meta(sid)
+        if existing is not None:
+            return existing
         now = self._now_ms()
         meta = SessionMetadata(
             session_id=sid,
@@ -44,11 +45,20 @@ class JsonlSessionRepo(SessionRepo):
             created_at=now,
             updated_at=now,
             message_count=0,
+            agent_id=agent_id,
         )
+        meta_path = self._meta_path(sid)
         async with aiofiles.open(meta_path, "w") as f:
             await f.write(meta.model_dump_json())
         self._session_path(sid).touch()
         return meta
+
+    async def get_meta(self, session_id: str) -> SessionMetadata | None:
+        meta_path = self._meta_path(session_id)
+        if not meta_path.exists():
+            return None
+        async with aiofiles.open(meta_path) as f:
+            return SessionMetadata.model_validate(json.loads(await f.read()))
 
     async def list(self, cwd: str = "") -> builtins.list[SessionMetadata]:
         if not self._root.exists():
@@ -112,6 +122,7 @@ class JsonlSessionRepo(SessionRepo):
 
         # Read parent messages
         parent_messages = await self.get_messages(parent_session_id)
+        parent_meta = await self.get_meta(parent_session_id)
 
         # Create branch JSONL by copying parent entries
         branch_path = self._session_path(branch_id)
@@ -133,6 +144,7 @@ class JsonlSessionRepo(SessionRepo):
             updated_at=now,
             message_count=len(parent_messages),
             parent_id=parent_session_id,
+            agent_id=parent_meta.agent_id if parent_meta is not None else MAIN_AGENT,
         )
         async with aiofiles.open(self._meta_path(branch_id), "w") as f:
             await f.write(meta.model_dump_json())

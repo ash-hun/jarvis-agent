@@ -37,3 +37,37 @@ def test_parse_startup_plan(argv, expected):
 def test_reads_sys_argv_when_none(monkeypatch):
     monkeypatch.setattr("sys.argv", ["jarvis", "--version"])
     assert parse_startup_plan() == VersionPlan(kind="version")
+
+
+def test_agent_option_starts_tui_with_agent():
+    from jarvis.ui.tui.startup import TUIPlan, parse_startup_plan
+
+    assert parse_startup_plan(["--agent", "karen"]) == TUIPlan(kind="tui", session_id=None, agent="karen")
+    assert parse_startup_plan([]) == TUIPlan(kind="tui", session_id=None, agent=None)
+
+
+async def test_resolve_tui_session_uses_agent_default_session_and_stored_agent(tmp_path):
+    from types import SimpleNamespace
+
+    import pytest
+
+    from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
+    from jarvis.ui.tui.startup import resolve_tui_session
+
+    class _Agents:
+        main = SimpleNamespace(agent_id="main")
+
+        def __contains__(self, agent_id):
+            return agent_id in ("main", "karen")
+
+        def ids(self):
+            return ["main", "karen"]
+
+    repo = JsonlSessionRepo(str(tmp_path))
+    assembly = SimpleNamespace(agents=_Agents(), ctx=SimpleNamespace(session_repo=repo))
+    assert await resolve_tui_session(assembly, None, None) == ("main", "default")
+    assert await resolve_tui_session(assembly, None, "karen") == ("karen", "default-karen")
+    # 있는 세션은 저장된 에이전트로 열린다
+    assert await resolve_tui_session(assembly, "default-karen", "main") == ("karen", "default-karen")
+    with pytest.raises(ValueError):
+        await resolve_tui_session(assembly, None, "ghost")

@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from jarvis.ui.web.router.agenda_router import build_agenda_router
+from jarvis.ui.web.router.agent_router import build_agent_router
 from jarvis.ui.web.router.brand_router import STATIC_DIR, build_brand_router
 from jarvis.ui.web.router.session_router import build_session_router
 from jarvis.ui.web.router.tool_router import build_tool_router
@@ -44,6 +45,7 @@ def create_app(assembly: "AppAssembly", initial_session_id: str = "default") -> 
     app.router.add_event_handler("startup", lifecycle.start)
     app.router.add_event_handler("shutdown", lifecycle.stop)
 
+    app.include_router(build_agent_router(state))
     app.include_router(build_session_router(state))
     app.include_router(build_tool_router(state))
     app.include_router(build_agenda_router(state))

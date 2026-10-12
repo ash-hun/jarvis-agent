@@ -1,4 +1,4 @@
-"""[ui] SessionRegistry: Web HUD 의 세션을 id 로 만들고 찾고 지운다. 세션마다 보안 파이프라인을 따로 둔다."""
+"""[ui] SessionRegistry: Web HUD 의 세션을 id 로 만들고 찾고 지운다. 세션마다 에이전트와 보안 파이프라인을 따로 둔다."""
 
 import time
 import uuid
@@ -9,9 +9,9 @@ from jarvis.ui.web.web_auth import auth_enabled
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
+    from jarvis.app.agent_registry import AgentRegistry
     from jarvis.app.app_context import AppContext
     from jarvis.app.app_services import AppServices
-    from jarvis.app.session_builder import SessionBuilder
     from jarvis.core.policy.sandbox import DefaultSandbox
     from jarvis.core.session import AgentSession
     from jarvis.memory.memory_service import MemoryService
@@ -20,14 +20,19 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+class UnknownAgent(ValueError):
+    """정의에 없는 에이전트 id. 새 세션 요청이면 사용자 입력 오류, 옛 세션이면 정의 파일이 빠진 것이다."""
+
+
 class SessionRegistry:
     """열린 세션과 그 sandbox 를 기억한다. 프로세스 메모리라 재시작하면 목록이 비고, 세션 이력은 저장소에 남는다."""
 
-    def __init__(self, ctx: "AppContext", services: "AppServices", builder: "SessionBuilder") -> None:
+    def __init__(self, ctx: "AppContext", services: "AppServices", agents: "AgentRegistry") -> None:
         self._ctx = ctx
         self._services = services
-        self._builder = builder
+        self._agents = agents
         self._sessions: dict[str, AgentSession] = {}
+        self._session_agents: dict[str, str] = {}
         self._sandboxes: dict[str, DefaultSandbox] = {}
         # 최근 사용자 활동 시각(monotonic). 외부 이벤트를 어느 세션이 소비할지 정렬용
         self._last_activity: dict[str, float] = {}
@@ -63,26 +68,49 @@ class SessionRegistry:
         )
         return self._services.with_security(pipeline, sandbox), sandbox
 
-    async def get_or_create(self, session_id: str) -> "tuple[AgentSession, DefaultSandbox]":
-        """있으면 그대로, 없으면 저장소에 만들고 조립한다. 두 번 불러도 같은 세션이다."""
+    async def get_or_create(
+        self, session_id: str, agent_id: str | None = None
+    ) -> "tuple[AgentSession, DefaultSandbox]":
+        """있으면 그대로, 없으면 저장소에 만들고 조립한다. 두 번 불러도 같은 세션이다.
+
+        에이전트는 세션을 처음 만들 때만 정한다. 저장소에 이미 있는 세션은 저장된 에이전트로 열고 agent_id 는 무시한다.
+        """
         if session_id not in self._sessions:
-            await self._ctx.session_repo.create(session_id=session_id)
+            agent = await self._resolve_agent(session_id, agent_id)
+            await self._ctx.session_repo.create(session_id=session_id, agent_id=agent)
             services, sandbox = self._session_services()
-            self._sessions[session_id] = self._builder.build(session_id, services)
+            self._sessions[session_id] = self._agents.builder(agent).build(session_id, services)
             self._sandboxes[session_id] = sandbox
+            self._session_agents[session_id] = agent
         return self._sessions[session_id], self._sandboxes[session_id]
 
-    async def create_new(self) -> str:
+    async def _resolve_agent(self, session_id: str, agent_id: str | None) -> str:
+        meta = await self._ctx.session_repo.get_meta(session_id)
+        agent = meta.agent_id if meta is not None else (agent_id or self._agents.main.agent_id)
+        if agent not in self._agents:
+            raise UnknownAgent(agent)
+        return agent
+
+    async def create_new(self, agent_id: str | None = None) -> str:
         sid = uuid.uuid4().hex[:8]
-        await self.get_or_create(sid)
+        await self.get_or_create(sid, agent_id)
         return sid
 
     async def remove(self, session_id: str) -> None:
         """메모리와 저장소에서 지운다. 없는 세션도 같은 결과(저장소 delete 는 no-op)."""
         self._sessions.pop(session_id, None)
         self._sandboxes.pop(session_id, None)
+        self._session_agents.pop(session_id, None)
         self._last_activity.pop(session_id, None)
         await self._ctx.session_repo.delete(session_id)
+
+    def agent_of(self, session_id: str) -> str:
+        """열린 세션의 에이전트 id. 열리지 않은 세션은 main."""
+        return self._session_agents.get(session_id, self._agents.main.agent_id)
+
+    def session_agents(self) -> dict[str, str]:
+        """열린 세션 id → 에이전트 id. 목록 순서는 list_ids 와 같다."""
+        return {sid: self._session_agents[sid] for sid in self._sessions}
 
     def list_ids(self) -> list[str]:
         return list(self._sessions.keys())

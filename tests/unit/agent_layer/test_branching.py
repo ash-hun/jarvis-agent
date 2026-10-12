@@ -129,3 +129,30 @@ class TestSidebarTreeView:
         short_id = child.session_id[:12]
         label = f"↳ {short_id} ({child.message_count})"
         assert label.startswith("↳")
+
+
+# ── 세션의 에이전트 ─────────────────────────────────────────────────────────────
+
+
+async def test_jsonl_session_agent_is_fixed_at_creation(tmp_path):
+    from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
+
+    repo = JsonlSessionRepo(str(tmp_path))
+    assert await repo.get_meta("k1") is None
+    created = await repo.create(session_id="k1", agent_id="karen")
+    again = await repo.create(session_id="k1", agent_id="main")
+    assert created.agent_id == again.agent_id == "karen"
+    assert (await repo.get_meta("k1")).agent_id == "karen"
+    branch = await repo.create_branch("k1")
+    assert branch.agent_id == "karen"
+
+
+async def test_jsonl_old_meta_without_agent_reads_as_main(tmp_path):
+    import json
+
+    from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
+
+    (tmp_path / "old.meta.json").write_text(json.dumps(
+        {"session_id": "old", "cwd": ".", "created_at": 1, "updated_at": 1, "message_count": 0}
+    ))
+    assert (await JsonlSessionRepo(str(tmp_path)).get_meta("old")).agent_id == "main"

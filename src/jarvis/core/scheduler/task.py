@@ -8,6 +8,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, PrivateAttr
 
+from jarvis.memory.scope import MAIN_AGENT
+
 
 class ScheduledTask(BaseModel):
     """스케줄된 작업 정의. ~/.jarvis/schedules/*.yaml 또는 /schedule 슬래시 명령으로 생성."""
@@ -24,6 +26,8 @@ class ScheduledTask(BaseModel):
     # reminder: 정한 시각에 prompt 문구를 그대로 알린다(LLM 호출 없음)
     # task: prompt 를 에이전트가 실행하고 그 답을 알린다
     kind: Literal["reminder", "task"] = "task"
+    # 작업을 실행할 최상위 에이전트 id. 그 에이전트의 모델과 시스템 프롬프트, 기억 범위로 돈다
+    agent: str = MAIN_AGENT
 
     # 이 작업을 읽어 온(또는 저장한) YAML 파일. 토글을 원본 파일에 되쓰는 데 쓴다.
     # 직렬화 대상이 아니다. None 이면 아직 파일이 없는 메모리 전용 작업.

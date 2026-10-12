@@ -17,6 +17,7 @@
 1. [개요](#개요)
 2. [공통 규약](#공통-규약)
 3. [세부 API 명세](#세부-api-명세)
+   - [GET /api/agents](#get-apiagents)
    - [GET /api/agenda](#get-apiagenda)
    - [POST /api/openloops/{loop_id}](#post-apiopenloopsloop_id)
    - [POST /api/schedules/{name}](#post-apischedulesname)
@@ -69,6 +70,61 @@ Web HUD(`src/jarvis/ui/web/static/`)가 쓰는 백엔드 인터페이스다. 대
 ## 세부 API 명세
 
 경로 알파벳순.
+
+### GET /api/agents
+
+이 서버에 뜬 최상위 에이전트 목록. main(JARVIS)이 첫 번째이고, 나머지는 정의 파일(`JARVIS_TEAM__DIR/<id>.yaml`) 이름순.
+
+#### Endpoint
+
+```
+GET /api/agents
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | 설정 시 필요 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| — | — | — | — | — | 없음 |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `agents` | `Agent[]` | 아니오 | [Agent](#agent) 목록. 최소 main 하나 |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+
+#### 호출 예시
+
+```bash
+$ curl -s http://localhost:7777/api/agents
+{"agents":[{"id":"main","name":"J.A.R.V.I.S.","description":"","quote":"Proof the Heart","palette":{"primary":"#5fc8e2","accent":"#f0b35f","background":"#02060c","nebula":["#3a5bff","#8a4dff","#ff6ad5"]},"main":true},{"id":"karen","name":"K.A.R.E.N.",...,"main":false}]}
+```
+
+#### 특이사항
+
+**재호출** — 상태를 바꾸지 않는다. 정의 파일은 기동 때 한 번 읽는다. 파일을 고치면 서버를 다시 띄워야 목록이 바뀐다. 모델과 시스템 프롬프트는 내보내지 않는다.
+
+---
 
 ### GET /api/agenda
 
@@ -258,7 +314,7 @@ $ curl -s -X POST -H 'Content-Type: application/json' -d '{"enabled":false}' htt
 
 ### GET /api/sessions
 
-이 프로세스가 메모리에 들고 있는 세션 id 목록.
+이 프로세스가 메모리에 들고 있는 세션 id 목록과 각 세션의 에이전트.
 
 #### Endpoint
 
@@ -291,6 +347,7 @@ GET /api/sessions
 | 필드 | 타입 | 널 허용 | 설명 |
 |---|---|---|---|
 | `sessions` | `string[]` | 아니오 | 세션 id. 기동 시 `default` 하나로 시작한다 |
+| `agents` | `object` | 아니오 | 세션 id → 에이전트 id. 키는 `sessions` 와 같다 |
 
 #### 응답 코드
 
@@ -302,7 +359,7 @@ GET /api/sessions
 
 ```bash
 $ curl -s http://localhost:7777/api/sessions
-{"sessions":["default"]}
+{"sessions":["default","2e076b96"],"agents":{"default":"main","2e076b96":"karen"}}
 ```
 
 #### 특이사항
@@ -315,7 +372,7 @@ $ curl -s http://localhost:7777/api/sessions
 
 ### POST /api/sessions
 
-새 세션을 만든다. id 는 서버가 정한다.
+새 세션을 만든다. id 는 서버가 정하고, 세션을 맡을 에이전트는 본문으로 고른다.
 
 #### Endpoint
 
@@ -329,13 +386,15 @@ POST /api/sessions
 |---|---|
 | Method | `POST` |
 | 인증 | 설정 시 필요 |
-| 요청 Content-Type | 없음 (본문 없음) |
+| 요청 Content-Type | `application/json` (본문은 선택) |
 | 응답 Content-Type | `application/json` |
 | 필수 헤더 | 없음 |
 
 #### Request Body
 
-없음.
+| 필드 | 타입 | 필수 | 기본값 | 제약 | 설명 |
+|---|---|---|---|---|---|
+| `agent` | string | 아니오 | `main` | `GET /api/agents` 의 id | 세션을 맡을 에이전트. 만든 뒤에는 바뀌지 않는다 |
 
 #### Query / Path 파라미터
 
@@ -348,18 +407,20 @@ POST /api/sessions
 | 필드 | 타입 | 널 허용 | 설명 |
 |---|---|---|---|
 | `session_id` | string | 아니오 | 8자리 hex. 이 id 로 `/ws?session_id=` 에 붙는다 |
+| `agent` | string | 아니오 | 세션의 에이전트 id |
 
 #### 응답 코드
 
 | 코드 | 의미 | 본문 |
 |---|---|---|
-| `200` | 정상 | `{"session_id"}` |
+| `200` | 정상 | `{"session_id", "agent"}` |
+| `400` | 모르는 에이전트 | `{"error": "unknown agent: <id>"}` |
 
 #### 호출 예시
 
 ```bash
-$ curl -s -X POST http://localhost:7777/api/sessions
-{"session_id":"2e076b96"}
+$ curl -s -X POST http://localhost:7777/api/sessions -H 'content-type: application/json' -d '{"agent":"karen"}'
+{"session_id":"2e076b96","agent":"karen"}
 ```
 
 #### 특이사항
@@ -537,6 +598,8 @@ $ curl -s -X POST http://localhost:7777/api/sessions/nope/branch
 #### 특이사항
 
 **재호출** — 멱등하지 않다. 부를 때마다 새 세션이 생긴다.
+
+분기는 부모와 같은 에이전트의 세션이다.
 
 저장소가 Postgres(Docker 기본)면 분기가 아니라 **빈 새 세션 생성**과 같다. 원본 id 가 없어도 200 이고 히스토리를 복사하지 않는다(위 예시가 그 경우). 진짜 분기는 jsonl 저장소에서만 된다.
 
@@ -765,7 +828,7 @@ $ curl -s http://localhost:7777/manifest.json | head -c 200
 #### Endpoint
 
 ```
-GET /ws?session_id=<id>&token=<key>   (Upgrade: websocket)
+GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 ```
 
 #### 호출 규약
@@ -774,6 +837,7 @@ GET /ws?session_id=<id>&token=<key>   (Upgrade: websocket)
 |---|---|
 | Method | WebSocket |
 | 인증 | 설정 시 `token` 쿼리 필수. 틀리면 accept 뒤 close `4401` |
+| 에이전트 | 새 세션을 모르는 `agent` 로 열려 하면 accept 뒤 close `4404` |
 | 메시지 포맷 | JSON 텍스트 프레임, 항상 `type` 필드 |
 | 필수 헤더 | 없음 |
 
@@ -782,6 +846,7 @@ GET /ws?session_id=<id>&token=<key>   (Upgrade: websocket)
 | 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
 |---|---|---|---|---|---|
 | `session_id` | query | string | 아니오 | `default` | 없으면 만든다 |
+| `agent` | query | string | 아니오 | `main` | 새 세션을 맡을 에이전트. 이미 있는 세션(저장소 포함)은 저장된 에이전트로 열고 이 값은 무시한다 |
 | `token` | query | string | 인증 시 예 | 없음 | API 키 |
 
 #### 클라이언트 → 서버
@@ -800,7 +865,7 @@ GET /ws?session_id=<id>&token=<key>   (Upgrade: websocket)
 
 | `type` | 필드 | 언제 |
 |---|---|---|
-| `connected` | `session_id`, `user`, `model`, `sessions[]`, `slash_commands[]`, `voice{stt_mode, stt_lang}`, `reply_classifier` | 접속 직후 한 번. `reply_classifier` 는 사고가 켜져 있어 `reply_classify` 를 쓸 수 있는지 |
+| `connected` | `session_id`, `agent`, `user`, `model`, `sessions[]`, `session_agents`, `slash_commands[]`, `voice{stt_mode, stt_lang}`, `reply_classifier` | 접속 직후 한 번. `agent` 는 이 세션의 [Agent](#agent), `session_agents` 는 세션 id → 에이전트 id. `reply_classifier` 는 사고가 켜져 있어 `reply_classify` 를 쓸 수 있는지 |
 | `agent_start` | `session_id`, `prompt`, `agent_name?` | 루프 시작. 서브 에이전트는 `agent_name` 이 있다 |
 | `message_update` | `text_delta`, `thinking_delta` | 스트리밍 조각 |
 | `stream_delta` | `text` | 슬래시 명령 결과 등 비스트림 텍스트 |
@@ -812,7 +877,7 @@ GET /ws?session_id=<id>&token=<key>   (Upgrade: websocket)
 | `proactive_message` | `session_id`, `text`, `kind`(`filler`/`proactive`/`answer`), `speak`, `message_id` | 먼저 건네는 말. `proactive` 면 피드백 대상 |
 | `approval_request` | `id`, `command`, `reason`, `always_pattern` | 도구 실행 승인 요청. 같은 세션의 열린 연결 전부에 보내고, 기다리는 중에 새로 붙은 연결에도 보낸다. 120초 안에 답이 없으면 거부로 처리 |
 | `approval_resolved` | `id` | 그 요청이 끝났다(어느 연결의 답, 또는 시간 초과). 아직 모달을 띄운 연결은 닫는다 |
-| `reminder` | `id`, `name`, `kind`, `once`, `title`, `text`, `error`, `delayed_sec`, `fired_at`, `missed?` | 스케줄 실행 결과. 열린 연결 전부에 방송하고, 없으면 최근 20건을 쌓아 다음 접속 때 `missed: true` 로 보낸다 |
+| `reminder` | `id`, `name`, `kind`, `agent`, `once`, `title`, `text`, `error`, `delayed_sec`, `fired_at`, `missed?` | 스케줄 실행 결과. 열린 연결 전부에 방송하고, 없으면 최근 20건을 쌓아 다음 접속 때 `missed: true` 로 보낸다 |
 | `voice_tts_audio` | `data`(base64), `mime`, `text` | 합성 결과. `data` 가 비면 브라우저 TTS 로 |
 | `voice_stt_result` | `text`, `error?` | 전사 결과 |
 | `reply_classified` | `kind`, `id`, `verdict` | `reply_classify` 의 결과. `feedback` 은 `accept`/`dismiss`/`other`, `approval` 은 `allow`/`always`/`deny`/`unclear`. 사고 모델이 없거나 6초 안에 답하지 못하면 `other`, `unclear`. 항상 허용 패턴이 없는데 `always` 면 `allow` 로 낮춘다 |
@@ -835,6 +900,17 @@ ws.send(JSON.stringify({ type: "user_message", text: "안녕" }));
 ---
 
 ## 데이터 모델
+
+### Agent
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `id` | string | 아니오 | 에이전트 id. main 은 JARVIS, 나머지는 정의 파일 이름 |
+| `name` | string | 아니오 | 워드마크이자 표시 이름 |
+| `description` | string | 아니오 | 맡은 일. main 은 빈 문자열 |
+| `quote` | string | 아니오 | 명언 |
+| `palette` | object | 아니오 | `primary`, `accent`, `background`, `nebula[]` 색(#rrggbb) |
+| `main` | boolean | 아니오 | JARVIS 인지 |
 
 ### Schedule
 

@@ -182,6 +182,14 @@ def build_once_task(run_at: datetime, prompt: str, kind: Literal["reminder", "ta
     )
 
 
+def _current_agent() -> str:
+    """명령을 친 세션의 에이전트. 화면 핸들러가 current_scope 를 걸어 둔다. 없으면 main."""
+    from jarvis.memory.scope import MAIN_AGENT, current_scope
+
+    scope = current_scope.get()
+    return scope.agent_id if scope is not None else MAIN_AGENT
+
+
 def _fmt_left(run_at: datetime, now: datetime) -> str:
     mins = max(0, round((run_at - now).total_seconds() / 60))
     if mins < 60:
@@ -254,7 +262,7 @@ def make_schedule_handler(
                 kind = await classify(prompt)
             except Exception:
                 kind = "reminder"
-        task = build_once_task(run_at, prompt, kind)
+        task = build_once_task(run_at, prompt, kind).model_copy(update={"agent": _current_agent()})
         scheduler.add_task(task)
         return format_once_confirmation(task, now)
 
@@ -279,7 +287,7 @@ def make_schedule_handler(
         if scheduler is None:
             return "[Schedule] 스케줄러가 비활성화 상태입니다. (JARVIS_SCHEDULER__ENABLED=true 필요)"
 
-        task = build_schedule_task(deadline, prompt)
+        task = build_schedule_task(deadline, prompt).model_copy(update={"agent": _current_agent()})
         scheduler.add_task(task)
         return format_confirmation(task, deadline)
 

@@ -5,6 +5,8 @@ import asyncio
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope
+from jarvis.ui.web.router.agent_router import agent_summary
+from jarvis.ui.web.session_registry import UnknownAgent
 from jarvis.ui.web.web_auth import auth_enabled, lookup_api_user
 from jarvis.ui.web.web_state import WebState
 from jarvis.ui.web.ws_tasks import (
@@ -17,6 +19,8 @@ from jarvis.ui.web.ws_tasks import (
 
 # 키 불일치로 서버가 끊을 때의 close code. 브라우저가 이 코드를 보고 키 입력을 띄운다
 WS_UNAUTHORIZED = 4401
+# 정의에 없는 에이전트로 새 세션을 열려 할 때. 브라우저는 재연결하지 않고 오류를 보인다
+WS_UNKNOWN_AGENT = 4404
 DEFAULT_STT_SAMPLE_RATE = 16000
 
 
@@ -30,6 +34,9 @@ def build_ws_router(state: WebState) -> APIRouter:
         ws: WebSocket,
         session_id: str = Query(default="default", description="붙을 세션 id. 없으면 만든다"),
         token: str | None = Query(default=None, description="접근 키. 인증이 켜져 있을 때만 필요"),
+        agent: str | None = Query(
+            default=None, description="새 세션을 맡을 에이전트 id. 이미 있는 세션은 저장된 에이전트로 열린다"
+        ),
     ) -> None:
         from jarvis.config import ApiUser
         from jarvis.ui.web.adapter import PerConnectionAdapter
@@ -43,7 +50,13 @@ def build_ws_router(state: WebState) -> APIRouter:
                 await ws.close(code=WS_UNAUTHORIZED, reason="invalid token")
                 return
         credentials = {"api_key": token} if user is not None and token is not None else {}
-        session, sandbox = await state.registry.get_or_create(session_id)
+        try:
+            session, sandbox = await state.registry.get_or_create(session_id, agent)
+        except UnknownAgent as exc:
+            await ws.close(code=WS_UNKNOWN_AGENT, reason=f"unknown agent: {exc}")
+            return
+        agent_id = state.registry.agent_of(session_id)
+        profile = state.assembly.agents.builder(agent_id).profile
 
         adapter = PerConnectionAdapter(ws)
         broker = state.broker(session_id)
@@ -59,9 +72,11 @@ def build_ws_router(state: WebState) -> APIRouter:
             await ws.send_json({
                 "type": "connected",
                 "session_id": session._session_id,
+                "agent": agent_summary(profile),
                 "user": user.name if user is not None else None,
                 "model": session._harness._model.model,
                 "sessions": state.registry.list_ids(),
+                "session_agents": state.registry.session_agents(),
                 "slash_commands": [
                     {"name": name, "description": desc} for name, desc in sorted(ctx.dispatcher.commands.items())
                 ] if ctx.dispatcher else [],
@@ -91,6 +106,7 @@ def build_ws_router(state: WebState) -> APIRouter:
                             # /remember 같은 명령이 이 연결의 사용자 범위로 기억을 쓰게 한다
                             current_scope.set(MemoryScope(
                                 user_id=user.name if user is not None else LOCAL_USER,
+                                agent_id=agent_id,
                                 session_id=session_id,
                             ))
                             result = await ctx.dispatcher.dispatch(text)

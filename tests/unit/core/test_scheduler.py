@@ -167,6 +167,34 @@ class TestSchedulerService:
         mock_session.prompt.assert_called_once_with("Hello scheduler")
 
 
+    async def test_execute_task_runs_as_its_agent(self):
+        """agent 가 main 이 아니면 그 에이전트의 모델, 시스템 프롬프트, 이름으로 세션을 만든다."""
+        from jarvis.core.scheduler.service import TaskAgent
+
+        svc = self._make_service()
+        karen_model = MagicMock()
+        svc.set_agent_resolver(lambda a: TaskAgent(karen_model, "카렌", "karen") if a == "karen" else None)
+        task = ScheduledTask(name="k", schedule="* * * * *", prompt="뉴스", agent="karen")
+        mock_session = MagicMock()
+        mock_session.prompt = AsyncMock()
+
+        with patch("jarvis.core.session.AgentSession", return_value=mock_session) as ctor:
+            with patch("jarvis.agent_layer.memory.chain.MemoryMiddlewareChain"):
+                with patch("jarvis.core.policy.pipeline.SecurityPipeline"):
+                    await svc._execute_task(task)
+
+        kwargs = ctor.call_args.kwargs
+        assert (kwargs["model"], kwargs["system_prompt"], kwargs["agent_name"]) == (karen_model, "카렌", "karen")
+        assert svc._session_repo.create.call_args.kwargs["agent_id"] == "karen"
+
+    async def test_execute_task_with_unknown_agent_fails_without_running(self):
+        svc = self._make_service()
+        task = ScheduledTask(name="g", schedule="* * * * *", prompt="x", agent="ghost")
+        with patch("jarvis.core.session.AgentSession") as ctor:
+            assert await svc._execute_task(task) is None
+        ctor.assert_not_called()
+
+
 class TestSchedulerConfig:
     def test_scheduler_config_defaults(self, monkeypatch):
         monkeypatch.delenv("JARVIS_SCHEDULER__ENABLED", raising=False)

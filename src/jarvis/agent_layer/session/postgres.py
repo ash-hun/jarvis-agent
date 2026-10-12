@@ -8,6 +8,7 @@ import json
 from typing import Any
 
 from jarvis.agent_layer.session.protocol import SessionMetadata, SessionRepo, deserialize_message
+from jarvis.memory.scope import MAIN_AGENT
 from jarvis.model_layer.types import Message
 
 
@@ -60,6 +61,10 @@ class PostgresSessionRepo(SessionRepo):
             await conn.execute("""
                 ALTER TABLE jarvis_sessions ADD COLUMN IF NOT EXISTS parent_id TEXT
             """)
+            # 최상위 에이전트 도입 전 세션은 전부 main 이다
+            await conn.execute(f"""
+                ALTER TABLE jarvis_sessions ADD COLUMN IF NOT EXISTS agent_id TEXT NOT NULL DEFAULT '{MAIN_AGENT}'
+            """)
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS jarvis_entries (
                     id          TEXT    PRIMARY KEY,
@@ -75,22 +80,30 @@ class PostgresSessionRepo(SessionRepo):
                 ON jarvis_entries(session_id, timestamp)
             """)
 
-    async def create(self, session_id: str | None = None, cwd: str = ".") -> SessionMetadata:
+    async def create(
+        self, session_id: str | None = None, cwd: str = ".", agent_id: str = MAIN_AGENT
+    ) -> SessionMetadata:
         pool = await self._get_pool()
         sid = session_id or self._new_id()
         now = self._now_ms()
         async with pool.acquire() as conn:
             await conn.execute(
                 """
-                INSERT INTO jarvis_sessions (session_id, cwd, parent_id, created_at, updated_at, message_count)
-                VALUES ($1, $2, NULL, $3, $4, 0)
+                INSERT INTO jarvis_sessions
+                    (session_id, cwd, parent_id, created_at, updated_at, message_count, agent_id)
+                VALUES ($1, $2, NULL, $3, $4, 0, $5)
                 ON CONFLICT (session_id) DO NOTHING
                 """,
-                sid, cwd, now, now,
+                sid, cwd, now, now, agent_id,
             )
-        return SessionMetadata(
-            session_id=sid, cwd=cwd, created_at=now, updated_at=now, message_count=0
-        )
+            row = await conn.fetchrow("SELECT * FROM jarvis_sessions WHERE session_id = $1", sid)
+        return SessionMetadata(**dict(row))
+
+    async def get_meta(self, session_id: str) -> SessionMetadata | None:
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT * FROM jarvis_sessions WHERE session_id = $1", session_id)
+        return SessionMetadata(**dict(row)) if row is not None else None
 
     async def list(self, cwd: str = "") -> builtins.list[SessionMetadata]:
         pool = await self._get_pool()
@@ -117,14 +130,15 @@ class PostgresSessionRepo(SessionRepo):
                 raise ValueError(f"Parent session {parent_session_id!r} not found")
             parent_cwd: str = parent_row["cwd"]
             parent_count: int = parent_row["message_count"]
+            parent_agent: str = parent_row["agent_id"]
 
             await conn.execute(
                 """
                 INSERT INTO jarvis_sessions
-                    (session_id, cwd, parent_id, created_at, updated_at, message_count)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                    (session_id, cwd, parent_id, created_at, updated_at, message_count, agent_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 """,
-                branch_id, parent_cwd, parent_session_id, now, now, parent_count,
+                branch_id, parent_cwd, parent_session_id, now, now, parent_count, parent_agent,
             )
             # 부모 메시지를 브랜치에 복사
             await conn.execute(
@@ -144,6 +158,7 @@ class PostgresSessionRepo(SessionRepo):
             updated_at=now,
             message_count=parent_count,
             parent_id=parent_session_id,
+            agent_id=parent_agent,
         )
 
     async def get_messages(self, session_id: str) -> builtins.list[Message]:

@@ -10,6 +10,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from jarvis.memory.scope import MAIN_AGENT
 from jarvis.model_layer.types import AssistantMessage, Message, ToolResultMessage, UserMessage
 
 
@@ -28,6 +29,8 @@ class SessionMetadata(BaseModel):
     updated_at: int
     message_count: int
     parent_id: str | None = None
+    # 세션을 만든 최상위 에이전트. 만든 뒤에는 바뀌지 않는다. 옛 세션은 main
+    agent_id: str = MAIN_AGENT
 
 
 def deserialize_message(content: dict[str, Any]) -> Message | None:
@@ -51,8 +54,15 @@ class SessionRepo:
     저장 메서드는 매체마다 달라 기본 동작이 없다. 상속한 저장소가 모두 재정의한다.
     """
 
-    async def create(self, session_id: str | None = None, cwd: str = ".") -> SessionMetadata:
+    async def create(
+        self, session_id: str | None = None, cwd: str = ".", agent_id: str = MAIN_AGENT
+    ) -> SessionMetadata:
+        """없으면 만들고 있으면 그대로 둔다. 이미 있는 세션의 에이전트는 바꾸지 않는다."""
         raise NotImplementedError("세션 저장 방식은 저장 매체마다 다르다")
+
+    async def get_meta(self, session_id: str) -> SessionMetadata | None:
+        """세션 메타. 없으면 None."""
+        raise NotImplementedError("메타 조회는 저장 매체마다 다르다")
 
     async def list(self, cwd: str = "") -> builtins.list[SessionMetadata]:
         raise NotImplementedError("세션 목록 조회는 저장 매체마다 다르다")

@@ -26,7 +26,7 @@ class WebState:
 
     def __init__(self, assembly: "AppAssembly") -> None:
         self.assembly = assembly
-        self.registry = SessionRegistry(assembly.ctx, assembly.services, assembly.sessions)
+        self.registry = SessionRegistry(assembly.ctx, assembly.services, assembly.agents)
         # 세션별 승인 브로커. 같은 세션의 모든 연결이 모달을 받고 먼저 온 답을 쓴다
         self.approvals: dict[str, SessionApprovals] = {}
         self.live_clients: set[PerConnectionAdapter] = set()

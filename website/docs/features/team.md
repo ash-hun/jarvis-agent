@@ -40,3 +40,13 @@ proactive: false              # 비우면 JARVIS 의 proactive 설정
 장기 기억의 공유 여부는 쓰기 경로가 정한다(`memory_service.WRITE_RULES`). `/remember`, 사용자 모델 증류, 일화에서 뽑은 사실은 shared 로, 나머지는 private 로 쓴다. 기억 범위의 `agent_id` 는 세션의 에이전트 id 다.
 
 범위를 도입하기 전의 옛 행은 Postgres 저장소가 열릴 때 main 행으로 채운다. 이때 사실만 shared 로, 일화는 main 전용으로 둔다. 예전 backfill 이 shared 로 둔 일화도 같은 때 private 로 고친다. 두 번 열어도 결과가 같다.
+
+## 세션은 한 에이전트의 것
+
+세션은 만들 때 에이전트가 정해지고 바뀌지 않는다(`jarvis_sessions.agent_id`, jsonl 은 `.meta.json` 의 `agent_id`). 에이전트가 정해지기 전에 만든 세션은 main 이다.
+
+- Web: `POST /api/sessions {"agent": "karen"}`, `/ws?session_id=..&agent=karen`. 이미 있는 세션은 저장된 에이전트로 열리고 `agent` 는 무시한다. 모르는 에이전트는 400, ws 는 close `4404`
+- TUI: `jarvis --agent karen` 은 `default-karen` 세션으로 시작한다. `--session ID` 는 그 세션을 만든 에이전트로 연다
+- 분기는 부모와 같은 에이전트
+- 스케줄: 작업 YAML 의 `agent: karen` 이면 그 에이전트의 모델, 시스템 프롬프트, 기억 범위로 돈다. `/schedule` 로 만든 작업은 명령을 친 세션의 에이전트가 들어간다
+- 성찰 daemon 은 열린 세션 전부를 돈다. proactive 가 꺼진 에이전트(KAREN 기본값)의 세션은 성찰을 건너뛴다

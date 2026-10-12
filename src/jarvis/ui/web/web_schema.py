@@ -9,3 +9,7 @@ class OpenLoopStatusRequest(BaseModel):
 
 class ScheduleToggleRequest(BaseModel):
     enabled: JsonValue = Field(default=None, description="켤지 여부. true 또는 false", examples=[False])
+
+
+class CreateSessionRequest(BaseModel):
+    agent: str | None = Field(default=None, description="세션을 맡을 에이전트 id. 비우면 main", examples=["karen"])

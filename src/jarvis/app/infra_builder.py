@@ -134,6 +134,8 @@ class InfraBuilder:
         self.register_commands(ctx, services, procedure_store, agent_defs, orchestration)
         profile = AgentProfile.main(settings, model_config, feedback_learner)
         agents = AgentRegistry.load(ctx, services, profile, settings.team.dir)
+        if scheduler is not None:
+            scheduler.set_agent_resolver(agents.task_agent)
         return AppAssembly(
             ctx=ctx, services=services, profile=profile, sessions=agents.builder(MAIN_AGENT_ID), agents=agents
         )

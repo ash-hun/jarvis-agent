@@ -5,11 +5,13 @@ from __future__ import annotations
 import asyncio
 import uuid
 from collections.abc import Awaitable, Callable, Coroutine
+from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from jarvis.common.logger import get_logger
 from jarvis.core.scheduler.task import ScheduledTask
+from jarvis.memory.scope import MAIN_AGENT
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
@@ -24,6 +26,19 @@ Notify = Callable[[dict[str, Any]], Awaitable[None]]
 
 # 루프 주기. 한 번 실행(run_at) 알림이 이만큼까지 늦을 수 있다.
 TICK_SEC = 10
+
+
+@dataclass(frozen=True)
+class TaskAgent:
+    """main 이 아닌 에이전트로 작업을 돌릴 때 쓰는 것. 조립 층이 에이전트 정의에서 만들어 준다."""
+
+    model: ModelConfig
+    system_prompt: str | None
+    agent_name: str
+
+
+# 에이전트 id → TaskAgent. 모르는 id 면 None
+AgentResolver = Callable[[str], "TaskAgent | None"]
 
 logger = get_logger(__name__)
 
@@ -61,8 +76,13 @@ class SchedulerService:
         self._running = False
         self._task_handle: asyncio.Task[None] | None = None
         self._notify: Notify | None = None
+        self._agent_resolver: AgentResolver | None = None
         self._last_run: dict[str, datetime] = {}  # cron 작업별 마지막으로 실행한 cron 슬롯
         self._bg: set[asyncio.Task[None]] = set()
+
+    def set_agent_resolver(self, resolver: AgentResolver | None) -> None:
+        """main 이 아닌 작업의 에이전트를 찾는 함수. 에이전트 레지스트리를 만든 뒤 조립 층이 단다."""
+        self._agent_resolver = resolver
 
     def set_notifier(self, notify: Notify | None) -> None:
         """실행 결과를 받을 콜백을 단다. web 서버가 기동할 때 연결한다."""
@@ -223,6 +243,7 @@ class SchedulerService:
             "id": uuid.uuid4().hex,
             "name": task.name,
             "kind": task.kind,
+            "agent": task.agent,
             "once": task.run_at is not None,
             "title": task.prompt[:160],
             "text": text if text is not None else "실행에 실패했습니다.",
@@ -272,14 +293,22 @@ class SchedulerService:
             sandbox=sandbox,
         )
 
+        model, system_prompt, agent_name = self._model, None, None
+        if task.agent != MAIN_AGENT:
+            resolved = self._agent_resolver(task.agent) if self._agent_resolver is not None else None
+            if resolved is None:
+                logger.info(f"[Scheduler] Task '{task.name}' failed: unknown agent '{task.agent}'")
+                return None
+            model, system_prompt, agent_name = resolved.model, resolved.system_prompt, resolved.agent_name
+
         session_id = task.session_id or f"sched-{task.name}-{uuid.uuid4().hex[:8]}"
-        await self._session_repo.create(session_id=session_id)
+        await self._session_repo.create(session_id=session_id, agent_id=task.agent)
 
         # Reuse memory chain from base_extra but create fresh for isolation
         memory_chain = MemoryMiddlewareChain(stages=[])
 
         session = AgentSession(
-            model=self._model,
+            model=model,
             session_id=session_id,
             security_pipeline=pipeline,
             plugin_runner=self._plugin_runner,
@@ -287,6 +316,8 @@ class SchedulerService:
             tool_registry=filtered,
             skill_registry=self._skill_registry,
             session_repo=self._session_repo,
+            system_prompt=system_prompt,
+            agent_name=agent_name,
         )
 
         try:

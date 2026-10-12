@@ -15,6 +15,7 @@ from jarvis.config import BrandConfig, BrandPalette
 if TYPE_CHECKING:
     from jarvis.app.app_context import AppContext
     from jarvis.app.app_services import AppServices
+    from jarvis.core.scheduler.service import TaskAgent
 
 # 파일 이름이 곧 id 다. 세션, 기억, 약속, 승인 파일 이름에 그대로 들어가므로 좁게 받는다
 AGENT_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
@@ -115,6 +116,15 @@ class AgentRegistry:
     def get(self, agent_id: str) -> AgentProfile | None:
         builder = self._builders.get(agent_id)
         return builder.profile if builder is not None else None
+
+    def task_agent(self, agent_id: str) -> "TaskAgent | None":
+        """스케줄 작업을 이 에이전트로 돌릴 때 쓰는 모델, 프롬프트, 이름. 모르는 id 면 None."""
+        from jarvis.core.scheduler.service import TaskAgent
+
+        profile = self.get(agent_id)
+        if profile is None:
+            return None
+        return TaskAgent(model=profile.model, system_prompt=profile.system_prompt, agent_name=profile.agent_id)
 
     def builder(self, agent_id: str) -> SessionBuilder:
         """모르는 id 는 KeyError. 부르는 쪽이 사용자 입력을 먼저 `in` 으로 거른다."""

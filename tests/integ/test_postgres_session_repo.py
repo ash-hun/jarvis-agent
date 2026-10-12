@@ -72,10 +72,12 @@ class TestCreate:
         await repo.create(session_id="sess-idem", cwd="/tmp")
         await repo.append("sess-idem", _user_msg("hello"))
 
-        meta2 = await repo.create(session_id="sess-idem", cwd="/tmp")
+        meta2 = await repo.create(session_id="sess-idem", cwd="/tmp", agent_id="karen")
         assert meta2.session_id == "sess-idem"
-        # ON CONFLICT DO NOTHING — message_count는 리셋되지 않음
-        assert meta2.message_count == 0  # create 반환값은 초기값, DB 업데이트는 append
+        # ON CONFLICT DO NOTHING — message_count 는 리셋되지 않고, create 는 jsonl 처럼 저장된 메타를 돌려준다
+        assert meta2.message_count == 1
+        # 이미 있는 세션의 에이전트는 바뀌지 않는다
+        assert meta2.agent_id == "main"
 
     async def test_create_auto_uuid(self, repo):
         meta = await repo.create(cwd="/home")
@@ -83,6 +85,24 @@ class TestCreate:
 
 
 # ── list ──────────────────────────────────────────────────────────────────────
+
+class TestAgent:
+    async def test_agent_is_stored_and_read_back(self, repo):
+        await repo.create(session_id="sess-karen", agent_id="karen")
+        meta = await repo.get_meta("sess-karen")
+        assert meta is not None and meta.agent_id == "karen"
+        assert await repo.get_meta("sess-none") is None
+
+    async def test_default_agent_is_main(self, repo):
+        await repo.create(session_id="sess-main")
+        assert (await repo.get_meta("sess-main")).agent_id == "main"
+
+    async def test_branch_keeps_parent_agent(self, repo):
+        await repo.create(session_id="sess-kp", agent_id="karen")
+        branch = await repo.create_branch("sess-kp")
+        assert branch.agent_id == "karen"
+        assert (await repo.get_meta(branch.session_id)).agent_id == "karen"
+
 
 class TestList:
     async def test_list_returns_created_sessions(self, repo):

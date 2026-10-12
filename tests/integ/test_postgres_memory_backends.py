@@ -178,7 +178,7 @@ class TestPostgresLTM:
 
 class TestItemStoreMigration:
     async def test_legacy_rows_are_backfilled_and_visible_to_every_user(self, postgres_dsn):
-        """범위 컬럼이 없던 테이블에 행이 있을 때, 마이그레이션 후 전역(shared, main) 항목으로 보인다."""
+        """범위 컬럼이 없던 테이블의 행은 전역 main 항목이 된다. 사실은 모든 에이전트에, 일화는 main 에만 보인다."""
         import asyncpg
 
         from jarvis.memory import MemoryScope
@@ -210,12 +210,47 @@ class TestItemStoreMigration:
             assert fact is not None and summary is not None
             assert (fact.kind.value, fact.visibility, fact.author) == ("semantic", "shared", "user")
             assert fact.scope.user_id is None
-            assert (summary.kind.value, summary.author) == ("episodic", "agent")
+            assert (summary.kind.value, summary.visibility, summary.author) == ("episodic", "private", "agent")
             assert summary.scope.agent_id == "main"
-            # 어느 사용자, 어느 에이전트에서도 보인다
-            for scope in (MemoryScope(user_id="u1"), MemoryScope(user_id="u2", agent_id="researcher")):
-                assert {i.id for i in await memory.recent(scope=scope, limit=10)} >= {"legacy1", "legacy2"}
+            # 어느 사용자의 main 에서도 둘 다 보이고, 다른 에이전트에는 사실만 보인다
+            for user in ("u1", "u2"):
+                assert {i.id for i in await memory.recent(scope=MemoryScope(user_id=user), limit=10)} >= {
+                    "legacy1", "legacy2"
+                }
+            other = {i.id for i in await memory.recent(scope=MemoryScope(user_id="u1", agent_id="karen"), limit=10)}
+            assert "legacy1" in other and "legacy2" not in other
             await store.close()
+
+    async def test_shared_episodes_from_old_backfill_become_private(self, postgres_dsn):
+        """예전 backfill 이 shared 로 둔 일화는 main 전용으로 바뀌고, 사실은 그대로 shared 다. 두 번 열어도 같다."""
+        import asyncpg
+
+        from jarvis.memory.stores.postgres import PostgresItemStore
+
+        store = PostgresItemStore(dsn=postgres_dsn)
+        await store._get_pool()  # 테이블 준비
+        await store.close()
+        conn = await asyncpg.connect(postgres_dsn)
+        try:
+            await conn.execute("DELETE FROM jarvis_ltm_entries")
+            await conn.execute(
+                "INSERT INTO jarvis_ltm_entries (id, content, source, kind, visibility, agent_id, author) VALUES "
+                "('ep', '옛 요약', 'auto_summary', 'episodic', 'shared', 'main', 'agent'),"
+                "('fa', '옛 사실', 'explicit', 'semantic', 'shared', 'main', 'user')"
+            )
+        finally:
+            await conn.close()
+
+        for _ in range(2):
+            store = PostgresItemStore(dsn=postgres_dsn)
+            await store._get_pool()
+            await store.close()
+        conn = await asyncpg.connect(postgres_dsn)
+        try:
+            rows = dict(await conn.fetch("SELECT id, visibility FROM jarvis_ltm_entries ORDER BY id"))
+        finally:
+            await conn.close()
+        assert rows == {"ep": "private", "fa": "shared"}
 
     async def test_scope_filter_in_sql(self, ltm):
         from jarvis.memory import MemoryScope

@@ -132,3 +132,52 @@ def test_interpretation_only_composer_selected():
 def test_unknown_composer_falls_back_to_default():
     _, _, composer = _build_thought(_ctx(composer="nope"), _extra(), _MAIN)
     assert isinstance(composer, DefaultThoughtComposer)
+
+
+# ── 최상위 에이전트별 세션 ──────────────────────────────────────────────────────
+
+
+def _agent_session(profile_kwargs: dict, tmp_path):
+    from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
+    from jarvis.core.tools.builtin.glob import GlobTool
+    from jarvis.core.tools.builtin.read_file import ReadFileTool
+    from jarvis.core.tools.registry import ToolRegistry
+
+    settings = JarvisSettings()
+    settings.thought.enabled = False
+    registry = ToolRegistry()
+    registry.register(ReadFileTool())
+    registry.register(GlobTool())
+    ctx = AppContext(session_repo=JsonlSessionRepo(str(tmp_path)), tool_registry=registry, settings=settings)
+    services = AppServices(
+        memory_chain=MagicMock(),
+        pipeline=MagicMock(),
+        plugin_runner=MagicMock(),
+        skill_registry=MagicMock(),
+        sandbox=MagicMock(),
+        approval_rules=MagicMock(),
+        memory=MagicMock(),
+        model_config=_MAIN,
+        activity_clock=MagicMock(),
+    )
+    main = AgentProfile.main(settings, _MAIN, feedback_learner=MagicMock())
+    profile = AgentProfile(**{**main.__dict__, **profile_kwargs})
+    return SessionBuilder(ctx, services, profile).build("s1"), registry
+
+
+def test_main_session_keeps_main_scope_and_all_tools(tmp_path):
+    session, registry = _agent_session({}, tmp_path)
+    assert session.memory_scope.agent_id == "main"
+    assert session.agent_name is None
+    assert session._tool_registry is registry
+
+
+def test_agent_session_uses_its_prompt_tools_and_scope(tmp_path):
+    session, registry = _agent_session(
+        {"agent_id": "karen", "system_prompt": "카렌", "tools": ("read_file", "missing_tool")}, tmp_path
+    )
+    assert session.memory_scope.agent_id == "karen"
+    assert session._harness._system_prompt == "카렌"
+    # 정의의 도구만, 앱에 없는 이름은 조용히 빠진다
+    assert [t.name for t in session._tool_registry.list_all()] == ["read_file"]
+    assert session._tool_registry is not registry

@@ -155,6 +155,17 @@ class AgentConfig(BaseModel):
     supervisor_prompt: str = ""
 
 
+class TeamConfig(BaseModel):
+    """최상위 에이전트(JARVIS 와 같은 층) 정의 디렉터리. 파일 하나가 에이전트 하나이고 파일 이름이 id 다.
+
+    서브 에이전트(agents_dir)와 다르다. 여기 에이전트는 자기 세션, 기억, 약속, 승인 규칙을 가진다.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    dir: str = "~/.jarvis/team"
+
+
 class ThoughtConfig(BaseModel):
     """Inner Thought Engine 설정 (Tier 0). 기본 on — JARVIS_THOUGHT__ENABLED=false로 끈다."""
 
@@ -295,6 +306,7 @@ class JarvisSettings(BaseSettings):
     plugin: PluginConfig = Field(default_factory=PluginConfig)
     scheduler: SchedulerConfig = Field(default_factory=SchedulerConfig)
     agents: AgentConfig = Field(default_factory=AgentConfig)
+    team: TeamConfig = Field(default_factory=TeamConfig)
     voice: VoiceConfig = Field(default_factory=VoiceConfig)
     thought: ThoughtConfig = Field(default_factory=ThoughtConfig)
     proactive: ProactiveConfig = Field(default_factory=ProactiveConfig)

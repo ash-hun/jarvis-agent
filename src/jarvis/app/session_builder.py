@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from jarvis.app.app_context import AppContext
     from jarvis.app.app_services import AppServices
     from jarvis.core.session import AgentSession
+    from jarvis.core.tools.registry import ToolRegistry
     from jarvis.model_layer.types import Message
 
 logger = get_logger(__name__)
@@ -47,15 +48,19 @@ class SessionBuilder:
         svc = services or self._services
         settings = self._ctx.settings
         thought = self.thought_parts(svc)
+        profile = self._profile
         session = AgentSession(
-            model=self._profile.model,
+            model=profile.model,
             session_id=session_id,
             security_pipeline=svc.pipeline,
             plugin_runner=svc.plugin_runner,
             memory_chain=svc.memory_chain,
-            tool_registry=self._ctx.tool_registry,
+            tool_registry=self.tool_registry(),
             skill_registry=svc.skill_registry,
             session_repo=self._ctx.session_repo,
+            system_prompt=profile.system_prompt,
+            # main 은 이름 없이 둔다. 기억 범위가 기존 데이터와 같은 main 으로 남는다
+            agent_name=None if profile.is_main else profile.agent_id,
             thought_engine=thought.engine,
             thought_log=thought.log,
             thought_composer=thought.composer,
@@ -76,6 +81,21 @@ class SessionBuilder:
 
             session.subscribe(proactive_forwarder(self._ctx.notifier))
         return session
+
+    def tool_registry(self) -> "ToolRegistry":
+        """정의에 도구 목록이 있으면 그 도구만 담은 레지스트리, 없으면 앱 레지스트리 그대로."""
+        registry = self._ctx.tool_registry
+        if not self._profile.tools:
+            return registry
+        from jarvis.core.tools.registry import ToolRegistry
+
+        # ponytail: 세션을 만들 때 고른다, 뒤에 등록된 도구(승인된 절차)는 다음 세션부터 보인다
+        picked = ToolRegistry()
+        for name in self._profile.tools:
+            tool = registry.get(name)
+            if tool is not None:
+                picked.register(tool)
+        return picked
 
     def thought_parts(self, services: "AppServices") -> ThoughtParts:
         """사고 엔진(분리된 사고 모델), 사고 로그 싱크, composer. 사고가 꺼져 있으면 빈 ThoughtParts."""

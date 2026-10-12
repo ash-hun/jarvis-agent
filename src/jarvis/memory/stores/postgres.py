@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from jarvis.common.logger import get_logger
-from jarvis.memory.scope import MAIN_AGENT, SHARED, MemoryScope
+from jarvis.memory.scope import MAIN_AGENT, PRIVATE, SHARED, MemoryScope
 from jarvis.memory.stores.protocol import ItemStore, tokens_of
 from jarvis.memory.types import MemoryItem, MemoryKind
 
@@ -95,18 +95,24 @@ class PostgresItemStore(ItemStore):
                 "last_accessed TIMESTAMPTZ",
             ):
                 await conn.execute(f"ALTER TABLE {TABLE} ADD COLUMN IF NOT EXISTS {ddl}")
-            # backfill: 범위 도입 전 행은 전역(user_id NULL), 메인 에이전트, shared 로 둔다.
-            # 메인 에이전트 관점에서 보이던 것이 그대로 보인다. kind 가 채워진 행은 건드리지 않는다.
+            # backfill: 범위 도입 전 행은 전역(user_id NULL), 메인 에이전트로 둔다. 사용자에 대한 사실만 shared 이고
+            # 일화는 main 전용이다. 메인 관점에서는 전부 그대로 보인다. kind 가 채워진 행은 건드리지 않는다.
             await conn.execute(f"""
                 UPDATE {TABLE} SET
                     kind            = {_LEGACY_KIND_SQL},
-                    visibility      = COALESCE(visibility, '{SHARED}'),
+                    visibility      = COALESCE(visibility, CASE WHEN {_LEGACY_KIND_SQL} = 'semantic'
+                                                                THEN '{SHARED}' ELSE '{PRIVATE}' END),
                     agent_id        = COALESCE(agent_id, '{MAIN_AGENT}'),
                     author          = COALESCE(author, CASE WHEN source = 'explicit' THEN 'user' ELSE 'agent' END),
                     importance      = COALESCE(importance, 0.5),
                     rehearsal_count = COALESCE(rehearsal_count, 0)
                 WHERE kind IS NULL
             """)
+            # 예전 backfill 은 일화까지 shared 로 두어 다른 최상위 에이전트에 대화가 보였다. 지금 쓰기 경로는
+            # 일화를 shared 로 쓰지 않으므로(WRITE_RULES) shared 일화는 그 backfill 행뿐이다. 두 번 돌려도 같다
+            await conn.execute(
+                f"UPDATE {TABLE} SET visibility = '{PRIVATE}' WHERE kind = 'episodic' AND visibility = '{SHARED}'"
+            )
             await conn.execute(
                 f"CREATE INDEX IF NOT EXISTS idx_ltm_scope ON {TABLE}(user_id, agent_id, kind)"
             )

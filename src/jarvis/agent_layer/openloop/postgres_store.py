@@ -8,6 +8,7 @@ from typing import Any
 
 from jarvis.agent_layer.openloop.store import OpenLoopStore
 from jarvis.agent_layer.openloop.types import LOOP_STATUSES, OpenLoop, merge_loop, normalize_description
+from jarvis.memory.scope import MAIN_AGENT
 
 
 class PostgresOpenLoopStore(OpenLoopStore):
@@ -53,6 +54,10 @@ class PostgresOpenLoopStore(OpenLoopStore):
                     updated_at      BIGINT NOT NULL
                 )
             """)
+            # 최상위 에이전트 도입 전 약속은 전부 main 의 것이다
+            await conn.execute(
+                f"ALTER TABLE jarvis_open_loops ADD COLUMN IF NOT EXISTS agent_id TEXT NOT NULL DEFAULT '{MAIN_AGENT}'"
+            )
             await conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_openloop_status
                 ON jarvis_open_loops(status, created_at DESC)
@@ -64,14 +69,15 @@ class PostgresOpenLoopStore(OpenLoopStore):
             await conn.execute(
                 """
                 INSERT INTO jarvis_open_loops
-                    (id, description, status, origin_session, due_ms, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    (id, description, status, origin_session, due_ms, created_at, updated_at, agent_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 ON CONFLICT (id) DO UPDATE SET
                     description    = EXCLUDED.description,
                     status         = EXCLUDED.status,
                     origin_session = EXCLUDED.origin_session,
                     due_ms         = EXCLUDED.due_ms,
-                    updated_at     = EXCLUDED.updated_at
+                    updated_at     = EXCLUDED.updated_at,
+                    agent_id       = EXCLUDED.agent_id
                 """,
                 loop.id,
                 loop.description,
@@ -80,6 +86,7 @@ class PostgresOpenLoopStore(OpenLoopStore):
                 loop.due_ms,
                 loop.created_at,
                 loop.updated_at,
+                loop.agent_id,
             )
         return loop.id
 
@@ -153,6 +160,7 @@ def _row_to_loop(row: Any) -> OpenLoop:
         description=row["description"],
         status=row["status"],
         origin_session=row["origin_session"],
+        agent_id=row["agent_id"],
         due_ms=row["due_ms"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],

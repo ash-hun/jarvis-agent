@@ -90,7 +90,8 @@ JARVIS_USER_MODEL__PATH=~/.jarvis/user_model.json
 JARVIS_SECURITY__API_KEYS='{"<long-random-key>": {"name": "jh", "roles": ["admin"]}}'
 JARVIS_SECURITY__ALLOWED_ROLES=["user","admin"]
 JARVIS_SECURITY__INPUT_MAX_LENGTH=10000
-JARVIS_SECURITY__APPROVALS_PATH=~/.jarvis/approvals.yaml
+JARVIS_SECURITY__APPROVALS_PATH=~/.jarvis/approvals.yaml        # 공용 규칙(사람이 고친다)
+JARVIS_SECURITY__AGENT_APPROVALS_DIR=~/.jarvis/approvals         # 에이전트별 규칙(<agent_id>.yaml, 항상 허용이 쌓인다)
 ```
 
 `API_KEYS` 를 비우면 Web 인증이 꺼진다. 켜고 끄는 다른 스위치는 없다. TUI 는 설정과 무관하게 로컬 NoAuth 다. 키가 곧 사용자 식별자라 길고 무작위여야 한다.

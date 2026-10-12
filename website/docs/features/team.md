@@ -50,3 +50,11 @@ proactive: false              # 비우면 JARVIS 의 proactive 설정
 - 분기는 부모와 같은 에이전트
 - 스케줄: 작업 YAML 의 `agent: karen` 이면 그 에이전트의 모델, 시스템 프롬프트, 기억 범위로 돈다. `/schedule` 로 만든 작업은 명령을 친 세션의 에이전트가 들어간다
 - 성찰 daemon 은 열린 세션 전부를 돈다. proactive 가 꺼진 에이전트(KAREN 기본값)의 세션은 성찰을 건너뛴다
+
+## 승인 규칙은 두 겹
+
+공용 `~/.jarvis/approvals.yaml` 은 모든 에이전트가 읽고 사람이 고친다. 승인 화면의 **항상 허용** 은 그 세션 에이전트의 `~/.jarvis/approvals/<id>.yaml` 에만 쌓인다(`LayeredApprovalRules`). 에이전트를 나누기 전 `approvals.yaml` 에 쌓인 규칙은 그대로 공용이 된다. 자세한 건 [도구와 승인](./tools-and-approval.md).
+
+## AGENDA 는 모두의 것
+
+AGENDA 카드는 모든 에이전트의 스케줄과 약속을 한 목록에 보여주고, 항목마다 에이전트 이름 라벨을 그 에이전트의 primary 색으로 단다. 약속(`OpenLoop.agent_id`)은 감지한 세션의 에이전트, 스케줄은 작업의 `agent` 다. 약속을 닫는 판정(사고의 closed_loops, 취소하는 말)은 그 약속을 만든 세션에서만 한다.

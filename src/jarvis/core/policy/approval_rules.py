@@ -114,3 +114,32 @@ class ApprovalRules:
         self._rules.remove(rule)
         self._save()
         return True
+
+
+class LayeredApprovalRules(ApprovalRules):
+    """공용 규칙 위에 에이전트 규칙을 얹는다. 둘 중 하나라도 맞으면 허용하고, 새 규칙은 에이전트 파일에만 쓴다.
+
+    한 에이전트에서 "항상 허용"한 명령이 다른 에이전트로 번지지 않게 한다. 공용 규칙은 사람이 파일을 고친다.
+    """
+
+    def __init__(self, common: ApprovalRules, own: ApprovalRules) -> None:
+        # 파일은 두 규칙 객체가 각자 소유한다. 기반 클래스의 로드를 다시 하지 않는다
+        self._common = common
+        self._own = own
+        self._path = own._path
+
+    def list(self) -> list[ApprovalRule]:
+        own = self._own.list()
+        return self._common.list() + [r for r in own if r not in self._common.list()]
+
+    def allows(self, tool: str, params: dict[str, Any]) -> bool:
+        return self._common.allows(tool, params) or self._own.allows(tool, params)
+
+    def add(self, rule: ApprovalRule) -> bool:
+        """공용에 이미 있으면 에이전트 파일도 건드리지 않는다."""
+        if rule in self._common.list():
+            return False
+        return self._own.add(rule)
+
+    def remove(self, rule: ApprovalRule) -> bool:
+        return self._own.remove(rule)

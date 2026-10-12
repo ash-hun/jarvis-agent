@@ -14,7 +14,7 @@ from jarvis.ui.web.server import create_app  # noqa: E402
 KAREN = 'name: K.A.R.E.N.\ndescription: 정보 수집\npalette:\n  primary: "#f0607c"\ntools: [read_file]\n'
 
 
-def _app(monkeypatch, tmp_path):
+def _assembly(monkeypatch, tmp_path):
     team = tmp_path / "team"
     team.mkdir(exist_ok=True)
     (team / "karen.yaml").write_text(KAREN)
@@ -24,7 +24,11 @@ def _app(monkeypatch, tmp_path):
     monkeypatch.setenv("JARVIS_MEMORY__BACKEND", "in_memory")
     monkeypatch.setenv("JARVIS_SESSION__PERSISTENCE_BACKEND", "jsonl")
     monkeypatch.setenv("JARVIS_SESSION__SESSIONS_DIR", str(tmp_path / "sessions"))
-    return create_app(build_app(JarvisSettings()), initial_session_id="default")
+    return build_app(JarvisSettings())
+
+
+def _app(monkeypatch, tmp_path):
+    return create_app(_assembly(monkeypatch, tmp_path), initial_session_id="default")
 
 
 @pytest.fixture
@@ -90,3 +94,33 @@ def test_session_reopens_as_its_agent_after_restart(monkeypatch, tmp_path):
     # 새 프로세스: 열린 세션 목록은 비지만 저장소의 에이전트로 다시 열린다
     with TestClient(_app(monkeypatch, tmp_path)) as c, c.websocket_connect(f"/ws?session_id={sid}") as ws:
         assert ws.receive_json()["agent"]["id"] == "karen"
+
+
+def test_agenda_shows_every_agents_loops_with_agent(monkeypatch, tmp_path):
+    import asyncio
+
+    from jarvis.agent_layer.openloop import OpenLoop
+
+    monkeypatch.setenv("JARVIS_THOUGHT__ENABLED", "true")
+    monkeypatch.setenv("JARVIS_OPENLOOP__BACKEND", "in_memory")
+    assembly = _assembly(monkeypatch, tmp_path)
+    store = assembly.services.openloop_store
+    asyncio.run(store.add(OpenLoop(description="뉴스 정리", origin_session="k1", agent_id="karen")))
+    asyncio.run(store.add(OpenLoop(description="회의 준비", origin_session="default")))
+    with TestClient(create_app(assembly, initial_session_id="default")) as c:
+        loops = {lp["description"]: lp["agent"] for lp in c.get("/api/agenda").json()["open_loops"]}
+    assert loops == {"뉴스 정리": "karen", "회의 준비": "main"}
+
+
+def test_web_session_sandbox_uses_agent_approval_rules(monkeypatch, tmp_path):
+    import asyncio
+
+    monkeypatch.setenv("JARVIS_SECURITY__AGENT_APPROVALS_DIR", str(tmp_path / "approvals"))
+    assembly = _assembly(monkeypatch, tmp_path)
+    with TestClient(create_app(assembly, initial_session_id="default")):
+        pass
+    from jarvis.ui.web.session_registry import SessionRegistry
+
+    registry = SessionRegistry(assembly.ctx, assembly.services, assembly.agents)
+    _, sandbox = asyncio.run(registry.get_or_create("k-approve", "karen"))
+    assert sandbox._rules is assembly.agents.approval_rules("karen")

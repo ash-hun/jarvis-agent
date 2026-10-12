@@ -59,8 +59,10 @@ class SecurityConfig(BaseModel):
     )
     require_approval_for: list[str] = Field(default_factory=lambda: ["bash", "write_file", "edit_file"])
     input_max_length: int = 10_000
-    # 승인 기억. 승인 화면에서 "항상 허용"을 고르면 (도구, 패턴) 규칙이 여기 쌓이고 다음부터 묻지 않는다
+    # 공용 승인 규칙. 모든 에이전트가 읽고, 사람이 직접 고친다
     approvals_path: str = "~/.jarvis/approvals.yaml"
+    # 에이전트별 승인 규칙(<agent_id>.yaml). 승인 화면에서 "항상 허용"을 고르면 그 에이전트 파일에 쌓인다
+    agent_approvals_dir: str = "~/.jarvis/approvals"
 
 
 class MemoryConfig(BaseModel):

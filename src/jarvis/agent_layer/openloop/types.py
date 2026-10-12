@@ -11,6 +11,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from jarvis.memory.scope import MAIN_AGENT
+
 MIN_CONTAINMENT_CHARS = 6  # 이보다 짧은 조각의 포함은 우연이 많다
 # 글자 bigram Jaccard. 실제로 쌓인 바꿔 말한 중복은 0.43~0.85, 다른 약속끼리는 0.21 이하였다
 SIMILAR_JACCARD = 0.4
@@ -50,6 +52,8 @@ class OpenLoop(BaseModel):
     description: str
     status: LoopStatus = "open"
     origin_session: str | None = None
+    # 약속을 감지한 세션의 최상위 에이전트. AGENDA 가 누구의 약속인지 라벨을 단다. 옛 항목은 main
+    agent_id: str = MAIN_AGENT
     # 기한(epoch ms). reflection 이 [지금]과 함께 보고 상기하고, 지나고 한참 뒤에는 expired 로 닫힌다.
     due_ms: int | None = None
     created_at: int = Field(default_factory=lambda: int(time.time() * 1000))

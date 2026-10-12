@@ -15,6 +15,7 @@ from jarvis.config import BrandConfig, BrandPalette
 if TYPE_CHECKING:
     from jarvis.app.app_context import AppContext
     from jarvis.app.app_services import AppServices
+    from jarvis.core.policy.approval_rules import ApprovalRules
     from jarvis.core.scheduler.service import TaskAgent
 
 # 파일 이름이 곧 id 다. 세션, 기억, 약속, 승인 파일 이름에 그대로 들어가므로 좁게 받는다
@@ -88,7 +89,11 @@ class AgentRegistry:
     def __init__(self, ctx: "AppContext", services: "AppServices", profiles: list[AgentProfile]) -> None:
         if not profiles or not profiles[0].is_main:
             raise ValueError("첫 프로필은 main 이어야 한다")
+        self._ctx = ctx
+        self._services = services
         self._builders = {p.agent_id: SessionBuilder(ctx, services, p) for p in profiles}
+        # 규칙 파일 하나에 객체 하나. 세션이 여럿이어도 같은 객체를 써야 "항상 허용"이 바로 다른 세션에 보인다
+        self._approval_rules: dict[str, ApprovalRules] = {}
 
     @classmethod
     def load(
@@ -116,6 +121,17 @@ class AgentRegistry:
     def get(self, agent_id: str) -> AgentProfile | None:
         builder = self._builders.get(agent_id)
         return builder.profile if builder is not None else None
+
+    def approval_rules(self, agent_id: str) -> "ApprovalRules":
+        """공용 규칙 + 이 에이전트의 규칙 파일(agent_approvals_dir/<id>.yaml). 같은 id 면 같은 객체."""
+        if agent_id not in self._approval_rules:
+            from jarvis.core.policy.approval_rules import ApprovalRules, LayeredApprovalRules
+
+            path = Path(self._ctx.settings.security.agent_approvals_dir).expanduser() / f"{agent_id}{SPEC_SUFFIX}"
+            self._approval_rules[agent_id] = LayeredApprovalRules(
+                self._services.approval_rules, ApprovalRules(str(path))
+            )
+        return self._approval_rules[agent_id]
 
     def task_agent(self, agent_id: str) -> "TaskAgent | None":
         """스케줄 작업을 이 에이전트로 돌릴 때 쓰는 모델, 프롬프트, 이름. 모르는 id 면 None."""

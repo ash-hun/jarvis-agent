@@ -80,6 +80,18 @@ async def test_detected_open_loops_are_persisted(fx):
 
 
 @pytest.mark.asyncio
+async def test_open_loops_carry_session_agent(fx):
+    await fx["repo"].create(session_id="test-session")
+    store = InMemoryOpenLoopStore()
+    session = _build_session(fx, CapturingEngine(ThoughtFrame(open_loops=["뉴스 정리"])), store)
+    session.agent_name = "karen"
+
+    await session.prompt("뉴스 정리해 줄게")
+
+    assert [x.agent_id for x in await store.list_open(session_id="test-session")] == ["karen"]
+
+
+@pytest.mark.asyncio
 async def test_open_loops_deduped_across_turns(fx):
     await fx["repo"].create(session_id="test-session")
     store = InMemoryOpenLoopStore()

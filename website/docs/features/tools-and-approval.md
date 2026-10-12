@@ -33,7 +33,7 @@ flowchart TD
   B -- block --> E2[is_error 결과: reason]
   B --> C{승인 필요 도구?}
   C -- 아니오 --> X[실행]
-  C -- 예 --> D{approvals.yaml 규칙에 맞나?}
+  C -- 예 --> D{공용 또는 에이전트 규칙에 맞나?}
   D -- 예 --> X
   D -- 아니오 --> U[사용자에게 묻기<br/>ALLOW / ALWAYS / DENY, 120초]
   U -- ALLOW --> X
@@ -47,7 +47,14 @@ flowchart TD
 
 ## 승인 기억
 
-승인 화면에서 **항상 허용**(TUI `a`, Web `ALWAYS`)을 고르면 서버가 제안한 패턴이 `~/.jarvis/approvals.yaml` 에 남는다. 규칙은 사용자가 그 버튼을 눌렀을 때만 생긴다.
+규칙 파일은 두 겹이다. 둘 중 하나라도 맞으면 묻지 않는다.
+
+| 파일 | 누가 쓰나 | 누구에게 적용 |
+|---|---|---|
+| `~/.jarvis/approvals.yaml` (공용) | 사람이 직접 고친다 | 모든 에이전트 |
+| `~/.jarvis/approvals/<agent_id>.yaml` | 승인 화면의 **항상 허용** | 그 에이전트만 |
+
+승인 화면에서 **항상 허용**(TUI `a`, Web `ALWAYS`)을 고르면 서버가 제안한 패턴이 지금 세션의 에이전트 파일에 남는다. KAREN 에서 허용한 명령이 JARVIS 로 번지지 않는다. 공용 파일에 이미 있는 규칙이면 아무 파일도 건드리지 않는다. 규칙은 사용자가 그 버튼을 눌렀을 때만 생긴다.
 
 | 도구 | 제안 패턴 | 대조 |
 |---|---|---|
@@ -56,7 +63,7 @@ flowchart TD
 | 그 외 | `*` | 도구 전체 |
 
 ```yaml
-# ~/.jarvis/approvals.yaml  손으로 고쳐도 된다. 쓰기는 임시 파일 뒤 교체라 중간에 죽어도 깨지지 않는다
+# ~/.jarvis/approvals/main.yaml  손으로 고쳐도 된다. 쓰기는 임시 파일 뒤 교체라 중간에 죽어도 깨지지 않는다
 rules:
   - {tool: bash, pattern: uv run}
   - {tool: write_file, pattern: "docs/*"}

@@ -101,3 +101,17 @@ async def test_due_update_and_expired_survive_reload(tmp_path):
     loops = await s2.list_open()
     assert [(x.id, x.due_ms) for x in loops] == [(first, 1000)]
     assert (await s2.get(other)).status == "expired"
+
+
+async def test_agent_survives_reload_and_old_rows_are_main(tmp_path):
+    import json
+
+    from jarvis.agent_layer.openloop import JsonlOpenLoopStore, OpenLoop
+
+    path = tmp_path / "loops.jsonl"
+    path.write_text(json.dumps({"id": "old", "description": "옛 약속", "status": "open",
+                                "created_at": 1, "updated_at": 1}) + "\n")
+    store = JsonlOpenLoopStore(path=str(path))
+    await store.add(OpenLoop(description="뉴스 정리", agent_id="karen"))
+    reloaded = {lp.description: lp.agent_id for lp in await JsonlOpenLoopStore(path=str(path)).all()}
+    assert reloaded == {"옛 약속": "main", "뉴스 정리": "karen"}

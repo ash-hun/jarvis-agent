@@ -55,6 +55,7 @@
 | WS `connected` | 접속 직후 | SYSTEM 의 MODEL, SESSION, 세션 목록, 슬래시 명령, 음성 STT 모드 |
 | `GET /api/sessions/{id}/messages` | 접속·세션 전환 직후 | CONVERSATION 복원(마크다운 렌더) |
 | `GET /api/agenda` | 접속, `inner_thought`, `agent_end`, open loop·스케줄 조작 직후, 1분마다 | AGENDA |
+| `GET /api/agents` | 첫 AGENDA 조회 때 한 번 | AGENDA 항목의 에이전트 라벨(이름, primary 색) |
 | `GET /api/tools` | 접속, `agent_end` | SYSTEM 의 TOOLS |
 | `POST /api/openloops/{id}` | ✓ / ✕ 클릭 | open loop 닫기 |
 | `POST /api/schedules/{name}` | 스위치 클릭 | 스케줄 켜기/끄기 |
@@ -92,7 +93,7 @@
 | `+` | 새 세션 생성 후 연결 |
 | 활성 세션의 ⑂ | 분기 생성 후 연결 |
 | 비활성 세션의 ✕ (행에 마우스를 올리면 보임) | `confirm()` 뒤 삭제. 보고 있는 세션은 ✕ 가 없다. 409 면 ACTIVITY 에 `세션 삭제 실패` |
-| AGENDA 의 ✓ / ✕ | open loop 를 done / dismissed 로. 항목이 사라지고 ACTIVITY 에 한 줄 |
+| AGENDA 의 ✓ / ✕ | open loop 를 done / dismissed 로. 항목이 사라지고 ACTIVITY 에 한 줄. 다른 에이전트의 약속도 닫을 수 있다 |
 | AGENDA 의 스위치 | 스케줄 켜기/끄기 |
 | TOOLS ▾ | 도구 목록 펼침. 🔒 는 승인 필요 도구 |
 | 승인 모달의 ALLOW / ALWAYS · 패턴 / DENY, Enter | `approval_response`. ALWAYS 는 서버가 패턴을 제안했을 때만 보인다. Enter 는 ALLOW. 같은 세션의 다른 창이 먼저 답하면 `approval_resolved` 로 모달이 닫히고 ACTIVITY 에 `다른 창에서 처리됨` |
@@ -145,6 +146,7 @@
 - open loop 중복 판정은 정규화 일치, 포함 관계(6자 이상), 글자 bigram 겹침(Jaccard 0.4 이상)이다. 단어를 통째로 바꾼 약속("참석자 목록" 과 "최종 리스트")은 따로 쌓인다.
 - open loop 는 ✓ / ✕ 말고도, 대화에서 끝났거나 취소됐다고 사고가 판단하면 done 으로, 사용자가 취소하는 말로 가리키면 dismissed 로, 기한이 지나면 expired 로 저절로 닫혀 AGENDA 에서 빠진다. 잘못 닫힌 것을 되살리는 화면은 없다.
 - 사용자 입력과 글자가 거의 겹치지 않는 새 약속은 저장하지 않는다. 입력과 전혀 다른 말로 바꿔 적은 약속은 AGENDA 에 오지 않는다.
+- AGENDA 는 모든 에이전트의 스케줄과 약속을 한 목록에 섞어 보여준다. 에이전트가 둘 이상일 때만 항목 시각 앞에 에이전트 이름 라벨(그 에이전트의 primary 색)이 붙는다. 에이전트별로 거르는 필터는 없다.
 - open loop 는 닫기만 되고 수정·되살리기는 없다. 스케줄은 켜고 끄기만 되고 만들기·지우기는 슬래시 명령(`/schedule`)으로.
 - 음성 TTS 요청에 서버가 응답하지 않으면 `음성 처리 중` 상태에 머문다(서버가 빈 `voice_tts_audio` 를 돌려주는 것으로 막고 있다).
 - 오른쪽 아티팩트 패널은 응답 하나에 코드블록 하나만 보여준다(가장 긴 것).

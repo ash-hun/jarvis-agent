@@ -369,6 +369,14 @@ body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
   font-variant-numeric: tabular-nums; letter-spacing: 0.06em;
 }
 .agenda-item.off .what, .agenda-item.off .when { color: var(--text-faint); }
+/* 누구의 약속, 스케줄인지. 색은 그 에이전트의 primary(agents.js 가 --agent-color 로 넘긴다) */
+.agent-tag {
+  --agent-color: var(--primary);
+  display: inline-block; margin-right: 6px; padding: 0 5px;
+  border: 1px solid var(--agent-color); border-radius: 3px;
+  color: var(--agent-color); font-size: 8.5px; letter-spacing: 0.08em; line-height: 13px;
+  vertical-align: 1px;
+}
 .agenda-item .acts { display: flex; gap: 4px; }
 .agenda-item .icon-btn { width: 20px; height: 20px; font-size: 11px; }
 .agenda-item .icon-btn.dismiss:hover { border-color: var(--red); color: var(--red); background: transparent; }

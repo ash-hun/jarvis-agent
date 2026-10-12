@@ -59,11 +59,11 @@ Web HUD(`src/jarvis/ui/web/static/`)가 쓰는 백엔드 인터페이스다. 대
 | 404 | 대상 없음 (open loop, 스케줄) |
 | 422 | FastAPI 가 본문을 JSON 객체로 못 읽음 |
 
-**인증** — `JARVIS_SECURITY__API_KEYS` 에 키가 등록돼 있을 때만. `Authorization: Bearer <key>` 헤더 또는 `?token=<key>` 쿼리. `/ws` 는 쿼리만 받고 틀리면 close code `4401` 로 끊는다. 정적 셸(`/`, js, css)은 항상 열려 있다.
+**인증**: `JARVIS_SECURITY__API_KEYS` 에 키가 등록돼 있을 때만. `Authorization: Bearer <key>` 헤더 또는 `?token=<key>` 쿼리. `/ws` 는 쿼리만 받고 틀리면 close code `4401` 로 끊는다. 정적 셸(`/`, js, css)은 항상 열려 있다.
 
-**페이지네이션** — 없음. 목록이 전부 작다. open loop 는 20개까지만 돌려준다.
+**페이지네이션**: 없음. 목록이 전부 작다. open loop 는 20개까지만 돌려준다.
 
-**공통 헤더** — 없음. `Cache-Control: no-cache` 는 정적 셸과 `/brand.js`, `/manifest.json` 에만 붙고 `/api/*` 에는 붙지 않는다.
+**공통 헤더**: 없음. `Cache-Control: no-cache` 는 정적 셸과 `/brand.js`, `/manifest.json` 에만 붙고 `/api/*` 에는 붙지 않는다.
 
 ---
 
@@ -99,7 +99,7 @@ GET /api/agents
 
 | 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
 |---|---|---|---|---|---|
-| — | — | — | — | — | 없음 |
+| 없음 | | | | | |
 
 #### Response Body
 
@@ -122,7 +122,7 @@ $ curl -s http://localhost:7777/api/agents
 
 #### 특이사항
 
-**재호출** — 상태를 바꾸지 않는다. 정의 파일은 기동 때 한 번 읽는다. 파일을 고치면 서버를 다시 띄워야 목록이 바뀐다. 모델과 시스템 프롬프트는 내보내지 않는다.
+**재호출**: 상태를 바꾸지 않는다. 정의 파일은 기동 때 한 번 읽는다. 파일을 고치면 서버를 다시 띄워야 목록이 바뀐다. 모델과 시스템 프롬프트는 내보내지 않는다.
 
 ---
 
@@ -154,13 +154,13 @@ GET /api/agenda
 
 | 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
 |---|---|---|---|---|---|
-| — | — | — | — | — | 없음 |
+| 없음 | | | | | |
 
 #### Response Body
 
 | 필드 | 타입 | 널 허용 | 설명 |
 |---|---|---|---|
-| `schedules` | `Schedule[]` | 아니오 | 스케줄러가 없으면 빈 배열. 다음 실행이 가까운 순, 다음 실행이 없는 것(꺼짐·만료)은 뒤 |
+| `schedules` | `Schedule[]` | 아니오 | 스케줄러가 없으면 빈 배열. 다음 실행이 가까운 순, 다음 실행이 없는 것(꺼짐, 만료)은 뒤 |
 | `open_loops` | `OpenLoop[]` | 아니오 | 상태가 `open` 인 것만, 최신순 최대 20개. 기한이 지난 것은 응답 전에 닫혀 빠진다 |
 
 #### 응답 코드
@@ -178,7 +178,7 @@ $ curl -s http://localhost:7777/api/agenda
 
 #### 특이사항
 
-**재호출** — 응답 전에 기한이 지난 open loop 를 `expired` 로 닫는다. 기한 뒤 `JARVIS_OPENLOOP__EXPIRE_AFTER_SEC`(기본 6시간)가 지났거나, 기한 없이 `JARVIS_OPENLOOP__MAX_AGE_SEC`(기본 7일)보다 오래된 것이다. 이미 닫힌 건 다시 보지 않으므로 몇 번 불러도 결과가 같다. 그 밖의 상태는 바꾸지 않는다. `next_run` 은 호출 시각 기준으로 계산하므로 같은 요청이라도 값이 흘러간다.
+**재호출**: 응답 전에 기한이 지난 open loop 를 `expired` 로 닫는다. 기한 뒤 `JARVIS_OPENLOOP__EXPIRE_AFTER_SEC`(기본 6시간)가 지났거나, 기한 없이 `JARVIS_OPENLOOP__MAX_AGE_SEC`(기본 7일)보다 오래된 것이다. 이미 닫힌 건 다시 보지 않으므로 몇 번 불러도 결과가 같다. 그 밖의 상태는 바꾸지 않는다. `next_run` 은 호출 시각 기준으로 계산하므로 같은 요청이라도 값이 흘러간다.
 
 `next_run`, `run_until` 은 서버 로컬 시간대 오프셋이 붙은 ISO 8601 이다. 컨테이너의 `TZ` 를 따른다.
 
@@ -246,7 +246,7 @@ $ curl -s -X POST -H 'Content-Type: application/json' -d '{"status":"done"}' htt
 
 #### 특이사항
 
-**재호출** — 멱등. 같은 id 에 같은 status 를 다시 보내도 결과가 같고 `updated_at` 만 갱신된다. 이미 `done` 인 것을 `dismissed` 로 바꾸는 것도 허용된다(마지막 호출이 이긴다). 되돌려 `open` 으로 만드는 API 는 없다.
+**재호출**: 멱등. 같은 id 에 같은 status 를 다시 보내도 결과가 같고 `updated_at` 만 갱신된다. 이미 `done` 인 것을 `dismissed` 로 바꾸는 것도 허용된다(마지막 호출이 이긴다). 되돌려 `open` 으로 만드는 API 는 없다.
 
 jsonl 저장소는 append-only 라 호출마다 한 줄이 붙고 읽을 때 마지막 줄이 이긴다.
 
@@ -308,7 +308,7 @@ $ curl -s -X POST -H 'Content-Type: application/json' -d '{"enabled":false}' htt
 
 #### 특이사항
 
-**재호출** — 멱등. 같은 값을 다시 보내도 상태가 같다.
+**재호출**: 멱등. 같은 값을 다시 보내도 상태가 같다.
 
 ---
 
@@ -340,7 +340,7 @@ GET /api/sessions
 
 | 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
 |---|---|---|---|---|---|
-| — | — | — | — | — | 없음 |
+| 없음 | | | | | |
 
 #### Response Body
 
@@ -364,9 +364,9 @@ $ curl -s http://localhost:7777/api/sessions
 
 #### 특이사항
 
-**재호출** — 상태를 바꾸지 않는다.
+**재호출**: 상태를 바꾸지 않는다.
 
-저장소(DB)에 있는 세션이 아니라 **프로세스가 띄운 세션**만 나온다. 재시작하면 `default` 와 그 뒤 접속·생성된 것만 보인다. 저장된 전체 목록은 슬래시 명령 `/sessions` 가 보여준다.
+저장소(DB)에 있는 세션이 아니라 **프로세스가 띄운 세션**만 나온다. 재시작하면 `default` 와 그 뒤 접속하거나 만든 것만 보인다. 저장된 전체 목록은 슬래시 명령 `/sessions` 가 보여준다.
 
 ---
 
@@ -400,7 +400,7 @@ POST /api/sessions
 
 | 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
 |---|---|---|---|---|---|
-| — | — | — | — | — | 없음 |
+| 없음 | | | | | |
 
 #### Response Body
 
@@ -425,7 +425,7 @@ $ curl -s -X POST http://localhost:7777/api/sessions -H 'content-type: applicati
 
 #### 특이사항
 
-**재호출** — 멱등하지 않다. 부를 때마다 새 세션이 저장소와 메모리에 생긴다. 클라이언트가 재시도하면 빈 세션이 쌓이므로, 응답을 받은 뒤에만 `/ws` 에 붙이고 실패 시 그냥 다시 부르지 말 것. 지우는 것은 `DELETE /api/sessions/{session_id}`.
+**재호출**: 멱등하지 않다. 부를 때마다 새 세션이 저장소와 메모리에 생긴다. 클라이언트가 재시도하면 빈 세션이 쌓이므로, 응답을 받은 뒤에만 `/ws` 에 붙이고 실패 시 다시 부르지 말 것. 지우는 것은 `DELETE /api/sessions/{session_id}`.
 
 ---
 
@@ -463,7 +463,7 @@ GET /api/sessions/{session_id}/messages
 
 | 필드 | 타입 | 널 허용 | 설명 |
 |---|---|---|---|
-| `messages` | `{role, text}[]` | 아니오 | `role` 은 `user` 또는 `assistant`. 도구 호출·도구 결과·빈 텍스트는 빠진다 |
+| `messages` | `{role, text}[]` | 아니오 | `role` 은 `user` 또는 `assistant`. 도구 호출, 도구 결과, 빈 텍스트는 빠진다 |
 
 #### 응답 코드
 
@@ -483,7 +483,7 @@ $ curl -s http://localhost:7777/api/sessions/nope/messages
 
 #### 특이사항
 
-**재호출** — 상태를 바꾸지 않는다.
+**재호출**: 상태를 바꾸지 않는다.
 
 없는 세션과 빈 세션을 구분하지 않는다. 텍스트는 마크다운 원문이고 렌더는 클라이언트 몫이다.
 
@@ -517,7 +517,7 @@ DELETE /api/sessions/{session_id}
 
 | 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
 |---|---|---|---|---|---|
-| `session_id` | path | string | 예 | — | 지울 세션 |
+| `session_id` | path | string | 예 | 없음 | 지울 세션 |
 
 #### Response Body
 
@@ -541,7 +541,7 @@ $ curl -s -X DELETE http://localhost:7777/api/sessions/2e076b96
 
 #### 특이사항
 
-**재호출** — 멱등하다. 없는 세션을 지워도 `200` 이고 상태는 같다. 붙어 있는 연결이 있으면 `409` 로 거절하므로, 보고 있는 세션을 지우려면 먼저 다른 세션으로 옮긴다. `default` 도 지울 수 있고, 다음 접속 때 빈 세션으로 다시 생긴다.
+**재호출**: 멱등하다. 없는 세션을 지워도 `200` 이고 상태는 같다. 붙어 있는 연결이 있으면 `409` 로 거절하므로, 보고 있는 세션을 지우려면 먼저 다른 세션으로 옮긴다. `default` 도 지울 수 있고, 다음 접속 때 빈 세션으로 다시 생긴다.
 
 ---
 
@@ -597,7 +597,7 @@ $ curl -s -X POST http://localhost:7777/api/sessions/nope/branch
 
 #### 특이사항
 
-**재호출** — 멱등하지 않다. 부를 때마다 새 세션이 생긴다.
+**재호출**: 멱등하지 않다. 부를 때마다 새 세션이 생긴다.
 
 분기는 부모와 같은 에이전트의 세션이다.
 
@@ -633,7 +633,7 @@ GET /api/slash-commands
 
 | 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
 |---|---|---|---|---|---|
-| — | — | — | — | — | 없음 |
+| 없음 | | | | | |
 
 #### Response Body
 
@@ -656,7 +656,7 @@ $ curl -s http://localhost:7777/api/slash-commands
 
 #### 특이사항
 
-**재호출** — 상태를 바꾸지 않는다. 승인된 절차(`/procedures approve`)가 늘면 목록도 는다.
+**재호출**: 상태를 바꾸지 않는다. 승인된 절차(`/procedures approve`)가 늘면 목록도 는다.
 
 ---
 
@@ -711,7 +711,7 @@ $ curl -s http://localhost:7777/api/tools
 
 #### 특이사항
 
-**재호출** — 상태를 바꾸지 않는다. 승인된 절차는 `procedure_<name>` 도구로 여기 나타난다.
+**재호출**: 상태를 바꾸지 않는다. 승인된 절차는 `procedure_<name>` 도구로 여기 나타난다.
 
 ---
 
@@ -743,7 +743,7 @@ GET /brand.js
 
 | 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
 |---|---|---|---|---|---|
-| — | — | — | — | — | 없음 |
+| 없음 | | | | | |
 
 #### Response Body
 
@@ -764,7 +764,7 @@ window.BRAND = {"name": "J.A.R.V.I.S.", "quote": "Proof the Heart", "palette": {
 
 #### 특이사항
 
-**재호출** — 상태를 바꾸지 않는다. `Cache-Control: no-cache`.
+**재호출**: 상태를 바꾸지 않는다. `Cache-Control: no-cache`.
 
 ---
 
@@ -796,7 +796,7 @@ GET /manifest.json
 
 | 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
 |---|---|---|---|---|---|
-| — | — | — | — | — | 없음 |
+| 없음 | | | | | |
 
 #### Response Body
 
@@ -817,7 +817,7 @@ $ curl -s http://localhost:7777/manifest.json | head -c 200
 
 #### 특이사항
 
-**재호출** — 상태를 바꾸지 않는다. nginx 가 `Cache-Control: no-cache` 를 붙인다.
+**재호출**: 상태를 바꾸지 않는다. nginx 가 `Cache-Control: no-cache` 를 붙인다.
 
 ---
 
@@ -894,7 +894,7 @@ ws.send(JSON.stringify({ type: "user_message", text: "안녕" }));
 
 #### 특이사항
 
-**재호출** — 같은 `session_id` 로 다시 붙으면 같은 세션이다. 재접속 자체는 멱등하다. `approval_request` 는 세션의 연결 전부가 받고 먼저 온 답이 채택되므로 탭을 여럿 열어도 같다. `user_message` 는 멱등하지 않다(보낼 때마다 한 턴). `reply_classify` 는 같은 답을 다시 보내면 모델을 다시 부르지만 🔔 학습은 연결당 `id` 하나에 한 번이다. 연결을 새로 열면 그 기록은 비므로 재접속 뒤 같은 `id` 를 다시 보내면 한 번 더 반영된다.
+**재호출**: 같은 `session_id` 로 다시 붙으면 같은 세션이다. 재접속 자체는 멱등하다. `approval_request` 는 세션의 연결 전부가 받고 먼저 온 답이 채택되므로 탭을 여럿 열어도 같다. `user_message` 는 멱등하지 않다(보낼 때마다 한 턴). `reply_classify` 는 같은 답을 다시 보내면 모델을 다시 부르지만 🔔 학습은 연결당 `id` 하나에 한 번이다. 연결을 새로 열면 그 기록은 비므로 재접속 뒤 같은 `id` 를 다시 보내면 한 번 더 반영된다.
 
 `reminder` 의 보류 큐는 메모리에만 있어 서버가 재시작되면 사라진다.
 
@@ -933,7 +933,7 @@ ws.send(JSON.stringify({ type: "user_message", text: "안녕" }));
 | 필드 | 타입 | 널 허용 | 설명 |
 |---|---|---|---|
 | `id` | string | 아니오 | 32자 hex |
-| `description` | string | 아니오 | 약속·미완 작업 설명 |
+| `description` | string | 아니오 | 약속이나 미완 작업 설명 |
 | `due_ms` | integer | 예 | 기한(epoch ms). 사고가 "내일 10시" 같은 시각을 읽었을 때만 채워진다 |
 | `created_at` | integer | 아니오 | epoch ms |
 | `origin_session` | string | 예 | 감지된 세션 |

@@ -94,7 +94,7 @@ sequenceDiagram
 3. `extracted` 사실로 저장하고 일화에 통합됨 표시
 4. 작업 기억의 되뇌기 횟수를 항목으로 옮긴다
 
-언제: 세션 종료(TUI 종료, Web 셧다운) 때 항상. 유휴 때는 `JARVIS_MEMORY__CONSOLIDATE_ON_IDLE` 가 켜져 있고 daemon 트리거가 `idle` 또는 `both` 일 때만. 기본 트리거가 `interval` 이라 유휴 통합은 기본적으로 꺼져 있다.
+언제: 세션 종료(TUI 종료, Web 셧다운) 때 항상. 유휴 때는 `JARVIS_MEMORY__CONSOLIDATE_ON_IDLE` 가 켜져 있고 daemon 트리거가 `idle` 또는 `both` 일 때만. 기본 트리거가 `interval` 이라 기본 설정에서는 유휴 통합이 꺼져 있다.
 
 ## 임베딩
 

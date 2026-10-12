@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from jarvis.app.app_services import AppServices
     from jarvis.core.policy.sandbox import DefaultSandbox
     from jarvis.core.session import AgentSession
+    from jarvis.core.tools.registry import ToolRegistry
     from jarvis.memory.memory_service import MemoryService
     from jarvis.model_layer.types import ModelConfig
 
@@ -107,6 +108,11 @@ class SessionRegistry:
     def agent_of(self, session_id: str) -> str:
         """열린 세션의 에이전트 id. 열리지 않은 세션은 main."""
         return self._session_agents.get(session_id, self._agents.main.agent_id)
+
+    def tool_registry_of(self, session_id: str) -> "ToolRegistry | None":
+        """열린 세션이 쓰는 도구 레지스트리(에이전트 정의의 부분집합일 수 있다). 열리지 않았으면 None."""
+        session = self._sessions.get(session_id)
+        return session._tool_registry if session is not None else None
 
     def session_agents(self) -> dict[str, str]:
         """열린 세션 id → 에이전트 id. 목록 순서는 list_ids 와 같다."""

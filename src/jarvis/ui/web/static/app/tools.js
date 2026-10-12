@@ -5,9 +5,14 @@ const $toggle = document.getElementById('tools-toggle');
 const $list   = document.getElementById('tools-list');
 const $count  = document.getElementById('tools-count');
 
+// 에이전트마다 쓰는 도구가 달라 지금 세션 기준으로 받는다. session.js 가 접속 때 정한다
+let _sessionId = '';
+export function setToolsSession(sessionId) { _sessionId = sessionId; }
+
 export async function fetchTools() {
   try {
-    const res = await apiFetch('/api/tools');
+    const qs = _sessionId ? `?session_id=${encodeURIComponent(_sessionId)}` : '';
+    const res = await apiFetch(`/api/tools${qs}`);
     if (!res.ok) return;
     const { tools } = await res.json();
     $count.textContent = tools.length;

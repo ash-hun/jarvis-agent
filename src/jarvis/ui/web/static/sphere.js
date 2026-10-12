@@ -1,7 +1,7 @@
 // ── Particle sphere (three.js) ────────────────────────────────────────────────
 // 엠블럼 원판 안, 워드마크 뒤에 깔리는 입자 구. 점들이 구 표면에 나선형으로 고르게
 // 놓이고, 점마다 셰이더에서 그린 후광으로 번진다(후처리 bloom 은 GPU 에 따라 화면이 하얗게
-// 타는 문제가 있어 쓰지 않는다). 색은 브랜드 primary 하나 — 에이전트마다 자동으로 바뀐다.
+// 타는 문제가 있어 쓰지 않는다). 색은 지금 세션 에이전트의 primary 하나다.
 // 에이전트 상태(window.HUD.state)에 따라 회전 속도·선명도·번짐·표면 물결이 달라진다.
 // 링·중앙 어둡게 처리·워드마크는 이 위 레이어(hud.js 2D 캔버스, DOM)가 그린다.
 // WebGL 이나 모듈 로드가 실패하면 원판은 CSS 배경(어두운 원)으로만 남는다.
@@ -23,14 +23,15 @@ const COLOR = {
 };
 // 원판 바탕 — styles.css .sphere-gl 배경과 같은 톤(primary 에 검정 86%).
 // CSS 와 같게 보이도록 선형 공간이 아니라 sRGB 값에서 섞는다(선형에서 섞으면 출력 때 밝게 뜬다).
-const DISC = (() => {
-  const n = parseInt(PALETTE.primary.slice(1), 16);
+function discOf(hex) {
+  const n = parseInt(hex.slice(1), 16);
   const k = 1 - 0.86;
   return new THREE.Color().setRGB(
     (((n >> 16) & 255) / 255) * k, (((n >> 8) & 255) / 255) * k, ((n & 255) / 255) * k,
     THREE.SRGBColorSpace,
   );
-})();
+}
+const DISC = discOf(PALETTE.primary);
 
 // ── 상태별 목표값 ─────────────────────────────────────────────────────────────
 // rot: 회전(rad/s) · bright: 밝기 · size: 점 크기 · bloom: 후광(번짐) 세기 · wave: 표면 물결
@@ -48,6 +49,17 @@ const STATES = {
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'low-power' });
 renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
 renderer.setClearColor(DISC, 1);
+
+// 세션 에이전트가 바뀌면 app/brand.js 가 새 팔레트를 알린다
+window.addEventListener('jarvis:palette', (e) => {
+  const p = e.detail || {};
+  if (p.primary) {
+    COLOR.primary.set(p.primary);
+    DISC.copy(discOf(p.primary));
+    renderer.setClearColor(DISC, 1);
+  }
+  if (p.accent) COLOR.accent.set(p.accent);
+});
 
 const scene  = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);

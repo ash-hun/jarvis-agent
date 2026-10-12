@@ -24,7 +24,7 @@
 
 ### `/` — HUD
 
-**목적** — 가운데 리액터를 중심으로, 왼쪽에 에이전트 상태 카드, 오른쪽에 세션과 대화를 둔다. 접속하면 바로 `default` 세션에 붙는다.
+**목적** — 가운데 리액터를 중심으로, 왼쪽에 에이전트 상태 카드, 오른쪽에 세션과 대화를 둔다. 접속하면 바로 `default` 세션(JARVIS)에 붙는다. 화면의 이름, 명언, 색(링, 구체, CSS 변수)은 지금 세션 에이전트의 것이다.
 
 **레이아웃** — 헤더, 3열 스테이지, 하단 입력 독.
 
@@ -32,8 +32,9 @@
 ┌──────────────────────────────────────────────────────────────┐
 │ SYS:ONLINE / 버전  J.A.R.V.I.S.  [DEFAULT|FULL-VOICE] READY 시각 │ 헤더
 ├───────────────┬──────────────────────────┬───────────────────┤
-│ AGENDA        │                          │ SESSIONS          │
-│  UPCOMING     │        리액터(구체)       │  default  NOW ⑂   │
+│ AGENDA        │                          │ SESSIONS        + │
+│  UPCOMING     │        리액터(구체)       │ [JARVIS][KAREN]   │
+│               │                          │  default  NOW ⑂   │
 │  OPEN LOOPS   │                          │                   │
 ├───────────────┤       ● ACTIVE           ├───────────────────┤
 │ ACTIVITY      │       "명언" / 마지막 줄  │ CONVERSATION      │
@@ -52,11 +53,12 @@
 
 | 출처 | 호출 | 쓰이는 곳 |
 |---|---|---|
-| WS `connected` | 접속 직후 | SYSTEM 의 MODEL, SESSION, 세션 목록, 슬래시 명령, 음성 STT 모드 |
+| WS `connected` | 접속 직후 | SYSTEM 의 MODEL, SESSION, 세션 목록과 각 세션의 에이전트(`session_agents`), 세션 에이전트의 이름과 색(`agent`), 슬래시 명령, 음성 STT 모드 |
 | `GET /api/sessions/{id}/messages` | 접속·세션 전환 직후 | CONVERSATION 복원(마크다운 렌더) |
 | `GET /api/agenda` | 접속, `inner_thought`, `agent_end`, open loop·스케줄 조작 직후, 1분마다 | AGENDA |
-| `GET /api/agents` | 첫 AGENDA 조회 때 한 번 | AGENDA 항목의 에이전트 라벨(이름, primary 색) |
-| `GET /api/tools` | 접속, `agent_end` | SYSTEM 의 TOOLS |
+| `GET /api/agents` | 첫 접속 때 한 번 | 에이전트 칩, 세션 표식 색, AGENDA 항목의 에이전트 라벨 |
+| `POST /api/sessions {agent}` | `+`, 열린 세션이 없는 에이전트 칩 클릭 | 그 에이전트의 새 세션 |
+| `GET /api/tools?session_id=` | 접속, `agent_end` | SYSTEM 의 TOOLS(지금 세션 에이전트의 도구) |
 | `POST /api/openloops/{id}` | ✓ / ✕ 클릭 | open loop 닫기 |
 | `POST /api/schedules/{name}` | 스위치 클릭 | 스케줄 켜기/끄기 |
 | `POST /api/sessions` | `+` 클릭 | 새 세션 |
@@ -70,6 +72,7 @@
 | 이름 | 위치 | 기본값 | 효과 |
 |---|---|---|---|
 | `session_id` | WS 쿼리 | `default` | 어느 세션에 붙는지. 화면 안에서만 바뀐다 |
+| 세션 에이전트 | `connected.agent`, `html[data-agent]` | `main` | 이름, 명언, 색. 바뀌면 `jarvis:palette` 이벤트로 링(hud.js)과 구체(sphere.js)가 새 색을 쓴다. 새로고침하면 `default`(JARVIS)로 돌아간다 |
 | `jarvis_token` | localStorage | 없음 | 접근 키. `4401` 로 끊기면 `prompt()` 로 묻고 저장 |
 | `hud.chatCollapsed` | localStorage | `0` | CONVERSATION 접힘 |
 | `hud.sessionsCollapsed` | localStorage | `0` | SESSIONS 접힘 |
@@ -89,8 +92,9 @@
 | 🔔 뒤 다른 말 | 보통 메시지로 전송. 질문 줄은 흐려진다 |
 | 💭 한 줄 클릭 | 💭 와 `▸ decision · 확신도` 가 한 줄. 클릭하면 해석 전문이 그 아래로 펼쳐진다. 다시 클릭하면 접힘 |
 | 카드 헤더(SESSIONS, CONVERSATION) 클릭 | 접기/펼치기. 헤더 안의 `+` 는 접기가 아니다 |
-| SESSIONS 의 세션 이름 클릭 | 그 세션으로 재연결. 대화·사용량·아티팩트 초기화 후 히스토리 복원 |
-| `+` | 새 세션 생성 후 연결 |
+| SESSIONS 의 세션 이름 클릭 | 그 세션으로 재연결. 대화·사용량·아티팩트 초기화 후 히스토리 복원. 세션 앞 네모 표식은 그 세션 에이전트의 색 |
+| `+` | 지금 에이전트의 새 세션 생성 후 연결 |
+| SESSIONS 의 에이전트 칩(에이전트가 둘 이상일 때만 보임) | 그 에이전트의 열린 세션 중 목록에서 가장 위의 것으로 연결, 없으면 새로 만든다. 연결되면 이름, 명언, 링, 구체, 패널 색이 그 에이전트 것으로 바뀐다. 지금 에이전트 칩은 채워진 색 |
 | 활성 세션의 ⑂ | 분기 생성 후 연결 |
 | 비활성 세션의 ✕ (행에 마우스를 올리면 보임) | `confirm()` 뒤 삭제. 보고 있는 세션은 ✕ 가 없다. 409 면 ACTIVITY 에 `세션 삭제 실패` |
 | AGENDA 의 ✓ / ✕ | open loop 를 done / dismissed 로. 항목이 사라지고 ACTIVITY 에 한 줄. 다른 에이전트의 약속도 닫을 수 있다 |

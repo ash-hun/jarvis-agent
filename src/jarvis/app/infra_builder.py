@@ -90,7 +90,12 @@ class InfraBuilder:
         )
         scheduler = self.build_scheduler(session_repo, tool_registry, model_config, plugin_runner, skill_registry)
 
-        ctx = AppContext(session_repo=session_repo, tool_registry=tool_registry, settings=settings)
+        ctx = AppContext(
+            session_repo=session_repo,
+            tool_registry=tool_registry,
+            settings=settings,
+            agent_tools=self.build_agent_tools(),
+        )
         # open loop 과 사용자 모델 저장소는 앱에 하나(모든 세션과 daemon 이 공유)
         openloop_store = self.build_openloop_store() if settings.thought.enabled else None
         user_model_store = (
@@ -162,6 +167,16 @@ class InfraBuilder:
             BashTool(), ReadFileTool(), WriteFileTool(), EditFileTool(), GlobTool(), GrepTool(),
             ListDirTool(), WebSearchTool(), WebFetchTool(),
         ):
+            registry.register(tool)
+        return registry
+
+    def build_agent_tools(self) -> "ToolRegistry":
+        """에이전트 정의가 이름으로 골라야 쓰는 도구. JARVIS(도구 목록 없음)의 레지스트리에는 넣지 않는다."""
+        from jarvis.core.tools.housing import housing_tools
+        from jarvis.core.tools.registry import ToolRegistry
+
+        registry = ToolRegistry()
+        for tool in housing_tools():
             registry.register(tool)
         return registry
 

@@ -44,3 +44,5 @@ class AppContext:
     notifier: "Notify | None" = field(default=None)
     # 세션 종료 때 다단계 작업을 절차 초안으로 남긴다. 꺼져 있으면 None
     procedure_learner: "ProcedureLearner | None" = field(default=None)
+    # 정의의 tools 에 이름을 적은 에이전트만 쓰는 도구(청약 공고 조회 등). 앱 레지스트리에 없어 JARVIS 에게는 안 보인다
+    agent_tools: "ToolRegistry | None" = field(default=None)

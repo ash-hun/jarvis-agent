@@ -137,7 +137,7 @@ def test_unknown_composer_falls_back_to_default():
 # ── 최상위 에이전트별 세션 ──────────────────────────────────────────────────────
 
 
-def _agent_session(profile_kwargs: dict, tmp_path):
+def _agent_session(profile_kwargs: dict, tmp_path, agent_tools=None):
     from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
     from jarvis.core.tools.builtin.glob import GlobTool
     from jarvis.core.tools.builtin.read_file import ReadFileTool
@@ -148,7 +148,9 @@ def _agent_session(profile_kwargs: dict, tmp_path):
     registry = ToolRegistry()
     registry.register(ReadFileTool())
     registry.register(GlobTool())
-    ctx = AppContext(session_repo=JsonlSessionRepo(str(tmp_path)), tool_registry=registry, settings=settings)
+    ctx = AppContext(
+        session_repo=JsonlSessionRepo(str(tmp_path)), tool_registry=registry, settings=settings, agent_tools=agent_tools
+    )
     services = AppServices(
         memory_chain=MagicMock(),
         pipeline=MagicMock(),
@@ -181,3 +183,26 @@ def test_agent_session_uses_its_prompt_tools_and_scope(tmp_path):
     # 정의의 도구만, 앱에 없는 이름은 조용히 빠진다
     assert [t.name for t in session._tool_registry.list_all()] == ["read_file"]
     assert session._tool_registry is not registry
+
+
+def _housing_registry():
+    from jarvis.core.tools.housing import housing_tools
+    from jarvis.core.tools.registry import ToolRegistry
+
+    registry = ToolRegistry()
+    for tool in housing_tools():
+        registry.register(tool)
+    return registry
+
+
+def test_agent_picks_agent_only_tools_by_name(tmp_path):
+    session, _ = _agent_session(
+        {"agent_id": "karen", "tools": ("read_file", "lh_notice", "housing_loan")}, tmp_path, _housing_registry()
+    )
+    assert [t.name for t in session._tool_registry.list_all()] == ["read_file", "lh_notice", "housing_loan"]
+
+
+def test_main_does_not_see_agent_only_tools(tmp_path):
+    session, registry = _agent_session({}, tmp_path, _housing_registry())
+    assert session._tool_registry is registry
+    assert registry.get("lh_notice") is None

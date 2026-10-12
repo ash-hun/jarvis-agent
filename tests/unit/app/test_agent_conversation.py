@@ -8,6 +8,7 @@ import pytest
 
 from jarvis.app.agent_conversation import (
     MAX_PEER_HOPS,
+    PEER_REQUEST_RULE,
     AskAgentTool,
     ask,
     peer_chain,
@@ -68,7 +69,7 @@ async def test_tool_opens_pair_session_and_returns_named_reply():
     result = await tool.execute("c1", {"agent": "karen", "message": "뉴스 찾아 줘"}, context=_context())
 
     opener.assert_awaited_once_with("karen", "peer-main-karen", "default")
-    session.prompt.assert_awaited_once_with("[J.A.R.V.I.S. 의 요청] 뉴스 찾아 줘")
+    session.prompt.assert_awaited_once_with(f"[J.A.R.V.I.S. 의 요청] 뉴스 찾아 줘\n({PEER_REQUEST_RULE})")
     assert not result.is_error
     assert result.content[0].text == "[K.A.R.E.N. 의 답]\n뉴스 셋"
     assert peer_chain.get() == ()  # 끝나면 되돌린다

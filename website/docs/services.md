@@ -23,6 +23,8 @@ jarvis-agent 가 제공하는 기능 전체를 한 곳에 모은 페이지다. �
 | [사용자 모델과 저널](./features/agenda.md#사용자-모델과-저널) | 기억에서 사용자 성향을 증류하고, 사고 기록으로 메타 성찰을 쓴다 | `/usermodel`, `/journal` |
 | [도구, 승인, 절차 학습](./features/tools-and-approval.md) | 내장 도구와 MCP, 실행 전 승인과 승인 기억, 반복 작업을 절차 도구로 | 승인 모달, `/procedures` |
 | [세션](./features/sessions.md) | 대화 단위. 만들기, 전환, 분기, 이어 붙이기 | SESSIONS 카드, TUI 사이드바 |
+| [최상위 에이전트 팀](./features/team.md) | JARVIS 와 같은 층의 에이전트(KAREN 등)를 파일 하나로 늘린다. 세션, 기억, 승인 규칙, 색을 따로 갖고 `ask_agent` 로 서로 일을 맡긴다 | 에이전트 칩, AGENDA 라벨, 구체 색 섞임 |
+| [청약 공고와 대출 계산](./features/housing.md) | KAREN 이 LH, SH 청약 공고를 조회해 KST 기준 마감을 붙이고, 공고의 분양가나 보증금으로 월, 연간 원리금 상환액을 계산한다 | KAREN 세션, JARVIS 에게 물으면 KAREN 에게 위임 |
 | [멀티 에이전트](./features/multi-agent.md) | 정의 파일의 서브 에이전트에게 일을 나눈다. 다섯 가지 패턴 | `/orchestrate`, 위임 도구 |
 | [음성과 Full-voice](./features/voice.md) | 음성 입력과 읽기. Full-voice 는 응답, 승인, 🔔 피드백까지 말로 묻고 답한다 | 구체 클릭, 헤더 `FULL-VOICE` |
 | [외부 알림](./features/proactive.md#외부-알림) | 열린 화면이 없어도 🔔 와 스케줄 결과를 Slack 으로 보낸다 | Slack |
@@ -233,6 +235,44 @@ flowchart LR
 - 핵심 모듈: `core/multi_agent/`
 - 저장: 작업 공유 메모리(blackboard)
 
+### 최상위 에이전트 팀
+
+```mermaid
+flowchart LR
+  YAML[(team/id.yaml)] --> REG[AgentRegistry<br/>app/agent_registry.py]
+  REG --> SB[SessionBuilder<br/>에이전트마다]
+  SB --> SES[AgentSession<br/>프롬프트, 도구, 기억 범위]
+  SES --> ASK[ask_agent<br/>app/agent_conversation.py]
+  ASK --> PEER[peer-부른쪽-받는쪽 세션]
+  SES --> ACT[AgentActivity<br/>ui/web/agent_activity.py]
+  ACT -. agent_activity .-> HUD[HUD 칩, 구체 색 섞임]
+  SES --> RULES[(approvals/id.yaml)]
+  SES --> MEM[(장기 기억<br/>agent_id 범위)]
+```
+
+- 핵심 모듈: `app/agent_registry.py`, `app/agent_conversation.py`, `ui/web/agent_activity.py`
+- 저장: `team/`, `jarvis_sessions.agent_id`, `approvals/<agent_id>.yaml`
+
+### 청약 공고와 대출 계산
+
+```mermaid
+flowchart LR
+  K[KAREN 세션] --> LH[lh_notice<br/>housing/lh_notice.py]
+  K --> SH[sh_notice<br/>housing/sh_notice.py]
+  K --> LOAN[housing_loan<br/>housing/loan.py]
+  LOAN -->|notice_id, unit| LH
+  LH --> FETCH[fetch_html<br/>housing/fetch.py]
+  SH --> FETCH
+  FETCH --> LHS[(apply.lh.or.kr<br/>공고 게시판)]
+  FETCH --> SHS[(www.i-sh.co.kr<br/>공고 게시판)]
+  LH --> MK[markup.py<br/>표, 날짜, KST 마감]
+  SH --> MK
+  CTX[AppContext.agent_tools] -. 정의의 tools 에 적은 에이전트만 .-> K
+```
+
+- 핵심 모듈: `core/tools/housing/`
+- 저장: 없음(매번 게시판을 읽는다)
+
 ### 음성과 Full-voice
 
 ```mermaid
@@ -271,5 +311,7 @@ flowchart LR
 | 도구 호출과 승인 | [도구와 승인 → 도구 호출 한 번](./features/tools-and-approval.md#도구-호출-한-번) |
 | 절차 학습 | [도구와 승인 → 절차 학습](./features/tools-and-approval.md#절차-학습) |
 | 세션 생애 | [세션 → 생애](./features/sessions.md#생애) |
+| 에이전트끼리 묻고 답하기 | [최상위 에이전트 팀 → 에이전트끼리 대화](./features/team.md#에이전트끼리-대화) |
+| 청약 공고 조회와 대출 계산 | [청약 공고와 대출 계산 → 흐름](./features/housing.md#흐름) |
 | 멀티 에이전트 패턴 | [멀티 에이전트 → 패턴](./features/multi-agent.md#패턴) |
 | 음성 상태와 Full-voice | [음성 → Web HUD](./features/voice.md#web-hud) |

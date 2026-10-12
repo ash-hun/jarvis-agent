@@ -67,7 +67,7 @@ title: Web HUD 사용법
 
 ## 끊김과 복구
 
-WS 가 끊기면 상단 배너 "연결 끊김 — 재연결 중", 입력 잠금, 1초부터 2배씩 최대 10초 간격으로 재접속. `agent_error` 와 `error` 는 SYS 메시지와 상태 ERROR 3초. AGENDA 나 TOOLS 요청 실패는 콘솔 경고만.
+WS 가 끊기면 상단 배너 `연결 끊김 — 재연결 중...`, 입력 잠금, 1초부터 2배씩 최대 10초 간격으로 재접속. `agent_error` 와 `error` 는 SYS 메시지와 상태 ERROR 3초. AGENDA 나 TOOLS 요청 실패는 콘솔 경고만.
 
 ## PWA 와 캐시
 

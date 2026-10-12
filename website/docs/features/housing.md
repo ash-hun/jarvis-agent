@@ -15,6 +15,44 @@ KAREN 은 LH, SH 청약 공고를 직접 조회하고, 공고의 분양가나 �
 
 셋 다 읽기와 계산만 한다. 로그인, 청약 신청, 파일 내려받기는 하지 않으므로 승인 없이 돈다.
 
+## 흐름
+
+사용자가 JARVIS 에게 물으면 JARVIS 는 도구가 없어 KAREN 에게 맡긴다. KAREN 세션에서 바로 물으면 위임 단계 없이 KAREN 이 도구를 부른다.
+
+```mermaid
+sequenceDiagram
+  participant U as 사용자
+  participant J as JARVIS
+  participant K as KAREN
+  participant LH as LH 게시판
+  U->>J: 신혼희망타운 공고와 상환액 알려줘
+  J->>K: ask_agent(karen, ...)
+  K->>LH: lh_notice(category=신혼희망타운, status=공고중)
+  LH-->>K: 목록 HTML
+  Note over K: [D-14] 인천계양 A17 ... id 0000061179-02-39-39
+  K->>LH: housing_loan(notice_id, unit=55A, LTV, 금리, 기간)
+  LH-->>K: 상세 HTML (주택형 표)
+  Note over K: 평균분양가 504,484,000원 → 월 1,585,751원
+  K-->>J: [K.A.R.E.N. 의 답] ...
+  J-->>U: 정리
+```
+
+## 쓰는 법
+
+HUD 에서 KAREN 칩을 눌러 KAREN 세션에서 묻거나, JARVIS 에게 "카렌에게 ... 물어봐" 라고 한다.
+
+| 물어볼 말 | KAREN 이 부르는 도구 |
+|---|---|
+| LH 신혼희망타운 공고중인 거 마감 가까운 순으로 알려줘 | `lh_notice(category=신혼희망타운, status=공고중, order=마감순)` |
+| 서울 LH 공고 중 7일 안에 마감하는 거 있어? | `lh_notice(region=서울, closing_within_days=7)` |
+| 행복주택 공고 보여줘 | `lh_notice(subtype=행복주택)` |
+| 인천계양 A17 55A 분양가로 LTV 70%, 연 3.5%, 30년이면 월 얼마야? | `housing_loan(notice_id=…, unit=55A, ltv_percent=70, annual_rate_percent=3.5, years=30)` |
+| 3억 빌려서 월 135만원 갚으면 금리가 몇 %야? (30년) | `housing_loan(principal=300000000, monthly_payment=1350000, years=30)` |
+| SH 장기전세 최신 공고 알려줘 | `sh_notice(keyword=장기전세)` |
+| SH 공고 seq 310563 첨부 뭐 있어? | `sh_notice(seq=310563)` |
+
+금리와 LTV 는 사용자가 준 값이다. 주지 않으면 KAREN 이 가정한 값임을 밝히도록 프롬프트에 적혀 있다.
+
 ## 어떻게 가져오나
 
 데이터를 가져오는 방식은 [k-skill](https://github.com/NomaDamas/k-skill) 의 `lh-notice-search`, `sh-notice-search` 를 참고했다. 스킬이나 그 프록시를 쓰지 않고, 같은 공개 출처를 우리 도구가 직접 읽는다.

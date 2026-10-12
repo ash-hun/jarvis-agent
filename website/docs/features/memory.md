@@ -13,7 +13,8 @@ title: 메모리
 |---|---|---|
 | 작업 기억 | 세션 히스토리 위의 메타데이터. 요약, 요약이 덮는 메시지 수, 되뇌기 횟수, 메모(최대 50) | 메모리 또는 Postgres `jarvis_working_memory` |
 | 장기 기억 | `MemoryItem`. 종류는 의미(semantic), 일화(episodic), 절차(procedural) | 메모리 또는 Postgres `jarvis_ltm_entries`(pgvector 선택) |
-| 절차 기억 | 저장하지 않는다. 스킬 레지스트리를 그대로 읽는다 | |
+| 절차 기억 | 스킬은 저장하지 않고 스킬 레지스트리를 그대로 읽는다 | |
+| 작업 패턴 | 사용자가 알려 준 작업 방식. 장기 기억의 절차(procedural) 항목으로, 저장한 에이전트만 본다 | 장기 기억과 같은 곳 |
 
 세션 히스토리 자체는 세션 저장소가 정본이다. 작업 기억은 그 위에 "어디까지 요약했나" 를 얹는다.
 
@@ -30,8 +31,8 @@ sequenceDiagram
   M->>M: 요약이 덮은 앞부분 제거
   M->>M: 임계치 넘으면 LLM 요약 (compaction)
   M->>M: 창 적용, 사용자 메시지 경계에서 자르기
-  M->>S: 핵심 사실 3건, 회상 3건, 절차 매칭
-  M-->>H: [핵심 사실] [장기 기억] [절차 기억] [작업 공유 메모리] 요약 + 최근 메시지
+  M->>S: 핵심 사실 3건, 회상 3건, 절차 매칭, 작업 패턴 키워드 매칭
+  M-->>H: [핵심 사실] [장기 기억] [절차 기억] [작업 패턴] [작업 공유 메모리] 요약 + 최근 메시지
   H->>H: LLM 호출
   H->>C: store(result)
   Note over C: 턴 단위 자동 장기 저장은 없다
@@ -52,10 +53,37 @@ sequenceDiagram
 | `auto_summary`, `manual_compact`, `session_end` | 일화 | private | 압축, `/compact`, 세션 종료 |
 | `thought`, `journal` | 일화 | private | 사고 로그, 저널 |
 | `delegation` | 일화 | private | 멀티 에이전트 위임 기록 |
+| `task_pattern` | 절차 | private | 에이전트가 `remember_task_pattern` 도구로 사용자가 알려 준 방식을 저장할 때 |
 
 가시성 규칙: 같은 사용자의 항목 중, 같은 에이전트의 것이거나 shared 인 것만 읽는다. 서브 에이전트는 사용자의 `/remember` 사실은 보고 부모의 private 요약은 못 본다.
 
 의미 기억은 "주제: 값" 꼴이면 주제 태그가 붙고, 같은 주제의 이전 사실은 `superseded_by` 로 가려진다(지워지지 않는다). 주제가 다른데 값이 비슷하면 간섭 후보로 표시만 한다.
+
+## 작업 패턴
+
+사용자가 "앞으로 비슷한 요청이 오면 이렇게 해, 기억해" 처럼 일하는 방식을 알려 주면, 에이전트가 그 방식을 작업 패턴으로 저장하고 다음 같은 종류 요청에 그대로 따른다. 사용자에 대한 사실(`/remember`, shared)과 달리 작업 패턴은 **에이전트마다 따로** 기억한다. 같은 "예산 추천" 이라도 KAREN 과 JARVIS 가 하는 일이 다르기 때문이다.
+
+```mermaid
+sequenceDiagram
+  participant U as 사용자
+  participant K as KAREN 세션
+  participant M as MemoryService
+  U->>K: 앞으로 예산 얘기하면 대출은 총예산 - 현금, 금리 4%로. 기억해
+  M-->>K: [작업 패턴 저장] 안내(가르치는 말이 보일 때만)
+  K->>M: remember_task_pattern(name, when, steps, keywords)
+  Note over M: procedural, private, agent_id=karen
+  U->>K: (새 세션) 예산 2억 5천, 현금 8천, 월 150 안쪽 추천
+  M-->>K: [작업 패턴] 언제, 어떻게
+  K->>K: 되묻지 않고 그 방식대로 진행
+```
+
+- **저장**: `remember_task_pattern(name, when, steps, keywords)` 도구(`core/tools/task_pattern.py`). 모든 에이전트가 쓰고, 정의의 `tools` 에 적지 않아도 붙는다. 부른 세션의 에이전트 범위로 저장한다
+- **저장 안내**: 사용자 말에 "기억해", "앞으로", "다음부터", "이 방식" 같은 말이 있으면 메모리가 `[작업 패턴 저장]` 안내 블록을 붙인다. 저장할지는 모델이 정한다. 실서버에서 모델이 "기억하겠습니다" 라고 말만 하고 아무것도 남기지 않는 것을 보고 넣었다
+- **자연 키**: (사용자, 에이전트, 이름). 같은 이름으로 다시 저장하면 그 항목을 고친다. 몇 번을 저장해도 하나다
+- **회상**: 요청 글에 패턴의 키워드가 들어 있으면(부분 문자열이라 조사가 붙어도 걸린다) 가장 많이 걸린 패턴 2개까지 `[작업 패턴]` 블록으로 넣는다. 일반 회상 블록(`[장기 기억]`)에는 넣지 않는다
+- **격리**: private 이고 `agent_id` 가 저장한 에이전트다. 다른 에이전트의 회상, `/patterns` 에 나오지 않는다
+- **보기와 지우기**: `/patterns` 는 지금 에이전트의 패턴 목록, `/patterns forget <이름>` 은 그 패턴을 지운다
+- 구현: `memory/long_term/task_pattern.py`(순수 함수), `MemoryService.remember_pattern`, `task_patterns`, `forget_pattern`
 
 ## 통합 (consolidation)
 

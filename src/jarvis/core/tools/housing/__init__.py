@@ -3,17 +3,25 @@
 from collections.abc import Callable
 from datetime import date
 
-from jarvis.core.tools.housing.fetch import Fetch, kst_today
+from jarvis.core.tools.housing.budget import HousingBudgetTool
+from jarvis.core.tools.housing.fetch import Fetch, FetchBytes, kst_today
 from jarvis.core.tools.housing.lh_notice import LhNoticeTool
 from jarvis.core.tools.housing.loan import HousingLoanTool
+from jarvis.core.tools.housing.notice_pdf import pdf_text
 from jarvis.core.tools.housing.sh_notice import ShNoticeTool
 from jarvis.core.tools.registry import JarvisTool
 
 
-def housing_tools(fetch: Fetch | None = None, today: Callable[[], date] = kst_today) -> list[JarvisTool]:
-    """세 도구를 만든다. 테스트는 fetch(가짜 게시판)와 today 를 넣는다."""
+def housing_tools(
+    fetch: Fetch | None = None,
+    today: Callable[[], date] = kst_today,
+    fetch_file: FetchBytes | None = None,
+    read_pdf: Callable[[bytes], str] = pdf_text,
+) -> list[JarvisTool]:
+    """청약 도구를 만든다. 테스트는 가짜 게시판(fetch), 가짜 첨부(fetch_file, read_pdf), 오늘을 넣는다."""
     lh = LhNoticeTool(fetch, today)
-    return [lh, ShNoticeTool(fetch), HousingLoanTool(lh.price_of)]
+    budget = HousingBudgetTool(lh, fetch, today, fetch_file, read_pdf)
+    return [lh, ShNoticeTool(fetch), HousingLoanTool(lh.price_of), budget]
 
 
-__all__ = ["HousingLoanTool", "LhNoticeTool", "ShNoticeTool", "housing_tools"]
+__all__ = ["HousingBudgetTool", "HousingLoanTool", "LhNoticeTool", "ShNoticeTool", "housing_tools"]

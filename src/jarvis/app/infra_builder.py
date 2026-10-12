@@ -54,6 +54,10 @@ class InfraBuilder:
         # 스킬 레지스트리는 절차 기억(읽기 전용)으로 노출되므로 메모리보다 먼저 만든다
         skill_registry = SkillRegistry()
         memory = self.build_memory(model_config, skill_registry)
+        from jarvis.core.tools.task_pattern import TaskPatternTool
+
+        # 작업 패턴 저장은 메모리가 있어야 해서 메모리 다음에 등록한다. 모든 에이전트가 쓴다
+        tool_registry.register(TaskPatternTool(memory))
         from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
         from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
 
@@ -510,6 +514,9 @@ class InfraBuilder:
         dispatcher.register(
             "remember", make_remember_handler(memory), "내용 저장/검색/삭제 (list | search <키워드> | forget <id>)"
         )
+        from jarvis.core.slash.patterns_cmd import make_patterns_handler
+
+        dispatcher.register("patterns", make_patterns_handler(memory), "지금 에이전트의 작업 패턴 (forget <이름>)")
         if services.openloop_store is not None:
             from jarvis.core.slash.openloop_cmd import make_openloop_handler
 

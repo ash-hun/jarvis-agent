@@ -98,7 +98,11 @@ TOOL_PARAMETERS: dict[str, Any] = {
         "category": {"type": "string", "enum": list(CATEGORIES), "description": "공고유형. 비우면 임대와 분양"},
         "subtype": {"type": "string", "enum": list(SUBTYPES), "description": "세부유형. 주면 category 는 무시"},
         "region": {"type": "string", "description": "지역. 예: 서울, 경기도, 부산광역시. 비우면 전국"},
-        "status": {"type": "string", "enum": list(STATUSES), "description": "공고 상태. '공고중'은 접수중을 포함"},
+        "status": {
+            "type": "string",
+            "enum": list(STATUSES),
+            "description": "공고 상태. '공고중'은 접수중 포함. 현재 올라온, 진행 중인 공고를 물으면 공고중",
+        },
         "keyword": {"type": "string", "description": "공고명에 들어간 말. 예: 청년, 행복주택"},
         "closing_within_days": {"type": "integer", "description": "오늘부터 n일 안에 마감하는 공고만"},
         "limit": {"type": "integer", "description": f"돌려줄 공고 수(기본 {DEFAULT_LIMIT}, 최대 {MAX_LIMIT})"},
@@ -277,7 +281,8 @@ def parse_detail(page: str) -> dict[str, Any] | None:
     info: dict[str, str] = {}
     for label, value in re.findall(r"<li><strong>([^<]+)</strong>([\s\S]*?)</li>", facts[-1]):
         info[text_of(label)] = text_of(value)
-    files = [text_of(name) for name in re.findall(r"fileDownLoad\('\d+'\);\">([^<]+)</a>", page)]
+    file_ids = [(fid, text_of(name)) for fid, name in re.findall(r"fileDownLoad\('(\d+)'\);\">([^<]+)</a>", page)]
+    files = [name for _, name in file_ids]
     units: list[list[str]] = []
     for caption, table in re.findall(r"<caption>([^<]*?)(?:<br>[^<]*)?</caption>([\s\S]*?)</table>", page):
         if caption.strip().startswith("주택형 안내"):
@@ -291,7 +296,10 @@ def parse_detail(page: str) -> dict[str, Any] | None:
             body = body.split("</section>", 1)[0].split('<h4 class="tit2">단지 관련 이미지', 1)[0]
             body = _TABLE_RE.sub(lambda m: "\n".join(" | ".join(row) for row in table_rows(m.group(0))) + "\n", body)
             sections[name] = "\n".join(lines_of(body))[:DETAIL_TEXT_LIMIT]
-    return {"title": text_of(title.group(1)), "info": info, "files": files, "units": units, "sections": sections}
+    return {
+        "title": text_of(title.group(1)), "info": info, "files": files, "file_ids": file_ids, "units": units,
+        "sections": sections,
+    }
 
 
 def unit_price(units: list[list[str]], unit: str) -> tuple[str, str, int] | None:
@@ -376,14 +384,22 @@ class LhNoticeTool(JarvisTool):
         queries, reason = build_queries(params)
         if reason is not None:
             return _result(tool_call_id, reason, True)
+        try:
+            found = await self.search(queries, today)
+        except ValueError as exc:
+            return _result(tool_call_id, str(exc), True)
+        first = queries[0]
+        return _result(tool_call_id, render_list(_describe(params, first), found, first.limit, today, first.order))
+
+    async def search(self, queries: list[Query], today: date) -> list[tuple[str, int | None, list[Notice]]]:
+        """분류마다 (분류, 전체 건수, 공고). 목록 표가 없으면 ValueError, 게시판 장애는 FetchError."""
         found = []
         for query in queries:
             total, notices = parse_list(await self._fetch(LIST_URL, form_of(query, today)))
             if total is None and not notices:
-                return _result(tool_call_id, f"LH 게시판({query.category})이 예상한 목록 표를 주지 않았다", True)
+                raise ValueError(f"LH 게시판({query.category})이 예상한 목록 표를 주지 않았다")
             found.append((query.category, total, notices))
-        first = queries[0]
-        return _result(tool_call_id, render_list(_describe(params, first), found, first.limit, today, first.order))
+        return found
 
     async def _detail(self, tool_call_id: str, nid: str, today: date) -> ToolResultMessage:
         try:

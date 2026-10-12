@@ -339,3 +339,22 @@ class TestLegacyStmCleanup:
         await store.drop_legacy_stm()  # 두 번째도 에러 없이
         assert await store.legacy_stm_rows() is None
         await store.close()
+
+
+class TestPostgresTaskPatterns:
+    """작업 패턴이 Postgres 에서도 에이전트 전용이고, 같은 이름은 한 행으로 덮인다."""
+
+    async def test_patterns_are_per_agent_and_upserted(self, ltm):
+        from jarvis.memory.long_term.task_pattern import TaskPattern
+        from jarvis.memory.scope import MemoryScope
+
+        karen = MemoryScope(user_id="pg-u", agent_id="karen", session_id="k1")
+        main = MemoryScope(user_id="pg-u", agent_id="main", session_id="m1")
+        pattern = TaskPattern("예산 추천", "예산 요청", "대출 = 금액 - 현금", ("예산", "현금"))
+        await ltm.remember_pattern(pattern, karen)
+        await ltm.remember_pattern(TaskPattern("예산 추천", "예산 요청", "금리 3.5%", ("예산",)), karen)
+
+        assert [p.steps for p in await ltm.task_patterns(karen)] == ["금리 3.5%"]
+        assert await ltm.task_patterns(main) == []
+        assert await ltm.forget_pattern("예산 추천", karen)
+        assert await ltm.task_patterns(karen) == []

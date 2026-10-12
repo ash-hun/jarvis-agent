@@ -61,6 +61,17 @@ window.addEventListener('jarvis:palette', (e) => {
   if (p.accent) COLOR.accent.set(p.accent);
 });
 
+// 여러 에이전트가 함께 일하면(app/agents.js 의 'jarvis:activity') 두 에이전트의 primary 를 섞는다
+const team = { a: new THREE.Color(), b: new THREE.Color(), on: false };
+window.addEventListener('jarvis:activity', (e) => {
+  const colors = (e.detail && e.detail.colors) || [];
+  team.on = colors.length >= 2;
+  if (team.on) {
+    team.a.set(colors[0]);
+    team.b.set(colors[1]);
+  }
+});
+
 const scene  = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
 camera.position.z = 4.2;  // 반지름 1 구가 원판의 약 3/4 을 채운다
@@ -84,6 +95,8 @@ geometry.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
 const uniforms = {
   uTime:       { value: 0 },
   uColor:      { value: COLOR.primary.clone() },
+  uColor2:     { value: COLOR.primary.clone() },
+  uMix:        { value: 0 },
   uBright:     { value: 0.55 },
   uGlow:       { value: 0.45 },
   uSize:       { value: 1.5 },
@@ -102,8 +115,11 @@ const material = new THREE.ShaderMaterial({
     uniform float uTime, uSize, uWave, uPulse, uPixelRatio;
     varying float vFront;
     varying float vSpark;
+    varying float vSide;
     void main() {
       vec3 p = position;
+      // 두 에이전트 색의 경계 — 구 표면을 흐르는 띠. 점마다 씨앗을 더해 띠 가장자리가 섞여 보인다
+      vSide = 0.5 + 0.5 * sin(dot(p, vec3(2.3, 1.7, 2.9)) * 2.2 + uTime * 0.9 + aSeed * 1.5);
       // 표면 물결 — 두 방향 사인을 곱해 흐르는 결을 만든다
       float w = sin(dot(p, vec3(4.1, 3.3, 5.2)) * 2.0 + uTime * 3.0) * sin(p.y * 6.0 - uTime * 2.0);
       p *= uPulse * (1.0 + uWave * 0.07 * w);
@@ -118,10 +134,11 @@ const material = new THREE.ShaderMaterial({
     }
   `,
   fragmentShader: /* glsl */ `
-    uniform vec3 uColor;
-    uniform float uBright, uGlow;
+    uniform vec3 uColor, uColor2;
+    uniform float uBright, uGlow, uMix;
     varying float vFront;
     varying float vSpark;
+    varying float vSide;
     void main() {
       float d = length(gl_PointCoord - 0.5);
       if (d > 0.5) discard;
@@ -129,7 +146,8 @@ const material = new THREE.ShaderMaterial({
       float core = smoothstep(0.14, 0.06, d);
       float halo = exp(-d * d * 30.0) * 0.28 * uGlow;
       float depth = 0.15 + 0.85 * vFront;
-      vec3 col = mix(uColor, vec3(1.0), vSpark * 0.6 + core * 0.25);
+      vec3 base = mix(uColor, uColor2, uMix * smoothstep(0.25, 0.75, vSide));
+      vec3 col = mix(base, vec3(1.0), vSpark * 0.6 + core * 0.25);
       // 가산 합성이라 겹칠수록 밝아진다 — 점 하나는 어둡게 두어야 전체가 하얗게 타지 않는다
       gl_FragColor = vec4(col * uBright * depth, (core + halo) * depth);
     }
@@ -152,7 +170,7 @@ new ResizeObserver(resize).observe(canvas);
 resize();
 
 // ── Loop ──────────────────────────────────────────────────────────────────────
-const cur = { rot: 0.1, bright: 0.55, size: 1.5, bloom: 0.45, wave: 0, tilt: 0.05, amp: 0, hz: 0, tint: 0 };
+const cur = { rot: 0.1, bright: 0.55, size: 1.5, bloom: 0.45, wave: 0, tilt: 0.05, amp: 0, hz: 0, tint: 0, mix: 0 };
 const tintColor = new THREE.Color();
 let spin = 0;
 let last = performance.now();
@@ -176,6 +194,8 @@ function frame(now) {
   cur.amp    += ((REDUCED_MOTION ? 0 : target.breathe[0]) - cur.amp) * k;
   cur.hz     += (target.breathe[1] - cur.hz) * k;
   cur.tint   += (target.tint[1] - cur.tint) * k;
+  // 함께 일하기 시작하면 약 1초에 걸쳐 섞이고, 끝나면 같은 속도로 한 색으로 돌아간다
+  cur.mix    += ((team.on ? 1 : 0) - cur.mix) * Math.min(1, dt * 2.5);
   // 섞을 색은 새 틴트가 생길 때만 바꾼다 — 틴트가 빠지는 동안 색이 튀지 않게
   if (target.tint[1] > 0) tintColor.copy(COLOR[target.tint[0]]);
 
@@ -194,7 +214,12 @@ function frame(now) {
   uniforms.uSize.value   = cur.size;
   uniforms.uWave.value   = cur.wave;
   uniforms.uPulse.value  = pulse;
-  uniforms.uColor.value.copy(COLOR.primary).lerp(tintColor, cur.tint);
+  // 섞는 동안엔 함께 일하는 두 색, 아니면 지금 에이전트의 색. 상태 틴트(도구, 오류)는 첫 색에만 얹는다.
+  // 둘 다에 얹으면 도구를 쓰는 동안 두 색이 같은 틴트 쪽으로 몰려 섞인 것이 안 보인다
+  uniforms.uColor.value.copy(team.on ? team.a : COLOR.primary).lerp(tintColor, cur.tint);
+  // team.b 는 끝난 뒤에도 마지막 색을 들고 있어, 섞임이 빠지는 동안 그 색에서 돌아온다
+  uniforms.uColor2.value.copy(team.b);
+  uniforms.uMix.value = cur.mix;
   uniforms.uGlow.value   = cur.bloom;
 
   renderer.render(scene, camera);

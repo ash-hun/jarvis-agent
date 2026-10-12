@@ -77,6 +77,7 @@ def build_ws_router(state: WebState) -> APIRouter:
                 "model": session._harness._model.model,
                 "sessions": state.registry.list_ids(),
                 "session_agents": state.registry.session_agents(),
+                "active_agents": state.activity.active(),
                 "slash_commands": [
                     {"name": name, "description": desc} for name, desc in sorted(ctx.dispatcher.commands.items())
                 ] if ctx.dispatcher else [],

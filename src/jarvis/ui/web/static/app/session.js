@@ -13,7 +13,7 @@ import { voice } from './voice-ui.js';
 import { handleMessage, resetAgentStack } from './events.js';
 import { setReplyClassifier } from './reply.js';
 import { applyBrand, AGENT_ID } from './brand.js';
-import { loadAgents, agents, agentById, isTeam } from './agents.js';
+import { loadAgents, agents, agentById, isTeam, setActiveAgents } from './agents.js';
 
 const $list         = document.getElementById('session-list');
 const $count        = document.getElementById('session-count');
@@ -75,6 +75,16 @@ function renderSessions(sessions, sessionAgents) {
   }
 }
 
+// 에이전트끼리 대화하면 서버에 대화 세션(peer-…)이 새로 생긴다. 일하는 에이전트가 바뀔 때 목록을 다시 받는다
+window.addEventListener('jarvis:activity', async () => {
+  try {
+    const res = await apiFetch('/api/sessions');
+    if (!res.ok) return;
+    const body = await res.json();
+    renderSessions(body.sessions, body.agents);
+  } catch { /* 목록은 다음 접속 때 맞춰진다 */ }
+});
+
 // 새 세션은 지금 보고 있는 에이전트의 것
 async function createSession(agentId) {
   const res = await apiFetch('/api/sessions', {
@@ -91,10 +101,14 @@ document.getElementById('new-session-btn').addEventListener('click', async () =>
   if (sid) connect(sid);
 });
 
-// 에이전트 전환: 그 에이전트의 열린 세션이 있으면 가장 위의 것으로, 없으면 새로 만든다
+// 에이전트끼리의 대화 세션(peer-부른쪽-받는쪽). 사용자가 직접 말을 거는 세션이 아니다
+const PEER_PREFIX = 'peer-';
+
+// 에이전트 전환: 그 에이전트의 열린 세션(대화 세션 제외)이 있으면 가장 위의 것으로, 없으면 새로 만든다
 async function switchAgent(agentId) {
   if (agentId === AGENT_ID) return;
-  const sid = Object.keys(_sessionAgents).find((s) => _sessionAgents[s] === agentId) || await createSession(agentId);
+  const sid = Object.keys(_sessionAgents)
+    .find((s) => _sessionAgents[s] === agentId && !s.startsWith(PEER_PREFIX)) || await createSession(agentId);
   if (sid) connect(sid);
 }
 
@@ -108,6 +122,7 @@ function renderAgentSwitch() {
     b.setAttribute('role', 'tab');
     b.setAttribute('aria-selected', String(a.id === AGENT_ID));
     b.style.setProperty('--agent-color', a.palette.primary);
+    b.dataset.agent = a.id;
     b.textContent = a.name;
     b.title = a.description || a.name;
     b.addEventListener('click', () => switchAgent(a.id));
@@ -142,6 +157,7 @@ async function onConnected(msg) {
   // 세션 에이전트의 이름과 색으로 화면을 바꾼다. 바뀌었으면 명언도 그 에이전트 것으로
   if (applyBrand(msg.agent)) showQuote();
   renderAgentSwitch();
+  setActiveAgents(msg.active_agents || []);
   const sid = msg.session_id || '—';
   const model = msg.model || '—';
   setModel(model);

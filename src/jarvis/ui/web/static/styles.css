@@ -309,6 +309,13 @@ body[data-mode="full-voice"] .mode-seg button[data-mode="full-voice"] { color: #
   border: 1px solid color-mix(in srgb, var(--agent-color) 45%, transparent);
 }
 .agent-chip:hover { background: color-mix(in srgb, var(--agent-color) 10%, transparent); }
+/* 일하는 에이전트 칩은 숨쉬듯 빛난다(서버 agent_activity) */
+.agent-chip.busy { animation: chip-busy 1.4s ease-in-out infinite; }
+@keyframes chip-busy {
+  0%, 100% { box-shadow: 0 0 0 color-mix(in srgb, var(--agent-color) 0%, transparent); }
+  50% { box-shadow: 0 0 12px color-mix(in srgb, var(--agent-color) 70%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .agent-chip.busy { animation: none; outline: 1px dashed var(--agent-color); } }
 .agent-chip.active {
   color: var(--bg-0); background: var(--agent-color); border-color: var(--agent-color);
   box-shadow: 0 0 10px color-mix(in srgb, var(--agent-color) 50%, transparent);

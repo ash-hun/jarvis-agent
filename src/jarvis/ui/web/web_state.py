@@ -4,6 +4,7 @@ from collections import deque
 from typing import TYPE_CHECKING
 
 from jarvis.common.logger import get_logger
+from jarvis.ui.web.agent_activity import AgentActivity
 from jarvis.ui.web.approvals import SessionApprovals
 from jarvis.ui.web.session_registry import SessionRegistry
 
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
     from jarvis.app.app_assembly import AppAssembly
     from jarvis.app.app_context import AppContext
     from jarvis.config import JarvisSettings
+    from jarvis.core.session import AgentSession
     from jarvis.ui.web.adapter import PerConnectionAdapter
     from jarvis.voice.service import VoiceService
 
@@ -34,6 +36,15 @@ class WebState:
         self.voice_service = self._build_voice_service()
         # 🔔 짧은 답과 음성 승인 답 분류기. 사고가 꺼져 있으면 None 이고 화면은 키워드만 쓴다
         self.reply_classifier: ReplyClassifier | None = assembly.profile.reply_classifier()
+        # 어느 에이전트가 일하는지. 둘 이상이면 HUD 구체가 색을 섞는다
+        self.activity = AgentActivity(self.broadcast_live)
+        self.registry.on_open(self.activity.watch)
+        # 에이전트끼리 묻는 도구가 받는 쪽 세션을 이 화면의 세션 목록에 열게 한다
+        from jarvis.app.agent_conversation import ASK_AGENT_TOOL, AskAgentTool
+
+        ask_tool = assembly.ctx.tool_registry.get(ASK_AGENT_TOOL)
+        if isinstance(ask_tool, AskAgentTool):
+            ask_tool.set_opener(self.open_peer_session)
 
     @property
     def ctx(self) -> "AppContext":
@@ -56,6 +67,20 @@ class WebState:
     def broker(self, session_id: str) -> SessionApprovals:
         """세션의 승인 브로커. 없으면 만든다."""
         return self.approvals.setdefault(session_id, SessionApprovals())
+
+    async def open_peer_session(
+        self, agent_id: str, session_id: str, caller_session_id: str | None
+    ) -> "AgentSession":
+        """다른 에이전트가 부른 대화 세션. 받는 쪽 도구의 승인 요청은 부른 세션의 화면으로 보낸다."""
+        session, sandbox = await self.registry.get_or_create(session_id, agent_id, peer=True)
+        if caller_session_id is not None:
+            sandbox.set_approval_callback(self.broker(caller_session_id).request)
+        return session
+
+    async def broadcast_live(self, payload: dict[str, object]) -> None:
+        """열린 HUD 에만 보낸다. 지금 상태를 알리는 것이라 아무도 없으면 버린다."""
+        for adapter in list(self.live_clients):
+            await adapter.send(payload)
 
     async def broadcast_notice(self, payload: dict[str, object]) -> None:
         """스케줄 실행 결과를 열린 HUD 전부에 보낸다. 열린 HUD 가 없으면 다음 접속 때 missed 로 보낸다."""

@@ -14,6 +14,7 @@ import { askFeedback, isFeedbackPending, QUESTION_SPOKEN } from './proactive.js'
 import { setInputEnabled, endAwaitingReply } from './composer.js';
 import { isFullVoice } from './mode.js';
 import { onReplyClassified } from './reply.js';
+import { setActiveAgents } from './agents.js';
 
 const ERROR_FLASH_MS = 3000;
 let _agentStack = []; // [{name: string|null}, ...] — 서브 에이전트 계층 추적
@@ -176,6 +177,9 @@ export function handleMessage(msg) {
       }
       break;
 
+    case 'agent_activity':
+      setActiveAgents(msg.active);
+      break;
     case 'reply_classified':
       onReplyClassified(msg);
       break;

@@ -114,7 +114,7 @@ TUI 와 Web 모두 `app/infra_builder.py` 의 `build_app`(도구, 스케줄러, 
 | 장기 기억 | 메모리 또는 Postgres `jarvis_ltm_entries`(pgvector 선택) |
 | 작업 기억 | Postgres `jarvis_working_memory` 또는 메모리 |
 | open loop | `~/.jarvis/openloops.jsonl` 또는 Postgres `jarvis_open_loops` |
-| 승인 규칙 | `~/.jarvis/approvals.yaml` |
+| 승인 규칙 | 공용 `~/.jarvis/approvals.yaml`, 에이전트별 `~/.jarvis/approvals/<agent_id>.yaml` |
 | 절차 | `~/.jarvis/procedures/<name>.md` |
 | 스케줄 | `~/.jarvis/schedules/*.yaml` |
 | 사용자 모델 | `~/.jarvis/user_model.json` |

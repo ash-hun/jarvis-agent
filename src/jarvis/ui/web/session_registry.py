@@ -37,7 +37,7 @@ class SessionRegistry:
         # 최근 사용자 활동 시각(monotonic). 외부 이벤트를 어느 세션이 소비할지 정렬용
         self._last_activity: dict[str, float] = {}
 
-    def _session_services(self) -> "tuple[AppServices, DefaultSandbox]":
+    def _session_services(self, agent_id: str) -> "tuple[AppServices, DefaultSandbox]":
         """세션 전용 sandbox 와 pipeline 을 새로 만들어 끼운 서비스 사본."""
         from jarvis.core.policy.authenticator import ApiKeyAuthenticator, NoAuthAuthenticator
         from jarvis.core.policy.pipeline import AuthenticatorProtocol, SecurityPipeline
@@ -49,7 +49,7 @@ class SessionRegistry:
         sandbox = DefaultSandbox(
             dangerous_patterns=s.security.dangerous_commands,
             require_approval_for=s.security.require_approval_for,
-            approval_rules=self._services.approval_rules,
+            approval_rules=self._agents.approval_rules(agent_id),
         )
         # 접근 키가 있으면 키 → (이름, roles) 로 사용자를 식별한다. AuthContext.user_id 가 이름이 되어
         # rate limit 과 tool executor 의 사용자별 정책에 그대로 흐른다
@@ -78,7 +78,7 @@ class SessionRegistry:
         if session_id not in self._sessions:
             agent = await self._resolve_agent(session_id, agent_id)
             await self._ctx.session_repo.create(session_id=session_id, agent_id=agent)
-            services, sandbox = self._session_services()
+            services, sandbox = self._session_services(agent)
             self._sessions[session_id] = self._agents.builder(agent).build(session_id, services)
             self._sandboxes[session_id] = sandbox
             self._session_agents[session_id] = agent

@@ -22,11 +22,14 @@ def build_agenda_router(state: WebState) -> APIRouter:
     @router.get(
         "/api/agenda",
         summary="AGENDA 카드 내용",
-        description="스케줄(곧 돌 것이 위)과 열린 약속(최신순 20개). 기한이 지난 약속은 응답 전에 expired 로 닫힌다.",
+        description=(
+            "스케줄(곧 돌 것이 위)과 열린 약속(최신순 20개). 모든 에이전트의 것이 섞여 오고"
+            " agent 로 누구 것인지 가른다. 기한이 지난 약속은 응답 전에 expired 로 닫힌다."
+        ),
         responses={200: {"content": {"application/json": {"example": {
             "schedules": [],
             "open_loops": [{"id": "e17d", "description": "회의 준비", "due_ms": None, "created_at": 1791613276663,
-                            "origin_session": "default"}],
+                            "origin_session": "default", "agent": "main"}],
         }}}}},
     )
     async def get_agenda() -> JSONResponse:
@@ -43,6 +46,7 @@ def build_agenda_router(state: WebState) -> APIRouter:
                     "prompt": task.prompt[:PROMPT_PREVIEW_CHARS],
                     "schedule": task.schedule,
                     "kind": task.kind,
+                    "agent": task.agent,
                     "once": task.run_at is not None,
                     "enabled": task.enabled,
                     # 서버 로컬 시간대 오프셋을 붙인다. 브라우저가 어느 시간대에 있든 같은 순간을 가리키게
@@ -65,6 +69,7 @@ def build_agenda_router(state: WebState) -> APIRouter:
                     "due_ms": loop.due_ms,
                     "created_at": loop.created_at,
                     "origin_session": loop.origin_session,
+                    "agent": loop.agent_id,
                 })
         return JSONResponse({"schedules": schedules, "open_loops": loops})
 

@@ -854,7 +854,7 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `type` | 필드 | 동작 |
 |---|---|---|
 | `user_message` | `text` | 슬래시 명령이면 디스패처가 처리하고 결과를 `agent_start`, `stream_delta`, `agent_end` 로 돌려준다. 남는 텍스트는 에이전트 프롬프트로. 비어 있으면 무시 |
-| `approval_response` | `id`, `approved`, `always` | `approval_request` 에 대한 답. 같은 `id` 에 먼저 온 답만 쓰고 나머지는 버린다. `always=true` 는 `approved=true` 일 때만 의미 있고 제안된 패턴을 `approvals.yaml` 에 남긴다 |
+| `approval_response` | `id`, `approved`, `always` | `approval_request` 에 대한 답. 같은 `id` 에 먼저 온 답만 쓰고 나머지는 버린다. `always=true` 는 `approved=true` 일 때만 의미 있고 제안된 패턴을 세션 에이전트의 규칙 파일(`approvals/<agent_id>.yaml`)에 남긴다 |
 | `proactive_feedback` | `id`, `accepted` | 🔔 에 대한 수락/무시. 임계치 학습기에 반영. 한 연결에서 같은 `id` 는 처음 한 번만 반영 |
 | `reply_classify` | `kind`(`feedback`/`approval`), `id`, `text`, `context`, `has_always` | 키워드로 판정이 안 되는 짧은 답을 사고 모델로 분류. `feedback` 이면 `id` 는 🔔 의 `message_id`, `context` 는 🔔 본문. `approval` 이면 `id` 는 승인 요청 id, `context` 는 명령, `has_always` 는 항상 허용 패턴이 있는지. 결과는 `reply_classified`. 🔔 가 `accept`/`dismiss` 로 판정되면 서버가 바로 학습기에 반영한다(같은 `id` 는 한 번만). 승인은 판정만 돌려주고 승인 자체는 화면이 `approval_response` 로 보낸다 |
 | `voice_tts_request` | `text`, `lang?` | 음성 합성. 서버 TTS 가 없으면 `voice_tts_audio{data:"", text}` 로 되돌려 브라우저가 읽게 한다 |
@@ -921,6 +921,7 @@ ws.send(JSON.stringify({ type: "user_message", text: "안녕" }));
 | `prompt` | string | 아니오 | 실행 프롬프트 앞 160자 |
 | `schedule` | string | 아니오 | cron 식 |
 | `kind` | `"reminder" \| "task"` | 아니오 | 알림인지 작업인지 |
+| `agent` | string | 아니오 | 작업을 실행하는 에이전트 id |
 | `once` | boolean | 아니오 | 한 번만 도는 작업 |
 | `enabled` | boolean | 아니오 | 켜짐 여부 |
 | `next_run` | string | 예 | ISO 8601, 서버 시간대. 없으면 꺼졌거나 만료 |
@@ -935,6 +936,7 @@ ws.send(JSON.stringify({ type: "user_message", text: "안녕" }));
 | `due_ms` | integer | 예 | 기한(epoch ms). 사고가 "내일 10시" 같은 시각을 읽었을 때만 채워진다 |
 | `created_at` | integer | 아니오 | epoch ms |
 | `origin_session` | string | 예 | 감지된 세션 |
+| `agent` | string | 아니오 | 약속을 감지한 세션의 에이전트 id. 에이전트 도입 전 약속은 `main` |
 
 ### Tool
 

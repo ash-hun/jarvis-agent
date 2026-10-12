@@ -91,6 +91,10 @@ class DefaultSandbox(SandboxProtocol):
     def set_approval_callback(self, callback: ApprovalCallback) -> None:
         self._approval_callback = callback
 
+    def set_approval_rules(self, rules: ApprovalRules | None) -> None:
+        """세션의 에이전트가 정해진 뒤 그 에이전트의 승인 규칙으로 바꾼다(TUI 가 기동 때 부른다)."""
+        self._rules = rules
+
     def is_approval_required(self, tool_name: str) -> bool:
         return tool_name in self._require_approval
 

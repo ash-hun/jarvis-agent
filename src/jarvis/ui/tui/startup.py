@@ -219,7 +219,8 @@ def main() -> None:
     ctx.branch_factory = builder.branch_factory()
     session = builder.build(session_id)
     app = JarvisTUI(session=session, ctx=ctx, voice_controller=build_tui_voice(settings))
-    # 승인 다이얼로그를 sandbox 의 approval_callback 으로 연결
+    # 승인 다이얼로그를 sandbox 의 approval_callback 으로 연결. 규칙은 공용 + 이 에이전트 파일
     assembly.services.sandbox.set_approval_callback(app.request_approval)
+    assembly.services.sandbox.set_approval_rules(assembly.agents.approval_rules(agent_id))
     app.run()
     asyncio.run(save_session_end(assembly, session))

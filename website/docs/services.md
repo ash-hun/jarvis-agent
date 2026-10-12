@@ -185,8 +185,9 @@ flowchart LR
 flowchart LR
   LOOP[agent loop] --> EXE[tool executor<br/>core/session.py]
   EXE --> SBX[DefaultSandbox]
-  SBX --> RULES[ApprovalRules<br/>approval_rules.py]
-  RULES --> AY[(~/.jarvis/approvals.yaml)]
+  SBX --> RULES[LayeredApprovalRules<br/>approval_rules.py]
+  RULES --> AY[(공용 approvals.yaml)]
+  RULES --> AA[(approvals/에이전트.yaml)]
   SBX -->|승인 필요| BRK[SessionApprovals<br/>ui/web/approvals.py]
   BRK -. approval_request .-> MODAL[승인 모달, 음성 답]
   MODAL -->|approval_response| BRK
@@ -197,7 +198,7 @@ flowchart LR
 ```
 
 - 핵심 모듈: `core/tools/`, `core/policy/`, `core/procedures/`
-- 저장: `approvals.yaml`, `procedures/`
+- 저장: `approvals.yaml`(공용), `approvals/<agent_id>.yaml`, `procedures/`
 
 ### 세션
 

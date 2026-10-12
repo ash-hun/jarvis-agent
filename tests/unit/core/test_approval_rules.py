@@ -154,3 +154,55 @@ async def test_authorize_denies_without_callback():
 
 async def test_permissive_sandbox_authorizes_everything():
     assert await PermissiveSandbox().authorize("bash", {"command": "rm -rf /"}) is True
+
+
+# ── 공용 + 에이전트별 규칙 ──────────────────────────────────────────────────────
+
+
+def _layers(tmp_path):
+    from jarvis.core.policy.approval_rules import LayeredApprovalRules
+
+    common = ApprovalRules(str(tmp_path / "approvals.yaml"))
+    common.add(ApprovalRule("bash", "git status"))
+    karen = LayeredApprovalRules(common, ApprovalRules(str(tmp_path / "approvals" / "karen.yaml")))
+    main = LayeredApprovalRules(common, ApprovalRules(str(tmp_path / "approvals" / "main.yaml")))
+    return common, karen, main
+
+
+def test_layered_allows_common_rules_for_every_agent(tmp_path):
+    _, karen, main = _layers(tmp_path)
+    assert karen.allows("bash", {"command": "git status -s"})
+    assert main.allows("bash", {"command": "git status -s"})
+
+
+def test_layered_always_goes_to_agent_file_only(tmp_path):
+    common, karen, main = _layers(tmp_path)
+    assert karen.add(ApprovalRule("bash", "uv run")) is True
+    assert karen.allows("bash", {"command": "uv run pytest"})
+    # 다른 에이전트와 공용 파일에는 번지지 않는다
+    assert not main.allows("bash", {"command": "uv run pytest"})
+    assert ApprovalRule("bash", "uv run") not in common.list()
+    assert yaml.safe_load((tmp_path / "approvals" / "karen.yaml").read_text())["rules"] == [
+        {"tool": "bash", "pattern": "uv run"}
+    ]
+    # 같은 규칙을 다시 더해도, 공용에 있는 규칙을 더해도 파일은 그대로
+    assert karen.add(ApprovalRule("bash", "uv run")) is False
+    assert karen.add(ApprovalRule("bash", "git status")) is False
+    assert karen.list() == [ApprovalRule("bash", "git status"), ApprovalRule("bash", "uv run")]
+
+
+def test_layered_remove_touches_only_agent_rules(tmp_path):
+    common, karen, _ = _layers(tmp_path)
+    karen.add(ApprovalRule("bash", "uv run"))
+    assert karen.remove(ApprovalRule("bash", "git status")) is False
+    assert karen.remove(ApprovalRule("bash", "uv run")) is True
+    assert common.list() == [ApprovalRule("bash", "git status")]
+
+
+async def test_sandbox_rules_can_be_swapped_to_agent_rules(tmp_path):
+    _, karen, _ = _layers(tmp_path)
+    cb = _Recorder("always")
+    sandbox = DefaultSandbox(require_approval_for=["bash"], approval_callback=cb)
+    sandbox.set_approval_rules(karen)
+    assert await sandbox.authorize("bash", {"command": "make build"}) is True
+    assert karen.allows("bash", {"command": "make build"})

@@ -45,7 +45,7 @@ title: 문제 해결
 
 - 탭을 여럿 열어도 같은 세션이면 모두 모달을 받고, 하나가 답하면 나머지는 닫힌다
 - 120초 안에 답이 없으면 거부로 처리되고 도구 결과에 `denied` 가 온다
-- `ALWAYS` 로 남긴 규칙은 `~/.jarvis/approvals.yaml` 에 있다. 잘못 남겼으면 그 줄을 지운다
+- `ALWAYS` 로 남긴 규칙은 `~/.jarvis/approvals/<agent_id>.yaml`(JARVIS 는 `main.yaml`)에 있다. 잘못 남겼으면 그 줄을 지운다. 모든 에이전트에 적용할 규칙은 공용 `~/.jarvis/approvals.yaml` 에 손으로 적는다
 
 ## 화면이 옛날 것이다
 

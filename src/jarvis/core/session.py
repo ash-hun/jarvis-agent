@@ -513,7 +513,12 @@ class AgentSession:
                 continue
             with contextlib.suppress(Exception):
                 await self._openloop_store.add_unique(
-                    OpenLoop(description=text, due_ms=due_ms, origin_session=self._session_id)
+                    OpenLoop(
+                        description=text,
+                        due_ms=due_ms,
+                        origin_session=self._session_id,
+                        agent_id=self.memory_scope.agent_id,
+                    )
                 )
 
     def _check_rate_limit(self, user_id: str, rate_limit: int, window: float = 60.0) -> None:

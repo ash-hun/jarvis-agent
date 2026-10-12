@@ -17,6 +17,7 @@ const SHELL = [
   'voice.js',
   'sphere.js',
   'app/agenda.js',
+  'app/agents.js',
   'app/api.js',
   'app/approval.js',
   'app/artifact.js',

@@ -82,9 +82,11 @@ def test_row_to_loop_maps_columns():
         "due_ms": 5,
         "created_at": 1,
         "updated_at": 2,
+        "agent_id": "karen",
     }
     loop = _row_to_loop(row)
     assert (loop.id, loop.description, loop.status, loop.origin_session) == ("r1", "전화하기", "done", None)
+    assert loop.agent_id == "karen"
     assert (loop.due_ms, loop.created_at, loop.updated_at) == (5, 1, 2)
 
 

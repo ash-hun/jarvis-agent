@@ -106,3 +106,23 @@ def test_repo_team_karen_definition_is_valid():
 
     team = Path(__file__).parents[3] / "team"
     assert "karen" in load_agent_specs(str(team))
+
+
+def test_approval_rules_are_per_agent_and_cached(tmp_path):
+    from jarvis.core.policy.approval_rules import ApprovalRule, ApprovalRules
+
+    settings = JarvisSettings()
+    settings.security.agent_approvals_dir = str(tmp_path / "approvals")
+    common = ApprovalRules(str(tmp_path / "approvals.yaml"))
+    services = MagicMock()
+    services.approval_rules = common
+    ctx = AppContext(session_repo=MagicMock(), tool_registry=MagicMock(), settings=settings)
+    (tmp_path / "team").mkdir()
+    (tmp_path / "team" / "karen.yaml").write_text(KAREN)
+    registry = AgentRegistry.load(ctx, services, _main(), str(tmp_path / "team"))
+
+    karen = registry.approval_rules("karen")
+    assert registry.approval_rules("karen") is karen
+    karen.add(ApprovalRule("bash", "ls"))
+    assert (tmp_path / "approvals" / "karen.yaml").exists()
+    assert not registry.approval_rules("main").allows("bash", {"command": "ls"})

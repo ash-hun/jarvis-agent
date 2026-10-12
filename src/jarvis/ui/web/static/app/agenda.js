@@ -6,6 +6,7 @@ import { escapeHtml, renderMarkdown, attachCopyBtns } from './markdown.js';
 import { logActivity, showLive, lastLine, CAPTION_HOLD_MS } from './shell.js';
 import { appendMsg } from './messages.js';
 import { requestSpeech } from './voice-ui.js';
+import { loadAgents, isTeam, agentTag } from './agents.js';
 
 const $scheduleList = document.getElementById('schedule-list');
 const $openloopList = document.getElementById('openloop-list');
@@ -27,13 +28,18 @@ function fmtWhen(iso) {
   return `${day}${hm}${left ? ' · ' + left : ''}`;
 }
 
-function agendaItem(text, when, cls = '') {
+function agendaItem(text, when, cls = '', agent = null) {
   const li = document.createElement('li');
   li.className = `agenda-item ${cls}`.trim();
   li.innerHTML = '<div class="what"><span class="txt"></span><span class="when"></span></div><div class="acts"></div>';
   li.querySelector('.txt').textContent = text;
   li.querySelector('.what').title = text;
   li.querySelector('.when').textContent = when;
+  // 여러 에이전트의 약속이 한 카드에 섞이므로 누구 것인지 이름과 색으로 단다
+  if (isTeam()) {
+    li.querySelector('.when').prepend(agentTag(agent || 'main'));
+    li.dataset.agent = agent || 'main';
+  }
   return li;
 }
 
@@ -49,7 +55,7 @@ function renderAgenda({ schedules = [], open_loops = [] }) {
     // /schedule 로 만든 작업의 description 은 자동 문구라, 사용자가 쓴 프롬프트를 보여준다
     const fromSlash = t.name.startsWith('slash-') || t.name.startsWith('once-');
     const label = fromSlash ? t.prompt : (t.description || t.prompt || t.name);
-    const li = agendaItem(label, when, t.enabled ? '' : 'off');
+    const li = agendaItem(label, when, t.enabled ? '' : 'off', t.agent);
     const sw = document.createElement('button');
     sw.type = 'button';
     sw.className = 'switch';
@@ -64,7 +70,7 @@ function renderAgenda({ schedules = [], open_loops = [] }) {
   $openloopList.innerHTML = '';
   for (const lp of open_loops) {
     const when = lp.due_ms ? `기한 ${fmtWhen(new Date(lp.due_ms).toISOString())}` : '';
-    const li = agendaItem(lp.description, when);
+    const li = agendaItem(lp.description, when, '', lp.agent);
     for (const [status, label, cls] of [['done', '✓', 'done'], ['dismissed', '✕', 'dismiss']]) {
       const b = document.createElement('button');
       b.type = 'button';
@@ -83,7 +89,7 @@ function renderAgenda({ schedules = [], open_loops = [] }) {
 
 export async function fetchAgenda() {
   try {
-    const res = await apiFetch('/api/agenda');
+    const [res] = await Promise.all([apiFetch('/api/agenda'), loadAgents()]);
     if (res.ok) renderAgenda(await res.json());
   } catch (e) {
     console.warn('agenda fetch failed:', e);

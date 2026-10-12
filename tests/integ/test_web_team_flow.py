@@ -11,7 +11,7 @@ from jarvis.app.infra_builder import build_app  # noqa: E402
 from jarvis.config import JarvisSettings  # noqa: E402
 from jarvis.ui.web.server import create_app  # noqa: E402
 
-KAREN = 'name: K.A.R.E.N.\ndescription: 정보 수집\npalette:\n  primary: "#f0607c"\ntools: [read_file]\n'
+KAREN = 'name: K.A.R.E.N.\ndescription: 정보 수집\npalette:\n  primary: "#97BC62"\ntools: [read_file]\n'
 
 
 def _assembly(monkeypatch, tmp_path):
@@ -41,7 +41,7 @@ def test_agents_lists_main_first_then_team(client):
     agents = client.get("/api/agents").json()["agents"]
     assert [a["id"] for a in agents] == ["main", "karen"]
     karen = agents[1]
-    assert (karen["name"], karen["palette"]["primary"], karen["main"]) == ("K.A.R.E.N.", "#f0607c", False)
+    assert (karen["name"], karen["palette"]["primary"], karen["main"]) == ("K.A.R.E.N.", "#97BC62", False)
     assert "system_prompt" not in karen
 
 

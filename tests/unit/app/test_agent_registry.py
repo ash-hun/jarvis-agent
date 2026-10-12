@@ -15,7 +15,7 @@ KAREN = """
 name: K.A.R.E.N.
 description: 정보 수집
 palette:
-  primary: "#f0607c"
+  primary: "#97BC62"
 system_prompt: 당신은 카렌입니다.
 model: gemma-small
 tools: [web_search, read_file]
@@ -35,7 +35,7 @@ def test_spec_file_becomes_profile_on_top_of_main(tmp_path):
     karen = profile_from_spec("karen", specs["karen"], main)
 
     assert karen.agent_id == "karen" and karen.name == "K.A.R.E.N."
-    assert karen.brand.palette.primary == "#f0607c"
+    assert karen.brand.palette.primary == "#97BC62"
     # 정하지 않은 색은 기본 팔레트
     assert karen.brand.palette.background == main.brand.palette.background
     # 모델은 이름만 바뀌고 프로바이더와 주소는 main 것

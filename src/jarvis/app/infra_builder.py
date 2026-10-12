@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING
 
 from pydantic import SecretStr
 
-from jarvis.app.agent_profile import AgentProfile
+from jarvis.app.agent_profile import MAIN_AGENT_ID, AgentProfile
+from jarvis.app.agent_registry import AgentRegistry
 from jarvis.app.app_assembly import AppAssembly
 from jarvis.app.app_context import AppContext
 from jarvis.app.app_services import AppServices
-from jarvis.app.session_builder import SessionBuilder
 from jarvis.app.subagent_builder import SubagentBuilder
 from jarvis.common.logger import get_logger
 
@@ -133,7 +133,10 @@ class InfraBuilder:
         orchestration = self.build_subagents(ctx, services, agent_defs)
         self.register_commands(ctx, services, procedure_store, agent_defs, orchestration)
         profile = AgentProfile.main(settings, model_config, feedback_learner)
-        return AppAssembly(ctx=ctx, services=services, profile=profile, sessions=SessionBuilder(ctx, services, profile))
+        agents = AgentRegistry.load(ctx, services, profile, settings.team.dir)
+        return AppAssembly(
+            ctx=ctx, services=services, profile=profile, sessions=agents.builder(MAIN_AGENT_ID), agents=agents
+        )
 
     def build_tool_registry(self) -> "ToolRegistry":
         from jarvis.core.tools.builtin.bash import BashTool

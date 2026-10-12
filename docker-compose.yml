@@ -97,11 +97,14 @@ services:
       # postgres가 기본. 외부 DSN이 .env에 있으면 그쪽을 사용한다.
       JARVIS_SESSION__PERSISTENCE_BACKEND: postgres
       JARVIS_SESSION__POSTGRES_DSN: ${JARVIS_SESSION__POSTGRES_DSN:-postgresql://jarvis:jarvis@postgres:5432/jarvis}
+      JARVIS_TEAM__DIR: ${JARVIS_TEAM__DIR:-/app/team}
     volumes:
       - jarvis_data:/root/.jarvis
       # 로컬 코드를 그대로 쓴다 — 파이썬 수정 후 이미지 재빌드 없이
       # `docker compose restart jarvis-backend` 만으로 반영된다.
       - ./src:/app/src
+      # 최상위 에이전트 정의(KAREN 등). 저장소의 team/ 이 정본이다
+      - ./team:/app/team:ro
     depends_on:
       postgres:
         condition: service_healthy

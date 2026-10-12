@@ -27,6 +27,19 @@ class AgentProfile:
     thought: "ThoughtConfig"
     proactive: "ProactiveConfig"
     feedback_learner: "FeedbackLearner"
+    # 아래 셋은 정의 파일에서 온다. main 은 비워 둬서 기존 동작(기본 시스템 프롬프트, 도구 전체)을 지킨다
+    description: str = ""
+    system_prompt: str | None = None
+    tools: tuple[str, ...] = ()
+
+    @property
+    def is_main(self) -> bool:
+        return self.agent_id == MAIN_AGENT_ID
+
+    @property
+    def name(self) -> str:
+        """화면과 다른 에이전트가 부르는 이름. 브랜드 워드마크와 같다."""
+        return self.brand.name
 
     @classmethod
     def main(

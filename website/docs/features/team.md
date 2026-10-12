@@ -9,6 +9,15 @@ JARVIS 와 같은 층에 에이전트를 더 둔다. 첫 번째이자 전체를 
 
 [멀티 에이전트](./multi-agent.md)의 서브 에이전트와 다르다. 서브 에이전트는 부모 턴 안에서 잠깐 도는 도구이고, 최상위 에이전트는 자기 세션, 기억, 약속, 승인 규칙, 브랜드를 가진다.
 
+## 지금 팀
+
+| id | 이름 | 맡은 일 | 메인 색 | 정의 |
+|---|---|---|---|---|
+| `main` | J.A.R.V.I.S. | 전체 총괄. 사용자의 기본 대화 상대 | <span style={{color: '#5fc8e2'}}>■</span> `#5fc8e2` | env(`JARVIS_BRAND__*`) |
+| `karen` | K.A.R.E.N. | 특정 분야 정보 수집과 출처 있는 요약 | <span style={{color: '#97BC62'}}>■</span> `#97BC62` | `team/karen.yaml` |
+
+메인 색(palette.primary)은 HUD 의 링, 입자 구, 패널, 에이전트 칩, 세션 표식, AGENDA 라벨에 쓰인다. 두 에이전트가 함께 일하면 입자 구가 두 메인 색(시안과 녹색)으로 섞인다. 색을 바꾸려면 정의 파일의 `palette.primary` 를 고치고 서버를 다시 띄운다.
+
 ## 정의 파일
 
 `JARVIS_TEAM__DIR`(기본 `~/.jarvis/team`, docker 는 저장소의 `team/`)의 `<id>.yaml` 하나가 에이전트 하나다. 파일 이름이 id 이고, 비운 항목은 JARVIS 설정을 이어받는다.

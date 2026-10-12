@@ -134,6 +134,11 @@ class InfraBuilder:
         self.register_commands(ctx, services, procedure_store, agent_defs, orchestration)
         profile = AgentProfile.main(settings, model_config, feedback_learner)
         agents = AgentRegistry.load(ctx, services, profile, settings.team.dir)
+        # 에이전트가 둘 이상이면 서로 묻는 도구. 받는 쪽 세션은 기본으로 레지스트리가 열고 Web 이 기동 때 바꾼다
+        if len(agents.ids()) > 1:
+            from jarvis.app.agent_conversation import AskAgentTool
+
+            tool_registry.register(AskAgentTool(agents, agents.open_peer_session))
         if scheduler is not None:
             scheduler.set_agent_resolver(agents.task_agent)
         return AppAssembly(

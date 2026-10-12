@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from jarvis.app.app_services import AppServices
     from jarvis.core.policy.approval_rules import ApprovalRules
     from jarvis.core.scheduler.service import TaskAgent
+    from jarvis.core.session import AgentSession
 
 # 파일 이름이 곧 id 다. 세션, 기억, 약속, 승인 파일 이름에 그대로 들어가므로 좁게 받는다
 AGENT_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
@@ -94,6 +95,8 @@ class AgentRegistry:
         self._builders = {p.agent_id: SessionBuilder(ctx, services, p) for p in profiles}
         # 규칙 파일 하나에 객체 하나. 세션이 여럿이어도 같은 객체를 써야 "항상 허용"이 바로 다른 세션에 보인다
         self._approval_rules: dict[str, ApprovalRules] = {}
+        # 화면 없이 연 에이전트 대화 세션(TUI, 스케줄). Web 은 세션 목록에서 연다
+        self._peer_sessions: dict[str, AgentSession] = {}
 
     @classmethod
     def load(
@@ -132,6 +135,15 @@ class AgentRegistry:
                 self._services.approval_rules, ApprovalRules(str(path))
             )
         return self._approval_rules[agent_id]
+
+    async def open_peer_session(
+        self, agent_id: str, session_id: str, caller_session_id: str | None = None
+    ) -> "AgentSession":
+        """다른 에이전트가 부른 대화 세션. 저장소에 없으면 만들고, 같은 id 는 같은 세션이다. 사용자는 부른 쪽 범위."""
+        if session_id not in self._peer_sessions:
+            await self._ctx.session_repo.create(session_id=session_id, agent_id=agent_id)
+            self._peer_sessions[session_id] = self.builder(agent_id).build(session_id, inherit_scope=True)
+        return self._peer_sessions[session_id]
 
     def task_agent(self, agent_id: str) -> "TaskAgent | None":
         """스케줄 작업을 이 에이전트로 돌릴 때 쓰는 모델, 프롬프트, 이름. 모르는 id 면 None."""

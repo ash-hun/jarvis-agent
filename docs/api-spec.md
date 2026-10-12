@@ -865,7 +865,7 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 
 | `type` | 필드 | 언제 |
 |---|---|---|
-| `connected` | `session_id`, `agent`, `user`, `model`, `sessions[]`, `session_agents`, `slash_commands[]`, `voice{stt_mode, stt_lang}`, `reply_classifier` | 접속 직후 한 번. `agent` 는 이 세션의 [Agent](#agent), `session_agents` 는 세션 id → 에이전트 id. `reply_classifier` 는 사고가 켜져 있어 `reply_classify` 를 쓸 수 있는지 |
+| `connected` | `session_id`, `agent`, `user`, `model`, `sessions[]`, `session_agents`, `active_agents[]`, `slash_commands[]`, `voice{stt_mode, stt_lang}`, `reply_classifier` | 접속 직후 한 번. `agent` 는 이 세션의 [Agent](#agent), `session_agents` 는 세션 id → 에이전트 id, `active_agents` 는 지금 루프가 도는 에이전트 id. `reply_classifier` 는 사고가 켜져 있어 `reply_classify` 를 쓸 수 있는지 |
 | `agent_start` | `session_id`, `prompt`, `agent_name?` | 루프 시작. 서브 에이전트는 `agent_name` 이 있다 |
 | `message_update` | `text_delta`, `thinking_delta` | 스트리밍 조각 |
 | `stream_delta` | `text` | 슬래시 명령 결과 등 비스트림 텍스트 |
@@ -881,6 +881,7 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `voice_tts_audio` | `data`(base64), `mime`, `text` | 합성 결과. `data` 가 비면 브라우저 TTS 로 |
 | `voice_stt_result` | `text`, `error?` | 전사 결과 |
 | `reply_classified` | `kind`, `id`, `verdict` | `reply_classify` 의 결과. `feedback` 은 `accept`/`dismiss`/`other`, `approval` 은 `allow`/`always`/`deny`/`unclear`. 사고 모델이 없거나 6초 안에 답하지 못하면 `other`, `unclear`. 항상 허용 패턴이 없는데 `always` 면 `allow` 로 낮춘다 |
+| `agent_activity` | `active[]` | 어느 세션이든 루프가 시작하거나 끝나 일하는 에이전트 목록이 바뀔 때. 열린 연결 전부에 보내고 쌓아 두지 않는다. 먼저 시작한 순서, 같은 에이전트는 한 번 |
 | `error` | `message` | TTS 오류 등 |
 
 #### 호출 예시

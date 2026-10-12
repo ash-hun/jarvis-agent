@@ -41,8 +41,13 @@ class SessionBuilder:
     def profile(self) -> "AgentProfile":
         return self._profile
 
-    def build(self, session_id: str, services: "AppServices | None" = None) -> "AgentSession":
-        """services 를 주면(세션 전용 보안 파이프라인) 그것으로, 아니면 앱 기본 서비스로 만든다."""
+    def build(
+        self, session_id: str, services: "AppServices | None" = None, inherit_scope: bool = False
+    ) -> "AgentSession":
+        """services 를 주면(세션 전용 보안 파이프라인) 그것으로, 아니면 앱 기본 서비스로 만든다.
+
+        inherit_scope 는 다른 에이전트가 부른 대화 세션이다. 사용자를 인증이 아니라 부른 쪽 범위에서 받는다.
+        """
         from jarvis.core.session import AgentSession
 
         svc = services or self._services
@@ -74,6 +79,7 @@ class SessionBuilder:
             user_model_store=svc.user_model_store,
             external_inbox=svc.external_inbox,
             external_detail_in_prompt=settings.external.store_detail_in_log,
+            inherit_scope=inherit_scope,
         )
         # 먼저 거는 말은 열린 화면뿐 아니라 외부 채널에도 간다. 서브 에이전트와 스케줄 세션은 이 경로를 타지 않는다
         if self._ctx.notifier is not None:
@@ -87,11 +93,13 @@ class SessionBuilder:
         registry = self._ctx.tool_registry
         if not self._profile.tools:
             return registry
+        from jarvis.app.agent_conversation import ASK_AGENT_TOOL
         from jarvis.core.tools.registry import ToolRegistry
 
         # ponytail: 세션을 만들 때 고른다, 뒤에 등록된 도구(승인된 절차)는 다음 세션부터 보인다
         picked = ToolRegistry()
-        for name in self._profile.tools:
+        # 팀 대화 도구는 정의에 적지 않아도 늘 쓴다. 팀이 한 명이면 등록돼 있지 않다
+        for name in (*self._profile.tools, ASK_AGENT_TOOL):
             tool = registry.get(name)
             if tool is not None:
                 picked.register(tool)

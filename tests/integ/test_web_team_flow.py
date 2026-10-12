@@ -129,7 +129,8 @@ def test_web_session_sandbox_uses_agent_approval_rules(monkeypatch, tmp_path):
 def test_tools_are_scoped_to_session_agent(client):
     sid = client.post("/api/sessions", json={"agent": "karen"}).json()["session_id"]
     karen = [t["name"] for t in client.get(f"/api/tools?session_id={sid}").json()["tools"]]
-    assert karen == ["read_file"]
+    # 정의의 도구에 팀 대화 도구가 늘 붙는다
+    assert karen == ["ask_agent", "read_file"]
     everything = [t["name"] for t in client.get("/api/tools").json()["tools"]]
     assert "bash" in everything and "bash" in [
         t["name"] for t in client.get("/api/tools?session_id=default").json()["tools"]

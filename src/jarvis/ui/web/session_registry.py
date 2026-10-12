@@ -2,6 +2,7 @@
 
 import time
 import uuid
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from jarvis.common.logger import get_logger
@@ -20,6 +21,9 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# 세션을 처음 열 때 부르는 훅(세션 id, 에이전트 id, 세션). 활동 표시가 이벤트를 구독한다
+SessionOpened = Callable[[str, str, "AgentSession"], None]
+
 
 class UnknownAgent(ValueError):
     """정의에 없는 에이전트 id. 새 세션 요청이면 사용자 입력 오류, 옛 세션이면 정의 파일이 빠진 것이다."""
@@ -35,10 +39,14 @@ class SessionRegistry:
         self._sessions: dict[str, AgentSession] = {}
         self._session_agents: dict[str, str] = {}
         self._sandboxes: dict[str, DefaultSandbox] = {}
+        self._on_open: list[SessionOpened] = []
         # 최근 사용자 활동 시각(monotonic). 외부 이벤트를 어느 세션이 소비할지 정렬용
         self._last_activity: dict[str, float] = {}
 
-    def _session_services(self, agent_id: str) -> "tuple[AppServices, DefaultSandbox]":
+    def on_open(self, hook: SessionOpened) -> None:
+        self._on_open.append(hook)
+
+    def _session_services(self, agent_id: str, peer: bool = False) -> "tuple[AppServices, DefaultSandbox]":
         """세션 전용 sandbox 와 pipeline 을 새로 만들어 끼운 서비스 사본."""
         from jarvis.core.policy.authenticator import ApiKeyAuthenticator, NoAuthAuthenticator
         from jarvis.core.policy.pipeline import AuthenticatorProtocol, SecurityPipeline
@@ -55,7 +63,8 @@ class SessionRegistry:
         # 접근 키가 있으면 키 → (이름, roles) 로 사용자를 식별한다. AuthContext.user_id 가 이름이 되어
         # rate limit 과 tool executor 의 사용자별 정책에 그대로 흐른다
         authenticator: AuthenticatorProtocol = NoAuthAuthenticator()
-        if auth_enabled(s):
+        # 에이전트 대화 세션은 부른 쪽이 이미 인증했다. 사용자는 부른 쪽 범위에서 받는다(inherit_scope)
+        if auth_enabled(s) and not peer:
             keys = s.security.api_keys
             authenticator = ApiKeyAuthenticator(
                 valid_keys={k: frozenset(u.roles) for k, u in keys.items()},
@@ -70,19 +79,23 @@ class SessionRegistry:
         return self._services.with_security(pipeline, sandbox), sandbox
 
     async def get_or_create(
-        self, session_id: str, agent_id: str | None = None
+        self, session_id: str, agent_id: str | None = None, peer: bool = False
     ) -> "tuple[AgentSession, DefaultSandbox]":
         """있으면 그대로, 없으면 저장소에 만들고 조립한다. 두 번 불러도 같은 세션이다.
 
         에이전트는 세션을 처음 만들 때만 정한다. 저장소에 이미 있는 세션은 저장된 에이전트로 열고 agent_id 는 무시한다.
+        peer 는 다른 에이전트가 부른 대화 세션이다. 처음 열 때만 의미가 있다.
         """
         if session_id not in self._sessions:
             agent = await self._resolve_agent(session_id, agent_id)
             await self._ctx.session_repo.create(session_id=session_id, agent_id=agent)
-            services, sandbox = self._session_services(agent)
-            self._sessions[session_id] = self._agents.builder(agent).build(session_id, services)
+            services, sandbox = self._session_services(agent, peer)
+            session = self._agents.builder(agent).build(session_id, services, inherit_scope=peer)
+            self._sessions[session_id] = session
             self._sandboxes[session_id] = sandbox
             self._session_agents[session_id] = agent
+            for hook in self._on_open:
+                hook(session_id, agent, session)
         return self._sessions[session_id], self._sandboxes[session_id]
 
     async def _resolve_agent(self, session_id: str, agent_id: str | None) -> str:

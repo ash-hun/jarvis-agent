@@ -283,7 +283,8 @@ body[data-mode="full-voice"] .mode-seg button[data-mode="full-voice"] { color: #
   border-left: 2px solid transparent;
   transition: background .15s;
 }
-.session .marker { width: 6px; height: 6px; border: 1px solid var(--text-faint); display: block; }
+.session { --agent-color: var(--text-faint); }
+.session .marker { width: 6px; height: 6px; border: 1px solid var(--agent-color); display: block; }
 .session .title {
   color: var(--text); font-size: 11.5px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -295,6 +296,23 @@ body[data-mode="full-voice"] .mode-seg button[data-mode="full-voice"] { color: #
   border-left-color: var(--pri-bright);
 }
 .session.active .marker { background: var(--pri-bright); border-color: var(--pri-bright); box-shadow: 0 0 8px var(--pri-glow); }
+.session[data-agent]:not(.active) .marker { background: color-mix(in srgb, var(--agent-color) 35%, transparent); }
+
+/* 에이전트 전환. 칩 색은 그 에이전트의 primary */
+.agent-switch { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 2px 8px; }
+.agent-switch[hidden] { display: none; }
+.agent-chip {
+  --agent-color: var(--primary);
+  font: inherit; font-size: 9.5px; letter-spacing: 0.12em;
+  padding: 3px 8px; border-radius: 3px; cursor: pointer;
+  color: var(--agent-color); background: transparent;
+  border: 1px solid color-mix(in srgb, var(--agent-color) 45%, transparent);
+}
+.agent-chip:hover { background: color-mix(in srgb, var(--agent-color) 10%, transparent); }
+.agent-chip.active {
+  color: var(--bg-0); background: var(--agent-color); border-color: var(--agent-color);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--agent-color) 50%, transparent);
+}
 .session.active .title { color: var(--pri-bright); }
 .fork-btn {
   margin-left: auto; background: none; border: 1px solid var(--hairline);

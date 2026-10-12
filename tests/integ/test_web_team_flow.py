@@ -124,3 +124,15 @@ def test_web_session_sandbox_uses_agent_approval_rules(monkeypatch, tmp_path):
     registry = SessionRegistry(assembly.ctx, assembly.services, assembly.agents)
     _, sandbox = asyncio.run(registry.get_or_create("k-approve", "karen"))
     assert sandbox._rules is assembly.agents.approval_rules("karen")
+
+
+def test_tools_are_scoped_to_session_agent(client):
+    sid = client.post("/api/sessions", json={"agent": "karen"}).json()["session_id"]
+    karen = [t["name"] for t in client.get(f"/api/tools?session_id={sid}").json()["tools"]]
+    assert karen == ["read_file"]
+    everything = [t["name"] for t in client.get("/api/tools").json()["tools"]]
+    assert "bash" in everything and "bash" in [
+        t["name"] for t in client.get("/api/tools?session_id=default").json()["tools"]
+    ]
+    # 열리지 않은 세션은 앱 전체
+    assert [t["name"] for t in client.get("/api/tools?session_id=nope").json()["tools"]] == everything

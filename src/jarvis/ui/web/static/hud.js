@@ -34,6 +34,18 @@ const COL = {
 COL.bright = mixRgb(COL.primary, WHITE, 0.38);
 COL.dim    = mixRgb(COL.primary, [0, 0, 0], 0.48);
 
+// 세션 에이전트가 바뀌면 app/brand.js 가 새 팔레트를 알린다. 링, 눈금, 별 배경이 그 색을 따른다
+function setPalette(p) {
+  Object.assign(PALETTE, p);
+  COL.primary = hexToRgb(PALETTE.primary);
+  COL.accent  = hexToRgb(PALETTE.accent);
+  COL.nebula  = PALETTE.nebula.map(hexToRgb);
+  COL.bright  = mixRgb(COL.primary, WHITE, 0.38);
+  COL.dim     = mixRgb(COL.primary, [0, 0, 0], 0.48);
+  drawStarfield();
+}
+window.addEventListener('jarvis:palette', (e) => setPalette(e.detail || {}));
+
 const REDUCED_MOTION =
   window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const DPR = Math.min(2, window.devicePixelRatio || 1);

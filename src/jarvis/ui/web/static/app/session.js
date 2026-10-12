@@ -2,22 +2,25 @@
 import { apiFetch, getToken, askForToken } from './api.js';
 import { openSocket } from './ws.js';
 import { escapeHtml } from './markdown.js';
-import { setStatus, logActivity } from './shell.js';
+import { setStatus, logActivity, showQuote } from './shell.js';
 import { appendMsg, appendHistory, resetMessages } from './messages.js';
 import { setModel, resetUsage } from './usage.js';
 import { hideArtifact } from './artifact.js';
 import { setInputEnabled, setSlashCommands } from './composer.js';
 import { fetchAgenda } from './agenda.js';
-import { fetchTools } from './tools.js';
+import { fetchTools, setToolsSession } from './tools.js';
 import { voice } from './voice-ui.js';
 import { handleMessage, resetAgentStack } from './events.js';
 import { setReplyClassifier } from './reply.js';
+import { applyBrand, AGENT_ID } from './brand.js';
+import { loadAgents, agents, agentById, isTeam } from './agents.js';
 
 const $list         = document.getElementById('session-list');
 const $count        = document.getElementById('session-count');
 const $idLabel      = document.getElementById('session-id-label');
 const $sysModel     = document.getElementById('sys-model');
 const $connBanner   = document.getElementById('connection-banner');
+const $agentSwitch  = document.getElementById('agent-switch');
 
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 10000;
@@ -25,14 +28,24 @@ const WS_UNAUTHORIZED = 4401;  // 서버가 키 불일치로 끊을 때 쓰는 c
 
 let _currentSessionId = 'default';
 let _reconnectDelay = RECONNECT_MIN_MS;
+// 세션 id → 에이전트 id. connected 와 /api/sessions 가 채운다
+let _sessionAgents = {};
 
-function renderSessions(sessions) {
+function renderSessions(sessions, sessionAgents) {
+  if (sessionAgents) _sessionAgents = sessionAgents;
   $list.innerHTML = '';
   $count.textContent = String(sessions.length).padStart(2, '0');
   for (const sid of sessions) {
     const isActive = sid === _currentSessionId;
     const div = document.createElement('div');
     div.className = `session${isActive ? ' active' : ''}`;
+    // 세션 앞 표식은 그 세션 에이전트의 색
+    const agent = agentById(_sessionAgents[sid] || 'main');
+    if (agent && isTeam()) {
+      div.style.setProperty('--agent-color', agent.palette.primary);
+      div.dataset.agent = agent.id;
+      div.title = agent.name;
+    }
     div.innerHTML = `
       <span class="marker"></span>
       <span class="title">${escapeHtml(sid)}</span>
@@ -47,7 +60,8 @@ function renderSessions(sessions) {
       const res = await apiFetch(`/api/sessions/${encodeURIComponent(sid)}`, { method: 'DELETE' });
       if (!res.ok) { logActivity(`세션 삭제 실패 · ${sid} · ${res.status}`, 'err'); return; }
       logActivity(`세션 삭제 · ${sid}`);
-      renderSessions((await (await apiFetch('/api/sessions')).json()).sessions);
+      const body = await (await apiFetch('/api/sessions')).json();
+      renderSessions(body.sessions, body.agents);
     });
     if (isActive) {
       div.querySelector('.fork-btn')?.addEventListener('click', async (e) => {
@@ -61,11 +75,45 @@ function renderSessions(sessions) {
   }
 }
 
+// 새 세션은 지금 보고 있는 에이전트의 것
+async function createSession(agentId) {
+  const res = await apiFetch('/api/sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agent: agentId }),
+  });
+  if (!res.ok) { logActivity(`세션 생성 실패 · ${agentId} · ${res.status}`, 'err'); return null; }
+  return (await res.json()).session_id;
+}
+
 document.getElementById('new-session-btn').addEventListener('click', async () => {
-  const res = await apiFetch('/api/sessions', { method: 'POST' });
-  const { session_id } = await res.json();
-  connect(session_id);
+  const sid = await createSession(AGENT_ID);
+  if (sid) connect(sid);
 });
+
+// 에이전트 전환: 그 에이전트의 열린 세션이 있으면 가장 위의 것으로, 없으면 새로 만든다
+async function switchAgent(agentId) {
+  if (agentId === AGENT_ID) return;
+  const sid = Object.keys(_sessionAgents).find((s) => _sessionAgents[s] === agentId) || await createSession(agentId);
+  if (sid) connect(sid);
+}
+
+function renderAgentSwitch() {
+  $agentSwitch.hidden = !isTeam();
+  $agentSwitch.innerHTML = '';
+  for (const a of agents()) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = `agent-chip${a.id === AGENT_ID ? ' active' : ''}`;
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', String(a.id === AGENT_ID));
+    b.style.setProperty('--agent-color', a.palette.primary);
+    b.textContent = a.name;
+    b.title = a.description || a.name;
+    b.addEventListener('click', () => switchAgent(a.id));
+    $agentSwitch.appendChild(b);
+  }
+}
 
 async function fetchAndRenderHistory(sessionId) {
   try {
@@ -89,7 +137,11 @@ function resetChatUI() {
 }
 
 // 서버의 첫 메시지 — 세션·모델·도구·슬래시 명령을 받아 화면을 채운다.
-function onConnected(msg) {
+async function onConnected(msg) {
+  await loadAgents();
+  // 세션 에이전트의 이름과 색으로 화면을 바꾼다. 바뀌었으면 명언도 그 에이전트 것으로
+  if (applyBrand(msg.agent)) showQuote();
+  renderAgentSwitch();
   const sid = msg.session_id || '—';
   const model = msg.model || '—';
   setModel(model);
@@ -98,8 +150,9 @@ function onConnected(msg) {
   $sysModel.title = model;
   logActivity(`session ${sid} linked`, 'ok');
   fetchAgenda();
+  setToolsSession(msg.session_id);
   fetchTools();
-  if (msg.sessions) renderSessions(msg.sessions);
+  if (msg.sessions) renderSessions(msg.sessions, msg.session_agents);
   if (msg.slash_commands) setSlashCommands(msg.slash_commands);
   if (msg.voice && msg.voice.stt_mode) voice.setSttMode(msg.voice.stt_mode);
   setReplyClassifier(msg.reply_classifier);

@@ -1,12 +1,12 @@
 ---
 sidebar_position: 2
-title: 설치 및 실행
+title: Quick Start
 ---
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# 설치 및 실행
+# Quick Start
 
 이 페이지를 따라 하면 jarvis-agent 를 내려받아 TUI 나 Web HUD 로 띄울 수 있다. 로컬에서 uv 로 띄우는 길과 Docker 로 전체 스택을 띄우는 길이 있고, 둘 중 하나만 고르면 된다.
 

@@ -1,15 +1,15 @@
 ---
-sidebar_position: 3
+sidebar_position: 1.5
 title: 첫 대화
 ---
 
 # 첫 대화
 
-이 페이지는 jarvis-agent 를 띄운 직후 5분 안에 핵심 동작 세 가지를 직접 보는 길이다. 내적 사고(💭), 승인, 먼저 건네는 말(🔔)을 차례로 확인한다. 아직 띄우지 않았다면 [설치 및 실행](./install.md)부터 한다.
+이 페이지는 jarvis-agent 를 띄운 직후 5분 안에 핵심 동작 세 가지를 직접 보는 길이다. 내적 사고(💭), 승인, 먼저 건네는 말(🔔)을 차례로 확인한다. 아직 띄우지 않았다면 [Quick Start](../start/install.md)부터 한다.
 
 ## 사고 한 줄 보기
 
-"안녕" 한 마디를 보낸다. 응답 위에 💭 로 시작하는 한 줄이 뜨면 [내적 사고](../concepts/inner-thought.md)가 켜진 것이다. 이 한 줄은 JARVIS 가 답하기 전에 따로 내린 판단의 요약이다.
+"안녕" 한 마디를 보낸다. 응답 위에 💭 로 시작하는 한 줄이 뜨면 [내적 사고](./inner-thought.md)가 켜진 것이다. 이 한 줄은 JARVIS 가 답하기 전에 따로 내린 판단의 요약이다.
 
 ## 승인 해 보기
 
@@ -25,7 +25,7 @@ title: 첫 대화
 `ALWAYS` 는 지금 세션 에이전트의 승인 규칙 파일(`~/.jarvis/approvals/<agent_id>.yaml`)에 패턴을 남긴다. 지우거나 덮어쓰는 명령에 `ALWAYS` 를 누르면 그 뒤로는 묻지 않고 실행한다. 규칙을 되돌리려면 그 파일에서 해당 줄을 지운다.
 :::
 
-승인 규칙이 어떻게 쌓이고 나뉘는지는 [도구와 승인](../concepts/tools-and-approval.md)에 있다.
+승인 규칙이 어떻게 쌓이고 나뉘는지는 [도구와 승인](./tools-and-approval.md)에 있다.
 
 ## 먼저 건네는 말 기다리기
 
@@ -35,6 +35,6 @@ title: 첫 대화
 
 ## 다음에 읽을 것
 
-- [먼저 행동하기](../concepts/proactive.md): 🔔 를 언제 보내고 언제 참는지
-- [Web HUD 사용법](./web-hud.md): 카드와 입력, 세션 다루기
+- [먼저 행동하기](./proactive.md): 🔔 를 언제 보내고 언제 참는지
+- [Web HUD 사용가이드](../start/web-hud.md): 카드와 입력, 세션 다루기
 - [용어집](../reference/glossary.md): 이 문서에서 쓰는 이름들

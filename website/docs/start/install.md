@@ -103,15 +103,3 @@ JARVIS_LLM__MODEL=gemma4:e4b
 :::warning[WARNING]
 클라우드 프로바이더는 요청마다 비용이 든다. JARVIS 는 응답 한 번에 메인 호출 외에 사고 호출을 한 번 더 하고, 요청이 없을 때도 주기적으로 성찰 호출을 한다. 비용이 걱정되면 사고 모델을 작은 모델이나 로컬 모델로 따로 둔다.
 :::
-
-## 컨테이너 개별 서빙
-
-필요한 기능만 골라 설치한다.
-
-```bash
-uv sync --extra web          # Web HUD (FastAPI, uvicorn). 없으면 --web 이 안 뜬다
-uv sync --extra scheduler    # /schedule 의 cron 과 AGENDA 의 다음 실행 시각
-uv sync --extra mcp          # MCP 서버 연결
-uv sync --extra gemini       # Google Gemini
-uv sync --extra voice        # 서버 STT(faster-whisper), TTS(supertonic)
-```

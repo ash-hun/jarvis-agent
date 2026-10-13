@@ -1,5 +1,5 @@
 ---
-sidebar_position: 3
+sidebar_position: 1
 title: 새로운 Agent 확장방법
 ---
 

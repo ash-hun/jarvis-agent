@@ -1,22 +1,22 @@
 ---
 sidebar_position: 2
-title: 설치와 실행
+title: 설치 및 실행
 ---
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# 설치와 실행
+# 설치 및 실행
 
 이 페이지를 따라 하면 jarvis-agent 를 내려받아 TUI 나 Web HUD 로 띄울 수 있다. 로컬에서 uv 로 띄우는 길과 Docker 로 전체 스택을 띄우는 길이 있고, 둘 중 하나만 고르면 된다.
 
-## 준비물
+## 실행환경
 
 - Python 3.11 이상과 [uv](https://docs.astral.sh/uv/)
 - LLM 하나. 클라우드 API 키가 있거나 로컬에 Ollama, vLLM 이 떠 있어야 한다
 - Docker(선택). Web HUD 전체 스택(nginx, 백엔드, Postgres)을 한 번에 띄울 때만 쓴다
 
-## 띄우기
+## 서비스 구동방법
 
 <Tabs groupId="runtime">
 <TabItem value="uv" label="로컬 (uv)" default>
@@ -58,16 +58,16 @@ docker compose --profile web down
 
 컨테이너 안에서 호스트의 Ollama 를 쓰려면 `JARVIS_LLM__BASE_URL=http://host.docker.internal:11434` 로 둔다.
 
-:::warning
+:::warning[WARNING]
 새 의존성이 들어간 버전으로 올렸다면 `./src` 마운트만으로는 반영되지 않는다. `docker compose build` 로 이미지를 다시 만든다.
 :::
 
 </TabItem>
 </Tabs>
 
-## LLM 프로바이더 고르기
+## LLM Provider 선택
 
-`JARVIS_LLM__PROVIDER` 하나로 프로바이더를 고른다.
+로컬 LLM(Ollama, vLLM 등) 및 Private SaaS LLM API 연동이 가능합니다. 환경변수 `JARVIS_LLM__PROVIDER` 에서 설정값을 변경할 수 있습니다.
 
 | 프로바이더 | `JARVIS_LLM__PROVIDER` | API 키 |
 |---|---|---|
@@ -100,11 +100,11 @@ JARVIS_LLM__MODEL=gemma4:e4b
 
 메인 모델은 도구 호출과 JSON 출력을 지원해야 한다. 로컬에서 검증한 조합은 메인 `gemma4:e4b`, 사고 전용 `gemma4:e2b-it-qat` 이다. 사고 모델을 따로 두는 방법은 [설정](../reference/configuration.md)에 있다.
 
-:::warning
+:::warning[WARNING]
 클라우드 프로바이더는 요청마다 비용이 든다. JARVIS 는 응답 한 번에 메인 호출 외에 사고 호출을 한 번 더 하고, 요청이 없을 때도 주기적으로 성찰 호출을 한다. 비용이 걱정되면 사고 모델을 작은 모델이나 로컬 모델로 따로 둔다.
 :::
 
-## 선택 의존성
+## 컨테이너 개별 서빙
 
 필요한 기능만 골라 설치한다.
 
@@ -115,5 +115,3 @@ uv sync --extra mcp          # MCP 서버 연결
 uv sync --extra gemini       # Google Gemini
 uv sync --extra voice        # 서버 STT(faster-whisper), TTS(supertonic)
 ```
-
-다 띄웠으면 [첫 대화](./first-chat.md)로 넘어간다.

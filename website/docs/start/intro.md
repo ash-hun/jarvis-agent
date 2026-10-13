@@ -38,7 +38,7 @@ JARVIS 는 쓸수록 사용자에게 맞춰진다. 한 번 허용한 명령 패�
 
 :::note[Notes]
 
-- 바로 써 보려면 [설치와 실행](./install.md) 다음 [첫 대화](./first-chat.md)를 따라간다.
+- 바로 써 보려면 [설치 및 실행](./install.md) 다음 [첫 대화](./first-chat.md)를 따라간다.
 - 어떻게 동작하는지 알고 싶으면 [기능 목록](../concepts/services.md)에서 시작한다.
 - 설정 키나 명령을 찾으면 [환경설정](/reference)를 연다.
 - 낯선 말이 나오면 [용어집](../reference/glossary.md)을 본다.

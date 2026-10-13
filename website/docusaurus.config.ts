@@ -75,7 +75,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `MIT License. Built with Docusaurus.`,
+      copyright: `Copyright © 2026 Jaehun Choi. All Rights Reserved.`,
     },
     prism: {theme: prismThemes.github, darkTheme: prismThemes.nightOwl, additionalLanguages: ['bash', 'yaml', 'json']},
     mermaid: {theme: {light: 'neutral', dark: 'dark'}},

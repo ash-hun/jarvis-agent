@@ -720,4 +720,4 @@ uv run pytest tests/integration/ -v
 
 ## License
 
-MIT
+All Rights Reserved. 이 저장소는 열람과 참고 목적으로만 공개한다. 사용, 복제, 수정, 배포, AI 학습 데이터로의 사용은 허용하지 않는다. 머지된 기여자만 저작권자의 서면 허락을 받아 허락받은 범위 안에서 쓸 수 있다. 자세한 조건은 [LICENSE](./LICENSE) 를 본다.

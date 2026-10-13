@@ -1,21 +1,72 @@
-MIT License
+Copyright (c) 2026 Jaehun Choi (https://github.com/ash-hun)
+All Rights Reserved.
 
-Copyright (c) 2026 Choi JaeHun
+PROPRIETARY SOURCE-VISIBLE LICENSE
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Scope
+   This repository, including all source code, documentation, data,
+   images, and other materials (the "Software"), is the exclusive
+   property of the copyright holder.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. Permitted Use
+   The Software is made publicly visible solely for viewing and
+   reference purposes (e.g., portfolio review). Viewing the Software
+   in a web browser does not grant any license or right to use it.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+3. Prohibited Use
+   Except as provided in Section 4, you may NOT, in whole or in part:
+   (a) use, execute, or deploy the Software;
+   (b) copy, reproduce, or download the Software for any purpose
+       other than viewing;
+   (c) modify, adapt, translate, or create derivative works;
+   (d) merge or incorporate the Software into any other software,
+       product, or service;
+   (e) publish, distribute, sublicense, sell, rent, or lease the
+       Software;
+   (f) use the Software, or any part of it, as training data for
+       machine learning or artificial intelligence models;
+   (g) remove or alter this notice or any copyright notice.
+
+4. Contributor Use
+   (a) A "Contributor" is any individual whose contribution (such as
+       a pull request) has been accepted and merged into this
+       repository by the copyright holder.
+   (b) A Contributor may use the Software for the purposes of
+       Section 3 only after obtaining prior written permission from
+       the copyright holder. Such permission must specify its scope
+       (which parts and which uses), and the Contributor may use the
+       Software only within that scope.
+   (c) Permission is personal to the Contributor, is
+       non-transferable and non-sublicensable, and may be revoked by
+       the copyright holder at any time by written notice.
+   (d) Being a Contributor does not by itself grant any right to use
+       the Software. Persons who are not Contributors are not
+       eligible to receive permission under this Section.
+
+5. Contributions
+   By submitting a contribution to this repository, the Contributor
+   grants the copyright holder a perpetual, worldwide, irrevocable,
+   royalty-free license to use, modify, distribute, and sublicense
+   that contribution as part of the Software, and agrees that the
+   contribution is governed by this LICENSE.
+
+6. GitHub Terms of Service
+   To the extent required by the GitHub Terms of Service, users of
+   GitHub may view and fork this repository on GitHub. Forking does
+   NOT grant any of the rights prohibited in Section 3. Any fork must
+   retain this LICENSE file unmodified.
+
+7. Reservation of Rights
+   All rights not expressly granted herein are reserved by the
+   copyright holder. No license is granted by implication, estoppel,
+   or otherwise.
+
+8. Disclaimer of Warranty
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE
+   LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM
+   THE SOFTWARE OR ITS USE.
+
+9. Permission Requests
+   Contributors may request permission under Section 4 by contacting
+   the copyright holder via https://github.com/ash-hun.

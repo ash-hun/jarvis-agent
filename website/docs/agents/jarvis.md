@@ -32,7 +32,7 @@ JARVIS 는 정의 파일 대신 환경 변수가 정본이다. `team/` 에 `main
 | 보조 색 | `JARVIS_BRAND__PALETTE__ACCENT` | `#f0b35f` |
 | 모델 | `JARVIS_LLM__*` | [Quick Start](../start/install.md)에서 고른 프로바이더 |
 
-다른 에이전트는 비운 항목을 JARVIS 설정에서 이어받는다. 전체 설정 키는 [설정](../reference/configuration.md)에 있다.
+다른 에이전트는 비운 항목을 JARVIS 설정에서 이어받는다. 전체 설정 키는 [서비스 설정 값](../reference/configuration.md)에 있다.
 
 ## 더 읽을 것
 

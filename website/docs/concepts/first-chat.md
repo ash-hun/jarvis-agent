@@ -31,10 +31,10 @@ title: 첫 대화
 
 대화를 멈추고 2분쯤 둔다. JARVIS 가 성찰한 끝에 할 말이 분명하다고 판단하면 🔔 로 먼저 말을 건다. 할 말이 없으면 침묵하는 게 정상이다.
 
-🔔 가 오지 않을 때는 백엔드 로그에서 `[Thought] proactive silent: <이유>` 를 찾는다. JARVIS 는 침묵할 때마다 이유를 이 줄에 남긴다. 이유별 대처는 [FAQ](../troubleshooting.md)에 있다.
+🔔 가 오지 않을 때는 백엔드 로그에서 `[Thought] proactive silent: <이유>` 를 찾는다. JARVIS 는 침묵할 때마다 이유를 이 줄에 남긴다. 이유별 대처는 [FAQ](../troubleshooting/proactive-silent.md)에 있다.
 
 ## 다음에 읽을 것
 
 - [먼저 행동하기](./proactive.md): 🔔 를 언제 보내고 언제 참는지
 - [Web HUD 사용가이드](../start/web-hud.md): 카드와 입력, 세션 다루기
-- [용어집](../reference/glossary.md): 이 문서에서 쓰는 이름들
+- [전체 용어집](../reference/glossary.md): 이 문서에서 쓰는 이름들

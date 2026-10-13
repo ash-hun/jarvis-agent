@@ -98,7 +98,7 @@ JARVIS_LLM__MODEL=gemma4:e4b
 </TabItem>
 </Tabs>
 
-메인 모델은 도구 호출과 JSON 출력을 지원해야 한다. 로컬에서 검증한 조합은 메인 `gemma4:e4b`, 사고 전용 `gemma4:e2b-it-qat` 이다. 사고 모델을 따로 두는 방법은 [설정](../reference/configuration.md)에 있다.
+메인 모델은 도구 호출과 JSON 출력을 지원해야 한다. 로컬에서 검증한 조합은 메인 `gemma4:e4b`, 사고 전용 `gemma4:e2b-it-qat` 이다. 사고 모델을 따로 두는 방법은 [서비스 설정 값](../reference/configuration.md)에 있다.
 
 :::warning[WARNING]
 클라우드 프로바이더는 요청마다 비용이 든다. JARVIS 는 응답 한 번에 메인 호출 외에 사고 호출을 한 번 더 하고, 요청이 없을 때도 주기적으로 성찰 호출을 한다. 비용이 걱정되면 사고 모델을 작은 모델이나 로컬 모델로 따로 둔다.

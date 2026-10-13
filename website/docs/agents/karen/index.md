@@ -7,6 +7,8 @@ title: KAREN
 
 <span className="agent agent--karen">K.A.R.E.N.</span> 는 정한 분야의 정보를 찾아 모으고 출처와 함께 요약하는 정보 수집 담당 에이전트다(id `karen`). 지금은 LH, SH 청약 공고 조회, 예산에 맞는 공고 추천, 주택 대출 원리금 계산을 맡는다.
 
+![KAREN 세션의 Web HUD. 녹색 리액터 구체와 청약 공고 대화가 보이는 CONVERSATION 카드](/img/agents/karen-hud.png)
+
 ## 맡은 일
 
 - 사용자가 정한 분야의 정보를 찾고, 무엇을 어디서 찾았는지 출처와 함께 핵심 3줄에서 5줄로 정리한다

@@ -47,7 +47,7 @@ const config: Config = {
       items: [
         {to: '/intro', label: '시작하기', position: 'left'},
         {to: '/concepts', label: '기능소개', position: 'left'},
-        {to: '/guides', label: '사용하기', position: 'left'},
+        {to: '/agents', label: 'Agent 기능', position: 'left'},
         {to: '/reference', label: '환경설정', position: 'left'},
         {to: '/troubleshooting', label: 'FAQ', position: 'left'},
         {href: 'https://github.com/ash-hun/jarvis-agent', label: 'GitHub', position: 'right'},
@@ -61,7 +61,7 @@ const config: Config = {
           items: [
             {label: '시작하기', to: '/intro'},
             {label: '기능소개', to: '/concepts'},
-            {label: '사용하기', to: '/guides'},
+            {label: 'Agent 기능', to: '/agents'},
             {label: '환경설정', to: '/reference'},
             {label: 'FAQ', to: '/troubleshooting'},
           ],

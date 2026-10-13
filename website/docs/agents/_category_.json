@@ -1,0 +1,10 @@
+{
+  "label": "Agent 기능",
+  "position": 3,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "에이전트마다 맡은 일과 그 에이전트만 쓰는 기능을 모았다.",
+    "slug": "/agents"
+  }
+}

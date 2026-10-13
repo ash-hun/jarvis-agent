@@ -36,5 +36,5 @@ title: 첫 대화
 ## 다음에 읽을 것
 
 - [먼저 행동하기](../concepts/proactive.md): 🔔 를 언제 보내고 언제 참는지
-- [Web HUD 사용법](../guides/web-hud.md): 카드와 입력, 세션 다루기
+- [Web HUD 사용법](./web-hud.md): 카드와 입력, 세션 다루기
 - [용어집](../reference/glossary.md): 이 문서에서 쓰는 이름들

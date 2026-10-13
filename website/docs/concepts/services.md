@@ -26,8 +26,8 @@ jarvis-agent 의 기능을 한 표에 모았다. 이름을 누르면 그 기능�
 | [도구, 승인, 절차 학습](./tools-and-approval.md) | 내장 도구와 MCP, 실행 전 승인과 승인 기억, 반복 작업을 절차 도구로 | 승인 모달, `/procedures` |
 | [세션](./sessions.md) | 대화 단위. 만들기, 전환, 분기, 이어 붙이기 | SESSIONS 카드, TUI 사이드바 |
 | [최상위 에이전트 팀](./team.md) | JARVIS 와 같은 층의 에이전트(KAREN 등)를 파일 하나로 늘린다. 세션, 기억, 승인 규칙, 색을 따로 갖고 `ask_agent` 로 서로 일을 맡긴다 | 에이전트 칩, AGENDA 라벨, 구체 색 섞임 |
-| [청약 공고와 대출 계산](../guides/housing.md) | KAREN 이 LH, SH 청약 공고를 조회해 KST 기준 마감을 붙이고, 총예산과 현금으로 공고를 추천하며, 공고의 분양가나 보증금으로 월, 연간 원리금 상환액을 계산한다 | KAREN 세션, JARVIS 에게 물으면 KAREN 에게 위임 |
+| [청약 공고와 대출 계산](../agents/karen/housing.md) | KAREN 이 LH, SH 청약 공고를 조회해 KST 기준 마감을 붙이고, 총예산과 현금으로 공고를 추천하며, 공고의 분양가나 보증금으로 월, 연간 원리금 상환액을 계산한다 | KAREN 세션, JARVIS 에게 물으면 KAREN 에게 위임 |
 | [멀티 에이전트](./multi-agent.md) | 정의 파일의 서브 에이전트에게 일을 나눈다. 다섯 가지 패턴 | `/orchestrate`, 위임 도구 |
-| [음성과 Full-voice](../guides/voice.md) | 음성 입력과 읽기. Full-voice 는 응답, 승인, 🔔 피드백까지 말로 묻고 답한다 | 구체 클릭, 헤더 `FULL-VOICE` |
+| [음성과 Full-voice](./voice.md) | 음성 입력과 읽기. Full-voice 는 응답, 승인, 🔔 피드백까지 말로 묻고 답한다 | 구체 클릭, 헤더 `FULL-VOICE` |
 | [외부 알림](./proactive.md#외부-알림) | 열린 화면이 없어도 🔔 와 스케줄 결과를 Slack 으로 보낸다 | Slack |
 | [슬래시 커맨드와 확장](../reference/slash-commands.md) | `/` 명령, 스킬, 플러그인 훅, 사용자 도구 | 입력창 `/` |

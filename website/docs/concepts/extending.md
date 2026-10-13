@@ -1,5 +1,5 @@
 ---
-sidebar_position: 5
+sidebar_position: 13
 title: 확장하기
 ---
 
@@ -123,7 +123,7 @@ class MyPlugin:
 - `market`: capabilities 가 맞는 에이전트 하나가 맡는다
 - `blackboard`: 전원이 병렬로 돌고 결과를 취합한다
 
-패턴을 쉼표로 이으면 파이프라인이 된다. 서브 에이전트는 부모의 사용자 범위를 상속하고, 부모는 위임한 일을 일화로 기억한다. 패턴별 흐름은 [멀티 에이전트](../concepts/multi-agent.md) 에 있다.
+패턴을 쉼표로 이으면 파이프라인이 된다. 서브 에이전트는 부모의 사용자 범위를 상속하고, 부모는 위임한 일을 일화로 기억한다. 패턴별 흐름은 [멀티 에이전트](./multi-agent.md) 에 있다.
 
 ## LLM 프로바이더
 
@@ -137,7 +137,7 @@ async def stream(model: ModelConfig, ctx: LLMContext, options) -> AsyncIterator[
 
 ## 메모리 미들웨어
 
-`MemoryMiddleware` 프로토콜(`transform`, `store`, `retrieve`, `clear`)을 구현해 `MemoryMiddlewareChain` 에 끼운다. 체인은 턴마다 순서대로 돈다. 체인이 기억을 프롬프트에 넣는 흐름은 [메모리](../concepts/memory.md) 에 있다.
+`MemoryMiddleware` 프로토콜(`transform`, `store`, `retrieve`, `clear`)을 구현해 `MemoryMiddlewareChain` 에 끼운다. 체인은 턴마다 순서대로 돈다. 체인이 기억을 프롬프트에 넣는 흐름은 [메모리](./memory.md) 에 있다.
 
 ## 사고 프롬프트
 

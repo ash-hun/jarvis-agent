@@ -28,4 +28,4 @@ title: 용어집
 | 세션 | | 대화 한 줄기. 만들 때 에이전트가 정해지고 바뀌지 않는다 | [세션](../concepts/sessions.md) |
 | 최상위 에이전트 | | JARVIS 와 같은 층에서 자기 세션, 기억, 승인 규칙, 색을 가진 에이전트. KAREN 이 그 예다 | [에이전트 팀](../concepts/team.md) |
 | 서브 에이전트 | | 부모 턴 안에서 잠깐 도는 도구 같은 에이전트. 최상위 에이전트와 다르다 | [멀티 에이전트](../concepts/multi-agent.md) |
-| HUD | | 브라우저 화면(Web HUD). 리액터 구체를 가운데 두고 카드를 두른다 | [Web HUD 사용법](../guides/web-hud.md) |
+| HUD | | 브라우저 화면(Web HUD). 리액터 구체를 가운데 두고 카드를 두른다 | [Web HUD 사용법](../start/web-hud.md) |

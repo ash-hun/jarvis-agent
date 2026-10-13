@@ -14,7 +14,7 @@ title: 최상위 에이전트 팀
 | id | 이름 | 맡은 일 | 메인 색 | 정의 |
 |---|---|---|---|---|
 | `main` | J.A.R.V.I.S. | 전체 총괄. 사용자의 기본 대화 상대 | <span className="agent agent--jarvis">JARVIS</span> `#5fc8e2` | env(`JARVIS_BRAND__*`) |
-| `karen` | K.A.R.E.N. | 특정 분야 정보 수집과 출처 있는 요약. LH, SH 청약 공고 조회, 예산에 맞는 공고 추천, 대출 계산([청약 공고와 대출 계산](../guides/housing.md)) | <span className="agent agent--karen">KAREN</span> `#97BC62` | `team/karen.yaml` |
+| `karen` | K.A.R.E.N. | 특정 분야 정보 수집과 출처 있는 요약. LH, SH 청약 공고 조회, 예산에 맞는 공고 추천, 대출 계산([청약 공고와 대출 계산](../agents/karen/housing.md)) | <span className="agent agent--karen">KAREN</span> `#97BC62` | `team/karen.yaml` |
 
 메인 색(`palette.primary`)은 HUD 의 링, 입자 구, 패널, 에이전트 칩, 세션 표식, AGENDA 라벨에 쓰인다. 두 에이전트가 함께 일하면 입자 구가 두 메인 색(시안과 녹색)으로 섞인다. 색을 바꾸려면 정의 파일의 `palette.primary` 를 고치고 서버를 다시 띄운다.
 

@@ -14,7 +14,11 @@ const config: Config = {
   i18n: {defaultLocale: 'ko', locales: ['ko']},
   stylesheets: [
     {
-      href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap',
+      href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap',
+      type: 'text/css',
+    },
+    {
+      href: 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css',
       type: 'text/css',
     },
   ],

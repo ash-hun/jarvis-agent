@@ -31,7 +31,7 @@ title: 첫 대화
 
 대화를 멈추고 2분쯤 둔다. JARVIS 가 성찰한 끝에 할 말이 분명하다고 판단하면 🔔 로 먼저 말을 건다. 할 말이 없으면 침묵하는 게 정상이다.
 
-🔔 가 오지 않을 때는 백엔드 로그에서 `[Thought] proactive silent: <이유>` 를 찾는다. JARVIS 는 침묵할 때마다 이유를 이 줄에 남긴다. 이유별 대처는 [문제 해결](../troubleshooting.md)에 있다.
+🔔 가 오지 않을 때는 백엔드 로그에서 `[Thought] proactive silent: <이유>` 를 찾는다. JARVIS 는 침묵할 때마다 이유를 이 줄에 남긴다. 이유별 대처는 [FAQ](../troubleshooting.md)에 있다.
 
 ## 다음에 읽을 것
 

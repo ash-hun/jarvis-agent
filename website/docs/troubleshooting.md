@@ -1,9 +1,9 @@
 ---
 sidebar_position: 5
-title: 문제 해결
+title: FAQ
 ---
 
-# 문제 해결
+# FAQ
 
 이 페이지는 자주 겪는 증상마다 원인과 확인할 곳을 모은다.
 

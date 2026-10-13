@@ -5,7 +5,9 @@ title: 확장하기
 
 # 확장하기
 
-`~/.jarvis/` 아래 폴더에 파일을 놓는 것이 확장의 기본 방식이다. 도구, 스킬, 플러그인, 에이전트 정의는 기동 때 읽는다. 더했으면 재시작한다(설정의 `WATCH_FILES` 는 아직 아무것도 감시하지 않는다).
+`~/.jarvis/` 아래 폴더에 파일을 놓아 JARVIS 에 도구, 스킬, 플러그인, 에이전트를 더한다.
+
+도구, 스킬, 플러그인, 에이전트 정의는 기동할 때 읽는다. 그래서 파일을 더했으면 재시작한다. 설정의 `WATCH_FILES` 는 아직 아무것도 감시하지 않는다.
 
 ## 도구
 
@@ -39,7 +41,7 @@ parameters:
 
 ## MCP 서버
 
-[MCP](https://modelcontextprotocol.io) 서버의 도구를 자동으로 발견해 등록한다. `stdio` 와 `http`(SSE) 를 지원한다. `uv sync --extra mcp` 가 필요하고, 없으면 조용히 건너뛴다. 설정은 `mcp_servers` 목록이고 환경변수로는 `JARVIS_MCP_SERVERS` 에 JSON 배열로 준다.
+[MCP](https://modelcontextprotocol.io) 서버를 설정하면 JARVIS 가 그 서버의 도구를 자동으로 발견해 등록한다. 전송 방식은 `stdio` 와 `http`(SSE) 를 지원한다. `uv sync --extra mcp` 로 설치해야 하고, 설치하지 않았으면 조용히 건너뛴다. 설정 키는 `mcp_servers` 목록이고, 환경변수로 줄 때는 `JARVIS_MCP_SERVERS` 에 JSON 배열로 넣는다.
 
 ```json
 {"name": "filesystem", "transport": "stdio",
@@ -49,11 +51,11 @@ parameters:
  "auth_token": "sk-...", "headers": {"X-Org": "acme"}, "timeout": 30.0}
 ```
 
-서버 하나의 실패나 타임아웃이 다른 서버 로딩을 막지 않는다. `timeout`(기본 30초) 안에 응답이 없으면 그 서버만 건너뛴다.
+서버 하나가 실패하거나 타임아웃이 나도 다른 서버 로딩은 막히지 않는다. `timeout`(기본 30초) 안에 응답이 없으면 그 서버만 건너뛴다.
 
 ## 스킬(슬래시 커맨드)
 
-`~/.jarvis/skills/` 에 Markdown 을 둔다. frontmatter 의 `name` 이 `/name` 이 된다. `{{args}}` 자리에 사용자가 뒤에 쓴 글이 들어가고, 펼쳐진 본문이 LLM 프롬프트가 된다.
+`~/.jarvis/skills/` 에 Markdown 파일을 둔다. frontmatter 의 `name` 이 `/name` 커맨드가 된다. 사용자가 커맨드 뒤에 쓴 글이 `{{args}}` 자리에 들어가고, 펼쳐진 본문이 LLM 프롬프트가 된다.
 
 ```markdown
 ---
@@ -66,11 +68,11 @@ aliases: [sum, tldr]
 {{args}}
 ```
 
-같은 이름의 `.py` 를 두면 `run(args, context)` 가 먼저 돌고 반환 문자열이 프롬프트가 된다.
+같은 이름의 `.py` 파일을 두면 `run(args, context)` 가 먼저 돌고, 그 반환 문자열이 프롬프트가 된다.
 
 ## 플러그인
 
-에이전트 실행 흐름의 훅. `~/.jarvis/plugins/` 에 클래스를 둔다.
+플러그인은 에이전트 실행 흐름에 거는 훅이다. `~/.jarvis/plugins/` 에 클래스를 둔다.
 
 ```python
 class MyPlugin:
@@ -87,11 +89,17 @@ class MyPlugin:
         return messages
 ```
 
-실제로 불리는 훅은 `before_agent_start`, `before_tool_call`, `after_tool_call`, `on_message_end` 다. `transform_context` 는 프로토콜에만 있고 호출되지 않는다. 훅을 정의하지 않으면 그 훅에서 오류 로그가 남으므로 다섯 개를 다 둔다. 플러그인 하나의 오류는 격리된다.
+실제로 불리는 훅은 `before_agent_start`, `before_tool_call`, `after_tool_call`, `on_message_end` 네 개다. `transform_context` 는 프로토콜에만 있고 호출되지 않는다. 플러그인 하나에서 난 오류는 격리된다.
+
+:::note
+
+정의하지 않은 훅이 있으면 그 훅을 부를 때마다 오류 로그가 남는다. 그래서 다섯 개를 모두 정의해 둔다.
+
+:::
 
 ## 멀티 에이전트
 
-`~/.jarvis/agents/` 에 YAML 로 에이전트를 선언한다. 하나씩 또는 리스트로.
+`~/.jarvis/agents/` 에 YAML 로 에이전트를 선언한다. 하나씩 써도 되고 리스트로 여럿 써도 된다.
 
 ```yaml
 - name: planner
@@ -108,11 +116,18 @@ class MyPlugin:
   level: 1
 ```
 
-호출은 `/orchestrate <pattern> <task>` 또는 메인 에이전트의 `orchestrate` 도구. 패턴은 `supervisor`(감독자 LLM 이 위임 결정), `hierarchical`(레벨 순, 앞 결과가 뒤로), `market`(capabilities 가 맞는 하나), `blackboard`(전원 병렬, 결과 취합). 쉼표로 이으면 파이프라인. 서브 에이전트는 부모의 사용자 범위를 상속하고, 부모는 위임을 일화로 기억한다. 자세한 흐름은 [멀티 에이전트](../concepts/multi-agent.md).
+선언한 에이전트는 `/orchestrate <pattern> <task>` 로 부르거나, 메인 에이전트가 `orchestrate` 도구로 부른다. 패턴은 네 가지다.
+
+- `supervisor`: 감독자 LLM 이 위임을 결정한다
+- `hierarchical`: 레벨 순으로 돌고, 앞 결과가 뒤로 넘어간다
+- `market`: capabilities 가 맞는 에이전트 하나가 맡는다
+- `blackboard`: 전원이 병렬로 돌고 결과를 취합한다
+
+패턴을 쉼표로 이으면 파이프라인이 된다. 서브 에이전트는 부모의 사용자 범위를 상속하고, 부모는 위임한 일을 일화로 기억한다. 패턴별 흐름은 [멀티 에이전트](../concepts/multi-agent.md) 에 있다.
 
 ## LLM 프로바이더
 
-`src/jarvis/model_layer/providers/` 에 `stream()` 하나를 구현하고 레지스트리에 등록한다.
+LLM 프로바이더를 더하려면 `src/jarvis/model_layer/providers/` 에 `stream()` 하나를 구현하고 레지스트리에 등록한다.
 
 ```python
 async def stream(model: ModelConfig, ctx: LLMContext, options) -> AsyncIterator[StreamEvent]:
@@ -122,8 +137,14 @@ async def stream(model: ModelConfig, ctx: LLMContext, options) -> AsyncIterator[
 
 ## 메모리 미들웨어
 
-`MemoryMiddleware` 프로토콜(`transform`, `store`, `retrieve`, `clear`)을 구현해 `MemoryMiddlewareChain` 에 끼운다. 턴마다 체인이 순서대로 돈다. [메모리](../concepts/memory.md) 를 보라.
+`MemoryMiddleware` 프로토콜(`transform`, `store`, `retrieve`, `clear`)을 구현해 `MemoryMiddlewareChain` 에 끼운다. 체인은 턴마다 순서대로 돈다. 체인이 기억을 프롬프트에 넣는 흐름은 [메모리](../concepts/memory.md) 에 있다.
 
 ## 사고 프롬프트
 
-`~/.jarvis/inner_thought.md`(요청), `~/.jarvis/inner_thought_reflection.md`(성찰). 프레임의 키 이름은 바꾸지 않는다. `utterance` 가 없으면 먼저 말하는 기능이 꺼진 것과 같다.
+요청 때 쓰는 사고 프롬프트는 `~/.jarvis/inner_thought.md` 에, 성찰 때 쓰는 프롬프트는 `~/.jarvis/inner_thought_reflection.md` 에 두어 바꾼다. 사고 프레임의 키 이름은 바꾸지 않는다.
+
+:::note
+
+템플릿에 `utterance` 키가 없으면 먼저 건네는 말이 꺼진 것과 같다.
+
+:::

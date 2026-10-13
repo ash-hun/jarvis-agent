@@ -5,7 +5,9 @@ title: 슬래시 커맨드
 
 # 슬래시 커맨드
 
-입력의 어디에 있든 `/명령` 은 서버의 디스패처가 먼저 가로챈다. 명령이 입력을 다 소비하면 LLM 으로 가지 않고, 남은 글이 있으면 그것만 LLM 으로 간다. Web HUD 는 `/` 를 치면 자동완성 팝업이 뜬다.
+슬래시 커맨드는 LLM 을 거치지 않고 서버가 바로 처리하는 명령이다.
+
+`/명령` 이 입력의 어디에 있든 서버의 디스패처가 먼저 가로챈다. 명령이 입력을 다 소비하면 LLM 으로 보내지 않고, 남은 글이 있으면 그 글만 LLM 으로 보낸다. Web HUD 에서는 `/` 를 치면 자동완성 팝업이 뜬다.
 
 | 커맨드 | 별칭 | 설명 |
 |---|---|---|
@@ -29,6 +31,8 @@ title: 슬래시 커맨드
 | `/exit` | | TUI 종료 |
 | `/<절차 이름>` | | 승인된 절차 하나가 스킬 하나다 |
 
+사용 예는 다음과 같다.
+
 ```text
 /schedule 내일 오전 9시에 날씨 알려줘
 /schedule 30분 뒤에 배포 로그 확인
@@ -39,6 +43,6 @@ title: 슬래시 커맨드
 /orchestrate blackboard --agents a,b --promote 시장 분석
 ```
 
-직접 만든 스킬은 `~/.jarvis/skills/` 에 Markdown 으로 둔다. [확장하기](../guides/extending.md) 를 보라.
+직접 만든 스킬은 `~/.jarvis/skills/` 에 Markdown 으로 둔다. 파일 형식은 [확장하기](../guides/extending.md) 에 있다.
 
-`/openloop`, `/usermodel`, `/journal` 은 내적 사고가 켜져 있을 때만, `/orchestrate` 는 에이전트 정의가 하나 이상 있을 때만 등록된다.
+`/openloop`, `/usermodel`, `/journal` 은 내적 사고가 켜져 있을 때만 등록된다. `/orchestrate` 는 에이전트 정의가 하나 이상 있을 때만 등록된다.

@@ -5,9 +5,9 @@ title: 최상위 에이전트 팀
 
 # 최상위 에이전트 팀
 
-JARVIS 와 같은 층에 에이전트를 더 둔다. 첫 번째이자 전체를 총괄하는 에이전트가 JARVIS(id `main`)이고, 정보 수집을 맡는 KAREN(id `karen`)처럼 목적이 다른 에이전트를 파일 하나로 늘린다. 구현은 `app/agent_registry.py`.
+최상위 에이전트 팀은 JARVIS 와 같은 층에 목적이 다른 에이전트를 더 두는 기능이다. 첫 번째이자 전체를 총괄하는 에이전트가 JARVIS(id `main`)이고, 정보 수집을 맡는 KAREN(id `karen`)처럼 에이전트를 정의 파일 하나로 늘린다.
 
-[멀티 에이전트](./multi-agent.md)의 서브 에이전트와 다르다. 서브 에이전트는 부모 턴 안에서 잠깐 도는 도구이고, 최상위 에이전트는 자기 세션, 기억, 약속, 승인 규칙, 브랜드를 가진다.
+최상위 에이전트는 [멀티 에이전트](./multi-agent.md)의 서브 에이전트와 다르다. 서브 에이전트는 부모 턴 안에서 잠깐 도는 도구이고, 최상위 에이전트는 자기 세션, 기억, 약속(open loop), 승인 규칙, 브랜드를 가진다. 구현은 `app/agent_registry.py` 에 있다.
 
 ## 지금 팀
 
@@ -16,7 +16,7 @@ JARVIS 와 같은 층에 에이전트를 더 둔다. 첫 번째이자 전체를 
 | `main` | J.A.R.V.I.S. | 전체 총괄. 사용자의 기본 대화 상대 | <span className="agent agent--jarvis">JARVIS</span> `#5fc8e2` | env(`JARVIS_BRAND__*`) |
 | `karen` | K.A.R.E.N. | 특정 분야 정보 수집과 출처 있는 요약. LH, SH 청약 공고 조회, 예산에 맞는 공고 추천, 대출 계산([청약 공고와 대출 계산](../guides/housing.md)) | <span className="agent agent--karen">KAREN</span> `#97BC62` | `team/karen.yaml` |
 
-메인 색(palette.primary)은 HUD 의 링, 입자 구, 패널, 에이전트 칩, 세션 표식, AGENDA 라벨에 쓰인다. 두 에이전트가 함께 일하면 입자 구가 두 메인 색(시안과 녹색)으로 섞인다. 색을 바꾸려면 정의 파일의 `palette.primary` 를 고치고 서버를 다시 띄운다.
+메인 색(`palette.primary`)은 HUD 의 링, 입자 구, 패널, 에이전트 칩, 세션 표식, AGENDA 라벨에 쓰인다. 두 에이전트가 함께 일하면 입자 구가 두 메인 색(시안과 녹색)으로 섞인다. 색을 바꾸려면 정의 파일의 `palette.primary` 를 고치고 서버를 다시 띄운다.
 
 ## 정의 파일
 
@@ -35,7 +35,7 @@ tools: [lh_notice, web_search, read_file]   # 비우면 앱 레지스트리 전�
 proactive: false              # 비우면 JARVIS 의 proactive 설정
 ```
 
-- id 는 `^[a-z][a-z0-9_-]{0,31}$`. `main.yaml` 은 무시한다. JARVIS 는 env(`JARVIS_BRAND__*`, `JARVIS_LLM__*`)가 정본이다
+- id 는 `^[a-z][a-z0-9_-]{0,31}$` 를 따라야 한다. `main.yaml` 은 무시한다. JARVIS 의 정본은 env(`JARVIS_BRAND__*`, `JARVIS_LLM__*`)다
 - 잘못된 파일은 로그만 남기고 그 파일만 건너뛴다
 - `tools` 에는 에이전트만 쓰는 도구(`lh_notice`, `sh_notice`, `housing_loan`, `housing_budget`)도 적을 수 있다. 이 도구는 `tools` 가 빈 JARVIS 에게는 보이지 않는다
 - `ask_agent` 와 `remember_task_pattern` 은 `tools` 에 적지 않아도 모든 에이전트에게 붙는다. 작업 패턴은 에이전트마다 따로 기억한다([메모리 → 작업 패턴](./memory.md#작업-패턴))
@@ -50,29 +50,29 @@ proactive: false              # 비우면 JARVIS 의 proactive 설정
 
 장기 기억의 공유 여부는 쓰기 경로가 정한다(`memory_service.WRITE_RULES`). `/remember`, 사용자 모델 증류, 일화에서 뽑은 사실은 shared 로, 나머지는 private 로 쓴다. 기억 범위의 `agent_id` 는 세션의 에이전트 id 다.
 
-범위를 도입하기 전의 옛 행은 Postgres 저장소가 열릴 때 main 행으로 채운다. 이때 사실만 shared 로, 일화는 main 전용으로 둔다. 예전 backfill 이 shared 로 둔 일화도 같은 때 private 로 고친다. 두 번 열어도 결과가 같다.
+범위를 도입하기 전의 옛 행은 Postgres 저장소가 열릴 때 main 행으로 채운다. 이때 사실만 shared 로 두고, 일화는 main 전용으로 둔다. 예전 backfill 이 shared 로 둔 일화도 같은 때 private 로 고친다. 저장소를 두 번 열어도 결과가 같다.
 
 ## 세션은 한 에이전트의 것
 
 세션은 만들 때 에이전트가 정해지고 바뀌지 않는다(`jarvis_sessions.agent_id`, jsonl 은 `.meta.json` 의 `agent_id`). 에이전트가 정해지기 전에 만든 세션은 main 이다.
 
-- Web: `POST /api/sessions {"agent": "karen"}`, `/ws?session_id=..&agent=karen`. 이미 있는 세션은 저장된 에이전트로 열리고 `agent` 는 무시한다. 모르는 에이전트는 400, ws 는 close `4404`
+- Web: `POST /api/sessions {"agent": "karen"}` 이나 `/ws?session_id=..&agent=karen` 으로 에이전트를 정한다. 이미 있는 세션은 저장된 에이전트로 열리고 `agent` 는 무시한다. 모르는 에이전트를 주면 400 을 돌려주고, ws 는 close `4404` 로 닫는다
 - TUI: `jarvis --agent karen` 은 `default-karen` 세션으로 시작한다. `--session ID` 는 그 세션을 만든 에이전트로 연다
-- 분기는 부모와 같은 에이전트
+- 분기한 세션은 부모와 같은 에이전트를 쓴다
 - 스케줄: 작업 YAML 의 `agent: karen` 이면 그 에이전트의 모델, 시스템 프롬프트, 기억 범위로 돈다. `/schedule` 로 만든 작업은 명령을 친 세션의 에이전트가 들어간다
 - 성찰 daemon 은 열린 세션 전부를 돈다. proactive 가 꺼진 에이전트(KAREN 기본값)의 세션은 성찰을 건너뛴다
 
 ## 승인 규칙은 두 겹
 
-공용 `~/.jarvis/approvals.yaml` 은 모든 에이전트가 읽고 사람이 고친다. 승인 화면의 **항상 허용** 은 그 세션 에이전트의 `~/.jarvis/approvals/<id>.yaml` 에만 쌓인다(`LayeredApprovalRules`). 에이전트를 나누기 전 `approvals.yaml` 에 쌓인 규칙은 그대로 공용이 된다. 자세한 건 [도구와 승인](./tools-and-approval.md).
+공용 `~/.jarvis/approvals.yaml` 은 모든 에이전트가 읽고 사람이 고친다. 승인 화면의 **항상 허용** 은 그 세션 에이전트의 `~/.jarvis/approvals/<id>.yaml` 에만 쌓인다(`LayeredApprovalRules`). 에이전트를 나누기 전 `approvals.yaml` 에 쌓인 규칙은 그대로 공용이 된다. 대조 방식과 규칙 파일 형식은 [도구와 승인 → 승인 기억](./tools-and-approval.md#승인-기억)에 있다.
 
 ## AGENDA 는 모두의 것
 
-AGENDA 카드는 모든 에이전트의 스케줄과 약속을 한 목록에 보여주고, 항목마다 에이전트 이름 라벨을 그 에이전트의 primary 색으로 단다. 약속(`OpenLoop.agent_id`)은 감지한 세션의 에이전트, 스케줄은 작업의 `agent` 다. 약속을 닫는 판정(사고의 closed_loops, 취소하는 말)은 그 약속을 만든 세션에서만 한다.
+AGENDA 카드는 모든 에이전트의 스케줄과 약속을 한 목록에 보여주고, 항목마다 에이전트 이름 라벨을 그 에이전트의 primary 색으로 단다. 약속의 에이전트(`OpenLoop.agent_id`)는 약속을 감지한 세션의 에이전트이고, 스케줄의 에이전트는 작업의 `agent` 다. 약속을 닫는 판정(사고 프레임의 closed_loops, 취소하는 말)은 그 약속을 만든 세션에서만 한다.
 
 ## HUD 에서 에이전트 고르기
 
-SESSIONS 카드 위에 에이전트 칩이 생긴다(에이전트가 둘 이상일 때만). 칩을 누르면 그 에이전트의 열린 세션으로, 없으면 새 세션을 만들어 옮긴다. 붙은 세션의 에이전트에 맞춰 워드마크, 명언, 링, 입자 구, 패널 색이 바뀐다. 세션 목록의 표식 색과 AGENDA 라벨 색도 에이전트의 primary 다. SYSTEM 의 TOOLS 는 그 에이전트가 쓰는 도구만 보여준다.
+에이전트가 둘 이상이면 SESSIONS 카드 위에 에이전트 칩이 생긴다. 칩을 누르면 그 에이전트의 열린 세션으로 옮기고, 열린 세션이 없으면 새 세션을 만들어 옮긴다. 붙은 세션의 에이전트에 맞춰 워드마크, 명언, 링, 입자 구, 패널 색이 바뀐다. 세션 목록의 표식 색과 AGENDA 라벨 색도 에이전트의 primary 다. SYSTEM 의 TOOLS 는 그 에이전트가 쓰는 도구만 보여준다.
 
 ## 에이전트끼리 대화
 
@@ -92,14 +92,18 @@ sequenceDiagram
   J-->>U: 정리
 ```
 
-- 받는 쪽은 에이전트 쌍마다 세션 하나(`peer-<부른 쪽>-<받는 쪽>`)에서 답한다. 같은 쌍은 앞 대화를 이어 가고 HUD 세션 목록에 보인다
+- 받는 쪽은 에이전트 쌍마다 세션 하나(`peer-<부른 쪽>-<받는 쪽>`)에서 답한다. 같은 쌍은 앞 대화를 이어 가고, 그 세션은 HUD 세션 목록에 보인다
 - 받는 쪽 세션은 사용자를 부른 쪽 범위에서 받는다. 기억은 받는 쪽 에이전트 범위로 남는다
-- 요청 끝에 규칙 한 줄이 붙는다: 받은 일이니 필요하면 가진 도구를 먼저 부르고 도구 결과에 있는 것만 답한다(`PEER_REQUEST_RULE`). 실서버에서 gemma4:e4b 가 위임받은 세션에서만 도구를 부르지 않고 조회한 척 답하는 것을 봤다
+- 요청 끝에 규칙 한 줄(`PEER_REQUEST_RULE`)이 붙는다. 받은 일이니 필요하면 가진 도구를 먼저 부르고, 도구 결과에 있는 것만 답하라는 내용이다
 - 받는 쪽 도구의 승인 요청은 부른 세션의 화면에 뜬다
-- 깊이 제한: A → B → A 까지. 그보다 깊으면 도구가 거절하고 지금 아는 것으로 답하게 한다
-- 받은 일을 보낸 쪽에 되돌리기 금지: 받은 요청과 글자가 거의 같은(bigram Jaccard 0.4 이상) 일을 그 요청을 보낸 에이전트에게 다시 맡기면 도구가 거절한다. 실서버에서 gemma4:e4b 가 도구 설명의 지시를 무시하고 받은 일을 그대로 되돌려 서로 미루는 것을 봤다. 되묻기("관심 분야가 뭐야?")처럼 다른 질문은 된다
-- 받는 쪽이 같은 쌍의 다른 질문에 답하는 중이면 "다른 일을 하고 있다" 는 오류 결과. 300초 안에 답이 없으면 시간 초과
-- 받는 쪽이 Dual-Channel 로 백그라운드 답을 하면 끝날 때까지 기다려 저장된 마지막 답을 돌려준다
+- 깊이는 A → B → A 까지만 허용한다. 그보다 깊으면 도구가 거절하고 지금 아는 것으로 답하게 한다
+- 받은 일을 보낸 쪽에 되돌리지 못한다. 받은 요청과 글자가 거의 같은(bigram Jaccard 0.4 이상) 일을 그 요청을 보낸 에이전트에게 다시 맡기면 도구가 거절한다. 되묻기("관심 분야가 뭐야?")처럼 다른 질문은 맡길 수 있다
+- 받는 쪽이 같은 쌍의 다른 질문에 답하는 중이면 "다른 일을 하고 있다" 는 오류 결과를 돌려준다. 300초 안에 답이 없으면 시간 초과가 된다
+- 받는 쪽이 Dual channel 로 백그라운드 답을 하면 끝날 때까지 기다렸다가 저장된 마지막 답을 돌려준다
+
+:::note
+요청 끝 규칙과 되돌리기 금지는 실서버에서 관찰한 모델 한계 때문에 넣었다. gemma4:e4b 는 위임받은 세션에서만 도구를 부르지 않고 조회한 척 답했다. 또 도구 설명의 지시를 무시하고 받은 일을 그대로 되돌려 두 에이전트가 서로 미뤘다.
+:::
 
 ## 함께 일할 때의 구체
 

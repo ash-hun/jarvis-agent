@@ -5,7 +5,15 @@ title: 설정
 
 # 설정
 
-모든 설정은 환경변수다. 접두사 `JARVIS_`, 중첩 구분자 `__`. `.env` 파일을 읽고, 같은 이름의 환경변수가 있으면 그쪽이 이긴다. 정본은 레포의 `.env.example` 과 `src/jarvis/config.py`.
+이 페이지는 JARVIS 가 읽는 설정을 영역별로 모은다. 모든 설정은 환경변수로 준다.
+
+이름은 `JARVIS_` 접두사로 시작하고, 중첩 단계는 `__` 로 구분한다. JARVIS 는 `.env` 파일을 읽되, 같은 이름의 환경변수가 있으면 환경변수를 쓴다.
+
+:::note
+
+설정의 정본은 레포의 `.env.example` 과 `src/jarvis/config.py` 다.
+
+:::
 
 ## LLM
 
@@ -45,13 +53,15 @@ JARVIS_PROACTIVE__DAEMON_IDLE_SEC=180
 
 ### 사고 모델 고르기
 
-사고 프레임은 JSON 이다. 모델이 형식을 못 지키면 프레임이 버려지고 🔔 는 영영 안 뜬다.
+사고 프레임은 JSON 이다. 사고 모델이 형식을 지키지 못하면 프레임이 버려지고, 먼저 건네는 말은 끝내 뜨지 않는다.
 
-- 클라우드 메인이면 사고는 더 싼 모델(`claude-haiku-4-5` 등)로 분리한다
-- 로컬 Ollama 는 `gemma4:e2b-it-qat` 로 검증됐다. Ollama 프로바이더는 사고 호출에 JSON 스키마를 `format` 으로 강제한다. 0.8b 급 모델은 스키마를 줘도 형식을 못 지켰고, qwen3.5 계열은 Ollama 0.40 에서 `format` 자체가 501 이라 사고가 통째로 생략된다
+- 메인 모델이 클라우드에 있으면 사고는 더 싼 모델(`claude-haiku-4-5` 등)로 분리한다
+- 로컬 Ollama 에서는 `gemma4:e2b-it-qat` 로 검증했다. Ollama 프로바이더는 사고 호출에 JSON 스키마를 `format` 으로 강제한다. 0.8b 급 모델은 스키마를 줘도 형식을 지키지 못했다. qwen3.5 계열은 Ollama 0.40 에서 `format` 자체가 501 을 돌려주므로 사고가 통째로 생략된다
 - `~/.jarvis/inner_thought.md` 로 템플릿을 직접 쓸 때도 `utterance` 키는 있어야 한다. 없으면 daemon 이 항상 침묵한다
 
 ### 요청 사고 시점
+
+`JARVIS_THOUGHT__REQUEST_TIMING` 은 요청마다 도는 사고를 응답과 어떤 순서로 돌릴지 정한다.
 
 | 값 | 동작 | 언제 |
 |---|---|---|
@@ -59,7 +69,7 @@ JARVIS_PROACTIVE__DAEMON_IDLE_SEC=180
 | `race` | `WAIT_SEC` 까지만 기다리고 늦으면 응답을 먼저 시작. 늦은 사고는 💭, open loop, 피드백 학습에만 쓰인다 | 사고와 메인이 다른 곳에서 돌 때(클라우드) |
 | `after` | 응답이 끝난 뒤 사고 | 사고와 메인이 같은 GPU 를 나눠 쓸 때(로컬 Ollama) |
 
-로컬 한 GPU 에서 실측: `race` 는 두 모델이 GPU 를 나눠 써서 첫 글자가 21초로 늦어졌고, `after` 는 12.8초였다.
+로컬 GPU 한 장에서 실측했을 때, `race` 는 두 모델이 GPU 를 나눠 써서 첫 글자가 21초 뒤에 나왔고 `after` 는 12.8초 뒤에 나왔다.
 
 ## 메모리와 세션
 
@@ -94,11 +104,11 @@ JARVIS_SECURITY__APPROVALS_PATH=~/.jarvis/approvals.yaml        # 공용 규칙(
 JARVIS_SECURITY__AGENT_APPROVALS_DIR=~/.jarvis/approvals         # 에이전트별 규칙(<agent_id>.yaml, 항상 허용이 쌓인다)
 ```
 
-`API_KEYS` 를 비우면 Web 인증이 꺼진다. 켜고 끄는 다른 스위치는 없다. TUI 는 설정과 무관하게 로컬 NoAuth 다. 키가 곧 사용자 식별자라 길고 무작위여야 한다.
+`API_KEYS` 를 비우면 Web 인증이 꺼진다. 인증을 켜고 끄는 다른 스위치는 없다. TUI 는 설정과 상관없이 로컬 NoAuth 로 동작한다. 키가 곧 사용자 식별자이므로 길고 무작위인 값을 쓴다.
 
 ## MCP 서버
 
-`mcp_servers` 목록 설정. 항목은 `name`, `transport`(`stdio`, `http`), `command`, `url`, `env`, `headers`, `auth_token`, `timeout`(30). 형식은 [확장하기](../guides/extending.md) 에 있다.
+`mcp_servers` 는 목록 설정이다. 항목마다 `name`, `transport`(`stdio`, `http`), `command`, `url`, `env`, `headers`, `auth_token`, `timeout`(30)을 둔다. 항목 예시는 [확장하기](../guides/extending.md) 에 있다.
 
 ## 절차 학습, 알림, 플러그인
 
@@ -128,11 +138,11 @@ JARVIS_VOICE__TUI_ENABLED=false
 JARVIS_VOICE__TUI_RECORD_SECONDS=5
 ```
 
-whisper 모델 크기와 STT 언어 키는 설정 클래스에 있지만 현재 프로바이더가 읽지 않는다. whisper 는 한국어 고정이다.
+whisper 모델 크기와 STT 언어 키는 설정 클래스에 있지만 현재 프로바이더가 읽지 않는다. whisper 는 한국어로 고정돼 있다.
 
 ## 화면과 브랜드
 
-TUI 와 Web 의 선택은 환경변수가 아니라 `--web` 플래그다. 바인딩은 `--host`, `--port`.
+TUI 와 Web 은 환경변수가 아니라 `--web` 플래그로 고른다. 바인딩할 주소와 포트는 `--host`, `--port` 로 정한다.
 
 ```bash
 TZ=Asia/Seoul                           # 스케줄과 /schedule 마감 시각의 기준 (compose 기본값)
@@ -145,12 +155,18 @@ JARVIS_BRAND__PALETTE__BACKGROUND=#02060c
 JARVIS_BRAND__PALETTE__NEBULA=["#3a5bff","#8a4dff","#ff6ad5"]
 ```
 
-브랜드 값은 Web HUD 의 워드마크, 명언, 링과 구체 색에 들어간다. 에이전트마다 다르게 두면 어느 비서와 말하는지 색으로 알 수 있다.
+브랜드 값은 Web HUD 의 워드마크, 명언, 링과 구체 색에 들어간다. 에이전트마다 다르게 두면 어느 비서와 말하고 있는지 색으로 알 수 있다.
 
 ## 호스트 Ollama 팁
 
-사고와 메인을 한 호스트 Ollama 로 돌리면 성찰 중 사용자 요청이 줄을 선다. brew 서비스면 동시 처리 수를 늘린다(재부팅하면 다시).
+사고와 메인을 호스트의 Ollama 하나로 돌리면, 성찰이 도는 동안 사용자 요청이 줄을 선다. Ollama 를 brew 서비스로 띄웠다면 동시 처리 수를 늘린다.
 
 ```bash
 launchctl setenv OLLAMA_NUM_PARALLEL 2 && brew services restart ollama
 ```
+
+:::warning
+
+이 설정은 재부팅하면 사라진다. 재부팅한 뒤에는 위 명령을 다시 실행한다.
+
+:::

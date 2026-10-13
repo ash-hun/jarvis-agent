@@ -5,14 +5,16 @@ title: TUI 사용법
 
 # TUI 사용법
 
-`jarvis` 로 `default` 세션, `jarvis -s <id>` 로 기존 세션. Textual 앱(`ui/tui/app.py`)이다.
+TUI 는 터미널에서 JARVIS 와 대화하는 화면이다. `jarvis` 를 실행하면 `default` 세션이 열리고, `jarvis -s <id>` 를 실행하면 기존 세션이 열린다.
+
+TUI 는 Textual 앱(`ui/tui/app.py`)이다.
 
 ## 화면
 
-- 헤더와 시계
-- 사이드바(26칸): Sessions 는 최근 10개를 트리로(분기는 `↳`), Tools 는 `⚙ name`
-- 대화 로그: `You:`, `Jarvis:`, 도구 줄 `⛙ name [done|error]`, 💭 는 흐린 기울임 한 줄(해석, decision, 확신도), 💬 filler, 🔔 뒤에는 "ctrl+y 도움됨 / ctrl+g 무시" 힌트
-- 슬래시 선택기, 입력창, 상태 줄(Ready, `Thinking… [main → agent]`, 음성 상태), 푸터
+- 헤더와 시계가 있다
+- 사이드바(26칸)의 Sessions 는 최근 세션 10개를 트리로 보여 주고, 분기는 `↳` 로 표시한다. Tools 는 도구를 `⚙ name` 꼴로 나열한다
+- 대화 로그에는 `You:`, `Jarvis:`, 도구 줄 `⛙ name [done|error]` 이 찍힌다. 💭 는 흐린 기울임 한 줄(해석, decision, 확신도)로 보이고, 💬 는 filler 다. 🔔 뒤에는 "ctrl+y 도움됨 / ctrl+g 무시" 힌트가 붙는다
+- 그 밖에 슬래시 선택기, 입력창, 상태 줄(Ready, `Thinking… [main → agent]`, 음성 상태), 푸터가 있다
 
 ## 키
 
@@ -31,8 +33,8 @@ title: TUI 사용법
 
 ## 종료 때 일어나는 일
 
-세션 요약을 일화 기억으로 저장하고, 일화에서 사실을 추출(통합)하고, 도구를 여러 번 쓴 성공 구간을 절차 초안으로 증류한다. 그래서 `Ctrl+C` 가 조금 걸릴 수 있다.
+종료할 때 TUI 는 세 가지 일을 한다. 세션 요약을 일화 기억으로 저장하고, 일화에서 사실을 추출(통합)하고, 도구를 여러 번 써서 성공한 구간을 절차 초안으로 증류한다. 그래서 `Ctrl+C` 를 누른 뒤 꺼지기까지 조금 걸릴 수 있다.
 
 ## 인증
 
-TUI 는 설정과 무관하게 로컬 사용자다. `JARVIS_SECURITY__API_KEYS` 는 Web 에만 영향을 준다.
+TUI 는 설정과 상관없이 로컬 사용자로 동작한다. `JARVIS_SECURITY__API_KEYS` 는 Web 에만 영향을 준다.

@@ -122,3 +122,25 @@ sequenceDiagram
 ## 평가
 
 `python -m jarvis.core.proactive.eval`. `policy.jsonl` 은 프레임을 직접 주어 게이팅만, `situation.jsonl` 은 상황을 주어 사고 엔진까지(`--engine llm`) 잰다. 사례마다 정책을 새로 만들고 시계를 고정해 같은 입력은 같은 결과를 낸다.
+
+## 구현 위치
+
+왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
+
+```mermaid
+flowchart TD
+  TRG[ReflectionTrigger<br/>IntervalTrigger, IdleTrigger, ExternalTrigger] --> DMN[ProactivityDaemon]
+  DMN --> SES[AgentSession.reflect]
+  SES --> POL[DefaultProactivityPolicy<br/>응답 대기, 확신도, 쿨다운]
+  SES --> ENG[사고 엔진 reflection 모드]
+  POL --> CORE[DefaultProactivityCore]
+  CORE -. proactive_message .-> HUD[🔔 화면]
+  CORE --> NTF[core/notify Slack]
+  HUD -->|짧은 답| RC[ReplyClassifier<br/>thought/reply.py]
+  HUD -->|키워드 답| FB[FeedbackLearner]
+  RC --> FB
+  FB -->|임계치| POL
+```
+
+- 핵심 모듈: `core/proactive/daemon.py`, `core/proactive/policy.py`, `core/proactive/feedback.py`, `agent_layer/thought/reply.py`, `core/proactive/core.py`
+- 저장: 프로세스 메모리(쿨다운, 응답 대기, 임계치). 재시작하면 기본값으로 돌아간다

@@ -103,3 +103,23 @@ sequenceDiagram
 ## 평가
 
 `python -m jarvis.memory.eval --suite all` 로 격리, 의미, 일화, 절차, 바꿔 말하기, 작업 기억, 충실도를 LLM 없이 잰다. `--benchmark longmemeval|locomo` 도 있다.
+
+## 구현 위치
+
+왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
+
+```mermaid
+flowchart LR
+  SES[AgentSession] --> CHAIN[MemoryMiddlewareChain]
+  CHAIN --> MGR[MemoryService<br/>memory/memory_service.py]
+  MGR --> WM[작업 메모리<br/>working/]
+  MGR --> LT[장기 기억<br/>episodic, semantic, procedural]
+  MGR --> RET[회상<br/>retrieval/scoring.py]
+  MGR --> CON[통합<br/>consolidation/]
+  MGR --> EMB[임베딩<br/>model_layer/embeddings.py]
+  WM --> S1[(메모리 또는 Postgres)]
+  LT --> S2[(jarvis_ltm_entries)]
+```
+
+- 핵심 모듈: `memory/`
+- 저장: 메모리 또는 Postgres

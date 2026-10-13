@@ -134,3 +134,26 @@ parameters: '1. 파일 검색 패턴, 2. 주요 파일 경로, 3. 읽을 최대 
 - **정책**: 현재는 모든 도구 허용 정책이 배선되어 있다. 역할 기반 정책 클래스는 있지만 쓰이지 않는다
 
 위험 명령 정규식(`JARVIS_SECURITY__DANGEROUS_COMMANDS`)은 설정에 있지만 도구 호출 경로에서는 검사되지 않는다. 지금의 안전장치는 승인 모달과 승인 규칙이다.
+
+## 구현 위치
+
+왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
+
+```mermaid
+flowchart LR
+  LOOP[agent loop] --> EXE[tool executor<br/>core/session.py]
+  EXE --> SBX[DefaultSandbox]
+  SBX --> RULES[LayeredApprovalRules<br/>approval_rules.py]
+  RULES --> AY[(공용 approvals.yaml)]
+  RULES --> AA[(approvals/에이전트.yaml)]
+  SBX -->|승인 필요| BRK[SessionApprovals<br/>ui/web/approvals.py]
+  BRK -. approval_request .-> MODAL[승인 모달, 음성 답]
+  MODAL -->|approval_response| BRK
+  EXE --> TOOLS[ToolRegistry<br/>내장, 사용자, MCP, 절차]
+  HIST[(세션 기록)] -->|세션 종료,<br/>/procedures learn| LRN[ProcedureLearner]
+  LRN --> PS[(~/.jarvis/procedures/)]
+  PS --> TOOLS
+```
+
+- 핵심 모듈: `core/tools/`, `core/policy/`, `core/procedures/`
+- 저장: `approvals.yaml`(공용), `approvals/<agent_id>.yaml`, `procedures/`

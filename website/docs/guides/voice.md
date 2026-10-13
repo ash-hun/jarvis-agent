@@ -87,3 +87,24 @@ JARVIS_VOICE__TUI_RECORD_SECONDS=5
 
 - `JARVIS_VOICE__WHISPER_MODEL_SIZE`, `SUPERTONIC_MODEL`, `STT_LANG` 은 설정에 있지만 현재 프로바이더가 읽지 않는다. whisper 언어는 한국어로 고정이다
 - Full-voice 모드(헤더의 `FULL-VOICE`)는 응답, 승인 모달, 🔔 피드백을 읽고 답을 듣는다. 승인 답은 부정어가 있으면 거부, 분명한 긍정이면 허용, 그 밖의 말("그거 돌려")은 사고 모델에 물어 `allow`/`always` 일 때만 허용하고 나머지는 거부한다. 실측(gemma4:e2b): 승인 답 11문장 중 허용하면 안 되는 말을 허용한 경우 0
+
+## 구현 위치
+
+왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
+
+```mermaid
+flowchart LR
+  MODE[헤더 모드<br/>app/mode.js] --> VUI[app/voice-ui.js]
+  VUI --> VM[VoiceManager<br/>voice.js]
+  VM --> SR[Web Speech 인식<br/>또는 MediaRecorder]
+  VM --> TTS[speechSynthesis<br/>또는 voice_tts_audio]
+  SR -->|server STT| STT[voice/ whisper]
+  TTS -->|server TTS| SUP[voice/ supertonic]
+  VUI --> APR[app/approval.js<br/>음성 승인 답]
+  VUI --> PRO[app/proactive.js<br/>🔔 피드백 답]
+  APR --> RPL[app/reply.js<br/>reply_classify]
+  PRO --> RPL
+```
+
+- 핵심 모듈: `ui/web/static/voice.js`, `voice/`
+- 저장: 없음

@@ -104,3 +104,23 @@ sequenceDiagram
 ## 함께 일할 때의 구체
 
 서버는 세션마다 루프의 시작과 끝을 세어 일하는 에이전트가 바뀔 때 `agent_activity{active}` 를 열린 HUD 전부에 보낸다(`ui/web/agent_activity.py`). 둘 이상이 일하면 HUD 구체의 입자가 두 에이전트의 primary 로 흐르는 띠처럼 섞이고, 일하는 에이전트 칩이 빛난다. 끝나면 지금 에이전트 색으로 돌아온다.
+
+## 구현 위치
+
+왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
+
+```mermaid
+flowchart LR
+  YAML[(team/id.yaml)] --> REG[AgentRegistry<br/>app/agent_registry.py]
+  REG --> SB[SessionBuilder<br/>에이전트마다]
+  SB --> SES[AgentSession<br/>프롬프트, 도구, 기억 범위]
+  SES --> ASK[ask_agent<br/>app/agent_conversation.py]
+  ASK --> PEER[peer-부른쪽-받는쪽 세션]
+  SES --> ACT[AgentActivity<br/>ui/web/agent_activity.py]
+  ACT -. agent_activity .-> HUD[HUD 칩, 구체 색 섞임]
+  SES --> RULES[(approvals/id.yaml)]
+  SES --> MEM[(장기 기억<br/>agent_id 범위)]
+```
+
+- 핵심 모듈: `app/agent_registry.py`, `app/agent_conversation.py`, `ui/web/agent_activity.py`
+- 저장: `team/`, `jarvis_sessions.agent_id`, `approvals/<agent_id>.yaml`

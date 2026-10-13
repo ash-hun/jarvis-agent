@@ -126,3 +126,57 @@ flowchart LR
 
 - **사용자 모델** (`agent_layer/usermodel/`): 최근 기억 30건을 LLM 이 요약과 성향(최대 8개)으로 증류한 것. `/usermodel build` 로 만들고 `~/.jarvis/user_model.json` 에 덮어쓴다. 모든 사고 프롬프트의 `{{user_model}}` 에 들어간다. 자동으로는 안 돈다
 - **저널** (`agent_layer/journal/`): 최근 사고 기록 40건을 보고 1 에서 3 문장의 메타 성찰을 쓴다. `/journal write`. 일화 기억으로 저장되어 회상에 섞여 들어온다
+
+## 구현 위치
+
+왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
+
+### Open loop
+
+```mermaid
+flowchart LR
+  ENG[요청 사고 프레임<br/>open_loops, closed_loops] --> SES[AgentSession]
+  IN[사용자 입력<br/>거두는 말] --> SES
+  SES --> T[openloop/types.py<br/>merge_loop, matching_ids,<br/>cancelled_ids, grounded, expired_ids]
+  SES --> ST[OpenLoopStore<br/>memory, jsonl, Postgres]
+  API["GET /api/agenda"] --> EXP[close_expired]
+  EXP --> ST
+  ST --> AG[AGENDA 카드]
+  AG -->|✓ ✕| ST
+  ST --> DB[(openloops.jsonl<br/>jarvis_open_loops)]
+```
+
+- 핵심 모듈: `agent_layer/openloop/`
+- 저장: `openloops.jsonl` 또는 Postgres
+
+### 스케줄
+
+```mermaid
+flowchart LR
+  CMD["/schedule 명령"] --> CLS[make_llm_classifier<br/>reminder 또는 task]
+  CMD --> FILE[(~/.jarvis/schedules/*.yaml)]
+  SVC[SchedulerService<br/>10초마다] --> FILE
+  SVC --> RUN[새 세션에서 프롬프트 실행<br/>승인 없음, 사고 없음]
+  RUN -. reminder .-> HUD[열린 Web 연결 전부]
+  RUN --> PEND[(놓친 알림 20건<br/>메모리)]
+  RUN --> NTF[Slack]
+  AG[AGENDA 스위치] -->|enabled| FILE
+```
+
+- 핵심 모듈: `core/scheduler/`
+- 저장: `~/.jarvis/schedules/*.yaml`
+
+### 외부 이벤트
+
+```mermaid
+flowchart LR
+  SRC[(~/.jarvis/external_sources/*.yaml)] --> POLL[ExternalEventPoller]
+  POLL --> MCP[McpToolSource<br/>MCP 도구 호출]
+  MCP --> SEEN[JsonlSeenStore<br/>본 것 제외 7일]
+  SEEN --> INBOX[ExternalEventInbox<br/>최대 200건]
+  INBOX --> TRG[성찰 트리거]
+  INBOX -->|drain 한 번| REF[다음 성찰 프롬프트]
+```
+
+- 핵심 모듈: `core/external/`
+- 저장: `external_seen.jsonl`

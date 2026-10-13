@@ -147,3 +147,29 @@ LH 상태 값 `공고중` 은 게시판에서 `접수중`, `정정공고중` 까
 - GH, iH 같은 다른 지방 공사 공고는 다루지 않는다
 - 공고문 PDF 의 임대조건 표가 표준 꼴(보증금 계, 계약금, 잔금, 월임대료)이 아니면 금액을 읽지 못하고 다음 출처로 넘어간다
 - 매입임대, 전세임대의 주택목록(엑셀) 금액은 읽지 않는다
+
+## 구현 위치
+
+왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
+
+```mermaid
+flowchart LR
+  K[KAREN 세션] --> LH[lh_notice<br/>housing/lh_notice.py]
+  K --> SH[sh_notice<br/>housing/sh_notice.py]
+  K --> LOAN[housing_loan<br/>housing/loan.py]
+  K --> BUD[housing_budget<br/>housing/budget.py]
+  BUD --> LH
+  BUD --> PDF[notice_pdf.py<br/>공고문 임대조건]
+  BUD --> CPX[rental_complex.py<br/>임대주택검색]
+  LOAN -->|notice_id, unit| LH
+  LH --> FETCH[fetch_html<br/>housing/fetch.py]
+  SH --> FETCH
+  FETCH --> LHS[(apply.lh.or.kr<br/>공고 게시판)]
+  FETCH --> SHS[(www.i-sh.co.kr<br/>공고 게시판)]
+  LH --> MK[markup.py<br/>표, 날짜, KST 마감]
+  SH --> MK
+  CTX[AppContext.agent_tools] -. 정의의 tools 에 적은 에이전트만 .-> K
+```
+
+- 핵심 모듈: `core/tools/housing/`
+- 저장: 없음(매번 게시판을 읽는다)

@@ -95,3 +95,26 @@ gantt
 ## 템플릿 직접 쓰기
 
 `~/.jarvis/inner_thought.md` 와 `~/.jarvis/inner_thought_reflection.md`. 자리표시자는 `{{now}}`, `{{open_loops}}`, `{{external_events}}`, `{{recalled_memories}}`, `{{history}}`, `{{user_input}}`, `{{user_model}}`, `{{recent_proactive}}`(성찰 전용, 최근 🔔). 없는 값은 빈 문자열이 된다. 외부 이벤트나 최근 🔔 가 있는데 자리가 없으면 끝에 덧붙여 조용히 사라지지 않게 한다. 프레임 키 중 `utterance` 가 빠지면 먼저 말하는 기능이 꺼진 것과 같다.
+
+## 구현 위치
+
+왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
+
+```mermaid
+flowchart LR
+  SES[AgentSession] --> ENG[InnerThoughtEngine<br/>thought/engine.py]
+  ENG --> TPL[ThoughtPromptTemplate<br/>prompt.py]
+  ENG --> REC[memory_chain.retrieve]
+  ENG --> TM[사고 모델<br/>메인과 따로 둘 수 있음]
+  ENG --> FR[ThoughtFrame]
+  FR --> CMP[ThoughtComposer<br/>시스템 프롬프트 블록]
+  FR --> LOG[ThoughtLog<br/>ltm, stm 싱크]
+  FR --> OL[open loop 저장과 닫기]
+  FR --> PRO[ProactivityCore]
+  FR -. inner_thought .-> HUD[💭]
+  USERTPL[(~/.jarvis/inner_thought.md)] --> TPL
+  LOG --> MEM[(메모리)]
+```
+
+- 핵심 모듈: `agent_layer/thought/engine.py`
+- 저장: 사고 로그(일화 기억 또는 작업 메모)

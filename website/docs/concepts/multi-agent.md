@@ -65,3 +65,22 @@ flowchart TB
 
 - 서브 에이전트의 이벤트는 부모 세션 구독자에게 전달되지 않는다. 화면에는 부모의 `agent_<name>` 도구 호출 시작과 끝만 보인다
 - Web 모드에서 서브 에이전트가 승인 필요 도구를 부르면 승인 콜백이 없어 거부된다. 서브 에이전트에는 승인이 필요 없는 도구를 주는 것이 맞다
+
+## 구현 위치
+
+왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
+
+```mermaid
+flowchart LR
+  CMD["/orchestrate 명령"] --> SVC[OrchestrationService]
+  TOOL[OrchestrateTool, AgentNodeTool] --> SVC
+  DEF[(에이전트 정의 파일)] --> LOAD[loader.py]
+  LOAD --> FAC[AgentFactory]
+  SVC --> TOP[패턴<br/>supervisor, hierarchical, p2p, blackboard, market]
+  TOP --> NODE[AgentNode<br/>서브 에이전트 세션]
+  FAC --> NODE
+  NODE --> BB[SharedBlackboard]
+```
+
+- 핵심 모듈: `core/multi_agent/`
+- 저장: 작업 공유 메모리(blackboard)

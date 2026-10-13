@@ -122,3 +122,43 @@ TUI 와 Web 모두 `app/infra_builder.py` 의 `build_app`(도구, 스케줄러, 
 | 외부 소스 | `~/.jarvis/external_sources/*.yaml`, 본 것은 `external_seen.jsonl` |
 
 Docker 에서는 `~/.jarvis` 가 `jarvis_data` 볼륨이다.
+
+## 구현 위치
+
+왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
+
+```mermaid
+flowchart LR
+  subgraph UI[화면]
+    HUD[Web HUD<br/>app/composer.js]
+    TUI[TUI app.py]
+    WS["ui/web/router/ws_router.py<br/>ws /ws"]
+  end
+  subgraph APP[app 조립]
+    SB[SessionBuilder<br/>AgentProfile]
+  end
+  subgraph CORE[core]
+    SES[AgentSession<br/>core/session.py]
+    SEC[SecurityPipeline<br/>policy/]
+    REG[ToolRegistry<br/>tools/]
+  end
+  subgraph AGENT[agent_layer]
+    HAR[AgentHarness]
+    LOOP[agent loop<br/>loop.py]
+  end
+  subgraph MODEL[model_layer]
+    PROV[providers<br/>anthropic, openai, gemini, ollama, vllm]
+  end
+  REPO[(세션 저장소<br/>jsonl, Postgres)]
+  HUD --> WS --> SES
+  TUI --> SES
+  SB -. 세션 조립 .-> SES
+  SES --> SEC
+  SES --> HAR --> LOOP --> PROV
+  LOOP --> REG
+  SES --> REPO
+  HAR -. 이벤트 .-> WS
+```
+
+- 핵심 모듈: `core/session.py`, `agent_layer/loop.py`, `model_layer/`
+- 저장: 세션 저장소

@@ -49,3 +49,21 @@ Web 의 `DELETE /api/sessions/{id}` 는 메모리 세션, 샌드박스, 승인 �
 - `/cost`: 토큰 사용량과 모델별 추정 비용
 - `/compact`: 지금까지를 요약해 장기 기억에 저장
 - `/cleanup`: 옛 서브 에이전트 세션과 옛 STM 테이블을 보여주고, `agents confirm`, `stm confirm` 으로 지운다
+
+## 구현 위치
+
+왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
+
+```mermaid
+flowchart LR
+  HUD[SESSIONS 카드] --> API["REST /api/sessions"]
+  HUD --> WS["ws /ws?session_id="]
+  API --> MGR[SessionRegistry<br/>ui/web/session_registry.py]
+  WS --> MGR
+  MGR --> SES[AgentSession 하나씩]
+  SES --> REPO[SessionRepo<br/>jsonl.py, postgres.py]
+  REPO --> DB[(sessions/ 또는 jarvis_sessions, jarvis_entries)]
+```
+
+- 핵심 모듈: `agent_layer/session/`
+- 저장: jsonl 또는 Postgres

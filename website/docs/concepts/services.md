@@ -1,5 +1,5 @@
 ---
-sidebar_position: 2.5
+sidebar_position: 1
 title: 서비스 기능 지도
 ---
 
@@ -12,23 +12,23 @@ jarvis-agent 가 제공하는 기능 전체를 한 곳에 모은 페이지다. �
 | 기능 | 무엇을 하나 | 쓰는 곳 |
 |---|---|---|
 | [대화와 도구 실행](./architecture.md) | 메시지를 받아 LLM 과 도구를 오가며 답한다. 스트리밍, 중단, 프로바이더 교체 | 입력창, 음성, TUI |
-| [내적 사고](./features/inner-thought.md) | 메인 응답과 분리된 호출로 해석, 결정, 확신도, 약속을 만든다 | 💭 한 줄 |
-| [Dual channel](./features/proactive.md#dual-channel) | 오래 걸릴 요청이면 "잠깐만요" 를 먼저 말하고 메인은 뒤에서 돈다 | 💬 filler |
-| [자율 성찰과 🔔](./features/proactive.md#자율-성찰과-) | 요청이 없어도 주기적으로 성찰해 가치가 분명할 때만 먼저 말한다 | 🔔, Slack |
-| [피드백 학습과 답 분류](./features/proactive.md#피드백-학습) | 🔔 에 대한 수락, 무시, 무응답으로 발화 임계치를 움직인다. 키워드가 아닌 답은 사고 모델이 분류한다 | 🔔 아래 질문, `Ctrl+Y`/`Ctrl+G` |
-| [Open loop](./features/agenda.md) | 대화에서 흘린 약속을 기억하고, 끝나거나 취소되거나 기한이 지나면 닫는다 | AGENDA, `/openloop` |
-| [스케줄](./features/agenda.md#스케줄) | 한 번, 마감까지 반복, cron 으로 알림이나 작업을 돌린다 | `/schedule`, AGENDA |
-| [외부 이벤트](./features/agenda.md#외부-이벤트) | MCP 도구를 주기적으로 불러 새 항목을 성찰에 먹인다 | 🔔 |
-| [메모리](./features/memory.md) | 작업 메모리, 일화, 의미, 절차 기억, 에이전트별 작업 패턴(사용자가 알려 준 방식). 회상, 통합, 임베딩 | 사고와 응답의 맥락 |
-| [사용자 모델과 저널](./features/agenda.md#사용자-모델과-저널) | 기억에서 사용자 성향을 증류하고, 사고 기록으로 메타 성찰을 쓴다 | `/usermodel`, `/journal` |
-| [도구, 승인, 절차 학습](./features/tools-and-approval.md) | 내장 도구와 MCP, 실행 전 승인과 승인 기억, 반복 작업을 절차 도구로 | 승인 모달, `/procedures` |
-| [세션](./features/sessions.md) | 대화 단위. 만들기, 전환, 분기, 이어 붙이기 | SESSIONS 카드, TUI 사이드바 |
-| [최상위 에이전트 팀](./features/team.md) | JARVIS 와 같은 층의 에이전트(KAREN 등)를 파일 하나로 늘린다. 세션, 기억, 승인 규칙, 색을 따로 갖고 `ask_agent` 로 서로 일을 맡긴다 | 에이전트 칩, AGENDA 라벨, 구체 색 섞임 |
-| [청약 공고와 대출 계산](./features/housing.md) | KAREN 이 LH, SH 청약 공고를 조회해 KST 기준 마감을 붙이고, 총예산과 현금으로 공고를 추천하며, 공고의 분양가나 보증금으로 월, 연간 원리금 상환액을 계산한다 | KAREN 세션, JARVIS 에게 물으면 KAREN 에게 위임 |
-| [멀티 에이전트](./features/multi-agent.md) | 정의 파일의 서브 에이전트에게 일을 나눈다. 다섯 가지 패턴 | `/orchestrate`, 위임 도구 |
-| [음성과 Full-voice](./features/voice.md) | 음성 입력과 읽기. Full-voice 는 응답, 승인, 🔔 피드백까지 말로 묻고 답한다 | 구체 클릭, 헤더 `FULL-VOICE` |
-| [외부 알림](./features/proactive.md#외부-알림) | 열린 화면이 없어도 🔔 와 스케줄 결과를 Slack 으로 보낸다 | Slack |
-| [슬래시 커맨드와 확장](./usage/slash-commands.md) | `/` 명령, 스킬, 플러그인 훅, 사용자 도구 | 입력창 `/` |
+| [내적 사고](./inner-thought.md) | 메인 응답과 분리된 호출로 해석, 결정, 확신도, 약속을 만든다 | 💭 한 줄 |
+| [Dual channel](./proactive.md#dual-channel) | 오래 걸릴 요청이면 "잠깐만요" 를 먼저 말하고 메인은 뒤에서 돈다 | 💬 filler |
+| [자율 성찰과 🔔](./proactive.md#자율-성찰과-) | 요청이 없어도 주기적으로 성찰해 가치가 분명할 때만 먼저 말한다 | 🔔, Slack |
+| [피드백 학습과 답 분류](./proactive.md#피드백-학습) | 🔔 에 대한 수락, 무시, 무응답으로 발화 임계치를 움직인다. 키워드가 아닌 답은 사고 모델이 분류한다 | 🔔 아래 질문, `Ctrl+Y`/`Ctrl+G` |
+| [Open loop](./agenda.md) | 대화에서 흘린 약속을 기억하고, 끝나거나 취소되거나 기한이 지나면 닫는다 | AGENDA, `/openloop` |
+| [스케줄](./agenda.md#스케줄) | 한 번, 마감까지 반복, cron 으로 알림이나 작업을 돌린다 | `/schedule`, AGENDA |
+| [외부 이벤트](./agenda.md#외부-이벤트) | MCP 도구를 주기적으로 불러 새 항목을 성찰에 먹인다 | 🔔 |
+| [메모리](./memory.md) | 작업 메모리, 일화, 의미, 절차 기억, 에이전트별 작업 패턴(사용자가 알려 준 방식). 회상, 통합, 임베딩 | 사고와 응답의 맥락 |
+| [사용자 모델과 저널](./agenda.md#사용자-모델과-저널) | 기억에서 사용자 성향을 증류하고, 사고 기록으로 메타 성찰을 쓴다 | `/usermodel`, `/journal` |
+| [도구, 승인, 절차 학습](./tools-and-approval.md) | 내장 도구와 MCP, 실행 전 승인과 승인 기억, 반복 작업을 절차 도구로 | 승인 모달, `/procedures` |
+| [세션](./sessions.md) | 대화 단위. 만들기, 전환, 분기, 이어 붙이기 | SESSIONS 카드, TUI 사이드바 |
+| [최상위 에이전트 팀](./team.md) | JARVIS 와 같은 층의 에이전트(KAREN 등)를 파일 하나로 늘린다. 세션, 기억, 승인 규칙, 색을 따로 갖고 `ask_agent` 로 서로 일을 맡긴다 | 에이전트 칩, AGENDA 라벨, 구체 색 섞임 |
+| [청약 공고와 대출 계산](../guides/housing.md) | KAREN 이 LH, SH 청약 공고를 조회해 KST 기준 마감을 붙이고, 총예산과 현금으로 공고를 추천하며, 공고의 분양가나 보증금으로 월, 연간 원리금 상환액을 계산한다 | KAREN 세션, JARVIS 에게 물으면 KAREN 에게 위임 |
+| [멀티 에이전트](./multi-agent.md) | 정의 파일의 서브 에이전트에게 일을 나눈다. 다섯 가지 패턴 | `/orchestrate`, 위임 도구 |
+| [음성과 Full-voice](../guides/voice.md) | 음성 입력과 읽기. Full-voice 는 응답, 승인, 🔔 피드백까지 말로 묻고 답한다 | 구체 클릭, 헤더 `FULL-VOICE` |
+| [외부 알림](./proactive.md#외부-알림) | 열린 화면이 없어도 🔔 와 스케줄 결과를 Slack 으로 보낸다 | Slack |
+| [슬래시 커맨드와 확장](../reference/slash-commands.md) | `/` 명령, 스킬, 플러그인 훅, 사용자 도구 | 입력창 `/` |
 
 ## 기능별 아키텍처 설계도
 
@@ -303,21 +303,21 @@ flowchart LR
 | 기능 | 흐름도 |
 |---|---|
 | 요청 한 번(사고, 응답, 이벤트) | [아키텍처 → 요청 한 번의 흐름](./architecture.md#요청-한-번의-흐름) |
-| 내적 사고 | [내적 사고 → 흐름](./features/inner-thought.md#흐름) |
-| Dual channel | [먼저 행동하기 → Dual channel](./features/proactive.md#dual-channel) |
-| 자율 성찰과 🔔 게이트 | [먼저 행동하기 → 자율 성찰과 🔔](./features/proactive.md#자율-성찰과-) |
-| 🔔 답 처리(키워드, 분류) | [먼저 행동하기 → 피드백 학습](./features/proactive.md#피드백-학습) |
-| Open loop | [약속, 스케줄, 외부 이벤트 → Open loop](./features/agenda.md#open-loop-흘린-약속-추적) |
-| 스케줄 실행 | [약속, 스케줄, 외부 이벤트 → 스케줄](./features/agenda.md#스케줄) |
-| 외부 이벤트 | [약속, 스케줄, 외부 이벤트 → 외부 이벤트](./features/agenda.md#외부-이벤트) |
-| 사용자 모델과 저널 | [약속, 스케줄, 외부 이벤트 → 사용자 모델과 저널](./features/agenda.md#사용자-모델과-저널) |
-| 메모리 한 턴 | [메모리 → 턴마다 일어나는 일](./features/memory.md#턴마다-일어나는-일) |
-| 도구 호출과 승인 | [도구와 승인 → 도구 호출 한 번](./features/tools-and-approval.md#도구-호출-한-번) |
-| 절차 학습 | [도구와 승인 → 절차 학습](./features/tools-and-approval.md#절차-학습) |
-| 세션 생애 | [세션 → 생애](./features/sessions.md#생애) |
-| 에이전트끼리 묻고 답하기 | [최상위 에이전트 팀 → 에이전트끼리 대화](./features/team.md#에이전트끼리-대화) |
-| 청약 공고 조회와 대출 계산 | [청약 공고와 대출 계산 → 흐름](./features/housing.md#흐름) |
-| 작업 패턴 저장과 적용 | [메모리 → 작업 패턴](./features/memory.md#작업-패턴) |
-| 예산으로 공고 추천 | [청약 공고와 대출 계산 → 예산으로 공고 추천](./features/housing.md#예산으로-공고-추천) |
-| 멀티 에이전트 패턴 | [멀티 에이전트 → 패턴](./features/multi-agent.md#패턴) |
-| 음성 상태와 Full-voice | [음성 → Web HUD](./features/voice.md#web-hud) |
+| 내적 사고 | [내적 사고 → 흐름](./inner-thought.md#흐름) |
+| Dual channel | [먼저 행동하기 → Dual channel](./proactive.md#dual-channel) |
+| 자율 성찰과 🔔 게이트 | [먼저 행동하기 → 자율 성찰과 🔔](./proactive.md#자율-성찰과-) |
+| 🔔 답 처리(키워드, 분류) | [먼저 행동하기 → 피드백 학습](./proactive.md#피드백-학습) |
+| Open loop | [약속, 스케줄, 외부 이벤트 → Open loop](./agenda.md#open-loop-흘린-약속-추적) |
+| 스케줄 실행 | [약속, 스케줄, 외부 이벤트 → 스케줄](./agenda.md#스케줄) |
+| 외부 이벤트 | [약속, 스케줄, 외부 이벤트 → 외부 이벤트](./agenda.md#외부-이벤트) |
+| 사용자 모델과 저널 | [약속, 스케줄, 외부 이벤트 → 사용자 모델과 저널](./agenda.md#사용자-모델과-저널) |
+| 메모리 한 턴 | [메모리 → 턴마다 일어나는 일](./memory.md#턴마다-일어나는-일) |
+| 도구 호출과 승인 | [도구와 승인 → 도구 호출 한 번](./tools-and-approval.md#도구-호출-한-번) |
+| 절차 학습 | [도구와 승인 → 절차 학습](./tools-and-approval.md#절차-학습) |
+| 세션 생애 | [세션 → 생애](./sessions.md#생애) |
+| 에이전트끼리 묻고 답하기 | [최상위 에이전트 팀 → 에이전트끼리 대화](./team.md#에이전트끼리-대화) |
+| 청약 공고 조회와 대출 계산 | [청약 공고와 대출 계산 → 흐름](../guides/housing.md#흐름) |
+| 작업 패턴 저장과 적용 | [메모리 → 작업 패턴](./memory.md#작업-패턴) |
+| 예산으로 공고 추천 | [청약 공고와 대출 계산 → 예산으로 공고 추천](../guides/housing.md#예산으로-공고-추천) |
+| 멀티 에이전트 패턴 | [멀티 에이전트 → 패턴](./multi-agent.md#패턴) |
+| 음성 상태와 Full-voice | [음성 → Web HUD](../guides/voice.md#web-hud) |

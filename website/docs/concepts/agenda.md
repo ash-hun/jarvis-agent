@@ -1,5 +1,5 @@
 ---
-sidebar_position: 3
+sidebar_position: 6
 title: 약속, 스케줄, 외부 이벤트
 ---
 

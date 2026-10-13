@@ -1,5 +1,5 @@
 ---
-sidebar_position: 5
+sidebar_position: 8
 title: 도구와 승인
 ---
 
@@ -21,7 +21,7 @@ title: 도구와 승인
 | `web_search` | Brave(키 있으면) 또는 DuckDuckGo | |
 | `web_fetch` | URL 본문을 텍스트로 | |
 
-에이전트만 쓰는 도구: `lh_notice`, `sh_notice`, `housing_loan`, `housing_budget`. 앱 레지스트리에 넣지 않고 에이전트 정의의 `tools` 에 이름을 적은 에이전트만 받는다([청약 공고와 대출 계산](./housing.md)).
+에이전트만 쓰는 도구: `lh_notice`, `sh_notice`, `housing_loan`, `housing_budget`. 앱 레지스트리에 넣지 않고 에이전트 정의의 `tools` 에 이름을 적은 에이전트만 받는다([청약 공고와 대출 계산](../guides/housing.md)).
 
 모든 에이전트가 쓰는 메모리 도구: `remember_task_pattern`. 사용자가 알려 준 작업 방식을 부른 에이전트의 작업 패턴으로 저장한다([메모리 → 작업 패턴](./memory.md#작업-패턴)).
 

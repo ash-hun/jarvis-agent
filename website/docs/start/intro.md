@@ -1,6 +1,6 @@
 ---
 sidebar_position: 1
-slug: /
+slug: /intro
 title: jarvis-agent 소개
 ---
 
@@ -40,10 +40,10 @@ title: jarvis-agent 소개
 
 ## 문서 구성
 
-- [구현 철학](./philosophy.md): 멱등성, 최소주의, 계층 규칙, 사고와 응답의 분리
-- [서비스 기능 지도](./services.md): 기능 전체 목록, 기능별 아키텍처 설계도, 동작 흐름도로 가는 길
-- [아키텍처](./architecture.md): 계층과 요청 한 번의 흐름
-- [주요 기능](/features): 기능마다 동작 흐름과 구현 위치
-- [이용 방법](/usage): 설치, 설정, Web HUD 와 TUI 사용법, 슬래시 커맨드, 확장, 문제 해결
+- [구현 철학](../concepts/philosophy.md): 멱등성, 최소주의, 계층 규칙, 사고와 응답의 분리
+- [서비스 기능 지도](../concepts/services.md): 기능 전체 목록, 기능별 아키텍처 설계도, 동작 흐름도로 가는 길
+- [아키텍처](../concepts/architecture.md): 계층과 요청 한 번의 흐름
+- [주요 기능](/concepts): 기능마다 동작 흐름과 구현 위치
+- [이용 방법](/guides): 설치, 설정, Web HUD 와 TUI 사용법, 슬래시 커맨드, 확장, 문제 해결
 
 API 와 화면의 정본 명세는 레포의 `docs/api-spec.md`, `docs/screen-spec.md` 다. 이 문서는 그 명세를 설명하는 쪽이고, 둘이 다르면 명세가 맞다.

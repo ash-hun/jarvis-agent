@@ -11,6 +11,7 @@ const config: Config = {
   organizationName: 'ash-hun',
   projectName: 'jarvis-agent',
   onBrokenLinks: 'throw',
+  onBrokenAnchors: 'throw',
   i18n: {defaultLocale: 'ko', locales: ['ko']},
   stylesheets: [
     {
@@ -44,13 +45,26 @@ const config: Config = {
       title: 'jarvis-agent',
       logo: {alt: 'jarvis-agent', src: 'img/logo.svg'},
       items: [
-        {type: 'docSidebar', sidebarId: 'docs', position: 'left', label: '문서'},
+        {to: '/intro', label: '시작하기', position: 'left'},
+        {to: '/concepts', label: '이해하기', position: 'left'},
+        {to: '/guides', label: '사용하기', position: 'left'},
+        {to: '/reference', label: '레퍼런스', position: 'left'},
         {href: 'https://github.com/ash-hun/jarvis-agent', label: 'GitHub', position: 'right'},
       ],
     },
     footer: {
       style: 'dark',
       links: [
+        {
+          title: '문서',
+          items: [
+            {label: '시작하기', to: '/intro'},
+            {label: '이해하기', to: '/concepts'},
+            {label: '사용하기', to: '/guides'},
+            {label: '레퍼런스', to: '/reference'},
+            {label: '문제 해결', to: '/troubleshooting'},
+          ],
+        },
         {
           title: '레포',
           items: [

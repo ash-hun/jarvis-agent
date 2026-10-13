@@ -1,5 +1,5 @@
 ---
-sidebar_position: 1
+sidebar_position: 2
 title: 설치와 실행
 ---
 
@@ -69,7 +69,7 @@ JARVIS_LLM__BASE_URL=http://localhost:11434
 JARVIS_LLM__MODEL=gemma4:e4b
 ```
 
-메인 모델은 도구 호출과 JSON 출력이 되어야 한다. 로컬에서 검증된 조합은 메인 `gemma4:e4b`, 사고 전용 `gemma4:e2b-it-qat` 이다. [설정](./configuration.md) 의 사고 모델 항목을 보라.
+메인 모델은 도구 호출과 JSON 출력이 되어야 한다. 로컬에서 검증된 조합은 메인 `gemma4:e4b`, 사고 전용 `gemma4:e2b-it-qat` 이다. [설정](../reference/configuration.md) 의 사고 모델 항목을 보라.
 
 ## 처음 켜면
 

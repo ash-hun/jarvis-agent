@@ -1,5 +1,5 @@
 ---
-sidebar_position: 6
+sidebar_position: 5
 title: 확장하기
 ---
 
@@ -108,7 +108,7 @@ class MyPlugin:
   level: 1
 ```
 
-호출은 `/orchestrate <pattern> <task>` 또는 메인 에이전트의 `orchestrate` 도구. 패턴은 `supervisor`(감독자 LLM 이 위임 결정), `hierarchical`(레벨 순, 앞 결과가 뒤로), `market`(capabilities 가 맞는 하나), `blackboard`(전원 병렬, 결과 취합). 쉼표로 이으면 파이프라인. 서브 에이전트는 부모의 사용자 범위를 상속하고, 부모는 위임을 일화로 기억한다. 자세한 흐름은 [멀티 에이전트](../features/multi-agent.md).
+호출은 `/orchestrate <pattern> <task>` 또는 메인 에이전트의 `orchestrate` 도구. 패턴은 `supervisor`(감독자 LLM 이 위임 결정), `hierarchical`(레벨 순, 앞 결과가 뒤로), `market`(capabilities 가 맞는 하나), `blackboard`(전원 병렬, 결과 취합). 쉼표로 이으면 파이프라인. 서브 에이전트는 부모의 사용자 범위를 상속하고, 부모는 위임을 일화로 기억한다. 자세한 흐름은 [멀티 에이전트](../concepts/multi-agent.md).
 
 ## LLM 프로바이더
 
@@ -122,7 +122,7 @@ async def stream(model: ModelConfig, ctx: LLMContext, options) -> AsyncIterator[
 
 ## 메모리 미들웨어
 
-`MemoryMiddleware` 프로토콜(`transform`, `store`, `retrieve`, `clear`)을 구현해 `MemoryMiddlewareChain` 에 끼운다. 턴마다 체인이 순서대로 돈다. [메모리](../features/memory.md) 를 보라.
+`MemoryMiddleware` 프로토콜(`transform`, `store`, `retrieve`, `clear`)을 구현해 `MemoryMiddlewareChain` 에 끼운다. 턴마다 체인이 순서대로 돈다. [메모리](../concepts/memory.md) 를 보라.
 
 ## 사고 프롬프트
 

@@ -1,5 +1,5 @@
 ---
-sidebar_position: 2
+sidebar_position: 5
 title: 먼저 행동하기 (Proactive)
 ---
 

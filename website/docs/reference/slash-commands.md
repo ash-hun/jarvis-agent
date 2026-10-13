@@ -1,5 +1,5 @@
 ---
-sidebar_position: 5
+sidebar_position: 2
 title: 슬래시 커맨드
 ---
 
@@ -39,6 +39,6 @@ title: 슬래시 커맨드
 /orchestrate blackboard --agents a,b --promote 시장 분석
 ```
 
-직접 만든 스킬은 `~/.jarvis/skills/` 에 Markdown 으로 둔다. [확장하기](./extending.md) 를 보라.
+직접 만든 스킬은 `~/.jarvis/skills/` 에 Markdown 으로 둔다. [확장하기](../guides/extending.md) 를 보라.
 
 `/openloop`, `/usermodel`, `/journal` 은 내적 사고가 켜져 있을 때만, `/orchestrate` 는 에이전트 정의가 하나 이상 있을 때만 등록된다.

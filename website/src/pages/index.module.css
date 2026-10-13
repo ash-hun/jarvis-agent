@@ -1,0 +1,110 @@
+/* 랜딩 전용. 색은 custom.css 의 --jv-* 토큰만 쓴다 */
+
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 16px 5rem;
+}
+
+.hero {
+  padding: 4.5rem 0 2.5rem;
+  text-align: center;
+}
+
+.label {
+  margin: 0 0 0.75rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  color: var(--jv-primary);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 0 24px var(--jv-glow);
+}
+
+.lead {
+  max-width: 38rem;
+  margin: 1.25rem auto 0;
+  font-size: 1.15rem;
+  color: var(--jv-text-secondary);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.shot {
+  display: block;
+  width: 100%;
+  max-width: 960px;
+  margin: 3rem auto 0;
+  border: 1px solid var(--jv-hairline);
+  border-radius: 8px;
+  box-shadow: 0 0 40px var(--jv-primary-low);
+}
+
+.section {
+  margin-top: 3.5rem;
+}
+
+.sectionTitle {
+  margin-bottom: 1.25rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--jv-text);
+}
+
+.gridThree,
+.gridFive {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 720px) {
+  .gridThree {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .gridFive {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--jv-hairline);
+  border-radius: 8px;
+  background: var(--jv-surface);
+  color: var(--jv-text);
+  transition: border-color 0.15s ease;
+}
+
+.card:hover {
+  border-color: var(--jv-primary);
+  color: var(--jv-text);
+  text-decoration: none;
+}
+
+.cardTitle {
+  font-weight: 700;
+}
+
+.cardBody {
+  font-size: 0.92rem;
+  color: var(--jv-text-secondary);
+}

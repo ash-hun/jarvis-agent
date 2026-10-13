@@ -2,9 +2,5 @@
   "label": "시작하기",
   "position": 1,
   "collapsed": false,
-  "link": {
-    "type": "generated-index",
-    "description": "jarvis-agent 가 무엇인지 알고, 설치해서 첫 대화를 나눈다.",
-    "slug": "/start"
-  }
+  "link": {"type": "doc", "id": "start/intro"}
 }

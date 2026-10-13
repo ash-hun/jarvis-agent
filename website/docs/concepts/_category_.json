@@ -1,0 +1,10 @@
+{
+  "label": "기능소개",
+  "position": 2,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "JARVIS 가 어떻게 생각하고, 기억하고, 먼저 말하는지 흐름과 이유를 설명한다.",
+    "slug": "/concepts"
+  }
+}

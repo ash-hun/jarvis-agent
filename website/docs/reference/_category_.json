@@ -1,0 +1,10 @@
+{
+  "label": "환경설정",
+  "position": 4,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "설정 키, 명령, 용어처럼 찾아보는 표를 모았다.",
+    "slug": "/reference"
+  }
+}

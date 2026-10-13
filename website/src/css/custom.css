@@ -1,30 +1,73 @@
-/* Jarvis HUD 팔레트(src/jarvis/ui/web/static/styles.css)를 문서에도 쓴다. 다크가 기본, 라이트는 대비를 위해 시안을 어둡게 둔다. */
+/* 문서 색은 Jarvis HUD 팔레트(src/jarvis/ui/web/static/styles.css)를 토큰으로 옮긴 것이다. 규칙은 토큰만 참조한다. */
 
+/* 라이트 토큰. 글자로 쓰는 색은 흰 배경에서 4.5:1 을 넘게 골랐다(primary 5.36, karen 5.08, danger 6.57). */
 :root {
-  --jarvis-cyan: #5fc8e2;
-  --jarvis-gold: #f0b35f;
-  --jarvis-glow: rgba(95, 200, 226, 0.45);
+  --jv-bg: #f7fafb;
+  --jv-surface: #ffffff;
+  --jv-text: #1f2a30;
+  --jv-text-secondary: #4b5a61;
+  --jv-primary: #0e7490;
+  --jv-primary-low: rgba(14, 116, 144, 0.08);
+  --jv-primary-high: #0b5568;
+  --jv-accent: #a0611a;
+  --jv-danger: #b42318;
+  --jv-warning: #a0611a;
+  --jv-agent-jarvis: #0e7490;
+  --jv-agent-karen: #4d7a2a;
+  --jv-hairline: rgba(14, 116, 144, 0.18);
+  --jv-glow: transparent;
 
-  --ifm-color-primary: #1b86a3;
-  --ifm-color-primary-dark: #187993;
-  --ifm-color-primary-darker: #17728b;
-  --ifm-color-primary-darkest: #135e72;
-  --ifm-color-primary-light: #209dbe;
-  --ifm-color-primary-lighter: #22a8cc;
-  --ifm-color-primary-lightest: #3fbddf;
+  --ifm-color-primary: var(--jv-primary);
+  --ifm-color-primary-dark: #0d6882;
+  --ifm-color-primary-darker: #0c637b;
+  --ifm-color-primary-darkest: #0a5165;
+  --ifm-color-primary-light: #10809e;
+  --ifm-color-primary-lighter: #1085a5;
+  --ifm-color-primary-lightest: #1297ba;
+  --ifm-color-danger: var(--jv-danger);
+  --ifm-color-warning: var(--jv-warning);
 
-  --ifm-font-family-base: 'Space Grotesk', system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --ifm-background-color: var(--jv-bg);
+  --ifm-background-surface-color: var(--jv-surface);
+  --ifm-font-color-base: var(--jv-text);
+  --ifm-color-content-secondary: var(--jv-text-secondary);
+  --ifm-link-hover-color: var(--jv-primary-high);
+  --ifm-code-background: var(--jv-primary-low);
+  --ifm-menu-color-background-active: var(--jv-primary-low);
+  --ifm-toc-border-color: var(--jv-hairline);
+  --ifm-hr-background-color: var(--jv-hairline);
+  --ifm-table-border-color: var(--jv-hairline);
+  --ifm-table-stripe-background: var(--jv-primary-low);
+
+  /* Pretendard 는 한글과 라틴을 한 폰트로 그려 한 문장 안에서 글꼴이 섞이지 않는다 */
+  --ifm-font-family-base: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   --ifm-heading-font-family: var(--ifm-font-family-base);
   --ifm-font-family-monospace: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --ifm-code-font-size: 92%;
-  --ifm-heading-font-weight: 600;
-
-  --jarvis-hairline: rgba(27, 134, 163, 0.18);
-  --docusaurus-highlighted-code-line-bg: rgba(27, 134, 163, 0.12);
+  --ifm-font-size-base: 106.25%;
+  --ifm-line-height-base: 1.7;
+  --ifm-code-font-size: 88%;
+  --ifm-heading-font-weight: 700;
+  --docusaurus-highlighted-code-line-bg: var(--jv-primary-low);
 }
 
+/* 다크 토큰. HUD 배경과 시안을 그대로 쓴다. */
 [data-theme='dark'] {
-  --ifm-color-primary: #5fc8e2;
+  --jv-bg: #02060c;
+  --jv-surface: #07111a;
+  --jv-text: #dcebf0;
+  --jv-text-secondary: #8aa4ad;
+  --jv-primary: #5fc8e2;
+  --jv-primary-low: rgba(95, 200, 226, 0.1);
+  --jv-primary-high: #7fd3e8;
+  --jv-accent: #f0b35f;
+  --jv-danger: #f05f5f;
+  --jv-warning: #f0b35f;
+  --jv-agent-jarvis: #5fc8e2;
+  --jv-agent-karen: #97bc62;
+  --jv-hairline: rgba(95, 200, 226, 0.16);
+  --jv-glow: rgba(95, 200, 226, 0.45);
+
+  --ifm-color-primary: var(--jv-primary);
   --ifm-color-primary-dark: #44bfdd;
   --ifm-color-primary-darker: #36badb;
   --ifm-color-primary-darkest: #229fbe;
@@ -32,31 +75,25 @@
   --ifm-color-primary-lighter: #77d0e6;
   --ifm-color-primary-lightest: #8fd8eb;
 
-  --ifm-background-color: #02060c;
-  --ifm-background-surface-color: #050c14;
   --ifm-navbar-background-color: rgba(2, 6, 12, 0.72);
   --ifm-footer-background-color: #03080f;
-  --ifm-font-color-base: #d3eef5;
-  --ifm-color-content-secondary: #8aa4ad;
-  --ifm-toc-border-color: rgba(95, 200, 226, 0.14);
-  --ifm-hr-background-color: rgba(95, 200, 226, 0.14);
-  --ifm-code-background: rgba(95, 200, 226, 0.08);
-  --ifm-menu-color-background-active: rgba(95, 200, 226, 0.1);
   --ifm-menu-color-background-hover: rgba(95, 200, 226, 0.06);
-  --ifm-table-border-color: rgba(95, 200, 226, 0.16);
   --ifm-table-stripe-background: rgba(95, 200, 226, 0.03);
-  --ifm-link-hover-color: var(--jarvis-gold);
-
-  --jarvis-hairline: rgba(95, 200, 226, 0.16);
-  --docusaurus-highlighted-code-line-bg: rgba(95, 200, 226, 0.14);
 }
 
-/* HUD 화면처럼 중앙 시안 광원과 아래쪽 성운을 깐다. 고정 배경이라 스크롤해도 움직이지 않는다. */
+html,
+body {
+  background: var(--jv-bg);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* HUD 화면처럼 위쪽 시안 광원과 아래쪽 성운을 깐다. 성운 보라는 이 배경에만 쓴다. */
 [data-theme='dark'] body {
   background:
     radial-gradient(900px 640px at 50% 0%, rgba(95, 200, 226, 0.08), transparent 70%),
     radial-gradient(1200px 800px at 50% 120%, rgba(138, 77, 255, 0.06), transparent 65%),
-    #02060c;
+    var(--jv-bg);
   background-attachment: fixed;
 }
 
@@ -65,9 +102,10 @@
   background: transparent;
 }
 
+/* HUD 라벨 자리: navbar 제목, 사이드바 카테고리, 표 머리, 콜아웃 머리는 모노 대문자 */
 .navbar {
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--jarvis-hairline);
+  border-bottom: 1px solid var(--jv-hairline);
   box-shadow: none;
 }
 
@@ -76,48 +114,73 @@
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .navbar__logo img {
-  filter: drop-shadow(0 0 6px var(--jarvis-glow));
+  filter: drop-shadow(0 0 6px var(--jv-glow));
 }
 
 .theme-doc-sidebar-container {
-  border-right-color: var(--jarvis-hairline) !important;
+  border-right-color: var(--jv-hairline) !important;
+}
+
+.theme-doc-sidebar-menu > .menu__list-item > .menu__list-item-collapsible > .menu__link--sublist {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--jv-text-secondary);
 }
 
 .menu__link--active:not(.menu__link--sublist) {
-  box-shadow: inset 2px 0 0 var(--ifm-color-primary);
+  box-shadow: inset 2px 0 0 var(--jv-primary);
 }
 
 .markdown h1:first-child {
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
 }
 
 [data-theme='dark'] .markdown h1:first-child {
-  color: #e8f8fc;
-  text-shadow: 0 0 18px var(--jarvis-glow);
+  color: #eef9fc;
+  text-shadow: 0 0 18px var(--jv-glow);
 }
 
 .markdown h2 {
   padding-bottom: 0.3rem;
-  border-bottom: 1px solid var(--jarvis-hairline);
+  border-bottom: 1px solid var(--jv-hairline);
 }
 
-/* h2 앞의 짧은 금색 눈금은 HUD 패널 머리의 강조선을 따른 것 */
+/* 금색(accent)은 "지금 여기" 두 곳에만 쓴다: h2 앞 눈금과 현재 목차 항목 */
 .markdown h2::before {
   content: '';
   display: inline-block;
   width: 0.5rem;
   height: 0.5rem;
-  margin-right: 0.55rem;
-  border: 1px solid var(--jarvis-gold);
+  margin-right: 0.6rem;
+  border: 1px solid var(--jv-accent);
   transform: rotate(45deg) translateY(-0.12rem);
 }
 
+.table-of-contents__link--active {
+  color: var(--jv-accent);
+}
+
+.markdown th {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--jv-text-secondary);
+  background: var(--jv-surface);
+}
+
+/* 표 안의 짧은 식별자(main, karen)가 글자 단위로 쪼개지지 않게 한다 */
+.markdown td code {
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
 .markdown img {
-  border: 1px solid var(--jarvis-hairline);
+  border: 1px solid var(--jv-hairline);
   border-radius: 6px;
 }
 
@@ -125,18 +188,116 @@
   box-shadow: 0 0 28px rgba(95, 200, 226, 0.12);
 }
 
+pre,
+.theme-code-block {
+  border: 1px solid var(--jv-hairline);
+}
+
 [data-theme='dark'] pre,
 [data-theme='dark'] .theme-code-block {
-  border: 1px solid var(--jarvis-hairline);
-  background-color: #050c14 !important;
+  background-color: var(--jv-surface) !important;
 }
 
-[data-theme='dark'] .table-of-contents__link--active {
-  color: var(--jarvis-gold);
+/* 콜아웃: danger 는 승인 없이 위험한 동작, warning 은 데이터 손실과 비용, note 는 정본 안내, tip 은 지름길 */
+.theme-admonition {
+  border-radius: 6px;
+  border: 1px solid var(--jv-hairline);
+  border-left-width: 3px;
+  background: var(--jv-surface);
+  color: var(--jv-text);
+  box-shadow: none;
 }
 
-.footer {
-  border-top: 1px solid var(--jarvis-hairline);
+.theme-admonition [class*='admonitionHeading'] {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+}
+
+.theme-admonition-note,
+.theme-admonition-info {
+  border-left-color: var(--jv-primary);
+}
+
+.theme-admonition-tip {
+  border-left-color: var(--jv-agent-karen);
+}
+
+.theme-admonition-warning,
+.theme-admonition-caution {
+  border-left-color: var(--jv-warning);
+}
+
+.theme-admonition-danger {
+  border-left-color: var(--jv-danger);
+}
+
+.theme-admonition-note [class*='admonitionHeading'],
+.theme-admonition-info [class*='admonitionHeading'] {
+  color: var(--jv-primary);
+}
+
+.theme-admonition-tip [class*='admonitionHeading'] {
+  color: var(--jv-agent-karen);
+}
+
+.theme-admonition-warning [class*='admonitionHeading'],
+.theme-admonition-caution [class*='admonitionHeading'] {
+  color: var(--jv-warning);
+}
+
+.theme-admonition-danger [class*='admonitionHeading'] {
+  color: var(--jv-danger);
+}
+
+.theme-admonition [class*='admonitionIcon'] svg {
+  fill: currentColor;
+}
+
+/* 에이전트 표식. 본문에서 <span className="agent agent--karen">KAREN</span> 처럼 쓴다 */
+.agent {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.agent::before {
+  content: '';
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  margin-right: 0.4em;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.agent--jarvis {
+  color: var(--jv-agent-jarvis);
+}
+
+.agent--karen {
+  color: var(--jv-agent-karen);
+}
+
+.tabs__item--active {
+  border-bottom-color: var(--jv-primary);
+}
+
+/* classic 테마의 footer--dark 는 회색 배경을 박으므로 토큰으로 되돌린다 */
+.footer,
+.footer--dark {
+  --ifm-footer-background-color: var(--jv-surface);
+  --ifm-footer-color: var(--jv-text-secondary);
+  --ifm-footer-link-color: var(--jv-text-secondary);
+  --ifm-footer-link-hover-color: var(--jv-primary);
+  --ifm-footer-title-color: var(--jv-text);
+  border-top: 1px solid var(--jv-hairline);
+}
+
+[data-theme='dark'] .footer {
+  --ifm-footer-background-color: #03080f;
 }
 
 .footer__copyright {
@@ -148,26 +309,26 @@
 
 /* mermaid themeVariables 는 라이트에도 같이 들어가 라이트 도표가 깨지므로, 다크 전용 색은 CSS 로 덮는다 */
 [data-theme='dark'] .docusaurus-mermaid-container {
-  --jarvis-node: #0a1a24;
+  --jv-node: #0a1a24;
 }
 
 [data-theme='dark'] .docusaurus-mermaid-container :is(.node rect, .node polygon, .node circle, .node path, rect.actor) {
-  fill: var(--jarvis-node) !important;
-  stroke: var(--jarvis-cyan) !important;
+  fill: var(--jv-node) !important;
+  stroke: var(--jv-primary) !important;
 }
 
 [data-theme='dark'] .docusaurus-mermaid-container :is(.flowchart-link, .messageLine0, .messageLine1, line.actor-line) {
-  stroke: var(--jarvis-cyan) !important;
+  stroke: var(--jv-primary) !important;
 }
 
 [data-theme='dark'] .docusaurus-mermaid-container :is(marker path, #arrowhead path) {
-  fill: var(--jarvis-cyan) !important;
-  stroke: var(--jarvis-cyan) !important;
+  fill: var(--jv-primary) !important;
+  stroke: var(--jv-primary) !important;
 }
 
 [data-theme='dark'] .docusaurus-mermaid-container :is(.edgeLabel, .edgeLabel rect, .labelBkg) {
-  background-color: #02060c !important;
-  fill: #02060c !important;
+  background-color: var(--jv-bg) !important;
+  fill: var(--jv-bg) !important;
 }
 
 [data-theme='dark'] .docusaurus-mermaid-container .cluster rect {
@@ -176,10 +337,16 @@
 }
 
 [data-theme='dark'] .docusaurus-mermaid-container .cluster-label {
-  color: var(--jarvis-gold);
+  color: var(--jv-text-secondary);
 }
 
 [data-theme='dark'] .docusaurus-mermaid-container :is(rect.note, .labelBox) {
-  fill: #1d1708 !important;
-  stroke: var(--jarvis-gold) !important;
+  fill: #0c1620 !important;
+  stroke: var(--jv-hairline) !important;
+}
+
+/* 라이트 mermaid(neutral)는 회색이라 노드 테두리만 primary 로 맞춘다 */
+[data-theme='light'] .docusaurus-mermaid-container :is(.node rect, .node polygon, .node circle, .node path, rect.actor) {
+  fill: #eef6f8 !important;
+  stroke: var(--jv-primary) !important;
 }

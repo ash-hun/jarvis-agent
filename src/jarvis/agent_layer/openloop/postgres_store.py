@@ -7,8 +7,9 @@ import time
 from typing import Any
 
 from jarvis.agent_layer.openloop.store import OpenLoopStore
-from jarvis.agent_layer.openloop.types import LOOP_STATUSES, OpenLoop, merge_loop, normalize_description
+from jarvis.agent_layer.openloop.types import LOOP_STATUSES, OpenLoop
 from jarvis.memory.scope import MAIN_AGENT
+from jarvis.model_layer.embeddings import Embedder
 
 
 class PostgresOpenLoopStore(OpenLoopStore):
@@ -18,8 +19,8 @@ class PostgresOpenLoopStore(OpenLoopStore):
     기본 클래스의 메모리 저장은 쓰지 않고 모든 메서드를 DB 질의로 재정의한다.
     """
 
-    def __init__(self, dsn: str) -> None:
-        super().__init__()
+    def __init__(self, dsn: str, embedder: Embedder | None = None) -> None:
+        super().__init__(embedder)
         self._dsn = dsn
         # asyncpg 는 타입 스텁이 없어 풀과 레코드를 Any 로 다룬다
         self._pool: Any = None
@@ -90,19 +91,16 @@ class PostgresOpenLoopStore(OpenLoopStore):
             )
         return loop.id
 
-    async def add_unique(self, loop: OpenLoop) -> str | None:
-        if not normalize_description(loop.description):
-            return None
+    async def _open_in_session(self, session_id: str | None) -> list[OpenLoop]:
         pool = await self._get_pool()
         async with pool.acquire() as conn:
             # 판정은 파이썬 merge_loop 한 곳에서. 세션당 열린 약속은 몇 건이라 다 가져와도 싸다
             rows = await conn.fetch(
                 "SELECT * FROM jarvis_open_loops"
                 " WHERE status = 'open' AND origin_session IS NOT DISTINCT FROM $1",
-                loop.origin_session,
+                session_id,
             )
-        record = merge_loop([_row_to_loop(r) for r in rows], loop)
-        return await self.add(record) if record is not None else None
+        return [_row_to_loop(r) for r in rows]
 
     async def list_open(self, session_id: str | None = None, limit: int = 20) -> list[OpenLoop]:
         pool = await self._get_pool()

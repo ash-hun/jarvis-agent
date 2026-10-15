@@ -106,6 +106,8 @@ sequenceDiagram
 
 `JARVIS_MEMORY__EMBEDDING_PROVIDER` 를 `openai`(text-embedding-3-small, 1536), `ollama`(nomic-embed-text, 768), `vllm`(모델과 차원 필수) 중 하나로 두면 의미 검색이 켜진다. Postgres 는 pgvector 확장을 만들고 HNSW 인덱스를 시도한다. 확장이 없으면 키워드 검색으로 내려간다. 벡터가 없는 항목은 `/remember reembed` 로 채운다.
 
+한국어 대화라면 ollama 에서 `bge-m3`(1024)를 쓴다. 기본값 nomic-embed-text 는 한국어 문장끼리 코사인이 0.68~0.97 로 몰려서 다른 내용도 구분하지 못했다. 같은 임베딩 설정을 [AGENDA](./agenda.md)의 약속 중복 판정도 쓴다.
+
 ## 평가
 
 `python -m jarvis.memory.eval --suite all` 은 격리, 의미, 일화, 절차, 바꿔 말하기, 작업 기억, 충실도를 LLM 없이 잰다. 공개 벤치마크로 재려면 `--benchmark longmemeval|locomo` 를 쓴다.

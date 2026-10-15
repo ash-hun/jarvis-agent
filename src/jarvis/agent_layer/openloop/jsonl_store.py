@@ -9,6 +9,7 @@ import aiofiles
 
 from jarvis.agent_layer.openloop.store import OpenLoopStore
 from jarvis.agent_layer.openloop.types import OpenLoop
+from jarvis.model_layer.embeddings import Embedder
 
 DEFAULT_PATH = "~/.jarvis/openloops.jsonl"
 
@@ -21,8 +22,8 @@ class JsonlOpenLoopStore(OpenLoopStore):
     JsonlSessionRepo와 동일한 영속 철학.
     """
 
-    def __init__(self, path: str = DEFAULT_PATH) -> None:
-        super().__init__()
+    def __init__(self, path: str = DEFAULT_PATH, embedder: Embedder | None = None) -> None:
+        super().__init__(embedder)
         self._path = Path(path).expanduser()
         self._loaded = False
         self._lock = asyncio.Lock()

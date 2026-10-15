@@ -16,6 +16,9 @@ from jarvis.memory.scope import MAIN_AGENT
 MIN_CONTAINMENT_CHARS = 6  # 이보다 짧은 조각의 포함은 우연이 많다
 # 글자 bigram Jaccard. 실제로 쌓인 바꿔 말한 중복은 0.43~0.85, 다른 약속끼리는 0.21 이하였다
 SIMILAR_JACCARD = 0.4
+# 임베딩 코사인(bge-m3). 바꿔 말한 같은 약속 0.87~0.95, 같은 주제의 다른 약속은 0.80 이하였다("PR 리뷰"와 "PR 머지").
+# 다른 약속을 하나로 합치면 약속이 사라지므로 중복 쪽을 덜 잡는 높은 값을 고른다
+SAME_COSINE = 0.85
 # 닫는 말("~는 취소됐어")은 대상 약속에 말이 덧붙어 Jaccard 가 묽어진다. 짧은 쪽 기준 겹침으로 본다.
 # 실측: 취소 문장과 그 약속 0.54~0.6, 관계없는 약속 0.12 이하
 CLOSE_OVERLAP = 0.5
@@ -24,6 +27,10 @@ CLOSE_OVERLAP = 0.5
 LOOP_REF = re.compile(r"\s*(?:\[(\d+)\]|(\d+)\s*번?\s*$)")
 # 새 약속의 글자 bigram 중 이 비율 이상이 사용자 입력에 있어야 저장한다. 회상된 기억에서 옮겨 적은 약속은 0 이었다
 GROUNDED_OVERLAP = 0.2
+# 사고가 약속 끝에 붙이는 근거 인용: "보고서 보내기 @2026-10-12 15:00 (근거: 내일 3시까지 보고서 보내야 해)"
+EVIDENCE_SUFFIX = re.compile(r"\s*\(\s*근거\s*:\s*(.*)\)\s*")
+# 근거는 사용자 입력을 옮겨 적은 문장이라 설명보다 겹침이 커야 한다. 회상된 기억에서 지어낸 근거는 입력과 겹치지 않는다
+EVIDENCE_OVERLAP = 0.5
 # 사용자가 약속을 거둘 때 쓰는 말(공백 뺀 형태). 사고 모델이 closed_loops 를 놓쳐도 이 말이 약속을 가리키면 닫는다.
 # 완료 표현("보냈어", "다 했어")은 질문과 구분이 안 돼 넣지 않는다. "그만큼" 과 겹치는 "그만" 단독도 뺀다.
 CANCEL_CUES = ("취소", "안해도", "하지마", "하지말", "그만해", "그만두", "그만하", "필요없", "안챙겨")
@@ -70,8 +77,9 @@ def _bigrams(text: str) -> set[str]:
     return {compact[i : i + 2] for i in range(len(compact) - 1)}
 
 
-def same_loop(a: str, b: str) -> bool:
-    """같거나, 짧은 쪽이 긴 쪽에 통째로 들어가거나, 글자 bigram 이 충분히 겹치면 같은 약속으로 본다."""
+def same_loop(a: str, b: str, similarity: float | None = None) -> bool:
+    """같거나, 짧은 쪽이 긴 쪽에 통째로 들어가거나, 임베딩 코사인(similarity)이나 글자 bigram 이 충분히 겹치면
+    같은 약속으로 본다. similarity 는 호출자가 경계에서 계산해 넘긴다(없으면 글자로만 본다)."""
     x, y = normalize_description(a), normalize_description(b)
     if not x or not y:
         return False
@@ -80,7 +88,8 @@ def same_loop(a: str, b: str) -> bool:
     short, long = sorted((x, y), key=len)
     if len(short) >= MIN_CONTAINMENT_CHARS and short in long:
         return True
-    # ponytail: 글자 겹침만 본다("참석자 목록" ≠ "최종 리스트"), 단어가 다른 같은 약속이 계속 쌓이면 임베딩 유사도로
+    if similarity is not None and similarity >= SAME_COSINE:
+        return True
     bx, by = _bigrams(x), _bigrams(y)
     return bool(bx and by) and len(bx & by) / len(bx | by) >= SIMILAR_JACCARD
 
@@ -91,6 +100,15 @@ def refers_to(note: str, description: str) -> bool:
         return True
     bn, bd = _bigrams(note), _bigrams(description)
     return bool(bn and bd) and len(bn & bd) / min(len(bn), len(bd)) >= CLOSE_OVERLAP
+
+
+def split_evidence(note: str) -> tuple[str, str | None]:
+    """사고가 붙인 "(근거: ...)" 를 떼어 약속 문구와 근거로 나눈다. 근거가 없으면 None."""
+    m = EVIDENCE_SUFFIX.search(note)
+    if m is None:
+        return note.strip(), None
+    evidence = m.group(1).strip().strip("\"'“”‘’").strip()
+    return (note[: m.start()] + " " + note[m.end() :]).strip(), evidence or None
 
 
 def parse_loop_note(note: str) -> tuple[str, int | None]:
@@ -105,13 +123,17 @@ def parse_loop_note(note: str) -> tuple[str, int | None]:
     return note[: m.start()].strip(), int(due.timestamp() * 1000)
 
 
-def merge_loop(open_loops: list[OpenLoop], new: OpenLoop) -> OpenLoop | None:
+def merge_loop(
+    open_loops: list[OpenLoop], new: OpenLoop, similarities: dict[str, float] | None = None
+) -> OpenLoop | None:
     """새 약속을 넣을 때 쓸 레코드를 정한다. 같은 세션의 열린 같은 약속이 있으면 그걸 갱신하고,
-    바뀔 게 없으면 None. 두 번 불러도 두 번째는 None 이라 저장이 한 번만 일어난다."""
+    바뀔 게 없으면 None. 두 번 불러도 두 번째는 None 이라 저장이 한 번만 일어난다.
+    similarities 는 기존 약속 id 별 새 약속과의 임베딩 코사인이다."""
+    similarities = similarities or {}
     for existing in open_loops:
         if existing.status != "open" or existing.origin_session != new.origin_session:
             continue
-        if not same_loop(existing.description, new.description):
+        if not same_loop(existing.description, new.description, similarities.get(existing.id)):
             continue
         if new.due_ms is None or new.due_ms == existing.due_ms:
             return None
@@ -142,11 +164,17 @@ def cancelled_ids(shown: list[OpenLoop], user_input: str) -> list[str]:
     return [loop.id for loop in shown if loop.status == "open" and refers_to(user_input, loop.description)]
 
 
-def grounded(note: str, source: str) -> bool:
-    """새 약속이 사용자 입력에서 나왔는지. 작은 모델은 회상된 기억 속 약속을 새로 흘린 것처럼 옮겨 적는다."""
-    # ponytail: 글자 겹침만 본다(입력과 안 겹치게 바꿔 말한 약속은 버린다), 놓치는 약속이 많으면 사고가 근거 문장도 내게
-    bn = _bigrams(note)
-    return bool(bn) and len(bn & _bigrams(source)) / len(bn) >= GROUNDED_OVERLAP
+def _covered(text: str, source: str) -> float:
+    bt = _bigrams(text)
+    return len(bt & _bigrams(source)) / len(bt) if bt else 0.0
+
+
+def grounded(note: str, source: str, evidence: str | None = None) -> bool:
+    """새 약속이 사용자 입력에서 나왔는지. 작은 모델은 회상된 기억 속 약속을 새로 흘린 것처럼 옮겨 적는다.
+    근거 인용이 입력에 있으면 약속 문구를 바꿔 말했어도 받고, 근거가 없거나 어긋나면 문구 겹침으로 본다."""
+    if evidence and _covered(evidence, source) >= EVIDENCE_OVERLAP:
+        return True
+    return _covered(note, source) >= GROUNDED_OVERLAP
 
 
 def expired_ids(open_loops: list[OpenLoop], now_ms: int, grace_ms: int, max_age_ms: int) -> list[str]:

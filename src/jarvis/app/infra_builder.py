@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from jarvis.core.skills.registry import SkillRegistry
     from jarvis.core.tools.registry import ToolRegistry
     from jarvis.memory.memory_service import MemoryService
+    from jarvis.model_layer.embeddings import Embedder
     from jarvis.model_layer.types import ModelConfig
 
 logger = get_logger(__name__)
@@ -204,17 +205,10 @@ class InfraBuilder:
         from jarvis.memory.long_term.procedural import SkillRegistryProcedures
         from jarvis.memory.memory_service import MemoryService
         from jarvis.memory.retrieval import ScoringParams
-        from jarvis.model_layer.embeddings import build_embedder
 
         settings = self._settings
         mcfg = settings.memory
-        embedder = build_embedder(
-            mcfg.embedding_provider,
-            model=mcfg.embedding_model,
-            dimensions=mcfg.embedding_dimensions,
-            api_key=(mcfg.embedding_api_key or settings.llm.api_key or SecretStr("")).get_secret_value() or None,
-            base_url=mcfg.embedding_base_url,
-        )
+        embedder = self.build_embedder()
         from jarvis.memory.stores.protocol import ItemStore
         from jarvis.memory.working.state import WorkingStore
 
@@ -354,23 +348,38 @@ class InfraBuilder:
             skill_registry=skill_registry,
         )
 
+    def build_embedder(self) -> "Embedder | None":
+        """메모리 의미 검색과 같은 약속 판정이 함께 쓰는 임베딩. JARVIS_MEMORY__EMBEDDING_* 설정 하나를 따른다."""
+        from jarvis.model_layer.embeddings import build_embedder
+
+        settings = self._settings
+        mcfg = settings.memory
+        return build_embedder(
+            mcfg.embedding_provider,
+            model=mcfg.embedding_model,
+            dimensions=mcfg.embedding_dimensions,
+            api_key=(mcfg.embedding_api_key or settings.llm.api_key or SecretStr("")).get_secret_value() or None,
+            base_url=mcfg.embedding_base_url,
+        )
+
     def build_openloop_store(self) -> "OpenLoopStore":
         """기본 jsonl. postgres 는 dsn 이 없으면 session/memory DSN 으로, 그래도 없으면 jsonl 로 물러선다."""
         settings = self._settings
         cfg = settings.openloop
+        embedder = self.build_embedder()
         if cfg.backend == "in_memory":
             from jarvis.agent_layer.openloop import InMemoryOpenLoopStore
 
-            return InMemoryOpenLoopStore()
+            return InMemoryOpenLoopStore(embedder)
         if cfg.backend == "postgres":
             dsn = cfg.postgres_dsn or settings.session.postgres_dsn or settings.memory.postgres_dsn
             if dsn:
                 from jarvis.agent_layer.openloop import PostgresOpenLoopStore
 
-                return PostgresOpenLoopStore(dsn=dsn)
+                return PostgresOpenLoopStore(dsn=dsn, embedder=embedder)
         from jarvis.agent_layer.openloop import JsonlOpenLoopStore
 
-        return JsonlOpenLoopStore(path=cfg.path)
+        return JsonlOpenLoopStore(path=cfg.path, embedder=embedder)
 
     def build_user_model_store(self) -> "UserModelStore":
         cfg = self._settings.user_model

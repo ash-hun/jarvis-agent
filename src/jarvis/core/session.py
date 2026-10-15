@@ -22,6 +22,7 @@ from jarvis.agent_layer.openloop import (
     matching_ids,
     parse_loop_note,
     refers_to,
+    split_evidence,
 )
 from jarvis.agent_layer.session.protocol import SessionRepo
 from jarvis.agent_layer.thought import (
@@ -505,9 +506,10 @@ class AgentSession:
         if self._openloop_store is None or not frame.open_loops:
             return
         for note in frame.open_loops:
+            note, evidence = split_evidence(note)
             text, due_ms = parse_loop_note(note)
             # 작은 모델은 취소하는 턴에 그 약속을 open_loops 에도 적는다. 같은 프레임에서 닫으라고 한 건 열지 않는다
-            if not text or not grounded(text, user_input):
+            if not text or not grounded(text, user_input, evidence):
                 continue
             if any(refers_to(c, text) for c in frame.closed_loops):
                 continue

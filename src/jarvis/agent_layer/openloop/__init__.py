@@ -14,6 +14,7 @@ from jarvis.agent_layer.openloop.types import (
     normalize_description,
     parse_loop_note,
     refers_to,
+    split_evidence,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "normalize_description",
     "parse_loop_note",
     "refers_to",
+    "split_evidence",
 ]

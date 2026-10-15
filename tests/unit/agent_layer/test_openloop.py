@@ -22,7 +22,9 @@ from jarvis.agent_layer.openloop.types import (
     merge_loop,
     refers_to,
     same_loop,
+    split_evidence,
 )
+from jarvis.model_layer.embeddings import Embedder
 
 
 def test_store_satisfies_protocol():
@@ -256,3 +258,90 @@ def test_cancelled_ids_needs_cue_and_target():
     assert cancelled_ids(shown, "분기 보고서 초안 보내는 거 어떻게 돼가?") == []
     assert cancelled_ids(shown, "그건 취소됐어") == []
     assert cancelled_ids(shown, "보고서 분량은 그만큼이면 돼") == []
+
+
+class _TableEmbedder(Embedder):
+    """문구별로 정해 둔 벡터를 돌려준다. 표에 없는 문구는 서로 직교하는 축에 놓는다."""
+
+    model = "table"
+    dimensions = 3
+
+    def __init__(self, table: dict[str, list[float]], fail: bool = False) -> None:
+        self._table = table
+        self._fail = fail
+        self.calls = 0
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        self.calls += 1
+        if self._fail:
+            raise ConnectionError("ollama down")
+        return [self._table.get(t, [0.0, 0.0, 1.0]) for t in texts]
+
+
+def test_same_loop_uses_similarity_when_given():
+    # 실제로 쌓였던 중복. 글자로는 0.21 이라 못 잡는다
+    a, b = "참석자 목록 확정", "회의 참석자들의 최종 리스트 확정"
+    assert not same_loop(a, b)
+    assert same_loop(a, b, similarity=0.89)
+    assert not same_loop(a, b, similarity=0.80)
+    # 유사도가 낮아도 글자 규칙은 그대로 산다
+    assert same_loop("배포 결과 공유", "배포  결과 공유", similarity=0.1)
+
+
+def test_merge_loop_uses_similarities_by_id():
+    existing = _loop("참석자 목록 확정")
+    new = _loop("회의 참석자들의 최종 리스트 확정", due=1000)
+    assert merge_loop([existing], new) is new
+    merged = merge_loop([existing], new, {existing.id: 0.9})
+    assert merged is not None and merged.id == existing.id and merged.due_ms == 1000
+
+
+async def test_add_unique_merges_paraphrase_by_embedding_and_reruns_idempotent():
+    embedder = _TableEmbedder(
+        {"참석자 목록 확정": [1.0, 0.0, 0.0], "회의 참석자들의 최종 리스트 확정": [0.95, 0.31, 0.0]}
+    )
+    store = InMemoryOpenLoopStore(embedder)
+    first = await store.add_unique(_loop("참석자 목록 확정"))
+    assert await store.add_unique(_loop("회의 참석자들의 최종 리스트 확정")) is None
+    assert await store.add_unique(_loop("회의 참석자들의 최종 리스트 확정")) is None
+    assert [x.id for x in await store.list_open()] == [first]
+    # 다른 약속은 따로 쌓인다
+    assert await store.add_unique(_loop("원하는 알림 주기 확정"))
+    assert len(await store.list_open()) == 2
+
+
+async def test_add_unique_falls_back_to_text_when_embedding_fails():
+    embedder = _TableEmbedder({}, fail=True)
+    store = InMemoryOpenLoopStore(embedder)
+    assert await store.add_unique(_loop("참석자 목록 확정"))
+    assert await store.add_unique(_loop("참석자 목록 확정")) is None
+    assert await store.add_unique(_loop("회의 참석자들의 최종 리스트 확정"))
+    assert embedder.calls == 2  # 첫 약속은 비교할 후보가 없어 임베딩을 부르지 않는다
+
+
+@pytest.mark.parametrize(
+    ("note", "rest", "evidence"),
+    [
+        (
+            "보고서 보내기 @2026-10-12 15:00 (근거: 내일 3시까지 보고서 보내야 해)",
+            "보고서 보내기 @2026-10-12 15:00",
+            "내일 3시까지 보고서 보내야 해",
+        ),
+        ('결과 공유 (근거: "배포 끝나면 알려줄게")', "결과 공유", "배포 끝나면 알려줄게"),
+        ("결과 공유 (근거: 배포 끝나면) @2026-10-12 15:00", "결과 공유 @2026-10-12 15:00", "배포 끝나면"),
+        ("결과 공유 (근거:)", "결과 공유", None),
+        ("결과 공유", "결과 공유", None),
+    ],
+)
+def test_split_evidence(note, rest, evidence):
+    assert split_evidence(note) == (rest, evidence)
+    assert parse_loop_note(split_evidence(note)[0])[0] == parse_loop_note(rest)[0]
+
+
+def test_grounded_accepts_paraphrase_with_quoted_evidence():
+    source = "배포 끝나면 내가 알려줄게"
+    # 문구만으로는 입력과 안 겹쳐 버려지던 약속
+    assert not grounded("결과 공유", source)
+    assert grounded("결과 공유", source, evidence="배포 끝나면 내가 알려줄게")
+    # 회상된 기억에서 지어낸 근거는 입력에 없다
+    assert not grounded("핵심 메시지 구조화", "보고서는 취소됐어", evidence="핵심 메시지 3가지 구조화 작업")

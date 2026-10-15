@@ -30,4 +30,4 @@ jarvis-agent 의 기능을 한 표에 모았다. 이름을 누르면 그 기능�
 | [멀티 에이전트](./multi-agent.md) | 정의 파일의 서브 에이전트에게 일을 나눈다. 다섯 가지 패턴 | `/orchestrate`, 위임 도구 |
 | [음성과 Full-voice](./voice.md) | 음성 입력과 읽기. Full-voice 는 응답, 승인, 🔔 피드백까지 말로 묻고 답한다 | 구체 클릭, 헤더 `FULL-VOICE` |
 | [외부 알림](./proactive.md#외부-알림) | 열린 화면이 없어도 🔔 와 스케줄 결과를 Slack 으로 보낸다 | Slack |
-| [슬래시 커맨드와 확장](../reference/slash-commands.md) | `/` 명령, 스킬, 플러그인 훅, 사용자 도구 | 입력창 `/` |
+| [공용 커맨드와 확장](../reference/slash-commands.md) | `/` 명령, 스킬, 플러그인 훅, 사용자 도구 | 입력창 `/` |

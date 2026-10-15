@@ -1,17 +1,17 @@
 ---
 sidebar_position: 3
-title: 용어집
+title: 전체 용어집
 ---
 
-# 용어집
+# 전체 용어집
 
-이 문서가 쓰는 이름을 한곳에 정의한다. 본문은 개념 하나를 아래 이름 하나로만 부른다. 화면 기호(💭, 💬, 🔔)는 화면에 보이는 표식을 가리킬 때만 쓴다.
+서비스에서 사용하는 표기를 한눈에 정리한다. 특정 표기의 경우 표현기호도 함께 첨부한다.
 
 | 이름 | 화면 기호 | 뜻 | 자세히 |
 |---|---|---|---|
 | 내적 사고 | 💭 | JARVIS 가 메인 응답과 따로 LLM 을 한 번 더 불러 판단을 만드는 일. 요청마다 한 번, 성찰 때 한 번 돈다 | [내적 사고](../concepts/inner-thought.md) |
 | 사고 프레임 | | 내적 사고 한 번의 결과. 해석, 결정, 확신도, 먼저 할 말, 약속을 담은 구조화된 판단(`ThoughtFrame`) | [내적 사고 → 사고 프레임](../concepts/inner-thought.md#사고-프레임) |
-| 사고 모델 | | 내적 사고에 쓰는 LLM. 메인 모델과 따로 작은 모델을 둘 수 있다 | [설정](./configuration.md) |
+| 사고 모델 | | 내적 사고에 쓰는 LLM. 메인 모델과 따로 작은 모델을 둘 수 있다 | [서비스 설정 값](./configuration.md) |
 | Dual channel | 💬 | 오래 걸릴 요청이면 짧은 말을 먼저 하고 메인 응답은 뒤에서 처리하는 방식 | [먼저 행동하기 → Dual channel](../concepts/proactive.md#dual-channel) |
 | filler | 💬 | Dual channel 에서 먼저 하는 짧은 말. "잠깐만요, 확인할게요" 같은 것 | [먼저 행동하기 → Dual channel](../concepts/proactive.md#dual-channel) |
 | 성찰 | | 요청이 없는 시간에 주기적으로 도는 내적 사고. 먼저 말할 거리가 있는지 본다 | [먼저 행동하기](../concepts/proactive.md) |
@@ -28,4 +28,4 @@ title: 용어집
 | 세션 | | 대화 한 줄기. 만들 때 에이전트가 정해지고 바뀌지 않는다 | [세션](../concepts/sessions.md) |
 | 최상위 에이전트 | | JARVIS 와 같은 층에서 자기 세션, 기억, 승인 규칙, 색을 가진 에이전트. KAREN 이 그 예다 | [에이전트 팀](../concepts/team.md) |
 | 서브 에이전트 | | 부모 턴 안에서 잠깐 도는 도구 같은 에이전트. 최상위 에이전트와 다르다 | [멀티 에이전트](../concepts/multi-agent.md) |
-| HUD | | 브라우저 화면(Web HUD). 리액터 구체를 가운데 두고 카드를 두른다 | [Web HUD 사용법](../start/web-hud.md) |
+| HUD | | 브라우저 화면(Web HUD). 리액터 구체를 가운데 두고 카드를 두른다 | [Web HUD 사용가이드](../start/web-hud.md) |

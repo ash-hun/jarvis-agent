@@ -1,9 +1,9 @@
 ---
-sidebar_position: 4
-title: Web HUD 사용법
+sidebar_position: 3
+title: Web HUD 사용가이드
 ---
 
-# Web HUD 사용법
+# Web HUD 사용가이드
 
 Web HUD 는 브라우저에서 JARVIS 와 대화하는 화면이다. `jarvis --web` 으로 서버를 띄우고 브라우저에서 http://localhost:7777 을 연다. Docker 로 띄울 때는 `docker compose --profile web up -d` 를 쓴다.
 

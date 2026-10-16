@@ -351,7 +351,7 @@ pre,
   stroke: var(--jv-primary) !important;
 }
 
-/* 기능 페이지 맨 위의 논문식 그림(scripts/docs_figures.py 가 만든 SVG 를 인라인으로 넣는다) */
+/* 기능 페이지 맨 위의 논문식 그림. SVG 는 `uv run python scripts/docs_figures.py` 로 다시 만들고, MDX 가 인라인으로 넣는다 */
 .paper-fig {
   --pf-ink: var(--jv-text);
   --pf-ink-2: var(--jv-text-secondary);

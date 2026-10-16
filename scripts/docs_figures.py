@@ -1,8 +1,8 @@
 """Generates the paper-style figures at the top of each docs feature page as SVG files under website/src/figures/."""
 
 import sys
-from pathlib import Path
 from dataclasses import dataclass, field
+from pathlib import Path
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "website" / "src" / "figures"
 WIDTH = 760
@@ -55,19 +55,19 @@ class Box:
         return self.y + self.h / 2
 
     @property
-    def l(self) -> tuple[float, float]:
+    def left(self) -> tuple[float, float]:
         return (self.x, self.cy)
 
     @property
-    def r(self) -> tuple[float, float]:
+    def right(self) -> tuple[float, float]:
         return (self.x + self.w, self.cy)
 
     @property
-    def t(self) -> tuple[float, float]:
+    def top(self) -> tuple[float, float]:
         return (self.cx, self.y)
 
     @property
-    def b(self) -> tuple[float, float]:
+    def bottom(self) -> tuple[float, float]:
         return (self.cx, self.y + self.h)
 
 
@@ -82,20 +82,28 @@ class Fig:
     def panel(self, x, y, w, h, label="", bottom=False):
         self.parts.append(f'<rect class="pf-panel" x="{x}" y="{y}" width="{w}" height="{h}" rx="8"/>')
         if label:
-            self.parts.append(f'<text class="pf-plabel" x="{x + 12}" y="{y + h - 10 if bottom else y + 20}">{esc(label)}</text>')
+            self.parts.append(
+                f'<text class="pf-plabel" x="{x + 12}" y="{y + h - 10 if bottom else y + 20}">{esc(label)}</text>'
+            )
 
     def _size(self, title, sub, code, w, h):
         sub_mono = code
-        need = max(text_width(title, TITLE_FS), text_width(sub, CODE_FS if sub_mono else SUB_FS, sub_mono) if sub else 0)
+        need = max(
+            text_width(title, TITLE_FS), text_width(sub, CODE_FS if sub_mono else SUB_FS, sub_mono) if sub else 0
+        )
         return (w or round(need + 2 * PAD_X + 4), h or (BOX_H_SUB if sub else BOX_H))
 
     def _labels(self, cx, cy, title, sub, code, title_cls="pf-t"):
         if sub:
-            self.parts.append(f'<text class="{title_cls}" x="{cx}" y="{cy - 4}" text-anchor="middle">{esc(title)}</text>')
+            self.parts.append(
+                f'<text class="{title_cls}" x="{cx}" y="{cy - 4}" text-anchor="middle">{esc(title)}</text>'
+            )
             cls = "pf-code" if code else "pf-s"
             self.parts.append(f'<text class="{cls}" x="{cx}" y="{cy + 13}" text-anchor="middle">{esc(sub)}</text>')
         else:
-            self.parts.append(f'<text class="{title_cls}" x="{cx}" y="{cy + 4.5}" text-anchor="middle">{esc(title)}</text>')
+            self.parts.append(
+                f'<text class="{title_cls}" x="{cx}" y="{cy + 4.5}" text-anchor="middle">{esc(title)}</text>'
+            )
 
     def box(self, x, y, title, sub="", kind="", code=False, w=None, h=None, center=False) -> Box:
         w, h = self._size(title, sub, code, w, h)
@@ -136,7 +144,9 @@ class Fig:
         self.parts.append(f'<text class="{cls}" x="{x}" y="{y}" text-anchor="{anchor}">{esc(s)}</text>')
 
     def vtext(self, x, y, s, cls="pf-s"):
-        self.parts.append(f'<text class="{cls}" x="{x}" y="{y}" text-anchor="middle" transform="rotate(-90 {x} {y})">{esc(s)}</text>')
+        self.parts.append(
+            f'<text class="{cls}" x="{x}" y="{y}" text-anchor="middle" transform="rotate(-90 {x} {y})">{esc(s)}</text>'
+        )
 
     def box_lines(self, x, y, w, title, lines, kind="", code=False, line_h=16) -> Box:
         h = 34 + line_h * len(lines)
@@ -175,9 +185,15 @@ class Fig:
 
     def svg(self) -> str:
         heads = "".join(
-            f'<marker id="{self.name}-h{suffix}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
+            f'<marker id="{self.name}-h{suffix}" viewBox="0 0 10 10" refX="9" refY="5" '
+            f'markerWidth="7" markerHeight="7" '
             f'orient="auto-start-reverse"><path class="pf-head{cls}" d="M0,1 L10,5 L0,9 z"/></marker>'
-            for suffix, cls in (("", ""), ("-accent", " pf-head--accent"), ("-deny", " pf-head--deny"), ("-muted", " pf-head--muted"))
+            for suffix, cls in (
+                ("", ""),
+                ("-accent", " pf-head--accent"),
+                ("-deny", " pf-head--deny"),
+                ("-muted", " pf-head--muted"),
+            )
         )
         body = "\n".join(self.parts)
         return (
@@ -198,17 +214,29 @@ def open_loop() -> Fig:
     g2 = f.gate(150, 204, "열린 약속과 같은가", "정규화, 포함, 임베딩 0.85, Jaccard 0.4", center=True)
     d1 = f.box(362, 124, "버림", "기억에서 옮김", kind="deny", center=True, w=110)
     d2 = f.box(362, 204, "기한만 갱신", "바뀔 게 없으면 그대로", kind="muted", center=True, w=130)
-    f.edge([a.b, g1.t], "accent")
-    f.edge([g1.b, g2.t], "accent", "예", at=(g1.cx + 8, (g1.b[1] + g2.t[1]) / 2 + 4), anchor="start", dy=0)
-    f.edge([g1.r, d1.l], "deny", "아니오")
-    f.edge([g2.r, d2.l], "", "같음")
+    f.edge([a.bottom, g1.top], "accent")
+    f.edge(
+        [g1.bottom, g2.top], "accent", "예", at=(g1.cx + 8, (g1.bottom[1] + g2.top[1]) / 2 + 4), anchor="start", dy=0
+    )
+    f.edge([g1.right, d1.left], "deny", "아니오")
+    f.edge([g2.right, d2.left], "", "같음")
     s = f.store(597, 270, "열린 약속", "open", code=True, w=270, center=True)
-    f.edge([g2.b, (g2.cx, s.cy), s.l], "accent", "아니오, 새로 저장", at=(g2.cx + 8, s.cy - 6), anchor="start", dy=0)
-    cols = [(507, "done", "closed_loops", "✓ 버튼"), (597, "dismissed", "거두는 말", "✕ 버튼"),
-            (687, "expired", "기한 + 6시간", "기한 없이 7일")]
+    f.edge(
+        [g2.bottom, (g2.cx, s.cy), s.left],
+        "accent",
+        "아니오, 새로 저장",
+        at=(g2.cx + 8, s.cy - 6),
+        anchor="start",
+        dy=0,
+    )
+    cols = [
+        (507, "done", "closed_loops", "✓ 버튼"),
+        (597, "dismissed", "거두는 말", "✕ 버튼"),
+        (687, "expired", "기한 + 6시간", "기한 없이 7일"),
+    ]
     for cx, title, why1, why2 in cols:
         b = f.box(cx, 50, title, w=84, center=True)
-        f.edge([(cx, s.y + 1), b.b], "muted" if title == "expired" else "")
+        f.edge([(cx, s.y + 1), b.bottom], "muted" if title == "expired" else "")
         f.text(cx, 158, why1, "pf-elabel", "middle")
         f.text(cx, 173, why2, "pf-elabel", "middle")
     return f
@@ -228,16 +256,16 @@ def architecture() -> Fig:
     for i, (t, sub) in enumerate(rows):
         b = f.box(70, 30 + i * 66, t, sub, w=470, kind="accent" if i == 2 else "")
         boxes.append(b)
-    for up, down in zip(boxes, boxes[1:]):
-        f.edge([up.b, down.t], "")
+    for up, down in zip(boxes, boxes[1:], strict=False):
+        f.edge([up.bottom, down.top], "")
     f.edge([(40, 40), (40, 340)], "accent")
     f.vtext(32, 190, "의존 방향. 아래층은 위층을 모른다", "pf-elabel")
     mem = f.box(560, 162, "memory/", "작업 기억, 장기 기억", w=168, h=118)
-    f.edge([boxes[2].r, (mem.x, boxes[2].cy)], "")
-    f.edge([boxes[3].r, (mem.x, boxes[3].cy)], "")
+    f.edge([boxes[2].right, (mem.x, boxes[2].cy)], "")
+    f.edge([boxes[3].right, (mem.x, boxes[3].cy)], "")
     f.box(560, 30, "common/", "로거. 어느 층이든 쓴다", w=168, kind="muted")
     f.box(560, 294, "프로바이더", "anthropic, openai, gemini 외 2", w=168, kind="muted", h=50)
-    f.edge([boxes[4].r, (560, boxes[4].cy)], "muted", head=False)
+    f.edge([boxes[4].right, (560, boxes[4].cy)], "muted", head=False)
     return f
 
 
@@ -248,16 +276,28 @@ def inner_thought() -> Fig:
     ib = [f.box(96, 44 + i * 44, t, w=128, h=34, center=True, kind="io" if i == 0 else "") for i, t in enumerate(ins)]
     r = f.box(246, 132, "템플릿 렌더", "inner_thought.md", code=True, w=118, center=True)
     for b in ib:
-        f.edge([b.r, (172, b.cy), (172, r.cy), r.l], "", head=False)
-    f.edge([(172, r.cy), r.l], "")
+        f.edge([b.right, (172, b.cy), (172, r.cy), r.left], "", head=False)
+    f.edge([(172, r.cy), r.left], "")
     m = f.box(378, 132, "사고 모델 호출", "도구 없음, JSON 강제", w=118, center=True, kind="accent")
-    f.edge([r.r, m.l], "accent")
-    fr = f.box_lines(452, 74, 120, "ThoughtFrame", ["decision", "confidence", "utterance", "needs_background", "open_loops", "closed_loops"], code=True)
-    f.edge([m.r, (fr.x, m.cy)], "accent")
-    outs = [("💭 한 줄", "결정과 확신도"), ("시스템 프롬프트", "[내적 사고] 블록"), ("Dual channel", "filler 먼저"), ("약속 저장과 닫기", "요청 모드만")]
+    f.edge([r.right, m.left], "accent")
+    fr = f.box_lines(
+        452,
+        74,
+        120,
+        "ThoughtFrame",
+        ["decision", "confidence", "utterance", "needs_background", "open_loops", "closed_loops"],
+        code=True,
+    )
+    f.edge([m.right, (fr.x, m.cy)], "accent")
+    outs = [
+        ("💭 한 줄", "결정과 확신도"),
+        ("시스템 프롬프트", "[내적 사고] 블록"),
+        ("Dual channel", "filler 먼저"),
+        ("약속 저장과 닫기", "요청 모드만"),
+    ]
     ob = [f.box(662, 40 + i * 58, t, sub, w=140, h=46, center=True) for i, (t, sub) in enumerate(outs)]
     for b in ob:
-        f.edge([(fr.x + fr.w, fr.cy), (586, fr.cy), (586, b.cy), b.l], "")
+        f.edge([(fr.x + fr.w, fr.cy), (586, fr.cy), (586, b.cy), b.left], "")
     f.panel(16, 294, 728, 134, "(b) 사고와 메인 응답의 순서 (JARVIS_THOUGHT__REQUEST_TIMING)")
     rows = [("before", (0, 90), (90, 210)), ("race", (0, 90), (27, 210)), ("after", (120, 210), (0, 120))]
     x0, scale = 170, 2.2
@@ -277,33 +317,35 @@ def proactive() -> Fig:
     g1 = f.gate(246, 46, "답을 기다리는 🔔 없음", center=True, h=50)
     th = f.box(406, 46, "성찰 사고", "mode=reflection", code=True, center=True, w=118)
     g2 = f.gate(574, 46, "act 또는 ask", "decision", code=True, center=True)
-    f.edge([t.r, g1.l], "accent")
-    f.edge([g1.r, th.l], "accent")
-    f.edge([th.r, g2.l], "accent")
+    f.edge([t.right, g1.left], "accent")
+    f.edge([g1.right, th.left], "accent")
+    f.edge([th.right, g2.left], "accent")
     g3 = f.gate(640, 162, "확신도 ≥ θ", "기본 0.6", center=True)
     g4 = f.gate(478, 162, "말할 문장 있음", "utterance", code=True, center=True)
     g5 = f.gate(318, 162, "쿨다운 지남", "세션별 300초", center=True)
     out = f.box(122, 162, "🔔 먼저 건네는 말", "저위험 자율 행동 결과 포함", kind="accent", w=170, center=True)
-    f.edge([g2.r, (732, g2.cy), (732, g3.cy), g3.r], "accent")
-    f.edge([g3.l, g4.r], "accent")
-    f.edge([g4.l, g5.r], "accent")
-    f.edge([g5.l, out.r], "accent")
+    f.edge([g2.right, (732, g2.cy), (732, g3.cy), g3.right], "accent")
+    f.edge([g3.left, g4.right], "accent")
+    f.edge([g4.left, g5.right], "accent")
+    f.edge([g5.left, out.right], "accent")
     lane = f.box(46, 118, "침묵. 이유만 로그에 남긴다", w=630, h=26, kind="muted")
     for g in (g1, g2):
-        f.edge([g.b, (g.cx, lane.y)], "muted", head=True)
+        f.edge([g.bottom, (g.cx, lane.y)], "muted", head=True)
     for g in (g3, g4, g5):
-        f.edge([g.t, (g.cx, lane.y + lane.h)], "muted", head=True)
+        f.edge([g.top, (g.cx, lane.y + lane.h)], "muted", head=True)
     f.panel(274, 246, 470, 166, "(b) 피드백 학습")
     react = f.box(340, 300, "🔔 에 대한 반응", "다음 짧은 답", w=118, center=True, kind="io")
     opts = ["수락, θ − 0.05", "무시, θ + 0.05", "무응답 600초, θ + 0.025"]
     ob = [f.box(502, 270 + i * 44, t, w=170, h=34, center=True) for i, t in enumerate(opts)]
     for b in ob:
-        f.edge([react.r, (407, react.cy), (407, b.cy), b.l], "", head=True)
+        f.edge([react.right, (407, react.cy), (407, b.cy), b.left], "", head=True)
     th_box = f.box(670, 300, "임계치 θ", "0.3 ~ 0.95", w=110, center=True, kind="accent")
     for b in ob:
-        f.edge([b.r, (608, b.cy), (608, th_box.cy), th_box.l], "", head=False)
-    f.edge([(608, th_box.cy), th_box.l], "")
-    f.edge([th_box.t, (th_box.cx, g3.b[1])], "accent", "θ 를 옮긴다", at=(th_box.cx + 6, 232), anchor="start", dy=0)
+        f.edge([b.right, (608, b.cy), (608, th_box.cy), th_box.left], "", head=False)
+    f.edge([(608, th_box.cy), th_box.left], "")
+    f.edge(
+        [th_box.top, (th_box.cx, g3.bottom[1])], "accent", "θ 를 옮긴다", at=(th_box.cx + 6, 232), anchor="start", dy=0
+    )
     f.panel(16, 246, 246, 166, "(c) Dual channel")
     g = f.gate(139, 276, "오래 걸릴 요청인가", "needs_background", code=True, center=True)
     fl = f.box(78, 356, "filler 먼저", "잠깐만요, 확인할게요", w=108, center=True, kind="accent")
@@ -319,23 +361,41 @@ def memory() -> Fig:
     h = f.box(84, 48, "세션 히스토리", w=116, h=50, center=True, kind="io")
     c = f.box(222, 48, "요약과 압축", "10만 자 넘으면 요약", w=128, center=True)
     w = f.box(364, 48, "창", "최근 50 메시지", w=112, center=True)
-    pr = f.box_lines(452, 36, 168, "프롬프트", ["[핵심 사실] 3건", "[장기 기억] 회상 3건", "[절차 기억]", "[작업 패턴]", "요약 + 최근 메시지"])
+    pr = f.box_lines(
+        452,
+        36,
+        168,
+        "프롬프트",
+        ["[핵심 사실] 3건", "[장기 기억] 회상 3건", "[절차 기억]", "[작업 패턴]", "요약 + 최근 메시지"],
+    )
     llm = f.box(684, 92, "LLM", w=72, center=True, kind="accent")
-    f.edge([h.r, c.l], "accent")
-    f.edge([c.r, w.l], "accent")
-    f.edge([w.r, (pr.x, w.cy)], "accent")
-    f.edge([(pr.x + pr.w, llm.cy), llm.l], "accent")
+    f.edge([h.right, c.left], "accent")
+    f.edge([c.right, w.left], "accent")
+    f.edge([w.right, (pr.x, w.cy)], "accent")
+    f.edge([(pr.x + pr.w, llm.cy), llm.left], "accent")
     ltm = f.store(80, 168, "장기 기억", "의미 shared, 일화 private, 절차 private", w=420)
-    f.edge([ltm.r, (pr.cx, ltm.cy), (pr.cx, pr.y + pr.h)], "", "회상: 키워드 + 벡터, 점수", at=(pr.cx + 8, 176), anchor="start", dy=0)
+    f.edge(
+        [ltm.right, (pr.cx, ltm.cy), (pr.cx, pr.y + pr.h)],
+        "",
+        "회상: 키워드 + 벡터, 점수",
+        at=(pr.cx + 8, 176),
+        anchor="start",
+        dy=0,
+    )
     f.panel(16, 260, 728, 120, "(b) 정해진 순간에만 쓴다. 매 턴 대화는 자동으로 쓰지 않는다", bottom=True)
-    writes = [("/remember", "의미, shared"), ("압축, 세션 종료", "일화, private"), ("통합", "일화에서 사실 뽑기"), ("remember_task_pattern", "절차, 에이전트별")]
+    writes = [
+        ("/remember", "의미, shared"),
+        ("압축, 세션 종료", "일화, private"),
+        ("통합", "일화에서 사실 뽑기"),
+        ("remember_task_pattern", "절차, 에이전트별"),
+    ]
     xs = [130, 270, 410, 610]
-    for x, (t, sub) in zip(xs, writes):
+    for x, (t, sub) in zip(xs, writes, strict=True):
         b = f.box(x, 290, t, sub, center=True, w=max(124, round(text_width(t, TITLE_FS)) + 30))
         if x < ltm.x + ltm.w:
-            f.edge([b.t, (x, ltm.y + ltm.h)], "")
+            f.edge([b.top, (x, ltm.y + ltm.h)], "")
         else:
-            f.edge([b.t, (b.cx, 284), (480, 284), (480, ltm.y + ltm.h)], "")
+            f.edge([b.top, (b.cx, 284), (480, 284), (480, ltm.y + ltm.h)], "")
     return f
 
 
@@ -346,28 +406,35 @@ def sessions() -> Fig:
     f.text(32, 77, "agent: main", "pf-code")
     seq = ["U", "A", "T", "A", "U", "A"]
     xa = [130 + i * 34 for i in range(len(seq))]
-    for x, k in zip(xa, seq):
+    for x, k in zip(xa, seq, strict=True):
         f.chip(x, 52, k, "accent" if k == "U" else "")
     f.edge([(xa[-1] + 30, 62), (430, 62)], "muted", head=False)
     end = f.box(430, 42, "종료", "TUI 종료, Web 셧다운", w=134)
     hooks = f.box(590, 42, "세션 요약", "일화 기억, 통합, 절차 학습", w=140)
-    f.edge([end.r, hooks.l], "")
+    f.edge([end.right, hooks.left], "")
     f.text(32, 142, "세션 B", "pf-t")
     f.text(32, 157, "parent_id = A", "pf-code")
     for i in range(4):
         f.chip(130 + i * 34, 132, seq[i], "muted")
     for i, k in enumerate(["U", "A"]):
         f.chip(130 + (4 + i) * 34, 132, k, "accent" if k == "U" else "")
-    f.edge([(xa[3] + 12, 74), (xa[3] + 12, 100), (130 + 3 * 34 + 12, 100), (130 + 3 * 34 + 12, 130)], "accent", "/branch, ⑂", at=(xa[3] + 22, 104), anchor="start", dy=0)
+    f.edge(
+        [(xa[3] + 12, 74), (xa[3] + 12, 100), (130 + 3 * 34 + 12, 100), (130 + 3 * 34 + 12, 130)],
+        "accent",
+        "/branch, ⑂",
+        at=(xa[3] + 22, 104),
+        anchor="start",
+        dy=0,
+    )
     f.text(400, 146, "메시지를 통째로 복사한다. 이후 변경은 서로 전파되지 않는다", "pf-s")
     f.panel(16, 200, 728, 118, "(b) 한 턴이 저장되는 때")
     u = f.box(100, 238, "사용자 메시지", "턴 시작 때 바로 저장", w=150, center=True, kind="io")
     lp = f.box(300, 238, "에이전트 루프", "LLM 과 도구, 최대 20턴", w=160, center=True)
     sv = f.box(510, 238, "나머지 메시지", "루프가 끝난 뒤 한꺼번에", w=170, center=True)
     st = f.store(672, 234, "저장소", "jsonl, Postgres", w=110, center=True)
-    f.edge([u.r, lp.l], "accent")
-    f.edge([lp.r, sv.l], "accent")
-    f.edge([sv.r, st.l], "accent")
+    f.edge([u.right, lp.left], "accent")
+    f.edge([lp.right, sv.left], "accent")
+    f.edge([sv.right, st.left], "accent")
     f.edge([(u.cx, u.y + u.h), (u.cx, 294), (672, 294), (672, st.y + st.h)], "", head=True)
     f.text(300, 311, "루프 도중에 죽으면 사용자 메시지만 남는다", "pf-note", "middle")
     return f
@@ -382,24 +449,62 @@ def tools_and_approval() -> Fig:
     g3 = f.gate(512, 36, "승인이 필요한 도구", center=True, h=50)
     g4 = f.gate(668, 36, "규칙에 맞나", "공용, 에이전트별", center=True)
     for a, b in ((call, g1), (g1, g2), (g2, g3), (g3, g4)):
-        f.edge([a.r, b.l], "accent")
+        f.edge([a.right, b.left], "accent")
     ex = f.box(430, 156, "실행", w=80, h=50, center=True, kind="accent")
-    f.edge([(g3.cx, g3.y + g3.h), (g3.cx, 128), (ex.cx + 14, 128), (ex.cx + 14, ex.y)], "accent", "아니오", at=(g3.cx + 6, 116), anchor="start", dy=0)
-    f.edge([(g4.cx - 40, g4.y + g4.h), (g4.cx - 40, 128), (ex.cx + 14, 128)], "accent", "맞음", at=(g4.cx - 34, 116), anchor="start", dy=0, head=False)
+    f.edge(
+        [(g3.cx, g3.y + g3.h), (g3.cx, 128), (ex.cx + 14, 128), (ex.cx + 14, ex.y)],
+        "accent",
+        "아니오",
+        at=(g3.cx + 6, 116),
+        anchor="start",
+        dy=0,
+    )
+    f.edge(
+        [(g4.cx - 40, g4.y + g4.h), (g4.cx - 40, 128), (ex.cx + 14, 128)],
+        "accent",
+        "맞음",
+        at=(g4.cx - 34, 116),
+        anchor="start",
+        dy=0,
+        head=False,
+    )
     ask = f.box(668, 156, "사람에게 묻기", "120초", center=True, w=120)
     f.edge([(g4.cx + 20, g4.y + g4.h), (g4.cx + 20, ask.y)], "", "아니오", at=(g4.cx + 26, 132), anchor="start", dy=0)
-    f.edge([ask.l, ex.r], "accent", "ALLOW")
+    f.edge([ask.left, ex.right], "accent", "ALLOW")
     rule = f.store(632, 236, "규칙 저장", "approvals/<agent>.yaml", code=True, w=168, center=True)
-    f.edge([ask.b, (ask.cx, rule.y)], "", "ALWAYS", at=(ask.cx + 6, 226), anchor="start", dy=0)
-    f.edge([rule.l, (ex.cx, rule.cy), (ex.cx, ex.y + ex.h)], "")
+    f.edge([ask.bottom, (ask.cx, rule.y)], "", "ALWAYS", at=(ask.cx + 6, 226), anchor="start", dy=0)
+    f.edge([rule.left, (ex.cx, rule.cy), (ex.cx, ex.y + ex.h)], "")
     after = f.box(276, 156, "after_tool_call", w=130, h=50, center=True)
     res = f.box(100, 156, "결과를 LLM 에", "도구 루프 최대 20턴", w=140, center=True)
-    f.edge([ex.l, after.r], "accent")
-    f.edge([after.l, res.r], "accent")
-    lane = f.box(40, 296, "거부는 예외가 아니다. is_error 결과로 LLM 에 돌아가고 루프는 계속된다", w=530, h=30, kind="deny")
-    f.edge([(g1.cx, g1.y + g1.h), (g1.cx, 108), (186, 108), (186, lane.y)], "deny", "없음", at=(g1.cx + 6, 98), anchor="start", dy=0)
-    f.edge([(g2.cx, g2.y + g2.h), (g2.cx, 118), (356, 118), (356, lane.y)], "deny", "block", at=(g2.cx + 6, 112), anchor="start", dy=0)
-    f.edge([ask.r, (738, ask.cy), (738, 334), (lane.x + lane.w - 40, 334), (lane.x + lane.w - 40, lane.y + lane.h)], "deny", "DENY, 시간 초과", at=(700, 330), anchor="end", dy=0)
+    f.edge([ex.left, after.right], "accent")
+    f.edge([after.left, res.right], "accent")
+    lane = f.box(
+        40, 296, "거부는 예외가 아니다. is_error 결과로 LLM 에 돌아가고 루프는 계속된다", w=530, h=30, kind="deny"
+    )
+    f.edge(
+        [(g1.cx, g1.y + g1.h), (g1.cx, 108), (186, 108), (186, lane.y)],
+        "deny",
+        "없음",
+        at=(g1.cx + 6, 98),
+        anchor="start",
+        dy=0,
+    )
+    f.edge(
+        [(g2.cx, g2.y + g2.h), (g2.cx, 118), (356, 118), (356, lane.y)],
+        "deny",
+        "block",
+        at=(g2.cx + 6, 112),
+        anchor="start",
+        dy=0,
+    )
+    f.edge(
+        [ask.right, (738, ask.cy), (738, 334), (lane.x + lane.w - 40, 334), (lane.x + lane.w - 40, lane.y + lane.h)],
+        "deny",
+        "DENY, 시간 초과",
+        at=(700, 330),
+        anchor="end",
+        dy=0,
+    )
     f.edge([(res.cx, lane.y), (res.cx, res.y + res.h)], "deny")
     return f
 
@@ -412,29 +517,40 @@ def voice() -> Fig:
     msg = f.box(380, 40, "user_message", w=118, h=44, center=True)
     ag = f.box(520, 40, "JARVIS", w=88, h=44, center=True, kind="accent")
     for a, b in ((mic, stt), (stt, msg), (msg, ag)):
-        f.edge([a.r, b.l], "accent")
+        f.edge([a.right, b.left], "accent")
     tts = f.box(380, 98, "TTS", "Web Speech 또는 supertonic", w=180, h=44, center=True)
     spk = f.box(214, 98, "스피커", w=76, h=44, center=True, kind="io")
-    f.edge([(ag.cx, ag.y + ag.h), (ag.cx, tts.cy), tts.r], "accent", "응답, 승인 질문, 🔔", at=(ag.cx + 8, tts.cy - 6), anchor="start", dy=0)
-    f.edge([tts.l, spk.r], "accent")
+    f.edge(
+        [(ag.cx, ag.y + ag.h), (ag.cx, tts.cy), tts.right],
+        "accent",
+        "응답, 승인 질문, 🔔",
+        at=(ag.cx + 8, tts.cy - 6),
+        anchor="start",
+        dy=0,
+    )
+    f.edge([tts.left, spk.right], "accent")
     f.text(735, 66, "브라우저가 기본, 서버는 설정으로", "pf-note", "end")
     f.panel(16, 166, 300, 238, "(b) Full-voice 루프")
     L = f.box(90, 208, "listening", w=96, center=True, kind="accent")
     P = f.box(242, 208, "processing", w=96, center=True)
     T = f.box(242, 330, "thinking", w=96, center=True)
     S = f.box(90, 330, "speaking", w=96, center=True)
-    f.edge([L.r, P.l], "", "전사")
-    f.edge([P.b, T.t], "", "user_message", at=(P.cx + 6, 282), anchor="start", dy=0)
-    f.edge([T.l, S.r], "", "응답, 승인 질문", at=((T.x + S.x + S.w) / 2, T.cy + 22), dy=0)
-    f.edge([S.t, L.b], "", "다 읽음", at=(S.cx - 6, 282), anchor="end", dy=0)
+    f.edge([L.right, P.left], "", "전사")
+    f.edge([P.bottom, T.top], "", "user_message", at=(P.cx + 6, 282), anchor="start", dy=0)
+    f.edge([T.left, S.right], "", "응답, 승인 질문", at=((T.x + S.x + S.w) / 2, T.cy + 22), dy=0)
+    f.edge([S.top, L.bottom], "", "다 읽음", at=(S.cx - 6, 282), anchor="end", dy=0)
     f.panel(328, 166, 416, 238, "(c) 음성 승인 답은 애매하면 거부")
-    rules = [("부정어", "거부, 아니, 하지 마, 취소", "거부", "deny"), ("항상 키워드", "패턴 제안이 있을 때", "항상 허용", ""),
-             ("허용 키워드", "네, 응 단독 포함", "허용", ""), ("그 밖", "사고 모델이 분류, 실패하면", "거부", "deny")]
+    rules = [
+        ("부정어", "거부, 아니, 하지 마, 취소", "거부", "deny"),
+        ("항상 키워드", "패턴 제안이 있을 때", "항상 허용", ""),
+        ("허용 키워드", "네, 응 단독 포함", "허용", ""),
+        ("그 밖", "사고 모델이 분류, 실패하면", "거부", "deny"),
+    ]
     for i, (t, sub, out, kind) in enumerate(rules):
         y = 198 + i * 50
         b = f.box(372, y, t, sub, w=190, h=44)
         o = f.box(640, y + 5, out, w=96, h=34, kind=kind)
-        f.edge([b.r, o.l], "deny" if kind else "accent")
+        f.edge([b.right, o.left], "deny" if kind else "accent")
         f.badge(354, y + 22, i + 1)
     return f
 
@@ -443,21 +559,29 @@ def scheduling() -> Fig:
     f = Fig("scheduling", 330, "스케줄 등록에서 전달까지")
     f.panel(16, 12, 728, 306, "")
     inp = f.box(76, 98, "/schedule", "문장 하나", w=100, center=True, kind="io")
-    kinds = [("한 번", "…에, LLM 이 reminder 또는 task 로 분류"), ("마감까지 반복", "…까지, 남은 시간으로 주기 선택"), ("cron", "0 9 * * * …")]
+    kinds = [
+        ("한 번", "…에, LLM 이 reminder 또는 task 로 분류"),
+        ("마감까지 반복", "…까지, 남은 시간으로 주기 선택"),
+        ("cron", "0 9 * * * …"),
+    ]
     kb = [f.box(256, 30 + i * 68, t, sub, w=214, center=True) for i, (t, sub) in enumerate(kinds)]
     for b in kb:
-        f.edge([inp.r, (138, inp.cy), (138, b.cy), b.l], "")
+        f.edge([inp.right, (138, inp.cy), (138, b.cy), b.left], "")
     yml = f.store(458, 94, "작업 파일", "schedules/<name>.yaml", code=True, w=150, center=True)
     for b in kb:
-        f.edge([b.r, (372, b.cy), (372, yml.cy)], "", head=False)
+        f.edge([b.right, (372, b.cy), (372, yml.cy)], "", head=False)
     f.edge([(372, yml.cy), (yml.x, yml.cy)], "")
     sv = f.box(640, 98, "SchedulerService", "10초마다 깨어남", w=140, center=True, kind="accent")
-    f.edge([(yml.x + yml.w, sv.cy), sv.l], "accent")
+    f.edge([(yml.x + yml.w, sv.cy), sv.left], "accent")
     rem = f.box(568, 24, "reminder", "문장을 그대로 알림", w=128, center=True)
     task = f.box(686, 24, "task", "새 세션, 승인 없이", w=108, center=True)
     f.edge([(sv.cx - 30, sv.y), (rem.cx, rem.y + rem.h)], "accent")
     f.edge([(sv.cx + 30, sv.y), (task.cx, task.y + task.h)], "accent")
-    outs = [(290, "열린 Web 연결 전부", "reminder 이벤트", 150), (474, "놓친 알림 20건", "다음 접속 때, 재시작하면 사라짐", 190), (640, "Slack", "웹훅이 있으면", 110)]
+    outs = [
+        (290, "열린 Web 연결 전부", "reminder 이벤트", 150),
+        (474, "놓친 알림 20건", "다음 접속 때, 재시작하면 사라짐", 190),
+        (640, "Slack", "웹훅이 있으면", 110),
+    ]
     f.edge([(sv.cx, sv.y + sv.h), (sv.cx, 238)], "accent", head=False)
     for cx, t, sub, w in outs:
         b = f.box(cx, 256, t, sub, w=w, center=True)
@@ -472,18 +596,24 @@ def mcp() -> Fig:
     poll = f.box(262, 40, "Poller", "소스별 interval 300초", w=140, center=True)
     srv = f.box(430, 40, "MCP 도구 호출", "캘린더, 메일 같은 서버", w=150, center=True, kind="io")
     ext = f.box(616, 40, "이벤트 추출", "items, id, title 관례", w=150, center=True)
-    f.edge([src.r, poll.l], "")
-    f.edge([poll.r, srv.l], "accent")
-    f.edge([srv.r, ext.l], "accent")
+    f.edge([src.right, poll.left], "")
+    f.edge([poll.right, srv.left], "accent")
+    f.edge([srv.right, ext.left], "accent")
     seen = f.gate(616, 140, "처음 보는 항목", "본 것은 7일 기억", center=True)
-    f.edge([ext.b, seen.t], "accent")
+    f.edge([ext.bottom, seen.top], "accent")
     ib = f.store(430, 136, "inbox", "최대 200건, 틱당 20건", w=150, center=True)
-    f.edge([seen.l, (ib.x + ib.w, seen.cy)], "accent")
+    f.edge([seen.left, (ib.x + ib.w, seen.cy)], "accent")
     tr = f.box(262, 140, "성찰 트리거", "새 이벤트가 깨운다", w=140, center=True)
-    f.edge([ib.l, tr.r], "accent")
+    f.edge([ib.left, tr.right], "accent")
     th = f.box(96, 140, "다음 성찰", "inbox 를 한 번 비운다", w=150, center=True, kind="accent")
-    f.edge([tr.l, th.r], "accent")
-    f.text(380, 232, "이벤트는 말하라는 명령이 아니라 사실이다. 시급하고 사용자와 관련이 분명할 때만 🔔 로 말한다", "pf-note", "middle")
+    f.edge([tr.left, th.right], "accent")
+    f.text(
+        380,
+        232,
+        "이벤트는 말하라는 명령이 아니라 사실이다. 시급하고 사용자와 관련이 분명할 때만 🔔 로 말한다",
+        "pf-note",
+        "middle",
+    )
     return f
 
 
@@ -503,7 +633,7 @@ def team() -> Fig:
     sh = ["사용자 모델", "사용자에 대한 사실 (semantic)", "공용 승인 approvals.yaml", "AGENDA (에이전트 라벨)"]
     f.text(380, 120, "함께 쓰는 것", "pf-elabel", "middle")
     for i, t in enumerate(sh):
-        b = f.box(380, 128 + i * 50, t, w=208, h=38, center=True, kind="accent")
+        f.box(380, 128 + i * 50, t, w=208, h=38, center=True, kind="accent")
     f.text(380, 352 - 16, "받는 쪽은 에이전트 쌍마다 세션 하나 (peer-main-karen) 에서 답한다", "pf-note", "middle")
     return f
 
@@ -511,7 +641,12 @@ def team() -> Fig:
 def orchestration_pattern() -> Fig:
     f = Fig("orchestration-pattern", 372, "서브 에이전트 오케스트레이션 패턴 네 가지")
     W2, H2 = 356, 168
-    panels = [(16, 12, "(a) supervisor"), (388, 12, "(b) hierarchical"), (16, 192, "(c) market"), (388, 192, "(d) blackboard")]
+    panels = [
+        (16, 12, "(a) supervisor"),
+        (388, 12, "(b) hierarchical"),
+        (16, 192, "(c) market"),
+        (388, 192, "(d) blackboard"),
+    ]
     for x, y, lab in panels:
         f.panel(x, y, W2, H2, lab)
     sv = f.box(194, 44, "감독자 LLM", "agent_* 도구를 든다", w=150, center=True, kind="accent")
@@ -532,7 +667,7 @@ def orchestration_pattern() -> Fig:
     bids = [("a", "0.4"), ("b", "0.9"), ("c", "0.2")]
     for i, (n, sc) in enumerate(bids):
         b = f.box(222, 216 + i * 38, f"agent {n}", w=86, h=32, center=True, kind="accent" if n == "b" else "")
-        f.edge([tk.r, (b.x, b.cy)], "", head=True)
+        f.edge([tk.right, (b.x, b.cy)], "", head=True)
         f.text(b.x + b.w + 8, b.cy + 4, f"입찰 {sc}", "pf-code")
     f.text(194, 362 - 10, "capabilities 점수가 가장 높은 하나가 맡는다", "pf-note", "middle")
     bb = f.store(566, 220, "공유 보드", "스냅샷", w=120, center=True)
@@ -546,31 +681,57 @@ def orchestration_pattern() -> Fig:
 def extension() -> Fig:
     f = Fig("extension", 356, "~/.jarvis 아래 파일이 기동 때 붙는 자리")
     f.panel(16, 12, 236, 332, "(a) 놓는 파일")
-    files = [("tools/", "*.py, *.yaml"), ("mcp_servers", "설정 목록"), ("skills/", "*.md, 같은 이름 *.py"), ("agents/", "*.yaml"), ("plugins/", "훅 클래스")]
-    fb = [f.box(134, 40 + i * 60, t, sub, w=180, center=True, kind="io", code=False) for i, (t, sub) in enumerate(files)]
+    files = [
+        ("tools/", "*.py, *.yaml"),
+        ("mcp_servers", "설정 목록"),
+        ("skills/", "*.md, 같은 이름 *.py"),
+        ("agents/", "*.yaml"),
+        ("plugins/", "훅 클래스"),
+    ]
+    fb = [
+        f.box(134, 40 + i * 60, t, sub, w=180, center=True, kind="io", code=False) for i, (t, sub) in enumerate(files)
+    ]
     f.panel(266, 12, 478, 332, "(b) 붙는 자리. 파일을 더했으면 재시작한다")
     reg = f.box(390, 50, "도구 레지스트리", "턴마다 다시 읽는다", w=170, center=True)
     sl = f.box(390, 160, "슬래시 커맨드", "/name 이 프롬프트로 펼쳐짐", w=190, center=True)
     ma = f.box(390, 220, "agent_<name>, orchestrate", "서브 에이전트 도구", w=200, center=True)
-    f.edge([fb[0].r, reg.l], "accent")
-    f.edge([fb[1].r, (300, fb[1].cy), (300, reg.cy + 10), (reg.x, reg.cy + 10)], "accent")
-    f.edge([fb[2].r, sl.l], "accent")
-    f.edge([fb[3].r, (ma.x, fb[3].cy)], "accent")
-    hooks = [("before_agent_start", True), ("LLM 응답", False), ("before_tool_call", True), ("도구 실행", False), ("after_tool_call", True), ("on_message_end", True)]
+    f.edge([fb[0].right, reg.left], "accent")
+    f.edge([fb[1].right, (300, fb[1].cy), (300, reg.cy + 10), (reg.x, reg.cy + 10)], "accent")
+    f.edge([fb[2].right, sl.left], "accent")
+    f.edge([fb[3].right, (ma.x, fb[3].cy)], "accent")
+    hooks = [
+        ("before_agent_start", True),
+        ("LLM 응답", False),
+        ("before_tool_call", True),
+        ("도구 실행", False),
+        ("after_tool_call", True),
+        ("on_message_end", True),
+    ]
     hb = []
     for i, (t, hook) in enumerate(hooks):
         hb.append(f.box(640, 30 + i * 52, t, w=170, h=34, center=True, kind="accent" if hook else ""))
-    for a, b in zip(hb, hb[1:]):
-        f.edge([a.b, b.t], "")
+    for a, b in zip(hb, hb[1:], strict=False):
+        f.edge([a.bottom, b.top], "")
     f.text(640, 336, "강조한 네 칸이 플러그인 훅", "pf-note", "middle")
-    f.edge([fb[4].r, (520, fb[4].cy), (520, hb[0].cy), hb[0].l], "accent")
-    f.edge([(reg.x + reg.w, reg.cy), (hb[3].x - 6, reg.cy), (hb[3].x - 6, hb[3].cy), hb[3].l], "muted")
+    f.edge([fb[4].right, (520, fb[4].cy), (520, hb[0].cy), hb[0].left], "accent")
+    f.edge([(reg.x + reg.w, reg.cy), (hb[3].x - 6, reg.cy), (hb[3].x - 6, hb[3].cy), hb[3].left], "muted")
     return f
 
 
 FIGURES = [
-    architecture, inner_thought, proactive, memory, sessions, tools_and_approval,
-    open_loop, mcp, scheduling, voice, team, orchestration_pattern, extension,
+    architecture,
+    inner_thought,
+    proactive,
+    memory,
+    sessions,
+    tools_and_approval,
+    open_loop,
+    mcp,
+    scheduling,
+    voice,
+    team,
+    orchestration_pattern,
+    extension,
 ]
 
 

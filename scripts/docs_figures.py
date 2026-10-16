@@ -518,7 +518,7 @@ def voice() -> Fig:
     ag = f.box(520, 40, "JARVIS", w=88, h=44, center=True, kind="accent")
     for a, b in ((mic, stt), (stt, msg), (msg, ag)):
         f.edge([a.right, b.left], "accent")
-    tts = f.box(380, 98, "TTS", "Web Speech 또는 supertonic", w=180, h=44, center=True)
+    tts = f.box(380, 98, "TTS", "Web Speech, supertonic, 영어는 Piper", w=204, h=44, center=True)
     spk = f.box(214, 98, "스피커", w=76, h=44, center=True, kind="io")
     f.edge(
         [(ag.cx, ag.y + ag.h), (ag.cx, tts.cy), tts.right],

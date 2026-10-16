@@ -118,7 +118,12 @@ def build_tui_voice(settings: "JarvisSettings") -> "TuiVoiceController | None":
         from jarvis.ui.tui.voice import TuiVoiceController
         from jarvis.voice.service import VoiceService
 
-        service = VoiceService.from_config(stt_provider=vcfg.stt_provider, tts_provider=vcfg.tts_provider)
+        service = VoiceService.from_config(
+            stt_provider=vcfg.stt_provider,
+            tts_provider=vcfg.tts_provider,
+            english_tts_provider=vcfg.english_tts_provider,
+            english_tts_options=vcfg.english_tts_options(),
+        )
         return TuiVoiceController(service)
     except Exception as exc:
         logger.info(f"[Voice] TUI 음성 비활성화 (초기화 실패): {exc}")

@@ -60,8 +60,14 @@ class WebState:
             from jarvis.voice.service import VoiceService
 
             v = self.settings.voice
-            return VoiceService.from_config(stt_provider=v.stt_provider, tts_provider=v.tts_provider)
-        except Exception:
+            return VoiceService.from_config(
+                stt_provider=v.stt_provider,
+                tts_provider=v.tts_provider,
+                english_tts_provider=v.english_tts_provider,
+                english_tts_options=v.english_tts_options(),
+            )
+        except Exception as exc:
+            logger.warning(f"[Voice] 서버 음성 비활성화, 브라우저 음성만 쓴다 (초기화 실패): {exc}")
             return None
 
     def broker(self, session_id: str) -> SessionApprovals:

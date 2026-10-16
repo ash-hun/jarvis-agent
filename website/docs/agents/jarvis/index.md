@@ -12,8 +12,8 @@ title: JARVIS
 ## 맡은 일
 
 - 사용자의 요청에 답하고, 앱에 등록된 도구(파일, 셸, 웹 검색, MCP, 절차 도구)를 쓴다. 도구 목록은 [JARVIS 도구](./tools.md)에 있다
-- 요청마다 [내적 사고](../../concepts/inner-thought.md)로 판단을 남기고, 요청이 없는 시간에는 성찰해서 [먼저 건네는 말](../../concepts/proactive.md)을 보낸다
-- 대화에서 흘린 [약속](../../concepts/agenda.md)을 기억했다가 챙긴다
+- 요청마다 [내적 사고](../../concepts/architecture/inner-thought.md)로 판단을 남기고, 요청이 없는 시간에는 성찰해서 [먼저 건네는 말](../../concepts/architecture/proactive.md)을 보낸다
+- 대화에서 흘린 [약속](../../concepts/conversation/open-loop.md)을 기억했다가 챙긴다
 - 다른 에이전트가 더 잘하는 일은 `ask_agent` 로 맡긴다. 예를 들어 청약 공고 질문은 [KAREN](../karen/index.md)에게 넘긴다
 
 ## 하지 않는 것
@@ -36,5 +36,5 @@ JARVIS 는 정의 파일 대신 환경 변수가 정본이다. `team/` 에 `main
 
 ## 더 읽을 것
 
-- [최상위 에이전트 팀](../../concepts/team.md): 세션, 기억, 승인 규칙을 에이전트끼리 어떻게 나누고 공유하는지
-- [기능 목록](../../concepts/services.md): JARVIS 가 가진 기능 전체
+- [Multi agent Orchestration](../../concepts/multi-agent-orchestration/index.md): 세션, 기억, 승인 규칙을 에이전트끼리 어떻게 나누고 공유하는지
+- [Notice](../../concepts/notice.md): JARVIS 가 가진 기능 전체

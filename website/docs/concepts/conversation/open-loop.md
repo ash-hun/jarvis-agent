@@ -1,15 +1,11 @@
 ---
-sidebar_position: 6
-title: 약속, 스케줄, 외부 이벤트
+sidebar_position: 3
+title: Open Loop
 ---
 
-# 약속, 스케줄, 외부 이벤트
+# Open Loop
 
-JARVIS 는 대화에서 흘린 약속(open loop), 정한 시각에 도는 스케줄, MCP 도구로 가져온 외부 이벤트를 따로 관리하고, Web HUD 의 AGENDA 카드에 모아 보여 준다. 셋은 저장소와 흐름이 각각 다르다.
-
-## Open loop: 흘린 약속 추적
-
-JARVIS 는 대화에서 나온 약속과 미완 작업을 기억했다가 성찰 때 다시 본다.
+JARVIS 는 대화에서 흘린 약속(open loop)과 미완 작업을 기억했다가 성찰 때 다시 보고, Web HUD 의 AGENDA 카드에 보여 준다. 정한 시각에 도는 일은 [Scheduling](./scheduling.md), MCP 도구로 가져오는 외부 이벤트는 [MCP연동](./mcp.md) 에서 다룬다.
 
 ```mermaid
 flowchart LR
@@ -41,7 +37,7 @@ flowchart LR
 - 저장소: `~/.jarvis/openloops.jsonl`(append 로그, id 기준 마지막이 이긴다), Postgres `jarvis_open_loops`, 메모리
 - 조작: `/openloop`, `/openloop done <id>`, `/openloop dismiss <id>`, `POST /api/openloops/{id}` 로 약속을 보고 닫는다
 
-### 약속 판정
+## 약속 판정
 
 사고가 적어 낸 약속 하나는 두 번 판정을 거친다. 판정 규칙은 모두 `agent_layer/openloop/types.py` 의 순수 함수이고, 임베딩 호출만 저장소(`OpenLoopStore`)가 경계에서 한다.
 
@@ -73,7 +69,7 @@ gemma4:e2b-it-qat 에 입력 5개를 두 번씩 넣었을 때 약속을 낸 9번
 
 임베딩 설정이 없거나 Ollama 호출이 실패하면 임베딩 조건만 빠지고 나머지 세 조건으로 판정한다. 대화는 막히지 않는다.
 
-### 임베딩 켜기
+## 임베딩 켜기
 
 약속 판정은 메모리 의미 검색과 같은 `JARVIS_MEMORY__EMBEDDING_*` 설정을 쓴다. 하나를 켜면 둘 다 켜진다.
 
@@ -104,7 +100,7 @@ gemma4:e2b-it-qat 에 입력 5개를 두 번씩 넣었을 때 약속을 낸 9번
 ollama 기본값인 nomic-embed-text 는 한국어 문장끼리 코사인이 0.68~0.97 로 몰렸다. "PR 리뷰 해주기" 와 "PR 머지하기" 가 0.93 이라 0.85 문턱에서 다른 약속이 합쳐진다. 한국어로 대화한다면 bge-m3 를 쓴다.
 :::
 
-### 한계
+## 한계
 
 자동 닫힘과 중복 판정은 작은 사고 모델의 출력과 글자 겹침에 기댄다. 그래서 아래 경우는 사람이 ✓ / ✕ 로 정리해야 한다. 측정은 gemma4:e4b(ollama)로 "내일 오후 3시까지 분기 보고서 초안을 팀장님께 보내야 해" 뒤 "그건 취소됐어, 안 챙겨도 돼" 를 새 세션에서 반복한 것이다.
 
@@ -121,93 +117,9 @@ ollama 기본값인 nomic-embed-text 는 한국어 문장끼리 코사인이 0.6
 | 잘못 닫힌 약속을 되살릴 수 없다 | 닫기만 있고 `open` 으로 되돌리는 API 와 화면이 없다 | | 다시 말하면 새 약속으로 생긴다 |
 | 기한은 서버 시간대로 계산한다 | `[지금]` 과 기한 해석 모두 프로세스 로컬 시각이다 | 컨테이너 `TZ=Asia/Seoul` | 컨테이너 `TZ` 를 사용자 시간대로 맞춘다 |
 
-## 스케줄
-
-```text
-/schedule 내일 오전 9시에 배포 로그 확인해줘      # 한 번
-/schedule 2026.10.20 오후 6시까지 보고서 초안 작성   # 마감까지 반복
-/schedule 0 9 * * * date && uptime                  # cron
-```
-
-```mermaid
-sequenceDiagram
-  participant U as 사용자
-  participant D as 디스패처 /schedule
-  participant F as schedules/*.yaml
-  participant S as SchedulerService
-  participant R as 실행 세션
-  participant H as 열린 Web 연결
-  U->>D: /schedule 내일 오전 9시에 배포 로그 확인해줘
-  D->>D: 시각과 종류 해석 (한 번이면 LLM 이 reminder / task 분류)
-  D->>F: 작업 파일 저장
-  loop 10초마다
-    S->>F: 다음 실행 시각 확인
-  end
-  S->>R: 시각이 되면 새 세션에서 프롬프트 (task) 또는 문장 그대로 (reminder)
-  R-->>S: 결과
-  S->>H: reminder 이벤트 (없으면 놓친 알림 20건에 쌓음)
-  S->>S: Slack 이 있으면 거기도
-```
-
-- 한 번 실행(`...에`): LLM 분류기에 `reminder`(그 문장을 그대로 알림)인지 `task`(프롬프트를 실행)인지 한 번 묻는다. 분류에 실패하면 reminder 로 둔다
-- 마감까지 반복(`...까지`): 남은 시간으로 주기를 고른다. 7일 이상이면 매일 9시, 하루 이상이면 6시간마다, 1시간 이상이면 매시, 그 아래는 10분마다
-- 파일: 작업은 `~/.jarvis/schedules/<name>.yaml` 에 저장한다. 켜고 끄면 `enabled` 키만 바뀐다. 한 번 실행을 마친 작업은 스케줄러가 파일을 지우거나 `enabled: false` 로 바꾼다
-- 실행: 스케줄러는 10초마다 깨어나 새 세션에서 프롬프트를 돌린다. 이 세션은 빈 메모리 체인을 쓰고 사고 엔진이 없다. 늦게 켜져 지난 일정은 기동 때 `delayed_sec` 를 달고 실행된다
-- 전달: 열린 Web 연결 전부에 `reminder` 이벤트를 보낸다. 아무도 없으면 최근 20건을 쌓아 두었다가 다음 접속 때 `missed: true` 로 보낸다. Slack 이 있으면 Slack 에도 보낸다
-
-:::danger
-
-스케줄 실행 세션은 승인 없는 샌드박스를 쓴다. 스케줄 작업이 부르는 도구는 사람에게 묻지 않고 실행된다.
-
-:::
-
-:::warning
-
-놓친 알림은 프로세스 메모리에만 쌓인다. 재시작하면 사라진다.
-
-:::
-
-## 외부 이벤트
-
-JARVIS 는 MCP 도구를 주기적으로 불러 새 항목을 성찰의 재료로 넣는다. 캘린더나 메일 같은 소스를 비서가 먼저 보고 말하게 하는 길이다.
-
-```mermaid
-flowchart LR
-  Y[~/.jarvis/external_sources/*.yaml] --> P[Poller interval 마다]
-  P --> MCP[MCP 도구 호출]
-  MCP --> D[이벤트 추출<br/>items, id, title, time 관례]
-  D --> SEEN[(본 것 제외)]
-  SEEN --> I[inbox]
-  I --> TR[daemon 트리거]
-  TR --> R[다음 성찰이 drain]
-```
-
-- 소스 정의: `name`, `server`(mcp_servers 의 이름), `tool`, `args`, `interval_sec`(300), `enabled` 키로 쓴다
-- 응답 해석은 벤더 중립 관례를 따른다. 목록은 `items`, `events`, `messages`, `results`, `data` 필드에서 읽는다. id 는 `id`, `uid`, `eventId`, `messageId`, `threadId` 에서 찾고, 없으면 본문 해시를 쓴다. 제목은 `title`, `summary`, `subject`, `name`, `description` 에서 찾는다
-- 본 것은 `~/.jarvis/external_seen.jsonl` 에 TTL(7일)로 기억한다. 틱당 최대 20건을 가져오고, inbox 는 200건까지 담는다
-- drain 은 한 번만 일어나므로 여러 세션이 성찰해도 이벤트당 발화는 한 번이다. 요청 시점 사고는 외부 이벤트를 받지 않는다
-- 성찰 프롬프트는 이벤트를 "말하라는 명령이 아니라 사실" 로 다루고, 긴급성과 관련성이 분명할 때만 말한다
-
-## 사용자 모델과 저널
-
-```mermaid
-flowchart LR
-  MEM[(최근 기억 30건)] --> B[UserModelBuilder<br/>/usermodel build]
-  B --> UM[(~/.jarvis/user_model.json<br/>요약과 성향 8개)]
-  UM --> TP[모든 사고 프롬프트의<br/>user_model 자리]
-  TL[(최근 사고 기록 40건)] --> J[ReflectionJournaler<br/>/journal write]
-  J --> EP[(일화 기억)]
-  EP --> RC[다음 회상에 섞임]
-```
-
-- **사용자 모델** (`agent_layer/usermodel/`): LLM 이 최근 기억 30건을 요약과 성향(최대 8개)으로 증류한다. `/usermodel build` 로 만들고 `~/.jarvis/user_model.json` 에 덮어쓴다. 모든 사고 프롬프트의 `{{user_model}}` 에 들어간다. 자동으로는 만들지 않는다
-- **저널** (`agent_layer/journal/`): 최근 사고 기록 40건을 보고 1 에서 3 문장의 메타 성찰을 쓴다. `/journal write` 로 실행한다. 일화 기억으로 저장되어 회상에 섞여 들어온다
-
 ## 구현 위치
 
 왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
-
-### Open loop
 
 ```mermaid
 flowchart LR
@@ -226,35 +138,3 @@ flowchart LR
 
 - 핵심 모듈: `agent_layer/openloop/`
 - 저장: `openloops.jsonl` 또는 Postgres
-
-### 스케줄
-
-```mermaid
-flowchart LR
-  CMD["/schedule 명령"] --> CLS[make_llm_classifier<br/>reminder 또는 task]
-  CMD --> FILE[(~/.jarvis/schedules/*.yaml)]
-  SVC[SchedulerService<br/>10초마다] --> FILE
-  SVC --> RUN[새 세션에서 프롬프트 실행<br/>승인 없음, 사고 없음]
-  RUN -. reminder .-> HUD[열린 Web 연결 전부]
-  RUN --> PEND[(놓친 알림 20건<br/>메모리)]
-  RUN --> NTF[Slack]
-  AG[AGENDA 스위치] -->|enabled| FILE
-```
-
-- 핵심 모듈: `core/scheduler/`
-- 저장: `~/.jarvis/schedules/*.yaml`
-
-### 외부 이벤트
-
-```mermaid
-flowchart LR
-  SRC[(~/.jarvis/external_sources/*.yaml)] --> POLL[ExternalEventPoller]
-  POLL --> MCP[McpToolSource<br/>MCP 도구 호출]
-  MCP --> SEEN[JsonlSeenStore<br/>본 것 제외 7일]
-  SEEN --> INBOX[ExternalEventInbox<br/>최대 200건]
-  INBOX --> TRG[성찰 트리거]
-  INBOX -->|drain 한 번| REF[다음 성찰 프롬프트]
-```
-
-- 핵심 모듈: `core/external/`
-- 저장: `external_seen.jsonl`

@@ -1,9 +1,9 @@
 ---
-sidebar_position: 9
-title: 세션
+sidebar_position: 1
+title: Sessions
 ---
 
-# 세션
+# Sessions
 
 세션은 JARVIS 가 대화 한 줄기를 묶어 저장하는 단위다. 세션은 만들 때 에이전트가 정해지고, 그 뒤로 바뀌지 않는다.
 

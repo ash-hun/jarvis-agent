@@ -1,9 +1,9 @@
 ---
-sidebar_position: 12
-title: 음성
+sidebar_position: 6
+title: Voice Interface
 ---
 
-# 음성
+# Voice Interface
 
 Web HUD 나 TUI 에서 JARVIS 에게 말로 묻고 응답을 소리로 듣는다. 음성 인식(STT)과 음성 합성(TTS)을 브라우저에서 할지 서버에서 할지는 설정으로 정한다.
 

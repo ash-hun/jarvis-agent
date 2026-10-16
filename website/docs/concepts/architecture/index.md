@@ -1,9 +1,9 @@
 ---
-sidebar_position: 3
-title: 아키텍처
+sidebar_position: 0
+title: Architecture
 ---
 
-# 아키텍처
+# Architecture
 
 JARVIS 는 LLM 추상화, 기억, 에이전트 런타임, 오케스트레이션, 조립, 화면을 층으로 쌓고, 아래층이 위층을 모르게 만든다. TUI 와 Web 두 화면은 같은 조립 결과를 받아 쓰고 화면만 다르다.
 

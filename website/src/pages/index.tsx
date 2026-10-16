@@ -16,21 +16,21 @@ const PURPOSES: Card[] = [
   {
     title: '도구는 쓰되 위험한 명령은 막고 싶다',
     body: '파일, 셸, 웹 검색을 도구로 쓰고, 위험한 명령은 실행 전에 사람이 승인한다.',
-    to: '/concepts/tools-and-approval',
+    to: '/concepts/conversation/tools-and-approval',
   },
   {
     title: '먼저 챙겨 주는 비서가 필요하다',
     body: '흘린 약속을 기억하고, 정한 시각에 알리고, 할 말이 분명할 때만 먼저 말을 건다.',
-    to: '/concepts/proactive',
+    to: '/concepts/architecture/proactive',
   },
 ];
 
 const PILLARS: Card[] = [
-  {title: 'Inner Thought', body: '답하기 전에 따로 한 번 생각하고 그 판단을 남긴다.', to: '/concepts/inner-thought'},
-  {title: 'Proactive 발화', body: '요청이 없어도 성찰해서, 가치가 분명할 때만 말을 건다.', to: '/concepts/proactive'},
+  {title: 'Inner Thought', body: '답하기 전에 따로 한 번 생각하고 그 판단을 남긴다.', to: '/concepts/architecture/inner-thought'},
+  {title: 'Proactive 발화', body: '요청이 없어도 성찰해서, 가치가 분명할 때만 말을 건다.', to: '/concepts/architecture/proactive'},
   {title: 'Memory Management', body: '사실, 일화, 절차, 작업 패턴을 나눠 기억하고 다시 꺼낸다.', to: '/concepts/memory'},
-  {title: 'Tool Accept System', body: '한 번 허용한 명령은 다시 묻지 않고, 성공한 작업은 절차로 남긴다.', to: '/concepts/tools-and-approval'},
-  {title: 'Multi-agent Orchestration', body: 'JARVIS 옆에 KAREN 같은 에이전트를 파일 하나로 더하고 서로 일을 맡긴다.', to: '/concepts/team'},
+  {title: 'Tool Accept System', body: '한 번 허용한 명령은 다시 묻지 않고, 성공한 작업은 절차로 남긴다.', to: '/concepts/conversation/tools-and-approval'},
+  {title: 'Multi-agent Orchestration', body: 'JARVIS 옆에 KAREN 같은 에이전트를 파일 하나로 더하고 서로 일을 맡긴다.', to: '/concepts/multi-agent-orchestration'},
 ];
 
 function Cards({items, compact}: {items: Card[]; compact?: boolean}): ReactNode {
@@ -60,7 +60,7 @@ export default function Home(): ReactNode {
             <Link className="button button--primary button--lg" to="/start/install">
               설치하기
             </Link>
-            <Link className="button button--secondary button--outline button--lg" to="/concepts/inner-thought">
+            <Link className="button button--secondary button--outline button--lg" to="/concepts/architecture/inner-thought">
               살펴보기
             </Link>
           </div>

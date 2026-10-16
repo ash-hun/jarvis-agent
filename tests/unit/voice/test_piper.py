@@ -14,15 +14,22 @@ from jarvis.voice.providers.piper import PiperTTSProvider
 from jarvis.voice.service import VoiceService, is_english
 
 
+class _FakeConfig:
+    def __init__(self, noise_scale: float | None = None) -> None:
+        self.noise_scale = noise_scale
+
+
 class _FakeVoice:
     loaded: list[Path] = []
+    configs: list[_FakeConfig] = []
 
     @classmethod
     def load(cls, path: Path) -> "_FakeVoice":
         cls.loaded.append(path)
         return cls()
 
-    def synthesize_wav(self, text: str, wav_file: wave.Wave_write) -> None:
+    def synthesize_wav(self, text: str, wav_file: wave.Wave_write, syn_config: _FakeConfig) -> None:
+        self.configs.append(syn_config)
         wav_file.setnchannels(1)
         wav_file.setsampwidth(2)
         wav_file.setframerate(22050)
@@ -42,6 +49,7 @@ class _Recorder(TTSProvider):
 def _install_fake(monkeypatch: pytest.MonkeyPatch) -> None:
     module = ModuleType("piper")
     module.PiperVoice = _FakeVoice  # type: ignore[attr-defined]  # 가짜 모듈에 속성을 붙인다
+    module.SynthesisConfig = _FakeConfig  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "piper", module)
 
 
@@ -50,11 +58,12 @@ async def test_synthesize_returns_wav_from_model(monkeypatch: pytest.MonkeyPatch
     model = tmp_path / "en-voice.onnx"
     model.write_bytes(b"")
 
-    audio = await PiperTTSProvider(str(model)).synthesize("Good evening, sir.")
+    audio = await PiperTTSProvider(str(model), noise_scale=0.4).synthesize("Good evening, sir.")
 
     with wave.open(io.BytesIO(audio), "rb") as wf:
         assert (wf.getnchannels(), wf.getframerate(), wf.getnframes()) == (1, 22050, len("Good evening, sir."))
     assert _FakeVoice.loaded[-1] == model
+    assert _FakeVoice.configs[-1].noise_scale == 0.4
 
 
 def test_missing_model_raises(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -96,6 +105,7 @@ async def test_without_english_tts_everything_goes_to_default() -> None:
 
 def test_english_tts_options_only_for_piper() -> None:
     assert VoiceConfig(english_tts_provider="piper", piper_model="/m.onnx").english_tts_options() == {
-        "model_path": "/m.onnx"
+        "model_path": "/m.onnx",
+        "noise_scale": 0.4,
     }
     assert VoiceConfig().english_tts_options() == {}

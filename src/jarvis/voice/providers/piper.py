@@ -15,15 +15,16 @@ class PiperTTSProvider(TTSProvider):
     설치: uv sync --extra piper
     """
 
-    def __init__(self, model_path: str) -> None:
+    def __init__(self, model_path: str, noise_scale: float | None = None) -> None:
         try:
-            from piper import PiperVoice
+            from piper import PiperVoice, SynthesisConfig
         except ImportError as exc:
             raise ImportError("piper-tts 가 설치되지 않았습니다. `uv sync --extra piper` 로 설치하세요.") from exc
         path = Path(model_path).expanduser()
         if not path.is_file():
             raise FileNotFoundError(f"Piper 음성 모델이 없습니다: {path}")
         self._voice = PiperVoice.load(path)
+        self._config = SynthesisConfig(noise_scale=noise_scale)
 
     async def synthesize(self, text: str, lang: str = DEFAULT_LANG) -> bytes:
         loop = asyncio.get_running_loop()
@@ -32,5 +33,5 @@ class PiperTTSProvider(TTSProvider):
     def _synthesize_sync(self, text: str) -> bytes:
         buf = io.BytesIO()
         with wave.open(buf, "wb") as wf:
-            self._voice.synthesize_wav(text, wf)
+            self._voice.synthesize_wav(text, wf, syn_config=self._config)
         return buf.getvalue()

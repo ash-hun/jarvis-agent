@@ -282,13 +282,16 @@ class VoiceConfig(BaseModel):
     tts_lang: str = "ko"
     english_tts_provider: str = ""   # 비우면 영어 문장도 tts_provider 가 읽는다. piper
     piper_model: str = "~/.jarvis/voices/en-voice.onnx"  # 같은 자리에 .onnx.json 이 있어야 한다
+    piper_noise_scale: float = 0.4   # 낮을수록 음정 떨림이 줄고 말투가 단조로워진다. Piper 기본은 0.667
     stt_lang: str = "ko-KR"
     tui_enabled: bool = False        # TUI 음성 입출력 활성화 (whisper/supertonic + 시스템 오디오 도구 필요)
     tui_record_seconds: float = 5.0  # TUI 음성 입력(Ctrl+R) 녹음 길이(초)
 
     def english_tts_options(self) -> dict[str, object]:
         """english_tts_provider 팩토리에 넘길 생성 옵션."""
-        return {"model_path": self.piper_model} if self.english_tts_provider == "piper" else {}
+        if self.english_tts_provider != "piper":
+            return {}
+        return {"model_path": self.piper_model, "noise_scale": self.piper_noise_scale}
 
 
 class JarvisSettings(BaseSettings):

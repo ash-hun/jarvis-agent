@@ -42,7 +42,8 @@ class OpenAIProvider(Provider):
     ) -> AsyncIterator[StreamEvent]:
         client = openai_sdk.AsyncOpenAI(
             api_key=model.api_key,
-            base_url=model.base_url,
+            # 빈 문자열을 그대로 넘기면 SDK 가 기본 주소 대신 "" 로 요청해 연결 오류가 난다
+            base_url=model.base_url or None,
             timeout=model.timeout,
         )
 

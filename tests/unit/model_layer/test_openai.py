@@ -104,6 +104,15 @@ async def test_stream_without_tools_omits_tool_choice(monkeypatch: pytest.Monkey
     assert [e.reason for e in events if isinstance(e, StopEvent)] == ["stop"]
 
 
+async def test_empty_base_url_falls_back_to_sdk_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    sent: dict[str, Any] = {}
+    _install_fake_client(monkeypatch, [_chunk(finish="stop")], sent)
+    ctx = LLMContext(messages=[UserMessage(content="x")])
+    model = ModelConfig(provider="openai", model="gpt", base_url="")
+    [ev async for ev in OpenAIProvider().stream(model, ctx)]
+    assert sent["client"]["base_url"] is None
+
+
 def test_convert_messages_roles_and_images() -> None:
     ctx = LLMContext(
         system_prompt="sys",

@@ -25,7 +25,7 @@ title: Conversation
 `ALWAYS` 는 지금 세션 에이전트의 승인 규칙 파일(`~/.jarvis/approvals/<agent_id>.yaml`)에 패턴을 남긴다. 지우거나 덮어쓰는 명령에 `ALWAYS` 를 누르면 그 뒤로는 묻지 않고 실행한다. 규칙을 되돌리려면 그 파일에서 해당 줄을 지운다.
 :::
 
-승인 규칙이 어떻게 쌓이고 나뉘는지는 [도구와 승인](./tools-and-approval.md)에 있다.
+승인 규칙이 어떻게 쌓이고 나뉘는지는 [Tool & Approve system](./tools-and-approval.md)에 있다.
 
 ## 먼저 건네는 말 기다리기
 

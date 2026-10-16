@@ -3,7 +3,14 @@ sidebar_position: 6
 title: Extension
 ---
 
+import FigureExtension from '@site/src/figures/extension.svg';
+
 # Extension
+
+<figure className="paper-fig">
+  <FigureExtension />
+  <figcaption><b>Figure 1.</b> (a) ~/.jarvis 아래에 놓는 파일과 설정. (b) 기동 때 읽혀 도구 레지스트리, 슬래시 커맨드, 서브 에이전트 도구가 되고, 플러그인은 에이전트 루프의 네 훅에 걸린다. 파일을 더했으면 재시작한다.</figcaption>
+</figure>
 
 `~/.jarvis/` 아래 폴더에 파일을 놓아 JARVIS 에 도구, 스킬, 플러그인, 에이전트를 더한다.
 
@@ -123,7 +130,7 @@ class MyPlugin:
 - `market`: capabilities 가 맞는 에이전트 하나가 맡는다
 - `blackboard`: 전원이 병렬로 돌고 결과를 취합한다
 
-패턴을 쉼표로 이으면 파이프라인이 된다. 서브 에이전트는 부모의 사용자 범위를 상속하고, 부모는 위임한 일을 일화로 기억한다. 패턴별 흐름은 [멀티 에이전트](./multi-agent-orchestration/orchestration-pattern.md) 에 있다.
+패턴을 쉼표로 이으면 파이프라인이 된다. 서브 에이전트는 부모의 사용자 범위를 상속하고, 부모는 위임한 일을 일화로 기억한다. 패턴별 흐름은 [Orchestration Pattern](./multi-agent-orchestration/orchestration-pattern.md) 에 있다.
 
 ## LLM 프로바이더
 
@@ -137,7 +144,7 @@ async def stream(model: ModelConfig, ctx: LLMContext, options) -> AsyncIterator[
 
 ## 메모리 미들웨어
 
-`MemoryMiddleware` 프로토콜(`transform`, `store`, `retrieve`, `clear`)을 구현해 `MemoryMiddlewareChain` 에 끼운다. 체인은 턴마다 순서대로 돈다. 체인이 기억을 프롬프트에 넣는 흐름은 [메모리](./memory.md) 에 있다.
+`MemoryMiddleware` 프로토콜(`transform`, `store`, `retrieve`, `clear`)을 구현해 `MemoryMiddlewareChain` 에 끼운다. 체인은 턴마다 순서대로 돈다. 체인이 기억을 프롬프트에 넣는 흐름은 [Memory Management](./memory.md) 에 있다.
 
 ## 사고 프롬프트
 

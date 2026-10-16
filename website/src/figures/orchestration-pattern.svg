@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 372" class="pf-svg" role="img" aria-label="서브 에이전트 오케스트레이션 패턴 네 가지">
+<defs><marker id="orchestration-pattern-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="orchestration-pattern-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="orchestration-pattern-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="orchestration-pattern-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="16" y="12" width="356" height="168" rx="8"/>
+<text class="pf-plabel" x="28" y="32">(a) supervisor</text>
+<rect class="pf-panel" x="388" y="12" width="356" height="168" rx="8"/>
+<text class="pf-plabel" x="400" y="32">(b) hierarchical</text>
+<rect class="pf-panel" x="16" y="192" width="356" height="168" rx="8"/>
+<text class="pf-plabel" x="28" y="212">(c) market</text>
+<rect class="pf-panel" x="388" y="192" width="356" height="168" rx="8"/>
+<text class="pf-plabel" x="400" y="212">(d) blackboard</text>
+<rect class="pf-box pf-box--accent" x="119.0" y="44" width="150" height="50" rx="6"/>
+<text class="pf-t pf-t--accent" x="194.0" y="65.0" text-anchor="middle">감독자 LLM</text>
+<text class="pf-s" x="194.0" y="82.0" text-anchor="middle">agent_* 도구를 든다</text>
+<rect class="pf-box" x="75.0" y="128" width="90" height="34" rx="6"/>
+<text class="pf-t" x="120.0" y="149.5" text-anchor="middle">agent a</text>
+<rect class="pf-box" x="223.0" y="128" width="90" height="34" rx="6"/>
+<text class="pf-t" x="268.0" y="149.5" text-anchor="middle">agent b</text>
+<path class="pf-edge" d="M164.0,94.0 L120.0,128.0" marker-end="url(#orchestration-pattern-h)"/>
+<text class="pf-note" x="194" y="174" text-anchor="middle">LLM 이 도구 호출로 맡길 에이전트를 고른다</text>
+<path class="pf-edge" d="M224.0,94.0 L268.0,128.0" marker-end="url(#orchestration-pattern-h)"/>
+<text class="pf-code" x="460" y="60" text-anchor="middle">level 0</text>
+<rect class="pf-box" x="423.0" y="72" width="74" height="32" rx="6"/>
+<text class="pf-t" x="460.0" y="92.5" text-anchor="middle">agent a</text>
+<rect class="pf-box" x="423.0" y="116" width="74" height="32" rx="6"/>
+<text class="pf-t" x="460.0" y="136.5" text-anchor="middle">agent b</text>
+<text class="pf-code" x="570" y="60" text-anchor="middle">level 1</text>
+<rect class="pf-box" x="533.0" y="94" width="74" height="32" rx="6"/>
+<text class="pf-t" x="570.0" y="114.5" text-anchor="middle">agent c</text>
+<path class="pf-edge pf-edge--accent" d="M498.0,110.0 L534.0,110.0" marker-end="url(#orchestration-pattern-h-accent)"/>
+<text class="pf-code" x="680" y="60" text-anchor="middle">level 2</text>
+<rect class="pf-box" x="643.0" y="94" width="74" height="32" rx="6"/>
+<text class="pf-t" x="680.0" y="114.5" text-anchor="middle">agent d</text>
+<path class="pf-edge pf-edge--accent" d="M608.0,110.0 L644.0,110.0" marker-end="url(#orchestration-pattern-h-accent)"/>
+<text class="pf-note" x="570" y="170" text-anchor="middle">같은 레벨은 병렬, 앞 결과가 뒤로 간다</text>
+<rect class="pf-box pf-box--io" x="45.0" y="248" width="70" height="34" rx="6"/>
+<text class="pf-t pf-t--io" x="80.0" y="269.5" text-anchor="middle">task</text>
+<rect class="pf-box" x="179.0" y="216" width="86" height="32" rx="6"/>
+<text class="pf-t" x="222.0" y="236.5" text-anchor="middle">agent a</text>
+<path class="pf-edge" d="M115.0,265.0 L179.0,232.0" marker-end="url(#orchestration-pattern-h)"/>
+<text class="pf-code" x="273.0" y="236.0" text-anchor="start">입찰 0.4</text>
+<rect class="pf-box pf-box--accent" x="179.0" y="254" width="86" height="32" rx="6"/>
+<text class="pf-t pf-t--accent" x="222.0" y="274.5" text-anchor="middle">agent b</text>
+<path class="pf-edge" d="M115.0,265.0 L179.0,270.0" marker-end="url(#orchestration-pattern-h)"/>
+<text class="pf-code" x="273.0" y="274.0" text-anchor="start">입찰 0.9</text>
+<rect class="pf-box" x="179.0" y="292" width="86" height="32" rx="6"/>
+<text class="pf-t" x="222.0" y="312.5" text-anchor="middle">agent c</text>
+<path class="pf-edge" d="M115.0,265.0 L179.0,308.0" marker-end="url(#orchestration-pattern-h)"/>
+<text class="pf-code" x="273.0" y="312.0" text-anchor="start">입찰 0.2</text>
+<text class="pf-note" x="194" y="352" text-anchor="middle">capabilities 점수가 가장 높은 하나가 맡는다</text>
+<path class="pf-store" d="M506.0,225 a60.0,5 0 0,0 120,0 a60.0,5 0 0,0 -120,0 v48 a60.0,5 0 0,0 120,0 v-48"/>
+<text class="pf-t" x="566.0" y="248.0" text-anchor="middle">공유 보드</text>
+<text class="pf-s" x="566.0" y="265.0" text-anchor="middle">스냅샷</text>
+<rect class="pf-box" x="417.0" y="300" width="86" height="32" rx="6"/>
+<text class="pf-t" x="460.0" y="320.5" text-anchor="middle">agent a</text>
+<path class="pf-edge" d="M452.0,300.0 L546.0,278.0" marker-end="url(#orchestration-pattern-h)"/>
+<rect class="pf-box" x="523.0" y="300" width="86" height="32" rx="6"/>
+<text class="pf-t" x="566.0" y="320.5" text-anchor="middle">agent b</text>
+<path class="pf-edge" d="M558.0,300.0 L566.0,278.0" marker-end="url(#orchestration-pattern-h)"/>
+<rect class="pf-box" x="629.0" y="300" width="86" height="32" rx="6"/>
+<text class="pf-t" x="672.0" y="320.5" text-anchor="middle">agent c</text>
+<path class="pf-edge" d="M664.0,300.0 L586.0,278.0" marker-end="url(#orchestration-pattern-h)"/>
+<text class="pf-note" x="566" y="352" text-anchor="middle">전원이 병렬로 읽고 쓴다, --promote 면 장기 기억으로</text>
+</svg>

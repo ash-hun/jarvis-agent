@@ -3,7 +3,14 @@ sidebar_position: 1
 title: 내적 사고 (Inner Thought)
 ---
 
+import FigureInnerThought from '@site/src/figures/inner-thought.svg';
+
 # 내적 사고 (Inner Thought)
+
+<figure className="paper-fig">
+  <FigureInnerThought />
+  <figcaption><b>Figure 1.</b> (a) 사고 한 번. 다섯 가지 맥락을 템플릿에 채워 도구 없이 사고 모델을 한 번 부르고, JSON 으로 강제한 ThoughtFrame 을 네 곳에 나눠 쓴다. (b) 사고와 메인 응답의 순서. before 는 해석이 이번 응답에 섞이고, race(기본)는 3초까지만 기다리며, after 는 같은 GPU 를 나눠 쓰는 로컬에서 가장 빠르다.</figcaption>
+</figure>
 
 JARVIS 는 답하기 전에 따로 한 번 생각한다. 사용자 입력마다 메인 응답과 별개로 LLM 을 한 번 더 불러, 무엇이 들어왔고 먼저 말할지 뒤에서 처리할지를 **사고 프레임**이라는 구조화된 판단으로 남긴다.
 
@@ -62,7 +69,7 @@ flowchart LR
 
 - **composer**: `[내적 사고] 해석: ... 회상: ... 고려한 대응: ...` 블록을 만들어 메인 호출의 시스템 프롬프트 끝에 붙인다. 이 블록은 히스토리에 남지 않는다. `interpretation_only` 로 바꾸면 해석 한 줄만 붙인다
 - **dual channel**: `needs_background` 면 filler 를 먼저 말하고 메인 응답은 뒤에서 돈다. 흐름은 [먼저 행동하기의 Dual channel](./proactive.md#dual-channel) 에 있다
-- **약속(open loop)**: 요청 모드에서만 저장하고 닫는다. 성찰 모드는 기존 약속을 볼 뿐 새로 쌓지도 닫지도 않는다. 바꿔 말한 같은 약속이 쌓이는 것과, 사용자 말 없이 약속이 사라지는 것을 막기 위해서다. 저장과 닫힘 규칙은 [약속, 스케줄, 외부 이벤트](../conversation/open-loop.md) 에 있다
+- **약속(open loop)**: 요청 모드에서만 저장하고 닫는다. 성찰 모드는 기존 약속을 볼 뿐 새로 쌓지도 닫지도 않는다. 바꿔 말한 같은 약속이 쌓이는 것과, 사용자 말 없이 약속이 사라지는 것을 막기 위해서다. 저장과 닫힘 규칙은 [Open Loop](../conversation/open-loop.md) 에 있다
 - **화면**: 💭 한 줄로 decision 과 확신도를 보여 준다. 클릭하면 해석 전문이 열린다
 
 ## 시점: before, race, after

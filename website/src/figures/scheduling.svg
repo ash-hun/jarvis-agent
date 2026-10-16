@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 330" class="pf-svg" role="img" aria-label="스케줄 등록에서 전달까지">
+<defs><marker id="scheduling-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="scheduling-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="scheduling-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="scheduling-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="16" y="12" width="728" height="306" rx="8"/>
+<rect class="pf-box pf-box--io" x="26.0" y="98" width="100" height="50" rx="6"/>
+<text class="pf-t pf-t--io" x="76.0" y="119.0" text-anchor="middle">/schedule</text>
+<text class="pf-s" x="76.0" y="136.0" text-anchor="middle">문장 하나</text>
+<rect class="pf-box" x="149.0" y="30" width="214" height="50" rx="6"/>
+<text class="pf-t" x="256.0" y="51.0" text-anchor="middle">한 번</text>
+<text class="pf-s" x="256.0" y="68.0" text-anchor="middle">…에, LLM 이 reminder 또는 task 로 분류</text>
+<rect class="pf-box" x="149.0" y="98" width="214" height="50" rx="6"/>
+<text class="pf-t" x="256.0" y="119.0" text-anchor="middle">마감까지 반복</text>
+<text class="pf-s" x="256.0" y="136.0" text-anchor="middle">…까지, 남은 시간으로 주기 선택</text>
+<rect class="pf-box" x="149.0" y="166" width="214" height="50" rx="6"/>
+<text class="pf-t" x="256.0" y="187.0" text-anchor="middle">cron</text>
+<text class="pf-s" x="256.0" y="204.0" text-anchor="middle">0 9 * * * …</text>
+<path class="pf-edge" d="M126.0,123.0 L138.0,123.0 L138.0,55.0 L149.0,55.0" marker-end="url(#scheduling-h)"/>
+<path class="pf-edge" d="M126.0,123.0 L138.0,123.0 L138.0,123.0 L149.0,123.0" marker-end="url(#scheduling-h)"/>
+<path class="pf-edge" d="M126.0,123.0 L138.0,123.0 L138.0,191.0 L149.0,191.0" marker-end="url(#scheduling-h)"/>
+<path class="pf-store" d="M383.0,99 a75.0,5 0 0,0 150,0 a75.0,5 0 0,0 -150,0 v48 a75.0,5 0 0,0 150,0 v-48"/>
+<text class="pf-t" x="458.0" y="122.0" text-anchor="middle">작업 파일</text>
+<text class="pf-code" x="458.0" y="139.0" text-anchor="middle">schedules/&lt;name&gt;.yaml</text>
+<path class="pf-edge" d="M363.0,55.0 L372.0,55.0 L372.0,123.0"/>
+<path class="pf-edge" d="M363.0,123.0 L372.0,123.0 L372.0,123.0"/>
+<path class="pf-edge" d="M363.0,191.0 L372.0,191.0 L372.0,123.0"/>
+<path class="pf-edge" d="M372.0,123.0 L383.0,123.0" marker-end="url(#scheduling-h)"/>
+<rect class="pf-box pf-box--accent" x="570.0" y="98" width="140" height="50" rx="6"/>
+<text class="pf-t pf-t--accent" x="640.0" y="119.0" text-anchor="middle">SchedulerService</text>
+<text class="pf-s" x="640.0" y="136.0" text-anchor="middle">10초마다 깨어남</text>
+<path class="pf-edge pf-edge--accent" d="M533.0,123.0 L570.0,123.0" marker-end="url(#scheduling-h-accent)"/>
+<rect class="pf-box" x="504.0" y="24" width="128" height="50" rx="6"/>
+<text class="pf-t" x="568.0" y="45.0" text-anchor="middle">reminder</text>
+<text class="pf-s" x="568.0" y="62.0" text-anchor="middle">문장을 그대로 알림</text>
+<rect class="pf-box" x="632.0" y="24" width="108" height="50" rx="6"/>
+<text class="pf-t" x="686.0" y="45.0" text-anchor="middle">task</text>
+<text class="pf-s" x="686.0" y="62.0" text-anchor="middle">새 세션, 승인 없이</text>
+<path class="pf-edge pf-edge--accent" d="M610.0,98.0 L568.0,74.0" marker-end="url(#scheduling-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M670.0,98.0 L686.0,74.0" marker-end="url(#scheduling-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M640.0,148.0 L640.0,238.0"/>
+<rect class="pf-box" x="215.0" y="256" width="150" height="50" rx="6"/>
+<text class="pf-t" x="290.0" y="277.0" text-anchor="middle">열린 Web 연결 전부</text>
+<text class="pf-s" x="290.0" y="294.0" text-anchor="middle">reminder 이벤트</text>
+<path class="pf-edge pf-edge--accent" d="M640.0,238.0 L290.0,238.0 L290.0,256.0" marker-end="url(#scheduling-h-accent)"/>
+<rect class="pf-box" x="379.0" y="256" width="190" height="50" rx="6"/>
+<text class="pf-t" x="474.0" y="277.0" text-anchor="middle">놓친 알림 20건</text>
+<text class="pf-s" x="474.0" y="294.0" text-anchor="middle">다음 접속 때, 재시작하면 사라짐</text>
+<path class="pf-edge pf-edge--accent" d="M640.0,238.0 L474.0,238.0 L474.0,256.0" marker-end="url(#scheduling-h-accent)"/>
+<rect class="pf-box" x="585.0" y="256" width="110" height="50" rx="6"/>
+<text class="pf-t" x="640.0" y="277.0" text-anchor="middle">Slack</text>
+<text class="pf-s" x="640.0" y="294.0" text-anchor="middle">웹훅이 있으면</text>
+<path class="pf-edge pf-edge--accent" d="M640.0,238.0 L640.0,238.0 L640.0,256.0" marker-end="url(#scheduling-h-accent)"/>
+</svg>

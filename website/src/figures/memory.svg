@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 392" class="pf-svg" role="img" aria-label="턴마다 기억을 읽는 길과 장기 기억에 쓰는 순간">
+<defs><marker id="memory-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="memory-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="memory-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="memory-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="16" y="12" width="728" height="236" rx="8"/>
+<text class="pf-plabel" x="28" y="32">(a) 매 턴 읽기</text>
+<rect class="pf-box pf-box--io" x="26.0" y="48" width="116" height="50" rx="6"/>
+<text class="pf-t pf-t--io" x="84.0" y="77.5" text-anchor="middle">세션 히스토리</text>
+<rect class="pf-box" x="158.0" y="48" width="128" height="50" rx="6"/>
+<text class="pf-t" x="222.0" y="69.0" text-anchor="middle">요약과 압축</text>
+<text class="pf-s" x="222.0" y="86.0" text-anchor="middle">10만 자 넘으면 요약</text>
+<rect class="pf-box" x="308.0" y="48" width="112" height="50" rx="6"/>
+<text class="pf-t" x="364.0" y="69.0" text-anchor="middle">창</text>
+<text class="pf-s" x="364.0" y="86.0" text-anchor="middle">최근 50 메시지</text>
+<rect class="pf-box" x="452" y="36" width="168" height="114" rx="6"/>
+<text class="pf-t" x="536.0" y="57" text-anchor="middle">프롬프트</text>
+<text class="pf-s" x="536.0" y="76" text-anchor="middle">[핵심 사실] 3건</text>
+<text class="pf-s" x="536.0" y="92" text-anchor="middle">[장기 기억] 회상 3건</text>
+<text class="pf-s" x="536.0" y="108" text-anchor="middle">[절차 기억]</text>
+<text class="pf-s" x="536.0" y="124" text-anchor="middle">[작업 패턴]</text>
+<text class="pf-s" x="536.0" y="140" text-anchor="middle">요약 + 최근 메시지</text>
+<rect class="pf-box pf-box--accent" x="648.0" y="92" width="72" height="40" rx="6"/>
+<text class="pf-t pf-t--accent" x="684.0" y="116.5" text-anchor="middle">LLM</text>
+<path class="pf-edge pf-edge--accent" d="M142.0,73.0 L158.0,73.0" marker-end="url(#memory-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M286.0,73.0 L308.0,73.0" marker-end="url(#memory-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M420.0,73.0 L452.0,73.0" marker-end="url(#memory-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M620.0,112.0 L648.0,112.0" marker-end="url(#memory-h-accent)"/>
+<path class="pf-store" d="M80.0,173 a210.0,5 0 0,0 420,0 a210.0,5 0 0,0 -420,0 v48 a210.0,5 0 0,0 420,0 v-48"/>
+<text class="pf-t" x="290.0" y="196.0" text-anchor="middle">장기 기억</text>
+<text class="pf-s" x="290.0" y="213.0" text-anchor="middle">의미 shared, 일화 private, 절차 private</text>
+<path class="pf-edge" d="M500.0,197.0 L536.0,197.0 L536.0,150.0" marker-end="url(#memory-h)"/>
+<text class="pf-elabel" x="544.0" y="176.0" text-anchor="start">회상: 키워드 + 벡터, 점수</text>
+<rect class="pf-panel" x="16" y="260" width="728" height="120" rx="8"/>
+<text class="pf-plabel" x="28" y="370">(b) 정해진 순간에만 쓴다. 매 턴 대화는 자동으로 쓰지 않는다</text>
+<rect class="pf-box" x="68.0" y="290" width="124" height="50" rx="6"/>
+<text class="pf-t" x="130.0" y="311.0" text-anchor="middle">/remember</text>
+<text class="pf-s" x="130.0" y="328.0" text-anchor="middle">의미, shared</text>
+<path class="pf-edge" d="M130.0,290.0 L130.0,226.0" marker-end="url(#memory-h)"/>
+<rect class="pf-box" x="208.0" y="290" width="124" height="50" rx="6"/>
+<text class="pf-t" x="270.0" y="311.0" text-anchor="middle">압축, 세션 종료</text>
+<text class="pf-s" x="270.0" y="328.0" text-anchor="middle">일화, private</text>
+<path class="pf-edge" d="M270.0,290.0 L270.0,226.0" marker-end="url(#memory-h)"/>
+<rect class="pf-box" x="348.0" y="290" width="124" height="50" rx="6"/>
+<text class="pf-t" x="410.0" y="311.0" text-anchor="middle">통합</text>
+<text class="pf-s" x="410.0" y="328.0" text-anchor="middle">일화에서 사실 뽑기</text>
+<path class="pf-edge" d="M410.0,290.0 L410.0,226.0" marker-end="url(#memory-h)"/>
+<rect class="pf-box" x="518.5" y="290" width="183" height="50" rx="6"/>
+<text class="pf-t" x="610.0" y="311.0" text-anchor="middle">remember_task_pattern</text>
+<text class="pf-s" x="610.0" y="328.0" text-anchor="middle">절차, 에이전트별</text>
+<path class="pf-edge" d="M610.0,290.0 L610.0,284.0 L480.0,284.0 L480.0,226.0" marker-end="url(#memory-h)"/>
+</svg>

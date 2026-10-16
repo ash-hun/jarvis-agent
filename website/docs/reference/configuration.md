@@ -136,6 +136,7 @@ JARVIS_VOICE__TTS_PROVIDER=browser      # browser | supertonic
 JARVIS_VOICE__TTS_LANG=ko
 JARVIS_VOICE__ENGLISH_TTS_PROVIDER=piper  # 비우면 영어 문장도 TTS_PROVIDER 가 읽는다
 JARVIS_VOICE__PIPER_MODEL=~/.jarvis/voices/en-voice.onnx
+JARVIS_VOICE__PIPER_NOISE_SCALE=0.4  # 낮을수록 음정 떨림이 줄고 말투가 단조로워진다
 JARVIS_VOICE__TUI_ENABLED=false
 JARVIS_VOICE__TUI_RECORD_SECONDS=5
 ```

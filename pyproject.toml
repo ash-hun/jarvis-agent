@@ -56,6 +56,9 @@ gemini = [
 scheduler = [
     "croniter>=2.0.0",
 ]
+piper = [
+    "piper-tts>=1.8,<2",
+]
 
 [project.scripts]
 jarvis = "jarvis.ui.tui.app:main"
@@ -90,7 +93,7 @@ mypy_path = "src"
 packages = ["jarvis"]
 
 [[tool.mypy.overrides]]
-module = ["google.*", "mcp.*"]
+module = ["google.*", "mcp.*", "piper", "piper.*"]
 ignore_missing_imports = true
 
 # 스텁 없이 쓰는 서드파티. 개발 의존성을 늘리지 않으려고 모듈 단위로만 건다

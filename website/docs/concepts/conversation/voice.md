@@ -9,7 +9,7 @@ import FigureVoice from '@site/src/figures/voice.svg';
 
 <figure className="paper-fig">
   <FigureVoice />
-  <figcaption><b>Figure 1.</b> (a) STT 와 TTS 는 브라우저가 기본이고 서버(faster-whisper, supertonic)로 바꿀 수 있다. (b) Full-voice 는 듣기, 처리, 생각, 말하기를 돈다. (c) 음성 승인 답은 번호 순서로 해석하고, 애매하면 거부한다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) STT 와 TTS 는 브라우저가 기본이고 서버(faster-whisper, supertonic)로 바꿀 수 있다. 영어 문장만 Piper 음성 모델로 따로 읽게 할 수 있다. (b) Full-voice 는 듣기, 처리, 생각, 말하기를 돈다. (c) 음성 승인 답은 번호 순서로 해석하고, 애매하면 거부한다.</figcaption>
 </figure>
 
 Web HUD 나 TUI 에서 JARVIS 에게 말로 묻고 응답을 소리로 듣는다. 음성 인식(STT)과 음성 합성(TTS)을 브라우저에서 할지 서버에서 할지는 설정으로 정한다.
@@ -18,8 +18,37 @@ Web HUD 나 TUI 에서 JARVIS 에게 말로 묻고 응답을 소리로 듣는다
 |---|---|---|
 | STT | Web Speech API 가 브라우저에서 인식 | `whisper`: 브라우저가 MediaRecorder 로 녹음해 `voice_stt_submit` 으로 보내고 faster-whisper 가 전사 |
 | TTS | Web Speech API 가 합성 | `supertonic`: ONNX 합성 결과를 WAV 로 돌려준다 |
+| 영어 TTS | `TTS` 와 같은 프로바이더 | `piper`: Piper 음성 모델 하나로 영어 문장만 합성한다 |
 
-서버 프로바이더를 쓰려면 `uv sync --extra voice` 로 설치한다. Docker 의 web 이미지에는 들어 있지 않다.
+whisper 와 supertonic 을 쓰려면 `uv sync --extra voice` 로 설치한다. Docker 의 web 이미지에는 들어 있지 않다. piper 는 `--extra piper` 이고 web 이미지에 들어 있다.
+
+## 영어 문장은 Piper 음성으로
+
+`JARVIS_VOICE__ENGLISH_TTS_PROVIDER=piper` 를 두면 영어로만 된 문장은 Piper 음성 모델이 읽고, 나머지는 `TTS_PROVIDER` 가 읽는다. 한글, 가나, 한자가 한 글자라도 섞이면 영어로 보지 않는다. Piper 모델이 영어 전용이라 한국어 문장을 넣으면 발음이 무너지기 때문이다.
+
+```bash
+JARVIS_VOICE__ENGLISH_TTS_PROVIDER=piper
+JARVIS_VOICE__PIPER_MODEL=~/.jarvis/voices/en-voice.onnx
+```
+
+Piper 음성 모델(`.onnx`, `.onnx.json`)을 받아 `~/.jarvis/voices/` 에 같은 이름으로 나란히 둔다. 모델은 레포에 넣지 않는다.
+
+Docker 에서는 `~/.jarvis` 가 `jarvis_data` 볼륨이다. 호스트에 받은 파일을 `docker compose cp` 로 넣고 백엔드를 다시 띄운다.
+
+```bash
+docker compose exec jarvis-backend mkdir -p /root/.jarvis/voices
+docker compose cp en-voice.onnx jarvis-backend:/root/.jarvis/voices/
+docker compose cp en-voice.onnx.json jarvis-backend:/root/.jarvis/voices/
+docker compose restart jarvis-backend
+```
+
+:::warning
+
+실존 인물의 목소리를 흉내 낸 모델은 쓰기 전에 그 모델의 라이선스와 용도 제한을 확인한다.
+
+:::
+
+모델 파일이 없거나 piper 가 설치되지 않았으면 서버 음성이 통째로 꺼지고 브라우저가 모두 읽는다. 백엔드 로그에 `[Voice] 서버 음성 비활성화` 가 남는다.
 
 ## Web HUD
 
@@ -105,7 +134,7 @@ JARVIS_VOICE__TUI_RECORD_SECONDS=5
 
 ## 구현 위치
 
-- 구현: `voice/`(서버 프로바이더), `ui/web/static/voice.js`(브라우저 상태 기계), `ui/tui/`(터미널)
+- 구현: `voice/`(서버 프로바이더, `service.py` 의 영어 판정), `ui/web/static/voice.js`(브라우저 상태 기계), `ui/tui/`(터미널)
 
 왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
 
@@ -116,7 +145,7 @@ flowchart LR
   VM --> SR[Web Speech 인식<br/>또는 MediaRecorder]
   VM --> TTS[speechSynthesis<br/>또는 voice_tts_audio]
   SR -->|server STT| STT[voice/ whisper]
-  TTS -->|server TTS| SUP[voice/ supertonic]
+  TTS -->|server TTS| SUP[voice/ supertonic<br/>영어는 piper]
   VUI --> APR[app/approval.js<br/>음성 승인 답]
   VUI --> PRO[app/proactive.js<br/>🔔 피드백 답]
   APR --> RPL[app/reply.js<br/>reply_classify]

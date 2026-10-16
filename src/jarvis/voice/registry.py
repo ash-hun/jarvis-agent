@@ -35,6 +35,7 @@ _STT_REGISTRY["whisper"] = _lazy_stt("jarvis.voice.providers.whisper", "WhisperS
 # 기본 제공 TTS 프로바이더 등록
 _TTS_REGISTRY["browser"] = _lazy_tts("jarvis.voice.providers.browser", "BrowserTTSProvider")
 _TTS_REGISTRY["supertonic"] = _lazy_tts("jarvis.voice.providers.supertonic", "SupertonicTTSProvider")
+_TTS_REGISTRY["piper"] = _lazy_tts("jarvis.voice.providers.piper", "PiperTTSProvider")
 
 
 def register_stt(name: str, factory: Callable[..., STTProvider]) -> None:
@@ -68,6 +69,7 @@ def make_tts(provider_name: str, **kwargs: object) -> TTSProvider:
     provider_name:
         "browser"     : Web Speech API 위임 (서버 처리 없음, 기본값)
         "supertonic"  : Supertonic-3 ONNX TTS (pip install supertonic)
+        "piper"       : Piper ONNX 음성 모델 하나 (uv sync --extra piper)
     """
     name = provider_name.lower()
     factory = _TTS_REGISTRY.get(name)

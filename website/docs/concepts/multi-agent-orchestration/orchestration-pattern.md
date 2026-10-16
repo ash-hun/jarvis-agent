@@ -3,9 +3,16 @@ sidebar_position: 1
 title: Orchestration Pattern
 ---
 
+import FigureOrchestrationPattern from '@site/src/figures/orchestration-pattern.svg';
+
 # Orchestration Pattern
 
-멀티 에이전트는 JARVIS 가 한 작업을 여러 서브 에이전트에게 나눠 맡기고 결과를 모으는 기능이다. 서브 에이전트는 부모 턴 안에서 잠깐 도는 도구이고, 사용자와 직접 대화하는 에이전트가 아니다. 자기 세션, 약속, 승인 규칙, 브랜드를 가진 에이전트가 필요하면 [최상위 에이전트 팀](./index.md)을 쓴다.
+<figure className="paper-fig">
+  <FigureOrchestrationPattern />
+  <figcaption><b>Figure 1.</b> 서브 에이전트에게 일을 나누는 네 패턴. (a) 감독자 LLM 이 도구 호출로 맡길 에이전트를 고른다. (b) 레벨 순서대로 돌고 같은 레벨은 병렬이다. (c) capabilities 점수가 가장 높은 하나가 맡는다. (d) 전원이 공유 보드를 보고 병렬로 돌며 결과를 모은다.</figcaption>
+</figure>
+
+멀티 에이전트는 JARVIS 가 한 작업을 여러 서브 에이전트에게 나눠 맡기고 결과를 모으는 기능이다. 서브 에이전트는 부모 턴 안에서 잠깐 도는 도구이고, 사용자와 직접 대화하는 에이전트가 아니다. 자기 세션, 약속, 승인 규칙, 브랜드를 가진 에이전트가 필요하면 [Multi agent Orchestration](./index.md)을 쓴다.
 
 `~/.jarvis/agents/*.yaml` 에 에이전트를 선언하면 각 에이전트가 `agent_<name>` 도구가 된다. 함께 패턴을 고르는 `orchestrate` 도구와 `/orchestrate` 명령이 생긴다. 구현은 `core/multi_agent/` 에 있다.
 

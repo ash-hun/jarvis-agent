@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 372" class="pf-svg" role="img" aria-label="JARVIS 의 계층 구조">
+<defs><marker id="architecture-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="architecture-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="architecture-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="architecture-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="16" y="12" width="728" height="348" rx="8"/>
+<rect class="pf-box" x="70.0" y="30" width="470" height="50" rx="6"/>
+<text class="pf-t" x="305.0" y="51.0" text-anchor="middle">ui/  화면</text>
+<text class="pf-s" x="305.0" y="68.0" text-anchor="middle">TUI (Textual), Web HUD. 같은 AppAssembly 를 받아 화면만 다르다</text>
+<rect class="pf-box" x="70.0" y="96" width="470" height="50" rx="6"/>
+<text class="pf-t" x="305.0" y="117.0" text-anchor="middle">app/  조립</text>
+<text class="pf-s" x="305.0" y="134.0" text-anchor="middle">InfraBuilder 가 설정 하나로 도구, 메모리, 저장소, 보안을 만든다</text>
+<rect class="pf-box pf-box--accent" x="70.0" y="162" width="470" height="50" rx="6"/>
+<text class="pf-t pf-t--accent" x="305.0" y="183.0" text-anchor="middle">core/  오케스트레이션과 정책</text>
+<text class="pf-s" x="305.0" y="200.0" text-anchor="middle">AgentSession, 보안 파이프라인, 도구, 승인, proactive, 스케줄러</text>
+<rect class="pf-box" x="70.0" y="228" width="470" height="50" rx="6"/>
+<text class="pf-t" x="305.0" y="249.0" text-anchor="middle">agent_layer/  에이전트 런타임</text>
+<text class="pf-s" x="305.0" y="266.0" text-anchor="middle">에이전트 루프, 내적 사고 엔진, 메모리 미들웨어, 세션 저장소</text>
+<rect class="pf-box" x="70.0" y="294" width="470" height="50" rx="6"/>
+<text class="pf-t" x="305.0" y="315.0" text-anchor="middle">model_layer/  LLM 추상화</text>
+<text class="pf-s" x="305.0" y="332.0" text-anchor="middle">프로바이더마다 stream() 하나, 임베딩</text>
+<path class="pf-edge" d="M305.0,80.0 L305.0,96.0" marker-end="url(#architecture-h)"/>
+<path class="pf-edge" d="M305.0,146.0 L305.0,162.0" marker-end="url(#architecture-h)"/>
+<path class="pf-edge" d="M305.0,212.0 L305.0,228.0" marker-end="url(#architecture-h)"/>
+<path class="pf-edge" d="M305.0,278.0 L305.0,294.0" marker-end="url(#architecture-h)"/>
+<path class="pf-edge pf-edge--accent" d="M40.0,40.0 L40.0,340.0" marker-end="url(#architecture-h-accent)"/>
+<text class="pf-elabel" x="32" y="190" text-anchor="middle" transform="rotate(-90 32 190)">의존 방향. 아래층은 위층을 모른다</text>
+<rect class="pf-box" x="560.0" y="162" width="168" height="118" rx="6"/>
+<text class="pf-t" x="644.0" y="217.0" text-anchor="middle">memory/</text>
+<text class="pf-s" x="644.0" y="234.0" text-anchor="middle">작업 기억, 장기 기억</text>
+<path class="pf-edge" d="M540.0,187.0 L560.0,187.0" marker-end="url(#architecture-h)"/>
+<path class="pf-edge" d="M540.0,253.0 L560.0,253.0" marker-end="url(#architecture-h)"/>
+<rect class="pf-box pf-box--muted" x="560.0" y="30" width="168" height="50" rx="6"/>
+<text class="pf-t pf-t--muted" x="644.0" y="51.0" text-anchor="middle">common/</text>
+<text class="pf-s" x="644.0" y="68.0" text-anchor="middle">로거. 어느 층이든 쓴다</text>
+<rect class="pf-box pf-box--muted" x="560.0" y="294" width="168" height="50" rx="6"/>
+<text class="pf-t pf-t--muted" x="644.0" y="315.0" text-anchor="middle">프로바이더</text>
+<text class="pf-s" x="644.0" y="332.0" text-anchor="middle">anthropic, openai, gemini 외 2</text>
+<path class="pf-edge pf-edge--muted" d="M540.0,319.0 L560.0,319.0"/>
+</svg>

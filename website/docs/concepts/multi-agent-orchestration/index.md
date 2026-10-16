@@ -3,11 +3,18 @@ sidebar_position: 0
 title: Multi agent Orchestration
 ---
 
+import FigureMultiAgentOrchestration from '@site/src/figures/multi-agent-orchestration.svg';
+
 # Multi agent Orchestration
+
+<figure className="paper-fig">
+  <FigureMultiAgentOrchestration />
+  <figcaption><b>Figure 1.</b> 최상위 에이전트는 세션, 일화 기억과 작업 패턴, 승인 규칙, 모델과 도구, 메인 색을 따로 갖고, 사용자 모델, 사용자에 대한 사실, 공용 승인 규칙, AGENDA 를 함께 쓴다. 서로 일을 맡길 때는 ask_agent 를 쓰고, 되묻기는 A → B → A 까지만 허용한다.</figcaption>
+</figure>
 
 최상위 에이전트 팀은 JARVIS 와 같은 층에 목적이 다른 에이전트를 더 두는 기능이다. 첫 번째이자 전체를 총괄하는 에이전트가 JARVIS(id `main`)이고, 정보 수집을 맡는 KAREN(id `karen`)처럼 에이전트를 정의 파일 하나로 늘린다.
 
-최상위 에이전트는 [멀티 에이전트](./orchestration-pattern.md)의 서브 에이전트와 다르다. 서브 에이전트는 부모 턴 안에서 잠깐 도는 도구이고, 최상위 에이전트는 자기 세션, 기억, 약속(open loop), 승인 규칙, 브랜드를 가진다. 구현은 `app/agent_registry.py` 에 있다.
+최상위 에이전트는 [Orchestration Pattern](./orchestration-pattern.md)의 서브 에이전트와 다르다. 서브 에이전트는 부모 턴 안에서 잠깐 도는 도구이고, 최상위 에이전트는 자기 세션, 기억, 약속(open loop), 승인 규칙, 브랜드를 가진다. 구현은 `app/agent_registry.py` 에 있다.
 
 ## 지금 팀
 
@@ -38,7 +45,7 @@ proactive: false              # 비우면 JARVIS 의 proactive 설정
 - id 는 `^[a-z][a-z0-9_-]{0,31}$` 를 따라야 한다. `main.yaml` 은 무시한다. JARVIS 의 정본은 env(`JARVIS_BRAND__*`, `JARVIS_LLM__*`)다
 - 잘못된 파일은 로그만 남기고 그 파일만 건너뛴다
 - `tools` 에는 에이전트만 쓰는 도구(`lh_notice`, `sh_notice`, `housing_loan`, `housing_budget`)도 적을 수 있다. 이 도구는 `tools` 가 빈 JARVIS 에게는 보이지 않는다
-- `ask_agent` 와 `remember_task_pattern` 은 `tools` 에 적지 않아도 모든 에이전트에게 붙는다. 작업 패턴은 에이전트마다 따로 기억한다([메모리 → 작업 패턴](../memory.md#작업-패턴))
+- `ask_agent` 와 `remember_task_pattern` 은 `tools` 에 적지 않아도 모든 에이전트에게 붙는다. 작업 패턴은 에이전트마다 따로 기억한다([Memory Management → 작업 패턴](../memory.md#작업-패턴))
 - 사고 설정은 JARVIS 것을 같이 쓰고, proactive 피드백 학습기는 에이전트마다 따로 둔다
 
 ## 무엇을 공유하나
@@ -64,7 +71,7 @@ proactive: false              # 비우면 JARVIS 의 proactive 설정
 
 ## 승인 규칙은 두 겹
 
-공용 `~/.jarvis/approvals.yaml` 은 모든 에이전트가 읽고 사람이 고친다. 승인 화면의 **항상 허용** 은 그 세션 에이전트의 `~/.jarvis/approvals/<id>.yaml` 에만 쌓인다(`LayeredApprovalRules`). 에이전트를 나누기 전 `approvals.yaml` 에 쌓인 규칙은 그대로 공용이 된다. 대조 방식과 규칙 파일 형식은 [도구와 승인 → 승인 기억](../conversation/tools-and-approval.md#승인-기억)에 있다.
+공용 `~/.jarvis/approvals.yaml` 은 모든 에이전트가 읽고 사람이 고친다. 승인 화면의 **항상 허용** 은 그 세션 에이전트의 `~/.jarvis/approvals/<id>.yaml` 에만 쌓인다(`LayeredApprovalRules`). 에이전트를 나누기 전 `approvals.yaml` 에 쌓인 규칙은 그대로 공용이 된다. 대조 방식과 규칙 파일 형식은 [Tool & Approve system → 승인 기억](../conversation/tools-and-approval.md#승인-기억)에 있다.
 
 ## AGENDA 는 모두의 것
 

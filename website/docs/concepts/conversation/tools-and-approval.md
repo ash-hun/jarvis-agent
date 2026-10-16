@@ -3,7 +3,14 @@ sidebar_position: 2
 title: Tool & Approve system
 ---
 
+import FigureToolsAndApproval from '@site/src/figures/tools-and-approval.svg';
+
 # Tool & Approve system
+
+<figure className="paper-fig">
+  <FigureToolsAndApproval />
+  <figcaption><b>Figure 1.</b> 도구 호출 한 번은 허용 목록, 플러그인, 승인 순으로 검사한다. 승인이 필요하면 공용 또는 에이전트별 규칙을 먼저 보고, 맞는 규칙이 없을 때만 사람에게 묻는다. ALWAYS 는 지금 에이전트의 규칙 파일에 패턴을 남기고, 거부는 예외 대신 is_error 결과로 LLM 에 돌아간다.</figcaption>
+</figure>
 
 도구는 에이전트가 파일, 셸, 웹 같은 바깥 세상에 손을 대는 유일한 길이고, 위험할 수 있는 도구는 실행 전에 사람의 승인을 받는다.
 
@@ -25,7 +32,7 @@ title: Tool & Approve system
 
 `lh_notice`, `sh_notice`, `housing_loan`, `housing_budget` 은 에이전트만 쓰는 도구다. 앱 레지스트리에 넣지 않고, 에이전트 정의의 `tools` 에 이름을 적은 에이전트만 받는다([청약 공고와 대출 계산](../../agents/karen/housing.md)).
 
-`remember_task_pattern` 은 모든 에이전트가 쓰는 메모리 도구다. 사용자가 알려 준 작업 방식을 도구를 부른 에이전트의 작업 패턴으로 저장한다([메모리 → 작업 패턴](../memory.md#작업-패턴)).
+`remember_task_pattern` 은 모든 에이전트가 쓰는 메모리 도구다. 사용자가 알려 준 작업 방식을 도구를 부른 에이전트의 작업 패턴으로 저장한다([Memory Management → 작업 패턴](../memory.md#작업-패턴)).
 
 실행 중에 동적으로 더해지는 도구도 있다. `orchestrate` 와 `agent_<name>`(에이전트 정의가 있을 때), `procedure_<name>`(승인된 절차), MCP 서버의 도구, `~/.jarvis/tools/` 의 사용자 도구가 그렇다. 사용자 도구와 MCP 도구는 같은 이름의 내장 도구를 덮어쓴다. 도구 목록은 턴마다 다시 읽으므로 새로 등록된 도구가 재시작 없이 보인다.
 

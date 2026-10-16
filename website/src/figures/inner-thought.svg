@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" class="pf-svg" role="img" aria-label="내적 사고 한 번의 흐름과 시점">
+<defs><marker id="inner-thought-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="inner-thought-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="inner-thought-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="inner-thought-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="16" y="12" width="728" height="270" rx="8"/>
+<text class="pf-plabel" x="28" y="32">(a) 사고 한 번</text>
+<rect class="pf-box pf-box--io" x="32.0" y="44" width="128" height="34" rx="6"/>
+<text class="pf-t pf-t--io" x="96.0" y="65.5" text-anchor="middle">사용자 입력</text>
+<rect class="pf-box" x="32.0" y="88" width="128" height="34" rx="6"/>
+<text class="pf-t" x="96.0" y="109.5" text-anchor="middle">열린 약속</text>
+<rect class="pf-box" x="32.0" y="132" width="128" height="34" rx="6"/>
+<text class="pf-t" x="96.0" y="153.5" text-anchor="middle">사용자 모델</text>
+<rect class="pf-box" x="32.0" y="176" width="128" height="34" rx="6"/>
+<text class="pf-t" x="96.0" y="197.5" text-anchor="middle">회상한 기억 5건</text>
+<rect class="pf-box" x="32.0" y="220" width="128" height="34" rx="6"/>
+<text class="pf-t" x="96.0" y="241.5" text-anchor="middle">최근 대화 8턴</text>
+<rect class="pf-box" x="187.0" y="132" width="118" height="50" rx="6"/>
+<text class="pf-t" x="246.0" y="153.0" text-anchor="middle">템플릿 렌더</text>
+<text class="pf-code" x="246.0" y="170.0" text-anchor="middle">inner_thought.md</text>
+<path class="pf-edge" d="M160.0,61.0 L172.0,61.0 L172.0,157.0 L187.0,157.0"/>
+<path class="pf-edge" d="M160.0,105.0 L172.0,105.0 L172.0,157.0 L187.0,157.0"/>
+<path class="pf-edge" d="M160.0,149.0 L172.0,149.0 L172.0,157.0 L187.0,157.0"/>
+<path class="pf-edge" d="M160.0,193.0 L172.0,193.0 L172.0,157.0 L187.0,157.0"/>
+<path class="pf-edge" d="M160.0,237.0 L172.0,237.0 L172.0,157.0 L187.0,157.0"/>
+<path class="pf-edge" d="M172.0,157.0 L187.0,157.0" marker-end="url(#inner-thought-h)"/>
+<rect class="pf-box pf-box--accent" x="319.0" y="132" width="118" height="50" rx="6"/>
+<text class="pf-t pf-t--accent" x="378.0" y="153.0" text-anchor="middle">사고 모델 호출</text>
+<text class="pf-s" x="378.0" y="170.0" text-anchor="middle">도구 없음, JSON 강제</text>
+<path class="pf-edge pf-edge--accent" d="M305.0,157.0 L319.0,157.0" marker-end="url(#inner-thought-h-accent)"/>
+<rect class="pf-box" x="452" y="74" width="120" height="130" rx="6"/>
+<text class="pf-t" x="512.0" y="95" text-anchor="middle">ThoughtFrame</text>
+<text class="pf-code" x="512.0" y="114" text-anchor="middle">decision</text>
+<text class="pf-code" x="512.0" y="130" text-anchor="middle">confidence</text>
+<text class="pf-code" x="512.0" y="146" text-anchor="middle">utterance</text>
+<text class="pf-code" x="512.0" y="162" text-anchor="middle">needs_background</text>
+<text class="pf-code" x="512.0" y="178" text-anchor="middle">open_loops</text>
+<text class="pf-code" x="512.0" y="194" text-anchor="middle">closed_loops</text>
+<path class="pf-edge pf-edge--accent" d="M437.0,157.0 L452.0,157.0" marker-end="url(#inner-thought-h-accent)"/>
+<rect class="pf-box" x="592.0" y="40" width="140" height="46" rx="6"/>
+<text class="pf-t" x="662.0" y="59.0" text-anchor="middle">💭 한 줄</text>
+<text class="pf-s" x="662.0" y="76.0" text-anchor="middle">결정과 확신도</text>
+<rect class="pf-box" x="592.0" y="98" width="140" height="46" rx="6"/>
+<text class="pf-t" x="662.0" y="117.0" text-anchor="middle">시스템 프롬프트</text>
+<text class="pf-s" x="662.0" y="134.0" text-anchor="middle">[내적 사고] 블록</text>
+<rect class="pf-box" x="592.0" y="156" width="140" height="46" rx="6"/>
+<text class="pf-t" x="662.0" y="175.0" text-anchor="middle">Dual channel</text>
+<text class="pf-s" x="662.0" y="192.0" text-anchor="middle">filler 먼저</text>
+<rect class="pf-box" x="592.0" y="214" width="140" height="46" rx="6"/>
+<text class="pf-t" x="662.0" y="233.0" text-anchor="middle">약속 저장과 닫기</text>
+<text class="pf-s" x="662.0" y="250.0" text-anchor="middle">요청 모드만</text>
+<path class="pf-edge" d="M572.0,139.0 L586.0,139.0 L586.0,63.0 L592.0,63.0" marker-end="url(#inner-thought-h)"/>
+<path class="pf-edge" d="M572.0,139.0 L586.0,139.0 L586.0,121.0 L592.0,121.0" marker-end="url(#inner-thought-h)"/>
+<path class="pf-edge" d="M572.0,139.0 L586.0,139.0 L586.0,179.0 L592.0,179.0" marker-end="url(#inner-thought-h)"/>
+<path class="pf-edge" d="M572.0,139.0 L586.0,139.0 L586.0,237.0 L592.0,237.0" marker-end="url(#inner-thought-h)"/>
+<rect class="pf-panel" x="16" y="294" width="728" height="134" rx="8"/>
+<text class="pf-plabel" x="28" y="314">(b) 사고와 메인 응답의 순서 (JARVIS_THOUGHT__REQUEST_TIMING)</text>
+<text class="pf-code" x="150" y="340" text-anchor="end">before</text>
+<rect class="pf-bar pf-bar--accent" x="170.0" y="322" width="198.00000000000003" height="15" rx="3"/>
+<text class="pf-bar-t pf-bar-t--accent" x="269.0" y="333.5" text-anchor="middle">사고</text>
+<rect class="pf-bar" x="368.0" y="339" width="264.0" height="15" rx="3"/>
+<text class="pf-bar-t" x="500.0" y="350.5" text-anchor="middle">메인 응답</text>
+<text class="pf-code" x="150" y="378" text-anchor="end">race</text>
+<rect class="pf-bar pf-bar--accent" x="170.0" y="360" width="198.00000000000003" height="15" rx="3"/>
+<text class="pf-bar-t pf-bar-t--accent" x="269.0" y="371.5" text-anchor="middle">사고</text>
+<rect class="pf-bar" x="229.4" y="377" width="402.6" height="15" rx="3"/>
+<text class="pf-bar-t" x="430.70000000000005" y="388.5" text-anchor="middle">메인 응답</text>
+<text class="pf-code" x="150" y="416" text-anchor="end">after</text>
+<rect class="pf-bar pf-bar--accent" x="434.0" y="398" width="198.00000000000003" height="15" rx="3"/>
+<text class="pf-bar-t pf-bar-t--accent" x="533.0" y="409.5" text-anchor="middle">사고</text>
+<rect class="pf-bar" x="170.0" y="415" width="264.0" height="15" rx="3"/>
+<text class="pf-bar-t" x="302.0" y="426.5" text-anchor="middle">메인 응답</text>
+<text class="pf-note" x="224.4" y="388" text-anchor="end">3초</text>
+</svg>

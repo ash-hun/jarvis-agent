@@ -3,7 +3,14 @@ sidebar_position: 1
 title: Sessions
 ---
 
+import FigureSessions from '@site/src/figures/sessions.svg';
+
 # Sessions
+
+<figure className="paper-fig">
+  <FigureSessions />
+  <figcaption><b>Figure 1.</b> (a) 세션은 에이전트 하나의 대화 한 줄기다. 분기는 부모의 메시지(U 사용자, A 어시스턴트, T 도구)를 복사한 새 세션을 만들고, 종료 때 세션 요약이 일화 기억이 된다. (b) 사용자 메시지는 턴 시작 때, 나머지는 루프가 끝난 뒤 한꺼번에 저장된다.</figcaption>
+</figure>
 
 세션은 JARVIS 가 대화 한 줄기를 묶어 저장하는 단위다. 세션은 만들 때 에이전트가 정해지고, 그 뒤로 바뀌지 않는다.
 

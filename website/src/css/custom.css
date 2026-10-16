@@ -350,3 +350,84 @@ pre,
   fill: #eef6f8 !important;
   stroke: var(--jv-primary) !important;
 }
+
+/* 기능 페이지 맨 위의 논문식 그림(scripts/docs_figures.py 가 만든 SVG 를 인라인으로 넣는다) */
+.paper-fig {
+  --pf-ink: var(--jv-text);
+  --pf-ink-2: var(--jv-text-secondary);
+  --pf-surface: var(--jv-surface);
+  --pf-panel: rgba(14, 116, 144, 0.045);
+  --pf-accent: var(--jv-primary);
+  --pf-accent-fill: rgba(14, 116, 144, 0.08);
+  --pf-deny: var(--jv-danger);
+  --pf-deny-fill: rgba(180, 35, 24, 0.06);
+  --pf-muted: #8a979d;
+  --pf-panel-solid: #f5f9fa;
+  margin: 0 0 2rem;
+  padding: 1rem 1rem 0.75rem;
+  border: 1px solid var(--jv-hairline);
+  border-radius: 10px;
+  background: var(--jv-surface);
+}
+
+[data-theme='dark'] .paper-fig {
+  --pf-panel: rgba(95, 200, 226, 0.04);
+  --pf-accent-fill: rgba(95, 200, 226, 0.1);
+  --pf-deny-fill: rgba(240, 95, 95, 0.08);
+  --pf-muted: #5f7680;
+  --pf-panel-solid: #0a1820;
+}
+
+.paper-fig .pf-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--ifm-font-family-base);
+}
+
+.paper-fig figcaption {
+  margin-top: 0.6rem;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--jv-text-secondary);
+}
+
+.paper-fig figcaption b {
+  color: var(--jv-text);
+}
+
+.pf-panel { fill: var(--pf-panel); }
+.pf-plabel { fill: var(--pf-ink-2); font-size: 11.5px; font-weight: 700; }
+.pf-box { fill: var(--pf-surface); stroke: var(--pf-ink-2); stroke-width: 1; }
+.pf-box--io { stroke: var(--pf-ink); }
+.pf-box--accent { fill: var(--pf-accent-fill); stroke: var(--pf-accent); stroke-width: 1.4; }
+.pf-box--deny { fill: var(--pf-deny-fill); stroke: var(--pf-deny); }
+.pf-box--muted { stroke: var(--pf-muted); stroke-dasharray: 3 3; }
+.pf-gate { fill: var(--pf-surface); stroke: var(--pf-accent); stroke-width: 1.2; }
+.pf-store { fill: var(--pf-surface); stroke: var(--pf-ink-2); stroke-width: 1; }
+.pf-t { fill: var(--pf-ink); font-size: 13px; font-weight: 600; }
+.pf-t--deny { fill: var(--pf-deny); }
+.pf-t--accent { fill: var(--pf-accent); }
+.pf-s { fill: var(--pf-ink-2); font-size: 11px; }
+.pf-code { fill: var(--pf-ink-2); font-size: 10.5px; font-family: var(--ifm-font-family-monospace); }
+.pf-note { fill: var(--pf-ink-2); font-size: 10.5px; font-style: italic; }
+.pf-edge { fill: none; stroke: var(--pf-ink-2); stroke-width: 1.1; }
+.pf-edge--accent { stroke: var(--pf-accent); stroke-width: 1.6; }
+.pf-edge--deny { stroke: var(--pf-deny); stroke-dasharray: 4 3; }
+.pf-edge--muted { stroke: var(--pf-muted); stroke-dasharray: 4 3; }
+.pf-head { fill: var(--pf-ink-2); }
+.pf-head--accent { fill: var(--pf-accent); }
+.pf-head--deny { fill: var(--pf-deny); }
+.pf-head--muted { fill: var(--pf-muted); }
+.pf-elabel { fill: var(--pf-ink-2); font-size: 10.5px; paint-order: stroke; stroke: var(--pf-panel-solid); stroke-width: 4px; stroke-linejoin: round; }
+.pf-elabel--deny { fill: var(--pf-deny); }
+.pf-elabel--accent { fill: var(--pf-accent); }
+.pf-badge { fill: var(--pf-accent); }
+.pf-badge-t { fill: var(--pf-surface); font-size: 10.5px; font-weight: 700; }
+.pf-box--jarvis { fill: color-mix(in srgb, var(--jv-agent-jarvis) 10%, var(--pf-surface)); stroke: var(--jv-agent-jarvis); stroke-width: 1.4; }
+.pf-box--karen { fill: color-mix(in srgb, var(--jv-agent-karen) 12%, var(--pf-surface)); stroke: var(--jv-agent-karen); stroke-width: 1.4; }
+.pf-chip { fill: var(--pf-ink); font-size: 10.5px; font-weight: 700; font-family: var(--ifm-font-family-monospace); }
+.pf-bar { fill: var(--pf-surface); stroke: var(--pf-ink-2); stroke-width: 1; }
+.pf-bar--accent { fill: var(--pf-accent-fill); stroke: var(--pf-accent); }
+.pf-bar-t { fill: var(--pf-ink); font-size: 10.5px; }
+.pf-bar-t--accent { fill: var(--pf-accent); font-weight: 600; }

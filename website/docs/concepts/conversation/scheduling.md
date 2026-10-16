@@ -3,7 +3,14 @@ sidebar_position: 5
 title: Scheduling
 ---
 
+import FigureScheduling from '@site/src/figures/scheduling.svg';
+
 # Scheduling
+
+<figure className="paper-fig">
+  <FigureScheduling />
+  <figcaption><b>Figure 1.</b> /schedule 문장은 한 번, 마감까지 반복, cron 셋 중 하나로 해석되어 작업 파일로 남는다. SchedulerService 가 10초마다 깨어나 시각이 된 작업을 처리한다. reminder 는 문장을 그대로 알리고, task 는 승인 없는 새 세션에서 실행한 뒤 결과를 세 곳으로 보낸다.</figcaption>
+</figure>
 
 JARVIS 는 정한 시각에 알림이나 작업을 돌린다. 한 번, 마감까지 반복, cron 세 가지로 등록하고 AGENDA 카드에서 켜고 끈다.
 

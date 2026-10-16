@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 416" class="pf-svg" role="img" aria-label="음성 입력과 출력, Full-voice 루프, 음성 승인 해석">
+<defs><marker id="voice-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="voice-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="voice-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="voice-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="16" y="12" width="728" height="142" rx="8"/>
+<text class="pf-plabel" x="28" y="32">(a) 듣고 말하는 길</text>
+<rect class="pf-box pf-box--io" x="32.0" y="40" width="76" height="44" rx="6"/>
+<text class="pf-t pf-t--io" x="70.0" y="66.5" text-anchor="middle">마이크</text>
+<rect class="pf-box" x="119.0" y="40" width="190" height="44" rx="6"/>
+<text class="pf-t" x="214.0" y="58.0" text-anchor="middle">STT</text>
+<text class="pf-s" x="214.0" y="75.0" text-anchor="middle">Web Speech 또는 faster-whisper</text>
+<rect class="pf-box" x="321.0" y="40" width="118" height="44" rx="6"/>
+<text class="pf-t" x="380.0" y="66.5" text-anchor="middle">user_message</text>
+<rect class="pf-box pf-box--accent" x="476.0" y="40" width="88" height="44" rx="6"/>
+<text class="pf-t pf-t--accent" x="520.0" y="66.5" text-anchor="middle">JARVIS</text>
+<path class="pf-edge pf-edge--accent" d="M108.0,62.0 L119.0,62.0" marker-end="url(#voice-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M309.0,62.0 L321.0,62.0" marker-end="url(#voice-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M439.0,62.0 L476.0,62.0" marker-end="url(#voice-h-accent)"/>
+<rect class="pf-box" x="290.0" y="98" width="180" height="44" rx="6"/>
+<text class="pf-t" x="380.0" y="116.0" text-anchor="middle">TTS</text>
+<text class="pf-s" x="380.0" y="133.0" text-anchor="middle">Web Speech 또는 supertonic</text>
+<rect class="pf-box pf-box--io" x="176.0" y="98" width="76" height="44" rx="6"/>
+<text class="pf-t pf-t--io" x="214.0" y="124.5" text-anchor="middle">스피커</text>
+<path class="pf-edge pf-edge--accent" d="M520.0,84.0 L520.0,120.0 L470.0,120.0" marker-end="url(#voice-h-accent)"/>
+<text class="pf-elabel pf-elabel--accent" x="528.0" y="114.0" text-anchor="start">응답, 승인 질문, 🔔</text>
+<path class="pf-edge pf-edge--accent" d="M290.0,120.0 L252.0,120.0" marker-end="url(#voice-h-accent)"/>
+<text class="pf-note" x="735" y="66" text-anchor="end">브라우저가 기본, 서버는 설정으로</text>
+<rect class="pf-panel" x="16" y="166" width="300" height="238" rx="8"/>
+<text class="pf-plabel" x="28" y="186">(b) Full-voice 루프</text>
+<rect class="pf-box pf-box--accent" x="42.0" y="208" width="96" height="40" rx="6"/>
+<text class="pf-t pf-t--accent" x="90.0" y="232.5" text-anchor="middle">listening</text>
+<rect class="pf-box" x="194.0" y="208" width="96" height="40" rx="6"/>
+<text class="pf-t" x="242.0" y="232.5" text-anchor="middle">processing</text>
+<rect class="pf-box" x="194.0" y="330" width="96" height="40" rx="6"/>
+<text class="pf-t" x="242.0" y="354.5" text-anchor="middle">thinking</text>
+<rect class="pf-box" x="42.0" y="330" width="96" height="40" rx="6"/>
+<text class="pf-t" x="90.0" y="354.5" text-anchor="middle">speaking</text>
+<path class="pf-edge" d="M138.0,228.0 L194.0,228.0" marker-end="url(#voice-h)"/>
+<text class="pf-elabel" x="166.0" y="223.0" text-anchor="middle">전사</text>
+<path class="pf-edge" d="M242.0,248.0 L242.0,330.0" marker-end="url(#voice-h)"/>
+<text class="pf-elabel" x="248.0" y="282.0" text-anchor="start">user_message</text>
+<path class="pf-edge" d="M194.0,350.0 L138.0,350.0" marker-end="url(#voice-h)"/>
+<text class="pf-elabel" x="166.0" y="372.0" text-anchor="middle">응답, 승인 질문</text>
+<path class="pf-edge" d="M90.0,330.0 L90.0,248.0" marker-end="url(#voice-h)"/>
+<text class="pf-elabel" x="84.0" y="282.0" text-anchor="end">다 읽음</text>
+<rect class="pf-panel" x="328" y="166" width="416" height="238" rx="8"/>
+<text class="pf-plabel" x="340" y="186">(c) 음성 승인 답은 애매하면 거부</text>
+<rect class="pf-box" x="372.0" y="198" width="190" height="44" rx="6"/>
+<text class="pf-t" x="467.0" y="216.0" text-anchor="middle">부정어</text>
+<text class="pf-s" x="467.0" y="233.0" text-anchor="middle">거부, 아니, 하지 마, 취소</text>
+<rect class="pf-box pf-box--deny" x="640.0" y="203" width="96" height="34" rx="6"/>
+<text class="pf-t pf-t--deny" x="688.0" y="224.5" text-anchor="middle">거부</text>
+<path class="pf-edge pf-edge--deny" d="M562.0,220.0 L640.0,220.0" marker-end="url(#voice-h-deny)"/>
+<circle class="pf-badge" cx="354" cy="220" r="8.5"/>
+<text class="pf-badge-t" x="354" y="223.6" text-anchor="middle">1</text>
+<rect class="pf-box" x="372.0" y="248" width="190" height="44" rx="6"/>
+<text class="pf-t" x="467.0" y="266.0" text-anchor="middle">항상 키워드</text>
+<text class="pf-s" x="467.0" y="283.0" text-anchor="middle">패턴 제안이 있을 때</text>
+<rect class="pf-box" x="640.0" y="253" width="96" height="34" rx="6"/>
+<text class="pf-t" x="688.0" y="274.5" text-anchor="middle">항상 허용</text>
+<path class="pf-edge pf-edge--accent" d="M562.0,270.0 L640.0,270.0" marker-end="url(#voice-h-accent)"/>
+<circle class="pf-badge" cx="354" cy="270" r="8.5"/>
+<text class="pf-badge-t" x="354" y="273.6" text-anchor="middle">2</text>
+<rect class="pf-box" x="372.0" y="298" width="190" height="44" rx="6"/>
+<text class="pf-t" x="467.0" y="316.0" text-anchor="middle">허용 키워드</text>
+<text class="pf-s" x="467.0" y="333.0" text-anchor="middle">네, 응 단독 포함</text>
+<rect class="pf-box" x="640.0" y="303" width="96" height="34" rx="6"/>
+<text class="pf-t" x="688.0" y="324.5" text-anchor="middle">허용</text>
+<path class="pf-edge pf-edge--accent" d="M562.0,320.0 L640.0,320.0" marker-end="url(#voice-h-accent)"/>
+<circle class="pf-badge" cx="354" cy="320" r="8.5"/>
+<text class="pf-badge-t" x="354" y="323.6" text-anchor="middle">3</text>
+<rect class="pf-box" x="372.0" y="348" width="190" height="44" rx="6"/>
+<text class="pf-t" x="467.0" y="366.0" text-anchor="middle">그 밖</text>
+<text class="pf-s" x="467.0" y="383.0" text-anchor="middle">사고 모델이 분류, 실패하면</text>
+<rect class="pf-box pf-box--deny" x="640.0" y="353" width="96" height="34" rx="6"/>
+<text class="pf-t pf-t--deny" x="688.0" y="374.5" text-anchor="middle">거부</text>
+<path class="pf-edge pf-edge--deny" d="M562.0,370.0 L640.0,370.0" marker-end="url(#voice-h-deny)"/>
+<circle class="pf-badge" cx="354" cy="370" r="8.5"/>
+<text class="pf-badge-t" x="354" y="373.6" text-anchor="middle">4</text>
+</svg>

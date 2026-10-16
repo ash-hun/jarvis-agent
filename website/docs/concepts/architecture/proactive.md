@@ -3,7 +3,14 @@ sidebar_position: 2
 title: 먼저 행동하기 (Proactive)
 ---
 
+import FigureProactive from '@site/src/figures/proactive.svg';
+
 # 먼저 행동하기 (Proactive)
+
+<figure className="paper-fig">
+  <FigureProactive />
+  <figcaption><b>Figure 1.</b> (a) 성찰 한 번이 먼저 말하기까지 지나는 다섯 게이트. 하나라도 막히면 침묵하고 이유만 로그에 남긴다. (b) 🔔 에 대한 반응으로 확신도 임계치 θ 를 옮긴다. (c) 오래 걸릴 요청이면 filler 를 먼저 말하고 메인 응답은 뒤에서 돌린다.</figcaption>
+</figure>
 
 JARVIS 는 사고 프레임을 바탕으로 사용자가 묻기 전에 움직인다. 요청 시점에는 **dual channel** 로 짧은 말을 먼저 하고, 요청이 없을 때는 **성찰** 끝에 먼저 건네는 말을 보내며, 그 말에 대한 반응으로 **피드백 학습**을 한다.
 

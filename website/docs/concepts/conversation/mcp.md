@@ -3,7 +3,14 @@ sidebar_position: 4
 title: MCP연동
 ---
 
+import FigureMcp from '@site/src/figures/mcp.svg';
+
 # MCP연동
+
+<figure className="paper-fig">
+  <FigureMcp />
+  <figcaption><b>Figure 1.</b> Poller 가 소스마다 MCP 도구를 불러 처음 보는 항목만 inbox 에 넣고, 새 이벤트가 성찰을 깨운다. 다음 성찰이 inbox 를 한 번 비우므로 이벤트마다 발화는 많아야 한 번이다.</figcaption>
+</figure>
 
 JARVIS 는 MCP 도구를 주기적으로 불러 새 항목을 성찰의 재료로 넣는다. 캘린더나 메일 같은 소스를 비서가 먼저 보고 말하게 하는 길이다.
 

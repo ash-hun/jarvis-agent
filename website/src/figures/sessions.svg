@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 330" class="pf-svg" role="img" aria-label="세션의 저장, 분기, 종료">
+<defs><marker id="sessions-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="sessions-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="sessions-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="sessions-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="16" y="12" width="728" height="176" rx="8"/>
+<text class="pf-plabel" x="28" y="32">(a) 세션과 분기</text>
+<text class="pf-t" x="32" y="62" text-anchor="start">세션 A</text>
+<text class="pf-code" x="32" y="77" text-anchor="start">agent: main</text>
+<rect class="pf-box pf-box--accent" x="130" y="52" width="24" height="20" rx="4"/>
+<text class="pf-chip" x="142.0" y="66.0" text-anchor="middle">U</text>
+<rect class="pf-box" x="164" y="52" width="24" height="20" rx="4"/>
+<text class="pf-chip" x="176.0" y="66.0" text-anchor="middle">A</text>
+<rect class="pf-box" x="198" y="52" width="24" height="20" rx="4"/>
+<text class="pf-chip" x="210.0" y="66.0" text-anchor="middle">T</text>
+<rect class="pf-box" x="232" y="52" width="24" height="20" rx="4"/>
+<text class="pf-chip" x="244.0" y="66.0" text-anchor="middle">A</text>
+<rect class="pf-box pf-box--accent" x="266" y="52" width="24" height="20" rx="4"/>
+<text class="pf-chip" x="278.0" y="66.0" text-anchor="middle">U</text>
+<rect class="pf-box" x="300" y="52" width="24" height="20" rx="4"/>
+<text class="pf-chip" x="312.0" y="66.0" text-anchor="middle">A</text>
+<path class="pf-edge pf-edge--muted" d="M330.0,62.0 L430.0,62.0"/>
+<rect class="pf-box" x="430.0" y="42" width="134" height="50" rx="6"/>
+<text class="pf-t" x="497.0" y="63.0" text-anchor="middle">종료</text>
+<text class="pf-s" x="497.0" y="80.0" text-anchor="middle">TUI 종료, Web 셧다운</text>
+<rect class="pf-box" x="590.0" y="42" width="140" height="50" rx="6"/>
+<text class="pf-t" x="660.0" y="63.0" text-anchor="middle">세션 요약</text>
+<text class="pf-s" x="660.0" y="80.0" text-anchor="middle">일화 기억, 통합, 절차 학습</text>
+<path class="pf-edge" d="M564.0,67.0 L590.0,67.0" marker-end="url(#sessions-h)"/>
+<text class="pf-t" x="32" y="142" text-anchor="start">세션 B</text>
+<text class="pf-code" x="32" y="157" text-anchor="start">parent_id = A</text>
+<rect class="pf-box pf-box--muted" x="130" y="132" width="24" height="20" rx="4"/>
+<text class="pf-chip" x="142.0" y="146.0" text-anchor="middle">U</text>
+<rect class="pf-box pf-box--muted" x="164" y="132" width="24" height="20" rx="4"/>
+<text class="pf-chip" x="176.0" y="146.0" text-anchor="middle">A</text>
+<rect class="pf-box pf-box--muted" x="198" y="132" width="24" height="20" rx="4"/>
+<text class="pf-chip" x="210.0" y="146.0" text-anchor="middle">T</text>
+<rect class="pf-box pf-box--muted" x="232" y="132" width="24" height="20" rx="4"/>
+<text class="pf-chip" x="244.0" y="146.0" text-anchor="middle">A</text>
+<rect class="pf-box pf-box--accent" x="266" y="132" width="24" height="20" rx="4"/>
+<text class="pf-chip" x="278.0" y="146.0" text-anchor="middle">U</text>
+<rect class="pf-box" x="300" y="132" width="24" height="20" rx="4"/>
+<text class="pf-chip" x="312.0" y="146.0" text-anchor="middle">A</text>
+<path class="pf-edge pf-edge--accent" d="M244.0,74.0 L244.0,100.0 L244.0,100.0 L244.0,130.0" marker-end="url(#sessions-h-accent)"/>
+<text class="pf-elabel pf-elabel--accent" x="254.0" y="104.0" text-anchor="start">/branch, ⑂</text>
+<text class="pf-s" x="400" y="146" text-anchor="start">메시지를 통째로 복사한다. 이후 변경은 서로 전파되지 않는다</text>
+<rect class="pf-panel" x="16" y="200" width="728" height="118" rx="8"/>
+<text class="pf-plabel" x="28" y="220">(b) 한 턴이 저장되는 때</text>
+<rect class="pf-box pf-box--io" x="25.0" y="238" width="150" height="50" rx="6"/>
+<text class="pf-t pf-t--io" x="100.0" y="259.0" text-anchor="middle">사용자 메시지</text>
+<text class="pf-s" x="100.0" y="276.0" text-anchor="middle">턴 시작 때 바로 저장</text>
+<rect class="pf-box" x="220.0" y="238" width="160" height="50" rx="6"/>
+<text class="pf-t" x="300.0" y="259.0" text-anchor="middle">에이전트 루프</text>
+<text class="pf-s" x="300.0" y="276.0" text-anchor="middle">LLM 과 도구, 최대 20턴</text>
+<rect class="pf-box" x="425.0" y="238" width="170" height="50" rx="6"/>
+<text class="pf-t" x="510.0" y="259.0" text-anchor="middle">나머지 메시지</text>
+<text class="pf-s" x="510.0" y="276.0" text-anchor="middle">루프가 끝난 뒤 한꺼번에</text>
+<path class="pf-store" d="M617.0,239 a55.0,5 0 0,0 110,0 a55.0,5 0 0,0 -110,0 v48 a55.0,5 0 0,0 110,0 v-48"/>
+<text class="pf-t" x="672.0" y="262.0" text-anchor="middle">저장소</text>
+<text class="pf-s" x="672.0" y="279.0" text-anchor="middle">jsonl, Postgres</text>
+<path class="pf-edge pf-edge--accent" d="M175.0,263.0 L220.0,263.0" marker-end="url(#sessions-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M380.0,263.0 L425.0,263.0" marker-end="url(#sessions-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M595.0,263.0 L617.0,263.0" marker-end="url(#sessions-h-accent)"/>
+<path class="pf-edge" d="M100.0,288.0 L100.0,294.0 L672.0,294.0 L672.0,292.0" marker-end="url(#sessions-h)"/>
+<text class="pf-note" x="300" y="311" text-anchor="middle">루프 도중에 죽으면 사용자 메시지만 남는다</text>
+</svg>

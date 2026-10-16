@@ -3,7 +3,14 @@ sidebar_position: 3
 title: Open Loop
 ---
 
+import FigureOpenLoop from '@site/src/figures/open-loop.svg';
+
 # Open Loop
+
+<figure className="paper-fig">
+  <FigureOpenLoop />
+  <figcaption><b>Figure 1.</b> (a) 사고가 적은 약속은 입력 근거 검사와 같은 약속 검사를 지나야 새로 저장된다. 같은 약속 판정의 임베딩은 저장소가 Ollama bge-m3 로 계산한다. (b) 열린 약속은 사고의 closed_loops 나 ✓ 로 done, 거두는 말이나 ✕ 로 dismissed, 기한이 지나면 expired 로 닫힌다.</figcaption>
+</figure>
 
 JARVIS 는 대화에서 흘린 약속(open loop)과 미완 작업을 기억했다가 성찰 때 다시 보고, Web HUD 의 AGENDA 카드에 보여 준다. 정한 시각에 도는 일은 [Scheduling](./scheduling.md), MCP 도구로 가져오는 외부 이벤트는 [MCP연동](./mcp.md) 에서 다룬다.
 

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 352" class="pf-svg" role="img" aria-label="Open Loop 의 저장과 닫힘">
+<defs><marker id="open-loop-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="open-loop-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="open-loop-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="open-loop-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="16" y="12" width="420" height="328" rx="8"/>
+<text class="pf-plabel" x="28" y="32">(a) 새 약속을 저장할지 정한다</text>
+<rect class="pf-panel" x="450" y="12" width="294" height="328" rx="8"/>
+<text class="pf-plabel" x="462" y="32">(b) 열린 약속이 닫힌다</text>
+<rect class="pf-box pf-box--io" x="71.0" y="44" width="158" height="50" rx="6"/>
+<text class="pf-t pf-t--io" x="150.0" y="65.0" text-anchor="middle">사고 프레임의 약속</text>
+<text class="pf-s" x="150.0" y="82.0" text-anchor="middle">설명 @기한 (근거: 입력 구절)</text>
+<rect class="pf-gate" x="49.5" y="124" width="201" height="50" rx="25.0"/>
+<text class="pf-t" x="150.0" y="145.0" text-anchor="middle">사용자 입력에서 나왔나</text>
+<text class="pf-s" x="150.0" y="162.0" text-anchor="middle">근거 50% 또는 문구 20% 글자 겹침</text>
+<rect class="pf-gate" x="34.0" y="204" width="232" height="50" rx="25.0"/>
+<text class="pf-t" x="150.0" y="225.0" text-anchor="middle">열린 약속과 같은가</text>
+<text class="pf-s" x="150.0" y="242.0" text-anchor="middle">정규화, 포함, 임베딩 0.85, Jaccard 0.4</text>
+<rect class="pf-box pf-box--deny" x="307.0" y="124" width="110" height="50" rx="6"/>
+<text class="pf-t pf-t--deny" x="362.0" y="145.0" text-anchor="middle">버림</text>
+<text class="pf-s" x="362.0" y="162.0" text-anchor="middle">기억에서 옮김</text>
+<rect class="pf-box pf-box--muted" x="297.0" y="204" width="130" height="50" rx="6"/>
+<text class="pf-t pf-t--muted" x="362.0" y="225.0" text-anchor="middle">기한만 갱신</text>
+<text class="pf-s" x="362.0" y="242.0" text-anchor="middle">바뀔 게 없으면 그대로</text>
+<path class="pf-edge pf-edge--accent" d="M150.0,94.0 L150.0,124.0" marker-end="url(#open-loop-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M150.0,174.0 L150.0,204.0" marker-end="url(#open-loop-h-accent)"/>
+<text class="pf-elabel pf-elabel--accent" x="158.0" y="193.0" text-anchor="start">예</text>
+<path class="pf-edge pf-edge--deny" d="M250.5,149.0 L307.0,149.0" marker-end="url(#open-loop-h-deny)"/>
+<text class="pf-elabel pf-elabel--deny" x="278.8" y="144.0" text-anchor="middle">아니오</text>
+<path class="pf-edge" d="M266.0,229.0 L297.0,229.0" marker-end="url(#open-loop-h)"/>
+<text class="pf-elabel" x="281.5" y="224.0" text-anchor="middle">같음</text>
+<path class="pf-store" d="M462.0,275 a135.0,5 0 0,0 270,0 a135.0,5 0 0,0 -270,0 v48 a135.0,5 0 0,0 270,0 v-48"/>
+<text class="pf-t" x="597.0" y="298.0" text-anchor="middle">열린 약속</text>
+<text class="pf-code" x="597.0" y="315.0" text-anchor="middle">open</text>
+<path class="pf-edge pf-edge--accent" d="M150.0,254.0 L150.0,299.0 L462.0,299.0" marker-end="url(#open-loop-h-accent)"/>
+<text class="pf-elabel pf-elabel--accent" x="158.0" y="293.0" text-anchor="start">아니오, 새로 저장</text>
+<rect class="pf-box" x="465.0" y="50" width="84" height="40" rx="6"/>
+<text class="pf-t" x="507.0" y="74.5" text-anchor="middle">done</text>
+<path class="pf-edge" d="M507.0,271.0 L507.0,90.0" marker-end="url(#open-loop-h)"/>
+<text class="pf-elabel" x="507" y="158" text-anchor="middle">closed_loops</text>
+<text class="pf-elabel" x="507" y="173" text-anchor="middle">✓ 버튼</text>
+<rect class="pf-box" x="555.0" y="50" width="84" height="40" rx="6"/>
+<text class="pf-t" x="597.0" y="74.5" text-anchor="middle">dismissed</text>
+<path class="pf-edge" d="M597.0,271.0 L597.0,90.0" marker-end="url(#open-loop-h)"/>
+<text class="pf-elabel" x="597" y="158" text-anchor="middle">거두는 말</text>
+<text class="pf-elabel" x="597" y="173" text-anchor="middle">✕ 버튼</text>
+<rect class="pf-box" x="645.0" y="50" width="84" height="40" rx="6"/>
+<text class="pf-t" x="687.0" y="74.5" text-anchor="middle">expired</text>
+<path class="pf-edge pf-edge--muted" d="M687.0,271.0 L687.0,90.0" marker-end="url(#open-loop-h-muted)"/>
+<text class="pf-elabel" x="687" y="158" text-anchor="middle">기한 + 6시간</text>
+<text class="pf-elabel" x="687" y="173" text-anchor="middle">기한 없이 7일</text>
+</svg>

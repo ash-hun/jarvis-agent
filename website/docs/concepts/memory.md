@@ -3,7 +3,14 @@ sidebar_position: 4
 title: Memory Management
 ---
 
+import FigureMemory from '@site/src/figures/memory.svg';
+
 # Memory Management
+
+<figure className="paper-fig">
+  <FigureMemory />
+  <figcaption><b>Figure 1.</b> (a) 매 턴 히스토리를 요약, 압축, 창으로 줄이고, 장기 기억에서 회상한 블록을 앞에 붙여 LLM 에 넣는다. (b) 장기 기억에는 네 가지 순간에만 쓴다. 매 턴 대화를 자동으로 저장하지는 않는다.</figcaption>
+</figure>
 
 메모리는 JARVIS 가 지난 대화와 사용자에 대한 사실을 기억해 매 턴의 프롬프트에 넣는 기능이다. 작업 기억과 장기 기억 두 층으로 나뉘고, 장기 기억에는 정해진 순간에만 쓴다. 매 턴의 대화를 자동으로 장기 기억에 저장하지는 않는다.
 

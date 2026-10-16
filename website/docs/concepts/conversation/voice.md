@@ -3,7 +3,14 @@ sidebar_position: 6
 title: Voice Interface
 ---
 
+import FigureVoice from '@site/src/figures/voice.svg';
+
 # Voice Interface
+
+<figure className="paper-fig">
+  <FigureVoice />
+  <figcaption><b>Figure 1.</b> (a) STT 와 TTS 는 브라우저가 기본이고 서버(faster-whisper, supertonic)로 바꿀 수 있다. (b) Full-voice 는 듣기, 처리, 생각, 말하기를 돈다. (c) 음성 승인 답은 번호 순서로 해석하고, 애매하면 거부한다.</figcaption>
+</figure>
 
 Web HUD 나 TUI 에서 JARVIS 에게 말로 묻고 응답을 소리로 듣는다. 음성 인식(STT)과 음성 합성(TTS)을 브라우저에서 할지 서버에서 할지는 설정으로 정한다.
 

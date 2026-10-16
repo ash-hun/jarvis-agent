@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from jarvis.app.app_assembly import AppAssembly
     from jarvis.app.app_context import AppContext
     from jarvis.config import JarvisSettings
+    from jarvis.core.focus.service import FocusService, SubAgent
     from jarvis.core.session import AgentSession
     from jarvis.ui.web.adapter import PerConnectionAdapter
     from jarvis.voice.service import VoiceService
@@ -34,6 +35,7 @@ class WebState:
         self.live_clients: set[PerConnectionAdapter] = set()
         self.pending_notices: deque[dict[str, object]] = deque(maxlen=PENDING_NOTICE_MAX)
         self.voice_service = self._build_voice_service()
+        self.focus: FocusService | None = self._build_focus_service()
         # 🔔 짧은 답과 음성 승인 답 분류기. 사고가 꺼져 있으면 None 이고 화면은 키워드만 쓴다
         self.reply_classifier: ReplyClassifier | None = assembly.profile.reply_classifier()
         # 어느 에이전트가 일하는지. 둘 이상이면 HUD 구체가 색을 섞는다
@@ -53,6 +55,44 @@ class WebState:
     @property
     def settings(self) -> "JarvisSettings":
         return self.assembly.ctx.settings
+
+    def _build_focus_service(self) -> "FocusService | None":
+        """Focus 모드 서비스. 시각과 작업 id 는 여기(경계)에서 만들어 넣는다."""
+        cfg = self.settings.focus
+        if not cfg.enabled:
+            return None
+        import time
+        import uuid
+        from datetime import datetime
+
+        from jarvis.app.subagent_builder import SubagentBuilder
+        from jarvis.core.focus.prompts import REFERENCE_TOOLS, SYSTEM_PROMPTS
+        from jarvis.core.focus.service import FocusService
+        from jarvis.core.focus.store import FocusStore
+        from jarvis.core.multi_agent.factory import AgentDefinition
+
+        ctx, services = self.assembly.ctx, self.assembly.services
+        builder = SubagentBuilder(ctx, services, ctx.tool_registry)
+
+        async def make_agent(role: str, session_id: str) -> "SubAgent":
+            definition = AgentDefinition(
+                name=f"focus-{role}",
+                description=f"Focus 모드 {role} 담당",
+                system_prompt=SYSTEM_PROMPTS[role],
+                tools=REFERENCE_TOOLS if role == "reference" else [],
+                tools_only=True,
+                model_override=cfg.model or None,
+            )
+            await ctx.session_repo.create(session_id=session_id)
+            return builder.build_session(definition, session_id)
+
+        return FocusService(
+            store=FocusStore(cfg.dir),
+            make_agent=make_agent,
+            clock=time.time,
+            new_id=lambda: f"{datetime.now():%Y%m%d}-{uuid.uuid4().hex[:6]}",
+            ready_timeout_sec=cfg.ready_timeout_sec,
+        )
 
     def _build_voice_service(self) -> "VoiceService | None":
         """음성 프로바이더를 설정대로 만든다. 선택 의존성이 없으면 None(브라우저 음성만)."""

@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 
+import html
+import re
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 
 from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
+
+DDG_HTML_URL = "https://html.duckduckgo.com/html/"
+# 기본 httpx UA 는 차단될 수 있어 브라우저처럼 보이는 값을 쓴다
+DDG_USER_AGENT = "Mozilla/5.0 (compatible; jarvis-agent)"
+_DDG_TITLE = re.compile(r'class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', re.DOTALL)
+_DDG_SNIPPET = re.compile(r'class="result__snippet"[^>]*>(.*?)</a>', re.DOTALL)
+_TAG = re.compile(r"<[^>]+>")
 
 
 class WebSearchTool(JarvisTool):
@@ -91,7 +101,48 @@ async def _search_brave(query: str, max_results: int, api_key: str) -> list[dict
 
 
 async def _search_ddg(query: str, max_results: int) -> list[dict[str, str]]:
-    """DuckDuckGo Instant Answers API. 무료, 키 불필요."""
+    """DuckDuckGo HTML 검색 결과. 비면 Instant Answers 로 한 번 더. 무료, 키 불필요."""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.post(DDG_HTML_URL, data={"q": query}, headers={"User-Agent": DDG_USER_AGENT})
+        response.raise_for_status()
+    results = parse_ddg_html(response.text, max_results)
+    return results or await _search_ddg_instant(query, max_results)
+
+
+def parse_ddg_html(page: str, max_results: int) -> list[dict[str, str]]:
+    """html.duckduckgo.com 결과 페이지에서 제목, 링크, 요약을 꺼낸다. 광고 블록은 건너뛴다."""
+    results: list[dict[str, str]] = []
+    for block in page.split('class="result ')[1:]:
+        if "result--ad" in block[:200]:
+            continue
+        title = _DDG_TITLE.search(block)
+        if title is None:
+            continue
+        snippet = _DDG_SNIPPET.search(block)
+        results.append({
+            "title": _clean(title.group(2)),
+            "url": _unwrap_ddg_link(html.unescape(title.group(1))),
+            "snippet": _clean(snippet.group(1)) if snippet else "",
+        })
+        if len(results) >= max_results:
+            break
+    return results
+
+
+def _clean(fragment: str) -> str:
+    return html.unescape(_TAG.sub("", fragment)).strip()
+
+
+def _unwrap_ddg_link(href: str) -> str:
+    """//duckduckgo.com/l/?uddg=<실제 주소> 형태면 실제 주소를 꺼낸다."""
+    if "uddg=" not in href:
+        return href
+    target = parse_qs(urlparse(href).query).get("uddg")
+    return target[0] if target else href
+
+
+async def _search_ddg_instant(query: str, max_results: int) -> list[dict[str, str]]:
+    """DuckDuckGo Instant Answers API. 백과사전식 요약만 준다."""
     url = "https://api.duckduckgo.com/"
     params: dict[str, Any] = {
         "q": query,

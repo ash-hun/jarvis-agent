@@ -8,7 +8,7 @@ import time
 from collections import deque
 from collections.abc import Awaitable, Callable
 from datetime import datetime
-from typing import Any, Literal, cast
+from typing import Any, Literal, Protocol, cast
 
 from jarvis.agent_layer.harness import AgentHarness
 from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
@@ -83,6 +83,16 @@ class SessionBusy(Exception):
     """같은 세션에 이전 요청이 아직 돌고 있을 때 새 prompt 를 거부한다."""
 
 
+class TurnHook(Protocol):
+    """턴마다 끼어드는 확장(Focus 모드). 시스템 프롬프트에 맥락을 더하고, 턴 앞뒤에 뒤에서 일을 돌린다."""
+
+    def system_addendum(self) -> str | None: ...
+
+    async def before_turn(self, user_input: str) -> None: ...
+
+    async def after_turn(self, user_input: str, reply: str) -> None: ...
+
+
 THOUGHT_WAIT_SEC = 3.0
 # 성찰이 같은 말을 바꿔 다시 하지 않도록 최근 🔔 몇 개를 보여준다
 RECENT_PROACTIVE_MAX = 3
@@ -143,6 +153,8 @@ class AgentSession:
         self._thought_timing = thought_timing
         self._thought_wait_sec = thought_wait_sec
         self._late_thoughts: set[asyncio.Task[Any]] = set()  # 참조를 잃으면 GC 가 끊는다
+        self._turn_hook: TurnHook | None = None
+        self._hook_tasks: set[asyncio.Task[Any]] = set()
         self._openloop_store = openloop_store
         self._openloop_expiry = openloop_expiry
         self._activity_clock = activity_clock
@@ -221,6 +233,12 @@ class AgentSession:
 
         frame = None if self._thought_timing == "after" else await self._await_thought(expanded)
         inner_thought_prompt = self._thought_composer.compose(frame) or None if frame is not None else None
+        # 턴 도중 Focus 가 꺼져도 이번 턴은 시작할 때의 훅으로 끝낸다
+        hook = self._turn_hook
+        if hook is not None:
+            addendum = hook.system_addendum()
+            inner_thought_prompt = "\n\n".join(p for p in (inner_thought_prompt, addendum) if p) or None
+            self._spawn_hook(hook.before_turn(expanded))
 
         await self._plugins.emit_before_agent_start(expanded, {"session_id": self._session_id})
 
@@ -242,6 +260,8 @@ class AgentSession:
                 if result:
                     # 플러그인 훅은 Message 로 타입이 잡히지만 받은 AssistantMessage 를 (고쳐) 돌려준다
                     result = cast(AssistantMessage, await self._plugins.emit_on_message_end(result))
+                    if hook is not None:
+                        self._spawn_hook(hook.after_turn(expanded, result.text()))
                 return result
             finally:
                 # Dual-Channel 백그라운드 모드에서는 prompt() 가 먼저 돌아오므로 여기서 꺼야 한다.
@@ -359,6 +379,28 @@ class AgentSession:
             event.as_line(include_detail=self._external_detail_in_prompt)
             for event in self._external_inbox.drain()
         ]
+
+    def set_turn_hook(self, hook: TurnHook | None) -> None:
+        """턴 훅을 끼우거나(None 이면) 뺀다. 같은 훅을 두 번 끼워도 하나다."""
+        self._turn_hook = hook
+
+    @property
+    def turn_hook(self) -> TurnHook | None:
+        return self._turn_hook
+
+    async def emit(self, event: AgentEvent) -> None:
+        """턴 바깥에서 이 세션의 구독자(열린 화면)에게 이벤트를 보낸다."""
+        await self._harness.emit_event(event)
+
+    def _spawn_hook(self, coro: Awaitable[None]) -> None:
+        task = asyncio.ensure_future(coro)
+        self._hook_tasks.add(task)
+        task.add_done_callback(self._on_hook_done)
+
+    def _on_hook_done(self, task: asyncio.Task[Any]) -> None:
+        self._hook_tasks.discard(task)
+        if not task.cancelled() and task.exception() is not None:
+            logger.info(f"[Focus] turn hook failed: {task.exception()!r}")
 
     def _spawn_thought(self, user_input: str) -> asyncio.Task[Any] | None:
         """사고를 뒤에서 돌린다. 끝나면 _run_inner_thought 가 기록과 이벤트를 알아서 남긴다."""
@@ -543,6 +585,10 @@ class AgentSession:
         """세션 생성 뒤 도구를 더한다. harness 가 생성 시점 스냅샷을 쓰므로 LLM 도구 목록도 갱신한다."""
         self._tool_registry.register(tool)
         self._harness._tools = self._tool_registry.to_llm_tools()
+
+    @property
+    def session_id(self) -> str:
+        return self._session_id
 
     @property
     def memory_scope(self) -> MemoryScope:

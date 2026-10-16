@@ -4,6 +4,7 @@ import asyncio
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
+from jarvis.core.focus.types import parse_command
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope
 from jarvis.ui.web.router.agent_router import agent_summary
 from jarvis.ui.web.session_registry import UnknownAgent
@@ -11,6 +12,7 @@ from jarvis.ui.web.web_auth import auth_enabled, lookup_api_user
 from jarvis.ui.web.web_state import WebState
 from jarvis.ui.web.ws_tasks import (
     first_feedback,
+    run_focus,
     run_prompt,
     run_reply_classify,
     run_stt,
@@ -94,6 +96,12 @@ def build_ws_router(state: WebState) -> APIRouter:
             while state.pending_notices:
                 await adapter.send({**state.pending_notices.popleft(), "missed": True})
 
+            # 진행 중인 Focus 작업이 있으면(재시작 뒤 포함) 화면을 Focus 로 되살린다
+            if state.focus is not None:
+                run = await state.focus.restore(session)
+                for event in run.panel_events() if run is not None else []:
+                    await adapter.on_agent_event(event)
+
             while True:
                 msg = await ws.receive_json()
                 msg_type = msg.get("type", "")
@@ -102,6 +110,17 @@ def build_ws_router(state: WebState) -> APIRouter:
                     text = msg.get("text", "").strip()
                     if text:
                         state.registry.touch(session_id)
+                        focus_command = parse_command(text) if state.focus is not None else None
+                        if state.focus is not None and focus_command is not None:
+                            current_scope.set(MemoryScope(
+                                user_id=user.name if user is not None else LOCAL_USER,
+                                agent_id=agent_id,
+                                session_id=session_id,
+                            ))
+                            asyncio.create_task(
+                                run_focus(session, adapter, state.focus, focus_command, credentials)
+                            )
+                            continue
                         # 슬래시 명령 인터셉트: 텍스트 어디서나 /command 를 처리하고 나머지만 LLM 으로 보낸다
                         if ctx.dispatcher is not None:
                             # /remember 같은 명령이 이 연결의 사용자 범위로 기억을 쓰게 한다

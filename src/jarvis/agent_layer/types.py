@@ -94,6 +94,24 @@ class ProactiveMessageEvent(BaseModel):
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
 
 
+class FocusStateEvent(BaseModel):
+    """Focus 작업의 현재 상태 전체. 화면은 받은 것으로 덮어쓴다(active=False 면 Focus 종료)."""
+
+    type: Literal["focus_state"] = "focus_state"
+    session_id: str
+    state: dict[str, Any]
+
+
+class FocusPanelEvent(BaseModel):
+    """Focus 영역(reference, log, analysis) 하나의 마크다운 전체."""
+
+    type: Literal["focus_panel"] = "focus_panel"
+    session_id: str
+    area: str
+    markdown: str
+    busy: bool = False  # sub-agent 가 이 영역을 갱신하는 중인지
+
+
 AgentEvent = (
     AgentStartEvent
     | TurnStartEvent
@@ -104,6 +122,8 @@ AgentEvent = (
     | AgentErrorEvent
     | InnerThoughtEvent
     | ProactiveMessageEvent
+    | FocusStateEvent
+    | FocusPanelEvent
 )
 
 

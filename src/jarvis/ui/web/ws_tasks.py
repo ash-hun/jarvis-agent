@@ -8,6 +8,8 @@ from fastapi import WebSocket
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.thought.reply import ReplyClassifier
+    from jarvis.core.focus.service import FocusService
+    from jarvis.core.focus.types import FocusCommand
     from jarvis.core.session import AgentSession
     from jarvis.ui.web.adapter import PerConnectionAdapter
     from jarvis.voice.service import VoiceService
@@ -20,6 +22,26 @@ async def run_prompt(
         await session.prompt(text, credentials=credentials)
     except Exception as exc:
         await adapter.show_error(str(exc))
+
+
+async def run_focus(
+    session: "AgentSession",
+    adapter: "PerConnectionAdapter",
+    focus: "FocusService",
+    command: "FocusCommand",
+    credentials: dict[str, str],
+) -> None:
+    """/focus 명령을 처리해 안내를 한 메시지로 보이고, 시작이면 작업을 메인 에이전트에 이어 보낸다."""
+    try:
+        feedback, follow_up = await focus.handle(command, session)
+    except Exception as exc:
+        await adapter.show_error(f"Focus 오류: {exc}")
+        return
+    await adapter.send({"type": "agent_start"})
+    await adapter.send({"type": "stream_delta", "text": feedback})
+    await adapter.send({"type": "agent_end"})
+    if follow_up:
+        await run_prompt(session, adapter, follow_up, credentials)
 
 
 async def run_stt(ws: WebSocket, voice_service: "VoiceService", audio_b64: str, sample_rate: int) -> None:

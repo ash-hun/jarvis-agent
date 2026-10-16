@@ -38,6 +38,7 @@ class AgentDefinition:
     capabilities: list[str] = field(default_factory=list)
     system_prompt: str | None = None
     tools: list[str] = field(default_factory=list)  # 허용할 builtin tool 이름
+    tools_only: bool = False  # True 면 tools 에 적힌 것만(비어 있으면 도구 없음). False 면 빈 tools 는 메인 전체
     model_override: str | None = None  # None이면 부모 설정 상속
     memory: AgentMemoryPolicy = field(default_factory=AgentMemoryPolicy)
     level: int = 0  # hierarchical 패턴의 레벨. 0 이 먼저, 같은 레벨은 병렬

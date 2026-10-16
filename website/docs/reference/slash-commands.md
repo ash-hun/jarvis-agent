@@ -43,6 +43,6 @@ title: 공용 커맨드
 /orchestrate blackboard --agents a,b --promote 시장 분석
 ```
 
-직접 만든 스킬은 `~/.jarvis/skills/` 에 Markdown 으로 둔다. 파일 형식은 [확장하기](../concepts/extending.md) 에 있다.
+직접 만든 스킬은 `~/.jarvis/skills/` 에 Markdown 으로 둔다. 파일 형식은 [Extension](../concepts/extension.md) 에 있다.
 
 `/openloop`, `/usermodel`, `/journal` 은 내적 사고가 켜져 있을 때만 등록된다. `/orchestrate` 는 에이전트 정의가 하나 이상 있을 때만 등록된다.

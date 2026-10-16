@@ -1,15 +1,15 @@
 ---
-sidebar_position: 1.5
-title: 첫 대화
+sidebar_position: 0
+title: Conversation
 ---
 
-# 첫 대화
+# Conversation
 
-이 페이지는 jarvis-agent 를 띄운 직후 5분 안에 핵심 동작 세 가지를 직접 보는 길이다. 내적 사고(💭), 승인, 먼저 건네는 말(🔔)을 차례로 확인한다. 아직 띄우지 않았다면 [Quick Start](../start/install.md)부터 한다.
+이 페이지는 jarvis-agent 를 띄운 직후 5분 안에 핵심 동작 세 가지를 직접 보는 길이다. 내적 사고(💭), 승인, 먼저 건네는 말(🔔)을 차례로 확인한다. 아직 띄우지 않았다면 [Quick Start](../../start/install.md)부터 한다.
 
 ## 사고 한 줄 보기
 
-"안녕" 한 마디를 보낸다. 응답 위에 💭 로 시작하는 한 줄이 뜨면 [내적 사고](./inner-thought.md)가 켜진 것이다. 이 한 줄은 JARVIS 가 답하기 전에 따로 내린 판단의 요약이다.
+"안녕" 한 마디를 보낸다. 응답 위에 💭 로 시작하는 한 줄이 뜨면 [내적 사고](../architecture/inner-thought.md)가 켜진 것이다. 이 한 줄은 JARVIS 가 답하기 전에 따로 내린 판단의 요약이다.
 
 ## 승인 해 보기
 
@@ -31,10 +31,10 @@ title: 첫 대화
 
 대화를 멈추고 2분쯤 둔다. JARVIS 가 성찰한 끝에 할 말이 분명하다고 판단하면 🔔 로 먼저 말을 건다. 할 말이 없으면 침묵하는 게 정상이다.
 
-🔔 가 오지 않을 때는 백엔드 로그에서 `[Thought] proactive silent: <이유>` 를 찾는다. JARVIS 는 침묵할 때마다 이유를 이 줄에 남긴다. 이유별 대처는 [FAQ](../troubleshooting/proactive-silent.md)에 있다.
+🔔 가 오지 않을 때는 백엔드 로그에서 `[Thought] proactive silent: <이유>` 를 찾는다. JARVIS 는 침묵할 때마다 이유를 이 줄에 남긴다. 이유별 대처는 [FAQ](../../troubleshooting/proactive-silent.md)에 있다.
 
 ## 다음에 읽을 것
 
-- [먼저 행동하기](./proactive.md): 🔔 를 언제 보내고 언제 참는지
-- [Web HUD 사용가이드](../start/web-hud.md): 카드와 입력, 세션 다루기
-- [전체 용어집](../reference/glossary.md): 이 문서에서 쓰는 이름들
+- [먼저 행동하기](../architecture/proactive.md): 🔔 를 언제 보내고 언제 참는지
+- [Web HUD 사용가이드](../../start/web-hud.md): 카드와 입력, 세션 다루기
+- [전체 용어집](../../reference/glossary.md): 이 문서에서 쓰는 이름들

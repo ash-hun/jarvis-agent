@@ -1,9 +1,9 @@
 ---
-sidebar_position: 13
-title: 확장하기
+sidebar_position: 6
+title: Extension
 ---
 
-# 확장하기
+# Extension
 
 `~/.jarvis/` 아래 폴더에 파일을 놓아 JARVIS 에 도구, 스킬, 플러그인, 에이전트를 더한다.
 
@@ -123,7 +123,7 @@ class MyPlugin:
 - `market`: capabilities 가 맞는 에이전트 하나가 맡는다
 - `blackboard`: 전원이 병렬로 돌고 결과를 취합한다
 
-패턴을 쉼표로 이으면 파이프라인이 된다. 서브 에이전트는 부모의 사용자 범위를 상속하고, 부모는 위임한 일을 일화로 기억한다. 패턴별 흐름은 [멀티 에이전트](./multi-agent.md) 에 있다.
+패턴을 쉼표로 이으면 파이프라인이 된다. 서브 에이전트는 부모의 사용자 범위를 상속하고, 부모는 위임한 일을 일화로 기억한다. 패턴별 흐름은 [멀티 에이전트](./multi-agent-orchestration/orchestration-pattern.md) 에 있다.
 
 ## LLM 프로바이더
 

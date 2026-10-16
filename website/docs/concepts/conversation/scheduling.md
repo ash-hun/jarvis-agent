@@ -1,0 +1,71 @@
+---
+sidebar_position: 5
+title: Scheduling
+---
+
+# Scheduling
+
+JARVIS 는 정한 시각에 알림이나 작업을 돌린다. 한 번, 마감까지 반복, cron 세 가지로 등록하고 AGENDA 카드에서 켜고 끈다.
+
+```text
+/schedule 내일 오전 9시에 배포 로그 확인해줘      # 한 번
+/schedule 2026.10.20 오후 6시까지 보고서 초안 작성   # 마감까지 반복
+/schedule 0 9 * * * date && uptime                  # cron
+```
+
+```mermaid
+sequenceDiagram
+  participant U as 사용자
+  participant D as 디스패처 /schedule
+  participant F as schedules/*.yaml
+  participant S as SchedulerService
+  participant R as 실행 세션
+  participant H as 열린 Web 연결
+  U->>D: /schedule 내일 오전 9시에 배포 로그 확인해줘
+  D->>D: 시각과 종류 해석 (한 번이면 LLM 이 reminder / task 분류)
+  D->>F: 작업 파일 저장
+  loop 10초마다
+    S->>F: 다음 실행 시각 확인
+  end
+  S->>R: 시각이 되면 새 세션에서 프롬프트 (task) 또는 문장 그대로 (reminder)
+  R-->>S: 결과
+  S->>H: reminder 이벤트 (없으면 놓친 알림 20건에 쌓음)
+  S->>S: Slack 이 있으면 거기도
+```
+
+- 한 번 실행(`...에`): LLM 분류기에 `reminder`(그 문장을 그대로 알림)인지 `task`(프롬프트를 실행)인지 한 번 묻는다. 분류에 실패하면 reminder 로 둔다
+- 마감까지 반복(`...까지`): 남은 시간으로 주기를 고른다. 7일 이상이면 매일 9시, 하루 이상이면 6시간마다, 1시간 이상이면 매시, 그 아래는 10분마다
+- 파일: 작업은 `~/.jarvis/schedules/<name>.yaml` 에 저장한다. 켜고 끄면 `enabled` 키만 바뀐다. 한 번 실행을 마친 작업은 스케줄러가 파일을 지우거나 `enabled: false` 로 바꾼다
+- 실행: 스케줄러는 10초마다 깨어나 새 세션에서 프롬프트를 돌린다. 이 세션은 빈 메모리 체인을 쓰고 사고 엔진이 없다. 늦게 켜져 지난 일정은 기동 때 `delayed_sec` 를 달고 실행된다
+- 전달: 열린 Web 연결 전부에 `reminder` 이벤트를 보낸다. 아무도 없으면 최근 20건을 쌓아 두었다가 다음 접속 때 `missed: true` 로 보낸다. Slack 이 있으면 Slack 에도 보낸다
+
+:::danger
+
+스케줄 실행 세션은 승인 없는 샌드박스를 쓴다. 스케줄 작업이 부르는 도구는 사람에게 묻지 않고 실행된다.
+
+:::
+
+:::warning
+
+놓친 알림은 프로세스 메모리에만 쌓인다. 재시작하면 사라진다.
+
+:::
+
+## 구현 위치
+
+왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
+
+```mermaid
+flowchart LR
+  CMD["/schedule 명령"] --> CLS[make_llm_classifier<br/>reminder 또는 task]
+  CMD --> FILE[(~/.jarvis/schedules/*.yaml)]
+  SVC[SchedulerService<br/>10초마다] --> FILE
+  SVC --> RUN[새 세션에서 프롬프트 실행<br/>승인 없음, 사고 없음]
+  RUN -. reminder .-> HUD[열린 Web 연결 전부]
+  RUN --> PEND[(놓친 알림 20건<br/>메모리)]
+  RUN --> NTF[Slack]
+  AG[AGENDA 스위치] -->|enabled| FILE
+```
+
+- 핵심 모듈: `core/scheduler/`
+- 저장: `~/.jarvis/schedules/*.yaml`

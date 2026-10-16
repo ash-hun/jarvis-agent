@@ -1,9 +1,9 @@
 ---
-sidebar_position: 5
+sidebar_position: 2
 title: 먼저 행동하기 (Proactive)
 ---
 
-# 먼저 행동하기
+# 먼저 행동하기 (Proactive)
 
 JARVIS 는 사고 프레임을 바탕으로 사용자가 묻기 전에 움직인다. 요청 시점에는 **dual channel** 로 짧은 말을 먼저 하고, 요청이 없을 때는 **성찰** 끝에 먼저 건네는 말을 보내며, 그 말에 대한 반응으로 **피드백 학습**을 한다.
 

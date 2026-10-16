@@ -108,7 +108,7 @@ JARVIS_SECURITY__AGENT_APPROVALS_DIR=~/.jarvis/approvals         # 에이전트�
 
 ## MCP 서버
 
-`mcp_servers` 는 목록 설정이다. 항목마다 `name`, `transport`(`stdio`, `http`), `command`, `url`, `env`, `headers`, `auth_token`, `timeout`(30)을 둔다. 항목 예시는 [확장하기](../concepts/extending.md) 에 있다.
+`mcp_servers` 는 목록 설정이다. 항목마다 `name`, `transport`(`stdio`, `http`), `command`, `url`, `env`, `headers`, `auth_token`, `timeout`(30)을 둔다. 항목 예시는 [Extension](../concepts/extension.md) 에 있다.
 
 ## 절차 학습, 알림, 플러그인
 

@@ -12,7 +12,7 @@ title: JARVIS-Agent 소개
 
 ## 서비스 개요
 
-보통의 채팅 에이전트는 사용자가 말해야 움직인다. JARVIS 는 요청마다 메인 응답과 따로 한 번 더 생각하고([내적 사고](../concepts/inner-thought.md)), 그 판단으로 다음 네 가지를 정한다.
+보통의 채팅 에이전트는 사용자가 말해야 움직인다. JARVIS 는 요청마다 메인 응답과 따로 한 번 더 생각하고([내적 사고](../concepts/architecture/inner-thought.md)), 그 판단으로 다음 네 가지를 정한다.
 
 - 지금 바로 답할지, "잠깐만요, 확인할게요" 를 먼저 말하고 뒤에서 처리할지
 - 대화에서 흘린 약속과 끝내지 못한 일을 기억해 둘지
@@ -38,8 +38,8 @@ JARVIS 는 쓸수록 사용자에게 맞춰진다. 한 번 허용한 명령 패�
 
 :::note[Notes]
 
-- 바로 써 보려면 [Quick Start](./install.md) 다음 [첫 대화](../concepts/first-chat.md)를 따라간다.
-- 어떻게 동작하는지 알고 싶으면 [기능 목록](../concepts/services.md)에서 시작한다.
+- 바로 써 보려면 [Quick Start](./install.md) 다음 [Conversation](../concepts/conversation/index.md)를 따라간다.
+- 어떻게 동작하는지 알고 싶으면 [Notice](../concepts/notice.md)에서 시작한다.
 - 설정 키나 명령을 찾으면 [환경설정](/reference)를 연다.
 - 낯선 말이 나오면 [전체 용어집](../reference/glossary.md)을 본다.
 

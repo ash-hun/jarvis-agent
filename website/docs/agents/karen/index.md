@@ -35,7 +35,7 @@ title: KAREN
 
 ## 정의 파일
 
-KAREN 은 저장소의 `team/karen.yaml` 한 파일로 정의한다. 이름, 설명, 명언(`Eyes on everything`), 메인 색 `#97BC62`, 시스템 프롬프트, 도구 목록이 들어 있고, 비운 항목(모델 등)은 JARVIS 설정을 이어받는다. 파일 형식은 [최상위 에이전트 팀 → 정의 파일](../../concepts/team.md#정의-파일)에 있다.
+KAREN 은 저장소의 `team/karen.yaml` 한 파일로 정의한다. 이름, 설명, 명언(`Eyes on everything`), 메인 색 `#97BC62`, 시스템 프롬프트, 도구 목록이 들어 있고, 비운 항목(모델 등)은 JARVIS 설정을 이어받는다. 파일 형식은 [Multi agent Orchestration → 정의 파일](../../concepts/multi-agent-orchestration/index.md#정의-파일)에 있다.
 
 ## 부르는 방법
 

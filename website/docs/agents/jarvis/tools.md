@@ -23,7 +23,7 @@ JARVIS 는 정의 파일이 없어서 도구 목록(`tools`)도 비어 있다. �
 | `web_search` | Brave(키 있으면) 또는 DuckDuckGo | |
 | `web_fetch` | URL 본문을 텍스트로 | |
 
-승인이 필요한 도구에서 **항상 허용** 을 고르면 규칙이 `~/.jarvis/approvals/main.yaml` 에 쌓인다. 대조 방식은 [도구와 승인](../../concepts/tools-and-approval.md#승인-기억)에 있다.
+승인이 필요한 도구에서 **항상 허용** 을 고르면 규칙이 `~/.jarvis/approvals/main.yaml` 에 쌓인다. 대조 방식은 [Tool & Approve system](../../concepts/conversation/tools-and-approval.md#승인-기억)에 있다.
 
 ## 설정과 실행 중에 붙는 도구
 
@@ -31,10 +31,10 @@ JARVIS 는 정의 파일이 없어서 도구 목록(`tools`)도 비어 있다. �
 
 | 도구 | 언제 붙나 | 자세히 |
 |---|---|---|
-| `agent_<name>`, `orchestrate` | 서브 에이전트 정의가 있을 때 | [멀티 에이전트](../../concepts/multi-agent.md) |
-| `procedure_<name>` | 여러 도구로 성공한 작업을 절차로 승인했을 때 | [메모리](../../concepts/memory.md) |
-| MCP 서버의 도구 | MCP 서버를 연결했을 때 | [확장하기](../../concepts/extending.md#mcp-서버) |
-| 사용자 도구 | `~/.jarvis/tools/` 에 도구 파일을 두었을 때 | [확장하기](../../concepts/extending.md#도구) |
+| `agent_<name>`, `orchestrate` | 서브 에이전트 정의가 있을 때 | [Orchestration Pattern](../../concepts/multi-agent-orchestration/orchestration-pattern.md) |
+| `procedure_<name>` | 여러 도구로 성공한 작업을 절차로 승인했을 때 | [Memory Management](../../concepts/memory.md) |
+| MCP 서버의 도구 | MCP 서버를 연결했을 때 | [Extension](../../concepts/extension.md#mcp-서버) |
+| 사용자 도구 | `~/.jarvis/tools/` 에 도구 파일을 두었을 때 | [Extension](../../concepts/extension.md#도구) |
 
 사용자 도구와 MCP 도구는 같은 이름의 내장 도구를 덮어쓴다.
 
@@ -42,8 +42,8 @@ JARVIS 는 정의 파일이 없어서 도구 목록(`tools`)도 비어 있다. �
 
 | 도구 | 하는 일 |
 |---|---|
-| `ask_agent` | 다른 최상위 에이전트에게 일을 맡긴다. 에이전트가 둘 이상일 때만 있다([최상위 에이전트 팀](../../concepts/team.md#에이전트끼리-대화)) |
-| `remember_task_pattern` | 사용자가 알려 준 작업 방식을 JARVIS 의 작업 패턴으로 저장한다([메모리 → 작업 패턴](../../concepts/memory.md#작업-패턴)) |
+| `ask_agent` | 다른 최상위 에이전트에게 일을 맡긴다. 에이전트가 둘 이상일 때만 있다([Multi agent Orchestration](../../concepts/multi-agent-orchestration/index.md#에이전트끼리-대화)) |
+| `remember_task_pattern` | 사용자가 알려 준 작업 방식을 JARVIS 의 작업 패턴으로 저장한다([Memory Management → 작업 패턴](../../concepts/memory.md#작업-패턴)) |
 
 ## 갖지 않는 도구
 

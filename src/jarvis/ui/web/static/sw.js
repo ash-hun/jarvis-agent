@@ -24,6 +24,7 @@ const SHELL = [
   'app/brand.js',
   'app/composer.js',
   'app/events.js',
+  'app/focus.js',
   'app/main.js',
   'app/markdown.js',
   'app/messages.js',

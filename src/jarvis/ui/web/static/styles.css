@@ -734,16 +734,17 @@ body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
 
 /* ── Reactor — 화면 중앙의 주인공 ────────────────────────────────────────────*/
 .reactor {
+  /* 가운데 열 폭과 세로 공간 중 작은 쪽에 맞춘다(캡션 자리 제외). Focus 둘레 영역도 이 값으로 자리를 잡는다 */
+  --sphere: clamp(200px, min(100%, calc(100vh - var(--header-h) - var(--dock-h) - 130px)), 720px);
+  position: relative;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 10px;
   min-width: 0; min-height: 0;
 }
 .sphere-wrap {
   position: relative;
-  /* 가운데 열 폭과 세로 공간 중 작은 쪽에 맞춘다(캡션 자리 제외) */
-  width: min(100%, calc(100vh - var(--header-h) - var(--dock-h) - 130px));
-  max-width: 720px;
-  min-width: 200px;
+  z-index: 2;
+  width: var(--sphere);
   aspect-ratio: 1;
 }
 .sphere-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -1167,6 +1168,173 @@ button, .session, .sphere-hit, .panel-head {
 }
 .drawer-scrim[hidden] { display: none; }
 
+/* ── Focus — /focus 동안의 화면. body[data-focus="on"] 이 켜고 끈다 ─────────────
+ * 들어갈 때: 좌우 카드가 세로 글씨 띠로 접힌다 → 구체가 30% 줄며 선명해진다 → 호가 그려진다
+ * → 네 영역이 구체 쪽에서 바깥으로 차례로 나온다. 나올 때는 같은 길을 거꾸로 간다.
+ * 들어갈 때의 지연은 [data-focus] 쪽에, 나올 때의 지연은 기본 규칙 쪽에 둔다(전환은 도착 상태의 값을 쓴다). */
+:root {
+  --focus-ease: cubic-bezier(.65, 0, .35, 1);
+  --strip-w: 30px;
+}
+.stage { transition: grid-template-columns .55s var(--focus-ease) .35s; }
+body[data-focus="on"] .stage {
+  grid-template-columns: var(--strip-w) minmax(0, 1fr) var(--strip-w);
+  transition-delay: 0s;
+}
+
+/* 좌우 카드 → 띠. 내용은 숨기고 머리글만 세로로 세운다 */
+body[data-focus="on"] .hud-col { gap: 8px; }
+body[data-focus="on"] .hud-col .hud-card {
+  flex: 1 1 0; max-height: none; min-height: 0;
+  padding: 12px 0; align-items: center; overflow: hidden;
+}
+body[data-focus="on"] .chat-col .sessions-card { flex: 0 0 auto; }
+body[data-focus="on"] .chat-col .chat-card { flex: 1 1 0; }
+body[data-focus="on"] .hud-col .hud-card > :not(.panel-head) { display: none; }
+body[data-focus="on"] .hud-col .panel-head {
+  writing-mode: vertical-rl; text-orientation: upright;
+  letter-spacing: 0.08em; padding: 0; margin: 0; border: 0; gap: 0;
+  pointer-events: none;
+}
+body[data-focus="on"] .hud-col .panel-head > :is(.count, .chev, .idx, button) { display: none; }
+/* 띠 가운데 Conversation 만 눌러서 펼친다(음성이 아직 완전하지 않아 대화를 볼 길을 남긴다) */
+body[data-focus="on"] .chat-card .panel-head { pointer-events: auto; cursor: pointer; }
+body[data-focus="on"] .chat-card:hover { border-color: var(--hairline-strong); box-shadow: 0 0 14px var(--pri-glow); }
+
+/* 펼친 대화 — 오른쪽 띠 옆에 덮어 뜬다 */
+body[data-focus="on"].focus-chat-open .chat-card {
+  position: fixed; z-index: 25;
+  top: calc(var(--header-h) + 16px); bottom: calc(var(--dock-h) + 10px);
+  right: calc(var(--gutter) + var(--strip-w) + 10px);
+  width: min(400px, calc(100vw - 2 * var(--gutter) - var(--strip-w) - 20px));
+  padding: 10px 12px 12px; align-items: stretch;
+  background: var(--bg-1);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--bg-0) 80%, transparent), 0 0 18px var(--pri-glow);
+  animation: focus-chat-in .22s var(--focus-ease);
+}
+body[data-focus="on"].focus-chat-open .chat-card .panel-head {
+  writing-mode: horizontal-tb; letter-spacing: 0.28em;
+  padding-bottom: 8px; margin-bottom: 6px; gap: 8px;
+  border-bottom: 1px solid var(--hairline);
+}
+body[data-focus="on"].focus-chat-open .chat-card .panel-head > .count { display: inline; }
+body[data-focus="on"].focus-chat-open .chat-card > .messages { display: flex; }
+@keyframes focus-chat-in { from { opacity: 0; transform: translateX(16px); } }
+
+/* 구체 — 30% 작게, 더 선명하게. 줄어든 만큼 위아래 여백을 당겨 상태 줄이 붙어 있게 한다 */
+.sphere-wrap {
+  transition: transform .6s var(--focus-ease) .3s, margin .6s var(--focus-ease) .3s, filter .6s ease .3s;
+}
+body[data-focus="on"] .sphere-wrap {
+  transform: scale(.7);
+  margin: calc(var(--sphere) * -0.15) 0;
+  filter: saturate(1.7) brightness(1.18) drop-shadow(0 0 22px var(--pri-glow));
+  transition-delay: .2s;
+}
+body[data-focus="on"] .reactor-caption { max-width: calc(var(--sphere) * .9); }
+
+/* 둘레 네 영역 — 가운데 칸은 줄어든 구체 자리. 영역이 구체 가장자리 밑으로 살짝 들어간다 */
+.focus-ring {
+  position: absolute; inset: 0; z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) calc(var(--sphere) * .5) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "reference . analysis" "log . progress";
+  gap: 22px 0;
+  padding: 8px 0 4px;
+  pointer-events: none;
+  visibility: hidden;
+  transition: visibility 0s .55s;
+}
+body[data-focus="on"] .focus-ring { visibility: visible; transition-delay: 0s; }
+.focus-panel[data-area="reference"] { grid-area: reference; --dir: 1; }
+.focus-panel[data-area="log"]       { grid-area: log;       --dir: 1; }
+.focus-panel[data-area="analysis"]  { grid-area: analysis;  --dir: -1; }
+.focus-panel[data-area="progress"]  { grid-area: progress;  --dir: -1; }
+.focus-panel {
+  opacity: 0;
+  transform: translateX(calc(var(--dir) * 48px)) scale(.94);
+  transition: opacity .22s ease, transform .3s var(--focus-ease);
+  pointer-events: auto;
+}
+body[data-focus="on"] .focus-panel {
+  opacity: 1; transform: none;
+  transition-duration: .45s, .55s;
+  transition-delay: calc(.75s + var(--i) * .09s);
+}
+/* 구체 쪽 모서리를 안으로 들인 패딩 — 글이 구체 밑에 깔리지 않게 */
+.focus-panel[data-area="reference"], .focus-panel[data-area="log"] { padding-right: calc(var(--sphere) * .14); }
+.focus-panel[data-area="analysis"], .focus-panel[data-area="progress"] { padding-left: calc(var(--sphere) * .14); }
+
+.focus-body {
+  flex: 1; min-height: 0; overflow-y: auto;
+  font-size: 12px; line-height: 1.6; color: var(--text);
+  padding-right: 4px;
+}
+.focus-body:empty::before { content: attr(data-empty); color: var(--text-faint); font-style: italic; }
+.focus-body::-webkit-scrollbar { width: 4px; }
+.focus-body::-webkit-scrollbar-thumb { background: var(--hairline-strong); }
+.focus-body :is(h2, h3, h4) { font-size: 12px; color: var(--pri-bright); margin: 10px 0 4px; letter-spacing: .04em; }
+.focus-body :is(h2, h3, h4):first-child { margin-top: 0; }
+.focus-body p { margin: 0 0 6px; }
+.focus-body ul, .focus-body ol { margin: 0 0 6px; padding-left: 18px; }
+.focus-body ol { list-style: decimal inside; padding-left: 2px; }
+.focus-body br { display: none; }
+.focus-body strong { color: var(--pri-bright); font-weight: 600; }
+.focus-body a { color: var(--primary); }
+/* sub-agent 가 갱신 중인 영역 */
+.focus-panel.busy .panel-head::after {
+  content: "SYNC"; margin-left: 8px; color: var(--accent); letter-spacing: .2em;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+/* 진행 현황 */
+.focus-progress { display: flex; flex-direction: column; gap: 8px; min-height: 0; flex: 1; }
+.focus-task { margin: 0; font-size: 12px; color: var(--text); line-height: 1.5; }
+.focus-meter { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.focus-percent {
+  font-family: var(--sans); font-size: 34px; font-weight: 600; line-height: 1;
+  color: var(--pri-bright); text-shadow: 0 0 16px var(--pri-glow);
+  font-variant-numeric: tabular-nums;
+}
+.focus-eta { font-size: 11px; color: var(--text-dim); letter-spacing: .08em; }
+.focus-bar { height: 3px; background: var(--hairline); position: relative; overflow: hidden; }
+.focus-bar > span {
+  position: absolute; inset: 0 auto 0 0; width: 0;
+  background: linear-gradient(90deg, var(--pri-dim), var(--primary), var(--pri-bright));
+  box-shadow: 0 0 10px var(--pri-glow);
+  transition: width .8s var(--focus-ease);
+}
+.focus-steps { list-style: none; margin: 0; padding: 0; overflow-y: auto; min-height: 0; font-size: 12px; }
+.focus-steps:empty::before { content: attr(data-empty); color: var(--text-faint); font-style: italic; }
+.focus-steps li { display: flex; gap: 8px; padding: 3px 0; color: var(--text-dim); }
+.focus-steps li::before { content: "\25CB"; color: var(--pri-dim); }
+.focus-steps li.done { color: var(--text); }
+.focus-steps li.done::before { content: "\2713"; color: var(--primary); text-shadow: 0 0 8px var(--pri-glow); }
+
+/* 구체 둘레를 따라 네 영역 쪽으로 뻗는 호 — 선이 그려지듯 나타난다 */
+.focus-arcs {
+  position: absolute; inset: -8%; width: 116%; height: 116%;
+  overflow: visible; pointer-events: none; z-index: 1;
+}
+.focus-arcs path {
+  fill: none; stroke: var(--pri-bright); stroke-width: .7; stroke-linecap: round;
+  filter: drop-shadow(0 0 1.5px var(--primary));
+  stroke-dasharray: 70; stroke-dashoffset: 70;
+  transition: stroke-dashoffset .25s ease;
+}
+body[data-focus="on"] .focus-arcs path {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset .8s var(--focus-ease) .55s;
+}
+
+/* 헤더 — 지금 Focus 중임을 이름 옆에 */
+body[data-focus="on"] .header .center::after {
+  content: "FOCUS"; font-size: 10px; letter-spacing: .3em; padding: 2px 8px;
+  color: var(--bg-0); background: var(--primary); box-shadow: 0 0 12px var(--pri-glow);
+}
+body[data-focus="on"] .drawer-btn { visibility: hidden; }
+
 /* 좁은 데스크탑 — 좌우 카드 폭을 줄인다 */
 @media (max-width: 1180px) {
   .stage { grid-template-columns: minmax(200px, 240px) 1fr minmax(220px, 270px); }
@@ -1189,8 +1357,7 @@ button, .session, .sphere-hit, .panel-head {
     /* stage 가 쌓임 맥락을 만들면 안의 드로어(.hud-side)가 스크림 아래로 깔린다 */
     z-index: auto;
   }
-  .sphere-wrap { width: min(62vw, 36vh); min-width: 150px; }
-  .reactor { gap: 6px; }
+  .reactor { --sphere: max(150px, min(62vw, 36vh)); gap: 6px; }
   .reactor-caption { font-size: 14px; -webkit-line-clamp: 1; }
   .reactor-caption.live { font-size: 12px; }
 
@@ -1241,8 +1408,25 @@ button, .session, .sphere-hit, .panel-head {
     grid-template-rows: minmax(0, 1fr);
     grid-template-areas: "reactor chat";
   }
-  .sphere-wrap { width: 34vh; min-width: 110px; }
+  .reactor { --sphere: max(110px, 34vh); }
   .reactor-caption { display: none; }
+}
+
+/* Focus, 좁은 화면 — 구체 아래로 네 영역을 쌓고, 대화는 아래 막대를 눌러 펼친다 */
+@media (max-width: 860px) {
+  body[data-focus="on"] .stage { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
+  body[data-focus="on"] .reactor { justify-content: flex-start; overflow-y: auto; padding-bottom: 8px; }
+  body[data-focus="on"] .focus-ring {
+    position: static; display: flex; flex-direction: column; gap: 10px; width: 100%; padding: 0;
+  }
+  body[data-focus="on"] .focus-panel { min-height: 120px; max-height: 42vh; padding-left: 12px; padding-right: 12px; }
+  body[data-focus="on"] .focus-panel[data-area="progress"] { order: -1; }
+  body[data-focus="on"] .chat-col .sessions-card { display: none; }
+  body[data-focus="on"] .chat-col .chat-card { flex: 0 0 auto; padding: 8px 12px; align-items: stretch; }
+  body[data-focus="on"] .chat-col .panel-head { writing-mode: horizontal-tb; letter-spacing: .28em; }
+  body[data-focus="on"].focus-chat-open .chat-card {
+    left: var(--gutter); right: var(--gutter); width: auto; top: calc(var(--header-h) + 10px);
+  }
 }
 
 /* 설치형(standalone) 실행 시 — 브라우저 UI가 없으므로 상단 안전영역을 직접 확보 */

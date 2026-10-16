@@ -1,4 +1,4 @@
-// 외부 의존 없는 마크다운 렌더 — h1-h3, p, ul/ol/li, pre/code, strong, em, hr.
+// 외부 의존 없는 마크다운 렌더 — h1-h4, p, ul/ol/li, pre/code, strong, em, hr.
 const _codeStore = {};  // uid → raw code text (copy 버튼용)
 
 export function escapeHtml(s) {
@@ -50,6 +50,7 @@ export function renderMarkdown(src) {
     if (line.trim() === '')    { closeList(); out += '<br>'; i++; continue; }
     if (/^---+$/.test(line.trim())) { closeList(); out += '<hr>'; i++; continue; }
 
+    const h4 = line.match(/^#### (.+)/); if (h4) { closeList(); out += `<h4>${inlineParse(h4[1])}</h4>`; i++; continue; }
     const h3 = line.match(/^### (.+)/); if (h3) { closeList(); out += `<h3>${inlineParse(h3[1])}</h3>`; i++; continue; }
     const h2 = line.match(/^## (.+)/);  if (h2) { closeList(); out += `<h2>${inlineParse(h2[1])}</h2>`; i++; continue; }
     const h1 = line.match(/^# (.+)/);   if (h1) { closeList(); out += `<h1>${inlineParse(h1[1])}</h1>`; i++; continue; }

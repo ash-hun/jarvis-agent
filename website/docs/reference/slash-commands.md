@@ -27,6 +27,7 @@ title: 공용 커맨드
 | `/usermodel` | | 증류된 사용자 모델 표시, `build` 로 갱신 |
 | `/journal` | | 자기 성찰 저널 표시, `write` 로 작성 |
 | `/orchestrate` | | 멀티 에이전트 호출 (`<pattern> <task>`, `list`) |
+| `/focus` | | `<작업>` 으로 [Focus 모드](../concepts/multi-agent-orchestration/focus-mode.md) 시작, `stop` 으로 종료, 인자 없으면 현황. Web HUD 전용이고 디스패처보다 먼저 처리된다 |
 | `/cleanup` | | 옛 서브 에이전트 세션과 옛 STM 테이블 보기. `agents confirm`, `stm confirm` 으로 삭제 |
 | `/exit` | | TUI 종료 |
 | `/<절차 이름>` | | 승인된 절차 하나가 스킬 하나다 |

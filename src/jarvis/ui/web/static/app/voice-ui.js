@@ -7,6 +7,7 @@ import { answerApprovalByVoice, isApprovalOpen } from './approval.js';
 import { escapeHtml } from './markdown.js';
 import { isAgentBusy } from './events.js';
 import { appendMsg } from './messages.js';
+import { focusCommandFromSpeech } from './focus.js';
 import { send } from './ws.js';
 
 // TTS 꼬리가 마이크에 들어가지 않게 읽기가 끝난 뒤 잠깐 쉬고 듣는다
@@ -48,7 +49,8 @@ export const voice = new VoiceManager({
     if (await tryProactiveFeedback(transcript)) { voice.setIdle(); return; }
     _voiceMode = true;
     showUser(transcript);
-    sendUserText(transcript);
+    // "포커스 모드 <작업>", "포커스 모드 종료" 는 /focus 명령으로 보낸다
+    sendUserText(focusCommandFromSpeech(transcript) || transcript);
   },
   onStateChange(state) {
     $sphereWrap.classList.remove('voice-listening', 'voice-speaking', 'voice-processing');

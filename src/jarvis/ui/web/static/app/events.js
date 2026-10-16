@@ -15,6 +15,7 @@ import { setInputEnabled, endAwaitingReply } from './composer.js';
 import { isFullVoice } from './mode.js';
 import { onReplyClassified } from './reply.js';
 import { setActiveAgents } from './agents.js';
+import { onFocusState, onFocusPanel } from './focus.js';
 
 const ERROR_FLASH_MS = 3000;
 let _agentStack = []; // [{name: string|null}, ...] — 서브 에이전트 계층 추적
@@ -114,6 +115,17 @@ export function handleMessage(msg) {
     case 'error':
       voice.setIdle();  // TTS 오류면 '음성 처리 중' 상태를 풀어 준다
       flashError(msg.message || 'Error');
+      break;
+
+    case 'focus_state': {
+      const st = msg.state || {};
+      onFocusState(st);
+      logActivity(st.active ? `◎ focus · ${Math.round((st.progress || 0) * 100)}%` : '◎ focus off');
+      break;
+    }
+
+    case 'focus_panel':
+      onFocusPanel(msg.area, msg.markdown || '', msg.busy);
       break;
 
     case 'inner_thought': {

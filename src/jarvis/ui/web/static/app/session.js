@@ -4,6 +4,7 @@ import { openSocket } from './ws.js';
 import { escapeHtml } from './markdown.js';
 import { setStatus, logActivity, showQuote } from './shell.js';
 import { appendMsg, appendHistory, resetMessages } from './messages.js';
+import { resetFocus } from './focus.js';
 import { setModel, resetUsage } from './usage.js';
 import { hideArtifact } from './artifact.js';
 import { setInputEnabled, setSlashCommands } from './composer.js';
@@ -144,6 +145,7 @@ async function fetchAndRenderHistory(sessionId) {
 }
 
 function resetChatUI() {
+  resetFocus();
   resetMessages();
   resetAgentStack();
   setInputEnabled(false);

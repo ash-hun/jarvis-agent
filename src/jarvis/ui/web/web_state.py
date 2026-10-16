@@ -24,6 +24,10 @@ logger = get_logger(__name__)
 PENDING_NOTICE_MAX = 20
 
 
+async def _focus_outside_ws(_args: str) -> str:
+    return "[Focus] Web HUD 에서만 쓸 수 있습니다."
+
+
 class WebState:
     """create_app 이 하나 만들어 모든 라우터에 넘긴다. 연결과 알림 큐는 프로세스 메모리에만 있다."""
 
@@ -36,6 +40,9 @@ class WebState:
         self.pending_notices: deque[dict[str, object]] = deque(maxlen=PENDING_NOTICE_MAX)
         self.voice_service = self._build_voice_service()
         self.focus: FocusService | None = self._build_focus_service()
+        if self.focus is not None and assembly.ctx.dispatcher is not None:
+            # 실행은 ws 가 디스패처보다 먼저 가로챈다. 여기 등록은 입력창의 명령 목록에 보이게 하려는 것
+            assembly.ctx.dispatcher.register("focus", _focus_outside_ws, "<작업> Focus 모드 시작 | stop 종료 | 현황")
         # 🔔 짧은 답과 음성 승인 답 분류기. 사고가 꺼져 있으면 None 이고 화면은 키워드만 쓴다
         self.reply_classifier: ReplyClassifier | None = assembly.profile.reply_classifier()
         # 어느 에이전트가 일하는지. 둘 이상이면 HUD 구체가 색을 섞는다

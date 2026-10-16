@@ -678,6 +678,41 @@ def orchestration_pattern() -> Fig:
     return f
 
 
+def focus_mode() -> Fig:
+    f = Fig("focus-mode", 380, "Focus 모드의 한 턴과 화면 배치")
+    f.panel(16, 12, 470, 356, "(a) Focus 동안의 한 턴")
+    an = f.box(250, 46, "분석", "턴 앞, 다섯 항목", w=130, h=44, center=True)
+    ref = f.box(410, 46, "조사", "시작, 검색어가 나올 때", w=130, h=44, center=True)
+    user = f.box(84, 150, "사용자 지시", w=100, h=44, center=True, kind="io")
+    main = f.box(250, 150, "JARVIS", "오케스트레이터", w=130, h=44, center=True, kind="accent")
+    log = f.box(250, 254, "기록", "턴 뒤, 3인칭 서기", w=130, h=44, center=True)
+    prog = f.box(410, 254, "진행", "턴 뒤, 단계 완료", w=130, h=44, center=True)
+    f.edge([user.right, main.left], "accent")
+    start = (user.cx + 6, an.cy - 6)
+    f.edge([(user.cx, user.y), (user.cx, an.cy), an.left], "", "같이 시작", at=start, anchor="start", dy=0)
+    f.edge([an.right, ref.left], "", "검색어")
+    f.edge([an.bottom, main.top], "accent", "Focus 맥락", at=(an.cx + 6, 124), anchor="start", dy=0)
+    f.edge([ref.bottom, (ref.cx, main.y + 12), (main.x + main.w, main.y + 12)], "accent", "조사 요약",
+           at=(ref.cx - 6, main.y + 6), anchor="end", dy=0)
+    f.edge([main.bottom, log.top], "", "응답 뒤", at=(main.cx + 6, 230), anchor="start", dy=0)
+    f.edge([(main.x + main.w, main.y + main.h - 12), (prog.cx, main.y + main.h - 12), prog.top], "")
+    f.text(250, 334, "sub-agent 넷은 작업 동안 각자의 세션을 유지하고, 결과는 ~/.jarvis/focus/<task_id>/ 에 남는다",
+           "pf-note", "middle")
+    f.panel(500, 12, 244, 356, "(b) 화면")
+    for i in range(3):
+        f.chip(510, 46 + i * 92, "", w=10, h=84)
+    f.chip(724, 46, "", w=10, h=60)
+    f.chip(724, 114, "", w=10, h=200, kind="accent")
+    quads = [(524, 46, "조사"), (640, 46, "분석"), (524, 190, "기록"), (640, 190, "진행")]
+    for x, y, t in quads:
+        f.box(x, y, t, w=80, h=124)
+    f.parts.append('<circle class="pf-box pf-box--accent" cx="622" cy="180" r="40"/>')
+    f.text(622, 184, "구체 70%", "pf-t", "middle")
+    f.text(622, 334, "좌우 카드는 세로 띠로 접힌다", "pf-note", "middle")
+    f.text(622, 350, "Conversation 띠만 눌러 펼친다", "pf-note", "middle")
+    return f
+
+
 def extension() -> Fig:
     f = Fig("extension", 356, "~/.jarvis 아래 파일이 기동 때 붙는 자리")
     f.panel(16, 12, 236, 332, "(a) 놓는 파일")
@@ -731,6 +766,7 @@ FIGURES = [
     voice,
     team,
     orchestration_pattern,
+    focus_mode,
     extension,
 ]
 

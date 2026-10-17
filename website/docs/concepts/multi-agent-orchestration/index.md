@@ -13,7 +13,7 @@ import FigureExpTeam from '@site/src/figures/exp-team.svg';
   <figcaption><b>Figure 1.</b> 최상위 에이전트는 세션, 일화 기억과 작업 패턴, 승인 규칙, 모델과 도구, 메인 색을 따로 갖고, 사용자 모델, 사용자에 대한 사실, 공용 승인 규칙, AGENDA 를 함께 쓴다. 서로 일을 맡길 때는 ask_agent 를 쓰고, 되묻기는 A → B → A 까지만 허용한다.</figcaption>
 </figure>
 
-최상위 에이전트 팀은 JARVIS 와 같은 층에 목적이 다른 에이전트를 더 두는 기능이다. 첫 번째이자 전체를 총괄하는 에이전트가 JARVIS(id `main`)이고, 정보 수집을 맡는 KAREN(id `karen`)처럼 에이전트를 정의 파일 하나로 늘린다.
+Multi agent Orchestration 은 JARVIS 와 같은 층에 목적이 다른 최상위 에이전트를 더 두는 기능이다. 전체를 총괄하는 첫 에이전트가 JARVIS(id `main`)이고, 정보 수집을 맡는 KAREN(id `karen`)처럼 에이전트를 정의 파일 하나로 늘린다.
 
 최상위 에이전트는 [Orchestration Pattern](./orchestration-pattern.md)의 서브 에이전트와 다르다. 서브 에이전트는 부모 턴 안에서 잠깐 도는 도구이고, 최상위 에이전트는 자기 세션, 기억, 약속(open loop), 승인 규칙, 브랜드를 가진다. 구현은 `app/agent_registry.py` 에 있다.
 
@@ -72,7 +72,7 @@ proactive: false              # 비우면 JARVIS 의 proactive 설정
 
 ## 승인 규칙은 두 겹
 
-공용 `~/.jarvis/approvals.yaml` 은 모든 에이전트가 읽고 사람이 고친다. 승인 화면의 **항상 허용** 은 그 세션 에이전트의 `~/.jarvis/approvals/<id>.yaml` 에만 쌓인다(`LayeredApprovalRules`). 에이전트를 나누기 전 `approvals.yaml` 에 쌓인 규칙은 그대로 공용이 된다. 대조 방식과 규칙 파일 형식은 [Tool & Approve system → 승인 기억](../conversation/tools-and-approval.md#승인-기억)에 있다.
+공용 `~/.jarvis/approvals.yaml` 은 모든 에이전트가 읽고 사람이 고친다. 승인 화면의 **항상 허용** 은 그 세션 에이전트의 `~/.jarvis/approvals/<id>.yaml` 에만 쌓인다(`LayeredApprovalRules`). 에이전트를 나누기 전 `approvals.yaml` 에 쌓인 규칙은 그대로 공용이 된다. 대조 방식과 규칙 파일 형식은 [Tool & Approve System → 승인 기억](../conversation/tools-and-approval.md#승인-기억)에 있다.
 
 ## AGENDA 는 모두의 것
 
@@ -130,7 +130,7 @@ sequenceDiagram
 
 - KAREN 의 도구 호출은 스크립트가 아니라 받는 쪽 세션(`peer-main-karen`) 기록을 직접 열어 확인했다. 여섯 번 모두 KAREN 이 도구를 먼저 부르고 도구 결과로 답했다. 요청 끝 규칙(`PEER_REQUEST_RULE`)을 넣기 전, gemma4:e4b 가 위임받은 세션에서 도구 없이 "조회한 척" 답하던 문제가 이 조건에서는 나오지 않았다
 - 같은 기록에서, 한 번은 KAREN 이 "청약" 이라는 제목 키워드로 걸러 결과가 0건이었고, 지어내지 않고 "조건에 맞는 공고가 없다" 고 답했다
-- 네 번은 JARVIS 판단, KAREN 판단, KAREN 정리, JARVIS 정리다
+- LLM 호출 네 번은 JARVIS 판단, KAREN 판단, KAREN 정리, JARVIS 정리다
 
 ## 설계 노트
 

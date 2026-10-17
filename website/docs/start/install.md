@@ -8,7 +8,7 @@ import TabItem from '@theme/TabItem';
 
 # Quick Start
 
-이 페이지를 따라 하면 jarvis-agent 를 내려받아 TUI 나 Web HUD 로 띄울 수 있다. 로컬에서 uv 로 띄우는 길과 Docker 로 전체 스택을 띄우는 길이 있고, 둘 중 하나만 고르면 된다.
+jarvis-agent 를 내려받아 TUI 나 Web HUD 로 띄운다. 로컬에서 uv 로 띄우는 방법과 Docker 로 전체 스택을 띄우는 방법이 있고, 둘 중 하나만 고르면 된다.
 
 ## 실행환경
 
@@ -67,7 +67,7 @@ docker compose --profile web down
 
 ## LLM Provider 선택
 
-로컬 LLM(Ollama, vLLM 등) 및 Private SaaS LLM API 연동이 가능합니다. 환경변수 `JARVIS_LLM__PROVIDER` 에서 설정값을 변경할 수 있습니다.
+로컬 LLM(Ollama, vLLM)과 클라우드 LLM API(Anthropic, OpenAI, Google)를 연동할 수 있다. 프로바이더는 환경변수 `JARVIS_LLM__PROVIDER` 로 고른다.
 
 | 프로바이더 | `JARVIS_LLM__PROVIDER` | API 키 |
 |---|---|---|

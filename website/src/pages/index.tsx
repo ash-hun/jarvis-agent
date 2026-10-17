@@ -27,10 +27,10 @@ const PURPOSES: Card[] = [
 
 const PILLARS: Card[] = [
   {title: 'Inner Thought', body: '답하기 전에 따로 한 번 생각하고 그 판단을 남긴다.', to: '/concepts/architecture/inner-thought'},
-  {title: 'Proactive 발화', body: '요청이 없어도 성찰해서, 가치가 분명할 때만 말을 건다.', to: '/concepts/architecture/proactive'},
+  {title: 'Proactive Dialogue', body: '요청이 없어도 성찰해서, 가치가 분명할 때만 말을 건다.', to: '/concepts/architecture/proactive'},
   {title: 'Memory Management', body: '사실, 일화, 절차, 작업 패턴을 나눠 기억하고 다시 꺼낸다.', to: '/concepts/memory'},
-  {title: 'Tool Accept System', body: '한 번 허용한 명령은 다시 묻지 않고, 성공한 작업은 절차로 남긴다.', to: '/concepts/conversation/tools-and-approval'},
-  {title: 'Multi-agent Orchestration', body: 'JARVIS 옆에 KAREN 같은 에이전트를 파일 하나로 더하고 서로 일을 맡긴다.', to: '/concepts/multi-agent-orchestration'},
+  {title: 'Tool & Approve System', body: '한 번 허용한 명령은 다시 묻지 않고, 성공한 작업은 절차로 남긴다.', to: '/concepts/conversation/tools-and-approval'},
+  {title: 'Multi agent Orchestration', body: 'JARVIS 옆에 KAREN 같은 에이전트를 파일 하나로 더하고 서로 일을 맡긴다.', to: '/concepts/multi-agent-orchestration'},
 ];
 
 function Cards({items, compact}: {items: Card[]; compact?: boolean}): ReactNode {
@@ -67,7 +67,7 @@ export default function Home(): ReactNode {
           <img
             className={styles.shot}
             src={useBaseUrl('/img/hud-motion.gif')}
-            alt="Web HUD 화면. 내적 사고, 마크다운 응답, 먼저 건네는 말, 승인 기억이 차례로 보인다"
+            alt="Web HUD 화면. Inner Thought, 마크다운 응답, Proactive Dialogue, 승인 기억이 차례로 보인다"
           />
         </section>
 

@@ -128,7 +128,7 @@ jarvis --list-sessions      # 세션 목록
 | **Dual-Channel** | 오래 걸릴 작업이면 filler("잠깐만요, 확인할게요")를 **즉시 발화**(voice는 TTS)하고 메인 루프는 백그라운드 수행 — 대기 체감 감소 |
 | **Proactivity Daemon** | 요청 없이 주기(기본 120초)/idle 시점에 성찰해, 게이팅을 통과하면 **먼저 말 검**. 건네는 말은 사고 프레임의 `utterance` 이고 비어 있으면 침묵한다(해석문을 대신 내보내지 않는다). 저위험 읽기 작업은 자율로 미리 처리(이중 안전 게이트) |
 | **Open-loop 추적** | 대화에서 흘린 약속·미완 작업을 요청 시점에 감지·저장 → 이후 성찰 시 상기/처리 (`/openloop`). 성찰은 기존 약속을 볼 뿐 새로 저장하지 않는다. 대화에서 끝나거나 취소되면 사고가 닫고(done), 기한이 지나면 expired 로 닫힌다. 바꿔 말한 같은 약속은 기한만 갱신한다 |
-| **피드백 학습** | proactive 발화의 수락/무시를 학습해 발화 임계치를 자동 조정. Web 은 🔔 뒤에 "도움이 됐나요?" 를 묻고 다음 짧은 답(네/아니오)을 읽는다 |
+| **피드백 학습** | Proactive Dialogue의 수락/무시를 학습해 발화 임계치를 자동 조정. Web 은 🔔 뒤에 "도움이 됐나요?" 를 묻고 다음 짧은 답(네/아니오)을 읽는다 |
 | **User Model · 저널** | 누적 기억을 증류한 사용자 모델(`/usermodel`)을 사고에 주입, 자기 성찰 저널(`/journal`)을 남겨 회상에 반영 |
 
 ```bash
@@ -152,8 +152,8 @@ JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120   # 로컬과 배포 모두 같은 값
 
 | 피드백 | 동작 |
 |--------|------|
-| `Ctrl+Y` (TUI) / `네`, `좋아`, `고마워` 로 답 (Web, 음성) | proactive 발화 "도움됨" |
-| `Ctrl+G` (TUI) / `아니오`, `됐어`, `무시` 로 답 (Web, 음성) | proactive 발화 "무시" |
+| `Ctrl+Y` (TUI) / `네`, `좋아`, `고마워` 로 답 (Web, 음성) | Proactive Dialogue "도움됨" |
+| `Ctrl+G` (TUI) / `아니오`, `됐어`, `무시` 로 답 (Web, 음성) | Proactive Dialogue "무시" |
 
 Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는다. "응 그걸로 해줘" 처럼 키워드가 아닌 40자 이하 답은 사고 모델이 수락/무시/다른 말로 분류한다(사고가 켜져 있을 때). 다른 말이면 보통 메시지로 흘러가고 질문은 닫힌다. 음성 승인 답(Full-voice, 또는 Default 에서 음성으로 시작한 요청)도 같은 분류기를 쓰되, 허용이 분명할 때만 허용한다.
 
@@ -194,7 +194,7 @@ rules:
 
 ### 외부 알림 (Slack)
 
-열린 화면이 없어도 스케줄 결과와 proactive 발화가 닿도록 슬랙 incoming webhook 으로 보낸다. TUI, Web 둘 다 같은 채널을 쓴다.
+열린 화면이 없어도 스케줄 결과와 Proactive Dialogue가 닿도록 슬랙 incoming webhook 으로 보낸다. TUI, Web 둘 다 같은 채널을 쓴다.
 
 ```bash
 JARVIS_NOTIFY__SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...

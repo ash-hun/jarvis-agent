@@ -7,12 +7,12 @@ title: JARVIS-Agent 소개
 # JARVIS-Agent 소개
 
 <div align="center">
-  <img src="/jarvis-agent/img/hud-motion.gif" alt="Web HUD 화면. 내적 사고, 마크다운 응답, 먼저 건네는 말, 승인 기억이 차례로 보인다" />
+  <img src="/jarvis-agent/img/hud-motion.gif" alt="Web HUD 화면. Inner Thought, 마크다운 응답, Proactive Dialogue, 승인 기억이 차례로 보인다" />
 </div>
 
 ## 서비스 개요
 
-보통의 채팅 에이전트는 사용자가 말해야 움직인다. JARVIS 는 요청마다 메인 응답과 따로 한 번 더 생각하고([내적 사고](../concepts/architecture/inner-thought.md)), 그 판단으로 다음 네 가지를 정한다.
+보통의 채팅 에이전트는 사용자가 말해야 움직인다. JARVIS 는 요청마다 메인 응답과 별도로 한 번 더 생각하고([Inner Thought](../concepts/architecture/inner-thought.md)), 그 판단으로 다음 네 가지를 정한다.
 
 - 지금 바로 답할지, "잠깐만요, 확인할게요" 를 먼저 말하고 뒤에서 처리할지
 - 대화에서 흘린 약속과 끝내지 못한 일을 기억해 둘지
@@ -21,7 +21,7 @@ title: JARVIS-Agent 소개
 
 JARVIS 는 쓸수록 사용자에게 맞춰진다. 한 번 허용한 명령 패턴은 다시 묻지 않고(승인 기억), 여러 도구로 성공한 작업은 다시 쓸 수 있는 절차로 남기고(절차 학습), 대화에서 사용자 성향을 뽑아 사용자 모델과 저널로 쌓는다.
 
-## 이런분들께 추천드립니다
+## 이런 분께 추천한다
 
 - 로컬 모델(Ollama, vLLM)과 클라우드 모델(Anthropic, OpenAI, Gemini)을 바꿔 가며 쓰고 싶은 개인
 - 파일, 셸, 웹 검색을 도구로 쓰는 에이전트가 필요하지만, 위험한 명령은 사람이 승인하길 바라는 개발자
@@ -38,9 +38,9 @@ JARVIS 는 쓸수록 사용자에게 맞춰진다. 한 번 허용한 명령 패�
 
 :::note[Notes]
 
-- 바로 써 보려면 [Quick Start](./install.md) 다음 [Conversation](../concepts/conversation/index.md)를 따라간다.
+- 바로 써 보려면 [Quick Start](./install.md) 다음 [Conversation](../concepts/conversation/index.md)을 따라간다.
 - 어떻게 동작하는지 알고 싶으면 [Notice](../concepts/notice.md)에서 시작한다.
-- 설정 키나 명령을 찾으면 [환경설정](/reference)를 연다.
+- 설정 키나 명령을 찾으면 [환경설정](/reference)을 연다.
 - 낯선 말이 나오면 [전체 용어집](../reference/glossary.md)을 본다.
 - 화면을 말로만 쓰거나 작업 하나에 집중하고 싶으면 [Mode](../concepts/mode/index.md)를 본다.
 

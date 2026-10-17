@@ -30,7 +30,7 @@ title: 공용 커맨드
 | `/focus` | | `<작업>` 으로 [Focus 모드](../concepts/mode/focus-mode.md) 시작, `stop` 으로 종료, 인자 없으면 현황. Web HUD 전용이고 디스패처보다 먼저 처리된다 |
 | `/cleanup` | | 옛 서브 에이전트 세션과 옛 STM 테이블 보기. `agents confirm`, `stm confirm` 으로 삭제 |
 | `/exit` | | TUI 종료 |
-| `/<절차 이름>` | | 승인된 절차 하나가 스킬 하나다 |
+| `/<절차 이름>` | | 승인된 절차마다 스킬 명령이 하나씩 생긴다 |
 
 사용 예는 다음과 같다.
 
@@ -46,4 +46,4 @@ title: 공용 커맨드
 
 직접 만든 스킬은 `~/.jarvis/skills/` 에 Markdown 으로 둔다. 파일 형식은 [Extension](../concepts/extension.md) 에 있다.
 
-`/openloop`, `/usermodel`, `/journal` 은 내적 사고가 켜져 있을 때만 등록된다. `/orchestrate` 는 에이전트 정의가 하나 이상 있을 때만 등록된다.
+`/openloop`, `/usermodel`, `/journal` 은 Inner Thought 가 켜져 있을 때만 등록된다. `/orchestrate` 는 에이전트 정의가 하나 이상 있을 때만 등록된다.

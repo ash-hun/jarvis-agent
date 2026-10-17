@@ -5,7 +5,7 @@ title: JARVIS 도구
 
 # JARVIS 도구
 
-JARVIS 는 정의 파일이 없어서 도구 목록(`tools`)도 비어 있다. 그래서 앱 레지스트리에 등록된 도구 전체를 쓴다. 다른 에이전트는 정의 파일의 `tools` 에 적은 도구만 받으므로, 셸과 파일 쓰기처럼 손이 큰 도구를 기본으로 가진 에이전트는 JARVIS 하나다.
+JARVIS 는 정의 파일이 없어서 도구 목록(`tools`)도 비어 있다. 그래서 앱 레지스트리에 등록된 도구 전체를 쓴다. 다른 에이전트는 정의 파일의 `tools` 에 적은 도구만 받으므로, 셸과 파일 쓰기처럼 권한이 큰 도구를 기본으로 가진 에이전트는 JARVIS 하나다.
 
 ## 내장 도구
 
@@ -23,7 +23,7 @@ JARVIS 는 정의 파일이 없어서 도구 목록(`tools`)도 비어 있다. �
 | `web_search` | Brave(키 있으면) 또는 DuckDuckGo | |
 | `web_fetch` | URL 본문을 텍스트로 | |
 
-승인이 필요한 도구에서 **항상 허용** 을 고르면 규칙이 `~/.jarvis/approvals/main.yaml` 에 쌓인다. 대조 방식은 [Tool & Approve system](../../concepts/conversation/tools-and-approval.md#승인-기억)에 있다.
+승인이 필요한 도구에서 **항상 허용** 을 고르면 규칙이 `~/.jarvis/approvals/main.yaml` 에 쌓인다. 대조 방식은 [Tool & Approve System](../../concepts/conversation/tools-and-approval.md#승인-기억)에 있다.
 
 ## 설정과 실행 중에 붙는 도구
 

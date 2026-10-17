@@ -51,6 +51,70 @@ docker compose restart jarvis-backend
 
 모델 파일이 없거나 piper 가 설치되지 않았으면 서버 음성이 통째로 꺼지고 브라우저가 모두 읽는다. 백엔드 로그에 `[Voice] 서버 음성 비활성화` 가 남는다.
 
+## JARVIS 음성 모델
+
+JARVIS 전용으로 학습한 모델 세 가지를 레포의 `models/` 폴더에 두고 쓴다. 이 폴더는 `.gitignore` 에 있어 GitHub 에 올라가지 않는다. 모델이 비상업 라이선스이기 때문이다.
+
+| 모델 | 파일 | 하는 일 |
+|---|---|---|
+| TTS | `models/tts/voice.onnx`, `voice.onnx.json` | 영어 문장을 JARVIS 목소리로 읽는다. Piper 음성이라 위의 `PIPER_MODEL` 로 지정한다 |
+| 읽기 문구 | `models/tts/phrases/phrases.json`, wav 9개 | 정해진 순간에 합성 대신 녹음한 문구를 읽는다 |
+| 웨이크워드 | `models/wakeword/jarvis.onnx`, `melspectrogram.onnx`, `embedding_model.onnx` | Full-voice 로 기다리는 동안 "Jarvis" 를 들으면 듣기를 연다 |
+
+학습 결과 폴더에서 체크포인트(`model.ckpt`, 846MB)만 빼고 복사한다. `rsync -a` 라 다시 실행해도 같은 상태가 된다.
+
+```bash
+rsync -a --exclude model.ckpt --exclude archive ~/Desktop/jarvis-agent-models/ models/
+```
+
+Docker 는 `./models` 를 `/app/models` 로 읽기 전용 마운트한다. `.env` 에 경로를 두고 백엔드를 다시 띄운다. 웨이크워드는 `wake` extra 가 필요하고 web 이미지에 들어 있다.
+
+```bash
+JARVIS_VOICE__ENGLISH_TTS_PROVIDER=piper
+JARVIS_VOICE__PIPER_MODEL=/app/models/tts/voice.onnx
+JARVIS_VOICE__PHRASES_DIR=/app/models/tts/phrases
+JARVIS_VOICE__WAKE_MODEL_DIR=/app/models/wakeword
+JARVIS_VOICE__WAKE_THRESHOLD=0.5
+```
+
+경로를 비우거나 파일이 없으면 그 기능만 꺼진다. 웨이크워드가 꺼지면 백엔드 로그에 `[Voice] 웨이크워드 비활성화` 와 빠진 파일이 남는다.
+
+### 읽기 문구
+
+음성으로 일하는 중(Full-voice, 또는 음성으로 시작한 요청)에만 읽는다.
+
+| 순간 | 문구 |
+|---|---|
+| 웨이크워드를 들음 | At your service, sir. |
+| `web_search` 도구 시작 | Searching Reference. |
+| `remember_task_pattern` 도구 시작 | Checking the Pattern. |
+| 💬 filler(오래 걸리는 요청을 뒤로 넘김) | Processing Long Task. filler 문장은 화면에만 쓰고 읽지 않는다 |
+| `/focus` 로 Focus 를 켜고 끔 | Activate Focus mode. / Deactivate Focus mode. |
+| Focus 분석 갱신 시작 | Target. Analysis. |
+| 에이전트 칩으로 KAREN, JARVIS 전환 | Change to KAREN. / Change to JARVIS. |
+
+접속할 때 서버가 되살리는 Focus 는 문구를 읽지 않는다. 사용자가 보낸 `/focus` 로 바뀐 경우만 읽는다. wav 는 `GET /api/voice/phrases/{name}` 으로 처음 읽을 때 한 번 받는다.
+
+### 웨이크워드
+
+Full-voice 로 기다리는 동안 브라우저가 마이크 소리를 16kHz PCM 으로 WebSocket 바이너리 프레임에 실어 보낸다. 서버는 연결마다 openWakeWord 감지기를 하나 두고 80ms 마다 점수를 매긴다. 점수가 임계치를 넘으면 `voice_wake` 를 보내고, 화면은 "At your service, sir." 를 읽은 뒤 바로 듣는다. 듣기, 읽기, 응답, 승인 중에는 보내지 않는다.
+
+- 영어 발음 "Jarvis" 만 알아듣는다. 한국어로 "자비스" 라고 부르면 깨지 않는다
+- 이름 끝 무렵 여러 프레임이 연달아 임계치를 넘으므로, 첫 프레임에서 한 번 깨고 그 뒤 1초는 무시한다
+- 모델은 합성 음성으로만 학습했다. "Jars", "Garbage" 처럼 비슷한 소리에 깨어날 수 있다
+
+:::note
+
+openwakeword 는 리눅스에서 `tflite-runtime` 을 요구하지만 arm64 휠이 없어 Apple Silicon 의 Docker 에서 설치가 깨진다. onnx 로만 돌리므로 `pyproject.toml` 의 `override-dependencies` 로 뺐다.
+
+:::
+
+:::warning
+
+TTS 와 읽기 문구는 영화 속 인물의 목소리를 흉내 낸 모델이라 개인, 비상업 용도로만 쓴다. 웨이크워드의 특징 모델(openWakeWord)도 CC BY-NC-SA 4.0 이다.
+
+:::
+
 ## Web HUD
 
 ```mermaid
@@ -78,7 +142,7 @@ stateDiagram-v2
   speaking --> listening: 응답, 승인 질문, 🔔 질문을 다 읽음
   speaking --> thinking: 승인 되읽기 뒤 (작업 계속)
   idle --> speaking: 🔔 도착
-  idle --> listening: 구체 클릭
+  idle --> listening: 구체 클릭 또는 "Jarvis"
 ```
 
 Default 모드라도 음성으로 시작한 요청에서 승인이 필요하면 똑같이 되묻고 듣는다. 음성으로 묻는 동안은 화면을 가리는 모달 대신 아래쪽에 작은 띠로 명령과 버튼을 보여 준다. 승인 창이 열려 있을 때 들은 말은 대화로 보내지 않고 승인 답으로 쓴다. 브라우저 인식은 몇 초 말이 없으면 끝나기 때문에, 답을 들을 때까지 다시 듣는다(최대 20번). 읽는 동안에는 듣지 않는다.
@@ -183,7 +247,7 @@ Chrome 음성 인식(ko-KR)으로 Focus 를 켜고 끄려 한 실제 시도 다�
 
 ## 구현 위치
 
-- 구현: `voice/`(서버 프로바이더, `service.py` 의 영어 판정, `speech_text.py` 의 기호 지우기), `ui/web/static/voice.js`(브라우저 상태 기계), `ui/tui/`(터미널)
+- 구현: `voice/`(서버 프로바이더, `service.py` 의 영어 판정, `speech_text.py` 의 기호 지우기, `wake.py` 의 웨이크워드 감지, `phrases.py` 의 읽기 문구), `ui/web/router/voice_router.py`(문구 wav), `ui/web/static/voice.js`(브라우저 상태 기계), `app/wake.js` 와 `wake-worklet.js`(마이크 캡처), `app/phrases.js`(문구 받기), `ui/tui/`(터미널)
 
 왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
 
@@ -197,9 +261,14 @@ flowchart LR
   TTS -->|server TTS| SUP[voice/ supertonic<br/>영어는 piper]
   VUI --> APR[app/approval.js<br/>음성 승인 답]
   VUI --> PRO[app/proactive.js<br/>🔔 피드백 답]
+  VUI --> PHR[app/phrases.js<br/>읽기 문구] --> PAPI[GET /api/voice/phrases]
+  WAKE[app/wake.js<br/>wake-worklet.js] -->|PCM 바이너리 프레임| WD[voice/wake.py<br/>openWakeWord]
+  WD -->|voice_wake| VUI
+  PAPI --> MD[(models/)]
+  WD --> MD
   APR --> RPL[app/reply.js<br/>reply_classify]
   PRO --> RPL
 ```
 
 - 핵심 모듈: `ui/web/static/voice.js`, `voice/`
-- 저장: 없음
+- 저장: 없음. 모델은 `models/`(git 밖)에서 읽기만 한다

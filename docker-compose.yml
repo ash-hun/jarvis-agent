@@ -105,6 +105,8 @@ services:
       - ./src:/app/src
       # 최상위 에이전트 정의(KAREN 등). 저장소의 team/ 이 정본이다
       - ./team:/app/team:ro
+      # 음성 모델(TTS, 문구, 웨이크워드). git 에는 없고 각자 채운다. 없으면 그 기능만 꺼진다
+      - ./models:/app/models:ro
     depends_on:
       postgres:
         condition: service_healthy

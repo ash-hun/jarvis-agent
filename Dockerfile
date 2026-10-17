@@ -45,7 +45,8 @@ FROM base AS runtime-web
 
 # scheduler extra(croniter)가 없으면 스케줄러가 조용히 꺼지고 HUD Agenda 의 다음 실행 시각도 비는다.
 # piper extra 는 영어 문장을 서버에서 읽는 음성(JARVIS_VOICE__ENGLISH_TTS_PROVIDER=piper)용이다.
-RUN uv sync --frozen --extra web --extra scheduler --extra piper --no-dev
+# wake extra 는 "Jarvis" 웨이크워드(JARVIS_VOICE__WAKE_MODEL_DIR)용이다.
+RUN uv sync --frozen --extra web --extra scheduler --extra piper --extra wake --no-dev
 
 COPY . .
 

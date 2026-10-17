@@ -2,7 +2,7 @@
 
 | 항목 | 값 |
 |---|---|
-| Last Updated | 2026-10-10 |
+| Last Updated | 2026-10-18 |
 | Base URL | `http://localhost:7777` (Docker `web` 프로파일, nginx 가 `/api/`, `/ws`, `/brand.js`, `/manifest.json` 을 백엔드로 프록시) |
 | 데이터 포맷 | JSON (UTF-8) |
 | 인증 | 기본 없음. `JARVIS_SECURITY__API_KEYS` 가 비어 있지 않으면 `/api/*` 와 `/ws` 가 키를 요구한다 |
@@ -28,6 +28,7 @@
    - [POST /api/sessions/{session_id}/branch](#post-apisessionssession_idbranch)
    - [GET /api/slash-commands](#get-apislash-commands)
    - [GET /api/tools](#get-apitools)
+   - [GET /api/voice/phrases/{name}](#get-apivoicephrasesname)
    - [GET /brand.js](#get-brandjs)
    - [GET /manifest.json](#get-manifestjson)
    - [WS /ws](#ws-ws)
@@ -56,7 +57,7 @@ Web HUD(`src/jarvis/ui/web/static/`)가 쓰는 백엔드 인터페이스다. 대
 | 200 | 정상 |
 | 400 | 본문 값이 허용 범위 밖 (`status`, `enabled`) |
 | 401 | 인증이 켜져 있는데 키가 없거나 틀림 (`/api/*`) |
-| 404 | 대상 없음 (open loop, 스케줄) |
+| 404 | 대상 없음 (open loop, 스케줄, 읽기 문구) |
 | 422 | FastAPI 가 본문을 JSON 객체로 못 읽음 |
 
 **인증**: `JARVIS_SECURITY__API_KEYS` 에 키가 등록돼 있을 때만. `Authorization: Bearer <key>` 헤더 또는 `?token=<key>` 쿼리. `/ws` 는 쿼리만 받고 틀리면 close code `4401` 로 끊는다. 정적 셸(`/`, js, css)은 항상 열려 있다.
@@ -715,6 +716,60 @@ $ curl -s http://localhost:7777/api/tools
 
 ---
 
+### GET /api/voice/phrases/{name}
+
+미리 녹음한 읽기 문구 하나의 wav. 화면은 이벤트(웨이크워드, 도구 시작, Focus 전환 등)에 맞춰 합성 대신 이 파일을 재생한다.
+
+#### Endpoint
+
+```
+GET /api/voice/phrases/{name}
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | 공통 규약과 같다 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `audio/wav` (404 는 `application/json`) |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| `name` | path | string | 예 | 없음 | 문구 이름. `connected.voice.phrases` 에 온 이름 중 하나 |
+
+#### Response Body
+
+wav 바이트. 문구 목록은 `JARVIS_VOICE__PHRASES_DIR` 의 `phrases.json` 이고, 목록에 있으면서 wav 파일도 있는 이름만 내준다.
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | wav |
+| `404` | 모르는 이름이거나 문구 폴더를 설정하지 않음 | `{"error": "unknown phrase: hello"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s -o wake_up.wav -w '%{http_code} %{content_type}\n' http://localhost:7777/api/voice/phrases/wake_up
+200 audio/wav
+```
+
+#### 특이사항
+
+**재호출**: 상태를 바꾸지 않는다. 문구 목록은 기동 때 한 번 읽으므로 파일을 바꿨으면 서버를 다시 띄운다.
+
+---
+
 ### GET /brand.js
 
 에이전트 정체성(이름, 명언, 팔레트)을 `window.BRAND` 에 넣는 스크립트. 정적 셸은 에이전트와 무관하고 정체성은 이 라우트로만 들어간다.
@@ -838,7 +893,7 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | Method | WebSocket |
 | 인증 | 설정 시 `token` 쿼리 필수. 틀리면 accept 뒤 close `4401` |
 | 에이전트 | 새 세션을 모르는 `agent` 로 열려 하면 accept 뒤 close `4404` |
-| 메시지 포맷 | JSON 텍스트 프레임, 항상 `type` 필드 |
+| 메시지 포맷 | JSON 텍스트 프레임, 항상 `type` 필드. 바이너리 프레임은 웨이크워드용 오디오 하나뿐이다 |
 | 필수 헤더 | 없음 |
 
 #### Query / Path 파라미터
@@ -860,12 +915,13 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `voice_tts_request` | `text`, `lang?`, `id?` | 음성 합성. 서버가 마크다운 기호(제목, 강조, 목록, 표, 인라인 코드)를 지우고, 코드 블록과 URL 은 빼고, 링크는 글자만 남긴 뒤 읽는다. 서버 TTS 가 없거나 읽을 글자가 없으면 `voice_tts_audio{data:"", text}` 로 되돌려 브라우저가 읽게 한다. `id` 는 결과에 그대로 돌아온다 |
 | `voice_stt_submit` | `data`(base64), `mime`, `sample_rate` | 서버 STT. 서버 STT 가 없으면 무시 |
 | `abort` | 없음 | 진행 중인 에이전트 루프 중단 |
+| (바이너리 프레임) | 16kHz mono int16 LE PCM | 웨이크워드 감지. `connected.voice.wake` 가 true 일 때만 받고, 아니면 버린다. 프레임 경계는 자유롭다(서버가 80ms 단위로 이어 붙인다). 화면은 Full-voice 로 기다리는 동안만 보낸다 |
 
 #### 서버 → 클라이언트
 
 | `type` | 필드 | 언제 |
 |---|---|---|
-| `connected` | `session_id`, `agent`, `user`, `model`, `sessions[]`, `session_agents`, `active_agents[]`, `slash_commands[]`, `voice{stt_mode, stt_lang}`, `reply_classifier` | 접속 직후 한 번. `agent` 는 이 세션의 [Agent](#agent), `session_agents` 는 세션 id → 에이전트 id, `active_agents` 는 지금 루프가 도는 에이전트 id. `reply_classifier` 는 사고가 켜져 있어 `reply_classify` 를 쓸 수 있는지 |
+| `connected` | `session_id`, `agent`, `user`, `model`, `sessions[]`, `session_agents`, `active_agents[]`, `slash_commands[]`, `voice{stt_mode, stt_lang, phrases[], wake}`, `reply_classifier` | 접속 직후 한 번. `voice.phrases` 는 [읽기 문구](#get-apivoicephrasesname) 이름, `voice.wake` 는 웨이크워드 오디오를 받는지. `agent` 는 이 세션의 [Agent](#agent), `session_agents` 는 세션 id → 에이전트 id, `active_agents` 는 지금 루프가 도는 에이전트 id. `reply_classifier` 는 사고가 켜져 있어 `reply_classify` 를 쓸 수 있는지 |
 | `agent_start` | `session_id`, `prompt`, `agent_name?` | 루프 시작. 서브 에이전트는 `agent_name` 이 있다 |
 | `message_update` | `text_delta`, `thinking_delta` | 스트리밍 조각 |
 | `stream_delta` | `text` | 슬래시 명령 결과 등 비스트림 텍스트 |
@@ -880,6 +936,7 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `reminder` | `id`, `name`, `kind`, `agent`, `once`, `title`, `text`, `error`, `delayed_sec`, `fired_at`, `missed?` | 스케줄 실행 결과. 열린 연결 전부에 방송하고, 없으면 최근 20건을 쌓아 다음 접속 때 `missed: true` 로 보낸다 |
 | `voice_tts_audio` | `data`(base64), `mime`, `text`, `id` | 합성 결과. `data` 가 비면 브라우저 TTS 로(`text` 는 기호를 지운 문장). `id` 는 요청의 `id`(없었으면 null). 화면은 멈춘 읽기의 결과를 이 값으로 버린다 |
 | `voice_stt_result` | `text`, `error?` | 전사 결과 |
+| `voice_wake` | `score` | 바이너리 프레임의 오디오에서 "Jarvis" 를 들었다. 점수가 `JARVIS_VOICE__WAKE_THRESHOLD`(0.5) 이상인 첫 프레임에서 한 번 보내고, 그 뒤 1초(13프레임)는 다시 보내지 않는다 |
 | `reply_classified` | `kind`, `id`, `verdict` | `reply_classify` 의 결과. `feedback` 은 `accept`/`dismiss`/`other`, `approval` 은 `allow`/`always`/`deny`/`unclear`. 사고 모델이 없거나 6초 안에 답하지 못하면 `other`, `unclear`. 항상 허용 패턴이 없는데 `always` 면 `allow` 로 낮춘다 |
 | `agent_activity` | `active[]` | 어느 세션이든 루프가 시작하거나 끝나 일하는 에이전트 목록이 바뀔 때. 열린 연결 전부에 보내고 쌓아 두지 않는다. 먼저 시작한 순서, 같은 에이전트는 한 번 |
 | `focus_state` | `session_id`, `state` | Focus 작업 상태 전체. `state.active=false` 면 Focus 종료. 켜져 있으면 `task_id`, `task`, `steps[{title, done}]`, `progress`(0~1), `eta_sec`(완료 단계가 없으면 null), `elapsed_sec`. 접속 직후 진행 중인 작업이 있으면 한 번 보낸다 |
@@ -899,6 +956,8 @@ ws.send(JSON.stringify({ type: "user_message", text: "안녕" }));
 **재호출**: 같은 `session_id` 로 다시 붙으면 같은 세션이다. 재접속 자체는 멱등하다. `approval_request` 는 세션의 연결 전부가 받고 먼저 온 답이 채택되므로 탭을 여럿 열어도 같다. `user_message` 는 멱등하지 않다(보낼 때마다 한 턴). `reply_classify` 는 같은 답을 다시 보내면 모델을 다시 부르지만 🔔 학습은 연결당 `id` 하나에 한 번이다. 연결을 새로 열면 그 기록은 비므로 재접속 뒤 같은 `id` 를 다시 보내면 한 번 더 반영된다.
 
 `reminder` 의 보류 큐는 메모리에만 있어 서버가 재시작되면 사라진다.
+
+웨이크워드 감지기는 연결마다 하나이고 첫 오디오가 올 때 만든다. 앞 프레임을 기억하므로 재접속하면 처음부터 다시 듣는다.
 
 #### Focus
 

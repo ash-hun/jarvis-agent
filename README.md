@@ -238,6 +238,8 @@ uv sync --extra voice
 
 읽기 전에 서버가 마크다운 기호를 지운다. 읽는 중에 `Esc` 를 누르거나 구체를 클릭하면 멈춘다. 영어로만 된 문장은 `JARVIS_VOICE__ENGLISH_TTS_PROVIDER=piper` 로 Piper 음성 모델이 따로 읽게 할 수 있다.
 
+JARVIS 전용 음성 모델(TTS, 읽기 문구 9개, "Jarvis" 웨이크워드)은 레포의 `models/` 에 두고 쓴다. 비상업 라이선스라 `.gitignore` 에 있어 올라가지 않는다. Docker 는 `./models` 를 `/app/models` 로 마운트하고 `JARVIS_VOICE__PIPER_MODEL`, `JARVIS_VOICE__PHRASES_DIR`, `JARVIS_VOICE__WAKE_MODEL_DIR` 로 켠다. 채우는 법은 문서의 Voice Interface 에 있다.
+
 서버 STT 모드에서는 `connected` 메시지의 `voice.stt_mode=server`를 받아, 브라우저가 `MediaRecorder`로 녹음한 오디오를 `voice_stt_submit`으로 전송하고 백엔드가 `voice_stt_result`로 전사 결과를 돌려준다.
 
 ### 음성 (TUI)

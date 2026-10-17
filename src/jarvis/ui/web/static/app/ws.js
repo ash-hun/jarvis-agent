@@ -6,6 +6,11 @@ export function send(obj) {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
 }
 
+// 웨이크워드용 16kHz PCM. 텍스트 메시지와 섞이지 않게 바이너리 프레임으로 보낸다
+export function sendBinary(buf) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(buf);
+}
+
 export function openSocket(url, { onOpen, onClose, onMessage }) {
   if (ws) {
     _intentionalClose = true;

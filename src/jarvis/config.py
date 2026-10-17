@@ -308,6 +308,11 @@ class VoiceConfig(BaseModel):
     english_tts_provider: str = ""   # 비우면 영어 문장도 tts_provider 가 읽는다. piper
     piper_model: str = "~/.jarvis/voices/en-voice.onnx"  # 같은 자리에 .onnx.json 이 있어야 한다
     piper_noise_scale: float = 0.4   # 낮을수록 음정 떨림이 줄고 말투가 단조로워진다. Piper 기본은 0.667
+    # 미리 녹음한 읽기 문구(phrases.json 과 wav). 비우면 문구를 재생하지 않는다
+    phrases_dir: str = ""
+    # "Jarvis" 웨이크워드 모델(jarvis.onnx 와 openWakeWord 특징 모델 둘). 비우면 끈다
+    wake_model_dir: str = ""
+    wake_threshold: float = 0.5
     stt_lang: str = "ko-KR"
     tui_enabled: bool = False        # TUI 음성 입출력 활성화 (whisper/supertonic + 시스템 오디오 도구 필요)
     tui_record_seconds: float = 5.0  # TUI 음성 입력(Ctrl+R) 녹음 길이(초)

@@ -1,9 +1,12 @@
 """[ui] /ws 라우트: 연결 하나의 수명(인증, connected 핸드셰이크, 메시지 분기, 정리)을 맡는다."""
 
 import asyncio
+import json
+from typing import Any
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
+from jarvis.common.logger import get_logger
 from jarvis.core.focus.types import parse_command
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope
 from jarvis.ui.web.router.agent_router import agent_summary
@@ -19,12 +22,27 @@ from jarvis.ui.web.ws_tasks import (
     run_tts,
 )
 from jarvis.voice.speech_text import speech_text
+from jarvis.voice.wake import WakeDetector
 
 # 키 불일치로 서버가 끊을 때의 close code. 브라우저가 이 코드를 보고 키 입력을 띄운다
 WS_UNAUTHORIZED = 4401
 # 정의에 없는 에이전트로 새 세션을 열려 할 때. 브라우저는 재연결하지 않고 오류를 보인다
 WS_UNKNOWN_AGENT = 4404
 DEFAULT_STT_SAMPLE_RATE = 16000
+
+logger = get_logger(__name__)
+
+
+async def receive_frame(ws: WebSocket) -> dict[str, Any] | bytes:
+    """텍스트 프레임은 JSON 메시지로, 바이너리 프레임은 웨이크워드용 PCM 으로 돌려준다. 끊기면 WebSocketDisconnect."""
+    message = await ws.receive()
+    if message["type"] == "websocket.disconnect":
+        raise WebSocketDisconnect(message.get("code", 1000))
+    data = message.get("bytes")
+    if data is not None:
+        return bytes(data)
+    parsed: dict[str, Any] = json.loads(message.get("text") or "{}")
+    return parsed
 
 
 def build_ws_router(state: WebState) -> APIRouter:
@@ -69,6 +87,9 @@ def build_ws_router(state: WebState) -> APIRouter:
         # 같은 🔔 에 피드백이 두 번 와도(재전송, 키워드와 분류가 겹침) 학습은 한 번만
         feedback_ids: set[str] = set()
         voice_service = state.voice_service
+        # 웨이크워드 감지기는 첫 오디오가 올 때 만든다. 만들다 실패하면 이 연결에서는 다시 시도하지 않는다
+        wake_detector: WakeDetector | None = None
+        wake_on = state.wake is not None
 
         try:
             stt_browser = voice_service is None or voice_service.stt_is_browser
@@ -88,6 +109,10 @@ def build_ws_router(state: WebState) -> APIRouter:
                     # server: 브라우저가 녹음해 백엔드 STT 로 보낸다. browser: Web Speech API 가 인식까지
                     "stt_mode": "browser" if stt_browser else "server",
                     "stt_lang": settings.voice.stt_lang,
+                    # 미리 녹음한 문구 이름. 화면은 이 이름만 /api/voice/phrases/{name} 으로 받는다
+                    "phrases": sorted(state.phrases),
+                    # true 면 Full-voice 대기 중에 16kHz PCM 을 바이너리 프레임으로 보내고 voice_wake 를 기다린다
+                    "wake": wake_on,
                 },
                 "reply_classifier": state.reply_classifier is not None,
             })
@@ -104,7 +129,22 @@ def build_ws_router(state: WebState) -> APIRouter:
                     await adapter.on_agent_event(event)
 
             while True:
-                msg = await ws.receive_json()
+                frame = await receive_frame(ws)
+                if isinstance(frame, bytes):
+                    if not wake_on or state.wake is None:
+                        continue
+                    if wake_detector is None:
+                        try:
+                            wake_detector = await asyncio.to_thread(state.wake)
+                        except Exception as exc:
+                            logger.warning(f"[Voice] 웨이크워드 감지기 생성 실패, 이 연결에서 끈다: {exc}")
+                            wake_on = False
+                            continue
+                    score = wake_detector.feed(frame)
+                    if score is not None:
+                        await ws.send_json({"type": "voice_wake", "score": round(score, 3)})
+                    continue
+                msg = frame
                 msg_type = msg.get("type", "")
 
                 if msg_type == "user_message":

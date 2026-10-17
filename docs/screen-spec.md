@@ -88,7 +88,7 @@
 | WS 이벤트 전부 | 연결 중 | CONVERSATION, 상태 pill, 리액터 상태, ACTIVITY, 사용량 |
 | WS `agent_activity`, `connected.active_agents` | 어느 에이전트든 일을 시작하거나 끝낼 때 | 에이전트 칩의 빛남, 구체 색 섞기, ACTIVITY `⇄ A · B 함께 작업 중` |
 | WS `focus_state` | `/focus` 시작, 매 턴의 진행 갱신, 종료, 진행 중인 작업이 있는 세션에 접속 | Focus 레이아웃 켜고 끄기, PROGRESS(작업, 퍼센트, 막대, 예상 시간, 단계), ACTIVITY `◎ focus · N%` |
-| WS `focus_panel` | sub-agent 가 영역을 갱신하기 시작할 때(`busy`)와 끝낼 때 | REFERENCE, ANALYSIS, LOG 본문(마크다운). 갱신 중이면 머리글에 `SYNC` |
+| WS `focus_panel` | sub-agent 가 영역을 갱신하기 시작할 때(`busy`)와 끝낼 때 | REFERENCE(가장 최근 조사 하나), ANALYSIS(가장 최근 지시의 분석, 맨 위에 `지시: … · 시각`, 항목 아래 내용은 한 단계 들여 쓴 목록), LOG(누적) 본문(마크다운). 갱신 중이면 머리글에 `SYNC` |
 
 **상태와 파라미터**
 

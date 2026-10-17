@@ -4,6 +4,7 @@ import { escapeHtml } from './markdown.js';
 import { setStatus } from './shell.js';
 import { appendMsg, streamEnd, showAwaitPlaceholder, hideAwaitPlaceholder } from './messages.js';
 import { tryProactiveFeedback } from './proactive.js';
+import { noteFocusCommand } from './focus.js';
 
 const $input          = document.getElementById('chat-input');
 const $sendBtn        = document.getElementById('send-btn');
@@ -61,6 +62,7 @@ function askNotificationPermission() {
 export function sendUserText(text) {
   setInputEnabled(false);
   send({ type: 'user_message', text });
+  noteFocusCommand(text);
   beginAwaitingReply();
   if (/(^|\s)\/schedule\b/.test(text)) askNotificationPermission();
 }

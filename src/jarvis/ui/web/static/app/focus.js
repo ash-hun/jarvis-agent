@@ -38,6 +38,15 @@ let _timer = null;
 
 export function isFocusOn() { return _state !== null; }
 
+let _commanded = false;  // 마지막으로 보낸 메시지가 /focus 였는지
+// 보낼 때마다 덮어쓴다. 접속 때 서버가 되살리는 Focus 와 사용자가 켠 Focus 를 가르는 데 쓴다
+export function noteFocusCommand(text) { _commanded = /(^|\s)\/focus\b/.test(text); }
+export function takeFocusCommand() {
+  const commanded = _commanded;
+  _commanded = false;
+  return commanded;
+}
+
 // 전사 한 줄을 /focus 명령으로. 키워드가 없으면 null — 평소 대화로 보낸다
 export function focusCommandFromSpeech(text) {
   if (SPEECH_STOP.test(text) || (isFocusOn() && SPEECH_STOP_BARE.test(text))) return '/focus stop';

@@ -231,3 +231,6 @@ develop_plan.md
 docs/*
 !docs/api-spec.md
 !docs/screen-spec.md
+
+# 학습한 음성 모델(TTS, 문구, 웨이크워드). 비상업 라이선스라 저장소에 올리지 않는다. 받는 법은 website/docs/concepts/conversation/voice.md
+/models/

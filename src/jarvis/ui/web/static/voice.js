@@ -176,6 +176,9 @@ class VoiceManager {
       source.onended = null;
       try { source.stop(); } catch (_) {}
     }
+    const done = this._sourceDone;
+    this._sourceDone = null;
+    if (done) done();
     if (this._utterance) this._utterance = null;  // 끊긴 문장의 onend 가 상태를 건드리지 않게
     if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
       window.speechSynthesis.cancel();
@@ -190,6 +193,16 @@ class VoiceManager {
    * @returns {Promise<void>}
    */
   async playAudioBase64(base64Data, mimeType = 'audio/wav') {
+    const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    return this.playWav(bytes.buffer);
+  }
+
+  /**
+   * WAV 바이트를 재생한다. 미리 녹음한 문구도 이 길로 읽는다.
+   * @param {ArrayBuffer} wav
+   * @returns {Promise<void>} 끝나거나 멈추거나 실패하면 풀린다
+   */
+  async playWav(wav) {
     const gen = this._speakGen;
     this._setState('speaking');
     await this._afterMicReleased();
@@ -201,19 +214,22 @@ class VoiceManager {
       // Suspended context (autoplay policy) 해제
       if (this._audioCtx.state === 'suspended') await this._audioCtx.resume();
 
-      const bytes  = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-      const buffer = await this._audioCtx.decodeAudioData(bytes.buffer.slice(0));
+      const buffer = await this._audioCtx.decodeAudioData(wav.slice(0));
       if (gen !== this._speakGen) return;
       const source = this._audioCtx.createBufferSource();
       source.buffer = buffer;
       source.connect(this._audioCtx.destination);
-      source.onended = () => {
-        if (this._source !== source) return;
-        this._source = null;
-        this._setState('idle');
-      };
-      this._source = source;
-      source.start(0);
+      await new Promise((resolve) => {
+        this._sourceDone = resolve;  // stopSpeaking 이 onended 를 떼어도 기다리는 쪽이 풀리게
+        source.onended = () => {
+          resolve();
+          if (this._source !== source) return;
+          this._source = null;
+          this._setState('idle');
+        };
+        this._source = source;
+        source.start(0);
+      });
     } catch (e) {
       console.error('[VoiceManager] Audio playback failed:', e);
       this._setState('idle');

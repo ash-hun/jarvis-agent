@@ -8,16 +8,21 @@ import {
 import { updateUsage } from './usage.js';
 import { fetchAgenda, showNotice } from './agenda.js';
 import { fetchTools } from './tools.js';
-import { voice, isVoiceMode, clearVoiceMode, requestSpeech, takeSpeech, listenForApproval } from './voice-ui.js';
+import { voice, isVoiceMode, clearVoiceMode, requestSpeech, takeSpeech, listenForApproval, cue } from './voice-ui.js';
 import { showApproval, closeApproval, approvalSpeech } from './approval.js';
 import { askFeedback, isFeedbackPending, QUESTION_SPOKEN } from './proactive.js';
 import { setInputEnabled, endAwaitingReply } from './composer.js';
 import { isFullVoice } from './mode.js';
 import { onReplyClassified } from './reply.js';
 import { setActiveAgents } from './agents.js';
-import { onFocusState, onFocusPanel } from './focus.js';
+import { onFocusState, onFocusPanel, isFocusOn, takeFocusCommand } from './focus.js';
+import { hasPhrase } from './phrases.js';
+import { onWake } from './wake.js';
 
 const ERROR_FLASH_MS = 3000;
+// 이 도구가 시작되면 미리 녹음한 문구를 읽는다
+const CUE_BY_TOOL = { web_search: 'web_search', remember_task_pattern: 'remember_pattern' };
+let _analysisBusy = false;  // Focus 분석 영역이 갱신 중인지. 시작하는 순간에만 문구를 읽는다
 let _agentStack = []; // [{name: string|null}, ...] — 서브 에이전트 계층 추적
 
 function breadcrumb() {
@@ -97,6 +102,7 @@ export function handleMessage(msg) {
       const cmd  = args.command || args.query || (Object.keys(args).length ? JSON.stringify(args) : '');
       startToolTrace(msg.tool_call_id, name, cmd);
       logActivity(cmd ? `▸ ${name} · ${cmd}` : `▸ ${name}`, 'tool');
+      if (CUE_BY_TOOL[name]) cue(CUE_BY_TOOL[name]);
       setStatus('EXECUTING', 'executing');
       HUD.setState('tool_running');
       break;
@@ -124,13 +130,20 @@ export function handleMessage(msg) {
 
     case 'focus_state': {
       const st = msg.state || {};
+      const wasOn = isFocusOn();
       onFocusState(st);
+      // 접속 때 되살아나는 Focus 는 조용히, 사용자가 /focus 로 켜고 끈 전환만 읽는다
+      if (wasOn !== isFocusOn() && takeFocusCommand()) cue(isFocusOn() ? 'focus_mode_enter' : 'focus_mode_quit');
       logActivity(st.active ? `◎ focus · ${Math.round((st.progress || 0) * 100)}%` : '◎ focus off');
       break;
     }
 
     case 'focus_panel':
       onFocusPanel(msg.area, msg.markdown || '', msg.busy);
+      if (msg.area === 'analysis') {
+        if (msg.busy && !_analysisBusy) cue('analysis');
+        _analysisBusy = !!msg.busy;
+      }
       break;
 
     case 'inner_thought': {
@@ -158,7 +171,9 @@ export function handleMessage(msg) {
       if (asks) askFeedback(div, msg.message_id);
       // voice 모드면 비요청 발화도 즉시 읽어준다. filler는 대기 체감을 줄이는 핵심.
       // Full-voice 는 피드백 질문까지 읽고 답을 듣는다.
-      if (isFullVoice()) {
+      if (isFiller && (isFullVoice() || isVoiceMode()) && hasPhrase('horizontal_task')) {
+        cue('horizontal_task');  // 오래 걸리는 일을 뒤로 넘겼다. 대기 문장 대신 녹음한 문구를 읽는다
+      } else if (isFullVoice()) {
         requestSpeech(asks ? `${ptext} ${QUESTION_SPOKEN}` : ptext,
           { thenListen: () => asks && isFullVoice() && isFeedbackPending() });
       } else if (isVoiceMode() || msg.speak) {
@@ -205,6 +220,10 @@ export function handleMessage(msg) {
       break;
     case 'reply_classified':
       onReplyClassified(msg);
+      break;
+
+    case 'voice_wake':
+      onWake();
       break;
 
     case 'voice_stt_result':

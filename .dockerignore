@@ -14,4 +14,6 @@ dist
 build
 *.egg-info
 docs
+# 음성 모델은 이미지에 굽지 않고 compose 가 ./models 를 마운트한다
+models
 _reference

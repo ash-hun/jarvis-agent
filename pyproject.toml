@@ -59,11 +59,18 @@ scheduler = [
 piper = [
     "piper-tts>=1.8,<2",
 ]
+# "Jarvis" 웨이크워드(JARVIS_VOICE__WAKE_MODEL_DIR). onnx 로만 돌린다
+wake = [
+    "openwakeword==0.6.0",
+]
 
 [project.scripts]
 jarvis = "jarvis.ui.tui.app:main"
 
 [tool.uv]
+# openwakeword 는 리눅스에서 tflite-runtime 을 요구하지만 arm64 휠이 없어 Docker(Apple Silicon)에서 설치가 깨진다.
+# onnx 로만 돌리므로 빼 둔다(tflite 는 inference_framework="tflite" 일 때만 import 된다)
+override-dependencies = ["tflite-runtime; sys_platform == 'never'"]
 dev-dependencies = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
@@ -93,7 +100,7 @@ mypy_path = "src"
 packages = ["jarvis"]
 
 [[tool.mypy.overrides]]
-module = ["google.*", "mcp.*", "piper", "piper.*"]
+module = ["google.*", "mcp.*", "piper", "piper.*", "openwakeword", "openwakeword.*"]
 ignore_missing_imports = true
 
 # 스텁 없이 쓰는 서드파티. 개발 의존성을 늘리지 않으려고 모듈 단위로만 건다

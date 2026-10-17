@@ -8,6 +8,7 @@ import { escapeHtml } from './markdown.js';
 import { isAgentBusy } from './events.js';
 import { appendMsg } from './messages.js';
 import { focusCommandFromSpeech } from './focus.js';
+import { hasPhrase, phraseWav } from './phrases.js';
 import { send } from './ws.js';
 
 // TTS 꼬리가 마이크에 들어가지 않게 읽기가 끝난 뒤 잠깐 쉬고 듣는다
@@ -98,6 +99,16 @@ export const voice = new VoiceManager({
   },
 });
 window.voiceManager = voice;
+
+// 미리 녹음한 문구를 읽는다. 음성으로 일하는 중(Full-voice, 음성 요청)일 때만, always 면 늘.
+// 문구가 없거나 받지 못하면 false 를 돌려 부른 쪽이 원래대로(합성) 하게 한다
+export async function cue(name, { always = false } = {}) {
+  if (!hasPhrase(name) || !(always || isFullVoice() || _voiceMode)) return false;
+  const wav = await phraseWav(name);
+  if (!wav) return false;
+  await voice.playWav(wav);
+  return true;
+}
 
 // 텍스트를 읽어 달라고 서버에 요청한다. 응답은 voice_tts_audio 로 온다.
 // thenListen 은 읽기가 끝난 시점에 평가한다. 그사이 모달이 닫혔으면 듣지 않는다.

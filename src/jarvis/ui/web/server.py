@@ -12,6 +12,7 @@ from jarvis.ui.web.router.agent_router import build_agent_router
 from jarvis.ui.web.router.brand_router import STATIC_DIR, build_brand_router
 from jarvis.ui.web.router.session_router import build_session_router
 from jarvis.ui.web.router.tool_router import build_tool_router
+from jarvis.ui.web.router.voice_router import build_voice_router
 from jarvis.ui.web.router.ws_router import build_ws_router
 from jarvis.ui.web.web_auth import auth_enabled, bearer_token, lookup_api_user
 from jarvis.ui.web.web_lifecycle import WebLifecycle
@@ -51,6 +52,7 @@ def create_app(assembly: "AppAssembly", initial_session_id: str = "default") -> 
     app.include_router(build_agenda_router(state))
     app.include_router(build_ws_router(state))
     app.include_router(build_brand_router(state))
+    app.include_router(build_voice_router(state))
 
     # 정적 파일은 API 와 WebSocket 라우트를 다 단 뒤에 마운트한다(앞에 두면 / 가 모두 가로챈다)
     if STATIC_DIR.exists():

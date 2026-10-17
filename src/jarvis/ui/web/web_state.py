@@ -1,12 +1,15 @@
 """[ui] WebState: Web HUD 라우터들이 같이 보는 실행 상태(조립 결과, 세션, 승인 브로커, 열린 연결, 놓친 알림)."""
 
 from collections import deque
+from collections.abc import Callable
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from jarvis.common.logger import get_logger
 from jarvis.ui.web.agent_activity import AgentActivity
 from jarvis.ui.web.approvals import SessionApprovals
 from jarvis.ui.web.session_registry import SessionRegistry
+from jarvis.voice.phrases import load_phrases
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.thought.reply import ReplyClassifier
@@ -17,6 +20,7 @@ if TYPE_CHECKING:
     from jarvis.core.session import AgentSession
     from jarvis.ui.web.adapter import PerConnectionAdapter
     from jarvis.voice.service import VoiceService
+    from jarvis.voice.wake import WakeDetector
 
 logger = get_logger(__name__)
 
@@ -39,6 +43,10 @@ class WebState:
         self.live_clients: set[PerConnectionAdapter] = set()
         self.pending_notices: deque[dict[str, object]] = deque(maxlen=PENDING_NOTICE_MAX)
         self.voice_service = self._build_voice_service()
+        # 미리 녹음한 읽기 문구. 이름은 connected 로 화면에 알리고 wav 는 /api/voice/phrases 가 내준다
+        self.phrases: dict[str, Path] = load_phrases(self.settings.voice.phrases_dir)
+        # 연결마다 웨이크워드 감지기를 하나씩 만든다. 꺼져 있거나 준비가 안 되면 None
+        self.wake: Callable[[], WakeDetector] | None = self._build_wake_factory()
         self.focus: FocusService | None = self._build_focus_service()
         if self.focus is not None and assembly.ctx.dispatcher is not None:
             # 실행은 ws 가 디스패처보다 먼저 가로챈다. 여기 등록은 입력창의 명령 목록에 보이게 하려는 것
@@ -116,6 +124,23 @@ class WebState:
         except Exception as exc:
             logger.warning(f"[Voice] 서버 음성 비활성화, 브라우저 음성만 쓴다 (초기화 실패): {exc}")
             return None
+
+    def _build_wake_factory(self) -> "Callable[[], WakeDetector] | None":
+        """설정과 모델 파일, 선택 의존성을 기동 때 한 번 확인한다. 하나라도 없으면 웨이크워드를 끈다."""
+        v = self.settings.voice
+        if not v.wake_model_dir:
+            return None
+        from jarvis.voice.wake import WakeDetector, missing_wake_files, openwakeword_scorer
+
+        missing = missing_wake_files(v.wake_model_dir)
+        try:
+            import openwakeword  # noqa: F401
+        except ImportError:
+            missing.append("openwakeword(uv sync --extra wake)")
+        if missing:
+            logger.warning(f"[Voice] 웨이크워드 비활성화, 없는 것: {', '.join(missing)}")
+            return None
+        return lambda: WakeDetector(openwakeword_scorer(v.wake_model_dir), v.wake_threshold)
 
     def broker(self, session_id: str) -> SessionApprovals:
         """세션의 승인 브로커. 없으면 만든다."""

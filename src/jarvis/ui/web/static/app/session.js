@@ -10,7 +10,9 @@ import { hideArtifact } from './artifact.js';
 import { setInputEnabled, setSlashCommands } from './composer.js';
 import { fetchAgenda } from './agenda.js';
 import { fetchTools, setToolsSession } from './tools.js';
-import { voice } from './voice-ui.js';
+import { voice, cue } from './voice-ui.js';
+import { setPhrases } from './phrases.js';
+import { setWakeEnabled } from './wake.js';
 import { handleMessage, resetAgentStack } from './events.js';
 import { setReplyClassifier } from './reply.js';
 import { applyBrand, AGENT_ID } from './brand.js';
@@ -153,11 +155,18 @@ function resetChatUI() {
   hideArtifact();
 }
 
+let _connectedOnce = false;  // 첫 접속의 에이전트는 전환이 아니다
+
 // 서버의 첫 메시지 — 세션·모델·도구·슬래시 명령을 받아 화면을 채운다.
 async function onConnected(msg) {
   await loadAgents();
+  if (msg.voice) setPhrases(msg.voice.phrases);
   // 세션 에이전트의 이름과 색으로 화면을 바꾼다. 바뀌었으면 명언도 그 에이전트 것으로
-  if (applyBrand(msg.agent)) showQuote();
+  if (applyBrand(msg.agent)) {
+    showQuote();
+    if (_connectedOnce) cue(`persona_${msg.agent.main ? 'jarvis' : msg.agent.id}`);
+  }
+  _connectedOnce = true;
   renderAgentSwitch();
   setActiveAgents(msg.active_agents || []);
   const sid = msg.session_id || '—';
@@ -173,6 +182,7 @@ async function onConnected(msg) {
   if (msg.sessions) renderSessions(msg.sessions, msg.session_agents);
   if (msg.slash_commands) setSlashCommands(msg.slash_commands);
   if (msg.voice && msg.voice.stt_mode) voice.setSttMode(msg.voice.stt_mode);
+  setWakeEnabled(!!(msg.voice && msg.voice.wake));
   setReplyClassifier(msg.reply_classifier);
   setStatus('READY');
   setInputEnabled(true);

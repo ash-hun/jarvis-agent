@@ -33,7 +33,7 @@ function showUser(text) {
 }
 
 export const voice = new VoiceManager({
-  async onTranscript(transcript) {
+  async onTranscript(transcript, alternatives = []) {
     if (!transcript.trim()) return;
     // Full-voice 에서 승인 모달이 열려 있으면 이 답은 승인이다. 메시지로 보내지 않는다.
     if (isFullVoice() && isApprovalOpen()) {
@@ -50,7 +50,8 @@ export const voice = new VoiceManager({
     _voiceMode = true;
     showUser(transcript);
     // "포커스 모드 <작업>", "포커스 모드 종료" 는 /focus 명령으로 보낸다
-    sendUserText(focusCommandFromSpeech(transcript) || transcript);
+    const command = [transcript, ...alternatives].map(focusCommandFromSpeech).find(Boolean);
+    sendUserText(command || transcript);
   },
   onStateChange(state) {
     $sphereWrap.classList.remove('voice-listening', 'voice-speaking', 'voice-processing');

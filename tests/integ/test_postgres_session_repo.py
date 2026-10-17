@@ -164,6 +164,16 @@ class TestAppendAndGetMessages:
         for i, msg in enumerate(msgs):
             assert msg.content == f"msg-{i}"
 
+    async def test_same_ms_appends_keep_insert_order(self, repo, monkeypatch):
+        # 한 턴의 tool_result 와 다음 assistant 는 같은 ms 에 저장된다
+        monkeypatch.setattr(repo, "_now_ms", lambda: 1_000)
+        await repo.create(session_id="sess-same-ms")
+        for i in range(20):
+            await repo.append("sess-same-ms", _user_msg(f"msg-{i}"))
+
+        msgs = await repo.get_messages("sess-same-ms")
+        assert [m.content for m in msgs] == [f"msg-{i}" for i in range(20)]
+
     async def test_append_updates_message_count(self, repo):
         await repo.create(session_id="sess-count")
         await repo.append("sess-count", _user_msg("a"))

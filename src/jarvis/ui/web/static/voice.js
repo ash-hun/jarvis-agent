@@ -9,7 +9,7 @@
  * 상태 머신: idle → listening → processing → (idle or speaking) → idle
  *
  * 생성자 options:
- *   onTranscript(text)        — STT 결과 콜백
+ *   onTranscript(text, alts)  — STT 결과 콜백. alts 는 같은 발화의 다른 인식 후보
  *   onStateChange(state)      — 상태 변경 콜백 ('idle'|'listening'|'processing'|'speaking')
  *   onError(msg)              — 에러 콜백
  *   onAudioCaptured(b64,mime) — 서버 STT 모드에서 녹음된 오디오를 백엔드로 보낼 때 호출
@@ -27,6 +27,7 @@ const MIC_RELEASE_TIMEOUT_MS = 1500;
 // speak 뒤 이 시간 안에 start 가 오지 않으면 브라우저가 문장을 버린 것으로 보고 한 번만 다시 읽는다
 const TTS_START_TIMEOUT_MS = 1500;
 const TTS_RETRY_GAP_MS = 150;
+const STT_ALTERNATIVES = 3;
 
 class VoiceManager {
   constructor({ onTranscript, onStateChange, onError, onAudioCaptured, lang = 'ko-KR' } = {}) {
@@ -59,6 +60,8 @@ class VoiceManager {
       this._recognition.lang           = this._lang;
       this._recognition.continuous     = false;
       this._recognition.interimResults = true;
+      // 첫 후보가 틀려도 다른 후보에 명령 키워드가 있을 수 있다
+      this._recognition.maxAlternatives = STT_ALTERNATIVES;
 
       this._recognition.onresult = (e) => {
         const results    = Array.from(e.results);
@@ -67,7 +70,11 @@ class VoiceManager {
           this._setState('processing');
           // 최종 결과 뒤에도 인식은 잠깐 열려 있다. 바로 닫아 읽기가 기다리는 시간을 줄인다.
           try { this._recognition.stop(); } catch (_) {}
-          this._onTranscript(transcript);
+          const last = results[results.length - 1];
+          const alternatives = results.length === 1
+            ? Array.from(last).slice(1).map(a => a.transcript)
+            : [];
+          this._onTranscript(transcript, alternatives);
         }
       };
 

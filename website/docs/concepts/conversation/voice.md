@@ -59,7 +59,7 @@ JARVIS 전용으로 학습한 모델 세 가지를 레포의 `models/` 폴더에
 |---|---|---|
 | TTS | `models/tts/voice.onnx`, `voice.onnx.json` | 영어 문장을 JARVIS 목소리로 읽는다. Piper 음성이라 위의 `PIPER_MODEL` 로 지정한다 |
 | 읽기 문구 | `models/tts/phrases/phrases.json`, wav 9개 | 정해진 순간에 합성 대신 녹음한 문구를 읽는다 |
-| 웨이크워드 | `models/wakeword/jarvis.onnx`, `melspectrogram.onnx`, `embedding_model.onnx` | Full-voice 로 기다리는 동안 "Jarvis" 를 들으면 듣기를 연다 |
+| 웨이크워드 | `models/wakeword/jarvis.onnx`, `melspectrogram.onnx`, `embedding_model.onnx` | 모드와 상관없이 기다리는 동안 "Jarvis" 를 들으면 듣기를 연다 |
 
 학습 결과 폴더에서 체크포인트(`model.ckpt`, 846MB)만 빼고 복사한다. `rsync -a` 라 다시 실행해도 같은 상태가 된다.
 
@@ -97,8 +97,9 @@ JARVIS_VOICE__WAKE_THRESHOLD=0.5
 
 ### 웨이크워드
 
-Full-voice 로 기다리는 동안 브라우저가 마이크 소리를 16kHz PCM 으로 WebSocket 바이너리 프레임에 실어 보낸다. 서버는 연결마다 openWakeWord 감지기를 하나 두고 80ms 마다 점수를 매긴다. 점수가 임계치를 넘으면 `voice_wake` 를 보내고, 화면은 "At your service, sir." 를 읽은 뒤 바로 듣는다. 듣기, 읽기, 응답, 승인 중에는 보내지 않는다.
+Default, Full-voice 모두 기다리는 동안 브라우저가 마이크 소리를 16kHz PCM 으로 WebSocket 바이너리 프레임에 실어 보낸다. 서버는 연결마다 openWakeWord 감지기를 하나 두고 80ms 마다 점수를 매긴다. 점수가 임계치를 넘으면 `voice_wake` 를 보내고, 화면은 "At your service, sir." 를 읽은 뒤 바로 듣는다. 듣기, 읽기, 응답, 승인 중에는 보내지 않는다. Default 에서 깨워 보낸 요청은 응답을 읽어 주고, 다 읽은 뒤 다시 듣지는 않는다.
 
+- 웨이크워드가 켜져 있으면 Default 에서도 마이크가 계속 열려 있어 브라우저의 녹음 표시가 꺼지지 않는다. 닫으려면 `JARVIS_VOICE__WAKE_MODEL_DIR` 를 비운다
 - 영어 발음 "Jarvis" 만 알아듣는다. 한국어로 "자비스" 라고 부르면 깨지 않는다
 - 이름 끝 무렵 여러 프레임이 연달아 임계치를 넘으므로, 첫 프레임에서 한 번 깨고 그 뒤 1초는 무시한다
 - 모델은 합성 음성으로만 학습했다. "Jars", "Garbage" 처럼 비슷한 소리에 깨어날 수 있다
@@ -120,7 +121,7 @@ TTS 와 읽기 문구는 영화 속 인물의 목소리를 흉내 낸 모델이�
 ```mermaid
 stateDiagram-v2
   [*] --> idle
-  idle --> listening: 구체 클릭
+  idle --> listening: 구체 클릭 또는 "Jarvis"
   listening --> processing: 전사
   processing --> idle: user_message 전송
   idle --> speaking: 응답 또는 🔔 도착

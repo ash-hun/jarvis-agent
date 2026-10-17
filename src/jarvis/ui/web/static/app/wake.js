@@ -1,9 +1,8 @@
-// 웨이크워드 — Full-voice 로 기다리는 동안 마이크를 16kHz PCM 으로 서버에 흘리고, voice_wake 가 오면 듣기를 연다.
+// 웨이크워드 — 모드와 상관없이 기다리는 동안 마이크를 16kHz PCM 으로 서버에 흘리고, voice_wake 가 오면 듣기를 연다.
 import { sendBinary } from './ws.js';
 import { logActivity } from './shell.js';
 import { isAgentBusy } from './events.js';
 import { isApprovalOpen } from './approval.js';
-import { isFullVoice, onModeChange } from './mode.js';
 import { voice, isSpeechActive, cue } from './voice-ui.js';
 
 const SAMPLE_RATE = 16000;
@@ -16,8 +15,7 @@ let _node = null;
 
 // 듣기, 읽기, 응답, 승인 중에는 보내지 않는다. 그동안의 "Jarvis" 는 대화의 일부다
 function waiting() {
-  return _enabled && isFullVoice() && voice.state === 'idle' && !isSpeechActive()
-    && !isAgentBusy() && !isApprovalOpen();
+  return _enabled && voice.state === 'idle' && !isSpeechActive() && !isAgentBusy() && !isApprovalOpen();
 }
 
 // 자동 재생 정책에 걸려 멈춘 컨텍스트는 다음 클릭이나 키 입력에서 깨운다
@@ -28,7 +26,7 @@ function resumeOnGesture(ctx) {
 }
 
 async function startCapture() {
-  if (_ctx || !_enabled || !isFullVoice() || !navigator.mediaDevices?.getUserMedia) return;
+  if (_ctx || !_enabled || !navigator.mediaDevices?.getUserMedia) return;
   const ctx = new AudioContext({ sampleRate: SAMPLE_RATE });
   _ctx = ctx;
   try {
@@ -60,19 +58,15 @@ function stopCapture() {
 // 접속마다 서버가 알려 준다. 몇 번 불러도 같은 상태로 맞춘다
 export function setWakeEnabled(on) {
   _enabled = !!on;
-  if (_enabled && isFullVoice()) startCapture();
+  if (_enabled) startCapture();
   else stopCapture();
 }
 
-// "Jarvis" — 대답 문구를 읽고 듣기를 연다. 그사이 다른 일이 시작됐으면 듣지 않는다
+// "Jarvis" — 대답 문구를 읽고 듣기를 연다. 그사이 다른 일이 시작됐으면 듣지 않는다.
+// Default 에서 깨운 요청은 음성으로 시작한 요청이라 응답을 읽어 주고, 다 읽은 뒤 다시 듣지는 않는다
 export async function onWake() {
   if (!waiting()) return;
   logActivity('◉ wake · Jarvis');
   await cue('wake_up', { always: true });
   if (waiting()) voice.start();
 }
-
-onModeChange((mode) => {
-  if (mode === 'full-voice') startCapture();
-  else stopCapture();
-});

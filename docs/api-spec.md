@@ -871,7 +871,7 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `stream_delta` | `text` | 슬래시 명령 결과 등 비스트림 텍스트 |
 | `tool_execution_start` | `tool_call_id`, `tool_name`, `args` | 도구 실행 시작 |
 | `tool_execution_end` | `tool_call_id`, `tool_name`, `is_error` | 도구 실행 끝 |
-| `agent_end` | `session_id`, `final_message{usage}`, `turns`, `agent_name?` | 루프 끝. 루트면 입력을 다시 받는다 |
+| `agent_end` | `session_id`, `final_message{usage}`, `turns`, `agent_name?`, `continues?` | 루프 끝. 루트면 입력을 다시 받는다. `continues: true` 는 `/focus` 안내 뒤 메인 에이전트가 이어 돈다는 뜻이라, 화면은 입력 잠금과 음성 요청 표시를 그대로 둔다 |
 | `agent_error` | `message`, `code?` | 루프 실패 |
 | `inner_thought` | `session_id`, `interpretation`, `decision`, `confidence`, `frame` | 요청 시점과 성찰 시점의 사고 1회 |
 | `proactive_message` | `session_id`, `text`, `kind`(`filler`/`proactive`/`answer`), `speak`, `message_id` | 먼저 건네는 말. `proactive` 면 피드백 대상 |

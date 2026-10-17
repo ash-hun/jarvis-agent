@@ -37,8 +37,8 @@ function showUser(text) {
 export const voice = new VoiceManager({
   async onTranscript(transcript, alternatives = []) {
     if (!transcript.trim()) return;
-    // Full-voice 에서 승인 모달이 열려 있으면 이 답은 승인이다. 메시지로 보내지 않는다.
-    if (isFullVoice() && isApprovalOpen()) {
+    // 승인 모달이 열려 있으면 이 답은 승인이다. 메시지로 보내지 않는다.
+    if (isApprovalOpen()) {
       showUser(transcript);
       const heard = await answerApprovalByVoice(transcript);
       if (!heard) { voice.setIdle(); return; }  // 분류 중에 클릭이나 다른 창이 먼저 답했다

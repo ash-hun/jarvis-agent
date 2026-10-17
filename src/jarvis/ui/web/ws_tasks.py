@@ -39,7 +39,8 @@ async def run_focus(
         return
     await adapter.send({"type": "agent_start"})
     await adapter.send({"type": "stream_delta", "text": feedback})
-    await adapter.send({"type": "agent_end"})
+    # 이어서 메인 에이전트가 돌면 화면이 음성 요청 표시와 입력 잠금을 그대로 두게 알린다
+    await adapter.send({"type": "agent_end", "continues": bool(follow_up)})
     if follow_up:
         await run_prompt(session, adapter, follow_up, credentials)
 

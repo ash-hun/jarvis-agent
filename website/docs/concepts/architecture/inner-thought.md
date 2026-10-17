@@ -4,6 +4,7 @@ title: 내적 사고 (Inner Thought)
 ---
 
 import FigureInnerThought from '@site/src/figures/inner-thought.svg';
+import FigureExpInnerThought from '@site/src/figures/exp-inner-thought.svg';
 
 # 내적 사고 (Inner Thought)
 
@@ -119,23 +120,17 @@ gantt
 
 ## 성능 실험
 
-### 요청 사고: 프레임 유효율, 약속 잡기, 지연
+두 실험을 했다. 시점 실험은 떠 있는 백엔드에 새 세션으로 질문 넷을 보내 첫 글자와 응답 끝, 💭 도착 시각을 잰다(로컬은 메인 gemma4:e4b, 사고 gemma4:e2b, 같은 Mac 의 GPU 하나). 요청 사고 실험은 사용자 입력 12개(약속이 있는 6개, 없는 6개)를 사고 엔진에만 2회씩 넣는다. 재현: `uv run python -m scripts.experiments.agent_turns timing --n 4`(`JARVIS_THOUGHT__REQUEST_TIMING` 을 바꿔 가며), `uv run python -m scripts.experiments.thought_frames --model gemma4:e2b-it-qat`.
 
-사용자 입력 12개(약속이 있는 7개, 없는 5개)를 요청 사고에 2회씩 넣었다. 프레임이 스키마대로 나왔는지, 약속(open loop)을 잡았는지, 얼마나 걸렸는지 본다. 재현: `uv run python -m scripts.experiments.thought_frames --model gemma4:e2b-it-qat`.
+<figure className="paper-fig">
+  <FigureExpInnerThought />
+  <figcaption><b>Figure 2.</b> (a) 로컬과 클라우드 모두 after 가 첫 글자와 응답 끝이 가장 빠르다. 로컬 race 는 응답 끝이 가장 늦다. 사고와 메인이 GPU 를 나눠 쓰기 때문으로 보인다(추정). (b) 세 모델 모두 프레임은 매번 유효하고, 약속을 잡는 성향은 모델마다 다르다.</figcaption>
+</figure>
 
-| 사고 모델 | 유효 프레임 | 약속 recall | 약속 precision | 지연 중앙값 / 최대 |
-|---|---|---|---|---|
-| gemma4:e2b-it-qat (로컬) | 1.00 | 0.92 | 0.73 | 5.6초 / 9.7초 |
-| gemma4:e4b (로컬) | 1.00 | 0.58 | 1.00 | 9.5초 / 12.3초 |
-| gpt-4o-mini | 1.00 | 0.75 | 1.00 | 2.4초 / 3.3초 |
-
-- 세 모델 모두 프레임은 매번 유효했다. 아래 설계 노트의 스키마 강제 덕분이다
-- 작은 e2b 가 약속을 가장 많이 잡았지만, 약속이 없는 말에서도 약속을 만들었다(precision 0.73). 이렇게 잘못 만든 약속은 [Open Loop](../conversation/open-loop.md) 의 저장 판정(입력과의 글자 겹침, 근거 인용)을 한 번 더 거친다
-- e4b 는 더 큰 모델인데도 약속을 덜 잡았다. 약속으로 볼지 보수적으로 판단한 것으로 보인다(추정)
-
-### 시점별 응답 속도
-
-TIMING_TABLE_PLACEHOLDER
+- 로컬에서 after 는 첫 글자 2.3초, before 는 15.6초다. 대신 after 의 💭 는 응답이 끝난 뒤(질문부터 약 23초) 온다. 클라우드도 after 가 가장 빨랐다(첫 글자 0.9초). 그래서 설정 예시(`.env.example`)가 권하는 값과 지금 쓰는 설정은 after 다. 코드 기본값은 race 다
+- 작은 e2b 가 약속을 모두 잡았지만, 약속이 없는 말에서도 약속을 만들었다(precision 0.71). 이렇게 잘못 만든 약속은 [Open Loop](../conversation/open-loop.md) 의 저장 판정(입력과의 글자 겹침, 근거 인용)을 한 번 더 거친다
+- e4b 와 gpt-4o-mini 는 약속을 덜 잡는 대신(recall 0.75) 잘못 만든 약속이 없다. 처음 데이터에는 "이번 달 안에 헬스장 등록하려고" 처럼 약속인지 의도인지 애매한 문장이 있어 e4b 의 recall 이 0.58 로 나왔다. 그 문장을 "25일까지 등록하기로 친구랑 약속했어" 로 바꾼 뒤의 값이다
+- 한계: 시점 실험은 질문 4개의 중앙값이다. 로컬 수치는 하드웨어와 Ollama 의 모델 적재 상태에 따라 크게 달라진다
 
 ## 설계 노트
 
@@ -149,7 +144,7 @@ TIMING_TABLE_PLACEHOLDER
 
 ### 시점을 설정으로 둔 이유
 
-사고를 응답 전에 돌리면(before) 해석이 이번 응답에 섞이지만 그만큼 늦다. 처음에는 before 만 있었는데, 로컬 한 GPU 에서 사고와 메인이 GPU 를 나눠 쓰면 병렬(race)이 오히려 느렸다. 같은 하드웨어와 모델로 쟀을 때 before 는 전체 27~32초, race 는 첫 글자 21초에 전체 37초, after 는 첫 글자 12.8초에 전체 29초였다(gemma4:e4b + e2b). 어느 쪽이 빠른지가 배포 환경에 달려 있어서 시점을 하나로 고정하지 않고 설정으로 뺐다. 위의 표처럼 클라우드에서도 after 가 가장 빨랐다.
+사고를 응답 전에 돌리면(before) 해석이 이번 응답에 섞이지만 그만큼 늦다. 처음에는 before 만 있었는데, 로컬 한 GPU 에서 사고와 메인이 GPU 를 나눠 쓰면 병렬(race)이 오히려 느렸다. 당시 측정(gemma4:e4b + e2b, GPU 하나)에서 before 는 전체 27~32초, race 는 첫 글자 21초에 전체 37초, after 는 첫 글자 12.8초에 전체 29초였다. 어느 쪽이 빠른지가 배포 환경에 달려 있어서 시점을 하나로 고정하지 않고 설정으로 뺐다. 위의 그림처럼 클라우드에서도 after 가 가장 빨랐다.
 
 ## 구현 위치
 

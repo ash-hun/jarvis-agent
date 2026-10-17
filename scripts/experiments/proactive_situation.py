@@ -28,14 +28,17 @@ def engine(model: str) -> InnerThoughtEngine:
 async def run(model: str, repeat: int) -> dict[str, object]:
     cases = load_suites(["situation"])
     eng = engine(model)
-    tp = fp = fn = tn = 0
+    # 말할지(speak)와 말한 내용에 필요한 낱말이 있는지(mention)를 따로 센다. 하나로 세면 말은 맞게 했는데
+    # 낱말 표기가 달라("prod" 와 "프로덕션") 놓친 것으로 잡힌다
+    tp = fp = fn = tn = mention_ok = 0
     misses: dict[str, int] = {}
     start = time.perf_counter()
     for _ in range(repeat):
         report = await run_cases(cases, eng)
         for r in report.results:
-            if r.expected_speak and r.actual_speak and r.passed:
+            if r.expected_speak and r.actual_speak:
                 tp += 1
+                mention_ok += not r.missing
             elif r.expected_speak:
                 fn += 1
                 misses[r.case] = misses.get(r.case, 0) + 1
@@ -51,6 +54,7 @@ async def run(model: str, repeat: int) -> dict[str, object]:
         "recall": round(tp / (tp + fn), 3) if tp + fn else None,
         "precision": round(tp / (tp + fp), 3) if tp + fp else None,
         "false_alarm": round(fp / (fp + tn), 3) if fp + tn else None,
+        "mention_ok_when_spoke": f"{mention_ok}/{tp}",
         "sec_per_case": round((time.perf_counter() - start) / calls, 2),
         "misses": misses,
     }

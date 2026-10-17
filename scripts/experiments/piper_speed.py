@@ -29,9 +29,8 @@ async def main() -> None:
         took = time.perf_counter() - start
         with wave.open(io.BytesIO(audio)) as w:
             seconds = w.getnframes() / w.getframerate()
-        rows.append(
-            {"chars": len(text), "synth_s": round(took, 3), "audio_s": round(seconds, 2), "rtf": round(took / seconds, 3)}
-        )
+        row = {"chars": len(text), "synth_s": round(took, 3), "audio_s": round(seconds, 2)}
+        rows.append({**row, "rtf": round(took / seconds, 3)})
     json.dump(rows, sys.stdout)
 
 

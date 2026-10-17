@@ -4,6 +4,7 @@ title: Open Loop
 ---
 
 import FigureOpenLoop from '@site/src/figures/open-loop.svg';
+import FigureExpOpenLoop from '@site/src/figures/exp-open-loop.svg';
 
 # Open Loop
 
@@ -128,19 +129,17 @@ ollama 기본값인 nomic-embed-text 는 한국어 문장끼리 코사인이 0.6
 
 ### 임베딩 모델별 같은 약속 가르기
 
-바꿔 말한 같은 약속 8쌍과, 주제는 같지만 다른 약속 10쌍(예: "팀장님께 분기 보고서 보내기" 와 "팀장님께 휴가 신청서 보내기")을 두고 코사인과 실제 판정 함수 `same_loop` 의 정확도를 쟀다. 재현: `uv run python -m scripts.experiments.loop_embedding --embedder bge-m3`.
+바꿔 말한 같은 약속 8쌍과, 주제는 같지만 다른 약속 10쌍(예: "팀장님께 분기 보고서 보내기" 와 "팀장님께 휴가 신청서 보내기")의 코사인을 재고, 실제 판정 함수 `same_loop` 로 같은 약속인지 판정했다. 재현: `uv run python -m scripts.experiments.loop_embedding --embedder bge-m3`.
 
-| 임베딩 | 같은 약속 최소 / 평균 | 다른 약속 최대 / 평균 | 0.85 문턱 정확도 | `same_loop` 정확도 | 잘못 합침 |
-|---|---|---|---|---|---|
-| bge-m3 (로컬) | 0.60 / 0.83 | 0.79 / 0.66 | 0.83 | 0.83 | 0 |
-| nomic-embed-text (로컬) | 0.79 / 0.88 | 0.94 / 0.84 | 0.61 | 0.61 | 5 |
-| text-embedding-3-small (OpenAI) | 0.43 / 0.64 | 0.67 / 0.48 | 0.56 | 0.56 | 0 |
-| 임베딩 없음(글자 규칙만) | | | | 0.56 | 0 |
+<figure className="paper-fig">
+  <FigureExpOpenLoop />
+  <figcaption><b>Figure 2.</b> 세 임베딩 모두 같은 약속(●)과 다른 약속(◆)이 겹친다. bge-m3 는 0.85 문턱 오른쪽에 다른 약속이 없어 잘못 합침이 0 이고, nomic-embed-text 는 다른 약속이 문턱 오른쪽으로 몰려 다섯 쌍을 합쳤다.</figcaption>
+</figure>
 
-- 셋 다 같은 약속의 최솟값이 다른 약속의 최댓값보다 낮다. 코사인 문턱 하나로는 완전히 가를 수 없다
-- 그래서 문턱은 "다른 약속을 합치지 않는 쪽" 으로 높게 잡았다. 놓친 중복은 사람이 ✕ 로 닫으면 되지만, 잘못 합친 약속은 하나가 조용히 사라지기 때문이다. bge-m3 와 OpenAI 는 잘못 합침이 0 이고, nomic-embed-text 는 한국어 문장끼리 코사인이 몰려 다섯 쌍을 합쳤다
+- 코사인 문턱 하나로는 어느 임베딩도 완전히 가를 수 없다. 그래서 문턱은 "다른 약속을 합치지 않는 쪽" 으로 높게 잡았다. 놓친 중복은 사람이 ✕ 로 닫으면 되지만, 잘못 합친 약속은 하나가 조용히 사라지기 때문이다
+- 판정 정확도는 bge-m3 0.83, nomic-embed-text 0.61, text-embedding-3-small 0.56, 임베딩 없이 글자 규칙만 쓰면 0.56 이다(`--embedder none`)
 - OpenAI 임베딩은 같은 약속끼리도 코사인이 낮아(평균 0.64) 0.85 문턱에서는 임베딩이 없는 것과 같다. 쓰려면 문턱을 0.6 근처로 따로 잡아야 한다(이 데이터에서 0.58 일 때 0.72)
-- 한계: 18쌍은 작은 표본이고 직접 만든 문장이다. 권장값(bge-m3, 0.85)을 고르는 근거로만 쓴다
+- 한계: 18쌍은 작은 표본이고 직접 만든 문장이다. "운동하러 헬스 끊기" 처럼 뜻이 갈릴 수 있는 문장도 섞여 있다. 권장값(bge-m3, 0.85)을 고르는 근거로만 쓴다
 
 ## 설계 노트
 

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" class="pf-svg" role="img" aria-label="거부 뒤 승인 흐름 준수와 음성 승인 분류">
+<defs><marker id="exp-approval-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-approval-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-approval-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-approval-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="10" y="10" width="740" height="168" rx="8"/>
+<text class="pf-plabel" x="22" y="30">(a) 승인이 필요한 요청 → 거부 → "다시 해 줘"</text>
+<text class="pf-s" x="328.3333333333333" y="54" text-anchor="middle">도구 호출</text>
+<text class="pf-s" x="485.0" y="54" text-anchor="middle">정해진 거부 문구</text>
+<text class="pf-s" x="641.6666666666666" y="54" text-anchor="middle">재요청 시 다시 물음</text>
+<text class="pf-s" x="240" y="82" text-anchor="end">고치기 전 (gpt-4o-mini)</text>
+<circle class="pf-ok" cx="310.3" cy="78" r="6"/>
+<text class="pf-val" x="322.3333333333333" y="82" text-anchor="start">2/2</text>
+<circle class="pf-zero" cx="467.0" cy="78" r="6"/>
+<text class="pf-val" x="479.0" y="82" text-anchor="start">0/2</text>
+<text class="pf-axis" x="641.6666666666666" y="82" text-anchor="middle">기록 없음</text>
+<text class="pf-s" x="240" y="108" text-anchor="end">프롬프트 규칙만 (gpt-4o-mini)</text>
+<circle class="pf-ok" cx="310.3" cy="104" r="6"/>
+<text class="pf-val" x="322.3333333333333" y="108" text-anchor="start">1/1</text>
+<circle class="pf-zero" cx="467.0" cy="104" r="6"/>
+<text class="pf-val" x="479.0" y="108" text-anchor="start">0/2</text>
+<circle class="pf-ok" cx="623.7" cy="104" r="6"/>
+<text class="pf-val" x="635.6666666666666" y="108" text-anchor="start">1/1</text>
+<text class="pf-s" x="240" y="134" text-anchor="end">규칙 + 루프 종료 (gpt-4o-mini)</text>
+<circle class="pf-ok" cx="310.3" cy="130" r="6"/>
+<text class="pf-val" x="322.3333333333333" y="134" text-anchor="start">3/3</text>
+<circle class="pf-ok" cx="467.0" cy="130" r="6"/>
+<text class="pf-val" x="479.0" y="134" text-anchor="start">3/3</text>
+<circle class="pf-ok" cx="623.7" cy="130" r="6"/>
+<text class="pf-val" x="635.6666666666666" y="134" text-anchor="start">3/3</text>
+<text class="pf-s" x="240" y="160" text-anchor="end">규칙 + 루프 종료 (gemma4:e4b)</text>
+<circle class="pf-ok" cx="310.3" cy="156" r="6"/>
+<text class="pf-val" x="322.3333333333333" y="160" text-anchor="start">3/3</text>
+<circle class="pf-ok" cx="467.0" cy="156" r="6"/>
+<text class="pf-val" x="479.0" y="160" text-anchor="start">3/3</text>
+<circle class="pf-ok" cx="623.7" cy="156" r="6"/>
+<text class="pf-val" x="635.6666666666666" y="160" text-anchor="start">3/3</text>
+<rect class="pf-panel" x="10" y="188" width="740" height="242" rx="8"/>
+<text class="pf-plabel" x="22" y="208">(b) 승인 답 12개 × 3회, 분류기 단독(키워드 단계 없이)</text>
+<rect class="pf-s1" x="30" y="222" width="10" height="10" rx="2"/>
+<text class="pf-s" x="45" y="231" text-anchor="start">gemma4:e2b</text>
+<rect class="pf-s2" x="121.74" y="222" width="10" height="10" rx="2"/>
+<text class="pf-s" x="136.74" y="231" text-anchor="start">gemma4:e4b</text>
+<rect class="pf-s3" x="213.48" y="222" width="10" height="10" rx="2"/>
+<text class="pf-s" x="228.48" y="231" text-anchor="start">gpt-4o-mini</text>
+<text class="pf-s" x="160" y="274.0" text-anchor="end">결정 정확도</text>
+<rect class="pf-s1" x="170" y="252" width="482.3" height="10" rx="2"/>
+<text class="pf-val" x="657.3420000000001" y="261" text-anchor="start">0.92</text>
+<rect class="pf-s2" x="170" y="265" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="274" text-anchor="start">1.00</text>
+<rect class="pf-s3" x="170" y="278" width="394.5" height="10" rx="2"/>
+<text class="pf-val" x="569.5" y="287" text-anchor="start">0.75</text>
+<text class="pf-s" x="160" y="322.0" text-anchor="end">놓친 허용 비율</text>
+<rect class="pf-s1" x="170" y="300" width="87.7" height="10" rx="2"/>
+<text class="pf-val" x="262.66666666666663" y="309" text-anchor="start">0.17</text>
+<rect class="pf-s2" x="170" y="313" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="322" text-anchor="start">0.00</text>
+<rect class="pf-s3" x="170" y="326" width="263.0" height="10" rx="2"/>
+<text class="pf-val" x="438.0" y="335" text-anchor="start">0.50</text>
+<text class="pf-s" x="160" y="370.0" text-anchor="end">위험한 허용</text>
+<rect class="pf-s1" x="170" y="348" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="357" text-anchor="start">0.00</text>
+<rect class="pf-s2" x="170" y="361" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="370" text-anchor="start">0.00</text>
+<rect class="pf-s3" x="170" y="374" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="383" text-anchor="start">0.00</text>
+<line class="pf-grid" x1="170.0" y1="248" x2="170.0" y2="388"/>
+<text class="pf-axis" x="170.0" y="401" text-anchor="middle">0.0</text>
+<line class="pf-grid" x1="433.0" y1="248" x2="433.0" y2="388"/>
+<text class="pf-axis" x="433.0" y="401" text-anchor="middle">0.5</text>
+<line class="pf-grid" x1="696.0" y1="248" x2="696.0" y2="388"/>
+<text class="pf-axis" x="696.0" y="401" text-anchor="middle">1.0</text>
+<text class="pf-note" x="30" y="414" text-anchor="start">결정 정확도는 실행(allow, always)과 거부(deny, unclear)만 맞았는지 본다. 놓친 허용은 허용 18번 중 비율</text>
+</svg>

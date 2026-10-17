@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 518" class="pf-svg" role="img" aria-label="사고 시점별 응답 속도와 요청 사고 품질">
+<defs><marker id="exp-inner-thought-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-inner-thought-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-inner-thought-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-inner-thought-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="10" y="10" width="740" height="294" rx="8"/>
+<text class="pf-plabel" x="22" y="30">(a) 사고 시점별 응답 시간(초, 중앙값, 4회)</text>
+<rect class="pf-s2" x="30" y="44" width="10" height="10" rx="2"/>
+<text class="pf-s" x="45" y="53" text-anchor="start">로컬 e4b + e2b</text>
+<rect class="pf-s3" x="135.48999999999998" y="44" width="10" height="10" rx="2"/>
+<text class="pf-s" x="150.48999999999998" y="53" text-anchor="start">gpt-4o-mini</text>
+<text class="pf-s" x="160" y="89.5" text-anchor="end">before · 첫 글자</text>
+<rect class="pf-s2" x="170" y="74" width="328.4" height="10" rx="2"/>
+<text class="pf-val" x="503.43440000000004" y="83" text-anchor="start">15.6s</text>
+<rect class="pf-s3" x="170" y="87" width="74.5" height="10" rx="2"/>
+<text class="pf-val" x="249.48160000000001" y="96" text-anchor="start">3.5s</text>
+<text class="pf-s" x="160" y="124.5" text-anchor="end">before · 응답 끝</text>
+<rect class="pf-s2" x="170" y="109" width="448.6" height="10" rx="2"/>
+<text class="pf-val" x="623.5727999999999" y="118" text-anchor="start">21.3s</text>
+<rect class="pf-s3" x="170" y="122" width="94.7" height="10" rx="2"/>
+<text class="pf-val" x="269.68" y="131" text-anchor="start">4.5s</text>
+<text class="pf-s" x="160" y="159.5" text-anchor="end">race · 첫 글자</text>
+<rect class="pf-s2" x="170" y="144" width="125.8" height="10" rx="2"/>
+<text class="pf-val" x="300.8192" y="153" text-anchor="start">6.0s</text>
+<rect class="pf-s3" x="170" y="157" width="68.2" height="10" rx="2"/>
+<text class="pf-val" x="243.1696" y="166" text-anchor="start">3.2s</text>
+<text class="pf-s" x="160" y="194.5" text-anchor="end">race · 응답 끝</text>
+<rect class="pf-s2" x="170" y="179" width="514.4" height="10" rx="2"/>
+<text class="pf-val" x="689.428" y="188" text-anchor="start">24.4s</text>
+<rect class="pf-s3" x="170" y="192" width="90.9" height="10" rx="2"/>
+<text class="pf-val" x="265.8928" y="201" text-anchor="start">4.3s</text>
+<text class="pf-s" x="160" y="229.5" text-anchor="end">after · 첫 글자</text>
+<rect class="pf-s2" x="170" y="214" width="48.0" height="10" rx="2"/>
+<text class="pf-val" x="222.9712" y="223" text-anchor="start">2.3s</text>
+<rect class="pf-s3" x="170" y="227" width="19.6" height="10" rx="2"/>
+<text class="pf-val" x="194.5672" y="236" text-anchor="start">0.9s</text>
+<text class="pf-s" x="160" y="264.5" text-anchor="end">after · 응답 끝</text>
+<rect class="pf-s2" x="170" y="249" width="261.5" height="10" rx="2"/>
+<text class="pf-val" x="436.5272" y="258" text-anchor="start">12.4s</text>
+<rect class="pf-s3" x="170" y="262" width="40.6" height="10" rx="2"/>
+<text class="pf-val" x="215.6072" y="271" text-anchor="start">1.9s</text>
+<line class="pf-grid" x1="170.0" y1="70" x2="170.0" y2="276"/>
+<text class="pf-axis" x="170.0" y="289" text-anchor="middle">0</text>
+<line class="pf-grid" x1="275.2" y1="70" x2="275.2" y2="276"/>
+<text class="pf-axis" x="275.2" y="289" text-anchor="middle">5</text>
+<line class="pf-grid" x1="380.4" y1="70" x2="380.4" y2="276"/>
+<text class="pf-axis" x="380.4" y="289" text-anchor="middle">10</text>
+<line class="pf-grid" x1="485.6" y1="70" x2="485.6" y2="276"/>
+<text class="pf-axis" x="485.6" y="289" text-anchor="middle">15</text>
+<line class="pf-grid" x1="590.8" y1="70" x2="590.8" y2="276"/>
+<text class="pf-axis" x="590.8" y="289" text-anchor="middle">20</text>
+<line class="pf-grid" x1="696.0" y1="70" x2="696.0" y2="276"/>
+<text class="pf-axis" x="696.0" y="289" text-anchor="middle">25</text>
+<rect class="pf-panel" x="10" y="314" width="740" height="194" rx="8"/>
+<text class="pf-plabel" x="22" y="334">(b) 입력 12개 × 2회: 약속(open loop)을 잡는가</text>
+<rect class="pf-s1" x="30" y="348" width="10" height="10" rx="2"/>
+<text class="pf-s" x="45" y="357" text-anchor="start">gemma4:e2b</text>
+<rect class="pf-s2" x="121.74" y="348" width="10" height="10" rx="2"/>
+<text class="pf-s" x="136.74" y="357" text-anchor="start">gemma4:e4b</text>
+<rect class="pf-s3" x="213.48" y="348" width="10" height="10" rx="2"/>
+<text class="pf-s" x="228.48" y="357" text-anchor="start">gpt-4o-mini</text>
+<text class="pf-s" x="160" y="400.0" text-anchor="end">약속 recall</text>
+<rect class="pf-s1" x="170" y="378" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="387" text-anchor="start">1.00</text>
+<rect class="pf-s2" x="170" y="391" width="394.5" height="10" rx="2"/>
+<text class="pf-val" x="569.5" y="400" text-anchor="start">0.75</text>
+<rect class="pf-s3" x="170" y="404" width="394.5" height="10" rx="2"/>
+<text class="pf-val" x="569.5" y="413" text-anchor="start">0.75</text>
+<text class="pf-s" x="160" y="448.0" text-anchor="end">약속 precision</text>
+<rect class="pf-s1" x="170" y="426" width="371.4" height="10" rx="2"/>
+<text class="pf-val" x="546.356" y="435" text-anchor="start">0.71</text>
+<rect class="pf-s2" x="170" y="439" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="448" text-anchor="start">1.00</text>
+<rect class="pf-s3" x="170" y="452" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="461" text-anchor="start">1.00</text>
+<line class="pf-grid" x1="170.0" y1="374" x2="170.0" y2="466"/>
+<text class="pf-axis" x="170.0" y="479" text-anchor="middle">0.0</text>
+<line class="pf-grid" x1="433.0" y1="374" x2="433.0" y2="466"/>
+<text class="pf-axis" x="433.0" y="479" text-anchor="middle">0.5</text>
+<line class="pf-grid" x1="696.0" y1="374" x2="696.0" y2="466"/>
+<text class="pf-axis" x="696.0" y="479" text-anchor="middle">1.0</text>
+<text class="pf-note" x="30" y="492" text-anchor="start">지연 중앙값: gemma4:e2b 5.4초, gemma4:e4b 9.8초, gpt-4o-mini 2.3초. 유효 프레임은 세 모델 모두 1.00</text>
+</svg>

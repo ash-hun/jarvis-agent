@@ -4,6 +4,7 @@ title: Voice Interface
 ---
 
 import FigureVoice from '@site/src/figures/voice.svg';
+import FigureExpVoice from '@site/src/figures/exp-voice.svg';
 
 # Voice Interface
 
@@ -141,16 +142,14 @@ JARVIS_VOICE__TUI_RECORD_SECONDS=5
 
 ### Piper 영어 음성 합성 속도
 
-백엔드 컨테이너(aarch64, 14코어, CPU 만)에서 Piper 모델(high 품질, `noise_scale` 0.4)로 영어 문장 넷을 합성했다. 재현: `scripts/experiments/piper_speed.py` 를 컨테이너에서 실행한다.
+백엔드 컨테이너(aarch64, 14코어, CPU 만)에서 Piper 모델(high 품질, `noise_scale` 0.4)로 길이가 다른 영어 문장 넷을 합성했다. 재현: `scripts/experiments/piper_speed.py` 를 컨테이너에서 실행한다.
 
-| 글자 수 | 합성 시간 | 음성 길이 | 실시간 대비(RTF) |
-|---|---|---|---|
-| 13 | 0.14초 | 0.65초 | 0.22 |
-| 58 | 0.58초 | 3.02초 | 0.19 |
-| 89 | 0.99초 | 4.71초 | 0.21 |
-| 110 | 1.32초 | 6.12초 | 0.22 |
+<figure className="paper-fig">
+  <FigureExpVoice />
+  <figcaption><b>Figure 2.</b> 합성 시간은 음성 길이의 0.19~0.22배다. 110자 문장(6.1초 분량)도 1.3초에 합성된다.</figcaption>
+</figure>
 
-음성 길이의 약 5분의 1 시간에 합성된다. 문장 하나를 통째로 합성한 뒤 보내므로, 듣기 시작까지는 합성 시간만큼 기다린다. 긴 답이면 1초 남짓이다.
+문장 하나를 통째로 합성한 뒤 보내므로, 듣기 시작까지는 합성 시간만큼 기다린다. 긴 답이면 1초 남짓이다.
 
 ### 실제 전사 기록에서 Focus 키워드 해석
 

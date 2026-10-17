@@ -4,6 +4,7 @@ title: Multi agent Orchestration
 ---
 
 import FigureMultiAgentOrchestration from '@site/src/figures/multi-agent-orchestration.svg';
+import FigureExpTeam from '@site/src/figures/exp-team.svg';
 
 # Multi agent Orchestration
 
@@ -115,6 +116,35 @@ sequenceDiagram
 ## 함께 일할 때의 구체
 
 서버는 세션마다 루프의 시작과 끝을 세어 일하는 에이전트가 바뀔 때 `agent_activity{active}` 를 열린 HUD 전부에 보낸다(`ui/web/agent_activity.py`). 둘 이상이 일하면 HUD 구체의 입자가 두 에이전트의 primary 로 흐르는 띠처럼 섞이고, 일하는 에이전트 칩이 빛난다. 끝나면 지금 에이전트 색으로 돌아온다.
+
+## 성능 실험
+
+### JARVIS 가 KAREN 에게 맡기기
+
+새 JARVIS 세션에 "KAREN 에게 서울 SH 청약 공고 최근 것 하나만 찾아 달라고 맡겨 줘" 를 보내, JARVIS 가 `ask_agent` 로 맡기는지, KAREN 이 자기 도구를 부르는지, 끝까지 얼마나 걸리는지 쟀다. 두 에이전트가 같은 모델을 쓴다. 재현: `uv run python -m scripts.experiments.agent_turns delegate --n 3`.
+
+<figure className="paper-fig">
+  <FigureExpTeam />
+  <figcaption><b>Figure 2.</b> 두 모델 모두 세 번 다 위임하고 KAREN 이 도구로 답했다. 위임 한 번에 LLM 호출이 최소 네 번 일어나 로컬 모델에서는 30초를 넘는다.</figcaption>
+</figure>
+
+- KAREN 의 도구 호출은 스크립트가 아니라 받는 쪽 세션(`peer-main-karen`) 기록을 직접 열어 확인했다. 여섯 번 모두 KAREN 이 도구를 먼저 부르고 도구 결과로 답했다. 요청 끝 규칙(`PEER_REQUEST_RULE`)을 넣기 전, gemma4:e4b 가 위임받은 세션에서 도구 없이 "조회한 척" 답하던 문제가 이 조건에서는 나오지 않았다
+- 같은 기록에서, 한 번은 KAREN 이 "청약" 이라는 제목 키워드로 걸러 결과가 0건이었고, 지어내지 않고 "조건에 맞는 공고가 없다" 고 답했다
+- 네 번은 JARVIS 판단, KAREN 판단, KAREN 정리, JARVIS 정리다
+
+## 설계 노트
+
+### 세션은 한 에이전트의 것
+
+에이전트를 고르는 단위를 세션으로 정했다. 세션은 만들 때 에이전트가 정해지고 바뀌지 않는다. 대화 중간에 에이전트를 바꾸게 하면 앞의 대화를 누구의 기억으로, 어떤 승인 규칙으로 다룰지가 모호해진다. 기존 세션은 모두 `main` 으로 이어지고, Postgres 에는 `agent_id` 칼럼을 `ADD COLUMN IF NOT EXISTS` 로 더해 재실행해도 안전하게 옮겼다.
+
+### 맡긴 대화도 세션으로 남긴다
+
+`ask_agent` 의 받는 쪽은 에이전트 쌍마다 세션 하나(`peer-<부른 쪽>-<받는 쪽>`)에서 답한다. 맡길 때마다 새 세션을 만들면 KAREN 은 JARVIS 가 앞서 무엇을 물었는지 모른다. 쌍마다 이어지는 세션이라 앞 대화를 기억하고, HUD 세션 목록에서 그 대화를 사람이 열어 볼 수 있다. 받는 쪽 도구의 승인 요청은 받는 쪽이 아니라 부른 세션의 화면으로 보낸다. 사람이 보고 있는 곳이 그쪽이기 때문이다.
+
+### 서로 미루기를 막는 두 규칙
+
+실서버에서 gemma4 두 에이전트가 같은 일을 서로에게 되돌려 맡기는 것을 봤다. 도구 설명에 "되돌리지 마라" 를 적어도 무시했다. 그래서 규칙을 도구 코드에 넣었다. 깊이는 A → B → A 까지만 허용하고, 받은 요청과 글자가 거의 같은 일(bigram Jaccard 0.4 이상)을 보낸 쪽에 다시 맡기면 도구가 거절한다. "관심 분야가 뭐야?" 같은 되묻기는 다른 질문이라 통과한다.
 
 ## 구현 위치
 

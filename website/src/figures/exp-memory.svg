@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 214" class="pf-svg" role="img" aria-label="컴팩션 요약의 사실 보존율">
+<defs><marker id="exp-memory-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-memory-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-memory-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-memory-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="10" y="10" width="740" height="194" rx="8"/>
+<text class="pf-plabel" x="22" y="30">심어 둔 사실 12개 × 3회 = 36개, 판정 모델은 gpt-4o-mini 로 고정</text>
+<rect class="pf-s1" x="30" y="44" width="10" height="10" rx="2"/>
+<text class="pf-s" x="45" y="53" text-anchor="start">gemma4:e2b</text>
+<rect class="pf-s2" x="121.74" y="44" width="10" height="10" rx="2"/>
+<text class="pf-s" x="136.74" y="53" text-anchor="start">gemma4:e4b</text>
+<rect class="pf-s3" x="213.48" y="44" width="10" height="10" rx="2"/>
+<text class="pf-s" x="228.48" y="53" text-anchor="start">gpt-4o-mini</text>
+<text class="pf-s" x="160" y="96.0" text-anchor="end">보존율 (LLM 판정)</text>
+<rect class="pf-s1" x="170" y="74" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="83" text-anchor="start">1.00</text>
+<rect class="pf-s2" x="170" y="87" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="96" text-anchor="start">1.00</text>
+<rect class="pf-s3" x="170" y="100" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="109" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="144.0" text-anchor="end">보존율 (낱말 포함)</text>
+<rect class="pf-s1" x="170" y="122" width="277.7" height="10" rx="2"/>
+<text class="pf-val" x="452.728" y="131" text-anchor="start">0.53</text>
+<rect class="pf-s2" x="170" y="135" width="175.2" height="10" rx="2"/>
+<text class="pf-val" x="350.158" y="144" text-anchor="start">0.33</text>
+<rect class="pf-s3" x="170" y="148" width="175.2" height="10" rx="2"/>
+<text class="pf-val" x="350.158" y="157" text-anchor="start">0.33</text>
+<line class="pf-grid" x1="170.0" y1="70" x2="170.0" y2="162"/>
+<text class="pf-axis" x="170.0" y="175" text-anchor="middle">0.0</text>
+<line class="pf-grid" x1="433.0" y1="70" x2="433.0" y2="162"/>
+<text class="pf-axis" x="433.0" y="175" text-anchor="middle">0.5</text>
+<line class="pf-grid" x1="696.0" y1="70" x2="696.0" y2="162"/>
+<text class="pf-axis" x="696.0" y="175" text-anchor="middle">1.0</text>
+<text class="pf-note" x="30" y="188" text-anchor="start">낱말 포함이 낮은 것은 요약이 대부분 영어로 나와 한국어 낱말이 그대로 남지 않아서로 보인다(추정)</text>
+</svg>

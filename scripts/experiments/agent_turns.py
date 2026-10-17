@@ -12,6 +12,7 @@ import websockets
 
 WS = "ws://localhost:7777/ws?session_id={sid}"
 IDLE_SEC = 20.0
+PANEL_WAIT_SEC = 120.0
 TIMING_PROMPTS = [
     "파이썬 리스트와 튜플의 차이를 세 줄로 설명해 줘",
     "내일 아침 회의 전에 챙길 것 세 가지만 추천해 줘",
@@ -140,9 +141,10 @@ async def focus(task: str) -> dict:
     r = await turn(ws, f"/focus {task}", approve=False, until_end=False)
     total = time.perf_counter() - t0
     panels = r.get("panels", {})
-    # 첫 응답 뒤에도 조사와 기록이 이어서 온다. 잠깐 더 받는다
+    # 첫 응답 뒤에도 조사와 기록이 이어서 온다. 40초 조용하거나 전체 120초가 지나면 그만 받는다
+    deadline = time.perf_counter() + PANEL_WAIT_SEC
     try:
-        while True:
+        while time.perf_counter() < deadline:
             m = json.loads(await asyncio.wait_for(ws.recv(), 40))
             if m["type"] == "focus_panel" and not m.get("busy"):
                 panels[m["area"]] = m["markdown"]
@@ -153,10 +155,12 @@ async def focus(task: str) -> dict:
     precedents, longest = reference_stats(panels.get("reference", ""))
     log = panels.get("log", "")
     return {
-        "first_reply_s": round(r["first"] or 0, 2), "turn_s": round(total, 2),
+        "first_reply_s": round(r["first"] or 0, 2),
+        "turn_s": round(total, 2),
         "steps": len((r.get("state") or {}).get("steps", [])),
         "analysis_has_5": all(t in panels.get("analysis", "") for t in ("근본 목적", "필요한 것", "예상 다음 지시")),
-        "reference_precedents": precedents, "reference_longest_line": longest,
+        "reference_precedents": precedents,
+        "reference_longest_line": longest,
         "log_relative_words": [w for w in RELATIVE if w in log.split("Focus 시작", 1)[-1]],
     }
 

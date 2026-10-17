@@ -1,21 +1,19 @@
 ---
 sidebar_position: 2
-title: Tool & Approve system
+title: Tool & Approve System
 ---
 
 import FigureToolsAndApproval from '@site/src/figures/tools-and-approval.svg';
 import FigureExpApproval from '@site/src/figures/exp-approval.svg';
 
-# Tool & Approve system
+# Tool & Approve System
 
 <figure className="paper-fig">
   <FigureToolsAndApproval />
   <figcaption><b>Figure 1.</b> 도구 호출 한 번은 허용 목록, 플러그인, 승인 순으로 검사한다. 승인이 필요하면 공용 또는 에이전트별 규칙을 먼저 보고, 맞는 규칙이 없을 때만 사람에게 묻는다. ALWAYS 는 지금 에이전트의 규칙 파일에 패턴을 남기고, 거부는 예외 대신 is_error 결과로 LLM 에 돌아간다.</figcaption>
 </figure>
 
-도구는 에이전트가 파일, 셸, 웹 같은 바깥 세상에 손을 대는 유일한 길이고, 위험할 수 있는 도구는 실행 전에 사람의 승인을 받는다.
-
-도구는 `core/tools/` 의 레지스트리에 모인다. 승인이 필요한 도구는 `core/policy/sandbox.py` 가 실행 전에 사람에게 묻는다.
+에이전트는 도구로만 파일, 셸, 웹에 접근한다. 도구는 `core/tools/` 의 레지스트리에 모이고, 위험할 수 있는 도구는 실행 전에 `core/policy/sandbox.py` 가 사람에게 승인을 묻는다.
 
 ## 내장 도구
 
@@ -35,7 +33,7 @@ import FigureExpApproval from '@site/src/figures/exp-approval.svg';
 
 `remember_task_pattern` 은 모든 에이전트가 쓰는 메모리 도구다. 사용자가 알려 준 작업 방식을 도구를 부른 에이전트의 작업 패턴으로 저장한다([Memory Management → 작업 패턴](../memory.md#작업-패턴)).
 
-실행 중에 동적으로 더해지는 도구도 있다. `orchestrate` 와 `agent_<name>`(에이전트 정의가 있을 때), `procedure_<name>`(승인된 절차), MCP 서버의 도구, `~/.jarvis/tools/` 의 사용자 도구가 그렇다. 사용자 도구와 MCP 도구는 같은 이름의 내장 도구를 덮어쓴다. 도구 목록은 턴마다 다시 읽으므로 새로 등록된 도구가 재시작 없이 보인다.
+실행 중에 동적으로 더해지는 도구도 있다. `orchestrate` 와 `agent_<name>`(에이전트 정의가 있을 때), `procedure_<name>`(승인된 절차), MCP 서버의 도구, `~/.jarvis/tools/` 의 사용자 도구가 그렇다. 사용자 도구와 MCP 도구는 같은 이름의 내장 도구를 덮어쓴다. 도구 목록은 턴마다 레지스트리에서 다시 읽으므로, 실행 중에 등록된 도구(승인된 절차 등)는 재시작 없이 보인다. `~/.jarvis/tools/` 에 파일을 더한 경우는 기동 때만 읽으므로 재시작한다.
 
 ## 도구 호출 한 번
 
@@ -57,7 +55,7 @@ flowchart TD
   P --> R[결과를 LLM 에]
 ```
 
-거부는 예외가 아니다. 한 번의 호출에서 요청한 도구가 모두 승인을 받지 못하면, 루프는 LLM 에 다시 묻지 않고 정해진 한 줄로 턴을 끝낸다. 다시 물으면 모델이 "터미널에서 직접 이렇게 하세요" 처럼 방법 안내로 빠지기 때문이다. 일부만 거부됐으면 LLM 이 나머지 결과로 답을 이어 간다.
+거부는 예외로 처리하지 않는다. 한 번의 호출에서 요청한 도구가 모두 승인을 받지 못하면, 루프는 LLM 에 다시 묻지 않고 정해진 한 줄로 턴을 끝낸다. 다시 물으면 모델이 "터미널에서 직접 이렇게 하세요" 처럼 방법 안내로 빠지기 때문이다. 일부만 거부됐으면 LLM 이 나머지 결과로 답을 이어 간다.
 
 | 경우 | 응답 | ACTIVITY |
 |---|---|---|
@@ -144,7 +142,7 @@ parameters: '1. 파일 검색 패턴, 2. 주요 파일 경로, 3. 읽을 최대 
 
 - **스킬**: `~/.jarvis/skills/*.md` 에 둔다. `/name args` 가 본문으로 펼쳐져 LLM 프롬프트가 된다. 기동 때 한 번 읽는다
 - **플러그인**: `~/.jarvis/plugins/*.py` 에 둔다. 실제로 불리는 훅은 `before_agent_start`, `before_tool_call`(block 가능), `after_tool_call`(관찰만, 반환값은 무시), `on_message_end`(응답 교체 가능)다. `transform_context` 는 선언만 되어 있고 호출되지 않는다. 플러그인 하나의 오류는 격리된다
-- **MCP**: `mcp_servers` 설정의 서버에서 도구를 발견해 등록한다. `stdio` 와 SSE 를 지원하고, 호출마다 새 연결을 연다. 서버 하나가 실패해도 다른 서버는 막히지 않는다. 쓰려면 `uv sync --extra mcp` 로 설치한다
+- **MCP**: `mcp_servers` 설정의 서버에서 도구를 발견해 등록한다. `stdio` 와 `http`(SSE) 를 지원하고, 호출마다 새 연결을 연다. 서버 하나가 실패해도 다른 서버는 막히지 않는다. 쓰려면 `uv sync --extra mcp` 로 설치한다
 
 :::warning
 파일 감시(`JARVIS_PLUGIN__WATCH_FILES`)는 설정에 있지만 현재 아무것도 감시하지 않는다. 도구, 스킬, 플러그인을 더했으면 재시작한다.
@@ -200,7 +198,7 @@ parameters: '1. 파일 검색 패턴, 2. 주요 파일 경로, 3. 읽을 최대 
 
 말로 받은 승인 답은 오인식의 비용이 비대칭이다. 거부를 허용으로 잘못 들으면 위험한 명령이 실행되고, 허용을 거부로 잘못 들으면 한 번 더 말하면 된다. 그래서 부정어가 하나라도 있으면 분류 없이 거부하고, 키워드로 판정이 안 되는 말만 사고 모델에 묻고, 그 답이 분명한 허용일 때만 허용한다. gemma4:e2b 로 승인 답 11문장을 돌렸을 때 허용하면 안 되는 말을 허용한 경우는 0건, 판정 중앙값은 0.28초였다.
 
-나중에 드러난 문제는 해석이 아니라 듣기였다. 질문을 읽은 뒤 딱 한 번만 들어서, 인식이 몇 초 만에 끝나면 "승인해" 라는 답이 어디에도 닿지 않고 120초 뒤 거부됐다. 지금은 승인 창이 열려 있는 동안 읽기가 끝날 때마다, 인식이 말 없이 끝날 때마다 다시 듣는다(최대 20번).
+나중에 드러난 문제는 듣기 쪽에 있었다. 질문을 읽은 뒤 딱 한 번만 들어서, 인식이 몇 초 만에 끝나면 "승인해" 라는 답이 어디에도 닿지 않고 120초 뒤 거부됐다. 지금은 승인 창이 열려 있는 동안 읽기가 끝날 때마다, 인식이 말 없이 끝날 때마다 다시 듣는다(최대 20번).
 
 ## 구현 위치
 

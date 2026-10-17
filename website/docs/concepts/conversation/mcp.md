@@ -1,18 +1,18 @@
 ---
 sidebar_position: 4
-title: MCP연동
+title: MCP Events
 ---
 
 import FigureMcp from '@site/src/figures/mcp.svg';
 
-# MCP연동
+# MCP Events
 
 <figure className="paper-fig">
   <FigureMcp />
   <figcaption><b>Figure 1.</b> Poller 가 소스마다 MCP 도구를 불러 처음 보는 항목만 inbox 에 넣고, 새 이벤트가 성찰을 깨운다. 다음 성찰이 inbox 를 한 번 비우므로 이벤트마다 발화는 많아야 한 번이다.</figcaption>
 </figure>
 
-JARVIS 는 MCP 도구를 주기적으로 불러 새 항목을 성찰의 재료로 넣는다. 캘린더나 메일 같은 소스를 비서가 먼저 보고 말하게 하는 길이다.
+JARVIS 는 MCP 도구를 주기적으로 불러 새 항목을 성찰의 재료로 넣는다. 이 기능으로 캘린더나 메일 같은 소스의 새 항목을 JARVIS 가 먼저 알린다.
 
 ```mermaid
 flowchart LR
@@ -39,7 +39,7 @@ flowchart LR
 
 ### 내장 도구와 같은 자리에 둔다
 
-MCP 도구는 따로 부르는 통로를 만들지 않고 내장 도구와 같은 레지스트리에 등록한다. 승인, 플러그인 훅, 결과 저장이 모두 같은 경로를 탄다. MCP 도구도 `JARVIS_SECURITY__REQUIRE_APPROVAL_FOR` 에 이름을 넣으면 내장 도구처럼 실행 전에 승인을 받는다(기본 목록에는 없다). 대신 이름이 같으면 MCP 도구가 내장 도구를 덮어쓰므로, 이름을 고를 때 주의해야 한다.
+MCP 도구는 따로 부르는 통로를 만들지 않고 내장 도구와 같은 레지스트리에 등록한다. 승인, 플러그인 훅, 결과 저장이 모두 같은 경로를 탄다. MCP 도구도 `JARVIS_SECURITY__REQUIRE_APPROVAL_FOR` 에 이름을 넣으면 내장 도구처럼 실행 전에 승인을 받는다(기본 목록에는 없다). 이름이 같으면 MCP 도구가 내장 도구를 덮어쓰므로 이름이 겹치지 않게 고른다.
 
 ## 구현 위치
 

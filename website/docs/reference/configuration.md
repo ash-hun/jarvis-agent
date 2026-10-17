@@ -5,7 +5,7 @@ title: 서비스 설정 값
 
 # 서비스 설정 값
 
-이 페이지는 JARVIS 가 읽는 설정을 영역별로 모은다. 모든 설정은 환경변수로 준다.
+JARVIS 가 읽는 설정을 영역별로 정리한다. 모든 설정은 환경변수로 준다.
 
 이름은 `JARVIS_` 접두사로 시작하고, 중첩 단계는 `__` 로 구분한다. JARVIS 는 `.env` 파일을 읽되, 같은 이름의 환경변수가 있으면 환경변수를 쓴다.
 
@@ -27,7 +27,7 @@ JARVIS_LLM__TEMPERATURE=0.7
 JARVIS_LLM__TIMEOUT=120               # 초
 ```
 
-## 내적 사고와 proactive
+## Inner Thought 와 Proactive Dialogue
 
 ```bash
 JARVIS_THOUGHT__ENABLED=true

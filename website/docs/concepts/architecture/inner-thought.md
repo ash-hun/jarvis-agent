@@ -1,25 +1,25 @@
 ---
 sidebar_position: 1
-title: 내적 사고 (Inner Thought)
+title: Inner Thought
 ---
 
 import FigureInnerThought from '@site/src/figures/inner-thought.svg';
 import FigureExpInnerThought from '@site/src/figures/exp-inner-thought.svg';
 
-# 내적 사고 (Inner Thought)
+# Inner Thought
 
 <figure className="paper-fig">
   <FigureInnerThought />
   <figcaption><b>Figure 1.</b> (a) 사고 한 번. 다섯 가지 맥락을 템플릿에 채워 도구 없이 사고 모델을 한 번 부르고, JSON 으로 강제한 ThoughtFrame 을 네 곳에 나눠 쓴다. (b) 사고와 메인 응답의 순서. before 는 해석이 이번 응답에 섞이고, race(기본)는 3초까지만 기다리며, after 는 같은 GPU 를 나눠 쓰는 로컬에서 가장 빠르다.</figcaption>
 </figure>
 
-JARVIS 는 답하기 전에 따로 한 번 생각한다. 사용자 입력마다 메인 응답과 별개로 LLM 을 한 번 더 불러, 무엇이 들어왔고 먼저 말할지 뒤에서 처리할지를 **사고 프레임**이라는 구조화된 판단으로 남긴다.
+JARVIS 는 답하기 전에 따로 한 번 생각한다. 사용자 입력마다 메인 응답과 별개로 LLM 을 한 번 더 불러, 무엇이 들어왔는지와 먼저 말할지, 뒤에서 처리할지를 **사고 프레임**이라는 구조화된 판단으로 남긴다.
 
-이 사고 프레임이 [먼저 행동하기](./proactive.md) 기능 전체의 입력이 된다. 내적 사고는 도구를 부르지 않는다.
+사고 프레임은 [Proactive Dialogue](./proactive.md) 기능 전체의 입력이 된다. Inner Thought 는 도구를 부르지 않는다.
 
 ## 사고 프레임
 
-사고 프레임(`ThoughtFrame`)은 JSON 이다. 키 이름은 고정이고, 사용자는 프롬프트 템플릿으로 키가 채워지는 방식만 조율한다.
+사고 프레임(`ThoughtFrame`)은 JSON 이다. 키 이름은 고정이고, 사용자는 프롬프트 템플릿으로 키가 채워지는 방식만 조정한다.
 
 | 필드 | 뜻 |
 |---|---|
@@ -36,7 +36,7 @@ JARVIS 는 답하기 전에 따로 한 번 생각한다. 사용자 입력마다 
 | `open_loops` | 이번 입력에서 새로 감지한 약속과 미완 작업. 기한이 분명하면 끝에 ` @YYYY-MM-DD HH:MM` |
 | `closed_loops` | [열린 약속] 중 이번 입력으로 끝났거나 취소된 것의 번호. 세션이 그 약속을 done 으로 닫는다 |
 
-`utterance` 와 `interpretation` 을 나눈 이유는 해석문을 그대로 말하면 안 되기 때문이다. 해석문은 "사용자가 불안해한다" 같은 문장이다. 그래서 먼저 건네는 말은 `utterance` 만 쓴다.
+`utterance` 와 `interpretation` 을 나눈 것은 해석문을 그대로 말하면 안 되기 때문이다. 해석문은 "사용자가 불안해한다" 같은 문장이므로, 먼저 건네는 말에는 `utterance` 만 쓴다.
 
 ## 흐름
 
@@ -69,8 +69,8 @@ flowchart LR
 ## 사고 결과가 가는 곳
 
 - **composer**: `[내적 사고] 해석: ... 회상: ... 고려한 대응: ...` 블록을 만들어 메인 호출의 시스템 프롬프트 끝에 붙인다. 이 블록은 히스토리에 남지 않는다. `interpretation_only` 로 바꾸면 해석 한 줄만 붙인다
-- **dual channel**: `needs_background` 면 filler 를 먼저 말하고 메인 응답은 뒤에서 돈다. 흐름은 [먼저 행동하기의 Dual channel](./proactive.md#dual-channel) 에 있다
-- **약속(open loop)**: 요청 모드에서만 저장하고 닫는다. 성찰 모드는 기존 약속을 볼 뿐 새로 쌓지도 닫지도 않는다. 바꿔 말한 같은 약속이 쌓이는 것과, 사용자 말 없이 약속이 사라지는 것을 막기 위해서다. 저장과 닫힘 규칙은 [Open Loop](../conversation/open-loop.md) 에 있다
+- **dual channel**: `needs_background` 면 filler 를 먼저 말하고 메인 응답은 뒤에서 돈다. 흐름은 [Dual channel](./proactive.md#dual-channel) 에 있다
+- **약속(open loop)**: 요청 모드에서만 저장하고 닫는다. 성찰 모드는 기존 약속을 볼 뿐 새로 쌓지도 닫지도 않는다. 바꿔 말한 같은 약속이 쌓이는 것과, 사용자 말 없이 약속이 사라지는 것을 막기 위해서다. 저장과 닫힘 규칙은 [Open loop](../conversation/open-loop.md) 에 있다
 - **화면**: 💭 한 줄로 decision 과 확신도를 보여 준다. 클릭하면 해석 전문이 열린다
 
 ## 시점: before, race, after
@@ -93,8 +93,8 @@ gantt
 ```
 
 - `before`: 사고를 끝낸 뒤 응답한다. 해석이 이번 응답에 섞인다
-- `race`(기본): `wait_sec` 까지만 기다린다. 사고가 늦으면 응답을 먼저 시작하고, 사고는 뒤에서 끝나 💭, 약속, 피드백 학습에만 쓰인다
-- `after`: 응답이 끝난 뒤 사고한다. 사고와 메인이 같은 GPU 를 나눠 쓰는 로컬 Ollama 에서는 이게 가장 빠르다
+- `race`(기본): `wait_sec` 까지만 기다린다. 사고가 늦으면 응답을 먼저 시작하고, 사고는 뒤에서 끝나 💭 표시, 약속 저장, 사고 기록에만 쓰인다
+- `after`: 응답이 끝난 뒤 사고한다. 사고와 메인이 같은 GPU 를 나눠 쓰는 로컬 Ollama 에서는 이 방식이 가장 빠르다
 
 늦은 사고는 세션이 task 로 들고 있다가, 끝나면 기록과 이벤트를 남긴다. 실패하면 `[Thought] request thought failed` 로그가 남는다.
 
@@ -110,7 +110,7 @@ gantt
 
 ## 템플릿 직접 쓰기
 
-요청용 템플릿은 `~/.jarvis/inner_thought.md`, 성찰용 템플릿은 `~/.jarvis/inner_thought_reflection.md` 에 직접 쓴다. 자리표시자는 `{{now}}`, `{{open_loops}}`, `{{external_events}}`, `{{recalled_memories}}`, `{{history}}`, `{{user_input}}`, `{{user_model}}`, `{{recent_proactive}}`(성찰 전용, 최근 먼저 건넨 말)이다. 없는 값은 빈 문자열이 된다. 외부 이벤트나 최근 먼저 건넨 말이 있는데 템플릿에 자리가 없으면, 끝에 덧붙여 조용히 사라지지 않게 한다.
+요청용 템플릿은 `~/.jarvis/inner_thought.md`, 성찰용 템플릿은 `~/.jarvis/inner_thought_reflection.md` 에 직접 쓴다. 자리표시자는 `{{now}}`, `{{open_loops}}`, `{{external_events}}`, `{{recalled_memories}}`, `{{history}}`, `{{user_input}}`, `{{user_model}}`, `{{recent_proactive}}`(성찰 전용, 최근 먼저 건넨 말)이다. 없는 값은 빈 문자열이 된다. 외부 이벤트나 최근 먼저 건넨 말이 있는데 템플릿에 자리가 없으면, 끝에 덧붙여 빠지지 않게 한다.
 
 :::warning
 
@@ -128,7 +128,7 @@ gantt
 </figure>
 
 - 로컬에서 after 는 첫 글자 2.3초, before 는 15.6초다. 대신 after 의 💭 는 응답이 끝난 뒤(질문부터 약 23초) 온다. 클라우드도 after 가 가장 빨랐다(첫 글자 0.9초). 그래서 설정 예시(`.env.example`)가 권하는 값과 지금 쓰는 설정은 after 다. 코드 기본값은 race 다
-- 작은 e2b 가 약속을 모두 잡았지만, 약속이 없는 말에서도 약속을 만들었다(precision 0.71). 이렇게 잘못 만든 약속은 [Open Loop](../conversation/open-loop.md) 의 저장 판정(입력과의 글자 겹침, 근거 인용)을 한 번 더 거친다
+- 작은 e2b 가 약속을 모두 잡았지만, 약속이 없는 말에서도 약속을 만들었다(precision 0.71). 이렇게 잘못 만든 약속은 [Open loop](../conversation/open-loop.md) 의 저장 판정(입력과의 글자 겹침, 근거 인용)을 한 번 더 거친다
 - e4b 와 gpt-4o-mini 는 약속을 덜 잡는 대신(recall 0.75) 잘못 만든 약속이 없다. 처음 데이터에는 "이번 달 안에 헬스장 등록하려고" 처럼 약속인지 의도인지 애매한 문장이 있어 e4b 의 recall 이 0.58 로 나왔다. 그 문장을 "25일까지 등록하기로 친구랑 약속했어" 로 바꾼 뒤의 값이다
 - 한계: 시점 실험은 질문 4개의 중앙값이다. 로컬 수치는 하드웨어와 Ollama 의 모델 적재 상태에 따라 크게 달라진다
 
@@ -136,7 +136,7 @@ gantt
 
 ### 사고를 메인 응답과 떼어 낸 이유
 
-메인 응답 하나에 "해석하고, 약속을 찾고, 먼저 말할지 정하고, 답하라" 를 모두 시키면 프롬프트가 길어지고, 해석 결과를 구조화된 데이터로 꺼낼 수 없다. 그래서 사고를 별도 LLM 호출로 떼어 `ThoughtFrame` 이라는 고정 스키마로 받는다. 이 프레임 하나가 💭 표시, 약속 저장, 먼저 건네는 말, 피드백 학습으로 흩어진다. 메인 응답은 대화에만 집중하고, 사고는 작은 모델로 따로 돌릴 수 있다.
+메인 응답 하나에 "해석하고, 약속을 찾고, 먼저 말할지 정하고, 답하라" 를 모두 시키면 프롬프트가 길어지고, 해석 결과를 구조화된 데이터로 꺼낼 수 없다. 그래서 사고를 별도 LLM 호출로 떼어 `ThoughtFrame` 이라는 고정 스키마로 받는다. 이 프레임 하나를 💭 표시, 약속 저장, 먼저 건네는 말, 사고 기록에 나눠 쓴다. 메인 응답은 대화만 다루고, 사고는 작은 모델로 따로 돌릴 수 있다.
 
 ### 작은 모델에는 스키마를 강제한다
 

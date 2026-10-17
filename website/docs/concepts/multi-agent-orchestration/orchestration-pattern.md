@@ -12,9 +12,9 @@ import FigureOrchestrationPattern from '@site/src/figures/orchestration-pattern.
   <figcaption><b>Figure 1.</b> 서브 에이전트에게 일을 나누는 네 패턴. (a) 감독자 LLM 이 도구 호출로 맡길 에이전트를 고른다. (b) 레벨 순서대로 돌고 같은 레벨은 병렬이다. (c) capabilities 점수가 가장 높은 하나가 맡는다. (d) 전원이 공유 보드를 보고 병렬로 돌며 결과를 모은다.</figcaption>
 </figure>
 
-멀티 에이전트는 JARVIS 가 한 작업을 여러 서브 에이전트에게 나눠 맡기고 결과를 모으는 기능이다. 서브 에이전트는 부모 턴 안에서 잠깐 도는 도구이고, 사용자와 직접 대화하는 에이전트가 아니다. 자기 세션, 약속, 승인 규칙, 브랜드를 가진 에이전트가 필요하면 [Multi agent Orchestration](./index.md)을 쓴다.
+Orchestration Pattern 은 JARVIS 가 한 작업을 여러 서브 에이전트에게 나눠 맡기고 결과를 모으는 기능이다. 서브 에이전트는 부모 턴 안에서 잠깐 도는 도구이고, 사용자와 직접 대화하는 에이전트가 아니다. 자기 세션, 약속, 승인 규칙, 브랜드를 가진 에이전트가 필요하면 [Multi agent Orchestration](./index.md)을 쓴다.
 
-`~/.jarvis/agents/*.yaml` 에 에이전트를 선언하면 각 에이전트가 `agent_<name>` 도구가 된다. 함께 패턴을 고르는 `orchestrate` 도구와 `/orchestrate` 명령이 생긴다. 구현은 `core/multi_agent/` 에 있다.
+`~/.jarvis/agents/*.yaml` 에 에이전트를 선언하면 각 에이전트가 `agent_<name>` 도구가 된다. 패턴을 고르는 `orchestrate` 도구와 `/orchestrate` 명령도 함께 생긴다. 구현은 `core/multi_agent/` 에 있다.
 
 ## 서브 에이전트는 무엇인가
 
@@ -22,7 +22,7 @@ import FigureOrchestrationPattern from '@site/src/figures/orchestration-pattern.
 
 - 정의의 `system_prompt` 와 `tools` 부분집합을 쓴다. `model_override` 는 모델 이름만 바꾼다
 - 부모의 사용자 범위를 상속한다(`inherit_scope`). 그래서 사용자의 `/remember` 사실은 보이고 부모의 private 요약은 보이지 않는다
-- 내적 사고와 proactive 가 없다
+- Inner Thought 와 Proactive Dialogue 가 없다
 
 부모 LLM 에게 서브 에이전트 호출은 `agent_<name>` 도구의 결과로 보인다. 내용과 맥락이 같으면 `task_id`(해시)가 같으므로 다시 돌지 않는다. 부모는 "위임: ..." 을 일화로 기억한다.
 
@@ -73,13 +73,13 @@ flowchart TB
 ## 알아 둘 것
 
 - 서브 에이전트의 이벤트는 부모 세션 구독자에게 전달되지 않는다. 화면에는 부모의 `agent_<name>` 도구 호출 시작과 끝만 보인다
-- Web 모드에서 서브 에이전트가 승인이 필요한 도구를 부르면 승인 콜백이 없어 거부된다. 서브 에이전트에는 승인이 필요 없는 도구를 주는 것이 맞다
+- Web 모드에서 서브 에이전트가 승인이 필요한 도구를 부르면 승인 콜백이 없어 거부된다. 그래서 서브 에이전트에는 승인이 필요 없는 도구만 준다
 
 ## 설계 노트
 
 ### 패턴이 실제로 결과를 주고받게 했다
 
-처음 만든 네 패턴은 이전 결과와 블랙보드 내용을 작업 객체의 `context` 에만 넣었고, 하위 에이전트 프롬프트에는 `content` 만 넘겼다. 그래서 Hierarchical 과 Blackboard 에서 하위 에이전트가 상위 결과를 전혀 보지 못했다. 이름만 패턴이고 실제로는 각자 따로 도는 구조였다. 결과를 작업 범위의 공유 메모리(`[작업 공유 메모리]` 블록)로 넘기도록 고쳐, 패턴의 의미가 실제 프롬프트에 닿게 했다.
+처음 만든 네 패턴은 이전 결과와 블랙보드 내용을 작업 객체의 `context` 에만 넣었고, 하위 에이전트 프롬프트에는 `content` 만 넘겼다. 그래서 Hierarchical 과 Blackboard 에서 하위 에이전트가 상위 결과를 전혀 보지 못하고 각자 따로 돌았다. 결과를 작업 범위의 공유 메모리(`[작업 공유 메모리]` 블록)로 넘기도록 고쳐, 앞 결과가 하위 에이전트 프롬프트에 들어가게 했다.
 
 ### 위임은 한 노드로
 
@@ -95,7 +95,7 @@ flowchart LR
   TOOL[OrchestrateTool, AgentNodeTool] --> SVC
   DEF[(에이전트 정의 파일)] --> LOAD[loader.py]
   LOAD --> FAC[AgentFactory]
-  SVC --> TOP[패턴<br/>supervisor, hierarchical, p2p, blackboard, market]
+  SVC --> TOP[패턴<br/>supervisor, hierarchical, market, blackboard]
   TOP --> NODE[AgentNode<br/>서브 에이전트 세션]
   FAC --> NODE
   NODE --> BB[SharedBlackboard]

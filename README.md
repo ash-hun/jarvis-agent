@@ -128,7 +128,7 @@ jarvis --list-sessions      # 세션 목록
 | **Dual-Channel** | 오래 걸릴 작업이면 filler("잠깐만요, 확인할게요")를 **즉시 발화**(voice는 TTS)하고 메인 루프는 백그라운드 수행 — 대기 체감 감소 |
 | **Proactivity Daemon** | 요청 없이 주기(기본 120초)/idle 시점에 성찰해, 게이팅을 통과하면 **먼저 말 검**. 건네는 말은 사고 프레임의 `utterance` 이고 비어 있으면 침묵한다(해석문을 대신 내보내지 않는다). 저위험 읽기 작업은 자율로 미리 처리(이중 안전 게이트) |
 | **Open-loop 추적** | 대화에서 흘린 약속·미완 작업을 요청 시점에 감지·저장 → 이후 성찰 시 상기/처리 (`/openloop`). 성찰은 기존 약속을 볼 뿐 새로 저장하지 않는다. 대화에서 끝나거나 취소되면 사고가 닫고(done), 기한이 지나면 expired 로 닫힌다. 바꿔 말한 같은 약속은 기한만 갱신한다 |
-| **피드백 학습** | proactive 발화의 수락/무시를 학습해 발화 임계치를 자동 조정. Web 은 🔔 뒤에 "도움이 됐나요?" 를 묻고 다음 짧은 답(네/아니오)을 읽는다 |
+| **피드백 학습** | Proactive Dialogue의 수락/무시를 학습해 발화 임계치를 자동 조정. Web 은 🔔 뒤에 "도움이 됐나요?" 를 묻고 다음 짧은 답(네/아니오)을 읽는다 |
 | **User Model · 저널** | 누적 기억을 증류한 사용자 모델(`/usermodel`)을 사고에 주입, 자기 성찰 저널(`/journal`)을 남겨 회상에 반영 |
 
 ```bash
@@ -152,8 +152,8 @@ JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120   # 로컬과 배포 모두 같은 값
 
 | 피드백 | 동작 |
 |--------|------|
-| `Ctrl+Y` (TUI) / `네`, `좋아`, `고마워` 로 답 (Web, 음성) | proactive 발화 "도움됨" |
-| `Ctrl+G` (TUI) / `아니오`, `됐어`, `무시` 로 답 (Web, 음성) | proactive 발화 "무시" |
+| `Ctrl+Y` (TUI) / `네`, `좋아`, `고마워` 로 답 (Web, 음성) | Proactive Dialogue "도움됨" |
+| `Ctrl+G` (TUI) / `아니오`, `됐어`, `무시` 로 답 (Web, 음성) | Proactive Dialogue "무시" |
 
 Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는다. "응 그걸로 해줘" 처럼 키워드가 아닌 40자 이하 답은 사고 모델이 수락/무시/다른 말로 분류한다(사고가 켜져 있을 때). 다른 말이면 보통 메시지로 흘러가고 질문은 닫힌다. 음성 승인 답(Full-voice, 또는 Default 에서 음성으로 시작한 요청)도 같은 분류기를 쓰되, 허용이 분명할 때만 허용한다.
 
@@ -194,7 +194,7 @@ rules:
 
 ### 외부 알림 (Slack)
 
-열린 화면이 없어도 스케줄 결과와 proactive 발화가 닿도록 슬랙 incoming webhook 으로 보낸다. TUI, Web 둘 다 같은 채널을 쓴다.
+열린 화면이 없어도 스케줄 결과와 Proactive Dialogue가 닿도록 슬랙 incoming webhook 으로 보낸다. TUI, Web 둘 다 같은 채널을 쓴다.
 
 ```bash
 JARVIS_NOTIFY__SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
@@ -600,7 +600,7 @@ JARVIS_LLM__MAX_TOKENS=4096
 JARVIS_LLM__TEMPERATURE=0.7
 
 # ── 메모리 ───────────────────────────────────────────────────────────────────
-JARVIS_MEMORY__BACKEND=in_memory      # in_memory | postgres
+JARVIS_MEMORY__BACKEND=postgres       # in_memory | postgres
 JARVIS_MEMORY__WINDOW_SIZE=50
 JARVIS_MEMORY__COMPACTION_THRESHOLD=100000   # 글자 수
 JARVIS_MEMORY__CONSOLIDATE_ON_IDLE=true  # 조용할 때 요약에서 사실 추출 (daemon_trigger 가 idle 또는 both 일 때)
@@ -614,7 +614,6 @@ JARVIS_SESSION__POSTGRES_DSN=postgresql://user:pw@host:5432/db
 
 # ── 보안 ─────────────────────────────────────────────────────────────────────
 JARVIS_SECURITY__API_KEYS=            # Web HUD 접근 키 → 사용자 JSON. 비우면 web 인증 없음 (TUI는 항상 NoAuth)
-JARVIS_SECURITY__ALLOWED_DIRS=        # Sandbox 허용 디렉토리 (콤마 구분)
 JARVIS_SECURITY__APPROVALS_PATH=~/.jarvis/approvals.yaml   # "항상 허용" 규칙 파일
 
 # ── 절차 학습 / 외부 알림 ────────────────────────────────────────────────────
@@ -628,7 +627,7 @@ JARVIS_NOTIFY__KINDS=["reminder","proactive"]
 JARVIS_PLUGIN__TOOLS_DIR=~/.jarvis/tools
 JARVIS_PLUGIN__SKILLS_DIR=~/.jarvis/skills
 JARVIS_PLUGIN__PLUGINS_DIR=~/.jarvis/plugins
-JARVIS_PLUGIN__AGENTS_DIR=~/.jarvis/agents
+JARVIS_AGENTS__AGENTS_DIR=~/.jarvis/agents
 # 위 디렉토리는 기동 때 읽는다. 파일 감시(WATCH_FILES)는 아직 아무것도 감시하지 않는다
 
 # ── Web HUD ──────────────────────────────────────────────────────────────────

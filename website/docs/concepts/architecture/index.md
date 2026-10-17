@@ -55,7 +55,7 @@ flowchart TB
   CORE --> MEMORY
 ```
 
-- **model_layer**: 프로바이더마다 `stream()` 하나를 둔다. 텍스트 델타, 도구 호출 델타, 정지 이벤트를 같은 모양으로 낸다. 임베딩도 이 층이 맡는다
+- **model_layer**: 프로바이더마다 `stream()` 하나를 둔다. 텍스트 델타, 도구 호출 델타, 정지 이벤트를 같은 모양으로 낸다. 임베딩도 이 층에 있다
 - **agent_layer**: 에이전트 루프(`run_agent_loop`), 세션 저장소, 내적 사고 엔진, 메모리 미들웨어를 가진다. 벤더를 모른다
 - **core**: `AgentSession` 이 한 턴을 지휘한다. 보안, 도구, 승인, proactive 정책, 슬래시, 절차 학습, 멀티 에이전트, 스케줄러가 이 층에 있다
 - **app**: 조립 층. `InfraBuilder` 가 설정 하나로 도구, 메모리, 저장소, 보안, 스케줄러, proactive, 슬래시 명령을 만들고, `AgentProfile`(에이전트 한 명분 설정과 피드백 학습기)과 `SessionBuilder` 가 세션을 만든다
@@ -142,7 +142,7 @@ Docker 에서는 `~/.jarvis` 가 `jarvis_data` 볼륨이다.
 
 ### 의존은 한 방향
 
-`model_layer` 는 `core` 를 모르고, `agent_layer` 는 화면을 모르고, 화면은 `UIAdapter` 로만 이벤트를 받는다. 그래서 같은 세션이 TUI 와 Web 에 똑같이 붙고, 테스트에서는 실제 LLM 대신 각본 프로바이더(FauxProvider)를 꽂는다. 보안 파이프라인의 순서(검증, 인증, 정책, 샌드박스)는 구현만 바꿀 수 있고 순서는 바꿀 수 없게 했다.
+`model_layer` 는 `core` 를 모르고, `agent_layer` 는 화면을 모르고, 화면은 `UIAdapter` 로만 이벤트를 받는다. 그래서 같은 세션이 TUI 와 Web 에 똑같이 붙고, 테스트에서는 실제 LLM 대신 각본 프로바이더(FauxProvider)를 꽂는다. 보안 파이프라인(검증, 인증, 정책, 샌드박스)은 단계마다 구현만 바꿀 수 있고 순서는 바꿀 수 없다.
 
 ### 재실행해도 같은 결과
 

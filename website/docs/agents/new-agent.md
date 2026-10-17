@@ -5,7 +5,7 @@ title: 새로운 Agent 확장방법
 
 # 새로운 Agent 확장방법
 
-JARVIS 와 같은 층에 에이전트를 하나 더 두는 방법을 설명한다. 코드를 고치지 않고 정의 파일 하나로 늘릴 수 있다. 에이전트마다 자기 세션, 기억, 약속, 승인 규칙, 메인 색을 가진다. 동작 원리는 [Multi agent Orchestration](../concepts/multi-agent-orchestration/index.md)에 있다.
+JARVIS 와 같은 층에 에이전트를 하나 더 둔다. 코드를 고치지 않고 정의 파일 하나로 늘린다. 에이전트마다 자기 세션, 기억, 약속, 승인 규칙, 메인 색을 가진다. 동작 원리는 [Multi agent Orchestration](../concepts/multi-agent-orchestration/index.md)에 있다.
 
 ## 정의 파일 만들기
 

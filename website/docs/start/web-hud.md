@@ -66,7 +66,7 @@ nginx 가 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/`)을 서빙하고
 
 ## 모드
 
-헤더의 `DEFAULT` / `FULL-VOICE` 는 음성으로 주고받는 방식을, `/focus <작업>` 은 작업 하나에 집중하는 Focus 레이아웃을 고른다. 둘은 함께 쓸 수 있다. 자세한 건 [Mode](../concepts/mode/index.md). Focus 중에는 리액터 캡션이 한 줄로 줄고, 응답이 나오는 동안 CONVERSATION 띠가 빛난다. 띠를 누르면 전체 대화가 펼쳐진다.
+헤더의 `DEFAULT` / `FULL-VOICE` 는 음성으로 주고받는 방식을, `/focus <작업>` 은 작업 하나에 집중하는 Focus 레이아웃을 고른다. 둘은 함께 쓸 수 있고, 자세한 내용은 [Mode](../concepts/mode/index.md)에 있다. Focus 중에는 리액터 캡션이 한 줄로 줄고, 응답이 나오는 동안 CONVERSATION 띠가 빛난다. 띠를 누르면 전체 대화가 펼쳐진다.
 
 세션을 다른 에이전트(예: KAREN)로 바꾸면 화면 색이 약 0.9초에 걸쳐 그 에이전트 색으로 섞인다.
 
@@ -102,5 +102,5 @@ WS 가 끊기면 상단에 `연결 끊김 — 재연결 중...` 배너가 뜨고
 
 ## 자동과 수동 검증
 
-- 수동 시나리오 3개(성찰과 먼저 건네는 말과 피드백, 승인 기억, 절차 학습)는 `scripts/e2e/hud-scenario.md` 에 있다
+- 수동 시나리오 3개(Proactive Dialogue 와 피드백, 승인 기억, 절차 학습)는 `scripts/e2e/hud-scenario.md` 에 있다
 - 자동 e2e 는 `uv run python scripts/e2e/launch_hud.py &` 로 스크립트 프로바이더 HUD 를 7799 포트에 띄운 뒤 `uv run --with playwright python scripts/e2e/hud_flow.py` 를 실행한다

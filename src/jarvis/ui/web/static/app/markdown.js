@@ -1,5 +1,6 @@
-// 외부 의존 없는 마크다운 렌더 — h1-h4, p, ul/ol/li, pre/code, strong, em, hr.
+// 외부 의존 없는 마크다운 렌더 — h1-h4, p, ul/ol/li, pre/code, strong, em, 링크, hr.
 const _codeStore = {};  // uid → raw code text (copy 버튼용)
+const LINK_LABEL_MAX = 40;
 
 export function escapeHtml(s) {
   return s
@@ -9,8 +10,21 @@ export function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
+// 링크 글자. 맨 URL 은 인코딩된 경로가 여러 줄을 차지하니 도메인만 보인다
+function linkLabel(url) {
+  const bare = url.replace(/^https?:\/\//, '');
+  return bare.length <= LINK_LABEL_MAX ? bare : `${bare.split(/[/?#]/)[0]}/…`;
+}
+
+function anchor(url, label) {
+  return `<a href="${url}" target="_blank" rel="noopener noreferrer" title="${url}">${label}</a>`;
+}
+
 function inlineParse(text) {
   let s = escapeHtml(text);
+  // escapeHtml 뒤라 URL 의 " 와 < 는 이미 바뀌어 있다. http(s) 만 링크로 만든다
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) => anchor(url, label));
+  s = s.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, (_, lead, url) => lead + anchor(url, linkLabel(url)));
   s = s.replace(/\*\*(.+?)\*\*/g,  '<strong>$1</strong>');
   s = s.replace(/__(.+?)__/g,       '<strong>$1</strong>');
   s = s.replace(/\*(.+?)\*/g,       '<em>$1</em>');

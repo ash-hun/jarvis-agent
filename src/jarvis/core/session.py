@@ -83,9 +83,12 @@ APPROVAL_RULE = (
     "앞에서 승인되지 않았어도 새 요청이면 다시 호출해 승인을 구한다."
 )
 # 거부 결과가 "도구를 못 쓴다"로 읽히면 다음 턴부터 모델이 실행을 포기한다
-DENIED_RESULT = (
-    "사용자가 '{tool}' 실행을 승인하지 않아 실행하지 않았다(거부했거나 시간 안에 답하지 않았다). "
-    "도구는 계속 쓸 수 있다. 실행하지 않았다고 짧게 알리고, 사용자가 직접 하는 방법을 안내하는 것으로 대신하지 않는다."
+DENIED_RESULT = {
+    "deny": "사용자가 '{tool}' 실행을 거부해 실행하지 않았다.",
+    "timeout": "'{tool}' 승인 요청에 사용자가 시간 안에 답하지 않아 실행하지 않았다.",
+}
+DENIED_RESULT_TAIL = (
+    " 도구는 계속 쓸 수 있다. 실행하지 않았다고 짧게 알리고, 사용자가 직접 하는 방법을 안내하는 것으로 대신하지 않는다."
 )
 
 logger = get_logger(__name__)
@@ -498,6 +501,10 @@ class AgentSession:
 
     async def _emit_proactive(self, message: ProactiveMessage) -> None:
         """ProactivityCore의 push 콜백. ProactiveMessage → ProactiveMessageEvent."""
+        # Focus 같은 턴 훅이 붙어 있으면 먼저 거는 말은 집중을 깨므로 내지 않는다. filler, 맡긴 일의 답은 보낸다
+        if message.kind == "proactive" and self._turn_hook is not None:
+            logger.info(f"[Proactive] suppressed during turn hook: {message.text[:40]}")
+            return
         if message.kind == "proactive":
             self._recent_proactive.append(message.text)
         await self._harness.emit_event(
@@ -655,15 +662,17 @@ class AgentSession:
                     is_error=True,
                 )
 
-            if not await self._security.sandbox.authorize(tool_name, params):
+            decision = await self._security.sandbox.decide(tool_name, params)
+            if decision != "allow":
                 from jarvis.model_layer.types import TextContent
 
                 return ToolResultMessage(
                     tool_call_id=tool_call_id,
                     tool_name=tool_name,
-                    content=[TextContent(text=DENIED_RESULT.format(tool=tool_name))],
+                    content=[TextContent(text=DENIED_RESULT[decision].format(tool=tool_name) + DENIED_RESULT_TAIL)],
                     is_error=True,
                     denied=True,
+                    timed_out=decision == "timeout",
                 )
 
             from jarvis.core.tools.registry import ToolContext

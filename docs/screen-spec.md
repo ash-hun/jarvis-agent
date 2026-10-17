@@ -96,7 +96,7 @@
 |---|---|---|---|
 | `session_id` | WS 쿼리 | `default` | 어느 세션에 붙는지. 화면 안에서만 바뀐다 |
 | 함께 일하는 에이전트 | `agent_activity.active` | 빈 목록 | 둘 이상이면 구체 입자가 그 에이전트들의 primary 두 색으로 흐르는 띠처럼 섞인다(지금 에이전트 색이 먼저, 약 1초에 걸쳐 섞이고 끝나면 같은 속도로 돌아온다). 일하는 에이전트 칩은 숨쉬듯 빛난다 |
-| 세션 에이전트 | `connected.agent`, `html[data-agent]` | `main` | 이름, 명언, 색. 바뀌면 `jarvis:palette` 이벤트로 링(hud.js)과 구체(sphere.js)가 새 색을 쓴다. 새로고침하면 `default`(JARVIS)로 돌아간다 |
+| 세션 에이전트 | `connected.agent`, `html[data-agent]` | `main` | 이름, 명언, 색. 바뀌면 약 0.9초에 걸쳐 새 색으로 섞인다. CSS 색 변수(`@property` 로 등록해 transition), 링과 별(hud.js, 별은 자리를 지킨 채 색만), 구체와 원판(sphere.js)이 함께 바뀐다. 움직임 줄이기 설정이면 바로 바뀐다. 새로고침하면 `default`(JARVIS)로 돌아간다 |
 | `jarvis_token` | localStorage | 없음 | 접근 키. `4401` 로 끊기면 `prompt()` 로 묻고 저장 |
 | `hud.chatCollapsed` | localStorage | `0` | CONVERSATION 접힘 |
 | `hud.sessionsCollapsed` | localStorage | `0` | SESSIONS 접힘 |
@@ -126,7 +126,7 @@
 | AGENDA 의 ✓ / ✕ | open loop 를 done / dismissed 로. 항목이 사라지고 ACTIVITY 에 한 줄. 다른 에이전트의 약속도 닫을 수 있다 |
 | AGENDA 의 스위치 | 스케줄 켜기/끄기 |
 | TOOLS ▾ | 도구 목록 펼침. 🔒 는 승인 필요 도구 |
-| 승인 모달의 `ALLOW` / `ALWAYS · 패턴` / `DENY`, Enter | `approval_response`. ALWAYS 는 서버가 패턴을 제안했을 때만 보인다. Enter 는 ALLOW. 같은 세션의 다른 창이 먼저 답하면 `approval_resolved` 로 모달이 닫히고 ACTIVITY 에 `다른 창에서 처리됨` |
+| 승인 모달의 `ALLOW` / `ALWAYS · 패턴` / `DENY`, Enter | `approval_response`. ALWAYS 는 서버가 패턴을 제안했을 때만 보인다. Enter 는 ALLOW. 같은 세션의 다른 창이 먼저 답하면 `approval_resolved` 로 모달이 닫히고 ACTIVITY 에 `다른 창에서 처리됨`, 120초가 지나 닫히면 `시간 초과로 거부` |
 | 구체 클릭 | 음성 모드 토글. 읽는 중(합성 대기 포함)이면 읽기를 멈춘다. 미지원 브라우저면 SYS 에러 한 줄 |
 | 헤더의 DEFAULT / FULL-VOICE | 모드 전환. 좁은 화면(560px 이하)에서는 DEF / VOICE. 같은 쪽을 다시 누르면 아무 일 없음. FULL-VOICE 로 바꾸면 바로 듣기 시작. 음성 미지원 브라우저면 SYS 에러 후 DEFAULT 로 돌아간다. DEFAULT 로 바꾸면 듣던 것을 멈춘다 |
 | Full-voice: 응답 끝 | 응답을 읽고, 다 읽으면 다시 듣는다(LISTENING). 말이 없으면 READY 로 멈춘다 |
@@ -159,7 +159,7 @@ WS 끊김: 상단 배너 `연결 끊김 — 재연결 중...`, 입력 잠금, 1�
 |---|---|---|---|
 | `panel-head` + `setupCollapse` | `shell.js` | 토글 id, body 클래스, localStorage 키 | SESSIONS, CONVERSATION |
 | 메시지(`appendMsg`, `appendThought`, 스트림, 도구 흔적, 대기 자리표시, 히스토리) | `messages.js` | 역할 라벨, 종류, HTML | CONVERSATION |
-| 마크다운 렌더(`renderMarkdown`, `attachCopyBtns`) | `markdown.js` | 텍스트 | 응답, 히스토리, 🔔, 스케줄 작업 알림 |
+| 마크다운 렌더(`renderMarkdown`, `attachCopyBtns`) | `markdown.js` | 텍스트 | 응답, 히스토리, 🔔, 스케줄 작업 알림, Focus 영역. `[글자](URL)` 는 글자만, 맨 URL 은 40자를 넘으면 도메인만 링크로 보인다(http, https 만, 새 탭) |
 | 승인 오버레이, 음성 답 해석(`parseApprovalAnswer`) | `approval.js` | `approval_request`, 전사 텍스트 | 전역 모달 |
 | 모드 세그먼트 | `mode.js` | 클릭, `hud.mode` | 헤더 |
 | 슬래시 팝업, 입력 하이라이트 | `composer.js` | 명령 목록 | 입력 독 |
@@ -179,7 +179,7 @@ WS 끊김: 상단 배너 `연결 끊김 — 재연결 중...`, 입력 잠금, 1�
 - Full-voice 동안 마이크를 잡아 두므로 브라우저의 녹음 표시가 계속 켜져 있고, 블루투스 헤드셋은 통화 음질로 읽는다.
 - Full-voice 의 자동 듣기는 읽기가 끝난 직후 한 번뿐이다. 말이 없으면 멈추고, 다시 시작하려면 구체를 누른다.
 - 읽기가 겹치면(💬 filler 를 읽는 중에 승인 요청이 오면) 소리가 겹치고, 먼저 끝난 쪽에서 듣기가 시작될 수 있다.
-- Focus 동안에도 🔔 는 그대로 뜬다. 세션 단위로 끄려면 서버 쪽 게이팅이 필요하다.
+- Focus 동안 🔔(먼저 건네는 말)는 서버가 보내지 않는다. 💬 filler 와 맡긴 일의 답은 그대로 온다.
 - Focus 의 진행률은 진행 sub-agent 가 매긴 단계 완료로 계산한다. 단계를 늘리면 퍼센트가 내려간다. 예상 시간은 지금까지 걸린 시간 / 완료 단계 수 × 남은 단계 수라, 완료 단계가 없으면 `예상 시간 계산 중` 이다.
 - Focus 의 분석은 지시가 들어올 때 메인 응답과 같이 돈다. 그 결과는 이번 응답이 아니라 다음 응답의 시스템 프롬프트에 들어간다(첫 지시만 시작할 때 기다려서 첫 응답에 넣는다).
 - 세션 목록은 프로세스가 띄운 것만 보인다. 저장소에만 있는 세션은 화면에 없다.

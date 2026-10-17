@@ -50,15 +50,17 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPrefer
 renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
 renderer.setClearColor(DISC, 1);
 
-// 세션 에이전트가 바뀌면 app/brand.js 가 새 팔레트를 알린다
+// 세션 에이전트가 바뀌면 app/brand.js 가 새 팔레트를 알린다. 구와 원판은 frame 에서 그 색으로 섞인다
+// 시정수(초)는 hud.js 와 같아, 링과 구가 함께 styles.css 의 0.9s transition 에 맞춰 바뀐다
+const PALETTE_TAU = 0.22;
+const TARGET = { primary: COLOR.primary.clone(), accent: COLOR.accent.clone(), disc: DISC.clone() };
 window.addEventListener('jarvis:palette', (e) => {
   const p = e.detail || {};
   if (p.primary) {
-    COLOR.primary.set(p.primary);
-    DISC.copy(discOf(p.primary));
-    renderer.setClearColor(DISC, 1);
+    TARGET.primary.set(p.primary);
+    TARGET.disc.copy(discOf(p.primary));
   }
-  if (p.accent) COLOR.accent.set(p.accent);
+  if (p.accent) TARGET.accent.set(p.accent);
 });
 
 // 여러 에이전트가 함께 일하면(app/agents.js 의 'jarvis:activity') 두 에이전트의 primary 를 섞는다
@@ -179,6 +181,11 @@ function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   const t = now / 1000;
+  const fade = REDUCED_MOTION ? 1 : 1 - Math.exp(-dt / PALETTE_TAU);
+  COLOR.primary.lerp(TARGET.primary, fade);
+  COLOR.accent.lerp(TARGET.accent, fade);
+  DISC.lerp(TARGET.disc, fade);
+  renderer.setClearColor(DISC, 1);
   const state = (window.HUD && window.HUD.state) || 'idle';
   const level = (window.HUD && window.HUD.level) || 0;
   const target = STATES[state] || STATES.idle;

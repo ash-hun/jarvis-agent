@@ -81,3 +81,33 @@ async def test_hook_adds_context_and_runs_around_turn(
     await session.prompt("고마워")
     assert "[Focus 모드]" not in (provider.system_prompts[-1] or "")
     assert hook.before == ["목차를 짜 줘"]
+
+
+async def test_proactive_push_is_quiet_while_hook_is_set(
+    permissive_pipeline, plugin_runner, memory_chain, tool_registry, skill_registry, jsonl_repo
+) -> None:
+    from jarvis.core.proactive.types import ProactiveMessage
+
+    fx = {
+        "pipeline": permissive_pipeline,
+        "plugin_runner": plugin_runner,
+        "memory_chain": memory_chain,
+        "tool_registry": tool_registry,
+        "skill_registry": skill_registry,
+        "repo": jsonl_repo,
+    }
+    session = _session(fx)
+    seen: list[tuple[str, str]] = []
+
+    async def listen(event: Any) -> None:
+        if event.type == "proactive_message":
+            seen.append((event.kind, event.text))
+
+    session._harness.subscribe(listen)
+    session.set_turn_hook(_Hook())
+    await session._emit_proactive(ProactiveMessage(text="물 마실 시간이에요", kind="proactive"))
+    await session._emit_proactive(ProactiveMessage(text="잠깐만요", kind="filler"))
+    session.set_turn_hook(None)
+    await session._emit_proactive(ProactiveMessage(text="물 마실 시간이에요", kind="proactive"))
+
+    assert seen == [("filler", "잠깐만요"), ("proactive", "물 마실 시간이에요")]

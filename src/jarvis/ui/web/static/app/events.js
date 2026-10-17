@@ -182,7 +182,9 @@ export function handleMessage(msg) {
     }
 
     case 'approval_resolved':
-      if (closeApproval(msg.id)) logActivity('⚡ approval · 다른 창에서 처리됨', 'tool');
+      if (closeApproval(msg.id)) {
+        logActivity(msg.timeout ? '⚡ approval · 시간 초과로 거부' : '⚡ approval · 다른 창에서 처리됨', 'tool');
+      }
       break;
 
     case 'voice_tts_audio':

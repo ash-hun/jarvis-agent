@@ -165,6 +165,16 @@ class TestDefaultSandbox:
         from jarvis.core.policy.pipeline import PolicyResult
         return PolicyResult(allowed_tools=frozenset({"*"}), allowed_skills=frozenset({"*"}))
 
+    @pytest.mark.parametrize(("answer", "decision"), [(True, "allow"), (False, "deny"), ("timeout", "timeout")])
+    async def test_decide_reports_why(self, answer, decision):
+        async def callback(command, reason, always_pattern=""):
+            return answer
+
+        sandbox = DefaultSandbox(require_approval_for=["bash"], approval_callback=callback)
+        assert await sandbox.decide("bash", {"command": "ls"}) == decision
+        assert await sandbox.authorize("bash", {"command": "ls"}) is (decision == "allow")
+        assert await sandbox.decide("read_file", {"path": "a"}) == "allow"
+
     async def test_safe_command_allowed(self, sandbox, policy_result):
         result = await sandbox.approve(policy_result, "ls -la")
         assert result.approved is True

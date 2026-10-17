@@ -42,7 +42,8 @@ AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
 # 도구 결과를 받고 빈 답으로 끝내면 한 번만 다시 묻는다. 실서버에서 gemma4:e4b 가 출력 1토큰으로 끝내
 # 사용자가 도구 결과를 못 받는 것을 봤다. 이 문구는 LLM 호출에만 붙고 대화 기록에는 남지 않는다
 # 승인을 받지 못한 도구만 남았을 때의 답. 모델에 다시 물으면 "직접 이렇게 하세요" 하고 방법 안내로 피한다
-DENIED_REPLY = "승인을 받지 못해 {tools} 실행을 멈췄습니다. 필요하면 다시 요청해 주세요."
+DENIED_REPLY = "승인이 거부되어 {tools} 실행을 멈췄습니다. 필요하면 다시 요청해 주세요."
+DENIED_TIMEOUT_REPLY = "승인 요청에 시간 안에 답이 없어 {tools} 실행을 멈췄습니다. 필요하면 다시 요청해 주세요."
 EMPTY_REPLY_NUDGE = "위 도구 결과를 바탕으로 사용자에게 답을 정리해 주세요. 결과에 있는 숫자와 링크를 그대로 씁니다."
 
 
@@ -105,8 +106,9 @@ async def run_agent_loop(
 
 def _denied_reply(context: AgentContext, results: list[ToolResultMessage]) -> AssistantMessage:
     tools = ", ".join(dict.fromkeys(r.tool_name for r in results))
+    reply = DENIED_TIMEOUT_REPLY if all(r.timed_out for r in results) else DENIED_REPLY
     return AssistantMessage(
-        content=[TextContent(text=DENIED_REPLY.format(tools=tools))],
+        content=[TextContent(text=reply.format(tools=tools))],
         provider=context.model.provider,
         model=context.model.model,
     )

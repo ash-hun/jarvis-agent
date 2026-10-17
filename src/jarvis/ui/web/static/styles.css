@@ -35,6 +35,22 @@
   --gutter: 18px;
 }
 
+/* 에이전트를 바꾸면 브랜드 입력값이 바뀐다. 등록한 색 변수라야 transition 이 걸리고,
+ * 여기서 유도한 톤(--pri-bright, --text …)은 매 프레임 따라 섞인다. hud.js, sphere.js 도 비슷한 시간에 섞는다 */
+@property --primary  { syntax: '<color>'; inherits: true; initial-value: #5fc8e2; }
+@property --accent   { syntax: '<color>'; inherits: true; initial-value: #f0b35f; }
+@property --bg-0     { syntax: '<color>'; inherits: true; initial-value: #02060c; }
+@property --nebula-0 { syntax: '<color>'; inherits: true; initial-value: #3a5bff; }
+@property --nebula-1 { syntax: '<color>'; inherits: true; initial-value: #8a4dff; }
+@property --nebula-2 { syntax: '<color>'; inherits: true; initial-value: #ff6ad5; }
+:root {
+  transition: --primary .9s ease, --accent .9s ease, --bg-0 .9s ease,
+              --nebula-0 .9s ease, --nebula-1 .9s ease, --nebula-2 .9s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { transition: none; }
+}
+
 /* ── Reset ───────────────────────────────────────────────────────────────────*/
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
@@ -1031,6 +1047,10 @@ body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
 .agent-text h1 { font-size: 13px; }
 .agent-text p  { margin: 4px 0; line-height: 1.65; }
 .agent-text ul, .agent-text ol { padding-left: 16px; margin: 4px 0; }
+/* 번호는 바깥 여백에 그려져 두 자리("10.")부터 패널 가장자리에 잘린다 */
+.agent-text ol { padding-left: 2.4em; }
+.agent-text a, .focus-body a { color: var(--primary); text-decoration: underline dotted; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.agent-text a:hover, .focus-body a:hover { color: var(--pri-bright); }
 .agent-text li { margin: 2px 0; }
 .agent-text hr { border: none; border-top: 1px solid var(--hairline); margin: 8px 0; }
 .agent-text strong { color: var(--text); font-weight: 600; }
@@ -1297,7 +1317,6 @@ body[data-focus="on"] .focus-panel {
 .focus-body ol { list-style: decimal inside; padding-left: 2px; }
 .focus-body br { display: none; }
 .focus-body strong { color: var(--pri-bright); font-weight: 600; }
-.focus-body a { color: var(--primary); }
 /* sub-agent 가 갱신 중인 영역 */
 .focus-panel.busy .panel-head::after {
   content: "SYNC"; margin-left: 8px; color: var(--accent); letter-spacing: .2em;

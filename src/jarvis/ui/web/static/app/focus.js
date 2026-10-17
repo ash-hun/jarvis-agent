@@ -10,6 +10,8 @@ const $eta = document.getElementById('focus-eta');
 const $bar = document.getElementById('focus-bar-fill');
 const $steps = document.getElementById('focus-steps');
 const $elapsed = document.getElementById('focus-elapsed');
+const $logFoot = document.getElementById('focus-log-foot');
+const $progressFoot = document.getElementById('focus-progress-foot');
 const $chatToggle = document.getElementById('chat-toggle');
 const $chatCard = document.querySelector('.chat-card');
 
@@ -85,7 +87,22 @@ function renderState(st) {
     return li;
   }));
   $steps.dataset.empty = st.steps && st.steps.length ? '' : '단계를 나누는 중입니다';
+  const steps = st.steps || [];
+  const now = new Date();
+  $progressFoot.textContent = steps.length
+    ? `단계 ${steps.filter((s) => s.done).length}/${steps.length} · 갱신 ${hhmm(now)}`
+    : '';
   tick();
+}
+
+function hhmm(d) { return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
+
+// 기록 건수와 마지막 기록 시각. 서기가 남기는 "### YYYY-MM-DD HH:MM 제목" 머리에서 읽는다
+function logSummary(markdown) {
+  const heads = markdown.match(/^### .*/gm) || [];
+  if (!heads.length) return '';
+  const last = heads[heads.length - 1].match(/(\d{2}:\d{2})/);
+  return `기록 ${heads.length}건${last ? ` · 마지막 ${last[1]}` : ''}`;
 }
 
 export function onFocusState(st) {
@@ -112,12 +129,13 @@ export function onFocusPanel(area, markdown, busy) {
   const atEnd = area === 'log';
   body.innerHTML = markdown ? renderMarkdown(markdown) : '';
   if (atEnd) body.scrollTop = body.scrollHeight;
+  if (area === 'log') $logFoot.textContent = logSummary(markdown || '');
 }
 
 // 세션을 바꾸면 그 세션의 상태를 서버가 다시 보낸다. 그 전까지는 Default 로 둔다
 export function resetFocus() {
   onFocusState(null);
-  $ring.querySelectorAll('.focus-body').forEach((b) => { b.innerHTML = ''; });
+  $ring.querySelectorAll('.focus-body, .focus-foot').forEach((b) => { b.textContent = ''; });
 }
 
 // Focus 동안 접힌 띠 가운데 Conversation 만 눌러서 펼친다. 다른 띠는 반응하지 않는다(CSS pointer-events)

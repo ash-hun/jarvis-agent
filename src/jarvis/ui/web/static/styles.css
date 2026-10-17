@@ -1267,7 +1267,23 @@ body[data-focus="on"] .sphere-wrap {
   filter: saturate(1.7) brightness(1.18) drop-shadow(0 0 22px var(--pri-glow));
   transition-delay: .2s;
 }
-body[data-focus="on"] .reactor-caption { max-width: calc(var(--sphere) * .9); }
+/* Focus 중 캡션은 가운데 빈 칸(구체 폭의 절반) 안의 한 줄. 넘치면 말줄임, 전체는 CONVERSATION 띠에서 본다 */
+body[data-focus="on"] .reactor-caption {
+  position: relative; z-index: 2;
+  max-width: calc(var(--sphere) * .5 - 12px);
+  -webkit-line-clamp: 1;
+  overflow-wrap: anywhere;
+}
+/* 응답이 나오는 동안 CONVERSATION 띠가 숨쉬듯 빛난다 */
+@keyframes strip-live {
+  0%, 100% { box-shadow: 0 0 0 transparent; border-color: var(--hairline); }
+  50%      { box-shadow: 0 0 16px var(--pri-glow); border-color: var(--pri-bright); }
+}
+body[data-focus="on"].responding:not(.focus-chat-open) .chat-card { animation: strip-live 1.6s ease-in-out infinite; }
+body[data-focus="on"].responding:not(.focus-chat-open) .chat-card .panel-head { color: var(--pri-bright); }
+@media (prefers-reduced-motion: reduce) {
+  body[data-focus="on"].responding:not(.focus-chat-open) .chat-card { animation: none; border-color: var(--pri-bright); }
+}
 
 /* 둘레 네 영역 — 가운데 칸은 줄어든 구체 자리. 영역이 구체 가장자리 밑으로 살짝 들어간다 */
 .focus-ring {
@@ -1322,6 +1338,20 @@ body[data-focus="on"] .focus-panel {
 .focus-panel[data-area="analysis"] .focus-body > p:first-child em { color: var(--text-faint); font-style: normal; font-size: 11px; letter-spacing: .02em; }
 .focus-body br { display: none; }
 .focus-body strong { color: var(--pri-bright); font-weight: 600; }
+/* Log, Progress 바닥 줄 — 내용이 짧아도 패널이 위아래로 짜여 보이게 한다 */
+.focus-foot {
+  margin-top: auto; padding-top: 6px;
+  border-top: 1px solid var(--hairline);
+  font-size: 10px; letter-spacing: .12em; color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.focus-foot:empty { display: none; }
+/* 아래 줄은 내용만큼(최소 30%, 최대 50%), 남는 높이는 위 줄(Reference, Analysis)이 갖는다 */
+@media (min-width: 861px) {
+  .focus-ring { container-type: size; grid-template-rows: minmax(0, 1fr) fit-content(50%); }
+  .focus-panel[data-area="log"], .focus-panel[data-area="progress"] { min-height: 30cqh; }
+}
+
 /* sub-agent 가 갱신 중인 영역 */
 .focus-panel.busy .panel-head::after {
   content: "SYNC"; margin-left: 8px; color: var(--accent); letter-spacing: .2em;

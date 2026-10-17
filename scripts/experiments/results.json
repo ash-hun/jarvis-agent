@@ -383,15 +383,15 @@
  "compaction_faithfulness": {
   "e2b": {
    "llm": 1.0,
-   "contains": 0.528
+   "contains": 1.0
   },
   "e4b": {
    "llm": 1.0,
-   "contains": 0.333
+   "contains": 1.0
   },
   "gpt": {
    "llm": 1.0,
-   "contains": 0.333
+   "contains": 1.0
   },
   "judge": "gpt-4o-mini",
   "judge_check": {
@@ -542,5 +542,269 @@
     1
    ]
   }
+ },
+ "proactive_compare": {
+  "_note": "dev 12사례(지시문과 임계치를 고를 때 봤다), holdout 12사례(지시문을 쓰기 전에 봐서 오염됐다), test 20사례(지시문을 보지 않은 에이전트가 만든 블라인드). 모두 x3. 임계치는 dev 에서 고른 값을 그대로 썼다",
+  "holdout": [
+   {
+    "label": "옛 지시문 · gpt-4o-mini",
+    "threshold": 0.6,
+    "recall": 0.333,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "옛 지시문 · gemma4:e2b",
+    "threshold": 0.6,
+    "recall": 0.944,
+    "false_alarm": 0.556
+   },
+   {
+    "label": "옛 지시문 · gemma4:e4b",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.444
+   },
+   {
+    "label": "새 지시문 · gpt-4o-mini",
+    "threshold": 0.85,
+    "recall": 0.778,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "새 지시문 · gemma4:e2b",
+    "threshold": 0.9,
+    "recall": 0.778,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "새 지시문 · gemma4:e4b",
+    "threshold": 0.85,
+    "recall": 1.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision tev1:0.8b",
+    "threshold": 0.6,
+    "recall": 0.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision tev1",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision nimble",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.0
+   }
+  ],
+  "dev": [
+   {
+    "label": "옛 지시문 · gpt-4o-mini",
+    "threshold": 0.6,
+    "recall": 0.167,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "옛 지시문 · gemma4:e2b",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.444
+   },
+   {
+    "label": "옛 지시문 · gemma4:e4b",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.444
+   },
+   {
+    "label": "새 지시문 · gpt-4o-mini",
+    "threshold": 0.85,
+    "recall": 0.889,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "새 지시문 · gemma4:e2b",
+    "threshold": 0.9,
+    "recall": 0.944,
+    "false_alarm": 0.167
+   },
+   {
+    "label": "새 지시문 · gemma4:e4b",
+    "threshold": 0.85,
+    "recall": 1.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision tev1:0.8b",
+    "threshold": 0.6,
+    "recall": 0.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision tev1",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision nimble",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.167
+   }
+  ],
+  "new_prompt_at_0_6": {
+   "dev": {
+    "gpt": [
+     1.0,
+     0.444
+    ],
+    "e2b": [
+     1.0,
+     0.833
+    ],
+    "e4b": [
+     1.0,
+     0.389
+    ]
+   },
+   "holdout": {
+    "gpt": [
+     1.0,
+     0.667
+    ],
+    "e2b": [
+     0.889,
+     0.556
+    ],
+    "e4b": [
+     1.0,
+     0.556
+    ]
+   }
+  },
+  "old_gpt_silence": "hold-out 에서 놓친 12번 모두 사고의 decision=silent",
+  "test": [
+   {
+    "label": "옛 지시문 · gpt-4o-mini",
+    "threshold": 0.6,
+    "recall": 0.633,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "옛 지시문 · gemma4:e2b",
+    "threshold": 0.9,
+    "recall": 0.467,
+    "false_alarm": 0.267
+   },
+   {
+    "label": "옛 지시문 · gemma4:e4b",
+    "threshold": 0.85,
+    "recall": 1.0,
+    "false_alarm": 0.2
+   },
+   {
+    "label": "새 지시문 · gpt-4o-mini",
+    "threshold": 0.85,
+    "recall": 0.767,
+    "false_alarm": 0.233
+   },
+   {
+    "label": "새 지시문 · gemma4:e2b",
+    "threshold": 0.9,
+    "recall": 0.833,
+    "false_alarm": 0.2
+   },
+   {
+    "label": "새 지시문 · gemma4:e4b",
+    "threshold": 0.85,
+    "recall": 0.967,
+    "false_alarm": 0.2
+   },
+   {
+    "label": "decision tev1:0.8b",
+    "threshold": 0.6,
+    "recall": 0.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision tev1",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.3
+   },
+   {
+    "label": "decision nimble",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.3
+   }
+  ],
+  "old_prompt_dev_best_threshold": {
+   "gpt": "0.6 (어느 임계치도 recall 0.167 을 넘지 못함)",
+   "e2b": "0.9 (0.833/0.056)",
+   "e4b": "0.85 (1.0/0.222)"
+  },
+  "test_hard_negatives": [
+   "test_tax_docs_due_mid_january",
+   "test_promo_newsletter",
+   "test_reminder_already_acknowledged",
+   "test_afternoon_1on1_confirmed"
+  ],
+  "sec_per_case_test": {
+   "gpt-4o-mini": 2.28,
+   "gpt-4o-mini + tev1": 2.77,
+   "gpt-4o-mini + nimble": 3.05,
+   "gemma4:e2b": 6.97,
+   "gemma4:e4b": 10.96
+  },
+  "_dev_note": "dev 의 옛 지시문은 임계치 0.6 값(old_dev_sweep). 블라인드(test) 에는 dev 에서 고른 임계치(e2b 0.9, e4b 0.85)를 썼다"
+ },
+ "summary_language": {
+  "before": {
+   "e2b": {
+    "korean": "5/9",
+    "verbatim": 0.722
+   },
+   "e4b": {
+    "korean": "2/9",
+    "verbatim": 0.556
+   },
+   "gpt": {
+    "korean": "0/9",
+    "verbatim": 0.333
+   }
+  },
+  "after": {
+   "e2b": {
+    "korean": "9/9",
+    "verbatim": 1.0
+   },
+   "e4b": {
+    "korean": "9/9",
+    "verbatim": 1.0
+   },
+   "gpt": {
+    "korean": "9/9",
+    "verbatim": 1.0
+   }
+  },
+  "retention_llm": {
+   "before": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "after": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "english_check": "scripts/experiments/summary_language_check.py: 한국어 2, 영어 2, 코드 섞인 한국어 1 대화 x2. 세 모델 모두 10/10 대화 언어로 요약"
  }
 }

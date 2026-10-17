@@ -77,7 +77,7 @@ def profile_from_spec(agent_id: str, spec: AgentSpec, main: AgentProfile) -> Age
         model=model,
         thought=main.thought,
         proactive=proactive,
-        feedback_learner=FeedbackLearner(base_threshold=proactive.confidence_threshold),
+        feedback_learner=FeedbackLearner(base_threshold=proactive.effective_threshold()),
         description=spec.description,
         system_prompt=spec.system_prompt,
         tools=tuple(spec.tools),

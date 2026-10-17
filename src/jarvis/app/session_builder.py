@@ -124,7 +124,7 @@ class SessionBuilder:
         )
         from jarvis.agent_layer.thought.prompt import DEFAULT_REFLECTION_TEMPLATE
 
-        engine = InnerThoughtEngine(
+        engine: ThoughtEngine = InnerThoughtEngine(
             model=self._profile.thought_model(),
             template=ThoughtPromptTemplate.load(tcfg.prompt_path),
             reflection_template=ThoughtPromptTemplate.load(
@@ -136,6 +136,13 @@ class SessionBuilder:
             history_window=tcfg.history_turns,
             history_chars=tcfg.history_chars,
         )
+        decision_name = self._profile.proactive.decision_model
+        if decision_name:
+            from jarvis.agent_layer.thought.decision_gate import DecisionGatedEngine
+            from jarvis.model_layer.decision import DecisionModel
+
+            decision = DecisionModel(decision_name, self._profile.proactive.decision_base_url)
+            engine = DecisionGatedEngine(engine, decision, utterance_model=self._profile.thought_model())
         # 설정된 싱크만, 모르는 이름은 무시한다
         sink_factories: dict[str, Callable[[], ThoughtSink]] = {
             "ltm": lambda: LTMThoughtSink(services.memory),

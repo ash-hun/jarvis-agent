@@ -2,16 +2,12 @@
 
 from typing import TYPE_CHECKING
 
+from jarvis.memory.consolidation.compaction import system_prompt_for
 from jarvis.memory.scope import MemoryScope
 from jarvis.model_layer.types import LLMContext, Message, ModelConfig, StreamOptions, UserMessage
 
 if TYPE_CHECKING:
     from jarvis.memory.memory_service import MemoryService
-
-SYSTEM_PROMPT = (
-    "You are a summarization assistant. "
-    "Produce a dense summary preserving key decisions, facts, and context."
-)
 
 
 class EpisodicSummarizer:
@@ -52,12 +48,11 @@ class EpisodicSummarizer:
                 UserMessage(
                     content=(
                         f"다음은 세션 '{session_id}'의 대화 내용입니다.\n"
-                        "핵심 결정, 학습 내용, 중요 사실을 간결하게 요약해주세요 (한국어):\n\n"
-                        + "\n".join(parts)
+                        "핵심 결정, 학습 내용, 중요 사실을 요약하라:\n\n" + "\n".join(parts)
                     )
                 )
             ],
-            system_prompt=SYSTEM_PROMPT,
+            system_prompt=system_prompt_for(messages),
         )
         result = await stream_to_message(self._model, ctx, StreamOptions())
         if result.error_message is not None:

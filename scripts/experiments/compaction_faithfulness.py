@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import json
+import re
 
 from jarvis.memory.consolidation.compaction import llm_summarizer
 from jarvis.memory.eval.faithfulness import (
@@ -15,13 +16,20 @@ from jarvis.memory.eval.runner import DATASETS_DIR
 from scripts.experiments.models import model_config
 
 JUDGE = "gpt-4o-mini"
+HANGUL = re.compile(r"[\uac00-\ud7a3]")
+LATIN = re.compile(r"[A-Za-z]")
+
+
+def is_korean(text: str) -> bool:
+    """한글 글자가 라틴 글자보다 많으면 한국어 요약으로 본다(시험 대화는 모두 한국어다)."""
+    return len(HANGUL.findall(text)) > len(LATIN.findall(text))
 
 
 async def run(model: str, repeat: int) -> dict[str, object]:
     cases = load_faithfulness_cases(DATASETS_DIR / "faithfulness.jsonl")
     base = llm_summarizer(model_config(model))
     llm_judge, contains = llm_fact_judge(model_config(JUDGE)), contains_fact_judge()
-    kept_llm = kept_contains = total = failed = 0
+    kept_llm = kept_contains = total = failed = korean = summaries_n = 0
     samples: list[str] = []
     for _ in range(repeat):
         for case in cases:
@@ -38,6 +46,8 @@ async def run(model: str, repeat: int) -> dict[str, object]:
                 failed += 1
                 continue
             summary = summaries[-1]
+            summaries_n += 1
+            korean += is_korean(summary)
             total += len(case.facts)
             kept_llm += len(case.facts) - len(result.missing)
             kept_contains += sum([await contains(summary, f) for f in case.facts])
@@ -50,6 +60,7 @@ async def run(model: str, repeat: int) -> dict[str, object]:
         "no_summary": failed,
         "retention_llm_judge": round(kept_llm / total, 3) if total else None,
         "retention_contains": round(kept_contains / total, 3) if total else None,
+        "korean_summary": f"{korean}/{summaries_n}",
         "samples": samples,
     }
 

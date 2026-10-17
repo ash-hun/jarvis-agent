@@ -9,7 +9,7 @@ JARVIS 는 침묵할 때마다 그 이유를 백엔드 로그에 남긴다. 아�
 
 ```text
 [Thought] proactive silent: cooldown
-[Thought] proactive silent: confidence 0.42 < 0.6
+[Thought] proactive silent: confidence 0.72 < 0.85
 [Thought] proactive silent: empty utterance
 [Thought] proactive silent: decision=silent
 ```

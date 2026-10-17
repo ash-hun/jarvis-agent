@@ -86,7 +86,7 @@
 | `DELETE /api/sessions/{id}` | ✕ 클릭 후 확인 | 세션 삭제. 목록은 `GET /api/sessions` 로 다시 그린다 |
 | `GET /brand.js` | 페이지 로드 | 이름, 명언, 색 |
 | `GET /api/voice/phrases/{name}` | 그 문구를 처음 읽을 때 한 번(받은 wav 는 탭이 닫힐 때까지 둔다) | 읽기 문구 재생 |
-| WS 바이너리 프레임(보냄), `voice_wake`(받음) | Full-voice 로 기다리는 동안 80ms 마다 | 웨이크워드 |
+| WS 바이너리 프레임(보냄), `voice_wake`(받음) | 모드와 상관없이 기다리는 동안 80ms 마다 | 웨이크워드 |
 | WS 이벤트 전부 | 연결 중 | CONVERSATION, 상태 pill, 리액터 상태, ACTIVITY, 사용량 |
 | WS `agent_activity`, `connected.active_agents` | 어느 에이전트든 일을 시작하거나 끝낼 때 | 에이전트 칩의 빛남, 구체 색 섞기, ACTIVITY `⇄ A · B 함께 작업 중` |
 | WS `focus_state` | `/focus` 시작, 매 턴의 진행 갱신, 종료, 진행 중인 작업이 있는 세션에 접속 | Focus 레이아웃 켜고 끄기, PROGRESS(작업, 퍼센트, 막대, 예상 시간, 단계), ACTIVITY `◎ focus · N%` |
@@ -102,7 +102,7 @@
 | `jarvis_token` | localStorage | 없음 | 접근 키. `4401` 로 끊기면 `prompt()` 로 묻고 저장 |
 | `hud.chatCollapsed` | localStorage | `0` | CONVERSATION 접힘 |
 | `hud.sessionsCollapsed` | localStorage | `0` | SESSIONS 접힘 |
-| `hud.mode` | localStorage, `body[data-mode]` | `default` | `default` 또는 `full-voice`. 모르는 값이면 `default`. 새로고침 뒤에도 유지되지만 마이크는 사용자 클릭 전에는 켜지 않는다 |
+| `hud.mode` | localStorage, `body[data-mode]` | `default` | `default` 또는 `full-voice`. 모르는 값이면 `default`. 새로고침 뒤에도 유지되지만 Full-voice 의 듣기는 사용자 클릭 전에는 시작하지 않는다. 웨이크워드가 켜져 있으면 모드와 상관없이 접속 때 마이크를 연다 |
 | 상태 pill | 메모리 | `READY` | `THINKING`(서브 에이전트면 `THINKING · a → b`), `EXECUTING`, `LISTENING`, `SPEAKING`, `ERROR` |
 | 리액터 상태 | `window.HUD.state` | `idle` | `thinking`, `tool_running`, `listening`, `speaking`, `error`. 링 발광과 구체 움직임이 따라간다 |
 | 음성 모드 | 메모리 | 꺼짐 | 구체 클릭으로 토글. 켜져 있으면 응답과 🔔 를 읽어준다. Full-voice 에서는 입력 방식과 상관없이 늘 읽는다 |
@@ -136,7 +136,7 @@
 | Full-voice: 마이크 | 켜는 클릭 뒤 첫 듣기에서 마이크 스트림을 잡고 Default 로 돌아갈 때까지 놓지 않는다. 블루투스 헤드셋이 듣기와 읽기 사이에 통화, 음악 프로필을 오가지 않게 하려는 것으로, 그동안 출력은 통화 음질이다. 권한이 없으면 잡지 않고 매번 열고 닫는다 |
 | 음성 읽기 시점 | 인식이 열려 있으면 닫힐 때까지(최대 1.5초) 기다리고, 닫힌 뒤 0.6초를 더 쉰 다음 읽는다. 헤드셋이 오디오 경로를 다시 잡는 사이 짧은 문장(승인 되읽기)이 사라지는 것을 막는다. 브라우저 TTS 가 1.5초 안에 시작하지 않으면 한 번만 다시 읽고, 콘솔에 `[voice] tts ...` 를 남긴다 |
 | Full-voice: 🔔 | 본문과 `이 제안이 도움이 됐나요? 네 또는 아니오로 답해 주세요.` 를 읽고 듣는다. 답은 🔔 짧은 답 규칙과 같다. 💬 filler 는 읽기만 한다 |
-| Full-voice: "Jarvis" (웨이크워드) | 듣기, 읽기, 응답, 승인 중이 아닐 때만 마이크 소리를 16kHz PCM 으로 서버에 보낸다. 서버가 `voice_wake` 를 보내면 ACTIVITY `◉ wake · Jarvis`, `At your service, sir.` 를 읽고 바로 듣는다(LISTENING). 영어 발음 "Jarvis" 만 알아듣는다. 서버가 `voice.wake=false` 면 보내지 않는다 |
+| "Jarvis" (웨이크워드) | Default, Full-voice 모두. 듣기, 읽기, 응답, 승인 중이 아닐 때만 마이크 소리를 16kHz PCM 으로 서버에 보낸다. 서버가 `voice_wake` 를 보내면 ACTIVITY `◉ wake · Jarvis`, `At your service, sir.` 를 읽고 바로 듣는다(LISTENING). Default 에서 깨워 보낸 요청은 음성으로 시작한 요청이라 응답을 읽어 주고, 다 읽은 뒤 다시 듣지는 않는다. 영어 발음 "Jarvis" 만 알아듣는다. 서버가 `voice.wake=false` 면 보내지 않는다 |
 | 읽기 문구 | 음성으로 일하는 중(Full-voice, 또는 음성으로 시작한 요청)에 아래 순간마다 합성 대신 녹음한 문구를 읽는다. `web_search` 도구 시작 `Searching Reference.`, `remember_task_pattern` 도구 시작 `Checking the Pattern.`, 💬 filler `Processing Long Task.`(filler 문장은 화면에만 쓰고 읽지 않는다), `/focus` 로 켜고 끔 `Activate Focus mode.` / `Deactivate Focus mode.`(접속 때 되살아나는 Focus 는 읽지 않는다), Focus 분석 갱신 시작 `Target. Analysis.`, 에이전트 칩으로 전환 `Change to KAREN.` / `Change to JARVIS.`. 서버가 알려 준 문구가 없으면 예전대로 한다 |
 | Ctrl+K | `abort` 전송, 스트림 종료, 입력 복원 |
 | Esc | 드로어 닫기. 읽는 중(합성 대기 포함)이면 읽기도 멈춘다. 멈춘 뒤엔 Full-voice 라도 다시 듣지 않고, 늦게 온 합성 결과는 버린다 |
@@ -171,7 +171,7 @@ WS 끊김: 상단 배너 `연결 끊김 — 재연결 중...`, 입력 잠금, 1�
 | 리액터 캔버스(링, 눈금, 별), 입자 구 | `hud.js`, `sphere.js` | `HUD.state`, `BRAND.palette` | 가운데 |
 | 음성(`VoiceManager`) | `voice.js`, `voice-ui.js` | 브라우저 Web Speech 또는 서버 STT/TTS | 구체, 입력 |
 | 읽기 문구(`cue`, `phraseWav`) | `voice-ui.js`, `phrases.js` | `connected.voice.phrases`, 문구 이름 | 이벤트에 맞춘 짧은 읽기 |
-| 웨이크워드 캡처 | `wake.js`, `wake-worklet.js` | 마이크, `connected.voice.wake`, `voice_wake` | Full-voice 대기 |
+| 웨이크워드 캡처 | `wake.js`, `wake-worklet.js` | 마이크, `connected.voice.wake`, `voice_wake` | 모든 모드의 대기 |
 | 연결 배너, 드로어, 스크림 | `index.html`, `shell.js` | 연결 상태, 뷰포트 폭 | 전역 |
 | 서비스 워커 | `sw.js` | 셸 파일 목록 | 오프라인 폴백. 셸은 네트워크 우선 |
 | Focus 영역, 음성 키워드(`focusCommandFromSpeech`) | `focus.js` | `focus_state`, `focus_panel`, 전사 텍스트 | 리액터 둘레, 헤더 FOCUS 표시 |
@@ -183,6 +183,7 @@ WS 끊김: 상단 배너 `연결 끊김 — 재연결 중...`, 입력 잠금, 1�
 - 키워드가 아닌 🔔 답은 분류를 기다리는 1~2초(첫 호출은 모델 로딩으로 4초쯤) 동안 입력이 잠긴다. 사고 모델이 그 🔔 와 무관한 새 요청을 accept/dismiss 로 잘못 읽으면 그 말은 보내지지 않는다. 실측(gemma4:e2b, 11문장)에서는 없었다.
 - 음성 승인 답은 부정어가 있으면 분류 없이 거부한다. "허용 안 해" 처럼 긍정과 부정이 섞인 말은 늘 거부다.
 - Full-voice 동안 마이크를 잡아 두므로 브라우저의 녹음 표시가 계속 켜져 있고, 블루투스 헤드셋은 통화 음질로 읽는다.
+- 웨이크워드가 켜져 있으면 Default 에서도 마이크를 계속 열어 두므로 녹음 표시가 꺼지지 않는다. 마이크를 닫으려면 `JARVIS_VOICE__WAKE_MODEL_DIR` 를 비운다.
 - Full-voice 의 자동 듣기는 읽기가 끝난 직후 한 번뿐이다. 말이 없으면 멈추고, 다시 시작하려면 "Jarvis" 라고 부르거나(웨이크워드가 켜져 있을 때) 구체를 누른다.
 - 웨이크워드는 Chrome 처럼 16kHz AudioContext 에 마이크를 바로 이을 수 있는 브라우저에서만 돈다. 안 되면 ACTIVITY 에 `wake word off · <이유>` 를 남기고 끈다.
 - 웨이크워드 모델은 합성 음성으로만 학습했다. "Jars", "Garbage" 처럼 비슷한 소리에 깨어날 수 있고, 한국어 발음 "자비스" 는 알아듣지 못한다.

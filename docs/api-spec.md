@@ -915,7 +915,7 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `voice_tts_request` | `text`, `lang?`, `id?` | 음성 합성. 서버가 마크다운 기호(제목, 강조, 목록, 표, 인라인 코드)를 지우고, 코드 블록과 URL 은 빼고, 링크는 글자만 남긴 뒤 읽는다. 서버 TTS 가 없거나 읽을 글자가 없으면 `voice_tts_audio{data:"", text}` 로 되돌려 브라우저가 읽게 한다. `id` 는 결과에 그대로 돌아온다 |
 | `voice_stt_submit` | `data`(base64), `mime`, `sample_rate` | 서버 STT. 서버 STT 가 없으면 무시 |
 | `abort` | 없음 | 진행 중인 에이전트 루프 중단 |
-| (바이너리 프레임) | 16kHz mono int16 LE PCM | 웨이크워드 감지. `connected.voice.wake` 가 true 일 때만 받고, 아니면 버린다. 프레임 경계는 자유롭다(서버가 80ms 단위로 이어 붙인다). 화면은 Full-voice 로 기다리는 동안만 보낸다 |
+| (바이너리 프레임) | 16kHz mono int16 LE PCM | 웨이크워드 감지. `connected.voice.wake` 가 true 일 때만 받고, 아니면 버린다. 프레임 경계는 자유롭다(서버가 80ms 단위로 이어 붙인다). 화면은 모드와 상관없이 기다리는 동안(듣기, 읽기, 응답, 승인 중이 아닐 때) 보낸다 |
 
 #### 서버 → 클라이언트
 

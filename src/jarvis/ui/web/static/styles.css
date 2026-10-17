@@ -857,6 +857,22 @@ body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
   backdrop-filter: blur(4px);
 }
 .approval-overlay.hidden { display: none; }
+/* 음성 승인: 화면을 가리지 않고 아래쪽에 띠로. 묻고 답하기는 음성이 한다 */
+.approval-overlay.voice {
+  background: transparent; backdrop-filter: none;
+  align-items: flex-end; padding-bottom: 110px;
+  pointer-events: none;
+}
+.approval-overlay.voice .approval-box {
+  pointer-events: auto;
+  width: min(460px, calc(100vw - 32px));
+  padding: 14px 16px 12px;
+}
+.approval-overlay.voice .approval-box h3 { margin-bottom: 8px; }
+.approval-overlay.voice .approval-reason { display: none; }
+.approval-overlay.voice .approval-command { margin-bottom: 8px; max-height: 48px; }
+.approval-overlay.voice .approval-hint { margin-bottom: 10px; color: var(--pri-bright); }
+.approval-overlay.voice .approval-btns button { padding: 6px 14px; }
 .approval-box {
   width: 520px;
   background: var(--bg-2);

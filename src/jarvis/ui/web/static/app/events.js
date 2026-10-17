@@ -169,15 +169,17 @@ export function handleMessage(msg) {
       showNotice(msg);
       break;
 
-    case 'approval_request':
-      showApproval(msg.id, msg.command, msg.reason, msg.always_pattern);
+    case 'approval_request': {
+      // 음성으로 시작한 요청이면 Default 에서도 모달 대신 음성으로 되묻고 듣는다. 말로 일하던 중이다
+      const byVoice = isFullVoice() || isVoiceMode();
+      showApproval(msg.id, msg.command, msg.reason, msg.always_pattern, { voice: byVoice });
       logActivity(`⚡ approval · ${msg.command || ''}`, 'tool');
-      // 음성으로 시작한 요청이면 Default 에서도 되묻고 듣는다. 손이 아니라 말로 일하던 중이다
-      if (isFullVoice() || isVoiceMode()) {
+      if (byVoice) {
         requestSpeech(approvalSpeech(msg.command, msg.always_pattern),
           { thenListen: () => isApprovalOpen() });
       }
       break;
+    }
 
     case 'approval_resolved':
       if (closeApproval(msg.id)) logActivity('⚡ approval · 다른 창에서 처리됨', 'tool');

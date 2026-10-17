@@ -30,7 +30,7 @@ jarvis-agent 의 기능을 한 표에 모으고, 그 기능을 어떤 원칙으�
 | [최상위 에이전트 팀](./multi-agent-orchestration/index.md) | JARVIS 와 같은 층의 에이전트(KAREN 등)를 파일 하나로 늘린다. 세션, 기억, 승인 규칙, 색을 따로 갖고 `ask_agent` 로 서로 일을 맡긴다 | 에이전트 칩, AGENDA 라벨, 구체 색 섞임 |
 | [청약 공고와 대출 계산](../agents/karen/housing.md) | KAREN 이 LH, SH 청약 공고를 조회해 KST 기준 마감을 붙이고, 총예산과 현금으로 공고를 추천하며, 공고의 분양가나 보증금으로 월, 연간 원리금 상환액을 계산한다 | KAREN 세션, JARVIS 에게 물으면 KAREN 에게 위임 |
 | [멀티 에이전트](./multi-agent-orchestration/orchestration-pattern.md) | 정의 파일의 서브 에이전트에게 일을 나눈다. 다섯 가지 패턴 | `/orchestrate`, 위임 도구 |
-| [Focus 모드](./multi-agent-orchestration/focus-mode.md) | 작업 하나에 조사, 기록, 분석, 진행 sub-agent 넷을 붙여 끝까지 해낸다. 매 지시를 다섯 항목으로 분석해 다음 응답에 넣는다 | `/focus`, 음성 "포커스 모드", Focus 레이아웃 |
+| [Focus 모드](./mode/focus-mode.md) | 작업 하나에 조사, 기록, 분석, 진행 sub-agent 넷을 붙여 끝까지 해낸다. 매 지시를 다섯 항목으로 분석해 다음 응답에 넣는다 | `/focus`, 음성 "포커스 모드", Focus 레이아웃 |
 | [음성과 Full-voice](./conversation/voice.md) | 음성 입력과 읽기. Full-voice 는 응답, 승인, 🔔 피드백까지 말로 묻고 답한다 | 구체 클릭, 헤더 `FULL-VOICE` |
 | [외부 알림](./architecture/proactive.md#외부-알림) | 열린 화면이 없어도 🔔 와 스케줄 결과를 Slack 으로 보낸다 | Slack |
 | [공용 커맨드와 확장](../reference/slash-commands.md) | `/` 명령, 스킬, 플러그인 훅, 사용자 도구 | 입력창 `/` |

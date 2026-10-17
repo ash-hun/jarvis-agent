@@ -80,7 +80,7 @@ JARVIS_FOCUS__DIR=~/.jarvis/focus
 JARVIS_FOCUS__READY_TIMEOUT_SEC=30     # 시작할 때 첫 분석과 단계 계획을 기다리는 상한
 ```
 
-쓰는 법은 [Focus Mode](../concepts/multi-agent-orchestration/focus-mode.md) 에 있다.
+쓰는 법은 [Focus Mode](../concepts/mode/focus-mode.md) 에 있다.
 
 ## 메모리와 세션
 

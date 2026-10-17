@@ -1,5 +1,5 @@
 ---
-sidebar_position: 2
+sidebar_position: 1
 title: Focus Mode
 ---
 
@@ -14,7 +14,7 @@ import FigureFocusMode from '@site/src/figures/focus-mode.svg';
 
 Focus 모드는 작업 하나를 끝까지, 가장 높은 수준으로 해내기 위한 모드다. 켜져 있는 동안 sub-agent 넷이 붙는다. 하나는 외부 레퍼런스를 조사하고, 하나는 작업 기록을 남기고, 하나는 매 지시를 분석하고, 하나는 진행 현황을 매긴다. 각자 한 가지 일만 하며, 오케스트레이션은 Focus 를 켠 세션의 메인 에이전트(JARVIS 나 K.A.R.E.N.)가 맡는다.
 
-[Orchestration Pattern](./orchestration-pattern.md)의 서브 에이전트는 부모 턴 안에서 잠깐 돌고 끝난다. Focus 의 sub-agent 는 작업이 끝날 때까지 자기 세션을 유지하므로, 앞선 지시와 기록을 기억한 채로 일한다. 구현은 `core/focus/` 에 있다.
+[Orchestration Pattern](../multi-agent-orchestration/orchestration-pattern.md)의 서브 에이전트는 부모 턴 안에서 잠깐 돌고 끝난다. Focus 의 sub-agent 는 작업이 끝날 때까지 자기 세션을 유지하므로, 앞선 지시와 기록을 기억한 채로 일한다. 구현은 `core/focus/` 에 있다.
 
 ## 켜고 끄기
 

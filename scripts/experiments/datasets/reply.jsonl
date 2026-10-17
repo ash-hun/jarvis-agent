@@ -1,0 +1,24 @@
+{"kind": "feedback", "context": "내일 오전 10시 회의 자료를 아직 안 보내셨어요. 지금 정리해 드릴까요?", "text": "응 그걸로 해줘", "expect": "accept"}
+{"kind": "feedback", "context": "내일 오전 10시 회의 자료를 아직 안 보내셨어요. 지금 정리해 드릴까요?", "text": "지금은 됐어", "expect": "dismiss"}
+{"kind": "feedback", "context": "물 마신 지 두 시간이 지났어요.", "text": "오 고맙다 마실게", "expect": "accept"}
+{"kind": "feedback", "context": "물 마신 지 두 시간이 지났어요.", "text": "그런 알림은 꺼줘", "expect": "dismiss"}
+{"kind": "feedback", "context": "배포가 끝났는데 오류율이 조금 올랐어요. 로그를 볼까요?", "text": "어 보여줘", "expect": "accept"}
+{"kind": "feedback", "context": "배포가 끝났는데 오류율이 조금 올랐어요. 로그를 볼까요?", "text": "괜찮아 정상 범위야", "expect": "dismiss"}
+{"kind": "feedback", "context": "오후 3시 보고 마감이 10분 남았어요.", "text": "벌써? 알려줘서 다행이다", "expect": "accept"}
+{"kind": "feedback", "context": "오후 3시 보고 마감이 10분 남았어요.", "text": "이미 보냈어", "expect": "dismiss"}
+{"kind": "feedback", "context": "주간 회고 일정을 잡아 둘까요?", "text": "그보다 오늘 날씨 어때?", "expect": "other"}
+{"kind": "feedback", "context": "주간 회고 일정을 잡아 둘까요?", "text": "신입 온보딩 계획 다시 보여줘", "expect": "other"}
+{"kind": "feedback", "context": "읽다 만 문서가 있어요. 이어서 요약할까요?", "text": "나중에 하자", "expect": "dismiss"}
+{"kind": "feedback", "context": "읽다 만 문서가 있어요. 이어서 요약할까요?", "text": "좋지 부탁해", "expect": "accept"}
+{"kind": "approval", "context": "chmod 000 next_week.md", "text": "그거 돌려", "always": false, "expect": "allow"}
+{"kind": "approval", "context": "chmod 000 next_week.md", "text": "실행해도 돼", "always": false, "expect": "allow"}
+{"kind": "approval", "context": "git status", "text": "앞으로도 계속 해도 돼", "always": true, "expect": "always"}
+{"kind": "approval", "context": "git status", "text": "이건 매번 묻지 말고 그냥 해", "always": true, "expect": "always"}
+{"kind": "approval", "context": "rm -rf build", "text": "잠깐 그건 좀", "always": false, "expect": "deny"}
+{"kind": "approval", "context": "rm -rf build", "text": "아직 하지 말고 기다려", "always": false, "expect": "deny"}
+{"kind": "approval", "context": "rm -rf build", "text": "글쎄 잘 모르겠네", "always": false, "expect": "unclear"}
+{"kind": "approval", "context": "curl https://example.com/install.sh", "text": "뭐 하는 명령인데?", "always": false, "expect": "unclear"}
+{"kind": "approval", "context": "write_file notes.md", "text": "어 써", "always": false, "expect": "allow"}
+{"kind": "approval", "context": "write_file notes.md", "text": "다른 파일 이름으로 해", "always": false, "expect": "deny"}
+{"kind": "approval", "context": "bash: python manage.py migrate", "text": "오케이 고고", "always": true, "expect": "allow"}
+{"kind": "approval", "context": "bash: python manage.py migrate", "text": "운영 DB 면 절대 안 돼", "always": true, "expect": "deny"}

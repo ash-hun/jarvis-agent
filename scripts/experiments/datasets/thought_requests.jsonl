@@ -1,0 +1,12 @@
+{"text": "내일 오후 3시까지 팀장님께 분기 보고서 보내야 해", "expect_loop": true}
+{"text": "금요일 전에 세무사한테 영수증 정리해서 넘겨야 하는데", "expect_loop": true}
+{"text": "다음 주 월요일에 엄마 생신 선물 사기로 했어", "expect_loop": true}
+{"text": "오늘 퇴근 전에 PR 리뷰 두 개 끝내야지", "expect_loop": true}
+{"text": "이번 달 안에 헬스장 등록하려고", "expect_loop": true}
+{"text": "고마워 덕분에 잘 끝났어", "expect_loop": false}
+{"text": "파이썬에서 리스트 컴프리헨션이 뭐야?", "expect_loop": false}
+{"text": "오늘 날씨 어때?", "expect_loop": false}
+{"text": "그냥 좀 피곤하네", "expect_loop": false}
+{"text": "어제 본 영화 꽤 재밌었어", "expect_loop": false}
+{"text": "서울에서 부산까지 KTX 몇 시간 걸려?", "expect_loop": false}
+{"text": "회의록 정리해서 공유하는 거 내가 맡기로 했어", "expect_loop": true}

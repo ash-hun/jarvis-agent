@@ -19,7 +19,7 @@ import FigureSessions from '@site/src/figures/sessions.svg';
 | 백엔드 | 설정 | 저장 |
 |---|---|---|
 | JSONL (기본) | `JARVIS_SESSION__PERSISTENCE_BACKEND=jsonl`, `SESSIONS_DIR` | `~/.jarvis/sessions/<id>.jsonl` 에 append, `<id>.meta.json` 에 메타 |
-| Postgres | `postgres`, `POSTGRES_DSN` | `jarvis_sessions`, `jarvis_entries`(세션 삭제 시 cascade). 테이블은 기동 때 `IF NOT EXISTS` 로 만든다 |
+| Postgres | `postgres`, `POSTGRES_DSN` | `jarvis_sessions`, `jarvis_entries`(세션 삭제 시 cascade). 테이블과 컬럼은 기동 때 `IF NOT EXISTS` 로 맞춘다. 기록은 `timestamp, seq` 순으로 읽는다. 한 턴의 tool_result 와 다음 응답이 같은 ms 에 저장되므로 삽입 순번(`seq`)이 순서를 정한다 |
 
 `create` 는 멱등하다. 같은 id 로 두 번 만들어도 세션은 하나다. 사용자 메시지는 턴 시작 때 바로 저장되고, 어시스턴트와 도구 메시지는 루프가 끝난 뒤 한꺼번에 저장된다.
 

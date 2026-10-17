@@ -19,7 +19,7 @@ title: Conversation
 - `ALWAYS`: 서버가 제안한 명령 패턴을 기억하고 다음부터 묻지 않는다. 서버가 패턴을 제안했을 때만 보인다
 - `DENY`: 실행하지 않는다
 
-120초 동안 답하지 않으면 거부로 처리한다.
+120초 동안 답하지 않으면 시간 초과로 거부한다. 거부와 시간 초과의 응답 문구는 [Tool & Approve system](./tools-and-approval.md) 에 있다.
 
 :::danger
 `ALWAYS` 는 지금 세션 에이전트의 승인 규칙 파일(`~/.jarvis/approvals/<agent_id>.yaml`)에 패턴을 남긴다. 지우거나 덮어쓰는 명령에 `ALWAYS` 를 누르면 그 뒤로는 묻지 않고 실행한다. 규칙을 되돌리려면 그 파일에서 해당 줄을 지운다.

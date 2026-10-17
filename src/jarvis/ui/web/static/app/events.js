@@ -8,8 +8,8 @@ import {
 import { updateUsage } from './usage.js';
 import { fetchAgenda, showNotice } from './agenda.js';
 import { fetchTools } from './tools.js';
-import { voice, isVoiceMode, clearVoiceMode, requestSpeech, takeSpeech } from './voice-ui.js';
-import { showApproval, closeApproval, isApprovalOpen, approvalSpeech } from './approval.js';
+import { voice, isVoiceMode, clearVoiceMode, requestSpeech, takeSpeech, listenForApproval } from './voice-ui.js';
+import { showApproval, closeApproval, approvalSpeech } from './approval.js';
 import { askFeedback, isFeedbackPending, QUESTION_SPOKEN } from './proactive.js';
 import { setInputEnabled, endAwaitingReply } from './composer.js';
 import { isFullVoice } from './mode.js';
@@ -175,8 +175,8 @@ export function handleMessage(msg) {
       showApproval(msg.id, msg.command, msg.reason, msg.always_pattern, { voice: byVoice });
       logActivity(`⚡ approval · ${msg.command || ''}`, 'tool');
       if (byVoice) {
-        requestSpeech(approvalSpeech(msg.command, msg.always_pattern),
-          { thenListen: () => isApprovalOpen() });
+        listenForApproval();
+        requestSpeech(approvalSpeech(msg.command, msg.always_pattern));
       }
       break;
     }

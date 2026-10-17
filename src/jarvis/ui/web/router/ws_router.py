@@ -18,6 +18,7 @@ from jarvis.ui.web.ws_tasks import (
     run_stt,
     run_tts,
 )
+from jarvis.voice.speech_text import speech_text
 
 # 키 불일치로 서버가 끊을 때의 close code. 브라우저가 이 코드를 보고 키 입력을 띄운다
 WS_UNAUTHORIZED = 4401
@@ -156,13 +157,15 @@ def build_ws_router(state: WebState) -> APIRouter:
                     asyncio.create_task(run_reply_classify(ws, state.reply_classifier, session, feedback_ids, msg))
 
                 elif msg_type == "voice_tts_request":
-                    text = msg.get("text", "").strip()
+                    text = speech_text(msg.get("text", ""))
                     lang = msg.get("lang", settings.voice.tts_lang)
+                    # 화면이 멈춘 읽기의 늦은 응답을 버릴 수 있게 요청 id 를 그대로 돌려준다
+                    request_id = msg.get("id")
                     if text and voice_service:
-                        asyncio.create_task(run_tts(ws, voice_service, text, lang))
-                    elif text:
-                        # 음성 서비스가 없으면 브라우저가 직접 읽게 돌려준다. 안 주면 HUD 가 '음성 처리 중' 에 멈춘다
-                        await ws.send_json({"type": "voice_tts_audio", "data": "", "text": text})
+                        asyncio.create_task(run_tts(ws, voice_service, text, lang, request_id))
+                    else:
+                        # 음성 서비스가 없거나 읽을 글자가 없어도 답한다. 안 주면 HUD 가 '음성 처리 중' 에 멈춘다
+                        await ws.send_json({"type": "voice_tts_audio", "data": "", "text": text, "id": request_id})
 
                 elif msg_type == "voice_stt_submit":
                     data = msg.get("data", "")

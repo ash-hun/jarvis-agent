@@ -55,7 +55,9 @@ async def run_stt(ws: WebSocket, voice_service: "VoiceService", audio_b64: str, 
             await ws.send_json({"type": "voice_stt_result", "text": "", "error": str(exc)})
 
 
-async def run_tts(ws: WebSocket, voice_service: "VoiceService", text: str, lang: str) -> None:
+async def run_tts(
+    ws: WebSocket, voice_service: "VoiceService", text: str, lang: str, request_id: object = None
+) -> None:
     """서버 TTS 결과를 보낸다. 브라우저 TTS 프로바이더면 빈 data 와 원문을 돌려 화면이 직접 읽게 한다."""
     try:
         audio_bytes = await voice_service.synthesize(text, lang)
@@ -64,9 +66,10 @@ async def run_tts(ws: WebSocket, voice_service: "VoiceService", text: str, lang:
                 "type": "voice_tts_audio",
                 "data": base64.b64encode(audio_bytes).decode(),
                 "mime": "audio/wav",
+                "id": request_id,
             })
         else:
-            await ws.send_json({"type": "voice_tts_audio", "data": "", "text": text})
+            await ws.send_json({"type": "voice_tts_audio", "data": "", "text": text, "id": request_id})
     except Exception as exc:
         with contextlib.suppress(Exception):
             await ws.send_json({"type": "error", "message": f"TTS 오류: {exc}"})

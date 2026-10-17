@@ -38,6 +38,8 @@ class VoiceManager {
     this._onAudioCaptured = onAudioCaptured || (() => {});
     this._lang          = lang;
     this._audioCtx      = null;
+    this._source        = null;   // 재생 중인 서버 TTS 오디오. 멈출 때 끊는다
+    this._speakGen      = 0;      // stopSpeaking 마다 오른다. 준비 중이던 읽기는 끝나고 보면 낡았다
 
     // ── 마이크 점유: 인식 중인지, 언제 놓았는지, 계속 잡아 둘 스트림 ─────────────────
     this._micOpen       = false;
@@ -165,6 +167,22 @@ class VoiceManager {
   setProcessing() { this._setState('processing'); }
   setIdle()       { this._setState('idle'); }
 
+  /** 읽던 것을 끊는다. 준비 중(마이크 반납 대기, 디코딩)인 읽기도 시작하지 않는다. 여러 번 불러도 같다. */
+  stopSpeaking() {
+    this._speakGen += 1;
+    if (this._source) {
+      const source = this._source;
+      this._source = null;
+      source.onended = null;
+      try { source.stop(); } catch (_) {}
+    }
+    if (this._utterance) this._utterance = null;  // 끊긴 문장의 onend 가 상태를 건드리지 않게
+    if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+      window.speechSynthesis.cancel();
+    }
+    if (this._state === 'speaking' || this._state === 'processing') this._setState('idle');
+  }
+
   /**
    * 백엔드에서 받은 base64 WAV 오디오를 재생한다.
    * @param {string} base64Data  — base64 인코딩 WAV
@@ -172,8 +190,10 @@ class VoiceManager {
    * @returns {Promise<void>}
    */
   async playAudioBase64(base64Data, mimeType = 'audio/wav') {
+    const gen = this._speakGen;
     this._setState('speaking');
     await this._afterMicReleased();
+    if (gen !== this._speakGen) return;
     try {
       if (!this._audioCtx || this._audioCtx.state === 'closed') {
         this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -183,10 +203,16 @@ class VoiceManager {
 
       const bytes  = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
       const buffer = await this._audioCtx.decodeAudioData(bytes.buffer.slice(0));
+      if (gen !== this._speakGen) return;
       const source = this._audioCtx.createBufferSource();
       source.buffer = buffer;
       source.connect(this._audioCtx.destination);
-      source.onended = () => this._setState('idle');
+      source.onended = () => {
+        if (this._source !== source) return;
+        this._source = null;
+        this._setState('idle');
+      };
+      this._source = source;
       source.start(0);
     } catch (e) {
       console.error('[VoiceManager] Audio playback failed:', e);
@@ -201,8 +227,10 @@ class VoiceManager {
    */
   async speakBrowser(text, lang = this._lang) {
     if (!window.speechSynthesis) { this._setState('idle'); return; }
+    const gen = this._speakGen;
     this._setState('speaking');
     await this._afterMicReleased();
+    if (gen !== this._speakGen) return;
     // Chrome 은 cancel 직후의 speak 를 소리 없이 버릴 때가 있어, 읽는 게 있을 때만 끊는다
     if (window.speechSynthesis.speaking || window.speechSynthesis.pending) window.speechSynthesis.cancel();
     this._speakUtterance(text, lang, true);

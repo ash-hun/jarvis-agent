@@ -20,6 +20,8 @@ const $input      = document.getElementById('chat-input');
 
 let _voiceMode = false;    // 현재 요청이 음성으로 시작됐는지 — 응답을 읽어줄지 정한다
 let _thenListen = null;    // 마지막 읽기 요청이 끝났을 때 다시 들을지 묻는 함수
+let _speechSeq = 0;
+const _awaitingSpeech = new Set();  // 보냈지만 아직 오디오가 오지 않은 읽기 요청 id
 
 export function isVoiceMode() { return _voiceMode; }
 export function clearVoiceMode() { _voiceMode = false; }
@@ -97,11 +99,37 @@ window.voiceManager = voice;
 export function requestSpeech(text, { thenListen = null } = {}) {
   _thenListen = thenListen;
   voice.setProcessing();
-  send({ type: 'voice_tts_request', text });
+  const id = ++_speechSeq;
+  _awaitingSpeech.add(id);
+  send({ type: 'voice_tts_request', text, id });
 }
+
+// 도착한 합성 결과를 읽을지. 멈춘 뒤에 늦게 온 결과는 버린다. id 없는 결과(옛 서버)는 읽는다
+export function takeSpeech(id) {
+  if (id === null || id === undefined) return true;
+  return _awaitingSpeech.delete(id);
+}
+
+export function isSpeechActive() {
+  return voice.state === 'speaking' || _awaitingSpeech.size > 0;
+}
+
+// 읽던 것과 기다리던 읽기를 모두 멈춘다. 멈춘 뒤엔 Full-voice 라도 다시 듣지 않는다
+export function stopSpeech() {
+  _awaitingSpeech.clear();
+  _thenListen = null;
+  voice.stopSpeaking();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || !isSpeechActive()) return;
+  e.preventDefault();
+  stopSpeech();
+});
 
 // 구체 클릭 → voice mode 토글
 $sphereHit.addEventListener('click', () => {
+  if (isSpeechActive()) { stopSpeech(); return; }  // 읽는 중의 클릭은 멈춤
   if (!voice.supported) {
     appendMsg('SYS', 'err', UNSUPPORTED_MSG);
     return;

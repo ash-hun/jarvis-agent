@@ -8,7 +8,7 @@ import {
 import { updateUsage } from './usage.js';
 import { fetchAgenda, showNotice } from './agenda.js';
 import { fetchTools } from './tools.js';
-import { voice, isVoiceMode, clearVoiceMode, requestSpeech } from './voice-ui.js';
+import { voice, isVoiceMode, clearVoiceMode, requestSpeech, takeSpeech } from './voice-ui.js';
 import { showApproval, closeApproval, isApprovalOpen, approvalSpeech } from './approval.js';
 import { askFeedback, isFeedbackPending, QUESTION_SPOKEN } from './proactive.js';
 import { setInputEnabled, endAwaitingReply } from './composer.js';
@@ -180,6 +180,7 @@ export function handleMessage(msg) {
       break;
 
     case 'voice_tts_audio':
+      if (!takeSpeech(msg.id)) break;  // Esc 등으로 멈춘 읽기의 늦은 결과
       if (msg.data) {
         voice.playAudioBase64(msg.data, msg.mime || 'audio/wav');  // 백엔드 TTS (Supertonic-3 WAV)
       } else if (msg.text) {

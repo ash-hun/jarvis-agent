@@ -66,7 +66,7 @@ nginx 가 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/`)을 서빙하고
 
 ## 모드
 
-헤더의 `DEFAULT` / `FULL-VOICE` 는 음성으로 주고받는 방식을, `/focus <작업>` 은 작업 하나에 집중하는 Focus 레이아웃을 고른다. 둘은 함께 쓸 수 있다. 자세한 건 [Mode](../concepts/mode/index.md).
+헤더의 `DEFAULT` / `FULL-VOICE` 는 음성으로 주고받는 방식을, `/focus <작업>` 은 작업 하나에 집중하는 Focus 레이아웃을 고른다. 둘은 함께 쓸 수 있다. 자세한 건 [Mode](../concepts/mode/index.md). Focus 중에는 리액터 캡션이 한 줄로 줄고, 응답이 나오는 동안 CONVERSATION 띠가 빛난다. 띠를 누르면 전체 대화가 펼쳐진다.
 
 세션을 다른 에이전트(예: KAREN)로 바꾸면 화면 색이 약 0.9초에 걸쳐 그 에이전트 색으로 섞인다.
 

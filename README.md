@@ -649,7 +649,9 @@ JARVIS_THOUGHT__HISTORY_CHARS=240         # 턴당 글자 상한
 
 # ── Proactive: Dual-Channel + Daemon (Tier 1~2) ──────────────────────────────
 JARVIS_PROACTIVE__ENABLED=true            # 기본 ON (요청 시 filler+백그라운드)
-JARVIS_PROACTIVE__CONFIDENCE_THRESHOLD=0.6
+JARVIS_PROACTIVE__CONFIDENCE_THRESHOLD=0.85
+# JARVIS_PROACTIVE__DECISION_MODEL=tev1   # Ollama decision model 로 "먼저 말할까" 를 정한다
+# JARVIS_PROACTIVE__DECISION_THRESHOLD=0.6 # decision model 을 쓸 때의 임계치
 JARVIS_PROACTIVE__COOLDOWN_SEC=300
 JARVIS_PROACTIVE__IGNORE_AFTER_SEC=600  # 🔔 뒤 답이 없으면 이만큼 지나 약한 무시로 학습
 JARVIS_PROACTIVE__DAEMON_ENABLED=true     # 자율 성찰 루프 (기본 on)

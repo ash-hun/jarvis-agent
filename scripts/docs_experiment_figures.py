@@ -105,19 +105,14 @@ def finish(fig: Fig, y: float) -> Fig:
 
 
 def exp_proactive(r: dict) -> Fig:
-    sit, rep = r["proactive_situation"], r["reply_feedback"]
-    fig = Fig("exp-proactive", 0, "상황별 먼저 말하기와 짧은 답 분류 실험")
+    cmp, rep = r["proactive_compare"], r["reply_feedback"]
+    names = {"recall": ("recall (말해야 할 때 말함)", "pf-s2"), "fa": ("오경보 (침묵할 때 말함)", "pf-s3")}
+    fig = Fig("exp-proactive", 0, "먼저 말하기: 지시문과 decision model 구성별 비교")
     rows = [
-        ("recall (말해야 할 때 말함)", {k: sit[k]["recall"] for k in MODELS}),
-        ("precision", {k: sit[k]["precision"] for k in MODELS}),
-        ("오경보 (침묵할 때 말함)", {k: sit[k]["false_alarm"] for k in MODELS}),
+        (f"{c['label']} ({c['threshold']})", {"recall": c["recall"], "fa": c["false_alarm"]}) for c in cmp["test"]
     ]
-    y = section(
-        fig,
-        10,
-        "(a) 상황 12개 × 3회: 말해야 할 때 말하고, 아닐 때 침묵하는가",
-        bars_with_legend(fig, MODELS, rows, 1.0, UNIT),
-    )
+    draw = bars_with_legend(fig, list(names), rows, 1.0, UNIT, names=names)
+    y = section(fig, 10, "(a) 블라인드 시험 상황 20개 × 3회. 괄호는 개발용에서 고른 확신도 임계치", draw)
     rows = [("정확도", {k: rep[k]["accuracy"] for k in MODELS})]
     y = section(fig, y, "(b) 🔔 뒤 짧은 답 12개 × 3회 분류 정확도", bars_with_legend(fig, MODELS, rows, 1.0, UNIT))
     return finish(fig, y)
@@ -196,15 +191,22 @@ def exp_open_loop(r: dict) -> Fig:
 
 
 def exp_memory(r: dict) -> Fig:
-    f = r["compaction_faithfulness"]
-    fig = Fig("exp-memory", 0, "컴팩션 요약의 사실 보존율")
+    lang = r["summary_language"]
+    fig = Fig("exp-memory", 0, "컴팩션 요약의 언어와 사실 보존")
+
+    def ratio(text: str) -> float:
+        a, b = (int(n) for n in text.split("/"))
+        return a / b
+
     rows = [
-        ("보존율 (LLM 판정)", {k: f[k]["llm"] for k in MODELS}),
-        ("보존율 (낱말 포함)", {k: f[k]["contains"] for k in MODELS}),
+        ("한국어 요약 (이전 지시문)", {k: ratio(lang["before"][k]["korean"]) for k in MODELS}),
+        ("한국어 요약 (지금)", {k: ratio(lang["after"][k]["korean"]) for k in MODELS}),
+        ("낱말 그대로 (이전 지시문)", {k: lang["before"][k]["verbatim"] for k in MODELS}),
+        ("낱말 그대로 (지금)", {k: lang["after"][k]["verbatim"] for k in MODELS}),
     ]
-    note = "낱말 포함이 낮은 것은 요약이 대부분 영어로 나와 한국어 낱말이 그대로 남지 않아서로 보인다(추정)"
+    note = "사실 보존율(판정 모델 gpt-4o-mini 고정)은 지시문을 바꾸기 전과 후 모두 세 모델 1.00"
     draw = bars_with_legend(fig, MODELS, rows, 1.0, UNIT, note=note)
-    y = section(fig, 10, "심어 둔 사실 12개 × 3회 = 36개, 판정 모델은 gpt-4o-mini 로 고정", draw)
+    y = section(fig, 10, "한국어 대화 3개 × 3회 요약, 심어 둔 사실 12개", draw)
     return finish(fig, y)
 
 

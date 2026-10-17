@@ -43,13 +43,16 @@ JARVIS_THOUGHT__LOG_SINKS=["ltm"]          # ltm | stm
 JARVIS_THOUGHT__COMPOSER=default           # default | interpretation_only
 
 JARVIS_PROACTIVE__ENABLED=true
-JARVIS_PROACTIVE__CONFIDENCE_THRESHOLD=0.6
+JARVIS_PROACTIVE__CONFIDENCE_THRESHOLD=0.85  # decision model 을 쓰면 대신 DECISION_THRESHOLD 를 쓴다
 JARVIS_PROACTIVE__COOLDOWN_SEC=300
 JARVIS_PROACTIVE__IGNORE_AFTER_SEC=600  # 🔔 뒤 답이 없으면 이만큼 지나 약한 무시로 학습
 JARVIS_PROACTIVE__DAEMON_ENABLED=true
 JARVIS_PROACTIVE__DAEMON_TRIGGER=interval  # interval | idle | both
 JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120
 JARVIS_PROACTIVE__DAEMON_IDLE_SEC=180
+JARVIS_PROACTIVE__DECISION_MODEL=          # 비우면 사고 모델이 정한다. 예: tev1, nimble (Ollama decision model)
+JARVIS_PROACTIVE__DECISION_BASE_URL=http://localhost:11434   # 컨테이너에서는 http://host.docker.internal:11434
+JARVIS_PROACTIVE__DECISION_THRESHOLD=0.6   # decision model 을 쓸 때의 임계치. 모델의 확률 척도에 맞춘다
 ```
 
 ### 사고 모델 고르기

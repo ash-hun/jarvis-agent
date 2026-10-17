@@ -4,7 +4,12 @@ from datetime import datetime
 
 import pytest
 
-from jarvis.memory.consolidation.compaction import SYSTEM_PROMPT, llm_summarizer, render_messages, summarize_messages
+from jarvis.memory.consolidation.compaction import (
+    llm_summarizer,
+    render_messages,
+    summarize_messages,
+    system_prompt_for,
+)
 from jarvis.memory.eval.adapters.locomo import parse_locomo
 from jarvis.memory.eval.adapters.longmemeval import parse_longmemeval
 from jarvis.memory.long_term.episodic import prepare_episode
@@ -139,8 +144,8 @@ async def test_summarize_messages_continues_prior_summary(monkeypatch, faux_mode
     monkeypatch.setattr("jarvis.model_layer.stream.stream_to_message", fake_stream)
     assert await summarize_messages(faux_model, [UserMessage(content="hi")], prior="옛 요약") == "새 요약"
     prompt = seen[0].messages[0].content
-    assert isinstance(prompt, str) and prompt.startswith("Previous summary:\n옛 요약\n\n") and "[user] hi" in prompt
-    assert seen[0].system_prompt == SYSTEM_PROMPT
+    assert isinstance(prompt, str) and prompt.startswith("이전 요약:\n옛 요약\n\n") and "[user] hi" in prompt
+    assert seen[0].system_prompt == system_prompt_for([UserMessage(content="hi")])
 
 
 async def test_summarize_messages_none_on_error_and_placeholder_on_blank(monkeypatch, faux_model):
@@ -189,3 +194,18 @@ def test_locomo_orders_sessions_numerically_and_drops_unknown_evidence():
     assert q.sessions[0].date == "1:56 pm on 8 May, 2023" and q.sessions[1].date == ""
     assert q.question_type == "unknown" and q.answer == "3"
     assert q.evidence_turn_ids == {"D2:1", "D99:9"} and q.evidence_session_ids == {"c:session_2"}
+
+
+def test_summary_language_follows_conversation_text() -> None:
+    from jarvis.memory.consolidation.compaction import conversation_language
+    from jarvis.model_layer.types import AssistantMessage, TextContent
+
+    ko = [UserMessage(content="예산은 1200만원이야"), AssistantMessage(content=[TextContent(text="알겠습니다")])]
+    en = [UserMessage(content="The budget is $40k"), AssistantMessage(content=[TextContent(text="Got it")])]
+    # 어시스턴트 메시지의 JSON 키는 세지 않는다
+    assert conversation_language(ko) == "ko"
+    assert conversation_language(en) == "en"
+    # 코드와 영어 낱말이 많은 한국어 개발 대화도 한국어다
+    assert conversation_language([UserMessage(content="pytest 로 tests/unit/test_api.py 돌려줘")]) == "ko"
+    assert "한국어로 쓴다" in system_prompt_for(ko)
+    assert "English" in system_prompt_for(en)

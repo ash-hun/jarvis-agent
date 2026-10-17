@@ -90,7 +90,7 @@ class AgentProfile:
 
         def factory(emit: "EmitProactive") -> "ProactivityCore":
             policy = DefaultProactivityPolicy(
-                confidence_threshold=pcfg.confidence_threshold,
+                confidence_threshold=pcfg.effective_threshold(),
                 cooldown_sec=pcfg.cooldown_sec,
                 ignore_after_sec=pcfg.ignore_after_sec,
                 threshold_provider=learner.threshold,

@@ -111,7 +111,7 @@ class InfraBuilder:
         # 외부 이벤트 소스는 트리거 합성보다 먼저 만든다
         external_inbox, external_poller, external_trigger = self.build_external()
         activity_clock = ActivityClock()
-        feedback_learner = FeedbackLearner(base_threshold=settings.proactive.confidence_threshold)
+        feedback_learner = FeedbackLearner(base_threshold=settings.proactive.effective_threshold())
         ctx.activity_clock = activity_clock
         ctx.reflection_trigger = self.build_reflection_trigger(activity_clock, external_trigger)
         ctx.feedback_learner = feedback_learner

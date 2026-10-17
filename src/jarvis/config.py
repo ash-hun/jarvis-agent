@@ -225,7 +225,10 @@ class ProactiveConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     enabled: bool = True  # Dual-Channel(요청 시 filler+백그라운드) 마스터 스위치
-    confidence_threshold: float = 0.6  # daemon 발화 게이팅 임계치
+    # daemon 발화 게이팅 임계치. 성찰 지시문은 확신도를 0.9 이상(분명), 0.6~0.9(이미 알 수도), 0.6 미만(애매)으로
+    # 매기게 한다. 개발용 사례에서 gpt-4o-mini, gemma4:e4b 모두 0.85 에서 오경보 0 이었다(블라인드 시험에서는 0.2).
+    # 사용자에 맞추는 것은 피드백 학습이 한다. decision model 을 쓰면 decision_threshold 를 쓴다
+    confidence_threshold: float = 0.85
     cooldown_sec: int = 300  # 세션별 proactive 발화 쿨다운
     # 🔔 뒤 답이 없으면 다시 말하지 않는다. 이만큼 답이 없으면 그 발화를 한 번 약한 무시로 학습
     ignore_after_sec: int = 600
@@ -234,6 +237,17 @@ class ProactiveConfig(BaseModel):
     # 성찰 트리거: interval(주기) | idle(조용해지면) | both(둘 중 먼저)
     daemon_trigger: Literal["interval", "idle", "both"] = "interval"
     daemon_idle_sec: int = 180  # idle 트리거 — 이만큼 조용하면 1회 성찰
+    # 성찰의 "먼저 말할까" 를 decision model(System One API, 예: Ollama 의 tev1, nimble)의 확률로 정한다.
+    # 비우면 사고 모델의 결정과 확신도를 그대로 쓴다
+    decision_model: str = ""
+    decision_base_url: str = "http://localhost:11434"
+    # decision model 을 쓸 때의 임계치. 확률 척도가 사고 모델의 확신도와 달라 따로 둔다
+    # (tev1 은 0.6 에서 개발용 오경보 0, 블라인드 시험 0.3)
+    decision_threshold: float = 0.6
+
+    def effective_threshold(self) -> float:
+        """정책과 피드백 학습이 출발할 임계치. decision model 을 쓰면 그 모델의 임계치다."""
+        return self.decision_threshold if self.decision_model else self.confidence_threshold
 
 
 class ExternalTriggerConfig(BaseModel):

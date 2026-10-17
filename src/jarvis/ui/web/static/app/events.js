@@ -57,7 +57,7 @@ export function handleMessage(msg) {
     }
 
     case 'message_update':
-      if (msg.text_delta) streamDelta(msg.text_delta);
+      if (msg.text_delta) { streamDelta(msg.text_delta); document.body.classList.add('responding'); }
       break;
 
     case 'stream_delta':
@@ -72,6 +72,7 @@ export function handleMessage(msg) {
       if (msg.continues) { streamEnd(); break; }
 
       // 루트 에이전트 종료 — 메시지 확정 + 입력 복원
+      document.body.classList.remove('responding');
       streamEnd();
       setStatus('READY');
       HUD.setState('idle');
@@ -111,6 +112,7 @@ export function handleMessage(msg) {
     }
 
     case 'agent_error':
+      document.body.classList.remove('responding');
       streamEnd();
       flashError(msg.message || 'Unknown error');
       break;
@@ -182,7 +184,9 @@ export function handleMessage(msg) {
     }
 
     case 'approval_resolved':
-      if (closeApproval(msg.id)) logActivity('⚡ approval · 다른 창에서 처리됨', 'tool');
+      if (closeApproval(msg.id)) {
+        logActivity(msg.timeout ? '⚡ approval · 시간 초과로 거부' : '⚡ approval · 다른 창에서 처리됨', 'tool');
+      }
       break;
 
     case 'voice_tts_audio':

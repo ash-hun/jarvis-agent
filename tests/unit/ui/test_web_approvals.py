@@ -48,8 +48,10 @@ async def test_late_connection_sees_pending_request():
 async def test_timeout_denies_and_closes_everywhere():
     broker, c1 = _broker(timeout=0.01), FakeConn()
     await broker.attach(c1)
-    assert await broker.request("ls", "확인") is False
-    assert c1.sent[-1]["type"] == "approval_resolved" and broker.pending_ids == []
+    # 거부와 같지만 사용자에게 다르게 알리도록 timeout 으로 돌려주고, 닫는 알림에도 싣는다
+    assert await broker.request("ls", "확인") == "timeout"
+    assert c1.sent[-1] == {"type": "approval_resolved", "id": c1.sent[-1]["id"], "timeout": True}
+    assert broker.pending_ids == []
 
 
 async def test_no_connection_denies_immediately():

@@ -75,7 +75,7 @@ JARVIS_LLM__API_KEY=sk-ant-...
 # 로컬 모델 (API 키 불필요)
 JARVIS_LLM__PROVIDER=ollama
 JARVIS_LLM__BASE_URL=http://localhost:11434
-JARVIS_LLM__MODEL=llama3.2
+JARVIS_LLM__MODEL=gemma4:e4b
 ```
 
 ---
@@ -155,7 +155,7 @@ JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120   # 로컬과 배포 모두 같은 값
 | `Ctrl+Y` (TUI) / `네`, `좋아`, `고마워` 로 답 (Web, 음성) | proactive 발화 "도움됨" |
 | `Ctrl+G` (TUI) / `아니오`, `됐어`, `무시` 로 답 (Web, 음성) | proactive 발화 "무시" |
 
-Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는다. "응 그걸로 해줘" 처럼 키워드가 아닌 40자 이하 답은 사고 모델이 수락/무시/다른 말로 분류한다(사고가 켜져 있을 때). 다른 말이면 보통 메시지로 흘러가고 질문은 닫힌다. Full-voice 의 음성 승인 답도 같은 분류기를 쓰되, 허용이 분명할 때만 허용한다.
+Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는다. "응 그걸로 해줘" 처럼 키워드가 아닌 40자 이하 답은 사고 모델이 수락/무시/다른 말로 분류한다(사고가 켜져 있을 때). 다른 말이면 보통 메시지로 흘러가고 질문은 닫힌다. 음성 승인 답(Full-voice, 또는 Default 에서 음성으로 시작한 요청)도 같은 분류기를 쓰되, 허용이 분명할 때만 허용한다.
 
 > 사고 방식은 프롬프트 파일로 직접 조율할 수 있다: `~/.jarvis/inner_thought.md`(요청), `~/.jarvis/inner_thought_reflection.md`(성찰). 직접 쓴 템플릿에도 `utterance` 키는 있어야 한다. 없으면 daemon 이 항상 침묵한다.
 
@@ -210,10 +210,12 @@ JARVIS_NOTIFY__KINDS=["reminder","proactive"]   # reminder=스케줄 결과, pro
 | 영역 | 내용 |
 |------|------|
 | 왼쪽 열 | AGENDA(스케줄, open loop ✓/✕), ACTIVITY, SYSTEM(모델, 토큰·비용, 도구 목록) |
-| 가운데 | 리액터. 상태(대기, 생각, 실행, 듣기, 말하기)가 구체와 링에 보인다. 클릭하면 음성 모드 |
+| 가운데 | 리액터. 상태(대기, 생각, 실행, 듣기, 말하기)가 구체와 링에 보인다. 클릭하면 음성 모드, 읽는 중이면 읽기 멈춤 |
 | 오른쪽 열 | SESSIONS, CONVERSATION. 헤더를 클릭하면 접히고 아래 카드가 자리를 채운다 |
 
-대화에는 네 종류가 섞인다. 💭 는 접힌 한 줄(decision, 확신도)이고 클릭하면 해석 전문. 🔔 는 먼저 건넨 말이고 아래에 "도움이 됐나요?" 가 붙는다. 전송 직후 첫 이벤트까지는 THINKING 자리표시가 뜬다. 응답과 세션 복원 메시지는 마크다운으로 렌더된다. 승인이 필요한 도구는 모달(ALLOW, ALWAYS, DENY)로 묻는다.
+대화에는 네 종류가 섞인다. 💭 는 접힌 한 줄(decision, 확신도)이고 클릭하면 해석 전문. 🔔 는 먼저 건넨 말이고 아래에 "도움이 됐나요?" 가 붙는다. 전송 직후 첫 이벤트까지는 THINKING 자리표시가 뜬다. 응답과 세션 복원 메시지는 마크다운으로 렌더된다. 승인이 필요한 도구는 모달(ALLOW, ALWAYS, DENY)로 묻고, 120초 동안 답이 없으면 시간 초과로 거부한다. 음성으로 시작한 요청이면 모달 대신 아래쪽 띠를 띄우고 음성으로 묻는다.
+
+헤더의 `DEFAULT` / `FULL-VOICE` 는 음성 모드를, `/focus <작업>` 은 Focus 모드를 켠다. Focus 는 양옆 카드를 띠로 접고 구체 둘레에 레퍼런스 조사, 작업 기록, 지시 분석, 진행 현황 네 영역을 펼친다. 각 영역은 작업 동안 살아 있는 sub-agent 가 채운다. 세션을 다른 에이전트로 바꾸면 화면 색이 약 0.9초에 걸쳐 섞인다.
 
 정적 파일은 서비스 워커가 네트워크 우선으로 받고 끊겼을 때만 캐시를 쓴다. 버전 문자열이 없으므로 파일을 고치면 새로고침만으로 반영된다. 860px 이하에서는 왼쪽 열이 드로어가 된다. 수동 확인 절차는 `scripts/e2e/hud-scenario.md`, 자동 e2e 는 `scripts/e2e/hud_flow.py`.
 
@@ -233,6 +235,8 @@ JARVIS_VOICE__TTS_PROVIDER=supertonic    # browser | supertonic
 # 서버 STT/TTS 사용 시 추가 의존성
 uv sync --extra voice
 ```
+
+읽기 전에 서버가 마크다운 기호를 지운다. 읽는 중에 `Esc` 를 누르거나 구체를 클릭하면 멈춘다. 영어로만 된 문장은 `JARVIS_VOICE__ENGLISH_TTS_PROVIDER=piper` 로 Piper 음성 모델이 따로 읽게 할 수 있다.
 
 서버 STT 모드에서는 `connected` 메시지의 `voice.stt_mode=server`를 받아, 브라우저가 `MediaRecorder`로 녹음한 오디오를 `voice_stt_submit`으로 전송하고 백엔드가 `voice_stt_result`로 전사 결과를 돌려준다.
 

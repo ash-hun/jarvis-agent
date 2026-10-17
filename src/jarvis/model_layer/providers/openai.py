@@ -15,6 +15,7 @@ from jarvis.model_layer.types import (
     LLMContext,
     ModelConfig,
     StopEvent,
+    StopReason,
     StreamEvent,
     StreamOptions,
     TextContent,
@@ -65,6 +66,7 @@ class OpenAIProvider(Provider):
         try:
             tool_buffers: dict[int, dict[str, Any]] = {}
             usage = Usage()
+            reason: StopReason | None = None
 
             async with await client.chat.completions.create(**kwargs) as stream_ctx:
                 async for chunk in stream_ctx:
@@ -99,13 +101,16 @@ class OpenAIProvider(Provider):
                                     )
 
                     if choice.finish_reason:
-                        stop_map = {
+                        stop_map: dict[str, StopReason] = {
                             "stop": "stop",
                             "length": "length",
                             "tool_calls": "tool_use",
                         }
                         reason = stop_map.get(choice.finish_reason, "stop")
-                        yield StopEvent(reason=reason, usage=usage)
+
+            # 사용량은 finish_reason 뒤에 choices 가 빈 마지막 조각으로 온다. 끝까지 읽고 멈춤을 알린다
+            if reason is not None:
+                yield StopEvent(reason=reason, usage=usage)
 
         except openai_sdk.APIError as exc:
             yield ErrorEvent(message=str(exc), code=str(getattr(exc, "status_code", None)))

@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 270" class="pf-svg" role="img" aria-label="임베딩별 같은 약속과 다른 약속의 코사인 분포">
+<defs><marker id="exp-open-loop-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-open-loop-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-open-loop-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-open-loop-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="10" y="10" width="740" height="250" rx="8"/>
+<text class="pf-plabel" x="22" y="30">약속 18쌍의 코사인: 바꿔 말한 같은 약속(●)과 같은 주제의 다른 약속(◆)</text>
+<rect class="pf-dot-same" x="30" y="44" width="10" height="10" rx="2"/>
+<text class="pf-s" x="45" y="53" text-anchor="start">같은 약속</text>
+<rect class="pf-dot-diff" x="106.89" y="44" width="10" height="10" rx="2"/>
+<text class="pf-s" x="121.89" y="53" text-anchor="start">다른 약속</text>
+<text class="pf-s" x="188" y="94" text-anchor="end">bge-m3</text>
+<text class="pf-axis" x="188" y="108" text-anchor="end">판정 정확도 0.83, 잘못 합침 0</text>
+<circle class="pf-dot-same" cx="695.9" cy="88" r="4"/>
+<circle class="pf-dot-same" cx="697.0" cy="88" r="4"/>
+<circle class="pf-dot-same" cx="584.8" cy="88" r="4"/>
+<circle class="pf-dot-same" cx="601.2" cy="88" r="4"/>
+<circle class="pf-dot-same" cx="500.0" cy="88" r="4"/>
+<circle class="pf-dot-same" cx="646.7" cy="88" r="4"/>
+<circle class="pf-dot-same" cx="641.2" cy="88" r="4"/>
+<circle class="pf-dot-same" cx="663.1" cy="88" r="4"/>
+<rect class="pf-dot-diff" x="601.0" y="95" width="7" height="7" transform="rotate(45 604.5 98.5)"/>
+<rect class="pf-dot-diff" x="550.6" y="95" width="7" height="7" transform="rotate(45 554.1 98.5)"/>
+<rect class="pf-dot-diff" x="468.0" y="95" width="7" height="7" transform="rotate(45 471.5 98.5)"/>
+<rect class="pf-dot-diff" x="549.6" y="95" width="7" height="7" transform="rotate(45 553.1 98.5)"/>
+<rect class="pf-dot-diff" x="551.2" y="95" width="7" height="7" transform="rotate(45 554.7 98.5)"/>
+<rect class="pf-dot-diff" x="567.1" y="95" width="7" height="7" transform="rotate(45 570.6 98.5)"/>
+<rect class="pf-dot-diff" x="541.9" y="95" width="7" height="7" transform="rotate(45 545.4 98.5)"/>
+<rect class="pf-dot-diff" x="564.3" y="95" width="7" height="7" transform="rotate(45 567.8 98.5)"/>
+<rect class="pf-dot-diff" x="456.5" y="95" width="7" height="7" transform="rotate(45 460.0 98.5)"/>
+<rect class="pf-dot-diff" x="474.0" y="95" width="7" height="7" transform="rotate(45 477.5 98.5)"/>
+<text class="pf-s" x="188" y="142" text-anchor="end">nomic-embed-text</text>
+<text class="pf-axis" x="188" y="156" text-anchor="end">판정 정확도 0.61, 잘못 합침 5</text>
+<circle class="pf-dot-same" cx="604.0" cy="136" r="4"/>
+<circle class="pf-dot-same" cx="651.0" cy="136" r="4"/>
+<circle class="pf-dot-same" cx="663.1" cy="136" r="4"/>
+<circle class="pf-dot-same" cx="647.2" cy="136" r="4"/>
+<circle class="pf-dot-same" cx="630.2" cy="136" r="4"/>
+<circle class="pf-dot-same" cx="653.2" cy="136" r="4"/>
+<circle class="pf-dot-same" cx="708.5" cy="136" r="4"/>
+<circle class="pf-dot-same" cx="669.6" cy="136" r="4"/>
+<rect class="pf-dot-diff" x="650.8" y="143" width="7" height="7" transform="rotate(45 654.3 146.5)"/>
+<rect class="pf-dot-diff" x="655.2" y="143" width="7" height="7" transform="rotate(45 658.7 146.5)"/>
+<rect class="pf-dot-diff" x="615.8" y="143" width="7" height="7" transform="rotate(45 619.3 146.5)"/>
+<rect class="pf-dot-diff" x="681.5" y="143" width="7" height="7" transform="rotate(45 685.0 146.5)"/>
+<rect class="pf-dot-diff" x="653.6" y="143" width="7" height="7" transform="rotate(45 657.1 146.5)"/>
+<rect class="pf-dot-diff" x="619.6" y="143" width="7" height="7" transform="rotate(45 623.1 146.5)"/>
+<rect class="pf-dot-diff" x="638.2" y="143" width="7" height="7" transform="rotate(45 641.7 146.5)"/>
+<rect class="pf-dot-diff" x="624.5" y="143" width="7" height="7" transform="rotate(45 628.0 146.5)"/>
+<rect class="pf-dot-diff" x="533.1" y="143" width="7" height="7" transform="rotate(45 536.6 146.5)"/>
+<rect class="pf-dot-diff" x="593.3" y="143" width="7" height="7" transform="rotate(45 596.8 146.5)"/>
+<text class="pf-s" x="188" y="190" text-anchor="end">text-embedding-3-small</text>
+<text class="pf-axis" x="188" y="204" text-anchor="end">판정 정확도 0.56, 잘못 합침 0</text>
+<circle class="pf-dot-same" cx="572.8" cy="184" r="4"/>
+<circle class="pf-dot-same" cx="454.0" cy="184" r="4"/>
+<circle class="pf-dot-same" cx="516.9" cy="184" r="4"/>
+<circle class="pf-dot-same" cx="506.0" cy="184" r="4"/>
+<circle class="pf-dot-same" cx="409.1" cy="184" r="4"/>
+<circle class="pf-dot-same" cx="585.3" cy="184" r="4"/>
+<circle class="pf-dot-same" cx="538.3" cy="184" r="4"/>
+<circle class="pf-dot-same" cx="587.0" cy="184" r="4"/>
+<rect class="pf-dot-diff" x="457.0" y="191" width="7" height="7" transform="rotate(45 460.5 194.5)"/>
+<rect class="pf-dot-diff" x="518.9" y="191" width="7" height="7" transform="rotate(45 522.4 194.5)"/>
+<rect class="pf-dot-diff" x="388.6" y="191" width="7" height="7" transform="rotate(45 392.1 194.5)"/>
+<rect class="pf-dot-diff" x="515.6" y="191" width="7" height="7" transform="rotate(45 519.1 194.5)"/>
+<rect class="pf-dot-diff" x="537.0" y="191" width="7" height="7" transform="rotate(45 540.5 194.5)"/>
+<rect class="pf-dot-diff" x="410.0" y="191" width="7" height="7" transform="rotate(45 413.5 194.5)"/>
+<rect class="pf-dot-diff" x="486.1" y="191" width="7" height="7" transform="rotate(45 489.6 194.5)"/>
+<rect class="pf-dot-diff" x="483.9" y="191" width="7" height="7" transform="rotate(45 487.4 194.5)"/>
+<rect class="pf-dot-diff" x="311.4" y="191" width="7" height="7" transform="rotate(45 314.9 194.5)"/>
+<rect class="pf-dot-diff" x="227.2" y="191" width="7" height="7" transform="rotate(45 230.7 194.5)"/>
+<line class="pf-grid" x1="227.4" y1="72" x2="227.4" y2="214"/>
+<text class="pf-axis" x="227.3684210526316" y="227" text-anchor="middle">0.1</text>
+<line class="pf-grid" x1="282.1" y1="72" x2="282.1" y2="214"/>
+<text class="pf-axis" x="282.10526315789474" y="227" text-anchor="middle">0.2</text>
+<line class="pf-grid" x1="336.8" y1="72" x2="336.8" y2="214"/>
+<text class="pf-axis" x="336.8421052631579" y="227" text-anchor="middle">0.3</text>
+<line class="pf-grid" x1="391.6" y1="72" x2="391.6" y2="214"/>
+<text class="pf-axis" x="391.5789473684211" y="227" text-anchor="middle">0.4</text>
+<line class="pf-grid" x1="446.3" y1="72" x2="446.3" y2="214"/>
+<text class="pf-axis" x="446.3157894736842" y="227" text-anchor="middle">0.5</text>
+<line class="pf-grid" x1="501.1" y1="72" x2="501.1" y2="214"/>
+<text class="pf-axis" x="501.05263157894734" y="227" text-anchor="middle">0.6</text>
+<line class="pf-grid" x1="555.8" y1="72" x2="555.8" y2="214"/>
+<text class="pf-axis" x="555.7894736842104" y="227" text-anchor="middle">0.7</text>
+<line class="pf-grid" x1="610.5" y1="72" x2="610.5" y2="214"/>
+<text class="pf-axis" x="610.5263157894738" y="227" text-anchor="middle">0.8</text>
+<line class="pf-grid" x1="665.3" y1="72" x2="665.3" y2="214"/>
+<text class="pf-axis" x="665.2631578947369" y="227" text-anchor="middle">0.9</text>
+<line class="pf-grid" x1="720.0" y1="72" x2="720.0" y2="214"/>
+<text class="pf-axis" x="720.0" y="227" text-anchor="middle">1.0</text>
+<line class="pf-ref" x1="637.9" y1="72" x2="637.9" y2="214"/>
+<text class="pf-ref-t" x="641.8947368421052" y="80" text-anchor="start">문턱 0.85</text>
+<text class="pf-note" x="30" y="248" text-anchor="start">임베딩 없이 글자 규칙만 쓰면 판정 정확도 0.56, 잘못 합침 0</text>
+</svg>

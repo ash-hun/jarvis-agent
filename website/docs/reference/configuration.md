@@ -21,9 +21,10 @@ title: 서비스 설정 값
 JARVIS_LLM__PROVIDER=anthropic        # anthropic | openai | google | ollama | vllm
 JARVIS_LLM__MODEL=claude-sonnet-4-5
 JARVIS_LLM__API_KEY=
-JARVIS_LLM__BASE_URL=                 # Ollama, vLLM 전용
+JARVIS_LLM__BASE_URL=                 # Ollama, vLLM, OpenAI 호환 주소. OpenAI 는 비우면 기본 주소
 JARVIS_LLM__MAX_TOKENS=4096
 JARVIS_LLM__TEMPERATURE=0.7
+JARVIS_LLM__TIMEOUT=120               # 초
 ```
 
 ## 내적 사고와 proactive
@@ -75,7 +76,7 @@ JARVIS_PROACTIVE__DAEMON_IDLE_SEC=180
 
 ```bash
 JARVIS_FOCUS__ENABLED=true
-JARVIS_FOCUS__MODEL=gpt-4o-mini        # sub-agent 넷의 모델. 비우면 메인 모델
+JARVIS_FOCUS__MODEL=                   # sub-agent 넷의 모델(예: gpt-4o-mini). 비우면 메인 모델
 JARVIS_FOCUS__DIR=~/.jarvis/focus
 JARVIS_FOCUS__READY_TIMEOUT_SEC=30     # 시작할 때 첫 분석과 단계 계획을 기다리는 상한
 ```
@@ -86,6 +87,7 @@ JARVIS_FOCUS__READY_TIMEOUT_SEC=30     # 시작할 때 첫 분석과 단계 계�
 
 ```bash
 JARVIS_MEMORY__BACKEND=postgres            # in_memory | postgres
+JARVIS_MEMORY__POSTGRES_DSN=               # 비우면 SESSION__POSTGRES_DSN 을 쓴다
 JARVIS_MEMORY__WINDOW_SIZE=50
 JARVIS_MEMORY__COMPACTION_THRESHOLD=100000
 JARVIS_MEMORY__CONSOLIDATE_ON_IDLE=true    # daemon_trigger 가 idle 또는 both 일 때 요약에서 사실 추출
@@ -99,6 +101,7 @@ JARVIS_SESSION__POSTGRES_DSN=postgresql://user:pw@host:5432/jarvis
 
 JARVIS_OPENLOOP__BACKEND=jsonl             # jsonl | in_memory | postgres
 JARVIS_OPENLOOP__PATH=~/.jarvis/openloops.jsonl
+JARVIS_OPENLOOP__POSTGRES_DSN=             # BACKEND=postgres 일 때. 비우면 세션, 메모리 DSN 순으로 쓴다
 JARVIS_OPENLOOP__EXPIRE_AFTER_SEC=21600    # 기한 뒤 이만큼 지나면 expired 로 닫음(6시간)
 JARVIS_OPENLOOP__MAX_AGE_SEC=604800        # 기한 없는 약속의 수명(7일). 0 이면 닫지 않음
 JARVIS_USER_MODEL__ENABLED=true
@@ -113,6 +116,8 @@ JARVIS_SECURITY__ALLOWED_ROLES=["user","admin"]
 JARVIS_SECURITY__INPUT_MAX_LENGTH=10000
 JARVIS_SECURITY__APPROVALS_PATH=~/.jarvis/approvals.yaml        # 공용 규칙(사람이 고친다)
 JARVIS_SECURITY__AGENT_APPROVALS_DIR=~/.jarvis/approvals         # 에이전트별 규칙(<agent_id>.yaml, 항상 허용이 쌓인다)
+JARVIS_SECURITY__REQUIRE_APPROVAL_FOR=["bash","write_file","edit_file"]  # 실행 전 승인을 묻는 도구
+JARVIS_SECURITY__DANGEROUS_COMMANDS=[...]                          # 승인과 무관하게 막는 명령 패턴
 ```
 
 `API_KEYS` 를 비우면 Web 인증이 꺼진다. 인증을 켜고 끄는 다른 스위치는 없다. TUI 는 설정과 상관없이 로컬 NoAuth 로 동작한다. 키가 곧 사용자 식별자이므로 길고 무작위인 값을 쓴다.
@@ -132,10 +137,23 @@ JARVIS_NOTIFY__SLACK_WEBHOOK_URL=
 JARVIS_NOTIFY__KINDS=["reminder","proactive"]
 
 JARVIS_PLUGIN__TOOLS_DIR=~/.jarvis/tools
-JARVIS_PLUGIN__SKILLS_DIR=./skills
+JARVIS_PLUGIN__SKILLS_DIR=./skills          # .env.example 값. 코드 기본은 ~/.jarvis/skills
 JARVIS_PLUGIN__PLUGINS_DIR=~/.jarvis/plugins
-JARVIS_PLUGIN__AGENTS_DIR=~/.jarvis/agents
+
+JARVIS_AGENTS__ENABLED=true                 # 서브 에이전트(멀티 에이전트 패턴)
+JARVIS_AGENTS__AGENTS_DIR=~/.jarvis/agents
+JARVIS_TEAM__DIR=~/.jarvis/team             # 최상위 에이전트 정의(Docker 는 /app/team)
+
+JARVIS_SCHEDULER__ENABLED=true
+JARVIS_SCHEDULER__SCHEDULES_DIR=~/.jarvis/schedules
+
+JARVIS_EXTERNAL__ENABLED=true               # 외부 이벤트 소스를 읽어 사고에 넣는다
+JARVIS_EXTERNAL__SOURCES_DIR=~/.jarvis/external_sources
+
+JARVIS_WEB_SEARCH__BRAVE_API_KEY=           # 비우면 web_search 가 DuckDuckGo 결과 페이지를 읽는다
 ```
+
+여기 없는 조정 값(메모리 반감기, 사고 임계치, 외부 이벤트 한도 등)은 `src/jarvis/config.py` 의 기본값을 따른다.
 
 `JARVIS_PLUGIN__WATCH_FILES` 는 설정에 있지만 현재 아무것도 감시하지 않는다. 파일을 더했으면 재시작한다.
 

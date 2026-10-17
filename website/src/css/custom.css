@@ -431,3 +431,20 @@ pre,
 .pf-bar--accent { fill: var(--pf-accent-fill); stroke: var(--pf-accent); }
 .pf-bar-t { fill: var(--pf-ink); font-size: 10.5px; }
 .pf-bar-t--accent { fill: var(--pf-accent); font-weight: 600; }
+/* 실험 그래프. 세 모델을 늘 같은 색으로 구분한다(로컬 e2b, 로컬 e4b, gpt-4o-mini) */
+:root { --pf-s1: #8fd0df; --pf-s2: #0e7490; --pf-s3: #d08a3e; --pf-grid: rgba(14, 116, 144, 0.14); }
+[data-theme='dark'] { --pf-s1: #2c7486; --pf-s2: #5fc8e2; --pf-s3: #f0b35f; --pf-grid: rgba(95, 200, 226, 0.14); }
+.pf-s1 { fill: var(--pf-s1); }
+.pf-s2 { fill: var(--pf-s2); }
+.pf-s3 { fill: var(--pf-s3); }
+.pf-grid { stroke: var(--pf-grid); stroke-width: 1; }
+.pf-ref { stroke: var(--pf-deny); stroke-width: 1.2; stroke-dasharray: 4 3; }
+.pf-ref-t { fill: var(--pf-deny); font-size: 10px; }
+.pf-val { fill: var(--pf-ink); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.pf-axis { fill: var(--pf-ink-2); font-size: 10px; font-variant-numeric: tabular-nums; }
+.pf-dot-same { fill: var(--pf-s2); }
+.pf-dot-diff { fill: var(--pf-s3); }
+/* 준수표: 전부 지킴, 일부, 하나도 못 지킴. 모델 색과 겹치지 않게 따로 둔다 */
+.pf-ok { fill: var(--pf-ink); }
+.pf-part { fill: var(--pf-surface); stroke: var(--pf-ink); stroke-width: 1.4; }
+.pf-zero { fill: var(--pf-surface); stroke: var(--pf-deny); stroke-width: 1.4; }

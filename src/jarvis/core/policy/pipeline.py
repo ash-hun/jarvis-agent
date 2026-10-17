@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 from jarvis.memory.scope import LOCAL_USER
 
 # 단계 기반 클래스의 기본 동작은 개인 비서 단독 사용(검증 없음, 익명 사용자, 전부 허용)이다
 ANONYMOUS_ROLES: frozenset[str] = frozenset({"user"})
 ANY_GRANT: frozenset[str] = frozenset({"*"})
+# 도구 실행 결정. timeout 은 승인 요청에 사용자가 시간 안에 답하지 않은 거부다
+Decision = Literal["allow", "deny", "timeout"]
 
 # ── 파이프라인 데이터 타입 (불변) ─────────────────────────────────────────────
 
@@ -113,6 +115,10 @@ class SandboxProtocol:
 
     async def authorize(self, tool_name: str, params: dict[str, Any]) -> bool:
         return True
+
+    async def decide(self, tool_name: str, params: dict[str, Any]) -> Decision:
+        """authorize 와 같되 거부 이유(사용자 거부, 시간 초과)까지 돌려준다. 기본은 authorize 를 따른다."""
+        return "allow" if await self.authorize(tool_name, params) else "deny"
 
 
 # ── SecurityPipeline 오케스트레이터 ──────────────────────────────────────────

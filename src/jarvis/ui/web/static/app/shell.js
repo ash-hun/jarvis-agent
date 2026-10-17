@@ -63,9 +63,18 @@ export function showLive(text, holdMs = 0) {
   if (holdMs) _captionTimer = setTimeout(showQuote, holdMs);
 }
 
-// 마크다운 기호를 걷어낸 마지막 비어 있지 않은 줄
+// 마크다운 기호를 걷어낸 마지막 비어 있지 않은 줄. 스트리밍 중 반쯤 온 링크("[이름](")도 글자만 남긴다
+function plainLine(l) {
+  return l
+    .replace(/\[([^\]]*)\]\([^)]*\)?/g, '$1')
+    .replace(/[[\]]/g, '')
+    .replace(/^\s*(?:[-*+]|\d+[.)])\s+/, '')
+    .replace(/[#*`>_]/g, '')
+    .trim();
+}
+
 export function lastLine(text) {
-  const lines = text.split('\n').map((l) => l.replace(/[#*`>_]/g, '').trim()).filter(Boolean);
+  const lines = text.split('\n').map(plainLine).filter(Boolean);
   const line = lines.length ? lines[lines.length - 1] : '';
   return line.length > 160 ? line.slice(0, 157) + '…' : line;
 }

@@ -35,6 +35,22 @@
   --gutter: 18px;
 }
 
+/* 에이전트를 바꾸면 브랜드 입력값이 바뀐다. 등록한 색 변수라야 transition 이 걸리고,
+ * 여기서 유도한 톤(--pri-bright, --text …)은 매 프레임 따라 섞인다. hud.js, sphere.js 도 비슷한 시간에 섞는다 */
+@property --primary  { syntax: '<color>'; inherits: true; initial-value: #5fc8e2; }
+@property --accent   { syntax: '<color>'; inherits: true; initial-value: #f0b35f; }
+@property --bg-0     { syntax: '<color>'; inherits: true; initial-value: #02060c; }
+@property --nebula-0 { syntax: '<color>'; inherits: true; initial-value: #3a5bff; }
+@property --nebula-1 { syntax: '<color>'; inherits: true; initial-value: #8a4dff; }
+@property --nebula-2 { syntax: '<color>'; inherits: true; initial-value: #ff6ad5; }
+:root {
+  transition: --primary .9s ease, --accent .9s ease, --bg-0 .9s ease,
+              --nebula-0 .9s ease, --nebula-1 .9s ease, --nebula-2 .9s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { transition: none; }
+}
+
 /* ── Reset ───────────────────────────────────────────────────────────────────*/
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
@@ -1031,6 +1047,10 @@ body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
 .agent-text h1 { font-size: 13px; }
 .agent-text p  { margin: 4px 0; line-height: 1.65; }
 .agent-text ul, .agent-text ol { padding-left: 16px; margin: 4px 0; }
+/* 번호는 바깥 여백에 그려져 두 자리("10.")부터 패널 가장자리에 잘린다 */
+.agent-text ol { padding-left: 2.4em; }
+.agent-text a, .focus-body a { color: var(--primary); text-decoration: underline dotted; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.agent-text a:hover, .focus-body a:hover { color: var(--pri-bright); }
 .agent-text li { margin: 2px 0; }
 .agent-text hr { border: none; border-top: 1px solid var(--hairline); margin: 8px 0; }
 .agent-text strong { color: var(--text); font-weight: 600; }
@@ -1247,7 +1267,23 @@ body[data-focus="on"] .sphere-wrap {
   filter: saturate(1.7) brightness(1.18) drop-shadow(0 0 22px var(--pri-glow));
   transition-delay: .2s;
 }
-body[data-focus="on"] .reactor-caption { max-width: calc(var(--sphere) * .9); }
+/* Focus 중 캡션은 가운데 빈 칸(구체 폭의 절반) 안의 한 줄. 넘치면 말줄임, 전체는 CONVERSATION 띠에서 본다 */
+body[data-focus="on"] .reactor-caption {
+  position: relative; z-index: 2;
+  max-width: calc(var(--sphere) * .5 - 12px);
+  -webkit-line-clamp: 1;
+  overflow-wrap: anywhere;
+}
+/* 응답이 나오는 동안 CONVERSATION 띠가 숨쉬듯 빛난다 */
+@keyframes strip-live {
+  0%, 100% { box-shadow: 0 0 0 transparent; border-color: var(--hairline); }
+  50%      { box-shadow: 0 0 16px var(--pri-glow); border-color: var(--pri-bright); }
+}
+body[data-focus="on"].responding:not(.focus-chat-open) .chat-card { animation: strip-live 1.6s ease-in-out infinite; }
+body[data-focus="on"].responding:not(.focus-chat-open) .chat-card .panel-head { color: var(--pri-bright); }
+@media (prefers-reduced-motion: reduce) {
+  body[data-focus="on"].responding:not(.focus-chat-open) .chat-card { animation: none; border-color: var(--pri-bright); }
+}
 
 /* 둘레 네 영역 — 가운데 칸은 줄어든 구체 자리. 영역이 구체 가장자리 밑으로 살짝 들어간다 */
 .focus-ring {
@@ -1295,9 +1331,27 @@ body[data-focus="on"] .focus-panel {
 .focus-body p { margin: 0 0 6px; }
 .focus-body ul, .focus-body ol { margin: 0 0 6px; padding-left: 18px; }
 .focus-body ol { list-style: decimal inside; padding-left: 2px; }
+.focus-body li > ul { margin: 2px 0 4px; padding-left: 16px; list-style: disc; }
+/* Analysis: 항목 제목은 붙이고 내용만 한 단계 들여 쓴다. 맨 위 한 줄은 어느 지시의 분석인지 */
+.focus-panel[data-area="analysis"] .focus-body > ul { list-style: none; padding-left: 0; }
+.focus-panel[data-area="analysis"] .focus-body > ul > li { margin-bottom: 6px; }
+.focus-panel[data-area="analysis"] .focus-body > p:first-child em { color: var(--text-faint); font-style: normal; font-size: 11px; letter-spacing: .02em; }
 .focus-body br { display: none; }
 .focus-body strong { color: var(--pri-bright); font-weight: 600; }
-.focus-body a { color: var(--primary); }
+/* Log, Progress 바닥 줄 — 내용이 짧아도 패널이 위아래로 짜여 보이게 한다 */
+.focus-foot {
+  margin-top: auto; padding-top: 6px;
+  border-top: 1px solid var(--hairline);
+  font-size: 10px; letter-spacing: .12em; color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.focus-foot:empty { display: none; }
+/* 아래 줄은 내용만큼(최소 30%, 최대 50%), 남는 높이는 위 줄(Reference, Analysis)이 갖는다 */
+@media (min-width: 861px) {
+  .focus-ring { container-type: size; grid-template-rows: minmax(0, 1fr) fit-content(50%); }
+  .focus-panel[data-area="log"], .focus-panel[data-area="progress"] { min-height: 30cqh; }
+}
+
 /* sub-agent 가 갱신 중인 영역 */
 .focus-panel.busy .panel-head::after {
   content: "SYNC"; margin-left: 8px; color: var(--accent); letter-spacing: .2em;

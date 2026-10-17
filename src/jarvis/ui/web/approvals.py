@@ -4,6 +4,8 @@ import asyncio
 import uuid
 from collections.abc import Callable
 
+from jarvis.core.policy.sandbox import TIMEOUT
+
 APPROVAL_TIMEOUT_SEC = 120.0
 
 
@@ -57,14 +59,16 @@ class SessionApprovals:
             "always_pattern": always_pattern,
         }
         self._pending[approval_id] = (future, payload)
+        resolved: dict[str, object] = {"type": "approval_resolved", "id": approval_id}
         try:
             await self._broadcast(payload)
             return await asyncio.wait_for(future, timeout=self._timeout_sec)
         except TimeoutError:
-            return False
+            resolved["timeout"] = True
+            return TIMEOUT
         finally:
             self._pending.pop(approval_id, None)
-            await self._broadcast({"type": "approval_resolved", "id": approval_id})
+            await self._broadcast(resolved)
 
     def resolve(self, approval_id: str, approved: bool, always: bool = False) -> bool:
         """먼저 온 답만 쓴다. always 는 approved 일 때만 의미가 있다. 늦은 답과 모르는 id 는 False."""

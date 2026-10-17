@@ -4,6 +4,7 @@ title: 먼저 행동하기 (Proactive)
 ---
 
 import FigureProactive from '@site/src/figures/proactive.svg';
+import FigureExpProactive from '@site/src/figures/exp-proactive.svg';
 
 # 먼저 행동하기 (Proactive)
 
@@ -140,9 +141,36 @@ sequenceDiagram
 
 JARVIS 는 열린 화면이 없어도 먼저 건네는 말과 스케줄 결과를 Slack incoming webhook 으로 보낸다. 주소는 `JARVIS_NOTIFY__SLACK_WEBHOOK_URL`, 보낼 종류는 `JARVIS_NOTIFY__KINDS`(`reminder`, `proactive`)로 정한다. filler 는 보내지 않는다. 재시도는 하지 않고, 실패는 로그에 남긴다.
 
-## 평가
+## 성능 실험
 
-`python -m jarvis.core.proactive.eval` 로 평가한다. `policy.jsonl` 은 프레임을 직접 주어 게이팅만 재고, `situation.jsonl` 은 상황을 주어 사고 엔진까지(`--engine llm`) 잰다. 사례마다 정책을 새로 만들고 시계를 고정해 같은 입력은 같은 결과를 낸다.
+### 게이팅 정책(LLM 없음)
+
+사고 프레임을 직접 주고 정책(응답 대기, 확신도, 쿨다운)만 잰다. 11사례 모두 맞았다(precision 1.00, recall 1.00, 오경보 0). 사례마다 정책을 새로 만들고 시계를 고정해 같은 입력은 늘 같은 결과를 낸다. 재현: `python -m jarvis.core.proactive.eval --suite policy`.
+
+### 상황에서 말할지 정하기(사고 엔진부터 게이팅까지)
+
+말해야 할 상황 6개(마감 10분 전, 회의 5분 전, 사용자 브랜치의 CI 실패, 지난 약속, 디스크 97%, 프로덕션 오류 급증)와 침묵해야 할 상황 6개(잡담, 끝난 일, 광고, 다음 달 말 약속 등)를 성찰 사고에 넣고 끝까지 돌렸다. 사고의 [지금] 은 2026-01-01 09:00 으로 고정하고, 사례의 시각도 그에 맞췄다. 모델마다 3회, 36번씩이다. 짧은 답 분류기는 🔔 뒤의 키워드가 아닌 답 12개를 수락, 무시, 다른 말로 나눈다. 재현: `uv run python -m scripts.experiments.proactive_situation --model gemma4:e2b-it-qat`, `uv run python -m scripts.experiments.reply_classifier --model gemma4:e2b-it-qat --repeat 3`.
+
+<figure className="paper-fig">
+  <FigureExpProactive />
+  <figcaption><b>Figure 2.</b> (a) 로컬 gemma4 는 말해야 할 때 모두 말했지만 오경보가 있고, gpt-4o-mini 는 오경보가 없지만 말해야 할 때 대부분 침묵했다. (b) 짧은 답 분류는 세 모델 모두 0.9 를 넘는다.</figcaption>
+</figure>
+
+- 두 계열의 성향이 반대다. gemma4 두 모델은 다음 달 말 약속에도 세 번 다 말을 걸었다. gpt-4o-mini 는 한 번도 잘못 말을 걸지 않았지만 마감 10분 전, 회의 5분 전, CI 실패, 지난 약속을 세 번 다 놓쳤다
+- 침묵의 원인을 따로 봤다. 말해야 할 상황에서 gpt-4o-mini 가 침묵한 8번은 모두 사고가 스스로 `silent` 로 정한 것이고, 확신도 임계치에 걸린 것은 0번이었다(2회 반복). 그래서 임계치를 낮춰도 gpt-4o-mini 의 recall 은 오르지 않는다. 사고 지시문이나 모델을 바꿔야 한다. 반대로 gemma4 의 오경보는 사고가 말하기로 정한 뒤 임계치를 통과한 것이라, 임계치와 피드백 학습으로 줄일 수 있는 쪽이다
+- 말을 건 경우의 내용도 따로 봤다. 기대 낱말("보고", "회의", "디스크" 등)이 들어간 비율은 e2b 16/18, e4b 16/18, gpt-4o-mini 3/3 이다. 말했는지와 낱말을 따로 세는 것은 측정을 고치며 넣은 규칙이다. 처음에는 "프로덕션" 이라고 말해도 기대 낱말 "prod" 가 없으면 놓친 것으로 셌다. 기대 낱말은 아직 "prod" 라서, 남은 낱말 누락은 모두 이 프로덕션 사례에서 나왔다
+- 짧은 답 분류에서 gpt-4o-mini 가 틀린 것은 세 번 모두 "이미 보냈어" 를 수락으로 읽은 것이다(무시가 정답이다). 지연 중앙값은 e2b 0.21초, e4b 0.38초, gpt-4o-mini 0.67초다
+- 한계: 12사례는 작고 직접 만든 것이다. 모델 사이의 방향 차이를 보는 용도다
+
+## 설계 노트
+
+### 정책과 코어를 세션에서 떼어 냈다
+
+먼저 말을 거는 판단은 확신도 임계치, 세션별 쿨다운, 응답 대기, 위험도로 이뤄진다. 이것을 세션 안에 두지 않고 `DefaultProactivityPolicy` 와 `DefaultProactivityCore` 라는 독립 클래스로 만들었다. 협력자(정책, push, spawn)는 모두 생성자로 주입해 세션과 UI 를 import 하지 않는다. 덕분에 위의 정책 평가는 LLM 도 화면도 없이 사례 파일만으로 돈다. 처음에는 배선하지 않은 코어만 넣고 테스트로 확인한 뒤 세션에 연결했다.
+
+### 말할 거리가 없으면 해석문을 내보내지 않는다
+
+성찰 프레임에 건넬 말(`utterance`)이 비어 있으면 침묵한다. 해석문(`interpretation`)을 대신 내보내면 "사용자는 쉬고 있는 것으로 보인다" 같은 혼잣말이 🔔 로 나간다. 침묵할 때마다 이유(`cooldown`, `confidence`, `empty utterance`, `decision=silent`)를 로그에 남겨, 왜 말하지 않았는지 사람이 볼 수 있게 했다.
 
 ## 구현 위치
 

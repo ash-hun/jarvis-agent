@@ -17,6 +17,9 @@ title: 전체 용어집
 | 성찰 | | 요청이 없는 시간에 주기적으로 도는 내적 사고. 먼저 말할 거리가 있는지 본다 | [먼저 행동하기](../concepts/architecture/proactive.md) |
 | 먼저 건네는 말 | 🔔 | 성찰 끝에 가치가 분명할 때만 JARVIS 가 먼저 보내는 말 | [먼저 행동하기](../concepts/architecture/proactive.md) |
 | 피드백 학습 | | 먼저 건네는 말에 대한 수락, 무시, 무응답으로 다음 발화 기준(임계치)을 움직이는 일 | [먼저 행동하기 → 피드백 학습](../concepts/architecture/proactive.md#피드백-학습) |
+| Mode | | Web HUD 의 두 축. 음성 축(Default, Full-voice)과 작업 축(Focus)을 따로 고른다 | [Mode](../concepts/mode/index.md) |
+| Full-voice | | 응답, 승인, 🔔 피드백을 읽고 답을 듣는 음성 모드. 헤더 `FULL-VOICE` | [Voice Interface](../concepts/conversation/voice.md#full-voice) |
+| Focus | | 작업 하나에 조사, 기록, 분석, 진행 sub-agent 넷을 붙이는 모드. `/focus <작업>` | [Focus Mode](../concepts/mode/focus-mode.md) |
 | 약속 (open loop) | | 대화에서 흘린 약속이나 끝내지 못한 일. 끝나거나 거두거나 기한이 지나면 닫힌다 | [Open Loop](../concepts/conversation/open-loop.md) |
 | 스케줄 | | 정한 시각이나 주기에 도는 알림(reminder)이나 작업(task) | [Open Loop → 스케줄](../concepts/conversation/scheduling.md) |
 | 외부 이벤트 | | MCP 도구를 주기적으로 불러 얻은 새 항목. 성찰의 재료가 된다 | [Open Loop → 외부 이벤트](../concepts/conversation/mcp.md) |

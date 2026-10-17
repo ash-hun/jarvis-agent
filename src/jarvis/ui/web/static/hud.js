@@ -21,7 +21,7 @@ function mixRgb(a, b, t) {
   return a.map((v, i) => Math.round(v + (b[i] - v) * t));
 }
 function rgba(c, a) {
-  return `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+  return `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${a})`;
 }
 
 const WHITE = [255, 255, 255];
@@ -34,20 +34,43 @@ const COL = {
 COL.bright = mixRgb(COL.primary, WHITE, 0.38);
 COL.dim    = mixRgb(COL.primary, [0, 0, 0], 0.48);
 
-// 세션 에이전트가 바뀌면 app/brand.js 가 새 팔레트를 알린다. 링, 눈금, 별 배경이 그 색을 따른다
+const REDUCED_MOTION =
+  window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// 에이전트 색으로 섞이는 시정수(초). 약 0.8초에 거의 다 바뀌어 styles.css 의 0.9s transition 과 맞는다
+const PALETTE_TAU = 0.22;
+const FADE_DONE = 0.5;  // RGB 차이가 이보다 작으면 섞기를 끝낸다
+const TARGET = { primary: COL.primary, accent: COL.accent, nebula: COL.nebula };
+let fading = false;
+
+// 세션 에이전트가 바뀌면 app/brand.js 가 새 팔레트를 알린다. 링, 눈금, 별 배경이 그 색으로 섞인다
 function setPalette(p) {
   Object.assign(PALETTE, p);
-  COL.primary = hexToRgb(PALETTE.primary);
-  COL.accent  = hexToRgb(PALETTE.accent);
-  COL.nebula  = PALETTE.nebula.map(hexToRgb);
-  COL.bright  = mixRgb(COL.primary, WHITE, 0.38);
-  COL.dim     = mixRgb(COL.primary, [0, 0, 0], 0.48);
-  drawStarfield();
+  TARGET.primary = hexToRgb(PALETTE.primary);
+  TARGET.accent  = hexToRgb(PALETTE.accent);
+  TARGET.nebula  = PALETTE.nebula.map(hexToRgb);
+  fading = true;
+  if (REDUCED_MOTION) stepPalette(1);
 }
 window.addEventListener('jarvis:palette', (e) => setPalette(e.detail || {}));
 
-const REDUCED_MOTION =
-  window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function towards(a, b, f) { return a.map((v, i) => v + (b[i] - v) * f); }
+function far(a, b) { return a.some((v, i) => Math.abs(b[i] - v) > FADE_DONE); }
+
+function stepPalette(f) {
+  COL.primary = towards(COL.primary, TARGET.primary, f);
+  COL.accent  = towards(COL.accent, TARGET.accent, f);
+  COL.nebula  = COL.nebula.map((c, i) => towards(c, TARGET.nebula[i] || c, f));
+  if (!far(COL.primary, TARGET.primary) && !far(COL.accent, TARGET.accent)) {
+    COL.primary = TARGET.primary;
+    COL.accent  = TARGET.accent;
+    COL.nebula  = TARGET.nebula;
+    fading = false;
+  }
+  COL.bright = mixRgb(COL.primary, WHITE, 0.38);
+  COL.dim    = mixRgb(COL.primary, [0, 0, 0], 0.48);
+  drawStarfield();
+}
 const DPR = Math.min(2, window.devicePixelRatio || 1);
 
 // ── Canvases ──────────────────────────────────────────────────────────────────
@@ -60,9 +83,22 @@ function fitCanvas() {
   canvas.height = Math.max(1, canvas.clientHeight) * DPR;
 }
 
-// 별 배경 — 크기가 바뀔 때만 한 번 그린다.
+// 별 위치는 고정 씨앗으로 뽑는다. 색이 섞이는 동안 다시 그려도 별이 자리를 옮기지 않는다
+const STAR_SEED = 0x5eed;
+function seeded(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// 별 배경 — 크기가 바뀔 때와 에이전트 색이 섞이는 동안만 그린다.
 function drawStarfield() {
   if (!stars) return;
+  const random = seeded(STAR_SEED);
   const w = window.innerWidth, h = window.innerHeight;
   stars.width = w * DPR;
   stars.height = h * DPR;
@@ -70,13 +106,13 @@ function drawStarfield() {
   s.scale(DPR, DPR);
   const count = Math.round((w * h) / 2600);
   for (let i = 0; i < count; i++) {
-    const tint = Math.random();
+    const tint = random();
     const c = tint < 0.08 ? COL.nebula[i % COL.nebula.length]
             : tint < 0.2  ? COL.bright
             : WHITE;
-    s.fillStyle = rgba(c, (0.15 + Math.random() * 0.6).toFixed(2));
+    s.fillStyle = rgba(c, (0.15 + random() * 0.6).toFixed(2));
     s.beginPath();
-    s.arc(Math.random() * w, Math.random() * h, 0.3 + Math.random() * 0.9, 0, Math.PI * 2);
+    s.arc(random() * w, random() * h, 0.3 + random() * 0.9, 0, Math.PI * 2);
     s.fill();
   }
 }
@@ -204,6 +240,7 @@ function drawHush(R) {
 function draw(ts) {
   const dt = lastTs ? Math.min(0.1, (ts - lastTs) / 1000) : 0;
   lastTs = ts;
+  if (fading) stepPalette(1 - Math.exp(-dt / PALETTE_TAU));
 
   const targetSpeed = REDUCED_MOTION ? 0 : (STATE_SPEED[hudState] ?? 0.5);
   speed  += (targetSpeed - speed) * 0.05;

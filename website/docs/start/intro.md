@@ -32,7 +32,7 @@ JARVIS 는 쓸수록 사용자에게 맞춰진다. 한 번 허용한 명령 패�
 | 화면 | 실행 | 특징 |
 |---|---|---|
 | TUI | `jarvis` | 터미널. 사고 패널 💭, 승인 프롬프트, 음성 입출력(Ctrl+R, Ctrl+T) |
-| Web HUD | `jarvis --web` 또는 `docker compose --profile web up` | http://localhost:7777. 리액터 구체를 가운데 두고 AGENDA, ACTIVITY, SYSTEM, SESSIONS, CONVERSATION 카드를 둘렀다. 구체를 누르면 음성 모드 |
+| Web HUD | `jarvis --web` 또는 `docker compose --profile web up` | http://localhost:7777. 리액터 구체를 가운데 두고 AGENDA, ACTIVITY, SYSTEM, SESSIONS, CONVERSATION 카드를 둘렀다. 구체를 누르면 음성 모드. 헤더에서 Full-voice, `/focus` 로 Focus 레이아웃 |
 
 두 화면은 같은 백엔드 세션을 쓴다. 화면을 하나도 열지 않아도 스케줄 결과와 먼저 건네는 말을 Slack 으로 받을 수 있다.
 
@@ -42,5 +42,6 @@ JARVIS 는 쓸수록 사용자에게 맞춰진다. 한 번 허용한 명령 패�
 - 어떻게 동작하는지 알고 싶으면 [Notice](../concepts/notice.md)에서 시작한다.
 - 설정 키나 명령을 찾으면 [환경설정](/reference)를 연다.
 - 낯선 말이 나오면 [전체 용어집](../reference/glossary.md)을 본다.
+- 화면을 말로만 쓰거나 작업 하나에 집중하고 싶으면 [Mode](../concepts/mode/index.md)를 본다.
 
 :::

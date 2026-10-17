@@ -198,9 +198,21 @@ async def test_all_denied_ends_turn_without_asking_model_again():
 
     assert len(provider.calls) == 1
     assert result is not None
-    assert result.text() == "승인을 받지 못해 bash 실행을 멈췄습니다. 필요하면 다시 요청해 주세요."
+    assert result.text() == "승인이 거부되어 bash 실행을 멈췄습니다. 필요하면 다시 요청해 주세요."
     assert [m.text_delta for m in rec.of(MessageUpdateEvent)] == [result.text()]
     assert [type(m).__name__ for m in context.messages] == ["AssistantMessage", "ToolResultMessage", "AssistantMessage"]
+
+
+async def test_timed_out_approval_says_so():
+    async def timed_out(tool_call_id, tool_name, params):
+        result = await _deny_executor(tool_call_id, tool_name, params)
+        return result.model_copy(update={"timed_out": True})
+
+    provider = ScriptedProvider([_tool_turn(("c1", "bash", {"command": "ls"})), _text_turn("직접 하세요")])
+    result = await run_agent_loop(_context(_register(provider)), AgentLoopConfig(), Recorder(), timed_out)
+
+    assert result is not None
+    assert result.text() == "승인 요청에 시간 안에 답이 없어 bash 실행을 멈췄습니다. 필요하면 다시 요청해 주세요."
 
 
 async def test_partly_denied_lets_model_answer():

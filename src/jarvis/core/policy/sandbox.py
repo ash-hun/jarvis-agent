@@ -7,12 +7,14 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from jarvis.core.policy.approval_rules import ApprovalRule, ApprovalRules, describe, suggest_pattern
-from jarvis.core.policy.pipeline import ApprovalResult, PolicyResult, SandboxBlocked, SandboxProtocol
+from jarvis.core.policy.pipeline import ApprovalResult, Decision, PolicyResult, SandboxBlocked, SandboxProtocol
 
 # 승인 콜백의 답. True/False 는 이번 한 번, "always" 는 제안된 패턴을 규칙으로 남긴다.
 ApprovalChoice = bool | str
 ApprovalCallback = Callable[[str, str, str], Awaitable[ApprovalChoice]]
 ALWAYS = "always"
+# 승인 창이 시간 안에 답을 받지 못했다. 거부와 같지만 사용자에게 다르게 알린다
+TIMEOUT = "timeout"
 
 
 class DefaultSandbox(SandboxProtocol):
@@ -68,14 +70,17 @@ class DefaultSandbox(SandboxProtocol):
         return False
 
     async def authorize(self, tool_name: str, params: dict[str, Any]) -> bool:
+        return await self.decide(tool_name, params) == "allow"
+
+    async def decide(self, tool_name: str, params: dict[str, Any]) -> Decision:
         """이 호출을 실행해도 되는가. 승인 불필요 → 기억된 규칙 → 사용자에게 질문 순으로 결정한다.
 
         규칙은 사용자가 승인 화면에서 "항상 허용"을 골랐을 때만 생긴다. 코드가 먼저 넓히지 않는다.
         """
         if not self.is_approval_required(tool_name):
-            return True
+            return "allow"
         if self._rules is not None and self._rules.allows(tool_name, params):
-            return True
+            return "allow"
         pattern = suggest_pattern(tool_name, params) if self._rules is not None else ""
         choice = await self.request_approval(
             command=describe(tool_name, params),
@@ -85,8 +90,10 @@ class DefaultSandbox(SandboxProtocol):
         if choice == ALWAYS:
             if self._rules is not None and pattern:
                 self._rules.add(ApprovalRule(tool=tool_name, pattern=pattern))
-            return True
-        return choice is True
+            return "allow"
+        if choice == TIMEOUT:
+            return "timeout"
+        return "allow" if choice is True else "deny"
 
     def set_approval_callback(self, callback: ApprovalCallback) -> None:
         self._approval_callback = callback

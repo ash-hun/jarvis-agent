@@ -25,6 +25,10 @@ const SPEECH_STOP = new RegExp(`^\\s*${KEY_STOP}\\s*(?:를|은|는)?\\s*(?:종�
 const SPEECH_START = new RegExp(`^\\s*${KEY_START}\\s*(?:로|으로)?\\s*(?:시작해\\s*줘|시작|켜\\s*줘|켜|해\\s*줘|on)?\\s*[,.:!]?\\s*(.*)$`, 'i');
 const SPEECH_START_TAIL = new RegExp(
   `^(.+?)[\\s,.]*${KEY_START}\\s*(?:로|으로)?\\s*(?:시작해\\s*줘|시작|진행해\\s*줘|진행|해\\s*줘|켜|on)?[\\s.!]*$`, 'i');
+// Focus 중에는 "포커스 모드" 가 잘려도 끝내는 말만으로 끝낸다. "동요" 는 "종료" 를 잘못 들은 실측 전사다
+const SPEECH_STOP_BARE = new RegExp(
+  `^\\s*(?:${KEY_STOP}\\s*)?(?:모드\\s*)?(?:를|은|는)?\\s*(?:종료|동요|끝내|끝|그만|꺼|off|stop)` +
+  `\\s*(?:해\\s*줘|해|할게|하자|합니다|해요)?[\\s.!]*$`, 'i');
 
 let _state = null;          // 마지막 focus_state (active=true 일 때만)
 let _receivedAt = 0;        // 그 상태를 받은 시각. 경과 시간을 화면에서 이어 센다
@@ -34,7 +38,7 @@ export function isFocusOn() { return _state !== null; }
 
 // 전사 한 줄을 /focus 명령으로. 키워드가 없으면 null — 평소 대화로 보낸다
 export function focusCommandFromSpeech(text) {
-  if (SPEECH_STOP.test(text)) return '/focus stop';
+  if (SPEECH_STOP.test(text) || (isFocusOn() && SPEECH_STOP_BARE.test(text))) return '/focus stop';
   const m = text.match(SPEECH_START) || text.match(SPEECH_START_TAIL);
   if (!m) return null;
   const task = m[1].trim().replace(/[\s,.]+$/, '');

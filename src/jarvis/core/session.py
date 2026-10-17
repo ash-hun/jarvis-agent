@@ -76,6 +76,18 @@ AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
 ToolExecutor = Callable[[str, str, dict[str, Any]], Awaitable[ToolResultMessage]]
 ThoughtMode = Literal["request", "reflection"]
 
+# 승인이 필요한 도구를 모델이 "할 수 없다"며 방법 안내로 피하지 않게 한다. 승인은 시스템이 묻는다
+APPROVAL_RULE = (
+    "[도구 승인] {tools} 는 실행 전에 시스템이 사용자에게 승인을 묻는다. 사용자가 실행을 요청하면 이 도구를 "
+    "직접 호출한다. 할 수 없다고 하거나 사용자가 직접 하는 방법을 안내하는 것으로 대신하지 않는다. "
+    "앞에서 승인되지 않았어도 새 요청이면 다시 호출해 승인을 구한다."
+)
+# 거부 결과가 "도구를 못 쓴다"로 읽히면 다음 턴부터 모델이 실행을 포기한다
+DENIED_RESULT = (
+    "사용자가 '{tool}' 실행을 승인하지 않아 실행하지 않았다(거부했거나 시간 안에 답하지 않았다). "
+    "도구는 계속 쓸 수 있다. 실행하지 않았다고 짧게 알리고, 사용자가 직접 하는 방법을 안내하는 것으로 대신하지 않는다."
+)
+
 logger = get_logger(__name__)
 
 
@@ -233,6 +245,10 @@ class AgentSession:
 
         frame = None if self._thought_timing == "after" else await self._await_thought(expanded)
         inner_thought_prompt = self._thought_composer.compose(frame) or None if frame is not None else None
+        approval_tools = self._security.sandbox.approval_tools()
+        if approval_tools:
+            rule = APPROVAL_RULE.format(tools=", ".join(approval_tools))
+            inner_thought_prompt = "\n\n".join(p for p in (inner_thought_prompt, rule) if p)
         # 턴 도중 Focus 가 꺼져도 이번 턴은 시작할 때의 훅으로 끝낸다
         hook = self._turn_hook
         if hook is not None:
@@ -645,8 +661,9 @@ class AgentSession:
                 return ToolResultMessage(
                     tool_call_id=tool_call_id,
                     tool_name=tool_name,
-                    content=[TextContent(text=f"Execution of '{tool_name}' was denied")],
+                    content=[TextContent(text=DENIED_RESULT.format(tool=tool_name))],
                     is_error=True,
+                    denied=True,
                 )
 
             from jarvis.core.tools.registry import ToolContext

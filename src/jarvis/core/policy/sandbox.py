@@ -98,6 +98,9 @@ class DefaultSandbox(SandboxProtocol):
     def is_approval_required(self, tool_name: str) -> bool:
         return tool_name in self._require_approval
 
+    def approval_tools(self) -> list[str]:
+        return sorted(self._require_approval)
+
 
 class PermissiveSandbox(SandboxProtocol):
     """모든 명령 허용. 개발/테스트 전용. 네 메서드 모두 기반의 Permissive 동작을 쓴다."""

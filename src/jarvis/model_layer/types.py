@@ -79,6 +79,8 @@ class ToolResultMessage(BaseModel):
     tool_name: str
     content: list[TextContent | ImageContent]
     is_error: bool = False
+    # 사용자가 승인하지 않아 실행하지 않은 결과. 루프가 이걸 보고 모델에 다시 묻지 않고 턴을 끝낸다
+    denied: bool = False
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
 
 

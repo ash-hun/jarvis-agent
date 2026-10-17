@@ -393,7 +393,11 @@ def test_tts_request_without_voice_service_falls_back_to_browser(monkeypatch, tm
             ws.receive_json()  # connected
             ws.send_json({"type": "voice_tts_request", "text": "물 마시기"})
             reply = ws.receive_json()
-    assert reply == {"type": "voice_tts_audio", "data": "", "text": "물 마시기"}
+            # 기호는 지우고, 요청 id 는 그대로 돌려줘 화면이 멈춘 읽기의 결과를 가려낸다
+            ws.send_json({"type": "voice_tts_request", "text": "- **물** 마시기", "id": 3})
+            marked = ws.receive_json()
+    assert reply == {"type": "voice_tts_audio", "data": "", "text": "물 마시기", "id": None}
+    assert marked == {"type": "voice_tts_audio", "data": "", "text": "물 마시기", "id": 3}
 
 
 # ── 접근 키 인증 ──────────────────────────────────────────────────────────────

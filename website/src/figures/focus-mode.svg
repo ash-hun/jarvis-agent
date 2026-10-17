@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 380" class="pf-svg" role="img" aria-label="Focus 모드의 한 턴과 화면 배치">
+<defs><marker id="focus-mode-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="focus-mode-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="focus-mode-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="focus-mode-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="16" y="12" width="470" height="356" rx="8"/>
+<text class="pf-plabel" x="28" y="32">(a) Focus 동안의 한 턴</text>
+<rect class="pf-box" x="185.0" y="46" width="130" height="44" rx="6"/>
+<text class="pf-t" x="250.0" y="64.0" text-anchor="middle">분석</text>
+<text class="pf-s" x="250.0" y="81.0" text-anchor="middle">턴 앞, 다섯 항목</text>
+<rect class="pf-box" x="345.0" y="46" width="130" height="44" rx="6"/>
+<text class="pf-t" x="410.0" y="64.0" text-anchor="middle">조사</text>
+<text class="pf-s" x="410.0" y="81.0" text-anchor="middle">시작, 검색어가 나올 때</text>
+<rect class="pf-box pf-box--io" x="34.0" y="150" width="100" height="44" rx="6"/>
+<text class="pf-t pf-t--io" x="84.0" y="176.5" text-anchor="middle">사용자 지시</text>
+<rect class="pf-box pf-box--accent" x="185.0" y="150" width="130" height="44" rx="6"/>
+<text class="pf-t pf-t--accent" x="250.0" y="168.0" text-anchor="middle">JARVIS</text>
+<text class="pf-s" x="250.0" y="185.0" text-anchor="middle">오케스트레이터</text>
+<rect class="pf-box" x="185.0" y="254" width="130" height="44" rx="6"/>
+<text class="pf-t" x="250.0" y="272.0" text-anchor="middle">기록</text>
+<text class="pf-s" x="250.0" y="289.0" text-anchor="middle">턴 뒤, 3인칭 서기</text>
+<rect class="pf-box" x="345.0" y="254" width="130" height="44" rx="6"/>
+<text class="pf-t" x="410.0" y="272.0" text-anchor="middle">진행</text>
+<text class="pf-s" x="410.0" y="289.0" text-anchor="middle">턴 뒤, 단계 완료</text>
+<path class="pf-edge pf-edge--accent" d="M134.0,172.0 L185.0,172.0" marker-end="url(#focus-mode-h-accent)"/>
+<path class="pf-edge" d="M84.0,150.0 L84.0,68.0 L185.0,68.0" marker-end="url(#focus-mode-h)"/>
+<text class="pf-elabel" x="90.0" y="62.0" text-anchor="start">같이 시작</text>
+<path class="pf-edge" d="M315.0,68.0 L345.0,68.0" marker-end="url(#focus-mode-h)"/>
+<text class="pf-elabel" x="330.0" y="63.0" text-anchor="middle">검색어</text>
+<path class="pf-edge pf-edge--accent" d="M250.0,90.0 L250.0,150.0" marker-end="url(#focus-mode-h-accent)"/>
+<text class="pf-elabel pf-elabel--accent" x="256.0" y="124.0" text-anchor="start">Focus 맥락</text>
+<path class="pf-edge pf-edge--accent" d="M410.0,90.0 L410.0,162.0 L315.0,162.0" marker-end="url(#focus-mode-h-accent)"/>
+<text class="pf-elabel pf-elabel--accent" x="404.0" y="156.0" text-anchor="end">조사 요약</text>
+<path class="pf-edge" d="M250.0,194.0 L250.0,254.0" marker-end="url(#focus-mode-h)"/>
+<text class="pf-elabel" x="256.0" y="230.0" text-anchor="start">응답 뒤</text>
+<path class="pf-edge" d="M315.0,182.0 L410.0,182.0 L410.0,254.0" marker-end="url(#focus-mode-h)"/>
+<text class="pf-note" x="250" y="334" text-anchor="middle">sub-agent 넷은 작업 동안 각자의 세션을 유지하고, 결과는 ~/.jarvis/focus/&lt;task_id&gt;/ 에 남는다</text>
+<rect class="pf-panel" x="500" y="12" width="244" height="356" rx="8"/>
+<text class="pf-plabel" x="512" y="32">(b) 화면</text>
+<rect class="pf-box" x="510" y="46" width="10" height="84" rx="4"/>
+<text class="pf-chip" x="515.0" y="92.0" text-anchor="middle"></text>
+<rect class="pf-box" x="510" y="138" width="10" height="84" rx="4"/>
+<text class="pf-chip" x="515.0" y="184.0" text-anchor="middle"></text>
+<rect class="pf-box" x="510" y="230" width="10" height="84" rx="4"/>
+<text class="pf-chip" x="515.0" y="276.0" text-anchor="middle"></text>
+<rect class="pf-box" x="724" y="46" width="10" height="60" rx="4"/>
+<text class="pf-chip" x="729.0" y="80.0" text-anchor="middle"></text>
+<rect class="pf-box pf-box--accent" x="724" y="114" width="10" height="200" rx="4"/>
+<text class="pf-chip" x="729.0" y="218.0" text-anchor="middle"></text>
+<rect class="pf-box" x="524.0" y="46" width="80" height="124" rx="6"/>
+<text class="pf-t" x="564.0" y="112.5" text-anchor="middle">조사</text>
+<rect class="pf-box" x="640.0" y="46" width="80" height="124" rx="6"/>
+<text class="pf-t" x="680.0" y="112.5" text-anchor="middle">분석</text>
+<rect class="pf-box" x="524.0" y="190" width="80" height="124" rx="6"/>
+<text class="pf-t" x="564.0" y="256.5" text-anchor="middle">기록</text>
+<rect class="pf-box" x="640.0" y="190" width="80" height="124" rx="6"/>
+<text class="pf-t" x="680.0" y="256.5" text-anchor="middle">진행</text>
+<circle class="pf-box pf-box--accent" cx="622" cy="180" r="40"/>
+<text class="pf-t" x="622" y="184" text-anchor="middle">구체 70%</text>
+<text class="pf-note" x="622" y="334" text-anchor="middle">좌우 카드는 세로 띠로 접힌다</text>
+<text class="pf-note" x="622" y="350" text-anchor="middle">Conversation 띠만 눌러 펼친다</text>
+</svg>

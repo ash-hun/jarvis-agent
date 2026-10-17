@@ -8,7 +8,7 @@ import time
 from collections import deque
 from collections.abc import Awaitable, Callable
 from datetime import datetime
-from typing import Any, Literal, cast
+from typing import Any, Literal, Protocol, cast
 
 from jarvis.agent_layer.harness import AgentHarness
 from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
@@ -76,11 +76,33 @@ AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
 ToolExecutor = Callable[[str, str, dict[str, Any]], Awaitable[ToolResultMessage]]
 ThoughtMode = Literal["request", "reflection"]
 
+# 승인이 필요한 도구를 모델이 "할 수 없다"며 방법 안내로 피하지 않게 한다. 승인은 시스템이 묻는다
+APPROVAL_RULE = (
+    "[도구 승인] {tools} 는 실행 전에 시스템이 사용자에게 승인을 묻는다. 사용자가 실행을 요청하면 이 도구를 "
+    "직접 호출한다. 할 수 없다고 하거나 사용자가 직접 하는 방법을 안내하는 것으로 대신하지 않는다. "
+    "앞에서 승인되지 않았어도 새 요청이면 다시 호출해 승인을 구한다."
+)
+# 거부 결과가 "도구를 못 쓴다"로 읽히면 다음 턴부터 모델이 실행을 포기한다
+DENIED_RESULT = (
+    "사용자가 '{tool}' 실행을 승인하지 않아 실행하지 않았다(거부했거나 시간 안에 답하지 않았다). "
+    "도구는 계속 쓸 수 있다. 실행하지 않았다고 짧게 알리고, 사용자가 직접 하는 방법을 안내하는 것으로 대신하지 않는다."
+)
+
 logger = get_logger(__name__)
 
 
 class SessionBusy(Exception):
     """같은 세션에 이전 요청이 아직 돌고 있을 때 새 prompt 를 거부한다."""
+
+
+class TurnHook(Protocol):
+    """턴마다 끼어드는 확장(Focus 모드). 시스템 프롬프트에 맥락을 더하고, 턴 앞뒤에 뒤에서 일을 돌린다."""
+
+    def system_addendum(self) -> str | None: ...
+
+    async def before_turn(self, user_input: str) -> None: ...
+
+    async def after_turn(self, user_input: str, reply: str) -> None: ...
 
 
 THOUGHT_WAIT_SEC = 3.0
@@ -143,6 +165,8 @@ class AgentSession:
         self._thought_timing = thought_timing
         self._thought_wait_sec = thought_wait_sec
         self._late_thoughts: set[asyncio.Task[Any]] = set()  # 참조를 잃으면 GC 가 끊는다
+        self._turn_hook: TurnHook | None = None
+        self._hook_tasks: set[asyncio.Task[Any]] = set()
         self._openloop_store = openloop_store
         self._openloop_expiry = openloop_expiry
         self._activity_clock = activity_clock
@@ -221,6 +245,16 @@ class AgentSession:
 
         frame = None if self._thought_timing == "after" else await self._await_thought(expanded)
         inner_thought_prompt = self._thought_composer.compose(frame) or None if frame is not None else None
+        approval_tools = self._security.sandbox.approval_tools()
+        if approval_tools:
+            rule = APPROVAL_RULE.format(tools=", ".join(approval_tools))
+            inner_thought_prompt = "\n\n".join(p for p in (inner_thought_prompt, rule) if p)
+        # 턴 도중 Focus 가 꺼져도 이번 턴은 시작할 때의 훅으로 끝낸다
+        hook = self._turn_hook
+        if hook is not None:
+            addendum = hook.system_addendum()
+            inner_thought_prompt = "\n\n".join(p for p in (inner_thought_prompt, addendum) if p) or None
+            self._spawn_hook(hook.before_turn(expanded))
 
         await self._plugins.emit_before_agent_start(expanded, {"session_id": self._session_id})
 
@@ -242,6 +276,8 @@ class AgentSession:
                 if result:
                     # 플러그인 훅은 Message 로 타입이 잡히지만 받은 AssistantMessage 를 (고쳐) 돌려준다
                     result = cast(AssistantMessage, await self._plugins.emit_on_message_end(result))
+                    if hook is not None:
+                        self._spawn_hook(hook.after_turn(expanded, result.text()))
                 return result
             finally:
                 # Dual-Channel 백그라운드 모드에서는 prompt() 가 먼저 돌아오므로 여기서 꺼야 한다.
@@ -359,6 +395,28 @@ class AgentSession:
             event.as_line(include_detail=self._external_detail_in_prompt)
             for event in self._external_inbox.drain()
         ]
+
+    def set_turn_hook(self, hook: TurnHook | None) -> None:
+        """턴 훅을 끼우거나(None 이면) 뺀다. 같은 훅을 두 번 끼워도 하나다."""
+        self._turn_hook = hook
+
+    @property
+    def turn_hook(self) -> TurnHook | None:
+        return self._turn_hook
+
+    async def emit(self, event: AgentEvent) -> None:
+        """턴 바깥에서 이 세션의 구독자(열린 화면)에게 이벤트를 보낸다."""
+        await self._harness.emit_event(event)
+
+    def _spawn_hook(self, coro: Awaitable[None]) -> None:
+        task = asyncio.ensure_future(coro)
+        self._hook_tasks.add(task)
+        task.add_done_callback(self._on_hook_done)
+
+    def _on_hook_done(self, task: asyncio.Task[Any]) -> None:
+        self._hook_tasks.discard(task)
+        if not task.cancelled() and task.exception() is not None:
+            logger.info(f"[Focus] turn hook failed: {task.exception()!r}")
 
     def _spawn_thought(self, user_input: str) -> asyncio.Task[Any] | None:
         """사고를 뒤에서 돌린다. 끝나면 _run_inner_thought 가 기록과 이벤트를 알아서 남긴다."""
@@ -545,6 +603,10 @@ class AgentSession:
         self._harness._tools = self._tool_registry.to_llm_tools()
 
     @property
+    def session_id(self) -> str:
+        return self._session_id
+
+    @property
     def memory_scope(self) -> MemoryScope:
         """이 세션이 기억을 읽고 쓰는 범위. 사용자는 마지막 인증값, 없으면 로컬 사용자."""
         return MemoryScope(
@@ -599,8 +661,9 @@ class AgentSession:
                 return ToolResultMessage(
                     tool_call_id=tool_call_id,
                     tool_name=tool_name,
-                    content=[TextContent(text=f"Execution of '{tool_name}' was denied")],
+                    content=[TextContent(text=DENIED_RESULT.format(tool=tool_name))],
                     is_error=True,
+                    denied=True,
                 )
 
             from jarvis.core.tools.registry import ToolContext

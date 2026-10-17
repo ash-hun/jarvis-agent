@@ -272,6 +272,17 @@ class NotifyConfig(BaseModel):
     kinds: list[str] = Field(default_factory=lambda: ["reminder", "proactive"])  # reminder | proactive
 
 
+class FocusConfig(BaseModel):
+    """Focus 모드: 한 작업에 sub-agent 넷(조사, 기록, 분석, 진행)을 붙인다. Web HUD 의 /focus 로 켠다."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    enabled: bool = True
+    model: str = ""                  # sub-agent 넷의 모델. 비우면 메인 모델
+    dir: str = "~/.jarvis/focus"     # 작업마다 기록(log.md), 조사(references.md), 분석, 상태를 남긴다
+    ready_timeout_sec: float = 30.0  # 시작할 때 첫 분석과 단계 계획을 기다리는 상한
+
+
 class VoiceConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -319,6 +330,7 @@ class JarvisSettings(BaseSettings):
     agents: AgentConfig = Field(default_factory=AgentConfig)
     team: TeamConfig = Field(default_factory=TeamConfig)
     voice: VoiceConfig = Field(default_factory=VoiceConfig)
+    focus: FocusConfig = Field(default_factory=FocusConfig)
     thought: ThoughtConfig = Field(default_factory=ThoughtConfig)
     proactive: ProactiveConfig = Field(default_factory=ProactiveConfig)
     openloop: OpenLoopConfig = Field(default_factory=OpenLoopConfig)

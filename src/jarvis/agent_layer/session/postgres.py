@@ -75,6 +75,11 @@ class PostgresSessionRepo(SessionRepo):
                     content     JSONB   NOT NULL
                 )
             """)
+            # 한 턴의 메시지는 같은 ms 에 여럿 저장된다. 시각만으로 정렬하면 tool_result 가
+            # 다음 assistant 뒤로 섞여 provider 가 거부한다. 삽입 순번으로 순서를 고정한다
+            await conn.execute("""
+                ALTER TABLE jarvis_entries ADD COLUMN IF NOT EXISTS seq BIGSERIAL
+            """)
             await conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_jarvis_entries_session_id
                 ON jarvis_entries(session_id, timestamp)
@@ -147,7 +152,7 @@ class PostgresSessionRepo(SessionRepo):
                 SELECT gen_random_uuid()::text, $1, parent_id, timestamp, type, content
                 FROM jarvis_entries
                 WHERE session_id = $2 AND type = 'message'
-                ORDER BY timestamp
+                ORDER BY timestamp, seq
                 """,
                 branch_id, parent_session_id,
             )
@@ -168,7 +173,7 @@ class PostgresSessionRepo(SessionRepo):
                 """
                 SELECT content FROM jarvis_entries
                 WHERE session_id = $1 AND type = 'message'
-                ORDER BY timestamp
+                ORDER BY timestamp, seq
                 """,
                 session_id,
             )

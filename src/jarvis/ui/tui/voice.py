@@ -10,6 +10,8 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from jarvis.voice.speech_text import speech_text
+
 if TYPE_CHECKING:
     from jarvis.voice.service import VoiceService
 
@@ -107,7 +109,8 @@ class TuiVoiceController:
 
     async def speak(self, text: str, lang: str = "ko") -> bool:
         """text를 합성해 재생한다. 합성 결과가 없으면(browser 프로바이더) False."""
-        if not text.strip():
+        text = speech_text(text)
+        if not text:
             return False
         audio = await self._svc.synthesize(text, lang)
         if not audio:

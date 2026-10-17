@@ -106,3 +106,30 @@ class TestWebSearchTool:
         assert "Title" in text
         assert "https://example.com" in text
         assert "A snippet" in text
+
+
+_DDG_PAGE = """
+<div class="result results_links result--ad"><a class="result__a" href="https://ad.example">광고</a></div>
+<div class="result results_links web-result ">
+  <h2 class="result__title">
+    <a rel="nofollow" class="result__a" href="https://blog.example/a">LLM <b>에이전트</b> 사례</a>
+  </h2>
+  <a class="result__snippet" href="https://blog.example/a">SK, LG 의 <b>도입</b> 성과 &amp; 인사이트</a>
+</div>
+<div class="result results_links web-result ">
+  <h2 class="result__title">
+    <a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdocs.example%2Fb&amp;rut=x">둘째</a>
+  </h2>
+</div>
+"""
+
+
+def test_parse_ddg_html_skips_ads_and_unwraps_links():
+    from jarvis.core.tools.builtin.web_search import parse_ddg_html
+
+    assert parse_ddg_html(_DDG_PAGE, 5) == [
+        {"title": "LLM 에이전트 사례", "url": "https://blog.example/a", "snippet": "SK, LG 의 도입 성과 & 인사이트"},
+        {"title": "둘째", "url": "https://docs.example/b", "snippet": ""},
+    ]
+    assert len(parse_ddg_html(_DDG_PAGE, 1)) == 1
+    assert parse_ddg_html("<html></html>", 5) == []

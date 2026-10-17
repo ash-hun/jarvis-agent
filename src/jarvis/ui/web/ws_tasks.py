@@ -8,6 +8,8 @@ from fastapi import WebSocket
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.thought.reply import ReplyClassifier
+    from jarvis.core.focus.service import FocusService
+    from jarvis.core.focus.types import FocusCommand
     from jarvis.core.session import AgentSession
     from jarvis.ui.web.adapter import PerConnectionAdapter
     from jarvis.voice.service import VoiceService
@@ -22,6 +24,27 @@ async def run_prompt(
         await adapter.show_error(str(exc))
 
 
+async def run_focus(
+    session: "AgentSession",
+    adapter: "PerConnectionAdapter",
+    focus: "FocusService",
+    command: "FocusCommand",
+    credentials: dict[str, str],
+) -> None:
+    """/focus 명령을 처리해 안내를 한 메시지로 보이고, 시작이면 작업을 메인 에이전트에 이어 보낸다."""
+    try:
+        feedback, follow_up = await focus.handle(command, session)
+    except Exception as exc:
+        await adapter.show_error(f"Focus 오류: {exc}")
+        return
+    await adapter.send({"type": "agent_start"})
+    await adapter.send({"type": "stream_delta", "text": feedback})
+    # 이어서 메인 에이전트가 돌면 화면이 음성 요청 표시와 입력 잠금을 그대로 두게 알린다
+    await adapter.send({"type": "agent_end", "continues": bool(follow_up)})
+    if follow_up:
+        await run_prompt(session, adapter, follow_up, credentials)
+
+
 async def run_stt(ws: WebSocket, voice_service: "VoiceService", audio_b64: str, sample_rate: int) -> None:
     """base64 오디오를 디코딩해 백엔드 STT 로 전사하고 결과를 보낸다. 실패도 결과 메시지로 돌려준다."""
     try:
@@ -33,7 +56,9 @@ async def run_stt(ws: WebSocket, voice_service: "VoiceService", audio_b64: str, 
             await ws.send_json({"type": "voice_stt_result", "text": "", "error": str(exc)})
 
 
-async def run_tts(ws: WebSocket, voice_service: "VoiceService", text: str, lang: str) -> None:
+async def run_tts(
+    ws: WebSocket, voice_service: "VoiceService", text: str, lang: str, request_id: object = None
+) -> None:
     """서버 TTS 결과를 보낸다. 브라우저 TTS 프로바이더면 빈 data 와 원문을 돌려 화면이 직접 읽게 한다."""
     try:
         audio_bytes = await voice_service.synthesize(text, lang)
@@ -42,9 +67,10 @@ async def run_tts(ws: WebSocket, voice_service: "VoiceService", text: str, lang:
                 "type": "voice_tts_audio",
                 "data": base64.b64encode(audio_bytes).decode(),
                 "mime": "audio/wav",
+                "id": request_id,
             })
         else:
-            await ws.send_json({"type": "voice_tts_audio", "data": "", "text": text})
+            await ws.send_json({"type": "voice_tts_audio", "data": "", "text": text, "id": request_id})
     except Exception as exc:
         with contextlib.suppress(Exception):
             await ws.send_json({"type": "error", "message": f"TTS 오류: {exc}"})

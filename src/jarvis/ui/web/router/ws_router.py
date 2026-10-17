@@ -4,6 +4,7 @@ import asyncio
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
+from jarvis.core.focus.types import parse_command
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope
 from jarvis.ui.web.router.agent_router import agent_summary
 from jarvis.ui.web.session_registry import UnknownAgent
@@ -11,11 +12,13 @@ from jarvis.ui.web.web_auth import auth_enabled, lookup_api_user
 from jarvis.ui.web.web_state import WebState
 from jarvis.ui.web.ws_tasks import (
     first_feedback,
+    run_focus,
     run_prompt,
     run_reply_classify,
     run_stt,
     run_tts,
 )
+from jarvis.voice.speech_text import speech_text
 
 # 키 불일치로 서버가 끊을 때의 close code. 브라우저가 이 코드를 보고 키 입력을 띄운다
 WS_UNAUTHORIZED = 4401
@@ -94,6 +97,12 @@ def build_ws_router(state: WebState) -> APIRouter:
             while state.pending_notices:
                 await adapter.send({**state.pending_notices.popleft(), "missed": True})
 
+            # 진행 중인 Focus 작업이 있으면(재시작 뒤 포함) 화면을 Focus 로 되살린다
+            if state.focus is not None:
+                run = await state.focus.restore(session)
+                for event in run.panel_events() if run is not None else []:
+                    await adapter.on_agent_event(event)
+
             while True:
                 msg = await ws.receive_json()
                 msg_type = msg.get("type", "")
@@ -102,6 +111,17 @@ def build_ws_router(state: WebState) -> APIRouter:
                     text = msg.get("text", "").strip()
                     if text:
                         state.registry.touch(session_id)
+                        focus_command = parse_command(text) if state.focus is not None else None
+                        if state.focus is not None and focus_command is not None:
+                            current_scope.set(MemoryScope(
+                                user_id=user.name if user is not None else LOCAL_USER,
+                                agent_id=agent_id,
+                                session_id=session_id,
+                            ))
+                            asyncio.create_task(
+                                run_focus(session, adapter, state.focus, focus_command, credentials)
+                            )
+                            continue
                         # 슬래시 명령 인터셉트: 텍스트 어디서나 /command 를 처리하고 나머지만 LLM 으로 보낸다
                         if ctx.dispatcher is not None:
                             # /remember 같은 명령이 이 연결의 사용자 범위로 기억을 쓰게 한다
@@ -137,13 +157,15 @@ def build_ws_router(state: WebState) -> APIRouter:
                     asyncio.create_task(run_reply_classify(ws, state.reply_classifier, session, feedback_ids, msg))
 
                 elif msg_type == "voice_tts_request":
-                    text = msg.get("text", "").strip()
+                    text = speech_text(msg.get("text", ""))
                     lang = msg.get("lang", settings.voice.tts_lang)
+                    # 화면이 멈춘 읽기의 늦은 응답을 버릴 수 있게 요청 id 를 그대로 돌려준다
+                    request_id = msg.get("id")
                     if text and voice_service:
-                        asyncio.create_task(run_tts(ws, voice_service, text, lang))
-                    elif text:
-                        # 음성 서비스가 없으면 브라우저가 직접 읽게 돌려준다. 안 주면 HUD 가 '음성 처리 중' 에 멈춘다
-                        await ws.send_json({"type": "voice_tts_audio", "data": "", "text": text})
+                        asyncio.create_task(run_tts(ws, voice_service, text, lang, request_id))
+                    else:
+                        # 음성 서비스가 없거나 읽을 글자가 없어도 답한다. 안 주면 HUD 가 '음성 처리 중' 에 멈춘다
+                        await ws.send_json({"type": "voice_tts_audio", "data": "", "text": text, "id": request_id})
 
                 elif msg_type == "voice_stt_submit":
                     data = msg.get("data", "")

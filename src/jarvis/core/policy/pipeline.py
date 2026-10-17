@@ -108,6 +108,9 @@ class SandboxProtocol:
     def is_approval_required(self, tool_name: str) -> bool:
         return False
 
+    def approval_tools(self) -> list[str]:
+        return []
+
     async def authorize(self, tool_name: str, params: dict[str, Any]) -> bool:
         return True
 

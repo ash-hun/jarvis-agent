@@ -15,6 +15,7 @@ from jarvis.agent_layer.types import (
     AgentEvent,
     AgentLoopConfig,
     AgentStartEvent,
+    MessageUpdateEvent,
     ToolExecutionEndEvent,
     ToolExecutionStartEvent,
     TurnStartEvent,
@@ -179,6 +180,42 @@ async def test_tool_call_turn_feeds_results_into_next_turn():
     ]
     assert rec.of(ToolExecutionStartEvent)[0].tool_name == "read_file"
     assert rec.of(ToolExecutionEndEvent)[0].is_error is False
+
+
+async def _deny_executor(tool_call_id, tool_name, params) -> ToolResultMessage:
+    return ToolResultMessage(
+        tool_call_id=tool_call_id, tool_name=tool_name, content=[TextContent(text="denied")], is_error=True, denied=True
+    )
+
+
+async def test_all_denied_ends_turn_without_asking_model_again():
+    provider = ScriptedProvider([_tool_turn(("c1", "bash", {"command": "chmod 000 a.md"})), _text_turn("직접 하세요")])
+    model = _register(provider)
+    rec = Recorder()
+    context = _context(model)
+
+    result = await run_agent_loop(context, AgentLoopConfig(), rec, _deny_executor)
+
+    assert len(provider.calls) == 1
+    assert result is not None
+    assert result.text() == "승인을 받지 못해 bash 실행을 멈췄습니다. 필요하면 다시 요청해 주세요."
+    assert [m.text_delta for m in rec.of(MessageUpdateEvent)] == [result.text()]
+    assert [type(m).__name__ for m in context.messages] == ["AssistantMessage", "ToolResultMessage", "AssistantMessage"]
+
+
+async def test_partly_denied_lets_model_answer():
+    async def mixed(tool_call_id, tool_name, params):
+        if tool_name == "bash":
+            return await _deny_executor(tool_call_id, tool_name, params)
+        return await _ok_executor(tool_call_id, tool_name, params)
+
+    provider = ScriptedProvider(
+        [_tool_turn(("c1", "bash", {"command": "ls"}), ("c2", "read_file", {"path": "a"})), _text_turn("읽었습니다")]
+    )
+    result = await run_agent_loop(_context(_register(provider)), AgentLoopConfig(), Recorder(), mixed)
+
+    assert len(provider.calls) == 2
+    assert result is not None and result.text() == "읽었습니다"
 
 
 @pytest.mark.asyncio

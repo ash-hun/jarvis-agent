@@ -853,11 +853,11 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 
 | `type` | 필드 | 동작 |
 |---|---|---|
-| `user_message` | `text` | 슬래시 명령이면 디스패처가 처리하고 결과를 `agent_start`, `stream_delta`, `agent_end` 로 돌려준다. 남는 텍스트는 에이전트 프롬프트로. 비어 있으면 무시 |
+| `user_message` | `text` | 슬래시 명령이면 디스패처가 처리하고 결과를 `agent_start`, `stream_delta`, `agent_end` 로 돌려준다. 남는 텍스트는 에이전트 프롬프트로. 비어 있으면 무시. `/focus` 로 시작하면 디스패처보다 먼저 Focus 가 받는다([Focus](#focus)) |
 | `approval_response` | `id`, `approved`, `always` | `approval_request` 에 대한 답. 같은 `id` 에 먼저 온 답만 쓰고 나머지는 버린다. `always=true` 는 `approved=true` 일 때만 의미 있고 제안된 패턴을 세션 에이전트의 규칙 파일(`approvals/<agent_id>.yaml`)에 남긴다 |
 | `proactive_feedback` | `id`, `accepted` | 🔔 에 대한 수락/무시. 임계치 학습기에 반영. 한 연결에서 같은 `id` 는 처음 한 번만 반영 |
 | `reply_classify` | `kind`(`feedback`/`approval`), `id`, `text`, `context`, `has_always` | 키워드로 판정이 안 되는 짧은 답을 사고 모델로 분류. `feedback` 이면 `id` 는 🔔 의 `message_id`, `context` 는 🔔 본문. `approval` 이면 `id` 는 승인 요청 id, `context` 는 명령, `has_always` 는 항상 허용 패턴이 있는지. 결과는 `reply_classified`. 🔔 가 `accept`/`dismiss` 로 판정되면 서버가 바로 학습기에 반영한다(같은 `id` 는 한 번만). 승인은 판정만 돌려주고 승인 자체는 화면이 `approval_response` 로 보낸다 |
-| `voice_tts_request` | `text`, `lang?` | 음성 합성. 서버 TTS 가 없으면 `voice_tts_audio{data:"", text}` 로 되돌려 브라우저가 읽게 한다 |
+| `voice_tts_request` | `text`, `lang?`, `id?` | 음성 합성. 서버가 마크다운 기호(제목, 강조, 목록, 표, 인라인 코드)를 지우고, 코드 블록과 URL 은 빼고, 링크는 글자만 남긴 뒤 읽는다. 서버 TTS 가 없거나 읽을 글자가 없으면 `voice_tts_audio{data:"", text}` 로 되돌려 브라우저가 읽게 한다. `id` 는 결과에 그대로 돌아온다 |
 | `voice_stt_submit` | `data`(base64), `mime`, `sample_rate` | 서버 STT. 서버 STT 가 없으면 무시 |
 | `abort` | 없음 | 진행 중인 에이전트 루프 중단 |
 
@@ -871,17 +871,19 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `stream_delta` | `text` | 슬래시 명령 결과 등 비스트림 텍스트 |
 | `tool_execution_start` | `tool_call_id`, `tool_name`, `args` | 도구 실행 시작 |
 | `tool_execution_end` | `tool_call_id`, `tool_name`, `is_error` | 도구 실행 끝 |
-| `agent_end` | `session_id`, `final_message{usage}`, `turns`, `agent_name?` | 루프 끝. 루트면 입력을 다시 받는다 |
+| `agent_end` | `session_id`, `final_message{usage}`, `turns`, `agent_name?`, `continues?` | 루프 끝. 루트면 입력을 다시 받는다. `continues: true` 는 `/focus` 안내 뒤 메인 에이전트가 이어 돈다는 뜻이라, 화면은 입력 잠금과 음성 요청 표시를 그대로 둔다 |
 | `agent_error` | `message`, `code?` | 루프 실패 |
 | `inner_thought` | `session_id`, `interpretation`, `decision`, `confidence`, `frame` | 요청 시점과 성찰 시점의 사고 1회 |
 | `proactive_message` | `session_id`, `text`, `kind`(`filler`/`proactive`/`answer`), `speak`, `message_id` | 먼저 건네는 말. `proactive` 면 피드백 대상 |
 | `approval_request` | `id`, `command`, `reason`, `always_pattern` | 도구 실행 승인 요청. 같은 세션의 열린 연결 전부에 보내고, 기다리는 중에 새로 붙은 연결에도 보낸다. 120초 안에 답이 없으면 거부로 처리 |
 | `approval_resolved` | `id` | 그 요청이 끝났다(어느 연결의 답, 또는 시간 초과). 아직 모달을 띄운 연결은 닫는다 |
 | `reminder` | `id`, `name`, `kind`, `agent`, `once`, `title`, `text`, `error`, `delayed_sec`, `fired_at`, `missed?` | 스케줄 실행 결과. 열린 연결 전부에 방송하고, 없으면 최근 20건을 쌓아 다음 접속 때 `missed: true` 로 보낸다 |
-| `voice_tts_audio` | `data`(base64), `mime`, `text` | 합성 결과. `data` 가 비면 브라우저 TTS 로 |
+| `voice_tts_audio` | `data`(base64), `mime`, `text`, `id` | 합성 결과. `data` 가 비면 브라우저 TTS 로(`text` 는 기호를 지운 문장). `id` 는 요청의 `id`(없었으면 null). 화면은 멈춘 읽기의 결과를 이 값으로 버린다 |
 | `voice_stt_result` | `text`, `error?` | 전사 결과 |
 | `reply_classified` | `kind`, `id`, `verdict` | `reply_classify` 의 결과. `feedback` 은 `accept`/`dismiss`/`other`, `approval` 은 `allow`/`always`/`deny`/`unclear`. 사고 모델이 없거나 6초 안에 답하지 못하면 `other`, `unclear`. 항상 허용 패턴이 없는데 `always` 면 `allow` 로 낮춘다 |
 | `agent_activity` | `active[]` | 어느 세션이든 루프가 시작하거나 끝나 일하는 에이전트 목록이 바뀔 때. 열린 연결 전부에 보내고 쌓아 두지 않는다. 먼저 시작한 순서, 같은 에이전트는 한 번 |
+| `focus_state` | `session_id`, `state` | Focus 작업 상태 전체. `state.active=false` 면 Focus 종료. 켜져 있으면 `task_id`, `task`, `steps[{title, done}]`, `progress`(0~1), `eta_sec`(완료 단계가 없으면 null), `elapsed_sec`. 접속 직후 진행 중인 작업이 있으면 한 번 보낸다 |
+| `focus_panel` | `session_id`, `area`(`reference`/`log`/`analysis`), `markdown`, `busy` | 한 영역의 마크다운 전체. `busy=true` 는 sub-agent 가 갱신 중. 접속 직후 진행 중인 작업이 있으면 세 영역을 한 번씩 보낸다 |
 | `error` | `message` | TTS 오류 등 |
 
 #### 호출 예시
@@ -897,6 +899,20 @@ ws.send(JSON.stringify({ type: "user_message", text: "안녕" }));
 **재호출**: 같은 `session_id` 로 다시 붙으면 같은 세션이다. 재접속 자체는 멱등하다. `approval_request` 는 세션의 연결 전부가 받고 먼저 온 답이 채택되므로 탭을 여럿 열어도 같다. `user_message` 는 멱등하지 않다(보낼 때마다 한 턴). `reply_classify` 는 같은 답을 다시 보내면 모델을 다시 부르지만 🔔 학습은 연결당 `id` 하나에 한 번이다. 연결을 새로 열면 그 기록은 비므로 재접속 뒤 같은 `id` 를 다시 보내면 한 번 더 반영된다.
 
 `reminder` 의 보류 큐는 메모리에만 있어 서버가 재시작되면 사라진다.
+
+#### Focus
+
+`/focus <작업>` 은 이 세션의 Focus 작업을 시작하고, 안내(`agent_start`, `stream_delta`, `agent_end`)를 보낸 뒤 작업 문장을 에이전트 프롬프트로 이어 보낸다. 시작할 때 첫 분석과 단계 계획을 `JARVIS_FOCUS__READY_TIMEOUT_SEC`(30초)까지 기다린다. `/focus stop`(또는 `off`, `종료`)은 끝내고, `/focus` 만 보내면 현황을 텍스트로 돌려준다.
+
+| 명령 | 이미 작업이 있을 때 | 작업이 없을 때 |
+|---|---|---|
+| `/focus <작업>` | 거절하고 진행 중인 작업을 알려 준다 | 시작 |
+| `/focus stop` | 종료, `focus_state{active:false}` | "진행 중인 작업이 없습니다" |
+| `/focus` | 진행률과 단계 | 시작 방법 안내 |
+
+Focus 동안 매 턴 앞에서 분석 sub-agent 가, 뒤에서 기록과 진행 sub-agent 가 돌고 결과를 `focus_panel`, `focus_state` 로 보낸다. 조사 sub-agent 는 시작할 때와 분석이 조사할 검색어를 낼 때 돈다. 메인 에이전트의 시스템 프롬프트에는 작업, 단계, 직전 분석, 조사 요약이 붙는다.
+
+**재호출**: 세션당 작업은 하나다. `~/.jarvis/focus/active/<session_id>` 를 배타적으로 만들어 보증하므로 `/focus <작업>` 을 동시에 두 번 보내도 하나만 시작한다. `/focus stop` 은 두 번째부터 아무것도 하지 않는다. 서버가 재시작돼도 활성 표시와 `state.json` 으로 작업을 되살리고, 접속하면 화면을 Focus 로 돌려놓는다. 기록은 `~/.jarvis/focus/<task_id>/`(`log.md`, `references.md`, `analysis.jsonl`, `state.json`)에 남고 종료해도 지우지 않는다.
 
 ---
 

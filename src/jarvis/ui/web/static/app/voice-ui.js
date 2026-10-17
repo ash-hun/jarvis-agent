@@ -7,10 +7,13 @@ import { answerApprovalByVoice, isApprovalOpen } from './approval.js';
 import { escapeHtml } from './markdown.js';
 import { isAgentBusy } from './events.js';
 import { appendMsg } from './messages.js';
+import { focusCommandFromSpeech } from './focus.js';
 import { send } from './ws.js';
 
 // TTS 꼬리가 마이크에 들어가지 않게 읽기가 끝난 뒤 잠깐 쉬고 듣는다
 const LISTEN_AFTER_SPEECH_MS = 250;
+// 음성 승인 대기 중 다시 듣는 횟수 상한. 인식은 몇 초 말이 없으면 끝나므로 승인 시한(120초) 동안 이어 듣는다
+const APPROVAL_LISTEN_MAX = 20;
 const UNSUPPORTED_MSG = 'Web Speech API를 지원하지 않는 브라우저입니다. Chrome을 사용해 주세요.';
 
 const $sphereWrap = document.querySelector('.sphere-wrap');
@@ -19,6 +22,9 @@ const $input      = document.getElementById('chat-input');
 
 let _voiceMode = false;    // 현재 요청이 음성으로 시작됐는지 — 응답을 읽어줄지 정한다
 let _thenListen = null;    // 마지막 읽기 요청이 끝났을 때 다시 들을지 묻는 함수
+let _speechSeq = 0;
+const _awaitingSpeech = new Set();  // 보냈지만 아직 오디오가 오지 않은 읽기 요청 id
+let _approvalListens = 0;  // 음성 승인 답을 기다리며 남은 듣기 횟수
 
 export function isVoiceMode() { return _voiceMode; }
 export function clearVoiceMode() { _voiceMode = false; }
@@ -32,10 +38,10 @@ function showUser(text) {
 }
 
 export const voice = new VoiceManager({
-  async onTranscript(transcript) {
+  async onTranscript(transcript, alternatives = []) {
     if (!transcript.trim()) return;
-    // Full-voice 에서 승인 모달이 열려 있으면 이 답은 승인이다. 메시지로 보내지 않는다.
-    if (isFullVoice() && isApprovalOpen()) {
+    // 승인 모달이 열려 있으면 이 답은 승인이다. 메시지로 보내지 않는다.
+    if (isApprovalOpen()) {
       showUser(transcript);
       const heard = await answerApprovalByVoice(transcript);
       if (!heard) { voice.setIdle(); return; }  // 분류 중에 클릭이나 다른 창이 먼저 답했다
@@ -48,7 +54,9 @@ export const voice = new VoiceManager({
     if (await tryProactiveFeedback(transcript)) { voice.setIdle(); return; }
     _voiceMode = true;
     showUser(transcript);
-    sendUserText(transcript);
+    // "포커스 모드 <작업>", "포커스 모드 종료" 는 /focus 명령으로 보낸다
+    const command = [transcript, ...alternatives].map(focusCommandFromSpeech).find(Boolean);
+    sendUserText(command || transcript);
   },
   onStateChange(state) {
     $sphereWrap.classList.remove('voice-listening', 'voice-speaking', 'voice-processing');
@@ -77,9 +85,11 @@ export const voice = new VoiceManager({
       const thenListen = _thenListen;
       _thenListen = null;
       if (thenListen && thenListen()) setTimeout(() => voice.start(), LISTEN_AFTER_SPEECH_MS);
+      else listenAgainForApproval();
     }
   },
   onError(msg) {
+    _approvalListens = 0;  // 권한 거부 같은 인식 오류에서 듣기를 되풀이하지 않는다
     appendMsg('SYS', 'err', escapeHtml(msg));
   },
   onAudioCaptured(base64, mime) {
@@ -94,11 +104,52 @@ window.voiceManager = voice;
 export function requestSpeech(text, { thenListen = null } = {}) {
   _thenListen = thenListen;
   voice.setProcessing();
-  send({ type: 'voice_tts_request', text });
+  const id = ++_speechSeq;
+  _awaitingSpeech.add(id);
+  send({ type: 'voice_tts_request', text, id });
 }
+
+// 음성 승인 답을 기다린다. 질문이나 다른 읽기가 끝날 때, 인식이 말 없이 끝날 때마다 다시 듣는다.
+// 한 번만 들으면 늦게 말하거나 다른 읽기가 끼어든 답을 놓쳐 120초 뒤 거부된다
+export function listenForApproval() { _approvalListens = APPROVAL_LISTEN_MAX; }
+
+function listenAgainForApproval() {
+  if (_approvalListens <= 0) return;
+  if (!isApprovalOpen()) { _approvalListens = 0; return; }
+  if (isSpeechActive()) return;  // 읽는 동안 들으면 질문 자체를 답으로 듣는다
+  _approvalListens -= 1;
+  setTimeout(() => {
+    if (isApprovalOpen() && !isSpeechActive()) voice.start();
+  }, LISTEN_AFTER_SPEECH_MS);
+}
+
+// 도착한 합성 결과를 읽을지. 멈춘 뒤에 늦게 온 결과는 버린다. id 없는 결과(옛 서버)는 읽는다
+export function takeSpeech(id) {
+  if (id === null || id === undefined) return true;
+  return _awaitingSpeech.delete(id);
+}
+
+export function isSpeechActive() {
+  return voice.state === 'speaking' || _awaitingSpeech.size > 0;
+}
+
+// 읽던 것과 기다리던 읽기를 모두 멈춘다. 멈춘 뒤엔 Full-voice 라도 다시 듣지 않는다
+export function stopSpeech() {
+  _awaitingSpeech.clear();
+  _thenListen = null;
+  _approvalListens = 0;
+  voice.stopSpeaking();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || !isSpeechActive()) return;
+  e.preventDefault();
+  stopSpeech();
+});
 
 // 구체 클릭 → voice mode 토글
 $sphereHit.addEventListener('click', () => {
+  if (isSpeechActive()) { stopSpeech(); return; }  // 읽는 중의 클릭은 멈춤
   if (!voice.supported) {
     appendMsg('SYS', 'err', UNSUPPORTED_MSG);
     return;
@@ -121,6 +172,7 @@ onModeChange((mode) => {
     voice.start();
   } else {
     _thenListen = null;
+    _approvalListens = 0;
     voice.setHoldMic(false);
     voice.stop();
   }

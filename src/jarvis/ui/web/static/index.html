@@ -62,9 +62,44 @@
       <canvas id="hud-canvas" class="sphere-canvas"></canvas>
       <div class="reactor-wordmark" data-brand="name">J.A.R.V.I.S.</div>
       <div class="sphere-hit" id="sphere-hit" title="voice mode 토글"></div>
+      <!-- Focus 때 구체 둘레를 따라 그려지는 호. 구체와 같이 줄어든다 -->
+      <svg class="focus-arcs" viewBox="-8 -8 116 116" aria-hidden="true">
+        <path d="M 2.67 37.32 A 49 49 0 0 1 37.32 2.67 M 15.35 15.35 L 10.40 10.40" />
+        <path d="M 62.68 2.67 A 49 49 0 0 1 97.33 37.32 M 84.65 15.35 L 89.60 10.40" />
+        <path d="M 37.32 97.33 A 49 49 0 0 1 2.67 62.68 M 15.35 84.65 L 10.40 89.60" />
+        <path d="M 97.33 62.68 A 49 49 0 0 1 62.68 97.33 M 84.65 84.65 L 89.60 89.60" />
+      </svg>
     </div>
     <div class="reactor-status" id="reactor-status" data-state="idle">ACTIVE</div>
     <p class="reactor-caption quote" id="reactor-caption" aria-live="polite"></p>
+
+    <!-- FOCUS — /focus 동안 구체 둘레에 네 영역. body[data-focus="on"] 일 때만 보인다 -->
+    <div class="focus-ring" id="focus-ring" aria-hidden="true">
+      <section class="hud-card focus-panel" data-area="reference" style="--i:0">
+        <div class="panel-head"><span>Reference</span><span class="count">조사 및 종합</span></div>
+        <div class="focus-body" data-empty="조사 중인 레퍼런스가 없습니다"></div>
+      </section>
+      <section class="hud-card focus-panel" data-area="analysis" style="--i:1">
+        <div class="panel-head"><span>Analysis</span><span class="count">목적, 필요, 다음 지시</span></div>
+        <div class="focus-body" data-empty="지시를 분석하는 중입니다"></div>
+      </section>
+      <section class="hud-card focus-panel" data-area="log" style="--i:2">
+        <div class="panel-head"><span>Log</span><span class="count">작업 기록</span></div>
+        <div class="focus-body" data-empty="아직 기록이 없습니다"></div>
+      </section>
+      <section class="hud-card focus-panel" data-area="progress" style="--i:3">
+        <div class="panel-head"><span>Progress</span><span class="count" id="focus-elapsed">00:00</span></div>
+        <div class="focus-progress">
+          <p class="focus-task" id="focus-task"></p>
+          <div class="focus-meter">
+            <span class="focus-percent" id="focus-percent">0%</span>
+            <span class="focus-eta" id="focus-eta">예상 시간 계산 중</span>
+          </div>
+          <div class="focus-bar"><span id="focus-bar-fill"></span></div>
+          <ol class="focus-steps" id="focus-steps"></ol>
+        </div>
+      </section>
+    </div>
   </section>
 
 
@@ -181,7 +216,7 @@
     <h3>⚡ AUTHORIZATION REQUIRED</h3>
     <p class="approval-reason" id="approval-reason"></p>
     <div class="approval-command" id="approval-command"></div>
-    <p class="approval-hint">이 명령을 허용하시겠습니까? (120초 후 자동 거부)</p>
+    <p class="approval-hint" id="approval-hint">이 명령을 허용하시겠습니까? (120초 후 자동 거부)</p>
     <div class="approval-btns">
       <button class="btn-always hidden" id="btn-always">ALWAYS</button>
       <button class="btn-allow" id="btn-allow">ALLOW</button>

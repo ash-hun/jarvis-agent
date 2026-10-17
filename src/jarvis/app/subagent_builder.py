@@ -38,7 +38,7 @@ class SubagentBuilder:
             )
         else:
             model = self._services.model_config
-        if definition.tools:
+        if definition.tools or definition.tools_only:
             registry = ToolRegistry()
             for tool_name in definition.tools:
                 tool = self._main_registry.get(tool_name)

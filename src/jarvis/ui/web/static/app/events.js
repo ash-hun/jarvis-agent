@@ -8,13 +8,14 @@ import {
 import { updateUsage } from './usage.js';
 import { fetchAgenda, showNotice } from './agenda.js';
 import { fetchTools } from './tools.js';
-import { voice, isVoiceMode, clearVoiceMode, requestSpeech } from './voice-ui.js';
-import { showApproval, closeApproval, isApprovalOpen, approvalSpeech } from './approval.js';
+import { voice, isVoiceMode, clearVoiceMode, requestSpeech, takeSpeech, listenForApproval } from './voice-ui.js';
+import { showApproval, closeApproval, approvalSpeech } from './approval.js';
 import { askFeedback, isFeedbackPending, QUESTION_SPOKEN } from './proactive.js';
 import { setInputEnabled, endAwaitingReply } from './composer.js';
 import { isFullVoice } from './mode.js';
 import { onReplyClassified } from './reply.js';
 import { setActiveAgents } from './agents.js';
+import { onFocusState, onFocusPanel } from './focus.js';
 
 const ERROR_FLASH_MS = 3000;
 let _agentStack = []; // [{name: string|null}, ...] — 서브 에이전트 계층 추적
@@ -67,6 +68,9 @@ export function handleMessage(msg) {
       if (_agentStack.length > 0) _agentStack.pop();
       if (_agentStack.length > 0) { showThinking(); break; }  // 서브 에이전트 종료 — 부모 계층으로 복귀
 
+      // /focus 안내 뒤 메인 에이전트가 이어 돈다. 음성 요청이면 읽기와 승인 되묻기는 그 응답에서 한다
+      if (msg.continues) { streamEnd(); break; }
+
       // 루트 에이전트 종료 — 메시지 확정 + 입력 복원
       streamEnd();
       setStatus('READY');
@@ -116,6 +120,17 @@ export function handleMessage(msg) {
       flashError(msg.message || 'Error');
       break;
 
+    case 'focus_state': {
+      const st = msg.state || {};
+      onFocusState(st);
+      logActivity(st.active ? `◎ focus · ${Math.round((st.progress || 0) * 100)}%` : '◎ focus off');
+      break;
+    }
+
+    case 'focus_panel':
+      onFocusPanel(msg.area, msg.markdown || '', msg.busy);
+      break;
+
     case 'inner_thought': {
       fetchAgenda();
       // 메인 응답과 구분된 메타인지 라인 (💭). interpretation이 없으면 표시 생략.
@@ -154,20 +169,24 @@ export function handleMessage(msg) {
       showNotice(msg);
       break;
 
-    case 'approval_request':
-      showApproval(msg.id, msg.command, msg.reason, msg.always_pattern);
+    case 'approval_request': {
+      // 음성으로 시작한 요청이면 Default 에서도 모달 대신 음성으로 되묻고 듣는다. 말로 일하던 중이다
+      const byVoice = isFullVoice() || isVoiceMode();
+      showApproval(msg.id, msg.command, msg.reason, msg.always_pattern, { voice: byVoice });
       logActivity(`⚡ approval · ${msg.command || ''}`, 'tool');
-      if (isFullVoice()) {
-        requestSpeech(approvalSpeech(msg.command, msg.always_pattern),
-          { thenListen: () => isFullVoice() && isApprovalOpen() });
+      if (byVoice) {
+        listenForApproval();
+        requestSpeech(approvalSpeech(msg.command, msg.always_pattern));
       }
       break;
+    }
 
     case 'approval_resolved':
       if (closeApproval(msg.id)) logActivity('⚡ approval · 다른 창에서 처리됨', 'tool');
       break;
 
     case 'voice_tts_audio':
+      if (!takeSpeech(msg.id)) break;  // Esc 등으로 멈춘 읽기의 늦은 결과
       if (msg.data) {
         voice.playAudioBase64(msg.data, msg.mime || 'audio/wav');  // 백엔드 TTS (Supertonic-3 WAV)
       } else if (msg.text) {

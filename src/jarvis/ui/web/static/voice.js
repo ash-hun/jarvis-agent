@@ -9,7 +9,7 @@
  * 상태 머신: idle → listening → processing → (idle or speaking) → idle
  *
  * 생성자 options:
- *   onTranscript(text)        — STT 결과 콜백
+ *   onTranscript(text, alts)  — STT 결과 콜백. alts 는 같은 발화의 다른 인식 후보
  *   onStateChange(state)      — 상태 변경 콜백 ('idle'|'listening'|'processing'|'speaking')
  *   onError(msg)              — 에러 콜백
  *   onAudioCaptured(b64,mime) — 서버 STT 모드에서 녹음된 오디오를 백엔드로 보낼 때 호출
@@ -27,6 +27,7 @@ const MIC_RELEASE_TIMEOUT_MS = 1500;
 // speak 뒤 이 시간 안에 start 가 오지 않으면 브라우저가 문장을 버린 것으로 보고 한 번만 다시 읽는다
 const TTS_START_TIMEOUT_MS = 1500;
 const TTS_RETRY_GAP_MS = 150;
+const STT_ALTERNATIVES = 3;
 
 class VoiceManager {
   constructor({ onTranscript, onStateChange, onError, onAudioCaptured, lang = 'ko-KR' } = {}) {
@@ -37,6 +38,8 @@ class VoiceManager {
     this._onAudioCaptured = onAudioCaptured || (() => {});
     this._lang          = lang;
     this._audioCtx      = null;
+    this._source        = null;   // 재생 중인 서버 TTS 오디오. 멈출 때 끊는다
+    this._speakGen      = 0;      // stopSpeaking 마다 오른다. 준비 중이던 읽기는 끝나고 보면 낡았다
 
     // ── 마이크 점유: 인식 중인지, 언제 놓았는지, 계속 잡아 둘 스트림 ─────────────────
     this._micOpen       = false;
@@ -59,6 +62,8 @@ class VoiceManager {
       this._recognition.lang           = this._lang;
       this._recognition.continuous     = false;
       this._recognition.interimResults = true;
+      // 첫 후보가 틀려도 다른 후보에 명령 키워드가 있을 수 있다
+      this._recognition.maxAlternatives = STT_ALTERNATIVES;
 
       this._recognition.onresult = (e) => {
         const results    = Array.from(e.results);
@@ -67,7 +72,11 @@ class VoiceManager {
           this._setState('processing');
           // 최종 결과 뒤에도 인식은 잠깐 열려 있다. 바로 닫아 읽기가 기다리는 시간을 줄인다.
           try { this._recognition.stop(); } catch (_) {}
-          this._onTranscript(transcript);
+          const last = results[results.length - 1];
+          const alternatives = results.length === 1
+            ? Array.from(last).slice(1).map(a => a.transcript)
+            : [];
+          this._onTranscript(transcript, alternatives);
         }
       };
 
@@ -158,6 +167,22 @@ class VoiceManager {
   setProcessing() { this._setState('processing'); }
   setIdle()       { this._setState('idle'); }
 
+  /** 읽던 것을 끊는다. 준비 중(마이크 반납 대기, 디코딩)인 읽기도 시작하지 않는다. 여러 번 불러도 같다. */
+  stopSpeaking() {
+    this._speakGen += 1;
+    if (this._source) {
+      const source = this._source;
+      this._source = null;
+      source.onended = null;
+      try { source.stop(); } catch (_) {}
+    }
+    if (this._utterance) this._utterance = null;  // 끊긴 문장의 onend 가 상태를 건드리지 않게
+    if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+      window.speechSynthesis.cancel();
+    }
+    if (this._state === 'speaking' || this._state === 'processing') this._setState('idle');
+  }
+
   /**
    * 백엔드에서 받은 base64 WAV 오디오를 재생한다.
    * @param {string} base64Data  — base64 인코딩 WAV
@@ -165,8 +190,10 @@ class VoiceManager {
    * @returns {Promise<void>}
    */
   async playAudioBase64(base64Data, mimeType = 'audio/wav') {
+    const gen = this._speakGen;
     this._setState('speaking');
     await this._afterMicReleased();
+    if (gen !== this._speakGen) return;
     try {
       if (!this._audioCtx || this._audioCtx.state === 'closed') {
         this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -176,10 +203,16 @@ class VoiceManager {
 
       const bytes  = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
       const buffer = await this._audioCtx.decodeAudioData(bytes.buffer.slice(0));
+      if (gen !== this._speakGen) return;
       const source = this._audioCtx.createBufferSource();
       source.buffer = buffer;
       source.connect(this._audioCtx.destination);
-      source.onended = () => this._setState('idle');
+      source.onended = () => {
+        if (this._source !== source) return;
+        this._source = null;
+        this._setState('idle');
+      };
+      this._source = source;
       source.start(0);
     } catch (e) {
       console.error('[VoiceManager] Audio playback failed:', e);
@@ -194,8 +227,10 @@ class VoiceManager {
    */
   async speakBrowser(text, lang = this._lang) {
     if (!window.speechSynthesis) { this._setState('idle'); return; }
+    const gen = this._speakGen;
     this._setState('speaking');
     await this._afterMicReleased();
+    if (gen !== this._speakGen) return;
     // Chrome 은 cancel 직후의 speak 를 소리 없이 버릴 때가 있어, 읽는 게 있을 때만 끊는다
     if (window.speechSynthesis.speaking || window.speechSynthesis.pending) window.speechSynthesis.cancel();
     this._speakUtterance(text, lang, true);

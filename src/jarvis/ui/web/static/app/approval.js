@@ -5,6 +5,7 @@ import { classifyReply } from './reply.js';
 const $overlay = document.getElementById('approval-overlay');
 const $reason  = document.getElementById('approval-reason');
 const $command = document.getElementById('approval-command');
+const $hint    = document.getElementById('approval-hint');
 const $allow   = document.getElementById('btn-allow');
 const $deny    = document.getElementById('btn-deny');
 const $always  = document.getElementById('btn-always');
@@ -16,6 +17,9 @@ const VOICE_ALWAYS = ['항상', '언제나', '앞으로도', 'always'];
 const VOICE_ALLOW = ['허용', '허락', '승인', '실행해', '진행해', 'allow'];
 const VOICE_YES = ['응', '네', '예', '그래', '좋아', '오케이', '해', '해줘', 'ok', 'okay', 'yes'];
 const SPEECH_COMMAND_MAX = 120;
+const HINT_CLICK = '이 명령을 허용하시겠습니까? (120초 후 자동 거부)';
+const HINT_VOICE = '음성으로 답하세요: 허용, 거부 (120초 후 자동 거부)';
+const HINT_VOICE_ALWAYS = '음성으로 답하세요: 허용, 항상, 거부 (120초 후 자동 거부)';
 const HEARD_SPEECH = {
   allow:  '허용으로 들었습니다.',
   always: '항상 허용으로 들었습니다.',
@@ -26,7 +30,8 @@ let _currentCommand = '';
 let _currentId = null;
 let _alwaysPattern = null;
 
-export function showApproval(id, command, reason, alwaysPattern) {
+// voice 면 화면을 가리지 않는 아래쪽 띠로 띄운다. 묻고 답하기는 음성이 하고, 명령은 계속 보이게 둔다
+export function showApproval(id, command, reason, alwaysPattern, { voice = false } = {}) {
   _currentId = id;
   _alwaysPattern = alwaysPattern || null;
   _currentCommand = command || '';
@@ -40,6 +45,8 @@ export function showApproval(id, command, reason, alwaysPattern) {
   } else {
     $always.classList.add('hidden');
   }
+  $hint.textContent = voice ? (alwaysPattern ? HINT_VOICE_ALWAYS : HINT_VOICE) : HINT_CLICK;
+  $overlay.classList.toggle('voice', voice);
   $overlay.classList.remove('hidden');
 }
 

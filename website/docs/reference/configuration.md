@@ -71,6 +71,17 @@ JARVIS_PROACTIVE__DAEMON_IDLE_SEC=180
 
 로컬 GPU 한 장에서 실측했을 때, `race` 는 두 모델이 GPU 를 나눠 써서 첫 글자가 21초 뒤에 나왔고 `after` 는 12.8초 뒤에 나왔다.
 
+## Focus 모드
+
+```bash
+JARVIS_FOCUS__ENABLED=true
+JARVIS_FOCUS__MODEL=gpt-4o-mini        # sub-agent 넷의 모델. 비우면 메인 모델
+JARVIS_FOCUS__DIR=~/.jarvis/focus
+JARVIS_FOCUS__READY_TIMEOUT_SEC=30     # 시작할 때 첫 분석과 단계 계획을 기다리는 상한
+```
+
+쓰는 법은 [Focus Mode](../concepts/mode/focus-mode.md) 에 있다.
+
 ## 메모리와 세션
 
 ```bash

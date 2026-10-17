@@ -130,14 +130,26 @@ def extract_json(raw: str) -> dict[str, Any] | None:
 
 
 def render_analysis(analysis: dict[str, Any]) -> str:
-    """분석 5항목을 패널 마크다운으로. 비어 있는 항목은 '없음'."""
+    """분석 5항목을 패널 마크다운으로. 항목 아래 내용은 한 단계 들여 쓰고, 비어 있으면 '없음'.
+
+    analyze 가 남긴 instruction, at 이 있으면 어느 지시의 분석인지 맨 위에 적는다.
+    """
     lines: list[str] = []
+    if analysis.get("instruction"):
+        at = f" · {analysis['at']}" if analysis.get("at") else ""
+        lines.append(f"*지시: {analysis['instruction']}{at}*")
     for key in ANALYSIS_KEYS:
         value = analysis.get(key)
         items = value if isinstance(value, list) else [value] if value else []
-        lines.append(f"**{ANALYSIS_TITLES[key]}**")
-        lines += [f"- {item}" for item in items] or ["- 없음"]
+        lines.append(f"- **{ANALYSIS_TITLES[key]}**")
+        lines += [f"  - {item}" for item in items] or ["  - 없음"]
     return "\n".join(lines)
+
+
+def latest_section(text: str, marker: str) -> str:
+    """marker 로 시작하는 마지막 절부터 끝까지. marker 가 없으면 전체."""
+    at = text.rfind(marker)
+    return text[at:] if at >= 0 else text
 
 
 def state_payload(state: FocusState, now: float) -> dict[str, Any]:

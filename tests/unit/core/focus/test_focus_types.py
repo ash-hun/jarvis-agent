@@ -9,6 +9,7 @@ from jarvis.core.focus.types import (
     apply_plan,
     eta_sec,
     extract_json,
+    latest_section,
     parse_command,
     progress,
     render_analysis,
@@ -87,10 +88,22 @@ def test_extract_json_tolerates_fences() -> None:
 
 def test_render_analysis_lists_five_items() -> None:
     md = render_analysis({"purpose": ["전환율 개선"], "next": "A/B 테스트 요청", "needs": []})
-    assert "**근본 목적**\n- 전환율 개선" in md
-    assert "**예상 다음 지시**\n- A/B 테스트 요청" in md
-    assert "**필요한 것**\n- 없음" in md
+    assert "- **근본 목적**\n  - 전환율 개선" in md
+    assert "- **예상 다음 지시**\n  - A/B 테스트 요청" in md
+    assert "- **필요한 것**\n  - 없음" in md
     assert md.count("**") == 10
+    assert not md.startswith("*지시")
+
+
+def test_render_analysis_names_the_instruction() -> None:
+    md = render_analysis({"purpose": ["가"], "instruction": "첫 3일을 조정해줘", "at": "16:26"})
+    assert md.splitlines()[0] == "*지시: 첫 3일을 조정해줘 · 16:26*"
+
+
+def test_latest_section_keeps_last_research() -> None:
+    text = "## 조사: A\n\n가\n\n## 조사: B\n\n나\n\n"
+    assert latest_section(text, "## 조사: ") == "## 조사: B\n\n나\n\n"
+    assert latest_section("조사 없음", "## 조사: ") == "조사 없음"
 
 
 def test_state_round_trips_json() -> None:

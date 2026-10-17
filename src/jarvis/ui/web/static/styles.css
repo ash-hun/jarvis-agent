@@ -1315,6 +1315,11 @@ body[data-focus="on"] .focus-panel {
 .focus-body p { margin: 0 0 6px; }
 .focus-body ul, .focus-body ol { margin: 0 0 6px; padding-left: 18px; }
 .focus-body ol { list-style: decimal inside; padding-left: 2px; }
+.focus-body li > ul { margin: 2px 0 4px; padding-left: 16px; list-style: disc; }
+/* Analysis: 항목 제목은 붙이고 내용만 한 단계 들여 쓴다. 맨 위 한 줄은 어느 지시의 분석인지 */
+.focus-panel[data-area="analysis"] .focus-body > ul { list-style: none; padding-left: 0; }
+.focus-panel[data-area="analysis"] .focus-body > ul > li { margin-bottom: 6px; }
+.focus-panel[data-area="analysis"] .focus-body > p:first-child em { color: var(--text-faint); font-style: normal; font-size: 11px; letter-spacing: .02em; }
 .focus-body br { display: none; }
 .focus-body strong { color: var(--pri-bright); font-weight: 600; }
 /* sub-agent 가 갱신 중인 영역 */

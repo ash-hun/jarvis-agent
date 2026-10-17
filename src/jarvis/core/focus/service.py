@@ -22,6 +22,7 @@ from jarvis.core.focus.types import (
     apply_plan,
     eta_sec,
     extract_json,
+    latest_section,
     progress,
     render_analysis,
     state_payload,
@@ -29,6 +30,7 @@ from jarvis.core.focus.types import (
 )
 
 PANEL_TAIL_CHARS = 8000
+REFERENCE_MARKER = "## 조사: "
 READY_TIMEOUT_SEC = 30.0
 FIRST_REPLY = "(아직 응답 없음. 작업을 막 시작했다)"
 
@@ -97,6 +99,8 @@ class FocusRun:
         raw = await self._ask("analysis", request)
         analysis = extract_json(raw) if raw else None
         if analysis is not None:
+            # 패널이 어느 지시의 분석인지 보이게 지시와 시각을 함께 남긴다
+            analysis = {**analysis, "instruction": instruction, "at": self._service.timestamp()[-5:]}
             self._service.store.append_analysis(self.state.task_id, analysis)
             queries = [str(q) for q in analysis.get("research") or [] if str(q).strip()]
             if queries:
@@ -108,7 +112,7 @@ class FocusRun:
         await self._panel("reference", busy=True)
         found = await self._ask("reference", reference_request(self.state.task, query))
         if found.strip():
-            self._service.store.append_reference(self.state.task_id, f"## 조사: {query}\n\n{found}")
+            self._service.store.append_reference(self.state.task_id, f"{REFERENCE_MARKER}{query}\n\n{found}")
         await self._panel("reference")
 
     async def write_log(self, instruction: str, reply: str) -> None:
@@ -273,7 +277,8 @@ class FocusService:
 
     def panel_markdown(self, task_id: str, area: str) -> str:
         if area == "reference":
-            return self.store.read_references(task_id)[-PANEL_TAIL_CHARS:]
+            # 조사는 쌓아 두되 화면에는 가장 최근 조사 하나만 보인다
+            return latest_section(self.store.read_references(task_id), REFERENCE_MARKER)[-PANEL_TAIL_CHARS:]
         if area == "log":
             return self.store.read_log(task_id)[-PANEL_TAIL_CHARS:]
         analysis = self.store.last_analysis(task_id)

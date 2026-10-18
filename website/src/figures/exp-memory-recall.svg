@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 1257" class="pf-svg" role="img" aria-label="회상 품질: 후보 선정, 섬광 기억 자리, 조사, 상대 지칭">
+<defs><marker id="exp-memory-recall-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-memory-recall-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-memory-recall-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-memory-recall-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="10" y="10" width="740" height="343" rx="8"/>
+<text class="pf-plabel" x="22" y="30">(a) 200일 전 importance 1.0 일화가 상위 3개에 드는 비율. 행은 그 뒤에 쌓인 사소한 일화 수</text>
+<rect class="pf-s1" x="30" y="44" width="10" height="10" rx="2"/>
+<text class="pf-s" x="45" y="53" text-anchor="start">이전 코드</text>
+<rect class="pf-s2" x="106.89" y="44" width="10" height="10" rx="2"/>
+<text class="pf-s" x="121.89" y="53" text-anchor="start">지금</text>
+<text class="pf-s" x="160" y="89.5" text-anchor="end">0개 뒤</text>
+<rect class="pf-s1" x="170" y="74" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="83" text-anchor="start">1.00</text>
+<rect class="pf-s2" x="170" y="87" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="96" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="124.5" text-anchor="end">3개 뒤</text>
+<rect class="pf-s1" x="170" y="109" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="118" text-anchor="start">0.00</text>
+<rect class="pf-s2" x="170" y="122" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="131" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="159.5" text-anchor="end">6개 뒤</text>
+<rect class="pf-s1" x="170" y="144" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="153" text-anchor="start">0.00</text>
+<rect class="pf-s2" x="170" y="157" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="166" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="194.5" text-anchor="end">9개 뒤</text>
+<rect class="pf-s1" x="170" y="179" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="188" text-anchor="start">0.00</text>
+<rect class="pf-s2" x="170" y="192" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="201" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="229.5" text-anchor="end">12개 뒤</text>
+<rect class="pf-s1" x="170" y="214" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="223" text-anchor="start">0.00</text>
+<rect class="pf-s2" x="170" y="227" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="236" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="264.5" text-anchor="end">20개 뒤</text>
+<rect class="pf-s1" x="170" y="249" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="258" text-anchor="start">0.00</text>
+<rect class="pf-s2" x="170" y="262" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="271" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="299.5" text-anchor="end">40개 뒤</text>
+<rect class="pf-s1" x="170" y="284" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="293" text-anchor="start">0.00</text>
+<rect class="pf-s2" x="170" y="297" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="306" text-anchor="start">1.00</text>
+<line class="pf-grid" x1="170.0" y1="70" x2="170.0" y2="311"/>
+<text class="pf-axis" x="170.0" y="324" text-anchor="middle">0.0</text>
+<line class="pf-grid" x1="433.0" y1="70" x2="433.0" y2="311"/>
+<text class="pf-axis" x="433.0" y="324" text-anchor="middle">0.5</text>
+<line class="pf-grid" x1="696.0" y1="70" x2="696.0" y2="311"/>
+<text class="pf-axis" x="696.0" y="324" text-anchor="middle">1.0</text>
+<text class="pf-note" x="30" y="337" text-anchor="start">이전 코드는 같은 낱말의 새 일화가 3개만 쌓여도 최근성 가중치에 밀려 0 이 된다</text>
+<rect class="pf-panel" x="10" y="363" width="740" height="308" rx="8"/>
+<text class="pf-plabel" x="22" y="383">(b) 100일 전 핵심 사실(importance 0.9)이 고정 블록 3개에 남는 비율</text>
+<rect class="pf-s1" x="30" y="397" width="10" height="10" rx="2"/>
+<text class="pf-s" x="45" y="406" text-anchor="start">이전 코드</text>
+<rect class="pf-s2" x="106.89" y="397" width="10" height="10" rx="2"/>
+<text class="pf-s" x="121.89" y="406" text-anchor="start">지금</text>
+<text class="pf-s" x="160" y="442.5" text-anchor="end">0개 뒤</text>
+<rect class="pf-s1" x="170" y="427" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="436" text-anchor="start">1.00</text>
+<rect class="pf-s2" x="170" y="440" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="449" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="477.5" text-anchor="end">4개 뒤</text>
+<rect class="pf-s1" x="170" y="462" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="471" text-anchor="start">1.00</text>
+<rect class="pf-s2" x="170" y="475" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="484" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="512.5" text-anchor="end">8개 뒤</text>
+<rect class="pf-s1" x="170" y="497" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="506" text-anchor="start">1.00</text>
+<rect class="pf-s2" x="170" y="510" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="519" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="547.5" text-anchor="end">12개 뒤</text>
+<rect class="pf-s1" x="170" y="532" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="541" text-anchor="start">0.00</text>
+<rect class="pf-s2" x="170" y="545" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="554" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="582.5" text-anchor="end">20개 뒤</text>
+<rect class="pf-s1" x="170" y="567" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="576" text-anchor="start">0.00</text>
+<rect class="pf-s2" x="170" y="580" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="589" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="617.5" text-anchor="end">40개 뒤</text>
+<rect class="pf-s1" x="170" y="602" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="611" text-anchor="start">0.00</text>
+<rect class="pf-s2" x="170" y="615" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="624" text-anchor="start">1.00</text>
+<line class="pf-grid" x1="170.0" y1="423" x2="170.0" y2="629"/>
+<text class="pf-axis" x="170.0" y="642" text-anchor="middle">0.0</text>
+<line class="pf-grid" x1="433.0" y1="423" x2="433.0" y2="629"/>
+<text class="pf-axis" x="433.0" y="642" text-anchor="middle">0.5</text>
+<line class="pf-grid" x1="696.0" y1="423" x2="696.0" y2="629"/>
+<text class="pf-axis" x="696.0" y="642" text-anchor="middle">1.0</text>
+<text class="pf-note" x="30" y="655" text-anchor="start">이전 코드는 최신순 12개만 후보로 봐서, 새 사실이 12개 쌓이면 핵심 사실이 고정 블록에서 빠진다</text>
+<rect class="pf-panel" x="10" y="681" width="740" height="224" rx="8"/>
+<text class="pf-plabel" x="22" y="701">(c) 시나리오별 적중률. 괄호는 시나리오 수</text>
+<rect class="pf-s1" x="30" y="715" width="10" height="10" rx="2"/>
+<text class="pf-s" x="45" y="724" text-anchor="start">이전 코드</text>
+<rect class="pf-s2" x="106.89" y="715" width="10" height="10" rx="2"/>
+<text class="pf-s" x="121.89" y="724" text-anchor="start">지금</text>
+<text class="pf-s" x="160" y="760.5" text-anchor="end">조사 붙은 질의 (10)</text>
+<rect class="pf-s1" x="170" y="745" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="754" text-anchor="start">0.00</text>
+<rect class="pf-s2" x="170" y="758" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="767" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="795.5" text-anchor="end">지칭 뒤 회상 (8)</text>
+<rect class="pf-s1" x="170" y="780" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="789" text-anchor="start">0.00</text>
+<rect class="pf-s2" x="170" y="793" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="802" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="830.5" text-anchor="end">지칭으로 남긴 기억 (8)</text>
+<rect class="pf-s1" x="170" y="815" width="65.8" height="10" rx="2"/>
+<text class="pf-val" x="240.75" y="824" text-anchor="start">0.12</text>
+<rect class="pf-s2" x="170" y="828" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="837" text-anchor="start">1.00</text>
+<text class="pf-s" x="160" y="865.5" text-anchor="end">과잉일반화 (8, 낮을수록 좋음)</text>
+<rect class="pf-s1" x="170" y="850" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="859" text-anchor="start">0.00</text>
+<rect class="pf-s2" x="170" y="863" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="872" text-anchor="start">0.00</text>
+<line class="pf-grid" x1="170.0" y1="741" x2="170.0" y2="877"/>
+<text class="pf-axis" x="170.0" y="890" text-anchor="middle">0.0</text>
+<line class="pf-grid" x1="433.0" y1="741" x2="433.0" y2="877"/>
+<text class="pf-axis" x="433.0" y="890" text-anchor="middle">0.5</text>
+<line class="pf-grid" x1="696.0" y1="741" x2="696.0" y2="877"/>
+<text class="pf-axis" x="696.0" y="890" text-anchor="middle">1.0</text>
+<rect class="pf-panel" x="10" y="915" width="740" height="119" rx="8"/>
+<text class="pf-plabel" x="22" y="935">(d) 주제와 무관한 10턴 동안 쌓인 되뇌기 횟수 (낮을수록 좋음)</text>
+<rect class="pf-s1" x="30" y="949" width="10" height="10" rx="2"/>
+<text class="pf-s" x="45" y="958" text-anchor="start">이전 코드</text>
+<rect class="pf-s2" x="106.89" y="949" width="10" height="10" rx="2"/>
+<text class="pf-s" x="121.89" y="958" text-anchor="start">지금</text>
+<text class="pf-s" x="160" y="994.5" text-anchor="end">고정 사실 하나당</text>
+<rect class="pf-s1" x="170" y="979" width="526.0" height="10" rx="2"/>
+<text class="pf-val" x="701.0" y="988" text-anchor="start">10</text>
+<rect class="pf-s2" x="170" y="992" width="1.5" height="10" rx="2"/>
+<text class="pf-val" x="176.5" y="1001" text-anchor="start">0</text>
+<line class="pf-grid" x1="170.0" y1="975" x2="170.0" y2="1006"/>
+<text class="pf-axis" x="170.0" y="1019" text-anchor="middle">0</text>
+<line class="pf-grid" x1="433.0" y1="975" x2="433.0" y2="1006"/>
+<text class="pf-axis" x="433.0" y="1019" text-anchor="middle">5</text>
+<line class="pf-grid" x1="696.0" y1="975" x2="696.0" y2="1006"/>
+<text class="pf-axis" x="696.0" y="1019" text-anchor="middle">10</text>
+<rect class="pf-panel" x="10" y="1044" width="740" height="203" rx="8"/>
+<text class="pf-plabel" x="22" y="1064">(e) Postgres 지연 ms. 일화 2,000개, pgvector, 질의 200회 (낮을수록 좋음)</text>
+<rect class="pf-s1" x="30" y="1078" width="10" height="10" rx="2"/>
+<text class="pf-s" x="45" y="1087" text-anchor="start">이전 코드</text>
+<rect class="pf-s2" x="106.89" y="1078" width="10" height="10" rx="2"/>
+<text class="pf-s" x="121.89" y="1087" text-anchor="start">지금</text>
+<text class="pf-s" x="160" y="1123.5" text-anchor="end">recall p50</text>
+<rect class="pf-s1" x="170" y="1108" width="122.6" height="10" rx="2"/>
+<text class="pf-val" x="297.558" y="1117" text-anchor="start">2.3</text>
+<rect class="pf-s2" x="170" y="1121" width="382.4" height="10" rx="2"/>
+<text class="pf-val" x="557.402" y="1130" text-anchor="start">7.3</text>
+<text class="pf-s" x="160" y="1158.5" text-anchor="end">recall p95</text>
+<rect class="pf-s1" x="170" y="1143" width="158.3" height="10" rx="2"/>
+<text class="pf-val" x="333.326" y="1152" text-anchor="start">3.0</text>
+<rect class="pf-s2" x="170" y="1156" width="465.5" height="10" rx="2"/>
+<text class="pf-val" x="640.51" y="1165" text-anchor="start">8.8</text>
+<text class="pf-s" x="160" y="1193.5" text-anchor="end">fixed_facts p50</text>
+<rect class="pf-s1" x="170" y="1178" width="34.7" height="10" rx="2"/>
+<text class="pf-val" x="209.716" y="1187" text-anchor="start">0.7</text>
+<rect class="pf-s2" x="170" y="1191" width="108.9" height="10" rx="2"/>
+<text class="pf-val" x="283.882" y="1200" text-anchor="start">2.1</text>
+<line class="pf-grid" x1="170.0" y1="1104" x2="170.0" y2="1205"/>
+<text class="pf-axis" x="170.0" y="1218" text-anchor="middle">0</text>
+<line class="pf-grid" x1="433.0" y1="1104" x2="433.0" y2="1205"/>
+<text class="pf-axis" x="433.0" y="1218" text-anchor="middle">5</text>
+<line class="pf-grid" x1="696.0" y1="1104" x2="696.0" y2="1205"/>
+<text class="pf-axis" x="696.0" y="1218" text-anchor="middle">10</text>
+<text class="pf-note" x="30" y="1231" text-anchor="start">후보를 세 갈래(최신, 중요도, 거리)로 모으느라 쿼리가 무거워졌다. LLM 호출 한 번(수백 ms 이상)에 비하면 작다</text>
+</svg>

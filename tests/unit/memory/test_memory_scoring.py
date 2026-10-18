@@ -92,3 +92,17 @@ def test_relevance_uses_cosine_when_both_vectors_present():
     assert relevance("x", "y", [1.0, 0.0], [1.0, 0.0]) == 1.0
     assert relevance("x", "y", [1.0, 0.0], [-1.0, 0.0]) == 0.0  # 음수는 0 으로
     assert relevance("거주지", "거주지: 부산", None, [1.0]) == 1.0  # 한쪽만 있으면 키워드
+
+
+def test_salient_item_keeps_one_slot_against_many_recent_matches():
+    old = _item("여행: 응급실에 실려 갔다", kind=MemoryKind.EPISODIC, days_ago=200, importance=1.0)
+    recent = [_item(f"여행: 사진 {i}", kind=MemoryKind.EPISODIC, days_ago=1, importance=0.1) for i in range(5)]
+    top = rank([*recent, old], "여행", SCOPE, 3, now=NOW)
+    assert len(top) == 3 and top[-1] is old
+
+
+def test_salient_item_needs_a_clear_match_to_take_the_slot():
+    old = _item("여행: 응급실에 실려 갔다", kind=MemoryKind.EPISODIC, days_ago=200, importance=1.0)
+    recent = [_item(f"여행 계획 사진 {i}", kind=MemoryKind.EPISODIC, days_ago=1, importance=0.1) for i in range(5)]
+    # 질의 토큰 셋 중 하나만 겹친다(1/3 < 0.5). 느슨한 연상으로 큰 사건이 끼어들지 않는다
+    assert old not in rank([*recent, old], "여행 계획 사진", SCOPE, 3, now=NOW)

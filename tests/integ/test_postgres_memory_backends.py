@@ -358,3 +358,40 @@ class TestPostgresTaskPatterns:
         assert await ltm.task_patterns(main) == []
         assert await ltm.forget_pattern("예산 추천", karen)
         assert await ltm.task_patterns(karen) == []
+
+
+# ── 회상 후보(최신, 중요도, 거리 합집합)와 가리킨 대화 ─────────────────────────
+
+class TestRecallCandidates:
+    async def test_old_salient_episode_and_old_core_fact_survive_newer_rows(self, postgres_dsn):
+        from datetime import datetime, timedelta
+
+        from jarvis.memory import MemoryKind, MemoryScope
+        from jarvis.memory.eval.fake_embedder import FakeEmbedder
+        from jarvis.memory.memory_service import MemoryService
+        from jarvis.memory.stores.postgres import PostgresItemStore
+
+        scope = MemoryScope(user_id="cand", agent_id="main")
+        now = datetime.now()
+        store = PostgresItemStore(dsn=postgres_dsn, dimensions=FakeEmbedder.dimensions)
+        memory = MemoryService(store, embedder=FakeEmbedder(), fixed_facts=3)
+        await memory.remember("여행: 응급실에 실려 갔다", source="session_end", scope=scope, importance=1.0,
+                              created_at=now - timedelta(days=200))
+        await memory.remember("이름: 재훈", source="explicit", scope=scope, created_at=now - timedelta(days=200))
+        for i in range(15):
+            await memory.remember(f"여행: 사진 {i}", source="session_end", scope=scope, importance=0.1,
+                                  created_at=now - timedelta(hours=i))
+            await memory.remember(f"취향{i}: 사소함", source="extracted", scope=scope, importance=0.3,
+                                  created_at=now - timedelta(hours=i))
+
+        recalled = await memory.recall("여행", scope, kinds=[MemoryKind.EPISODIC], limit=3)
+        assert any("응급실" in i.content for i in recalled)
+        assert any("재훈" in i.content for i in await memory.fixed_facts(scope))
+        await store.close()
+
+    async def test_referent_is_searchable_by_keyword(self, ltm):
+        from jarvis.memory import MemoryScope
+
+        scope = MemoryScope(user_id="ref", agent_id="main")
+        await ltm.remember("그 방법 계속 써", source="explicit", scope=scope, referent="롤백 방식으로 고쳤다")
+        assert [i.content for i in await ltm.recall("롤백", scope)] == ["그 방법 계속 써"]

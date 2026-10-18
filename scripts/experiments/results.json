@@ -806,5 +806,65 @@
    ]
   },
   "english_check": "scripts/experiments/summary_language_check.py: 한국어 2, 영어 2, 코드 섞인 한국어 1 대화 x2. 세 모델 모두 10/10 대화 언어로 요약"
+ },
+ "memory_recall": {
+  "before": {
+   "salient_hit_at_3": {
+    "0": 1.0,
+    "3": 0.0,
+    "6": 0.0,
+    "9": 0.0,
+    "12": 0.0,
+    "20": 0.0,
+    "40": 0.0
+   },
+   "core_fact_kept": {
+    "0": 1.0,
+    "4": 1.0,
+    "8": 1.0,
+    "12": 0.0,
+    "20": 0.0,
+    "40": 0.0
+   },
+   "particle_hit_at_3": 0.0,
+   "deictic_recall": 0.0,
+   "referent_recall": 0.125,
+   "rehearsal_per_fixed_fact": 10.0,
+   "overreach_rate": 0.0,
+   "postgres": {
+    "recall_p50_ms": 2.33,
+    "recall_p95_ms": 3.01,
+    "fixed_p50_ms": 0.66
+   }
+  },
+  "after": {
+   "salient_hit_at_3": {
+    "0": 1.0,
+    "3": 1.0,
+    "6": 1.0,
+    "9": 1.0,
+    "12": 1.0,
+    "20": 1.0,
+    "40": 1.0
+   },
+   "core_fact_kept": {
+    "0": 1.0,
+    "4": 1.0,
+    "8": 1.0,
+    "12": 1.0,
+    "20": 1.0,
+    "40": 1.0
+   },
+   "particle_hit_at_3": 1.0,
+   "deictic_recall": 1.0,
+   "referent_recall": 1.0,
+   "rehearsal_per_fixed_fact": 0.0,
+   "overreach_rate": 0.0,
+   "postgres": {
+    "recall_p50_ms": 7.27,
+    "recall_p95_ms": 8.85,
+    "fixed_p50_ms": 2.07
+   }
+  }
  }
 }

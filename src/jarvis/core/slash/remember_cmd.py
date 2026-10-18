@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from jarvis.agent_layer.session.protocol import SessionRepo
     from jarvis.memory.memory_service import MemoryService
 
 Handler = Callable[[str], Awaitable[str]]
@@ -22,8 +23,11 @@ _USAGE = (
 )
 
 
-def make_remember_handler(memory: MemoryService) -> Handler:
-    """SlashCommandDispatcher에 등록할 /remember 핸들러 factory."""
+def make_remember_handler(memory: MemoryService, session_repo: SessionRepo | None = None) -> Handler:
+    """SlashCommandDispatcher에 등록할 /remember 핸들러 factory.
+
+    session_repo 가 있으면 "/remember 그거" 처럼 상대 지칭으로 저장할 때 가리킨 대화를 같이 남긴다.
+    """
 
     async def handle(args: str) -> str:
         args = args.strip()
@@ -49,7 +53,7 @@ def make_remember_handler(memory: MemoryService) -> Handler:
                 return "[Memory] 다시 만들 벡터가 없습니다."
             return f"[Memory] {count}개 항목의 벡터를 다시 만들었습니다."
 
-        return await _handle_save(memory, args)
+        return await _handle_save(memory, args, session_repo)
 
     return handle
 
@@ -85,9 +89,16 @@ async def _handle_forget(memory: MemoryService, entry_id: str) -> str:
     return f"[Memory] 기억 [{entry_id}]을 삭제했습니다."
 
 
-async def _handle_save(memory: MemoryService, content: str) -> str:
-    entry_id = await memory.remember(content, source="explicit")
-    return f"[Memory] 장기 기억에 저장했습니다. (id: {entry_id[:8]})"
+async def _handle_save(memory: MemoryService, content: str, session_repo: SessionRepo | None) -> str:
+    from jarvis.memory.working.deixis import has_deixis, recent_exchange
+
+    referent = None
+    session_id = memory.resolve_scope().session_id
+    if session_repo is not None and session_id and has_deixis(content):
+        referent = recent_exchange(await session_repo.get_messages(session_id)) or None
+    entry_id = await memory.remember(content, source="explicit", referent=referent)
+    linked = " 가리킨 대화를 함께 남겼습니다." if referent else ""
+    return f"[Memory] 장기 기억에 저장했습니다. (id: {entry_id[:8]}){linked}"
 
 
 async def _handle_conflicts(memory: MemoryService) -> str:

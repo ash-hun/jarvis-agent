@@ -9,6 +9,8 @@ from typing import Any, Literal
 from jarvis.memory.scope import MemoryScope
 
 Visibility = Literal["private", "shared"]
+# 상대 지칭("그거", "아까 그 방법")으로 쓴 항목이 가리킨 대화. 검색과 임베딩, 회상 표시에 같이 쓴다
+REFERENT = "referent"
 
 
 class MemoryKind(StrEnum):
@@ -37,6 +39,12 @@ class MemoryItem:
     id: str = field(default_factory=lambda: uuid.uuid4().hex)
     created_at: datetime = field(default_factory=datetime.now)
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def search_text(self) -> str:
+        """검색과 임베딩 대상. 본문만으로 뜻이 안 서는 상대 지칭 항목은 가리킨 대화를 덧붙인다."""
+        referent = self.metadata.get(REFERENT)
+        return f"{self.content}\n{referent}" if referent else self.content
 
     @property
     def session_id(self) -> str | None:

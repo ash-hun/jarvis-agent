@@ -25,7 +25,8 @@ from jarvis.memory.long_term.task_pattern import (
 from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, current_task, scope_from_context, task_scope
 from jarvis.memory.stores.protocol import ItemStore
-from jarvis.memory.types import MemoryItem, MemoryKind, Visibility
+from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind, Visibility
+from jarvis.memory.working.deixis import retrieval_query
 from jarvis.memory.working.in_memory import InMemoryWorkingStore
 from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.working.window import apply_window, chars_of, cut_at_user_boundary, summary_message
@@ -45,11 +46,13 @@ class WriteRule:
     kind: MemoryKind
     visibility: Visibility
     author: str | None  # None 이면 쓰는 에이전트의 id
+    importance: float | None = None  # None 이면 MemoryItem 기본값
 
 
 # 쓰기 경로별 규칙. 계획서의 표가 정본이고 이 상수가 그 투영이다.
 WRITE_RULES: dict[str, WriteRule] = {
-    "explicit": WriteRule(MemoryKind.SEMANTIC, "shared", "user"),  # /remember
+    # /remember. 사용자가 일부러 남기라고 한 것은 그 자체로 임팩트 신호다(섬광 기억 자리 대상)
+    "explicit": WriteRule(MemoryKind.SEMANTIC, "shared", "user", importance=0.8),
     "usermodel": WriteRule(MemoryKind.SEMANTIC, "shared", None),  # 사용자 모델 증류
     "extracted": WriteRule(MemoryKind.SEMANTIC, "shared", None),  # 일화에서 추출한 사실
     "auto_summary": WriteRule(MemoryKind.EPISODIC, "private", None),  # 컴팩션
@@ -153,14 +156,19 @@ class MemoryService:
         out: list[Message] = ([summary_message(state.summary)] if state.summary else []) + tail
 
         query = _last_user_text(messages)
+        # 지칭("그거 해줘")은 발화만으로 단서가 없다. 회상만 직전 대화를 덧붙인 질의로 찾는다
+        cue = retrieval_query(messages)
         fixed = await self.fixed_facts(scope)
+        fixed_ids = {i.id for i in fixed}
+        cued: list[MemoryItem] = []
         recalled: list[MemoryItem] = []
         patterns: list[TaskPattern] = []
-        if query:
-            recalled = await self.recall(
-                query, scope, kinds=RECALL_KINDS, limit=self._inject_limit, exclude={i.id for i in fixed}
-            )
-            patterns = best_matches(await self.task_patterns(scope), query, PATTERN_INJECT_LIMIT)
+        if cue:
+            # 고정 블록에 이미 있는 항목도 질의에 걸리면 떠올린 것이다. 회상 블록에는 겹치지 않게 뺀다
+            cued = await self.recall(cue, scope, kinds=RECALL_KINDS, limit=self._inject_limit + len(fixed))
+            recalled = [i for i in cued if i.id not in fixed_ids][: self._inject_limit]
+            cued = [i for i in cued if i.id in fixed_ids] + recalled
+            patterns = best_matches(await self.task_patterns(scope), cue, PATTERN_INJECT_LIMIT)
         procedures = self.procedures(query) if query else []
 
         blocks: list[Message] = []
@@ -180,11 +188,12 @@ class MemoryService:
             if notes:
                 blocks.append(UserMessage(content=f"{TASK_HEADER}\n" + "\n".join(f"- {n}" for n in notes),
                                           timestamp=int(time.time() * 1000)))
-        touched = fixed + recalled
-        if touched:
-            now = datetime.now()
-            await self._store.touch([i.id for i in touched], now)
-            for item in touched:
+        # 질의에 걸린 것만 되뇌기로 센다. 고정 블록에 들어갔다는 이유만으로 세면 한 번 고정된 사실이
+        # 매 턴 스스로 강해지고 최근해져서 영영 자리를 내주지 않는다
+        # ponytail: 떠올린 것을 세고 답에 쓰였는지는 보지 않는다, 답과 항목의 대조 신호가 생기면 그것으로 바꾼다
+        if cued:
+            await self._store.touch([i.id for i in cued], datetime.now())
+            for item in cued:
                 state.rehearse(item.id)
             dirty = True
 
@@ -197,7 +206,11 @@ class MemoryService:
         if self._fixed_facts <= 0:
             return []
         resolved = self.resolve_scope(scope)
-        candidates = await self._store.recent(resolved, kinds=[MemoryKind.SEMANTIC], limit=self._fixed_facts * 4)
+        pool = self._fixed_facts * 4
+        # 최신순으로만 고르면 의미 사실이 pool 개를 넘는 순간 오래된 핵심 사실(이름, 알레르기)이 후보에서 빠진다
+        recent = await self._store.recent(resolved, kinds=[MemoryKind.SEMANTIC], limit=pool)
+        important = await self._store.important(resolved, kinds=[MemoryKind.SEMANTIC], limit=pool)
+        candidates = list({i.id: i for i in recent + important}.values())
         # 고정 블록은 감쇠 없는 원값으로 고른다. 오래됐다고 핵심 사실이 밀리면 안 된다
         no_decay = replace(self._scoring, importance_half_life_hours=0.0)
         return rank(candidates, "", resolved, self._fixed_facts, params=no_decay)
@@ -278,10 +291,12 @@ class MemoryService:
         importance: float | None = None,
         item_id: str | None = None,
         created_at: datetime | None = None,
+        referent: str | None = None,
     ) -> str:
         """source 의 쓰기 규칙으로 항목을 만들어 저장한다. 키워드 인자는 규칙을 덮어쓴다.
 
         의미 항목은 같은 주제의 옛 사실을 대체하고, 일화 항목은 사건 시각을 받는다.
+        referent 는 content 의 상대 지칭이 가리키는 대화다. 검색과 임베딩, 회상 표시에 같이 쓴다.
         """
         rule = WRITE_RULES.get(source, _DEFAULT_RULE)
         resolved = self.resolve_scope(scope)
@@ -297,8 +312,12 @@ class MemoryService:
         )
         if importance is not None:
             item.importance = importance
+        elif rule.importance is not None:
+            item.importance = rule.importance
         if item_id is not None:
             item.id = item_id
+        if referent:
+            item.metadata[REFERENT] = referent
         if created_at is not None:
             item.created_at = created_at
         if item.kind is MemoryKind.SEMANTIC:
@@ -334,7 +353,7 @@ class MemoryService:
         if self._embedder is None:
             return
         try:
-            item.embedding = (await self._embedder.embed([item.content]))[0]
+            item.embedding = (await self._embedder.embed([item.search_text]))[0]
             item.embedding_model = self._embedder.model
         except Exception:
             item.embedding, item.embedding_model = None, None
@@ -359,7 +378,7 @@ class MemoryService:
         stale = [i for i in items if i.embedding is None or i.embedding_model != self._embedder.model]
         if not stale:
             return 0
-        vectors = await self._embedder.embed([i.content for i in stale])
+        vectors = await self._embedder.embed([i.search_text for i in stale])
         for item, vector in zip(stale, vectors, strict=True):
             item.embedding, item.embedding_model = vector, self._embedder.model
             await self._store.store(item)
@@ -448,8 +467,15 @@ def _last_user_text(messages: list[Message], max_chars: int = 200) -> str:
 
 
 def _block(header: str, items: list[MemoryItem]) -> UserMessage:
-    body = "\n".join(f"- [{i.created_at.strftime('%Y-%m-%d')}] {i.content}" for i in items)
+    body = "\n".join(f"- [{i.created_at.strftime('%Y-%m-%d')}] {i.content}{_referent_line(i)}" for i in items)
     return UserMessage(content=f"{header}\n{body}", timestamp=int(time.time() * 1000))
+
+
+def _referent_line(item: MemoryItem) -> str:
+    referent = item.metadata.get(REFERENT)
+    if not referent:
+        return ""
+    return "\n  (가리킨 대화: " + " / ".join(line.strip() for line in str(referent).splitlines() if line.strip()) + ")"
 
 
 def _procedures_block(procedures: list[Procedure]) -> UserMessage:

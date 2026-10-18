@@ -10,7 +10,7 @@ from typing import Any
 from jarvis.common.logger import get_logger
 from jarvis.memory.scope import MAIN_AGENT, PRIVATE, SHARED, MemoryScope
 from jarvis.memory.stores.protocol import ItemStore, tokens_of
-from jarvis.memory.types import MemoryItem, MemoryKind
+from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind
 
 logger = get_logger(__name__)
 
@@ -38,6 +38,10 @@ _COLUMNS_NO_VECTOR = _BASE_COLUMNS + ", NULL::text AS embedding, NULL::text AS e
 _VISIBLE = (
     "(user_id IS NULL OR user_id = $1) AND (agent_id = $2 OR visibility = $3) AND superseded_by IS NULL"
 )
+
+
+# 키워드 매칭 대상. 상대 지칭으로 쓴 항목은 가리킨 대화(metadata.referent)로도 찾힌다
+_SEARCH_TEXT = f"(content || ' ' || COALESCE(metadata->>'{REFERENT}', ''))"
 
 
 class PostgresItemStore(ItemStore):
@@ -207,27 +211,48 @@ class PostgresItemStore(ItemStore):
         matches = []
         for t in tokens:
             params.append(f"%{t}%")
-            matches.append(f"content ILIKE ${len(params)}")
+            matches.append(f"{_SEARCH_TEXT} ILIKE ${len(params)}")
+        vector_where = ""
         if use_vector:
             params.append(_vec(query_embedding))
             vec = f"${len(params)}::vector"
             params.append(min_similarity)
-            matches.append(f"(embedding IS NOT NULL AND 1 - (embedding <=> {vec}) >= ${len(params)})")
-        where.append("(" + " OR ".join(matches) + ")")
+            vector_where = f"embedding IS NOT NULL AND 1 - (embedding <=> {vec}) >= ${len(params)}"
+            matches.append(f"({vector_where})")
         params.append(limit)
-        sql = (
-            f"SELECT {self._cols()} FROM {TABLE} WHERE {' AND '.join(where)}"
-            f" ORDER BY created_at DESC LIMIT ${len(params)}"
-        )
+        lim = f"${len(params)}"
+        hit = " AND ".join([*where, "(" + " OR ".join(matches) + ")"])
+        # 최신순 하나로만 자르면 오래됐지만 중요하거나 가장 가까운 항목이 점수를 받기도 전에 빠진다
+        parts = [
+            f"(SELECT {self._cols()} FROM {TABLE} WHERE {hit} ORDER BY created_at DESC LIMIT {lim})",
+            f"(SELECT {self._cols()} FROM {TABLE} WHERE {hit} ORDER BY importance DESC, created_at DESC LIMIT {lim})",
+        ]
+        if use_vector:
+            near = " AND ".join([*where, vector_where])
+            parts.append(f"(SELECT {self._cols()} FROM {TABLE} WHERE {near} ORDER BY embedding <=> {vec} LIMIT {lim})")
         async with pool.acquire() as conn:
-            rows = await conn.fetch(sql, *params)
-        return [_row_to_item(r) for r in rows]
+            rows = await conn.fetch(" UNION ALL ".join(parts), *params)
+        items = {r["id"]: r for r in rows}
+        return [_row_to_item(r) for r in items.values()]
 
     async def recent(
         self,
         scope: MemoryScope,
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
+    ) -> list[MemoryItem]:
+        return await self._select(scope, kinds, "created_at DESC", limit)
+
+    async def important(
+        self,
+        scope: MemoryScope,
+        kinds: Sequence[MemoryKind] | None = None,
+        limit: int = 10,
+    ) -> list[MemoryItem]:
+        return await self._select(scope, kinds, "importance DESC, created_at DESC", limit)
+
+    async def _select(
+        self, scope: MemoryScope, kinds: Sequence[MemoryKind] | None, order: str, limit: int
     ) -> list[MemoryItem]:
         pool = await self._get_pool()
         params: list[Any] = [scope.user_id, scope.agent_id, SHARED]
@@ -238,7 +263,7 @@ class PostgresItemStore(ItemStore):
         params.append(limit)
         sql = (
             f"SELECT {self._cols()} FROM {TABLE} WHERE {' AND '.join(where)}"
-            f" ORDER BY created_at DESC LIMIT ${len(params)}"
+            f" ORDER BY {order} LIMIT ${len(params)}"
         )
         async with pool.acquire() as conn:
             rows = await conn.fetch(sql, *params)

@@ -14,6 +14,12 @@ DEFAULT_HALF_LIFE_HOURS = 24.0 * 7  # 일주일 지나면 recency 가 절반
 # importance 는 저장값을 깎지 않고 검색 시점에 감쇠시킨다. 저장값을 주기적으로 깎으면 재실행마다 상태가 달라진다
 DEFAULT_IMPORTANCE_HALF_LIFE_HOURS = 24.0 * 90  # 석 달 지나면 importance 가 절반(되뇌기 없을 때)
 DEFAULT_REHEARSAL_K = 3.0  # 되뇌기 포화 상수. 3회면 보존력이 절반
+# 섬광 기억 자리: 저장된 importance 가 이 이상이고 질의와 분명히 맞는 항목 하나는 나이와 무관하게 결과에 남긴다.
+# 일화는 recency 비중이 커서, 같은 낱말의 어제 일 여럿이 몇 달 전의 큰 사건을 항상 밀어낸다
+SALIENT_IMPORTANCE = 0.8
+# 느슨하게 닮은 질의마다 큰 사건이 끼어들지 않게(과잉일반화) 질의 토큰의 이 비율 이상이 내용에 있을 때만 자리를 준다.
+# 코사인은 짧은 질의와 긴 내용 사이에서 0.4 안팎이라 같은 문턱으로 잴 수 없어 토큰 비율 하나로만 본다
+SALIENT_MIN_RELEVANCE = 0.5
 
 
 @dataclass(frozen=True)
@@ -95,7 +101,7 @@ def score(
     return (
         w.recency * recency(item, now, params.recency_half_life_hours)
         + w.importance * effective_importance(item, now, params)
-        + w.relevance * relevance(query, item.content, query_embedding, item.embedding)
+        + w.relevance * relevance(query, item.search_text, query_embedding, item.embedding)
         + w.cue * cue_overlap(item, scope, query)
     )
 
@@ -115,4 +121,15 @@ def rank(
         key=lambda i: (score(i, query, scope, now, params=params, query_embedding=query_embedding), i.created_at),
         reverse=True,
     )
-    return scored[:limit]
+    top = scored[:limit]
+    if limit < 2 or any(i.importance >= SALIENT_IMPORTANCE for i in top):
+        return top
+    salient = next(
+        (
+            i for i in scored[limit:]
+            if i.importance >= SALIENT_IMPORTANCE
+            and relevance(query, i.search_text) >= SALIENT_MIN_RELEVANCE
+        ),
+        None,
+    )
+    return top if salient is None else [*top[:-1], salient]

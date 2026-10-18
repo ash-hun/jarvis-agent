@@ -521,7 +521,9 @@ class InfraBuilder:
         )
         ctx.dispatcher = dispatcher
         dispatcher.register(
-            "remember", make_remember_handler(memory), "내용 저장/검색/삭제 (list | search <키워드> | forget <id>)"
+            "remember",
+            make_remember_handler(memory, session_repo),
+            "내용 저장/검색/삭제 (list | search <키워드> | forget <id>)",
         )
         from jarvis.core.slash.patterns_cmd import make_patterns_handler
 

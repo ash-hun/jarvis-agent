@@ -1,13 +1,11 @@
 """[core] 보안 파이프라인 Step 4 의 샌드박스 구현체(위험 명령 차단과 승인 흐름, 전부 허용)를 제공한다."""
 
-from __future__ import annotations
-
 import re
-from collections.abc import Awaitable, Callable
 from typing import Any
+from collections.abc import Awaitable, Callable
 
-from jarvis.core.policy.approval_rules import ApprovalRule, ApprovalRules, describe, suggest_pattern
 from jarvis.core.policy.pipeline import ApprovalResult, Decision, PolicyResult, SandboxBlocked, SandboxProtocol
+from jarvis.core.policy.approval_rules import ApprovalRule, ApprovalRules, describe, suggest_pattern
 
 # 승인 콜백의 답. True/False 는 이번 한 번, "always" 는 제안된 패턴을 규칙으로 남긴다.
 ApprovalChoice = bool | str

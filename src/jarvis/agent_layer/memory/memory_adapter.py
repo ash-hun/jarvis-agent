@@ -3,9 +3,9 @@
 from typing import Any
 
 from jarvis.agent_layer.memory.protocol import MemoryMiddleware
+from jarvis.model_layer.types import Message, UserMessage
 from jarvis.memory.memory_service import MemoryService
 from jarvis.memory.scope import scope_from_context
-from jarvis.model_layer.types import Message, UserMessage
 
 
 class MemoryMiddlewareAdapter(MemoryMiddleware):

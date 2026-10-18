@@ -1,16 +1,15 @@
 """FocusService: 시작, 중복 거절, 턴 훅, 종료, 재시작 복원을 가짜 sub-agent 로 검증한다."""
 
-import asyncio
 import json
-from pathlib import Path
-from typing import Any
-
 import pytest
+import asyncio
+from typing import Any
+from pathlib import Path
 
 from jarvis.agent_layer.types import AgentEvent, FocusPanelEvent, FocusStateEvent
 from jarvis.core.focus.service import FocusService
-from jarvis.core.focus.store import FocusStore
 from jarvis.core.focus.types import FocusCommand
+from jarvis.core.focus.store import FocusStore
 
 ANALYSIS = {
     "purpose": ["발표 자료 완성"],

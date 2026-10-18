@@ -1,10 +1,7 @@
 """[model_layer] 레지스트리에서 프로바이더를 골라 스트리밍하고 결과를 메시지로 모은다."""
 
-from __future__ import annotations
-
 from collections.abc import AsyncIterator
 
-from jarvis.model_layer.registry import get_default_registry
 from jarvis.model_layer.types import (
     AssistantMessage,
     LLMContext,
@@ -16,6 +13,7 @@ from jarvis.model_layer.types import (
     ThinkingContent,
     ToolCall,
 )
+from jarvis.model_layer.registry import get_default_registry
 
 
 async def stream(

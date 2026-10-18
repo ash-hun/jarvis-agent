@@ -1,10 +1,9 @@
 """WhisperSTTProvider: 가짜 faster_whisper 모듈로 전사 결합과 미설치 오류를 검증한다(실제 모델 없음)."""
 
 import sys
-from types import ModuleType, SimpleNamespace
-from typing import Any
-
 import pytest
+from typing import Any
+from types import ModuleType, SimpleNamespace
 
 from jarvis.voice.providers.whisper import WhisperSTTProvider
 

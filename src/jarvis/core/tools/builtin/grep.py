@@ -1,15 +1,13 @@
 """[core] 정규식으로 파일 내용을 검색해 'path:line: text' 로 돌려주는 grep 내장 도구."""
 
-from __future__ import annotations
-
-import asyncio
 import re
-from collections.abc import Iterator
-from pathlib import Path
+import asyncio
 from typing import Any
+from pathlib import Path
+from collections.abc import Iterator
 
-from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.core.tools.registry import JarvisTool
 
 TOOL_NAME = "grep"
 TOOL_DESCRIPTION = (

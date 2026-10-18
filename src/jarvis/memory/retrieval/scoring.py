@@ -1,14 +1,14 @@
 """[memory] Generative Agents 의 recency, importance, relevance 에 단서 겹침을 더한 합성 점수(순수 함수)."""
 
 import math
-from dataclasses import dataclass
 from datetime import datetime
+from dataclasses import dataclass
 
-from jarvis.memory.retrieval.cues import cue_overlap
-from jarvis.memory.scope import MemoryScope
-from jarvis.memory.stores.protocol import tokens_of
 from jarvis.memory.types import MemoryItem, MemoryKind
+from jarvis.memory.retrieval.cues import cue_overlap
+from jarvis.memory.stores.protocol import tokens_of
 from jarvis.model_layer.embeddings import cosine
+from jarvis.memory.scope import MemoryScope
 
 DEFAULT_HALF_LIFE_HOURS = 24.0 * 7  # 일주일 지나면 recency 가 절반
 # importance 는 저장값을 깎지 않고 검색 시점에 감쇠시킨다. 저장값을 주기적으로 깎으면 재실행마다 상태가 달라진다

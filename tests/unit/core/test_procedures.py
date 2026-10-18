@@ -15,12 +15,12 @@ from jarvis.core.procedures import (
     parse_draft,
     register_approved,
 )
+from jarvis.model_layer.types import AssistantMessage, TextContent, ToolCall, ToolResultMessage, UserMessage
+from jarvis.core.slash.procedures_cmd import make_procedures_handler
 from jarvis.core.procedures.distill import render_prompt, slugify
 from jarvis.core.procedures.learner import unique_name
 from jarvis.core.skills.registry import SkillRegistry
-from jarvis.core.slash.procedures_cmd import make_procedures_handler
 from jarvis.core.tools.registry import ToolRegistry
-from jarvis.model_layer.types import AssistantMessage, TextContent, ToolCall, ToolResultMessage, UserMessage
 
 # ── 픽스처: 도구 3번 쓰고 성공으로 끝난 대화 ──────────────────────────────────
 

@@ -1,6 +1,5 @@
 """[memory] 에이전트 메모리 패키지 입구로, 범위, 종류, 항목, 서비스와 쓰기 규칙을 내보낸다."""
 
-from jarvis.memory.memory_service import WRITE_RULES, MemoryService
 from jarvis.memory.scope import (
     LOCAL_USER,
     MAIN_AGENT,
@@ -10,6 +9,7 @@ from jarvis.memory.scope import (
     scope_from_context,
     task_scope,
 )
+from jarvis.memory.memory_service import WRITE_RULES, MemoryService
 from jarvis.memory.types import MemoryItem, MemoryKind, Visibility
 
 __all__ = [

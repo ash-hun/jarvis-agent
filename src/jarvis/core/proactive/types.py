@@ -1,10 +1,7 @@
 """[core] proactive 서브시스템이 주고받는 값(발화 메시지, 응답 계획, 게이팅 판정)."""
 
-from __future__ import annotations
-
 import uuid
 from typing import Any, Literal
-
 from pydantic import BaseModel, Field
 
 from jarvis.agent_layer.thought.types import ProactiveAction

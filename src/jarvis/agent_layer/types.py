@@ -1,10 +1,7 @@
 """[agent_layer] 에이전트 루프가 내보내는 이벤트와 실행 컨텍스트, 루프 설정 모델을 정의한다."""
 
-from __future__ import annotations
-
 import time
 from typing import Any, Literal
-
 from pydantic import BaseModel, Field
 
 from jarvis.model_layer.types import AssistantMessage, Message, ModelConfig, StreamOptions, Tool

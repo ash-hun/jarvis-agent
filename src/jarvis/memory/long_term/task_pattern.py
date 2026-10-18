@@ -1,7 +1,7 @@
 """[memory] 사용자가 알려 준 작업 방식(언제, 어떻게)을 에이전트 전용 절차 기억으로 바꾸고 질의에 맞추는 순수 함수."""
 
-import hashlib
 import re
+import hashlib
 from dataclasses import dataclass, field
 
 from jarvis.memory.scope import MemoryScope

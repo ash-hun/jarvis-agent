@@ -1,14 +1,13 @@
 """Web HUD 세션 종료 훅. save_all_sessions 가 session_repo 이력을 요약해 각 세션 범위로 저장한다."""
 
+import pytest
 from unittest.mock import MagicMock
 
-import pytest
-
-from jarvis.memory import MemoryScope
-from jarvis.memory.memory_service import MemoryService
 from jarvis.memory.stores.in_memory import InMemoryItemStore
-from jarvis.model_layer.types import UserMessage
 from jarvis.ui.web.session_registry import SessionRegistry
+from jarvis.memory.memory_service import MemoryService
+from jarvis.model_layer.types import UserMessage
+from jarvis.memory import MemoryScope
 
 
 class _Repo:

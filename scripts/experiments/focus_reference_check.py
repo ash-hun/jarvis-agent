@@ -1,8 +1,8 @@
 """[scripts] Focus 조사 결과(references.md)가 지시문의 형식을 지켰는지 채점한다."""
 
-import json
 import re
 import sys
+import json
 from pathlib import Path
 
 MARKER = "## 조사: "

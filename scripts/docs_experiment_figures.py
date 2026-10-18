@@ -1,9 +1,8 @@
 """Draws the performance-experiment charts on the docs feature pages from scripts/experiments/results.json."""
 
-import json
 import sys
+import json
 from pathlib import Path
-
 from scripts.docs_figures import OUT_DIR, WIDTH, Fig, text_width
 
 RESULTS = Path(__file__).resolve().parent / "experiments" / "results.json"

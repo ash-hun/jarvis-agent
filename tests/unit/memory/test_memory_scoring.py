@@ -2,8 +2,8 @@
 
 from datetime import datetime, timedelta
 
-from jarvis.memory import MemoryItem, MemoryKind, MemoryScope
 from jarvis.memory.retrieval import cue_overlap, rank, relevance
+from jarvis.memory import MemoryItem, MemoryKind, MemoryScope
 from jarvis.memory.retrieval.scoring import recency
 
 SCOPE = MemoryScope(user_id="u1", agent_id="main", session_id="s1")

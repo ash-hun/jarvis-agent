@@ -1,7 +1,5 @@
 """[ui] StatusBar: TUI 하단 상태 한 줄."""
 
-from __future__ import annotations
-
 from textual.widgets import Static
 
 

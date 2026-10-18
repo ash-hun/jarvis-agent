@@ -1,21 +1,17 @@
 """[core] 서브 에이전트를 JarvisTool 로 노출해 LLM 이 tool_call 로 위임하게 하는 AgentNodeTool."""
 
-from __future__ import annotations
-
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from jarvis.core.tools.registry import JarvisTool, ToolContext
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope
 from jarvis.model_layer.types import TextContent, ToolResultMessage
-
+from jarvis.core.tools.registry import JarvisTool, ToolContext
 from .node import LazyAgentNode, record_delegation
 from .protocol import AgentNodeProtocol
 from .task import AgentTask
 
 if TYPE_CHECKING:
     from jarvis.memory.memory_service import MemoryService
-
     from .factory import AgentDefinition, AgentFactory
 
 
@@ -33,9 +29,9 @@ class AgentNodeTool(JarvisTool):
         self,
         node: AgentNodeProtocol | None = None,
         *,
-        definition: AgentDefinition | None = None,
-        factory: AgentFactory | None = None,
-        memory: MemoryService | None = None,
+        definition: "AgentDefinition | None" = None,
+        factory: "AgentFactory | None" = None,
+        memory: "MemoryService | None" = None,
     ) -> None:
         if node is None:
             if definition is None or factory is None:

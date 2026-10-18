@@ -2,37 +2,36 @@
 
 import asyncio
 from pathlib import Path
+from pydantic import SecretStr
 from typing import TYPE_CHECKING
 
-from pydantic import SecretStr
-
 from jarvis.app.agent_profile import MAIN_AGENT_ID, AgentProfile
+from jarvis.app.subagent_builder import SubagentBuilder
 from jarvis.app.agent_registry import AgentRegistry
 from jarvis.app.app_assembly import AppAssembly
-from jarvis.app.app_context import AppContext
 from jarvis.app.app_services import AppServices
-from jarvis.app.subagent_builder import SubagentBuilder
+from jarvis.app.app_context import AppContext
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
+    from jarvis.core.proactive.triggers import ActivityClock, ExternalTrigger, ReflectionTrigger
+    from jarvis.core.external import ExternalEventInbox, ExternalEventPoller
+    from jarvis.core.multi_agent.service import OrchestrationService
+    from jarvis.agent_layer.usermodel.store import UserModelStore
     from jarvis.agent_layer.openloop.store import OpenLoopStore
     from jarvis.agent_layer.session.protocol import SessionRepo
-    from jarvis.agent_layer.usermodel.store import UserModelStore
-    from jarvis.config import JarvisSettings
-    from jarvis.core.external import ExternalEventInbox, ExternalEventPoller
     from jarvis.core.multi_agent.factory import AgentDefinition
-    from jarvis.core.multi_agent.service import OrchestrationService
-    from jarvis.core.notify import Notify
-    from jarvis.core.plugins.runner import PluginRunner
-    from jarvis.core.proactive.triggers import ActivityClock, ExternalTrigger, ReflectionTrigger
     from jarvis.core.procedures.learner import ProcedureLearner
-    from jarvis.core.procedures.store import ProcedureStore
     from jarvis.core.scheduler.service import SchedulerService
-    from jarvis.core.skills.registry import SkillRegistry
-    from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.core.procedures.store import ProcedureStore
     from jarvis.memory.memory_service import MemoryService
+    from jarvis.core.skills.registry import SkillRegistry
+    from jarvis.core.plugins.runner import PluginRunner
+    from jarvis.core.tools.registry import ToolRegistry
     from jarvis.model_layer.embeddings import Embedder
     from jarvis.model_layer.types import ModelConfig
+    from jarvis.config import JarvisSettings
+    from jarvis.core.notify import Notify
 
 logger = get_logger(__name__)
 
@@ -59,19 +58,19 @@ class InfraBuilder:
 
         # 작업 패턴 저장은 메모리가 있어야 해서 메모리 다음에 등록한다. 모든 에이전트가 쓴다
         tool_registry.register(TaskPatternTool(memory))
-        from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
         from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
+        from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 
         # 메모리 모듈은 서비스 하나. harness 의 미들웨어 체인에는 어댑터 한 단계로 꽂힌다
         memory_chain = MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(memory)])
         session_repo = self.build_session_repo()
 
-        from jarvis.core.policy.approval_rules import ApprovalRules
         from jarvis.core.policy.authenticator import NoAuthAuthenticator
-        from jarvis.core.policy.pipeline import SecurityPipeline
-        from jarvis.core.policy.policy import AllowAllPolicy
-        from jarvis.core.policy.sandbox import DefaultSandbox
         from jarvis.core.policy.validator import DefaultInputValidator
+        from jarvis.core.policy.approval_rules import ApprovalRules
+        from jarvis.core.policy.pipeline import SecurityPipeline
+        from jarvis.core.policy.sandbox import DefaultSandbox
+        from jarvis.core.policy.policy import AllowAllPolicy
 
         # 승인 기억은 앱에 하나. web 의 세션별 sandbox 도 같은 규칙 파일을 본다
         approval_rules = ApprovalRules(settings.security.approvals_path)
@@ -156,15 +155,15 @@ class InfraBuilder:
         )
 
     def build_tool_registry(self) -> "ToolRegistry":
-        from jarvis.core.tools.builtin.bash import BashTool
-        from jarvis.core.tools.builtin.edit_file import EditFileTool
-        from jarvis.core.tools.builtin.glob import GlobTool
-        from jarvis.core.tools.builtin.grep import GrepTool
-        from jarvis.core.tools.builtin.list_dir import ListDirTool
-        from jarvis.core.tools.builtin.read_file import ReadFileTool
-        from jarvis.core.tools.builtin.web_fetch import WebFetchTool
         from jarvis.core.tools.builtin.web_search import WebSearchTool
         from jarvis.core.tools.builtin.write_file import WriteFileTool
+        from jarvis.core.tools.builtin.edit_file import EditFileTool
+        from jarvis.core.tools.builtin.read_file import ReadFileTool
+        from jarvis.core.tools.builtin.web_fetch import WebFetchTool
+        from jarvis.core.tools.builtin.list_dir import ListDirTool
+        from jarvis.core.tools.builtin.bash import BashTool
+        from jarvis.core.tools.builtin.glob import GlobTool
+        from jarvis.core.tools.builtin.grep import GrepTool
         from jarvis.core.tools.registry import ToolRegistry
 
         registry = ToolRegistry()
@@ -200,23 +199,23 @@ class InfraBuilder:
 
     def build_memory(self, model_config: "ModelConfig", skill_registry: "SkillRegistry") -> "MemoryService":
         """임베딩, 항목과 작업 기억 저장소(in_memory 또는 Postgres), 요약과 사실 추출을 단 메모리 서비스."""
-        from jarvis.memory.consolidation import llm_summarizer
         from jarvis.memory.consolidation.semantic_extract import llm_fact_extractor
         from jarvis.memory.long_term.procedural import SkillRegistryProcedures
+        from jarvis.memory.consolidation import llm_summarizer
         from jarvis.memory.memory_service import MemoryService
         from jarvis.memory.retrieval import ScoringParams
 
         settings = self._settings
         mcfg = settings.memory
         embedder = self.build_embedder()
-        from jarvis.memory.stores.protocol import ItemStore
         from jarvis.memory.working.state import WorkingStore
+        from jarvis.memory.stores.protocol import ItemStore
 
         item_store: ItemStore
         working_store: WorkingStore
         if mcfg.backend == "in_memory":
-            from jarvis.memory.stores.in_memory import InMemoryItemStore
             from jarvis.memory.working.in_memory import InMemoryWorkingStore
+            from jarvis.memory.stores.in_memory import InMemoryItemStore
 
             item_store = InMemoryItemStore()
             working_store = InMemoryWorkingStore()
@@ -224,8 +223,8 @@ class InfraBuilder:
             dsn = mcfg.postgres_dsn or settings.session.postgres_dsn
             if not dsn:
                 raise ValueError("JARVIS_MEMORY__POSTGRES_DSN 또는 JARVIS_SESSION__POSTGRES_DSN 설정 필요")
-            from jarvis.memory.stores.postgres import PostgresItemStore
             from jarvis.memory.working.postgres import PostgresWorkingStore
+            from jarvis.memory.stores.postgres import PostgresItemStore
 
             item_store = PostgresItemStore(dsn=dsn, dimensions=embedder.dimensions if embedder else 0)
             working_store = PostgresWorkingStore(dsn=dsn)
@@ -335,8 +334,8 @@ class InfraBuilder:
         scfg = self._settings.scheduler
         if not scfg.enabled:
             return None
-        from jarvis.core.scheduler.loader import load_tasks
         from jarvis.core.scheduler.service import SchedulerService
+        from jarvis.core.scheduler.loader import load_tasks
 
         return SchedulerService(
             tasks=load_tasks(scfg.schedules_dir),
@@ -467,9 +466,9 @@ class InfraBuilder:
         settings = self._settings
         if not settings.agents.enabled or not agent_defs:
             return None
-        from jarvis.core.multi_agent.factory import AgentFactory
-        from jarvis.core.multi_agent.orchestrate_tool import OrchestrateTool
         from jarvis.core.multi_agent.service import OrchestrationService, load_supervisor_prompt
+        from jarvis.core.multi_agent.orchestrate_tool import OrchestrateTool
+        from jarvis.core.multi_agent.factory import AgentFactory
 
         builder = SubagentBuilder(ctx, services, ctx.tool_registry)
         factory = AgentFactory(build_session=builder.build_session, session_repo=ctx.session_repo)
@@ -504,9 +503,9 @@ class InfraBuilder:
         orchestration: "OrchestrationService | None",
     ) -> None:
         """슬래시 명령 디스패처를 만들고, 켜진 기능의 명령만 등록한다."""
-        from jarvis.core.scheduler.classify import make_llm_classifier
-        from jarvis.core.slash.dispatcher import SlashCommandDispatcher
         from jarvis.core.slash.remember_cmd import make_remember_handler
+        from jarvis.core.slash.dispatcher import SlashCommandDispatcher
+        from jarvis.core.scheduler.classify import make_llm_classifier
 
         settings = self._settings
         model_config = services.model_config
@@ -537,8 +536,8 @@ class InfraBuilder:
                 "추적 중인 약속/미완 작업 (done <id> | dismiss <id>)",
             )
         if services.user_model_store is not None:
-            from jarvis.agent_layer.usermodel import UserModelBuilder
             from jarvis.core.slash.usermodel_cmd import make_usermodel_handler
+            from jarvis.agent_layer.usermodel import UserModelBuilder
 
             dispatcher.register(
                 "usermodel",
@@ -551,8 +550,8 @@ class InfraBuilder:
                 "증류된 사용자 모델 (build로 갱신)",
             )
         if settings.thought.enabled:
-            from jarvis.agent_layer.journal import ReflectionJournaler
             from jarvis.core.slash.journal_cmd import make_journal_handler
+            from jarvis.agent_layer.journal import ReflectionJournaler
 
             dispatcher.register(
                 "journal",
@@ -560,9 +559,6 @@ class InfraBuilder:
                 "자기 성찰 저널 (write로 작성)",
             )
 
-        from jarvis.core.slash.cleanup_cmd import make_cleanup_handler
-        from jarvis.core.slash.cost_cmd import make_cost_handler
-        from jarvis.core.slash.export_cmd import make_export_handler
         from jarvis.core.slash.ops_cmd import (
             make_branch_handler,
             make_compact_handler,
@@ -570,6 +566,9 @@ class InfraBuilder:
             make_tools_handler,
         )
         from jarvis.core.slash.procedures_cmd import make_procedures_handler
+        from jarvis.core.slash.cleanup_cmd import make_cleanup_handler
+        from jarvis.core.slash.export_cmd import make_export_handler
+        from jarvis.core.slash.cost_cmd import make_cost_handler
 
         dispatcher.register("sessions", make_sessions_handler(session_repo), "저장된 세션 목록 표시")
         dispatcher.register("branch", make_branch_handler(session_repo), "[session_id] 세션을 분기")

@@ -2,16 +2,16 @@
 
 import pytest
 
-from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
+from jarvis.core.slash.orchestrate_cmd import make_orchestrate_handler, parse_args
+from jarvis.memory import MemoryKind, MemoryScope, MemoryService, current_scope
 from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
+from jarvis.core.multi_agent.service import PATTERNS, OrchestrationService
 from jarvis.core.multi_agent.factory import AgentDefinition, AgentFactory
 from jarvis.core.multi_agent.orchestrate_tool import OrchestrateTool
-from jarvis.core.multi_agent.service import PATTERNS, OrchestrationService
-from jarvis.core.session import AgentSession
-from jarvis.core.slash.orchestrate_cmd import make_orchestrate_handler, parse_args
-from jarvis.core.tools.registry import ToolRegistry
-from jarvis.memory import MemoryKind, MemoryScope, MemoryService, current_scope
+from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.core.tools.registry import ToolRegistry
+from jarvis.core.session import AgentSession
 
 PARENT = MemoryScope(user_id="jh", agent_id="main", session_id="s1")
 

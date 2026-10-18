@@ -1,23 +1,19 @@
-"""사용자가 KAREN 에게 일하는 방식을 알려 주면 KAREN 만 기억하고, 새 세션의 같은 종류 요청에서 되묻지 않고 그대로 한다.
-
-저장소의 team/karen.yaml 을 그대로 쓰고, 모델은 각본 프로바이더, LH 게시판은 실제 페이지에서 잘라 둔 HTML 이다.
-"""
-
-from pathlib import Path
+"""KAREN 에게 알려 준 일하는 방식을 KAREN 만 기억하고, 새 세션의 같은 종류 요청에서 되묻지 않고 그대로 한다."""
 
 import pytest
+from pathlib import Path
 
 pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from jarvis.app.infra_builder import build_app  # noqa: E402
-from jarvis.config import JarvisSettings  # noqa: E402
-from jarvis.core.tools.housing import housing_tools  # noqa: E402
-from jarvis.ui.web.server import create_app  # noqa: E402
 from tests.fixtures.pattern_provider import ASK_BACK, PatternProvider  # noqa: E402
 from tests.unit.core.housing.conftest import TODAY, page  # noqa: E402
 from tests.unit.core.housing.test_budget import Board  # noqa: E402
+from jarvis.core.tools.housing import housing_tools  # noqa: E402
+from jarvis.app.infra_builder import build_app  # noqa: E402
+from jarvis.ui.web.server import create_app  # noqa: E402
+from jarvis.config import JarvisSettings  # noqa: E402
 
 TEAM_DIR = Path(__file__).resolve().parents[2] / "team"
 TEACH = "앞으로 예산이랑 현금 얘기하면 대출은 공고 금액에서 현금을 뺀 걸로, 금리는 4%로 계산해. 기억해."

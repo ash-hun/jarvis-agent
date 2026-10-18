@@ -1,11 +1,11 @@
 """[scripts] 컴팩션 보존율 판정기를 실제 단서로 만든 정답 예시로 검증한다. 판정 지시문의 예시와는 겹치지 않는다."""
 
-import argparse
-import asyncio
 import json
+import asyncio
+import argparse
+from scripts.experiments.models import model_config
 
 from jarvis.memory.eval.faithfulness import llm_fact_judge
-from scripts.experiments.models import model_config
 
 KO = (
     "총 예산 1,200만 원 중 설계에 300만 원이 할당되었으며, "

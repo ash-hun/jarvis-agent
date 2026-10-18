@@ -1,16 +1,11 @@
 """[memory] MemoryService 로 턴 전 변환(observe), 범위를 아는 조회(recall, recent), 쓰기(remember), 공고화를 맡는다."""
 
 import time
+from typing import Any
+from datetime import datetime
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from datetime import datetime
-from typing import Any
 
-from jarvis.memory.consolidation.compaction import Summarizer
-from jarvis.memory.consolidation.semantic_extract import FactExtractor
-from jarvis.memory.long_term.episodic import prepare_episode
-from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
-from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
 from jarvis.memory.long_term.task_pattern import (
     SAVE_HINT,
     SAVE_HINT_HEADER,
@@ -22,16 +17,21 @@ from jarvis.memory.long_term.task_pattern import (
     render_block,
     teaches,
 )
-from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, current_task, scope_from_context, task_scope
-from jarvis.memory.stores.protocol import ItemStore
-from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind, Visibility
-from jarvis.memory.working.deixis import retrieval_query
-from jarvis.memory.working.in_memory import InMemoryWorkingStore
-from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.working.window import apply_window, chars_of, cut_at_user_boundary, summary_message
-from jarvis.model_layer.embeddings import Embedder
+from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
+from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank
+from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind, Visibility
+from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
+from jarvis.memory.consolidation.semantic_extract import FactExtractor
+from jarvis.memory.working.state import WorkingState, WorkingStore
+from jarvis.memory.working.in_memory import InMemoryWorkingStore
+from jarvis.memory.consolidation.compaction import Summarizer
+from jarvis.memory.long_term.episodic import prepare_episode
 from jarvis.model_layer.types import Message, UserMessage
+from jarvis.memory.working.deixis import retrieval_query
+from jarvis.memory.stores.protocol import ItemStore
+from jarvis.model_layer.embeddings import Embedder
 
 FACTS_HEADER = "[핵심 사실]"  # 고정 블록: 질의와 무관하게 항상 넣는 상위 의미 사실
 LTM_HEADER = "[장기 기억]"  # 회상 블록: 이번 질의로 떠오른 항목

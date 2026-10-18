@@ -2,8 +2,8 @@
 
 from datetime import date
 
-from jarvis.core.tools.housing.fetch import kst_today
 from jarvis.core.tools.housing.markup import deadline_label, lines_of, parse_date, table_rows, text_of
+from jarvis.core.tools.housing.fetch import kst_today
 
 TODAY = date(2026, 10, 13)
 

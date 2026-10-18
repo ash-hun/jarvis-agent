@@ -1,9 +1,7 @@
 """[core] 4단계 보안 파이프라인(검증, 인증, 정책, 샌드박스)의 데이터 타입, 예외, 단계 기반 클래스를 정한다."""
 
-from __future__ import annotations
-
-from dataclasses import dataclass, field
 from typing import Any, Literal
+from dataclasses import dataclass, field
 
 from jarvis.memory.scope import LOCAL_USER
 

@@ -2,12 +2,12 @@
 
 from pathlib import Path
 
-from jarvis.memory.eval.adapters import LOADERS, load_locomo, load_longmemeval
 from jarvis.memory.eval.benchmark import format_benchmark, run_benchmark, sample
-from jarvis.memory.eval.fake_embedder import FakeEmbedder
-from jarvis.memory.eval.judge import contains_judge
-from jarvis.memory.memory_service import MemoryService
+from jarvis.memory.eval.adapters import LOADERS, load_locomo, load_longmemeval
 from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.memory.eval.fake_embedder import FakeEmbedder
+from jarvis.memory.memory_service import MemoryService
+from jarvis.memory.eval.judge import contains_judge
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "benchmarks"
 

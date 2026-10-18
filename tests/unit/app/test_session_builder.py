@@ -1,7 +1,5 @@
 """SessionBuilder.thought_parts 단위 테스트 — A1 모델 분리 / A2 싱크 / A3 composer."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -9,14 +7,14 @@ from jarvis.agent_layer.thought import (
     DefaultThoughtComposer,
     InterpretationOnlyComposer,
 )
-from jarvis.app.agent_profile import AgentProfile
-from jarvis.app.app_context import AppContext
-from jarvis.app.app_services import AppServices
-from jarvis.app.session_builder import SessionBuilder
-from jarvis.config import JarvisSettings
-from jarvis.memory.memory_service import MemoryService
 from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.memory.memory_service import MemoryService
+from jarvis.app.session_builder import SessionBuilder
+from jarvis.app.agent_profile import AgentProfile
 from jarvis.model_layer.types import ModelConfig
+from jarvis.app.app_services import AppServices
+from jarvis.app.app_context import AppContext
+from jarvis.config import JarvisSettings
 
 
 def _ctx(**thought_overrides) -> AppContext:
@@ -139,8 +137,8 @@ def test_unknown_composer_falls_back_to_default():
 
 def _agent_session(profile_kwargs: dict, tmp_path, agent_tools=None):
     from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
-    from jarvis.core.tools.builtin.glob import GlobTool
     from jarvis.core.tools.builtin.read_file import ReadFileTool
+    from jarvis.core.tools.builtin.glob import GlobTool
     from jarvis.core.tools.registry import ToolRegistry
 
     settings = JarvisSettings()
@@ -209,8 +207,8 @@ def test_main_does_not_see_agent_only_tools(tmp_path):
 
 
 def test_every_agent_gets_the_task_pattern_tool(tmp_path):
-    from jarvis.core.tools.registry import ToolRegistry
     from jarvis.core.tools.task_pattern import TaskPatternTool
+    from jarvis.core.tools.registry import ToolRegistry
 
     session, registry = _agent_session({"agent_id": "karen", "tools": ("read_file",)}, tmp_path)
     assert "remember_task_pattern" not in [t.name for t in session._tool_registry.list_all()]

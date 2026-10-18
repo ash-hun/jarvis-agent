@@ -1,11 +1,11 @@
 """[core] 외부 알림 채널. 스케줄 결과와 proactive 발화를 열린 UI 밖(슬랙 등)으로도 보낸다."""
 
-from collections.abc import Awaitable, Callable
 from typing import Any
+from collections.abc import Awaitable, Callable
 
-from jarvis.common.logger import get_logger
 from jarvis.core.notify.events import proactive_forwarder, proactive_payload
 from jarvis.core.notify.slack import format_slack, slack_notifier
+from jarvis.common.logger import get_logger
 
 # 알림 payload 하나를 받아 어디론가 보내는 콜백. 스케줄러의 Notify 와 같은 모양이다.
 Notify = Callable[[dict[str, Any]], Awaitable[None]]

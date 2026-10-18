@@ -1,16 +1,10 @@
 """[memory] 대화에 심은 사실이 컴팩션 요약을 거친 뒤에도 남아 있는 비율(retention)을 잰다."""
 
 import json
-from collections.abc import Awaitable, Callable
 from pathlib import Path
-
 from pydantic import BaseModel, Field
+from collections.abc import Awaitable, Callable
 
-from jarvis.memory.consolidation.compaction import Summarizer
-from jarvis.memory.eval.metrics import CaseResult
-from jarvis.memory.memory_service import MemoryService
-from jarvis.memory.scope import MemoryScope
-from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.model_layer.types import (
     AssistantMessage,
     LLMContext,
@@ -20,6 +14,11 @@ from jarvis.model_layer.types import (
     TextContent,
     UserMessage,
 )
+from jarvis.memory.consolidation.compaction import Summarizer
+from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.memory.memory_service import MemoryService
+from jarvis.memory.eval.metrics import CaseResult
+from jarvis.memory.scope import MemoryScope
 
 # 요약기와 판정기는 주입한다. 오프라인 기본은 추출 요약기 + 문자열 포함 판정, 실제 측정은 --summarizer llm --judge llm
 FactJudge = Callable[[str, str], Awaitable[bool]]  # (summary, fact) -> 보존됐는가

@@ -1,14 +1,13 @@
 """AgentRegistry: 정의 파일 한 장이 최상위 에이전트 하나가 되고, 비운 항목은 main 을 이어받는다."""
 
+import pytest
 from unittest.mock import MagicMock
 
-import pytest
-
-from jarvis.app.agent_profile import MAIN_AGENT_ID, AgentProfile
 from jarvis.app.agent_registry import AgentRegistry, load_agent_specs, profile_from_spec
+from jarvis.app.agent_profile import MAIN_AGENT_ID, AgentProfile
+from jarvis.model_layer.types import ModelConfig
 from jarvis.app.app_context import AppContext
 from jarvis.config import JarvisSettings
-from jarvis.model_layer.types import ModelConfig
 
 MAIN = ModelConfig(provider="ollama", model="gemma", api_key=None, base_url="http://x")
 KAREN = """

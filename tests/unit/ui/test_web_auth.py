@@ -2,8 +2,8 @@
 
 import pytest
 
-from jarvis.config import ApiUser, JarvisSettings
 from jarvis.ui.web.web_auth import auth_enabled, bearer_token, lookup_api_user
+from jarvis.config import ApiUser, JarvisSettings
 
 
 @pytest.mark.parametrize(

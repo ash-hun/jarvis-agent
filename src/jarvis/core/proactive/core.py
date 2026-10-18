@@ -1,14 +1,12 @@
 """[core] proactive 코어. 정책, 채널, push 를 한 객체가 소유하고 Dual-Channel 과 자율 발화를 조율한다."""
 
-from __future__ import annotations
-
 import asyncio
 import contextlib
 from collections.abc import Awaitable, Callable
 
-from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
 from jarvis.core.proactive.policy import SILENT_REASON, DefaultProactivityPolicy, ProactivityPolicy
 from jarvis.core.proactive.types import ProactiveDecision, ProactiveMessage
+from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
 from jarvis.model_layer.types import AssistantMessage
 
 # 메인 에이전트 턴 실행기(slow channel). 결과 메시지(or None)를 반환.

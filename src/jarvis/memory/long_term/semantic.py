@@ -1,8 +1,8 @@
 """[memory] 의미 기억 정책으로, "주제: 값" 사실은 같은 주제의 옛 사실을 대체하고 비슷한 쌍은 간섭 후보로 표시한다."""
 
-from jarvis.memory.scope import MemoryScope
 from jarvis.memory.stores.protocol import ItemStore, tokens_of
 from jarvis.memory.types import MemoryItem, MemoryKind
+from jarvis.memory.scope import MemoryScope
 
 KEY_TAG = "key:"
 MAX_KEY_CHARS = 40

@@ -1,20 +1,20 @@
 """[scripts] 회상 품질(후보, 섬광 기억, 조사, 지칭, 되뇌기)을 같은 시나리오로 재서 results.json 에 쓴다."""
 
-import argparse
-import asyncio
-import json
-import statistics
 import sys
+import json
 import time
-from datetime import datetime, timedelta
+import asyncio
+import argparse
+import statistics
 from pathlib import Path
+from datetime import datetime, timedelta
 
+from jarvis.model_layer.types import AssistantMessage, TextContent, UserMessage
 from jarvis.core.slash.remember_cmd import make_remember_handler
+from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.memory.scope import MemoryScope, current_scope
 from jarvis.memory.eval.fake_embedder import FakeEmbedder
 from jarvis.memory.memory_service import MemoryService
-from jarvis.memory.scope import MemoryScope, current_scope
-from jarvis.memory.stores.in_memory import InMemoryItemStore
-from jarvis.model_layer.types import AssistantMessage, TextContent, UserMessage
 
 RESULTS = Path(__file__).resolve().parent / "results.json"
 KEY = "memory_recall"

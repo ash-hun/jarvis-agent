@@ -1,7 +1,5 @@
 """[agent_layer] 메모리 미들웨어 체인 테스트."""
 
-from __future__ import annotations
-
 from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.model_layer.types import UserMessage
 

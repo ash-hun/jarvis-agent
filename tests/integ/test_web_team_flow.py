@@ -8,8 +8,8 @@ from fastapi.testclient import TestClient  # noqa: E402
 from starlette.websockets import WebSocketDisconnect  # noqa: E402
 
 from jarvis.app.infra_builder import build_app  # noqa: E402
-from jarvis.config import JarvisSettings  # noqa: E402
 from jarvis.ui.web.server import create_app  # noqa: E402
+from jarvis.config import JarvisSettings  # noqa: E402
 
 KAREN = 'name: K.A.R.E.N.\ndescription: 정보 수집\npalette:\n  primary: "#97BC62"\ntools: [read_file]\n'
 

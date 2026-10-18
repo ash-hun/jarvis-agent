@@ -1,12 +1,9 @@
 """[model_layer] Google Gemini 스트리밍을 공통 스트림 이벤트로 바꾸는 프로바이더."""
 
-from __future__ import annotations
-
 import json
-from collections.abc import AsyncIterator
 from typing import Any
+from collections.abc import AsyncIterator
 
-from jarvis.model_layer.providers.base import Provider
 from jarvis.model_layer.types import (
     ErrorEvent,
     LLMContext,
@@ -18,6 +15,7 @@ from jarvis.model_layer.types import (
     ToolCallDeltaEvent,
     Usage,
 )
+from jarvis.model_layer.providers.base import Provider
 
 
 class GeminiProvider(Provider):

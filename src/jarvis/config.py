@@ -1,9 +1,6 @@
 """[config] JarvisSettings: env 와 .env 에서 읽는 전체 설정 모델."""
 
-from __future__ import annotations
-
 from typing import Annotated, Any, Literal
-
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

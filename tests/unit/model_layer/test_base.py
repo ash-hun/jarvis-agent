@@ -2,14 +2,14 @@
 
 import pytest
 
+from jarvis.model_layer.types import ErrorEvent, LLMContext, ModelConfig, StreamEvent, UserMessage
 from jarvis.model_layer.embeddings import Embedder, OllamaEmbedder, OpenAIEmbedder, VLLMEmbedder
-from jarvis.model_layer.providers.anthropic import AnthropicProvider
 from jarvis.model_layer.providers.base import NOT_IMPLEMENTED_CODE, Provider
+from jarvis.model_layer.providers.anthropic import AnthropicProvider
 from jarvis.model_layer.providers.gemini import GeminiProvider
 from jarvis.model_layer.providers.ollama import OllamaProvider
 from jarvis.model_layer.providers.openai import OpenAIProvider
 from jarvis.model_layer.providers.vllm import VLLMProvider
-from jarvis.model_layer.types import ErrorEvent, LLMContext, ModelConfig, StreamEvent, UserMessage
 
 
 class _Bare(Provider):

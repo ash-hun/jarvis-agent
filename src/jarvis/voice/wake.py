@@ -1,7 +1,7 @@
 """[voice] 16kHz PCM 을 80ms 프레임으로 잘라 점수를 매기고 "Jarvis" 를 불렀는지 판정하는 웨이크워드 감지기."""
 
-from collections.abc import Callable
 from pathlib import Path
+from collections.abc import Callable
 
 # openWakeWord 의 입력 단위: 16kHz mono int16 1280 샘플(80ms)
 FRAME_SAMPLES = 1280

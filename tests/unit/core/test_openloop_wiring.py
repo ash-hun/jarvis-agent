@@ -1,10 +1,7 @@
 """Open-loop session 배선 — 감지 저장 + 회상 주입 (Tier 2 C1)."""
-from __future__ import annotations
-
 import time
-from datetime import datetime
-
 import pytest
+from datetime import datetime
 
 from jarvis.agent_layer.openloop import InMemoryOpenLoopStore, LoopExpiry, OpenLoop
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest

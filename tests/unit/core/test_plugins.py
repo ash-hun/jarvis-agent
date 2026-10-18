@@ -1,10 +1,10 @@
 """JarvisPlugin 기반 클래스, PluginRunner, PluginLoader 테스트."""
 
-from jarvis.core.plugins.loader import PluginLoader
+from jarvis.model_layer.types import TextContent, UserMessage
 from jarvis.core.plugins.protocol import JarvisPlugin
+from jarvis.core.plugins.loader import PluginLoader
 from jarvis.core.plugins.runner import PluginRunner
 from jarvis.core.policy.pipeline import AuthContext
-from jarvis.model_layer.types import TextContent, UserMessage
 
 AUTH = AuthContext(user_id="u", roles=frozenset({"user"}))
 

@@ -1,14 +1,11 @@
 """Proactive 배선 — session.prompt의 Dual-Channel(스텝 4) 통합."""
 
-from __future__ import annotations
-
+import pytest
 import asyncio
 
-import pytest
-
+from jarvis.core.proactive import DefaultProactivityCore, DefaultProactivityPolicy
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
 from jarvis.agent_layer.types import ProactiveMessageEvent
-from jarvis.core.proactive import DefaultProactivityCore, DefaultProactivityPolicy
 
 
 class StubEngine:

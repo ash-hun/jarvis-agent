@@ -1,15 +1,15 @@
 """[scripts] 요청 사고 한 번이 유효한 프레임을 내는지, 약속(open loop)을 잡아내는지, 얼마나 걸리는지 모델별로 잰다."""
 
-import argparse
-import asyncio
 import json
-import statistics
 import time
+import asyncio
+import argparse
+import statistics
 from pathlib import Path
-
-from jarvis.agent_layer.thought.types import ThoughtRequest
 from scripts.experiments.models import model_config
 from scripts.experiments.proactive_situation import engine
+
+from jarvis.agent_layer.thought.types import ThoughtRequest
 
 DATASET = Path(__file__).parent / "datasets" / "thought_requests.jsonl"
 

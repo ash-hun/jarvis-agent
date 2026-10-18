@@ -1,6 +1,4 @@
 """config.py — Pydantic Settings 로딩 테스트."""
-from __future__ import annotations
-
 import pytest
 
 from jarvis.config import JarvisSettings, get_settings, reset_settings

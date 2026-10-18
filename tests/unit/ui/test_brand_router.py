@@ -2,8 +2,8 @@
 
 import json
 
-from jarvis.config import BrandConfig
 from jarvis.ui.web.router.brand_router import STATIC_DIR, render_brand_js, render_manifest
+from jarvis.config import BrandConfig
 
 
 def _brand() -> BrandConfig:

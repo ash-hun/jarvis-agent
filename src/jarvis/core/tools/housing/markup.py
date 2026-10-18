@@ -1,7 +1,7 @@
 """[core] 공고 게시판 HTML 에서 태그를 걷어 텍스트, 표, 날짜를 꺼내는 순수 함수."""
 
-import html
 import re
+import html
 from datetime import date
 
 _COMMENT_RE = re.compile(r"<!--[\s\S]*?-->")

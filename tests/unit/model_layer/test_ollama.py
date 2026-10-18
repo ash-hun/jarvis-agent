@@ -1,12 +1,9 @@
 """Ollama 프로바이더: 도구 호출이 있으면 stop 사유가 tool_use 여야 한다. 이력 재전송은 함수 이름을 보낸다."""
 
 import json
-
 import httpx
 import pytest
 
-from jarvis.model_layer.providers import ollama as ollama_mod
-from jarvis.model_layer.providers.ollama import OllamaProvider, _convert_messages, _stop_reason
 from jarvis.model_layer.types import (
     AssistantMessage,
     LLMContext,
@@ -20,6 +17,8 @@ from jarvis.model_layer.types import (
     ToolResultMessage,
     UserMessage,
 )
+from jarvis.model_layer.providers.ollama import OllamaProvider, _convert_messages, _stop_reason
+from jarvis.model_layer.providers import ollama as ollama_mod
 
 
 @pytest.mark.parametrize(

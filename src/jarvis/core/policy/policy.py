@@ -1,7 +1,5 @@
 """[core] 보안 파이프라인 Step 3 의 정책 엔진 구현체(전부 허용, 역할 기반)를 제공한다."""
 
-from __future__ import annotations
-
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyEngineProtocol, PolicyResult
 
 

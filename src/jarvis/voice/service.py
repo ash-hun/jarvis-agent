@@ -1,7 +1,5 @@
 """[voice] STT 와 TTS 프로바이더를 묶어 하나의 음성 파이프라인으로 제공한다."""
 
-from __future__ import annotations
-
 import re
 
 from jarvis.voice.protocol import DEFAULT_LANG, DEFAULT_SAMPLE_RATE, STTProvider, TTSProvider
@@ -53,7 +51,7 @@ class VoiceService:
         tts_options: dict[str, object] | None = None,
         english_tts_provider: str = "",
         english_tts_options: dict[str, object] | None = None,
-    ) -> VoiceService:
+    ) -> "VoiceService":
         """프로바이더 이름과 각자의 생성 옵션으로 만든다. 옵션은 그 프로바이더 팩토리에만 넘긴다."""
         from jarvis.voice.registry import make_stt, make_tts
 

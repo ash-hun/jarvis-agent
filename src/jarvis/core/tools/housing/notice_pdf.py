@@ -1,12 +1,11 @@
 """[core] LH 공고문 PDF 를 받아 임대조건 표의 주택형별 임대보증금과 월임대료를 읽는 함수."""
 
-import asyncio
 import io
 import re
-from collections.abc import Callable
-from dataclasses import dataclass
-
+import asyncio
 from pypdf import PdfReader
+from dataclasses import dataclass
+from collections.abc import Callable
 
 from jarvis.core.tools.housing.fetch import FetchBytes
 

@@ -1,11 +1,9 @@
 """EpisodicSummarizer 단위 테스트. 세션 종료 요약이 그 세션 범위의 일화로 저장된다."""
-from __future__ import annotations
-
 import pytest
 
 from jarvis.memory.consolidation.episodic import EpisodicSummarizer
-from jarvis.memory.memory_service import MemoryService
 from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.memory.memory_service import MemoryService
 from jarvis.model_layer.types import UserMessage
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -77,8 +75,8 @@ async def test_episodic_multiple_sessions_stored_separately(faux_model_with_resp
 @pytest.fixture
 def faux_model_error():
     from jarvis.model_layer.registry import get_default_registry
-    from jarvis.model_layer.types import ModelConfig
     from tests.fixtures.faux_provider import FauxProviderFactory
+    from jarvis.model_layer.types import ModelConfig
 
     get_default_registry()._providers["faux"] = FauxProviderFactory.error()
     return ModelConfig(provider="faux", model="faux-model")

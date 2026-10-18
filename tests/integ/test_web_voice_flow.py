@@ -1,20 +1,17 @@
 """Web HUD 음성: 읽기 문구 wav 를 내주고, 바이너리 프레임의 PCM 으로 웨이크워드를 감지해 voice_wake 를 보낸다."""
 
-from __future__ import annotations
-
 import json
-
 import pytest
 
 pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from jarvis.app.infra_builder import build_app  # noqa: E402
-from jarvis.config import JarvisSettings  # noqa: E402
-from jarvis.ui.web.server import create_app  # noqa: E402
-from jarvis.ui.web.web_state import WebState  # noqa: E402
 from jarvis.voice.wake import FRAME_BYTES, WakeDetector  # noqa: E402
+from jarvis.app.infra_builder import build_app  # noqa: E402
+from jarvis.ui.web.web_state import WebState  # noqa: E402
+from jarvis.ui.web.server import create_app  # noqa: E402
+from jarvis.config import JarvisSettings  # noqa: E402
 
 LOUD = b"\x01" * FRAME_BYTES
 QUIET = b"\x00" * FRAME_BYTES

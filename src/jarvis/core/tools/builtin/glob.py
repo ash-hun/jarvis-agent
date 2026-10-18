@@ -1,13 +1,11 @@
 """[core] glob 패턴으로 파일을 찾아 최근 수정순으로 돌려주는 glob 내장 도구."""
 
-from __future__ import annotations
-
 import asyncio
-from pathlib import Path
 from typing import Any
+from pathlib import Path
 
-from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.core.tools.registry import JarvisTool
 
 TOOL_NAME = "glob"
 TOOL_DESCRIPTION = (

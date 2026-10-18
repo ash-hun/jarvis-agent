@@ -1,7 +1,7 @@
 """[ui] Web HUD 기동과 종료: 첫 세션, 스케줄러, 성찰 daemon, 외부 이벤트 폴러를 켜고 끄고 세션을 저장한다."""
 
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
 
 from jarvis.ui.web.web_state import WebState
 
@@ -32,8 +32,8 @@ class WebLifecycle:
         # 성찰 daemon: 매 틱 활성 세션 전체를 성찰한다(멀티 세션 추종)
         pcfg = state.settings.proactive
         if pcfg.daemon_enabled:
-            from jarvis.core.proactive import ProactivityDaemon
             from jarvis.memory.consolidation.idle import consolidation_targets, should_consolidate_on_idle
+            from jarvis.core.proactive import ProactivityDaemon
 
             memory = state.assembly.services.memory
             consolidate = should_consolidate_on_idle(state.settings)

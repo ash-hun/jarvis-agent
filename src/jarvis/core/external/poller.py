@@ -1,18 +1,16 @@
 """[core] 소스별 주기로 외부 세계를 훑어 dedup 하고 inbox 에 적재한 뒤 성찰 트리거를 깨운다."""
 
-from __future__ import annotations
-
+import time
 import asyncio
 import contextlib
-import time
 from collections.abc import Awaitable, Callable
 
-from jarvis.common.logger import get_logger
-from jarvis.core.external.dedup import SeenStore
+from jarvis.core.proactive.triggers import ExternalTrigger
 from jarvis.core.external.inbox import ExternalEventInbox
 from jarvis.core.external.protocol import ExternalSource
 from jarvis.core.external.types import ExternalEvent
-from jarvis.core.proactive.triggers import ExternalTrigger
+from jarvis.core.external.dedup import SeenStore
+from jarvis.common.logger import get_logger
 
 Sleeper = Callable[[float], Awaitable[None]]
 Clock = Callable[[], float]

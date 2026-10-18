@@ -1,25 +1,10 @@
 """[agent_layer] LLM 호출과 툴 실행을 max_turns 안에서 반복하는 에이전트 루프 본체."""
 
-from __future__ import annotations
-
-import asyncio
 import json
-from collections.abc import Awaitable, Callable
+import asyncio
 from typing import Any, cast
+from collections.abc import Awaitable, Callable
 
-from jarvis.agent_layer.types import (
-    AgentContext,
-    AgentEndEvent,
-    AgentErrorEvent,
-    AgentEvent,
-    AgentLoopConfig,
-    AgentStartEvent,
-    MessageUpdateEvent,
-    ToolExecutionEndEvent,
-    ToolExecutionStartEvent,
-    TurnStartEvent,
-)
-from jarvis.model_layer.stream import stream
 from jarvis.model_layer.types import (
     AssistantMessage,
     ErrorEvent,
@@ -36,6 +21,19 @@ from jarvis.model_layer.types import (
     Usage,
     UserMessage,
 )
+from jarvis.agent_layer.types import (
+    AgentContext,
+    AgentEndEvent,
+    AgentErrorEvent,
+    AgentEvent,
+    AgentLoopConfig,
+    AgentStartEvent,
+    MessageUpdateEvent,
+    ToolExecutionEndEvent,
+    ToolExecutionStartEvent,
+    TurnStartEvent,
+)
+from jarvis.model_layer.stream import stream
 
 AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
 

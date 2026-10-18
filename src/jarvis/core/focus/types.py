@@ -1,9 +1,9 @@
 """[core] Focus 작업 상태와 진행률, 예상 시간, 명령 해석을 계산하는 순수 함수."""
 
-import json
 import re
-from dataclasses import dataclass, field, replace
+import json
 from typing import Any, Literal
+from dataclasses import dataclass, field, replace
 
 AREAS = ("reference", "log", "analysis", "progress")
 STOP_WORDS = frozenset({"stop", "off", "end", "종료", "끝", "그만"})

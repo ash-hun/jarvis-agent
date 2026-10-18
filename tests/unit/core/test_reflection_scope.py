@@ -3,8 +3,8 @@
 import pytest
 
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
-from jarvis.core.proactive import DefaultProactivityCore
 from jarvis.memory.scope import MemoryScope, current_scope
+from jarvis.core.proactive import DefaultProactivityCore
 
 
 class ScopeCapturingEngine:

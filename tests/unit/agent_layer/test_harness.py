@@ -1,11 +1,7 @@
 """[agent_layer] AgentHarness 직접 테스트(메모리 체인, 세션 영속, 이벤트 구독, 중단)."""
 
-from __future__ import annotations
-
 import pytest
 
-from jarvis.agent_layer.harness import AgentHarness
-from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.agent_layer.types import (
     AgentEndEvent,
     AgentEvent,
@@ -20,6 +16,8 @@ from jarvis.model_layer.types import (
     ToolResultMessage,
     UserMessage,
 )
+from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
+from jarvis.agent_layer.harness import AgentHarness
 
 
 class SpyMemory:

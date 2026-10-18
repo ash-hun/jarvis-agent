@@ -1,4 +1,4 @@
-from __future__ import annotations
+"""실 API 없이 미리 정한 응답을 흘려주는 테스트용 모델 프로바이더."""
 
 import json
 from collections.abc import AsyncIterator

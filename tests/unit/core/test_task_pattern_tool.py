@@ -1,10 +1,10 @@
 """remember_task_pattern 도구와 /patterns 명령: 부른 에이전트 범위로 저장하고 보고 지운다."""
 
-from jarvis.core.slash.patterns_cmd import make_patterns_handler
-from jarvis.core.tools.registry import ToolContext
-from jarvis.core.tools.task_pattern import TaskPatternTool
 from jarvis.memory import MemoryScope, MemoryService, current_scope
+from jarvis.core.slash.patterns_cmd import make_patterns_handler
 from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.core.tools.task_pattern import TaskPatternTool
+from jarvis.core.tools.registry import ToolContext
 
 KAREN = MemoryScope(user_id="u1", agent_id="karen", session_id="k1")
 MAIN = MemoryScope(user_id="u1", agent_id="main", session_id="m1")

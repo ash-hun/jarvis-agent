@@ -1,22 +1,21 @@
 """[app] 최상위 에이전트 정의 파일을 읽어 에이전트마다 AgentProfile 과 SessionBuilder 를 들고 있는 레지스트리."""
 
 import re
+import yaml
 from pathlib import Path
 from typing import TYPE_CHECKING
-
-import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from jarvis.app.agent_profile import MAIN_AGENT_ID, AgentProfile
 from jarvis.app.session_builder import SessionBuilder
-from jarvis.common.logger import get_logger
 from jarvis.config import BrandConfig, BrandPalette
+from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from jarvis.app.app_context import AppContext
-    from jarvis.app.app_services import AppServices
     from jarvis.core.policy.approval_rules import ApprovalRules
     from jarvis.core.scheduler.service import TaskAgent
+    from jarvis.app.app_services import AppServices
+    from jarvis.app.app_context import AppContext
     from jarvis.core.session import AgentSession
 
 # 파일 이름이 곧 id 다. 세션, 기억, 약속, 승인 파일 이름에 그대로 들어가므로 좁게 받는다

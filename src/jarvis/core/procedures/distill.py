@@ -1,12 +1,12 @@
 """[core] 작업 구간을 LLM 으로 절차 초안(이름, 설명, 단계, 입력)으로 증류한다."""
 
-import json
 import re
-from collections.abc import Awaitable, Callable
+import json
 from dataclasses import dataclass
+from collections.abc import Awaitable, Callable
 
-from jarvis.core.procedures.detect import TaskSpan
 from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
+from jarvis.core.procedures.detect import TaskSpan
 
 MAX_NAME_LEN = 40
 MAX_ARG_CHARS = 200  # 프롬프트에 싣는 도구 인자 길이. 파일 본문 같은 긴 값은 잘라도 절차는 읽힌다

@@ -1,12 +1,10 @@
 """[voice] Supertonic-3 ONNX 로 서버에서 음성을 합성하는 로컬 TTS 프로바이더."""
 
-from __future__ import annotations
-
-import asyncio
 import io
 import wave
-from functools import partial
+import asyncio
 from typing import Any
+from functools import partial
 
 from jarvis.voice.protocol import DEFAULT_LANG, TTSProvider
 

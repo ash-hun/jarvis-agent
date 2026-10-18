@@ -1,10 +1,8 @@
 """core/tools/ — ToolRegistry + 내장 툴 테스트."""
-from __future__ import annotations
-
 import pytest
 
-from jarvis.core.tools.registry import ToolRegistry
 from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.core.tools.registry import ToolRegistry
 
 # ── ToolRegistry 기본 동작 ─────────────────────────────────────────────────────
 

@@ -1,12 +1,8 @@
 """jarvis.memory 0단계: scope 규칙, 평가 스키마와 지표, 실행기, 베이스라인 특성."""
 
+import pytest
 from datetime import datetime
 
-import pytest
-
-from jarvis.memory import MemoryKind, MemoryScope
-from jarvis.memory.eval.metrics import judge
-from jarvis.memory.eval.probe import count_llm_calls
 from jarvis.memory.eval.runner import (
     DATASETS_DIR,
     STORE_SUITES,
@@ -18,7 +14,10 @@ from jarvis.memory.eval.runner import (
     run_working,
 )
 from jarvis.memory.eval.schema import EvalCase, Expect, ScopeSpec, SetupStep, load_cases
+from jarvis.memory.eval.probe import count_llm_calls
+from jarvis.memory import MemoryKind, MemoryScope
 from jarvis.memory.eval.target import StoreTarget
+from jarvis.memory.eval.metrics import judge
 
 # ── MemoryScope ───────────────────────────────────────────────────────────────
 
@@ -148,8 +147,8 @@ async def test_store_episodic_and_procedural_suites_pass():
 
 
 async def test_count_llm_calls_wraps_provider(faux_model_with_response):
-    from jarvis.model_layer.stream import stream_to_message
     from jarvis.model_layer.types import LLMContext, UserMessage
+    from jarvis.model_layer.stream import stream_to_message
 
     model = faux_model_with_response("ok")
     ctx = LLMContext(messages=[UserMessage(content="hi")])

@@ -1,21 +1,18 @@
 """Inner Thought 배선 테스트 — session 삽입 + loop system_prompt 증강."""
-from __future__ import annotations
-
+import pytest
 import asyncio
 
-import pytest
-
-from jarvis.agent_layer.loop import _augment_system_prompt
 from jarvis.agent_layer.thought import (
     LTMThoughtSink,
     ThoughtFrame,
     ThoughtLog,
     ThoughtRequest,
 )
-from jarvis.agent_layer.thought.log import THOUGHT_SOURCE
 from jarvis.agent_layer.types import AgentContext, InnerThoughtEvent
-from jarvis.memory.memory_service import MemoryService
 from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.agent_layer.loop import _augment_system_prompt
+from jarvis.agent_layer.thought.log import THOUGHT_SOURCE
+from jarvis.memory.memory_service import MemoryService
 from jarvis.model_layer.types import ModelConfig
 
 

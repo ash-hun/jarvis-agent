@@ -1,11 +1,8 @@
 """[core] 외부 소스 선언 YAML 을 읽어 ExternalSourceSpec 목록으로 만든다."""
 
-from __future__ import annotations
-
-from pathlib import Path
-from typing import Any
-
 import yaml
+from typing import Any
+from pathlib import Path
 from pydantic import BaseModel, Field
 
 from jarvis.common.logger import get_logger

@@ -1,10 +1,7 @@
 """Proactive 코어(Tier 1 B1) 단위 테스트 — 정책 게이팅 + Dual-Channel."""
 
-from __future__ import annotations
-
 import pytest
 
-from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
 from jarvis.core.proactive import (
     DefaultProactivityCore,
     DefaultProactivityPolicy,
@@ -12,6 +9,7 @@ from jarvis.core.proactive import (
     ProactivityCore,
     ProactivityPolicy,
 )
+from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
 
 
 class _Clock:

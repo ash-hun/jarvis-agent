@@ -1,8 +1,7 @@
 """[core] AnyTrigger.wait 가 취소돼도 하위 트리거 작업을 남기지 않는다."""
 
-import asyncio
-
 import pytest
+import asyncio
 
 from jarvis.core.proactive.triggers import AnyTrigger, ReflectionTrigger
 

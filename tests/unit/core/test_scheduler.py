@@ -1,11 +1,8 @@
 """SchedulerService / ScheduledTask / loader 테스트."""
-from __future__ import annotations
-
 import sys
+import pytest
 import textwrap
 from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
 
 from jarvis.core.scheduler.task import ScheduledTask
 

@@ -1,7 +1,6 @@
 """임베딩 provider: 요청 모양과 응답 파싱을 MockTransport 로 검증. 실제 서버는 부르지 않는다."""
 
 import json
-
 import httpx
 import pytest
 

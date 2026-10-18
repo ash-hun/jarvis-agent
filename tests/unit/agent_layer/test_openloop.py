@@ -1,19 +1,8 @@
 """[agent_layer] open-loop 저장소와 약속 판정 규칙 단위 테스트."""
 
-from __future__ import annotations
-
+import pytest
 from datetime import datetime
 
-import pytest
-
-from jarvis.agent_layer.openloop import (
-    InMemoryOpenLoopStore,
-    OpenLoop,
-    OpenLoopStore,
-    close_expired,
-    normalize_description,
-    parse_loop_note,
-)
 from jarvis.agent_layer.openloop.types import (
     cancelled_ids,
     expired_ids,
@@ -23,6 +12,14 @@ from jarvis.agent_layer.openloop.types import (
     refers_to,
     same_loop,
     split_evidence,
+)
+from jarvis.agent_layer.openloop import (
+    InMemoryOpenLoopStore,
+    OpenLoop,
+    OpenLoopStore,
+    close_expired,
+    normalize_description,
+    parse_loop_note,
 )
 from jarvis.model_layer.embeddings import Embedder
 

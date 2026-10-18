@@ -1,14 +1,14 @@
 """[app] AppAssembly: 기동 한 번의 조립 결과(인프라, 서비스, 에이전트, 세션 빌더)를 묶어 화면에 넘긴다."""
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
+from dataclasses import dataclass
 
 if TYPE_CHECKING:
-    from jarvis.app.agent_profile import AgentProfile
-    from jarvis.app.agent_registry import AgentRegistry
-    from jarvis.app.app_context import AppContext
-    from jarvis.app.app_services import AppServices
     from jarvis.app.session_builder import SessionBuilder
+    from jarvis.app.agent_registry import AgentRegistry
+    from jarvis.app.agent_profile import AgentProfile
+    from jarvis.app.app_services import AppServices
+    from jarvis.app.app_context import AppContext
 
 
 @dataclass(frozen=True)

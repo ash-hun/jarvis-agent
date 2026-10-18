@@ -2,14 +2,14 @@
 
 import pytest
 
-from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
-from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
 from jarvis.core.multi_agent.factory import AgentDefinition, AgentFactory, AgentMemoryPolicy, child_session_id
-from jarvis.core.multi_agent.task import AgentTask
-from jarvis.core.multi_agent.tool import AgentNodeTool
-from jarvis.core.session import AgentSession
 from jarvis.memory import MemoryKind, MemoryScope, MemoryService, current_scope
+from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
+from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.core.multi_agent.tool import AgentNodeTool
+from jarvis.core.multi_agent.task import AgentTask
+from jarvis.core.session import AgentSession
 
 PARENT_S1 = MemoryScope(user_id="jh", agent_id="main", session_id="s1")
 PARENT_S2 = MemoryScope(user_id="jh", agent_id="main", session_id="s2")

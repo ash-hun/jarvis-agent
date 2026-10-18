@@ -1,7 +1,7 @@
 """[ui] AgentActivity: 지금 일하는 에이전트를 세션의 agent_start, agent_end 로 세고 바뀌면 열린 HUD 전부에 알린다."""
 
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.core.session import AgentSession

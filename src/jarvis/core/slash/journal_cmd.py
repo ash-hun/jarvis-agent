@@ -1,9 +1,7 @@
 """[core] 최근 자기 성찰 저널을 보이거나 새로 쓰는 /journal 핸들러 factory."""
 
-from __future__ import annotations
-
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.journal import ReflectionJournaler
@@ -18,7 +16,7 @@ _USAGE = (
 )
 
 
-def make_journal_handler(journaler: ReflectionJournaler) -> Handler:
+def make_journal_handler(journaler: "ReflectionJournaler") -> Handler:
     """SlashCommandDispatcher에 등록할 /journal 핸들러 factory."""
 
     async def handle(args: str) -> str:

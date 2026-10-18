@@ -16,8 +16,8 @@ from jarvis.core.multi_agent import (
     SupervisorOrchestrator,
     TopologyProtocol,
 )
-from jarvis.core.multi_agent.orchestrators.base import BaseOrchestrator
 from jarvis.core.multi_agent.topologies import BlackboardTopology, HierarchicalTopology, P2PTopology, SupervisorTopology
+from jarvis.core.multi_agent.orchestrators.base import BaseOrchestrator
 from jarvis.core.multi_agent.topologies.base import BaseTopology
 
 

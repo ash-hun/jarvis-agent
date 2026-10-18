@@ -1,11 +1,9 @@
 """[core] 텍스트 어디서나 /command 를 찾아 등록된 슬래시 명령 핸들러로 실행하고 남은 텍스트를 LLM 으로 넘긴다."""
 
-from __future__ import annotations
-
 import re
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
+from dataclasses import dataclass, field
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.core.scheduler.service import SchedulerService
@@ -40,9 +38,9 @@ class SlashCommandDispatcher:
 
     def __init__(
         self,
-        scheduler: SchedulerService | None = None,
-        schedule_classifier: Classifier | None = None,
-        skill_registry: SkillRegistry | None = None,
+        scheduler: "SchedulerService | None" = None,
+        schedule_classifier: "Classifier | None" = None,
+        skill_registry: "SkillRegistry | None" = None,
     ) -> None:
         self._handlers: dict[str, Handler] = {}
         self._descriptions: dict[str, str] = {}
@@ -123,7 +121,7 @@ class SlashCommandDispatcher:
         return remaining, commands
 
     def _register_builtins(
-        self, scheduler: SchedulerService | None, classifier: Classifier | None,
+        self, scheduler: "SchedulerService | None", classifier: "Classifier | None",
     ) -> None:
         from jarvis.core.slash.schedule_cmd import make_schedule_handler
 

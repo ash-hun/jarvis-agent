@@ -1,7 +1,5 @@
 """[agent_layer] JsonlOpenLoopStore 의 파일 영속과 재로드 복원 테스트."""
 
-from __future__ import annotations
-
 import pytest
 
 from jarvis.agent_layer.openloop import JsonlOpenLoopStore, OpenLoop, OpenLoopStore

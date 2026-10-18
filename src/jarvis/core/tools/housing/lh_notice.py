@@ -1,16 +1,16 @@
 """[core] LH 청약플러스 공개 공고 게시판을 지역, 상태, 유형, 키워드로 조회하고 KST 기준 마감을 붙이는 lh_notice 도구."""
 
-import asyncio
 import re
-from collections.abc import Callable
-from dataclasses import dataclass
-from datetime import date, timedelta
+import asyncio
 from typing import Any
+from dataclasses import dataclass
+from collections.abc import Callable
+from datetime import date, timedelta
 
-from jarvis.core.tools.housing.fetch import Fetch, FetchError, fetch_html, kst_today
 from jarvis.core.tools.housing.markup import deadline_label, lines_of, parse_date, table_rows, text_of
-from jarvis.core.tools.registry import JarvisTool
+from jarvis.core.tools.housing.fetch import Fetch, FetchError, fetch_html, kst_today
 from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.core.tools.registry import JarvisTool
 
 TOOL_NAME = "lh_notice"
 LH_BASE = "https://apply.lh.or.kr"

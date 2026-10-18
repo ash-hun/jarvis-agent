@@ -1,22 +1,16 @@
 """[ui] JarvisTUI: Textual 앱으로 채팅, 사이드바, 승인 모달, proactive daemon 을 묶는다."""
 
-from __future__ import annotations
-
 import re
 import time
-from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any
-
-from textual.app import App, ComposeResult
-from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
 from textual.events import Key
+from textual.binding import Binding
 from textual.reactive import Reactive
+from typing import TYPE_CHECKING, Any
+from textual.app import App, ComposeResult
+from collections.abc import Awaitable, Callable
 from textual.widgets import Footer, Header, Input
+from textual.containers import Horizontal, Vertical
 
-from jarvis.agent_layer.types import AgentEvent
-from jarvis.core.session import AgentSession
-from jarvis.ui.protocol import UIAdapter
 from jarvis.ui.tui.bridge import (
     AgentPopAction,
     AgentPushAction,
@@ -33,15 +27,18 @@ from jarvis.ui.tui.bridge import (
 )
 from jarvis.ui.tui.components.approval_dialog import ApprovalDialog
 from jarvis.ui.tui.components.chat_history import ChatHistory
-from jarvis.ui.tui.components.sidebar import SidebarPane
 from jarvis.ui.tui.components.slash_picker import SlashPicker
 from jarvis.ui.tui.components.status_bar import StatusBar
+from jarvis.ui.tui.components.sidebar import SidebarPane
+from jarvis.agent_layer.types import AgentEvent
+from jarvis.core.session import AgentSession
 from jarvis.ui.tui.state import ActiveTool
+from jarvis.ui.protocol import UIAdapter
 
 if TYPE_CHECKING:
-    from jarvis.app.app_context import AppContext
     from jarvis.core.proactive import ProactivityDaemon
     from jarvis.ui.tui.voice import TuiVoiceController
+    from jarvis.app.app_context import AppContext
 
 
 class JarvisTUI(App[None], UIAdapter):
@@ -116,8 +113,8 @@ class JarvisTUI(App[None], UIAdapter):
     def __init__(
         self,
         session: AgentSession,
-        ctx: AppContext,
-        voice_controller: TuiVoiceController | None = None,
+        ctx: "AppContext",
+        voice_controller: "TuiVoiceController | None" = None,
         **kwargs: Any,  # Textual App 생성 인자(driver_class, css_path 등)를 그대로 넘긴다
     ) -> None:
         super().__init__(**kwargs)
@@ -184,8 +181,8 @@ class JarvisTUI(App[None], UIAdapter):
         # Proactivity Daemon (B3) — 요청 없이 주기적으로 성찰해 먼저 말 검.
         pcfg = self._ctx.settings.proactive
         if pcfg.daemon_enabled:
-            from jarvis.core.proactive import ProactivityDaemon
             from jarvis.memory.consolidation.idle import consolidation_targets, should_consolidate_on_idle
+            from jarvis.core.proactive import ProactivityDaemon
 
             memory = self._ctx.memory
             consolidate = memory is not None and should_consolidate_on_idle(self._ctx.settings)

@@ -1,14 +1,14 @@
 """[agent_layer] 성찰 사고의 "먼저 말할까" 판단을 decision model 의 확률로 정하는 ThoughtEngine 래퍼."""
 
-from collections.abc import Callable
-from datetime import datetime
 from typing import Any
+from datetime import datetime
+from collections.abc import Callable
 
-from jarvis.agent_layer.thought.protocol import ThoughtEngine
-from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
-from jarvis.model_layer.decision import DecisionModel
-from jarvis.model_layer.stream import stream_to_message
 from jarvis.model_layer.types import LLMContext, Message, ModelConfig, StreamOptions, UserMessage
+from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.thought.protocol import ThoughtEngine
+from jarvis.model_layer.stream import stream_to_message
+from jarvis.model_layer.decision import DecisionModel
 
 # 이 값보다 낮으면 바로 침묵으로 두고 건넬 말을 만들지 않는다. 그 위에서 실제로 말할지는 정책 임계치가 정한다.
 # decision model 을 쓰면 정책 임계치는 JARVIS_PROACTIVE__DECISION_THRESHOLD 다(ProactiveConfig.effective_threshold)

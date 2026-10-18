@@ -1,16 +1,13 @@
 """[core] MCP 원문 응답을 외부 이벤트로 쪼개고, 이미 본 이벤트를 걸러 재발화를 막는다."""
 
-from __future__ import annotations
-
-import asyncio
-import hashlib
 import json
 import time
-from collections.abc import Callable
-from pathlib import Path
-from typing import Any
-
+import asyncio
+import hashlib
 import aiofiles
+from typing import Any
+from pathlib import Path
+from collections.abc import Callable
 
 from jarvis.core.external.types import ExternalEvent
 

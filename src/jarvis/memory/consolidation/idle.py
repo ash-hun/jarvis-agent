@@ -1,12 +1,12 @@
 """[memory] 사용자가 조용할 때 daemon 틱에 얹혀 활성 세션들의 consolidate 를 돈다(수면 중 재생 자리)."""
 
 import functools
-from collections.abc import Awaitable, Callable, Iterable
 from typing import TYPE_CHECKING, Any
+from collections.abc import Awaitable, Callable, Iterable
 
 if TYPE_CHECKING:
-    from jarvis.config import JarvisSettings
     from jarvis.memory.memory_service import MemoryService
+    from jarvis.config import JarvisSettings
 
 Target = Callable[[], Awaitable[object]]
 

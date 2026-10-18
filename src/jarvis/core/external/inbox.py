@@ -1,11 +1,9 @@
 """[core] 폴러가 넣고 성찰하는 세션이 한 번에 비우는 앱 레벨 외부 이벤트 큐."""
 
-from __future__ import annotations
-
 from collections import deque
 
-from jarvis.common.logger import get_logger
 from jarvis.core.external.types import ExternalEvent
+from jarvis.common.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -1,7 +1,7 @@
 """[memory] 저장 때 남긴 단서(범위, 태그)와 질의 단서가 겹칠수록 잘 떠오르게 하는 부호화 특수성 점수."""
 
-from jarvis.memory.scope import MemoryScope
 from jarvis.memory.stores.protocol import tokens_of
+from jarvis.memory.scope import MemoryScope
 from jarvis.memory.types import MemoryItem
 
 

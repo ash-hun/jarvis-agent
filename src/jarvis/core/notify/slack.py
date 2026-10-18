@@ -1,7 +1,7 @@
 """[core] 슬랙 incoming webhook 으로 알림 payload 를 보낸다."""
 
-from collections.abc import Awaitable, Callable
 from typing import Any
+from collections.abc import Awaitable, Callable
 
 from jarvis.common.logger import get_logger
 

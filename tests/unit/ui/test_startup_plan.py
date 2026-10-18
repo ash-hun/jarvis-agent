@@ -47,9 +47,8 @@ def test_agent_option_starts_tui_with_agent():
 
 
 async def test_resolve_tui_session_uses_agent_default_session_and_stored_agent(tmp_path):
-    from types import SimpleNamespace
-
     import pytest
+    from types import SimpleNamespace
 
     from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
     from jarvis.ui.tui.startup import resolve_tui_session

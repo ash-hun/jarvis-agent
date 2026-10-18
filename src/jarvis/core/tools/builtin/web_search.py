@@ -1,16 +1,13 @@
 """[core] Brave Search(키 없으면 DuckDuckGo)로 웹을 검색하는 web_search 내장 도구."""
 
-from __future__ import annotations
-
-import html
 import re
+import html
+import httpx
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-import httpx
-
-from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.core.tools.registry import JarvisTool
 
 DDG_HTML_URL = "https://html.duckduckgo.com/html/"
 # 기본 httpx UA 는 차단될 수 있어 브라우저처럼 보이는 값을 쓴다

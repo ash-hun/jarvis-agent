@@ -1,10 +1,8 @@
 """[core] daemon 이 언제 성찰할지 정하는 트리거들(주기, 유휴, 외부 이벤트, 합성)."""
 
-from __future__ import annotations
-
+import time
 import asyncio
 import contextlib
-import time
 from collections.abc import Awaitable, Callable
 
 Sleeper = Callable[[float], Awaitable[None]]

@@ -2,12 +2,11 @@
 
 import json
 from pathlib import Path
-
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse, Response
 
-from jarvis.config import BrandConfig
 from jarvis.ui.web.web_state import WebState
+from jarvis.config import BrandConfig
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 BRAND_JS_EXAMPLE = 'window.BRAND = {"name": "J.A.R.V.I.S.", ...};\n(function (p) { ... })(window.BRAND.palette);\n'

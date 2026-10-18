@@ -1,16 +1,14 @@
 """[agent_layer] 세션 이력, 메모리 미들웨어, 이벤트 구독을 묶어 한 턴의 에이전트 루프를 돌리는 상태 있는 래퍼."""
 
-from __future__ import annotations
-
 import asyncio
-from collections.abc import Awaitable, Callable
 from typing import Any
+from collections.abc import Awaitable, Callable
 
+from jarvis.model_layer.types import AssistantMessage, ModelConfig, Tool, ToolResultMessage
+from jarvis.agent_layer.types import AgentContext, AgentEvent, AgentLoopConfig
 from jarvis.agent_layer.loop import AgentEventSink, run_agent_loop
 from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.agent_layer.session.protocol import SessionRepo
-from jarvis.agent_layer.types import AgentContext, AgentEvent, AgentLoopConfig
-from jarvis.model_layer.types import AssistantMessage, ModelConfig, Tool, ToolResultMessage
 
 
 class AgentHarness:

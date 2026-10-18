@@ -2,15 +2,15 @@
 
 import pytest
 
-from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
-from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
-from jarvis.memory import MemoryScope, MemoryService
-from jarvis.memory.consolidation import llm_summarizer
-from jarvis.memory.eval.probe import count_llm_calls
-from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.working import InMemoryWorkingStore, WorkingState, WorkingStore, apply_window, cut_at_user_boundary
-from jarvis.memory.working.window import SUMMARY_HEADER
 from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage, UserMessage
+from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
+from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
+from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.memory.working.window import SUMMARY_HEADER
+from jarvis.memory.consolidation import llm_summarizer
+from jarvis.memory import MemoryScope, MemoryService
+from jarvis.memory.eval.probe import count_llm_calls
 
 CTX = {"session_id": "s1", "user_id": "u1", "agent_id": "main"}
 SCOPE = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
@@ -127,8 +127,8 @@ async def test_below_threshold_passes_through_without_llm(faux_model_with_respon
 
 async def test_summary_failure_keeps_history_and_writes_nothing():
     from jarvis.model_layer.registry import get_default_registry
-    from jarvis.model_layer.types import ModelConfig
     from tests.fixtures.faux_provider import FauxProviderFactory
+    from jarvis.model_layer.types import ModelConfig
 
     get_default_registry()._providers["faux"] = FauxProviderFactory.error()
     memory = _manager(ModelConfig(provider="faux", model="faux-model"), threshold_chars=10, keep_recent=1)

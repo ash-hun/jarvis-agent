@@ -1,6 +1,4 @@
 """탐색 계열 내장 툴 테스트 — glob, grep, list_dir, web_fetch."""
-from __future__ import annotations
-
 import pytest
 
 

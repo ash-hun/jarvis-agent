@@ -1,7 +1,7 @@
 """[memory] 세션 이력의 사본이 아니라 이력 위에 얹는 작업 기억 상태와, 그 상태를 dict 로 드는 저장소 기반 클래스."""
 
-from dataclasses import dataclass, field, replace
 from datetime import datetime
+from dataclasses import dataclass, field, replace
 
 from jarvis.memory.scope import MemoryScope
 

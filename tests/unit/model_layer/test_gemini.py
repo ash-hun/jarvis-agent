@@ -1,7 +1,4 @@
 """GeminiProvider 메시지 변환 및 기본 동작 테스트 (실 API 미사용)."""
-from __future__ import annotations
-
-from jarvis.model_layer.providers.gemini import _convert_messages
 from jarvis.model_layer.types import (
     AssistantMessage,
     ImageContent,
@@ -11,6 +8,7 @@ from jarvis.model_layer.types import (
     ToolResultMessage,
     UserMessage,
 )
+from jarvis.model_layer.providers.gemini import _convert_messages
 
 # ── LLMContext 헬퍼 ──────────────────────────────────────────────────────────
 
@@ -130,8 +128,8 @@ class TestGeminiProviderMetadata:
         import sys
         from unittest.mock import patch
 
-        from jarvis.model_layer.providers.gemini import GeminiProvider
         from jarvis.model_layer.types import ErrorEvent, LLMContext, ModelConfig
+        from jarvis.model_layer.providers.gemini import GeminiProvider
 
         provider = GeminiProvider()
         model = ModelConfig(provider="gemini", model="gemini-2.0-flash", api_key="test")

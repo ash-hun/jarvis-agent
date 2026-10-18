@@ -1,7 +1,5 @@
 """[agent_layer] 에이전트 하네스가 거치는 메모리 미들웨어의 기본 클래스(그대로 통과)를 정의한다."""
 
-from __future__ import annotations
-
 from typing import Any
 
 from jarvis.model_layer.types import Message

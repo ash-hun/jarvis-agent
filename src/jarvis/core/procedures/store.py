@@ -1,11 +1,10 @@
 """[core] 절차 파일 저장소. `~/.jarvis/procedures/<name>.md` 하나가 절차 하나이고 파일명이 자연 키다."""
 
 import os
-from dataclasses import dataclass, replace
+import frontmatter
 from pathlib import Path
 from typing import Any, cast
-
-import frontmatter
+from dataclasses import dataclass, replace
 
 from jarvis.common.logger import get_logger
 

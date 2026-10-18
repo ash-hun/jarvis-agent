@@ -1,10 +1,4 @@
-"""PostgresWorkingStore + PostgresItemStore 통합 테스트.
-
-testcontainers로 실제 PostgreSQL 컨테이너를 띄워 검증한다.
-Docker가 없거나 testcontainers/asyncpg가 설치되지 않으면 자동 skip.
-"""
-
-from __future__ import annotations
+"""PostgresWorkingStore 와 PostgresItemStore 를 testcontainers 의 실제 PostgreSQL 로 검증한다."""
 
 import pytest
 
@@ -37,8 +31,8 @@ async def working(postgres_dsn: str):
 
 @pytest.fixture
 async def ltm(postgres_dsn: str):
-    from jarvis.memory.memory_service import MemoryService
     from jarvis.memory.stores.postgres import PostgresItemStore
+    from jarvis.memory.memory_service import MemoryService
 
     store = PostgresItemStore(dsn=postgres_dsn)
     yield MemoryService(store)
@@ -73,8 +67,8 @@ class TestPostgresWorkingStore:
         assert state.summary is None and state.summary_covers == 0 and state.notes == []
 
     async def test_save_load_and_upsert(self, working):
-        from jarvis.memory import MemoryScope
         from jarvis.memory.working import WorkingState
+        from jarvis.memory import MemoryScope
 
         scope = MemoryScope(user_id="u1", agent_id="main", session_id="w1")
         state = WorkingState(scope=scope, summary="첫 요약", summary_covers=3, rehearsal={"i": 1}, notes=["n"])
@@ -89,8 +83,8 @@ class TestPostgresWorkingStore:
         assert (await working.load(scope)).summary == "둘째 요약"
 
     async def test_sessions_and_users_are_separate_rows(self, working):
-        from jarvis.memory import MemoryScope
         from jarvis.memory.working import WorkingState
+        from jarvis.memory import MemoryScope
 
         a = MemoryScope(user_id="u1", session_id="iso")
         b = MemoryScope(user_id="u2", session_id="iso")
@@ -101,8 +95,8 @@ class TestPostgresWorkingStore:
         assert (await working.load(a.with_session("other"))).summary is None
 
     async def test_clear(self, working):
-        from jarvis.memory import MemoryScope
         from jarvis.memory.working import WorkingState
+        from jarvis.memory import MemoryScope
 
         scope = MemoryScope(user_id="u1", session_id="clr")
         await working.save(WorkingState(scope=scope, summary="x"))
@@ -110,9 +104,9 @@ class TestPostgresWorkingStore:
         assert (await working.load(scope)).summary is None
 
     async def test_close_and_reopen(self, postgres_dsn):
-        from jarvis.memory import MemoryScope
-        from jarvis.memory.working import WorkingState
         from jarvis.memory.working.postgres import PostgresWorkingStore
+        from jarvis.memory.working import WorkingState
+        from jarvis.memory import MemoryScope
 
         scope = MemoryScope(user_id="u1", session_id="reopen")
         b = PostgresWorkingStore(dsn=postgres_dsn)
@@ -181,9 +175,9 @@ class TestItemStoreMigration:
         """범위 컬럼이 없던 테이블의 행은 전역 main 항목이 된다. 사실은 모든 에이전트에, 일화는 main 에만 보인다."""
         import asyncpg
 
-        from jarvis.memory import MemoryScope
-        from jarvis.memory.memory_service import MemoryService
         from jarvis.memory.stores.postgres import PostgresItemStore
+        from jarvis.memory.memory_service import MemoryService
+        from jarvis.memory import MemoryScope
 
         conn = await asyncpg.connect(postgres_dsn)
         try:
@@ -284,10 +278,10 @@ class TestItemStoreMigration:
 
 class TestPgvector:
     async def test_vector_search_finds_paraphrase_and_survives_reopen(self, postgres_dsn):
-        from jarvis.memory import MemoryScope
+        from jarvis.memory.stores.postgres import PostgresItemStore
         from jarvis.memory.eval.fake_embedder import FakeEmbedder
         from jarvis.memory.memory_service import MemoryService
-        from jarvis.memory.stores.postgres import PostgresItemStore
+        from jarvis.memory import MemoryScope
 
         scope = MemoryScope(user_id="vec", agent_id="main")
         store = PostgresItemStore(dsn=postgres_dsn, dimensions=FakeEmbedder.dimensions)
@@ -366,10 +360,10 @@ class TestRecallCandidates:
     async def test_old_salient_episode_and_old_core_fact_survive_newer_rows(self, postgres_dsn):
         from datetime import datetime, timedelta
 
-        from jarvis.memory import MemoryKind, MemoryScope
+        from jarvis.memory.stores.postgres import PostgresItemStore
         from jarvis.memory.eval.fake_embedder import FakeEmbedder
         from jarvis.memory.memory_service import MemoryService
-        from jarvis.memory.stores.postgres import PostgresItemStore
+        from jarvis.memory import MemoryKind, MemoryScope
 
         scope = MemoryScope(user_id="cand", agent_id="main")
         now = datetime.now()

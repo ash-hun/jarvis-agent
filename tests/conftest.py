@@ -1,14 +1,8 @@
-"""
-공통 테스트 fixture.
-모든 테스트는 실 API 없이 FauxProvider로 실행.
-"""
-from __future__ import annotations
-
+"""공통 테스트 fixture. 모든 테스트는 실 API 없이 FauxProvider 로 돈다."""
 import os
 import sys
-from pathlib import Path
-
 import pytest
+from pathlib import Path
 
 # src/ 를 import 경로에 추가 (Docker 외 로컬 실행 대비)
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -57,8 +51,8 @@ def faux_model_with_response():
     """특정 응답을 반환하는 faux model — registry를 교체."""
     def _factory(response: str = "Hello!", tool_calls: list | None = None):
         from jarvis.model_layer.registry import get_default_registry
-        from jarvis.model_layer.types import ModelConfig
         from tests.fixtures.faux_provider import FauxProvider
+        from jarvis.model_layer.types import ModelConfig
 
         registry = get_default_registry()
         registry._providers["faux"] = FauxProvider(response=response, tool_calls=tool_calls)
@@ -72,10 +66,10 @@ def faux_model_with_response():
 def permissive_pipeline():
     """인증/권한 검사 없이 모두 통과하는 파이프라인."""
     from jarvis.core.policy.authenticator import NoAuthAuthenticator
-    from jarvis.core.policy.pipeline import SecurityPipeline
-    from jarvis.core.policy.policy import AllowAllPolicy
-    from jarvis.core.policy.sandbox import PermissiveSandbox
     from jarvis.core.policy.validator import DefaultInputValidator
+    from jarvis.core.policy.pipeline import SecurityPipeline
+    from jarvis.core.policy.sandbox import PermissiveSandbox
+    from jarvis.core.policy.policy import AllowAllPolicy
 
     return SecurityPipeline(
         validator=DefaultInputValidator(),
@@ -100,10 +94,10 @@ def jsonl_repo(tmp_session_dir):
 
 @pytest.fixture
 def memory_chain():
-    from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
     from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
-    from jarvis.memory.memory_service import MemoryService
+    from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
     from jarvis.memory.stores.in_memory import InMemoryItemStore
+    from jarvis.memory.memory_service import MemoryService
     return MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(MemoryService(InMemoryItemStore(), window_size=20))])
 
 

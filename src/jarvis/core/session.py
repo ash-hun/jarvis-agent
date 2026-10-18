@@ -1,17 +1,13 @@
 """[core] 에이전트 세션. 보안, 플러그인, 스킬, 사고, proactive 를 묶어 한 턴과 자율 성찰을 실행한다."""
 
-from __future__ import annotations
-
+import time
 import asyncio
 import contextlib
-import time
 from collections import deque
-from collections.abc import Awaitable, Callable
 from datetime import datetime
+from collections.abc import Awaitable, Callable
 from typing import Any, Literal, Protocol, cast
 
-from jarvis.agent_layer.harness import AgentHarness
-from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.agent_layer.openloop import (
     LoopExpiry,
     OpenLoop,
@@ -24,15 +20,6 @@ from jarvis.agent_layer.openloop import (
     refers_to,
     split_evidence,
 )
-from jarvis.agent_layer.session.protocol import SessionRepo
-from jarvis.agent_layer.thought import (
-    DefaultThoughtComposer,
-    ThoughtComposer,
-    ThoughtEngine,
-    ThoughtLog,
-    ThoughtRequest,
-)
-from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
 from jarvis.agent_layer.types import (
     AgentEvent,
     AgentLoopConfig,
@@ -41,11 +28,6 @@ from jarvis.agent_layer.types import (
     ToolExecutionEndEvent,
     ToolExecutionStartEvent,
 )
-from jarvis.agent_layer.usermodel import UserModelStore
-from jarvis.common.logger import get_logger
-from jarvis.core.external import ExternalEventInbox
-from jarvis.core.plugins.runner import PluginRunner
-from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
 from jarvis.core.proactive import (
     ActivityClock,
     EmitProactive,
@@ -54,10 +36,26 @@ from jarvis.core.proactive import (
     ProactiveMessage,
     ProactivityCore,
 )
-from jarvis.core.skills.registry import SkillRegistry
-from jarvis.core.tools.registry import JarvisTool, ToolRegistry
-from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope, current_scope
+from jarvis.agent_layer.thought import (
+    DefaultThoughtComposer,
+    ThoughtComposer,
+    ThoughtEngine,
+    ThoughtLog,
+    ThoughtRequest,
+)
+from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
 from jarvis.model_layer.types import AssistantMessage, ModelConfig, ToolResultMessage
+from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope, current_scope
+from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
+from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
+from jarvis.core.tools.registry import JarvisTool, ToolRegistry
+from jarvis.agent_layer.session.protocol import SessionRepo
+from jarvis.agent_layer.usermodel import UserModelStore
+from jarvis.core.skills.registry import SkillRegistry
+from jarvis.agent_layer.harness import AgentHarness
+from jarvis.core.external import ExternalEventInbox
+from jarvis.core.plugins.runner import PluginRunner
+from jarvis.common.logger import get_logger
 
 # daemon 자율 성찰 시 user_input 대신 넣는 seed. 요청 없는 시점임을 모델에 알린다.
 REFLECTION_SEED = (

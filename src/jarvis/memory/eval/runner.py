@@ -1,11 +1,11 @@
 """[memory] 사례를 대상에 넣고 질의해 판정한다(사례마다 저장소를 비우므로 실행 순서에 의존하지 않는다)."""
 
-from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from dataclasses import asdict, dataclass
 
-from jarvis.memory.eval.metrics import CaseResult, SuiteReport, judge, summarize
 from jarvis.memory.eval.schema import EvalCase, WorkingCase, load_cases, load_working_cases
+from jarvis.memory.eval.metrics import CaseResult, SuiteReport, judge, summarize
 from jarvis.memory.eval.target import EvalTarget, WorkingTarget
 from jarvis.memory.working.window import SUMMARY_HEADER
 from jarvis.model_layer.types import Message

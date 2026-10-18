@@ -1,6 +1,4 @@
 """core/skills/ — SkillRegistry + /command 확장 테스트."""
-from __future__ import annotations
-
 import pytest
 
 from jarvis.core.skills.registry import Skill, SkillRegistry

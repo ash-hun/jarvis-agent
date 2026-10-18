@@ -1,16 +1,14 @@
 """[core] 지정한 MCP 서버의 툴을 한 번 불러 그 원문을 외부 이벤트로 바꾸는 소스."""
 
-from __future__ import annotations
-
 import asyncio
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
+from collections.abc import Awaitable, Callable
 
-from jarvis.common.logger import get_logger
-from jarvis.core.external.dedup import derive_events
 from jarvis.core.external.loader import ExternalSourceSpec
 from jarvis.core.external.protocol import ExternalSource
+from jarvis.core.external.dedup import derive_events
 from jarvis.core.external.types import ExternalEvent
+from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
     from jarvis.config import MCPServerConfig
@@ -32,7 +30,7 @@ class McpToolSource(ExternalSource):
     def __init__(
         self,
         spec: ExternalSourceSpec,
-        server: MCPServerConfig,
+        server: "MCPServerConfig",
         *,
         call: CallMcpTool | None = None,
         detail_max_chars: int = 500,
@@ -70,7 +68,7 @@ class McpToolSource(ExternalSource):
 
 def build_mcp_sources(
     specs: list[ExternalSourceSpec],
-    servers: list[MCPServerConfig],
+    servers: "list[MCPServerConfig]",
     *,
     detail_max_chars: int = 500,
     call: CallMcpTool | None = None,

@@ -1,11 +1,11 @@
 """[memory] 장기 기억 저장소 기반 클래스로, scope 필수 조회와 대체 항목 제외 규칙을 프로세스 메모리 dict 로 구현한다."""
 
-from collections.abc import Sequence
 from datetime import datetime
+from collections.abc import Sequence
 
-from jarvis.memory.scope import MemoryScope
 from jarvis.memory.types import MemoryItem, MemoryKind
 from jarvis.model_layer.embeddings import cosine
+from jarvis.memory.scope import MemoryScope
 
 # 긴 것부터 본다('에서' 를 '서' 보다 먼저). 떼고 남는 말이 MIN_STEM_CHARS 보다 짧으면 떼지 않는다(회의, 평가)
 JOSA = (

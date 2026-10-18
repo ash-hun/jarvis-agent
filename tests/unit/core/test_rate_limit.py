@@ -1,10 +1,7 @@
 """Rate Limiting — AgentSession._check_rate_limit 단위 테스트."""
-from __future__ import annotations
-
 import time
-from collections import deque
-
 import pytest
+from collections import deque
 
 from jarvis.core.policy.pipeline import PolicyDenied
 

@@ -1,21 +1,21 @@
 """[scripts] 상황 사례로 사고 엔진부터 게이팅까지 돌려, 말해야 할 때 말하고 아닐 때 침묵하는지 모델별로 잰다."""
 
-import argparse
-import asyncio
 import json
 import time
+import asyncio
+import argparse
 from pathlib import Path
+from scripts.experiments.models import OLLAMA_URL, model_config
 
 from jarvis.agent_layer.thought import InnerThoughtEngine, ThoughtEngine, ThoughtPromptTemplate
-from jarvis.agent_layer.thought.decision_gate import DecisionGatedEngine
 from jarvis.agent_layer.thought.prompt import DEFAULT_REFLECTION_TEMPLATE
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
-from jarvis.config import get_settings
-from jarvis.core.proactive.eval.__main__ import FIXED_CLOCK
+from jarvis.agent_layer.thought.decision_gate import DecisionGatedEngine
 from jarvis.core.proactive.eval.runner import load_suites, run_cases
+from jarvis.core.proactive.eval.__main__ import FIXED_CLOCK
 from jarvis.core.proactive.eval.schema import load_cases
 from jarvis.model_layer.decision import DecisionModel
-from scripts.experiments.models import OLLAMA_URL, model_config
+from jarvis.config import get_settings
 
 SWEEP = (0.3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9)
 

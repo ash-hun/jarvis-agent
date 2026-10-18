@@ -1,7 +1,5 @@
 """[core] proactive 발화의 수락, 무시, 무응답을 누적해 발화 임계치를 조정한다."""
 
-from __future__ import annotations
-
 
 class FeedbackLearner:
     """proactive 발화 수락/무시를 누적해 confidence 임계치를 자동 조정한다 (C3).

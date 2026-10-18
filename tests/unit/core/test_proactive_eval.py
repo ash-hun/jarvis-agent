@@ -2,7 +2,6 @@
 
 import pytest
 
-from jarvis.agent_layer.thought.types import ThoughtFrame
 from jarvis.core.proactive.eval import (
     DATASETS_DIR,
     SUITES,
@@ -15,9 +14,10 @@ from jarvis.core.proactive.eval import (
     load_suites,
     run_cases,
 )
-from jarvis.core.proactive.eval.__main__ import main
 from jarvis.core.proactive.eval.runner import build_policy, to_request
+from jarvis.agent_layer.thought.types import ThoughtFrame
 from jarvis.core.proactive.types import ProactiveDecision
+from jarvis.core.proactive.eval.__main__ import main
 
 
 def test_datasets_exist_and_parse():

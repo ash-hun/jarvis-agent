@@ -1,7 +1,5 @@
 """[voice] STT/TTS 프로바이더가 상속하는 기본 클래스를 정의하고, 기본 동작은 브라우저 위임이다."""
 
-from __future__ import annotations
-
 DEFAULT_SAMPLE_RATE = 16000
 DEFAULT_LANG = "ko"
 

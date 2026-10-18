@@ -1,9 +1,7 @@
 """[ui] ChatHistory: TUI 채팅 영역에 역할별 색으로 줄을 쓴다."""
 
-from __future__ import annotations
-
-from rich.markup import escape as markup_escape
 from textual.widgets import RichLog
+from rich.markup import escape as markup_escape
 
 
 class ChatHistory(RichLog):

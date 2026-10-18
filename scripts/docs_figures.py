@@ -1,8 +1,8 @@
 """Generates the paper-style figures at the top of each docs feature page as SVG files under website/src/figures/."""
 
 import sys
-from dataclasses import dataclass, field
 from pathlib import Path
+from dataclasses import dataclass, field
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "website" / "src" / "figures"
 WIDTH = 760

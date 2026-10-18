@@ -1,10 +1,10 @@
 """[voice] Piper ONNX 음성 모델 하나로 서버에서 음성을 합성하는 로컬 TTS 프로바이더."""
 
-import asyncio
 import io
 import wave
-from functools import partial
+import asyncio
 from pathlib import Path
+from functools import partial
 
 from jarvis.voice.protocol import DEFAULT_LANG, TTSProvider
 

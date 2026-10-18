@@ -1,9 +1,6 @@
 """[core] 노드를 레벨(0 = 루트, 같은 레벨은 병렬 실행)과 부모로 묶는 트리 토폴로지."""
 
-from __future__ import annotations
-
 from jarvis.core.multi_agent.protocol import AgentNodeProtocol
-
 from .base import BaseTopology
 
 

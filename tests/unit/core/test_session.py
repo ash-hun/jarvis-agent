@@ -1,13 +1,11 @@
 """core/session.py — AgentSession 전체 흐름 테스트 (faux provider 사용)."""
-from __future__ import annotations
-
 import pytest
 
+from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.core.policy.pipeline import ValidationError
 from jarvis.agent_layer.types import (
     AgentEvent,
 )
-from jarvis.core.policy.pipeline import ValidationError
-from jarvis.model_layer.types import TextContent, ToolResultMessage
 
 
 class TestAgentSessionPrompt:

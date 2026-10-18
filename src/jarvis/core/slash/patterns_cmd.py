@@ -1,7 +1,7 @@
 """[core] 지금 에이전트의 작업 패턴(사용자가 알려 준 방식)을 보고 지우는 /patterns 핸들러 factory."""
 
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.memory.memory_service import MemoryService

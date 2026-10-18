@@ -2,12 +2,12 @@
 
 from unittest.mock import MagicMock
 
-from jarvis.config import JarvisSettings
-from jarvis.core.proactive import ProactivityDaemon
-from jarvis.memory import MemoryKind, MemoryScope, MemoryService
 from jarvis.memory.consolidation.idle import consolidation_targets, should_consolidate_on_idle
+from jarvis.memory import MemoryKind, MemoryScope, MemoryService
 from jarvis.memory.consolidation.semantic_extract import Fact
 from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.core.proactive import ProactivityDaemon
+from jarvis.config import JarvisSettings
 
 SCOPE = MemoryScope(user_id="jh", agent_id="main", session_id="s1")
 

@@ -1,9 +1,6 @@
 """core/policy/ — SecurityPipeline 4단계 테스트."""
-from __future__ import annotations
-
 import pytest
 
-from jarvis.core.policy.authenticator import ApiKeyAuthenticator, NoAuthAuthenticator
 from jarvis.core.policy.pipeline import (
     AuthContext,
     AuthError,
@@ -12,8 +9,9 @@ from jarvis.core.policy.pipeline import (
     SecurityPipeline,
     ValidationError,
 )
-from jarvis.core.policy.policy import AllowAllPolicy, RoleBasedPolicy
+from jarvis.core.policy.authenticator import ApiKeyAuthenticator, NoAuthAuthenticator
 from jarvis.core.policy.sandbox import DefaultSandbox, PermissiveSandbox
+from jarvis.core.policy.policy import AllowAllPolicy, RoleBasedPolicy
 from jarvis.core.policy.validator import DefaultInputValidator
 
 # ── Step 1: InputValidator ────────────────────────────────────────────────────
@@ -252,8 +250,8 @@ class TestSecurityPipelineFull:
 
 @pytest.mark.asyncio
 async def test_api_key_authenticator_maps_key_to_user_name():
-    from jarvis.core.policy.authenticator import ApiKeyAuthenticator
     from jarvis.core.policy.pipeline import AuthError, ValidatedInput
+    from jarvis.core.policy.authenticator import ApiKeyAuthenticator
 
     auth = ApiKeyAuthenticator(
         valid_keys={"k-123": frozenset({"admin"})}, user_names={"k-123": "jh"}

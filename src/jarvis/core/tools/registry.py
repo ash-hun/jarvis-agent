@@ -1,11 +1,9 @@
 """[core] 도구의 기반 클래스(JarvisTool)와 이름으로 등록, 조회, 실행하는 ToolRegistry 를 제공한다."""
 
-from __future__ import annotations
-
 import asyncio
 import inspect
-from dataclasses import dataclass
 from typing import Any
+from dataclasses import dataclass
 
 from jarvis.model_layer.types import TextContent, Tool, ToolResultMessage
 

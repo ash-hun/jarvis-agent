@@ -1,12 +1,10 @@
 """[core] 같은 (content, context) 가 항상 같은 task_id 를 갖는 불변 AgentTask 와 그 결과 AgentResult 를 정한다."""
 
-from __future__ import annotations
-
-import hashlib
 import json
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
+import hashlib
 from typing import Any
+from datetime import UTC, datetime
+from dataclasses import dataclass, field
 
 from jarvis.memory.scope import MemoryScope
 
@@ -38,7 +36,7 @@ class AgentTask:
         context: dict[str, Any] | None = None,
         parent_task_id: str | None = None,
         scope: MemoryScope | None = None,
-    ) -> AgentTask:
+    ) -> "AgentTask":
         ctx = context or {}
         return cls(
             task_id=_make_task_id(content, ctx),

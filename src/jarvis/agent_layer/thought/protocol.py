@@ -1,9 +1,7 @@
 """[agent_layer] inner thought 엔진 기본 클래스와 메모리 회상 콜백 타입을 정의한다."""
 
-from __future__ import annotations
-
-from collections.abc import Awaitable, Callable
 from typing import Any
+from collections.abc import Awaitable, Callable
 
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
 from jarvis.model_layer.types import Message

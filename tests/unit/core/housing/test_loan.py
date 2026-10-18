@@ -1,8 +1,7 @@
 """housing_loan: 상환 방식별 원리금, 연차 합계, 대출원금 정하기, 금리 역산."""
 
-import asyncio
-
 import pytest
+import asyncio
 
 from jarvis.core.tools.housing.loan import (
     HousingLoanTool,
@@ -118,8 +117,8 @@ def test_loan_from_notice_id_and_unit(lh_board):
 
 
 def test_loan_from_notice_reports_board_failure():
-    from jarvis.core.tools.housing import housing_tools
     from tests.unit.core.housing.conftest import TODAY, FakeBoard
+    from jarvis.core.tools.housing import housing_tools
 
     loan = housing_tools(FakeBoard({}), lambda: TODAY)[2]
     result = asyncio.run(loan.execute("t1", {"notice_id": "0000061179-02-39-39", "years": 30, "ltv_percent": 70,

@@ -1,6 +1,4 @@
 """TUI 음성 컨트롤러 — TuiVoiceController + 시스템 오디오 백엔드 테스트."""
-from __future__ import annotations
-
 import pytest
 
 from jarvis.ui.tui.voice import (

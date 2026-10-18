@@ -1,7 +1,7 @@
 """[memory] "어떻게 하는지"는 스킬 파일이 정본이라 절차 기억을 저장소에 복제하지 않고 읽기 전용으로 노출한다."""
 
-from dataclasses import dataclass, field
 from typing import Any
+from dataclasses import dataclass, field
 
 from jarvis.memory.stores.protocol import tokens_of
 

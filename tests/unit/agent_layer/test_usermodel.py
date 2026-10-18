@@ -1,9 +1,6 @@
 """[agent_layer] 사용자 모델(타입, 저장소, 빌더, 명령) 테스트."""
 
-from __future__ import annotations
-
 import json
-
 import pytest
 
 from jarvis.agent_layer.usermodel import (

@@ -1,6 +1,4 @@
 """운영 슬래시 커맨드 핸들러 테스트 — /sessions, /branch, /tools, /compact."""
-from __future__ import annotations
-
 import pytest
 
 from jarvis.model_layer.types import UserMessage
@@ -81,8 +79,8 @@ class TestToolsHandler:
 class TestCompactHandler:
     @pytest.fixture
     def ltm(self):
-        from jarvis.memory.memory_service import MemoryService
         from jarvis.memory.stores.in_memory import InMemoryItemStore
+        from jarvis.memory.memory_service import MemoryService
         return MemoryService(InMemoryItemStore())
 
     @pytest.fixture

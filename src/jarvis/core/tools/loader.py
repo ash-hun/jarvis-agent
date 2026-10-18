@@ -1,21 +1,18 @@
 """[core] 디렉터리의 .py / .yaml 파일에서 도구를 읽어 ToolRegistry 에 등록하고 바뀌면 다시 읽는다."""
 
-from __future__ import annotations
-
-import asyncio
-import importlib.util
-import inspect
 import sys
-from collections.abc import Awaitable, Callable
+import yaml
+import asyncio
+import inspect
+import importlib.util
+from typing import Any
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from collections.abc import Awaitable, Callable
 
-import yaml
-
-from jarvis.common.logger import get_logger
-from jarvis.core.tools.registry import JarvisTool, ToolRegistry
 from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.core.tools.registry import JarvisTool, ToolRegistry
+from jarvis.common.logger import get_logger
 
 # 사용자 도구는 JarvisTool 을 상속하지 않아도 된다. 예전 runtime_checkable Protocol 검사와 같은 멤버로 모양만 본다
 TOOL_MODULE_PREFIX = "_jarvis_tool_"

@@ -1,7 +1,7 @@
 """[memory] 절차 블록은 설명이 없을 때만 "이름: " 꼬리를 빼고, 설명 끝의 ":" 와 공백은 그대로 둔다."""
 
-from jarvis.memory.long_term.procedural import Procedure
 from jarvis.memory.memory_service import PROCEDURES_HEADER, _procedures_block
+from jarvis.memory.long_term.procedural import Procedure
 
 
 def test_description_trailing_colon_is_kept():

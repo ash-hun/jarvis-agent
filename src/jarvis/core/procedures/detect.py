@@ -1,7 +1,7 @@
 """[core] 세션 이력에서 "도구를 여러 번 써서 성공으로 끝난 작업 구간"을 찾는 순수 함수."""
 
-from dataclasses import dataclass
 from typing import Any
+from dataclasses import dataclass
 
 from jarvis.model_layer.types import AssistantMessage, Message, ToolResultMessage
 

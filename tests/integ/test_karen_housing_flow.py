@@ -1,23 +1,18 @@
-"""KAREN 이 청약 공고를 찾고 대출을 계산하는 시나리오. 저장소의 team/karen.yaml 을 그대로 쓴다.
-
-각본 프로바이더(tests/fixtures/housing_provider.py)가 모델 자리에 서고, LH, SH 게시판은 실제 페이지에서 잘라 둔 HTML 을
-돌려주는 가짜 fetch 로 바꾼다. 오늘은 2026-10-13(KST)로 고정한다.
-"""
-
-from pathlib import Path
+"""KAREN 이 청약 공고를 찾고 대출을 계산하는 시나리오. 저장소의 team/karen.yaml 을 그대로 쓴다."""
 
 import pytest
+from pathlib import Path
 
 pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from jarvis.app.infra_builder import build_app  # noqa: E402
-from jarvis.config import JarvisSettings  # noqa: E402
-from jarvis.core.tools.housing import housing_tools  # noqa: E402
-from jarvis.ui.web.server import create_app  # noqa: E402
-from tests.fixtures.housing_provider import HousingProvider  # noqa: E402
 from tests.unit.core.housing.conftest import TODAY, FakeBoard, page  # noqa: E402
+from tests.fixtures.housing_provider import HousingProvider  # noqa: E402
+from jarvis.core.tools.housing import housing_tools  # noqa: E402
+from jarvis.app.infra_builder import build_app  # noqa: E402
+from jarvis.ui.web.server import create_app  # noqa: E402
+from jarvis.config import JarvisSettings  # noqa: E402
 
 TEAM_DIR = Path(__file__).resolve().parents[2] / "team"
 

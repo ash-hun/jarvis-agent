@@ -1,10 +1,10 @@
 """승인이 필요한 도구: 모델이 방법 안내로 피하지 않게 규칙을 덧붙이고, 거부 결과는 도구를 계속 쓸 수 있다고 알린다."""
 
-from collections.abc import AsyncIterator
 from typing import Any
+from collections.abc import AsyncIterator
 
-from jarvis.model_layer.registry import get_default_registry
 from jarvis.model_layer.types import LLMContext, ModelConfig, StreamEvent, StreamOptions
+from jarvis.model_layer.registry import get_default_registry
 from tests.fixtures.faux_provider import FauxProvider
 
 
@@ -23,9 +23,9 @@ class _Recording(FauxProvider):
 
 def _pipeline(sandbox: Any) -> Any:
     from jarvis.core.policy.authenticator import NoAuthAuthenticator
+    from jarvis.core.policy.validator import DefaultInputValidator
     from jarvis.core.policy.pipeline import SecurityPipeline
     from jarvis.core.policy.policy import AllowAllPolicy
-    from jarvis.core.policy.validator import DefaultInputValidator
 
     return SecurityPipeline(
         validator=DefaultInputValidator(), authenticator=NoAuthAuthenticator(), policy=AllowAllPolicy(), sandbox=sandbox

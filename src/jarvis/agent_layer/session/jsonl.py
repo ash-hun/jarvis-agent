@@ -1,16 +1,13 @@
 """[agent_layer] 세션 메타와 메시지를 세션별 JSONL 파일에 append 로 영속한다."""
 
-from __future__ import annotations
-
-import builtins
 import json
+import aiofiles
+import builtins
 from pathlib import Path
 
-import aiofiles
-
 from jarvis.agent_layer.session.protocol import SessionEntry, SessionMetadata, SessionRepo, deserialize_message
-from jarvis.memory.scope import MAIN_AGENT
 from jarvis.model_layer.types import Message
+from jarvis.memory.scope import MAIN_AGENT
 
 
 class JsonlSessionRepo(SessionRepo):

@@ -2,8 +2,8 @@
 
 import pytest
 
-from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
 from jarvis.memory import WRITE_RULES, MemoryItem, MemoryKind, MemoryScope, MemoryService, current_scope
+from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.stores.protocol import ItemStore
 from jarvis.model_layer.types import UserMessage

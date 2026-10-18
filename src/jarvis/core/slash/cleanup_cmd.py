@@ -1,10 +1,8 @@
 """[core] 범위 도입 전 남은 데이터를 보여 주고 확인어가 있을 때만 지우는 /cleanup 핸들러 factory."""
 
-from __future__ import annotations
-
 import re
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
@@ -24,7 +22,7 @@ _USAGE = (
 
 
 def make_cleanup_handler(
-    session_repo: SessionRepo,
+    session_repo: "SessionRepo",
     memory: Any = None,
     keep_agent_sessions: set[str] | None = None,
 ) -> Handler:

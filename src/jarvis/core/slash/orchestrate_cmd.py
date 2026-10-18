@@ -1,9 +1,7 @@
 """[core] 사용자가 패턴과 참여 에이전트를 직접 지정해 오케스트레이션을 돌리는 /orchestrate 핸들러 factory."""
 
-from __future__ import annotations
-
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.core.multi_agent.service import OrchestrationService
@@ -44,7 +42,7 @@ def parse_args(args: str) -> tuple[str, list[str] | None, bool, str]:
     return pattern, agents, promote, task
 
 
-def make_orchestrate_handler(service: OrchestrationService) -> Handler:
+def make_orchestrate_handler(service: "OrchestrationService") -> Handler:
     async def handle(args: str) -> str:
         args = args.strip()
         if not args or args.lower() in ("help", "?"):

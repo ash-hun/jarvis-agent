@@ -1,20 +1,8 @@
 """Protocol 에서 바꾼 core 기본 클래스: 기본 동작과 구현체의 isinstance 가 유지되는지."""
 
+import pytest
 import asyncio
 
-import pytest
-
-from jarvis.agent_layer.thought.types import ThoughtFrame
-from jarvis.config import MCPServerConfig
-from jarvis.core.external import (
-    ExternalEvent,
-    ExternalSource,
-    ExternalSourceSpec,
-    InMemorySeenStore,
-    JsonlSeenStore,
-    McpToolSource,
-    SeenStore,
-)
 from jarvis.core.proactive import (
     AnyTrigger,
     DefaultProactivityCore,
@@ -26,6 +14,17 @@ from jarvis.core.proactive import (
     ProactivityPolicy,
     ReflectionTrigger,
 )
+from jarvis.core.external import (
+    ExternalEvent,
+    ExternalSource,
+    ExternalSourceSpec,
+    InMemorySeenStore,
+    JsonlSeenStore,
+    McpToolSource,
+    SeenStore,
+)
+from jarvis.agent_layer.thought.types import ThoughtFrame
+from jarvis.config import MCPServerConfig
 
 SPEAKING_FRAME = ThoughtFrame(decision="act", confidence=1.0, utterance="먼저 말할 거리")
 

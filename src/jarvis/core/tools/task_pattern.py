@@ -3,10 +3,10 @@
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from jarvis.core.tools.registry import JarvisTool, ToolContext
 from jarvis.memory.long_term.task_pattern import TaskPattern, normalize_keywords
-from jarvis.memory.scope import current_scope
 from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.core.tools.registry import JarvisTool, ToolContext
+from jarvis.memory.scope import current_scope
 
 if TYPE_CHECKING:
     from jarvis.memory.memory_service import MemoryService

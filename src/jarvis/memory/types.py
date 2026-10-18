@@ -1,10 +1,10 @@
 """[memory] 심리학의 장기 기억 분류(일화, 의미, 절차)를 그대로 쓴 메모리 항목의 종류와 데이터 모델."""
 
 import uuid
-from dataclasses import dataclass, field
-from datetime import datetime
 from enum import StrEnum
+from datetime import datetime
 from typing import Any, Literal
+from dataclasses import dataclass, field
 
 from jarvis.memory.scope import MemoryScope
 

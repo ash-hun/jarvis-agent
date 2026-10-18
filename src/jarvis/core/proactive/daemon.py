@@ -1,7 +1,5 @@
 """[core] 요청 없이 도는 백그라운드 성찰 루프. 트리거가 깨울 때마다 활성 세션들을 성찰시킨다."""
 
-from __future__ import annotations
-
 import asyncio
 import contextlib
 from collections.abc import Awaitable, Callable, Iterable

@@ -1,9 +1,9 @@
 """[memory] LoCoMo(Maharana et al. 2024) 샘플의 두 화자 대화와 qa 를 BenchmarkQuestion 으로 바꾼다."""
 
-import json
 import re
-from pathlib import Path
+import json
 from typing import Any
+from pathlib import Path
 
 from jarvis.memory.eval.benchmark import BenchmarkQuestion, BenchmarkSession, BenchmarkTurn
 

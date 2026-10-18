@@ -1,7 +1,7 @@
 """[ui] SessionApprovals: 세션 하나의 승인 요청을 붙어 있는 모든 연결에 보내고 먼저 온 답을 쓴다."""
 
-import asyncio
 import uuid
+import asyncio
 from collections.abc import Callable
 
 from jarvis.core.policy.sandbox import TIMEOUT

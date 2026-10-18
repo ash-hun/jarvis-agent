@@ -1,12 +1,11 @@
 """DecisionGatedEngine: 성찰의 결정과 확신도를 decision model 확률로 바꾸고, 실패하면 원래 프레임을 쓴다."""
 
+import pytest
 from datetime import datetime
 
-import pytest
-
 from jarvis.agent_layer.thought.decision_gate import DecisionGatedEngine, decision_state
-from jarvis.agent_layer.thought.protocol import ThoughtEngine
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.thought.protocol import ThoughtEngine
 from jarvis.model_layer.types import ModelConfig, UserMessage
 
 NOW = datetime(2026, 1, 1, 9, 0)

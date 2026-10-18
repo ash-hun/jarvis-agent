@@ -1,10 +1,7 @@
 """[core] 여러 오케스트레이터를 순차 합성해 앞 단계 결과를 다음 단계 입력으로 넘기는 fail-fast 파이프라인."""
 
-from __future__ import annotations
-
 from jarvis.core.multi_agent.protocol import OrchestratorProtocol
 from jarvis.core.multi_agent.task import AgentResult, AgentTask
-
 from .base import BaseOrchestrator
 
 

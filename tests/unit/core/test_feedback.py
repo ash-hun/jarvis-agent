@@ -1,10 +1,8 @@
 """피드백 학습(Tier 2 C3) — FeedbackLearner + 정책 동적 임계치."""
-from __future__ import annotations
-
 import pytest
 
-from jarvis.agent_layer.thought.types import ThoughtFrame
 from jarvis.core.proactive import DefaultProactivityPolicy, FeedbackLearner
+from jarvis.agent_layer.thought.types import ThoughtFrame
 
 
 def test_accept_lowers_threshold():

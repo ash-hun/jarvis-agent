@@ -1,7 +1,5 @@
 """[core] 보안 파이프라인 Step 2 의 인증기 구현체(익명 통과, API key)를 제공한다."""
 
-from __future__ import annotations
-
 from typing import Any
 
 from jarvis.core.policy.pipeline import (

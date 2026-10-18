@@ -1,18 +1,16 @@
 """[core] MCP 서버의 툴을 열거해 JarvisTool 로 감싸 ToolRegistry 에 등록하고 호출을 중계한다."""
 
-from __future__ import annotations
-
-import asyncio
 import json
+import asyncio
 from typing import TYPE_CHECKING, Any
 
-from jarvis.common.logger import get_logger
 from jarvis.core.tools.registry import JarvisTool
+from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from jarvis.config import MCPServerConfig
-    from jarvis.core.tools.registry import ToolRegistry
     from jarvis.model_layer.types import ToolResultMessage
+    from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.config import MCPServerConfig
 
 logger = get_logger(__name__)
 
@@ -22,7 +20,7 @@ class MCPToolWrapper(JarvisTool):
 
     def __init__(
         self,
-        server_config: MCPServerConfig,
+        server_config: "MCPServerConfig",
         tool_name: str,
         description: str,
         input_schema: dict[str, Any],
@@ -33,7 +31,7 @@ class MCPToolWrapper(JarvisTool):
         self.execution_mode = "parallel"
         self._server = server_config
 
-    async def execute(self, tool_call_id: str, params: dict[str, Any], signal: Any = None) -> ToolResultMessage:
+    async def execute(self, tool_call_id: str, params: dict[str, Any], signal: Any = None) -> "ToolResultMessage":
         from jarvis.model_layer.types import TextContent, ToolResultMessage
 
         try:
@@ -68,10 +66,10 @@ class MCPToolWrapper(JarvisTool):
 class MCPToolLoader:
     """MCP 서버에 연결해 툴을 열거하고 ToolRegistry에 등록한다."""
 
-    def __init__(self, registry: ToolRegistry) -> None:
+    def __init__(self, registry: "ToolRegistry") -> None:
         self._registry = registry
 
-    async def load_servers(self, servers: list[MCPServerConfig]) -> list[str]:
+    async def load_servers(self, servers: "list[MCPServerConfig]") -> list[str]:
         """각 서버에 연결해 툴 목록을 등록. mcp 패키지 없으면 skip. Returns registered tool names."""
         try:
             import mcp  # noqa: F401
@@ -116,7 +114,7 @@ class MCPToolLoader:
         return loaded
 
 
-async def _list_mcp_tools(server: MCPServerConfig) -> list[dict[str, Any]]:
+async def _list_mcp_tools(server: "MCPServerConfig") -> list[dict[str, Any]]:
     from mcp import ClientSession
     if server.transport == "stdio":
         if not server.command:
@@ -145,7 +143,7 @@ async def _list_mcp_tools(server: MCPServerConfig) -> list[dict[str, Any]]:
     raise ValueError(f"Unsupported MCP transport '{server.transport}' for '{server.name}'")
 
 
-async def call_mcp_tool(server: MCPServerConfig, tool_name: str, params: dict[str, Any]) -> str:
+async def call_mcp_tool(server: "MCPServerConfig", tool_name: str, params: dict[str, Any]) -> str:
     from mcp import ClientSession
     if server.transport == "stdio":
         if not server.command:
@@ -174,7 +172,7 @@ async def call_mcp_tool(server: MCPServerConfig, tool_name: str, params: dict[st
     raise ValueError(f"Unsupported MCP transport '{server.transport}'")
 
 
-def _build_http_headers(server: MCPServerConfig) -> dict[str, str] | None:
+def _build_http_headers(server: "MCPServerConfig") -> dict[str, str] | None:
     """http transport용 헤더 구성. auth_token이 있으면 Authorization: Bearer로 추가.
 
     명시적으로 지정한 headers가 auth_token 파생 헤더보다 우선한다.

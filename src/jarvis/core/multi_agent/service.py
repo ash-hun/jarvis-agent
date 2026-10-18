@@ -1,26 +1,23 @@
 """[core] 패턴 이름과 작업 문구로 토폴로지와 오케스트레이터를 조립해 실행하는 슬래시 명령과 도구의 공통 뒷단."""
 
-from __future__ import annotations
-
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
+from collections.abc import Sequence
 
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, current_task
-
-from .blackboard import SharedBlackboard
-from .factory import AgentDefinition, AgentFactory
-from .node import LazyAgentNode, _clip
-from .orchestrators.base import BaseOrchestrator
-from .orchestrators.blackboard import BlackboardOrchestrator
 from .orchestrators.hierarchical import HierarchicalOrchestrator
-from .orchestrators.market import MarketOrchestrator
-from .orchestrators.pipeline import OrchestratorPipeline
+from .orchestrators.blackboard import BlackboardOrchestrator
 from .orchestrators.supervisor import SupervisorOrchestrator
-from .protocol import OrchestratorProtocol
-from .task import AgentResult, AgentTask
-from .topologies.blackboard import BlackboardTopology
 from .topologies.hierarchical import HierarchicalTopology
+from .orchestrators.pipeline import OrchestratorPipeline
+from .topologies.blackboard import BlackboardTopology
 from .topologies.supervisor import SupervisorTopology
+from .orchestrators.market import MarketOrchestrator
+from .factory import AgentDefinition, AgentFactory
+from .orchestrators.base import BaseOrchestrator
+from .protocol import OrchestratorProtocol
+from .blackboard import SharedBlackboard
+from .task import AgentResult, AgentTask
+from .node import LazyAgentNode, _clip
 
 if TYPE_CHECKING:
     from jarvis.memory.memory_service import MemoryService
@@ -43,7 +40,7 @@ class OrchestrationService:
         self,
         definitions: Sequence[AgentDefinition],
         factory: AgentFactory,
-        memory: MemoryService | None = None,
+        memory: "MemoryService | None" = None,
         supervisor_prompt: str | None = None,
     ) -> None:
         self._definitions = {d.name: d for d in definitions}

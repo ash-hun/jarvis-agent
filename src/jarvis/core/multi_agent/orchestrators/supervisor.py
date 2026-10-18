@@ -1,13 +1,10 @@
 """[core] 노드를 AgentNodeTool 로 감독자 세션에 꽂아 LLM 이 tool_call 로 sub-agent 를 고르게 하는 오케스트레이터."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any
 
+from jarvis.core.multi_agent.topologies.supervisor import SupervisorTopology
 from jarvis.core.multi_agent.task import AgentResult, AgentTask
 from jarvis.core.multi_agent.tool import AgentNodeTool
-from jarvis.core.multi_agent.topologies.supervisor import SupervisorTopology
-
 from .base import BaseOrchestrator
 
 if TYPE_CHECKING:
@@ -20,7 +17,7 @@ class SupervisorOrchestrator(BaseOrchestrator):
     def __init__(
         self,
         topology: SupervisorTopology,
-        orchestrator_session: AgentSession | Any,
+        orchestrator_session: "AgentSession | Any",
         memory: Any = None,
     ) -> None:
         super().__init__(topology, memory)

@@ -1,12 +1,10 @@
 """[core] 한국어 시각 표현을 해석해 한 번 실행 또는 반복 작업으로 스케줄러에 등록하는 /schedule 핸들러 factory."""
 
-from __future__ import annotations
-
 import re
 import uuid
-from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Literal
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.core.scheduler.service import SchedulerService
@@ -152,7 +150,7 @@ _FREQ_LABELS: dict[str, str] = {
 }
 
 
-def build_schedule_task(deadline: datetime, prompt: str) -> ScheduledTask:
+def build_schedule_task(deadline: datetime, prompt: str) -> "ScheduledTask":
     """파싱된 마감/프롬프트로 ScheduledTask를 생성한다."""
     from jarvis.core.scheduler.task import ScheduledTask
 
@@ -168,7 +166,7 @@ def build_schedule_task(deadline: datetime, prompt: str) -> ScheduledTask:
     )
 
 
-def build_once_task(run_at: datetime, prompt: str, kind: Literal["reminder", "task"]) -> ScheduledTask:
+def build_once_task(run_at: datetime, prompt: str, kind: Literal["reminder", "task"]) -> "ScheduledTask":
     """정한 시각에 한 번 실행되는 작업을 만든다."""
     from jarvis.core.scheduler.task import ScheduledTask
 
@@ -199,7 +197,7 @@ def _fmt_left(run_at: datetime, now: datetime) -> str:
     return f"{mins // 1440}일 뒤"
 
 
-def format_once_confirmation(task: ScheduledTask, now: datetime) -> str:
+def format_once_confirmation(task: "ScheduledTask", now: datetime) -> str:
     assert task.run_at is not None
     kind = "알림 — 문구를 그대로 알려드림" if task.kind == "reminder" else "작업 — 실행한 결과를 알려드림"
     prompt_preview = task.prompt[:60] + ("..." if len(task.prompt) > 60 else "")
@@ -212,7 +210,7 @@ def format_once_confirmation(task: ScheduledTask, now: datetime) -> str:
     )
 
 
-def format_confirmation(task: ScheduledTask, deadline: datetime) -> str:
+def format_confirmation(task: "ScheduledTask", deadline: datetime) -> str:
     freq = _FREQ_LABELS.get(task.schedule, task.schedule)
     prompt_preview = task.prompt[:60] + ("..." if len(task.prompt) > 60 else "")
     return (
@@ -240,7 +238,7 @@ USAGE = (
 
 
 def make_schedule_handler(
-    scheduler: SchedulerService | None,
+    scheduler: "SchedulerService | None",
     classify: Classifier | None = None,
 ) -> Callable[[str], Awaitable[str]]:
     """SlashCommandDispatcher에 등록할 /schedule 핸들러 factory.

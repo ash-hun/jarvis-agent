@@ -1,14 +1,12 @@
 """[ui] TuiVoiceController: 서버 음성 프로바이더와 시스템 오디오 도구(afplay, sox 등)로 TUI 음성 입출력을 한다."""
 
 # 터미널엔 Web Speech API 가 없어 서버 프로바이더를 쓴다. player/recorder 는 주입 가능(테스트는 fake)
-from __future__ import annotations
-
-import asyncio
 import shutil
+import asyncio
 import tempfile
-from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
 
 from jarvis.voice.speech_text import speech_text
 
@@ -88,7 +86,7 @@ class TuiVoiceController:
 
     def __init__(
         self,
-        voice_service: VoiceService,
+        voice_service: "VoiceService",
         *,
         player: Player | None = None,
         recorder: Recorder | None = None,

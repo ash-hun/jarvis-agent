@@ -1,7 +1,5 @@
 """[agent_layer] 여러 메모리 미들웨어를 순서대로 적용하는 체인."""
 
-from __future__ import annotations
-
 import asyncio
 from typing import Any
 

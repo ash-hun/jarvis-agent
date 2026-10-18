@@ -1,7 +1,6 @@
 """[model_layer] 텍스트를 벡터로 바꾸는 임베딩 프로바이더로, 메모리 검색을 키워드에서 의미 유사도로 넓힌다."""
 
 import math
-
 import httpx
 
 DEFAULT_TIMEOUT = 30.0

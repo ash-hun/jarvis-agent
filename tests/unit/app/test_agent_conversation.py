@@ -1,10 +1,9 @@
 """ask_agent: 받을 수 있는 질문의 규칙, 쌍마다 이어지는 대화 세션, 깊이 제한, 바쁨과 백그라운드 답 처리."""
 
+import pytest
 import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
-
-import pytest
 
 from jarvis.app.agent_conversation import (
     MAX_PEER_HOPS,
@@ -15,10 +14,10 @@ from jarvis.app.agent_conversation import (
     peer_session_id,
     refusal,
 )
-from jarvis.core.session import SessionBusy
-from jarvis.core.tools.registry import ToolContext
-from jarvis.memory.scope import MemoryScope
 from jarvis.model_layer.types import AssistantMessage, TextContent, Usage
+from jarvis.core.tools.registry import ToolContext
+from jarvis.core.session import SessionBusy
+from jarvis.memory.scope import MemoryScope
 
 IDS = ["main", "karen"]
 

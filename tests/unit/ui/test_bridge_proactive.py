@@ -1,13 +1,11 @@
 """EventBridge 번역 — inner_thought / proactive_message (Tier 0~1 UI 경로)."""
 
-from __future__ import annotations
-
-from jarvis.agent_layer.types import InnerThoughtEvent, ProactiveMessageEvent
 from jarvis.ui.tui.bridge import (
     EventBridge,
     InnerThoughtAction,
     ProactiveMessageAction,
 )
+from jarvis.agent_layer.types import InnerThoughtEvent, ProactiveMessageEvent
 
 
 def test_inner_thought_event_translates_to_action():

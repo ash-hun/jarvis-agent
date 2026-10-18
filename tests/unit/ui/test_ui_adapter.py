@@ -1,9 +1,9 @@
 """UIAdapter 기본 동작: 이벤트, 스트림, 오류는 버리고 승인은 거절한다. 구현체는 이를 물려받는다."""
 
-from jarvis.agent_layer.types import AgentStartEvent
-from jarvis.ui.protocol import UIAdapter
 from jarvis.ui.web.adapter import PerConnectionAdapter
+from jarvis.agent_layer.types import AgentStartEvent
 from jarvis.ui.web.approvals import Connection
+from jarvis.ui.protocol import UIAdapter
 
 
 async def test_defaults_are_noops_and_deny_approval():

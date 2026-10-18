@@ -1,13 +1,13 @@
 """[app] AgentProfile: 에이전트 한 명분의 정체성, 모델, 사고와 proactive 설정, 피드백 학습기."""
 
-from collections.abc import Callable
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from collections.abc import Callable
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.thought.reply import ReplyClassifier
     from jarvis.config import BrandConfig, JarvisSettings, ProactiveConfig, ThoughtConfig
     from jarvis.core.proactive.core import EmitProactive, ProactivityCore
+    from jarvis.agent_layer.thought.reply import ReplyClassifier
     from jarvis.core.proactive.feedback import FeedbackLearner
     from jarvis.model_layer.types import ModelConfig
 

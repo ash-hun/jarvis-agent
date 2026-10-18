@@ -1,11 +1,10 @@
 """스케줄 등록 분류기: LLM 답에 TASK 가 있으면 task, 그 밖(실패, 시간 초과 포함)은 reminder."""
 
+import pytest
 import asyncio
 
-import pytest
-
-from jarvis.core.scheduler.classify import make_llm_classifier
 from jarvis.model_layer.types import AssistantMessage, ModelConfig, TextContent
+from jarvis.core.scheduler.classify import make_llm_classifier
 
 MODEL = ModelConfig(provider="faux", model="faux-model")
 

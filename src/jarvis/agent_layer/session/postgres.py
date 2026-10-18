@@ -1,15 +1,13 @@
 """[agent_layer] 세션 메타와 메시지를 PostgreSQL 테이블에 영속한다(asyncpg 풀)."""
 
-from __future__ import annotations
-
+import json
 import asyncio
 import builtins
-import json
 from typing import Any
 
 from jarvis.agent_layer.session.protocol import SessionMetadata, SessionRepo, deserialize_message
-from jarvis.memory.scope import MAIN_AGENT
 from jarvis.model_layer.types import Message
+from jarvis.memory.scope import MAIN_AGENT
 
 
 class PostgresSessionRepo(SessionRepo):

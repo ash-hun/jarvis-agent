@@ -1,8 +1,8 @@
 """[memory] LongMemEval(Wu et al. 2024) 질문과 haystack 세션 묶음을 BenchmarkQuestion 으로 바꾼다."""
 
 import json
-from pathlib import Path
 from typing import Any
+from pathlib import Path
 
 from jarvis.memory.eval.benchmark import BenchmarkQuestion, BenchmarkSession, BenchmarkTurn
 

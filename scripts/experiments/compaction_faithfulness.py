@@ -1,19 +1,19 @@
 """[scripts] 컴팩션 요약이 심어 둔 사실을 지키는지, 요약 모델만 바꾸고 판정 모델은 고정해 잰다."""
 
-import argparse
-import asyncio
-import json
 import re
+import json
+import asyncio
+import argparse
+from scripts.experiments.models import model_config
 
-from jarvis.memory.consolidation.compaction import llm_summarizer
 from jarvis.memory.eval.faithfulness import (
     contains_fact_judge,
     llm_fact_judge,
     load_faithfulness_cases,
     run_faithfulness_case,
 )
+from jarvis.memory.consolidation.compaction import llm_summarizer
 from jarvis.memory.eval.runner import DATASETS_DIR
-from scripts.experiments.models import model_config
 
 JUDGE = "gpt-4o-mini"
 HANGUL = re.compile(r"[\uac00-\ud7a3]")

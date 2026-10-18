@@ -1,7 +1,7 @@
 """[core] LH 임대주택검색의 단지별 임대보증금과 월임대료를 읽고, 공고 제목을 그 단지에 맞추는 함수."""
 
-import json
 import re
+import json
 from dataclasses import dataclass
 
 from jarvis.core.tools.housing.fetch import Fetch, FetchError

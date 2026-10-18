@@ -1,11 +1,8 @@
 """[agent_layer] open-loop 을 JSONL append 로그에 영속하고 읽을 때 id별 마지막 레코드로 상태를 되살린다."""
 
-from __future__ import annotations
-
 import asyncio
-from pathlib import Path
-
 import aiofiles
+from pathlib import Path
 
 from jarvis.agent_layer.openloop.store import OpenLoopStore
 from jarvis.agent_layer.openloop.types import OpenLoop

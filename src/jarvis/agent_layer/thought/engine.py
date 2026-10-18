@@ -1,19 +1,11 @@
 """[agent_layer] 별도 LLM 호출로 ThoughtFrame 을 만드는 기본 inner thought 엔진."""
 
-from __future__ import annotations
-
 import json
-from collections.abc import Callable
-from datetime import datetime
 from typing import Any
-
+from datetime import datetime
+from collections.abc import Callable
 from pydantic import ValidationError
 
-from jarvis.agent_layer.thought.prompt import ThoughtPromptTemplate
-from jarvis.agent_layer.thought.protocol import RecallFn, ThoughtEngine
-from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame, ThoughtRequest
-from jarvis.common.logger import get_logger
-from jarvis.model_layer.stream import stream_to_message
 from jarvis.model_layer.types import (
     LLMContext,
     Message,
@@ -21,6 +13,11 @@ from jarvis.model_layer.types import (
     StreamOptions,
     UserMessage,
 )
+from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.thought.protocol import RecallFn, ThoughtEngine
+from jarvis.agent_layer.thought.prompt import ThoughtPromptTemplate
+from jarvis.model_layer.stream import stream_to_message
+from jarvis.common.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -1,12 +1,10 @@
 """[ui] ApprovalDialog: 보안 파이프라인의 승인 요청을 TUI 모달로 묻는다."""
 
-from __future__ import annotations
-
-from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
+from textual.app import ComposeResult
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label
+from textual.containers import Horizontal, Vertical
 
 # dismiss 값. True/False 는 이번 한 번, "always" 는 제안된 패턴을 승인 규칙으로 남긴다.
 ALWAYS = "always"

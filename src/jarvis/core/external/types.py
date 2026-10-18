@@ -1,7 +1,5 @@
 """[core] 외부 세계(캘린더, 메일 등)에서 감지한 사실 1건의 모델."""
 
-from __future__ import annotations
-
 from pydantic import BaseModel
 
 

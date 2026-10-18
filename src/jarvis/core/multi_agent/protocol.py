@@ -1,7 +1,5 @@
 """[core] 노드, 토폴로지, 오케스트레이터의 기반 클래스로 multi-agent 계약과 기본 동작을 정한다."""
 
-from __future__ import annotations
-
 from .task import AgentResult, AgentTask
 
 

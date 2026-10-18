@@ -1,12 +1,11 @@
 """[agent_layer] 병렬 도구 실행에서 도구 하나가 취소돼도 오류 결과로 남고 나머지는 이어진다."""
 
+import pytest
 import asyncio
 
-import pytest
-
-from jarvis.agent_layer.loop import _execute_tools
-from jarvis.agent_layer.types import AgentLoopConfig
 from jarvis.model_layer.types import ToolCall, ToolResultMessage
+from jarvis.agent_layer.types import AgentLoopConfig
+from jarvis.agent_layer.loop import _execute_tools
 
 
 async def _noop_emit(_event: object) -> None:

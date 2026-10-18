@@ -1,11 +1,9 @@
 """/remember slash command 단위 테스트."""
-from __future__ import annotations
-
 import pytest
 
 from jarvis.core.slash.remember_cmd import make_remember_handler
-from jarvis.memory.memory_service import MemoryService
 from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.memory.memory_service import MemoryService
 
 
 @pytest.fixture

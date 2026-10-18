@@ -1,13 +1,11 @@
 """[core] 디렉터리 항목을 종류와 크기와 함께 나열하는 list_dir 내장 도구."""
 
-from __future__ import annotations
-
 import asyncio
-from pathlib import Path
 from typing import Any
+from pathlib import Path
 
-from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.core.tools.registry import JarvisTool
 
 TOOL_NAME = "list_dir"
 TOOL_DESCRIPTION = (

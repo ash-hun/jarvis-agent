@@ -1,12 +1,10 @@
 """[core] 등록된 플러그인의 훅을 오류 격리와 체인 적용으로 실행한다."""
 
-from __future__ import annotations
-
 from typing import Any
 
-from jarvis.common.logger import get_logger
 from jarvis.core.plugins.protocol import HookResult, JarvisPlugin
 from jarvis.model_layer.types import Message
+from jarvis.common.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -1,8 +1,5 @@
 """/export · /cost 슬래시 커맨드 테스트."""
-from __future__ import annotations
-
 import json
-
 import pytest
 
 from jarvis.model_layer.types import (

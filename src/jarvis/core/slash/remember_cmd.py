@@ -1,9 +1,7 @@
 """[core] 장기 기억을 저장, 나열, 검색, 삭제, 점검하는 /remember 핸들러 factory."""
 
-from __future__ import annotations
-
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
@@ -23,7 +21,7 @@ _USAGE = (
 )
 
 
-def make_remember_handler(memory: MemoryService, session_repo: SessionRepo | None = None) -> Handler:
+def make_remember_handler(memory: "MemoryService", session_repo: "SessionRepo | None" = None) -> Handler:
     """SlashCommandDispatcher에 등록할 /remember 핸들러 factory.
 
     session_repo 가 있으면 "/remember 그거" 처럼 상대 지칭으로 저장할 때 가리킨 대화를 같이 남긴다.
@@ -58,7 +56,7 @@ def make_remember_handler(memory: MemoryService, session_repo: SessionRepo | Non
     return handle
 
 
-async def _handle_list(memory: MemoryService) -> str:
+async def _handle_list(memory: "MemoryService") -> str:
     entries = await memory.recent(limit=10)
     if not entries:
         return "[Memory] 저장된 장기 기억이 없습니다."
@@ -69,7 +67,7 @@ async def _handle_list(memory: MemoryService) -> str:
     return "\n".join(lines)
 
 
-async def _handle_search(memory: MemoryService, query: str) -> str:
+async def _handle_search(memory: "MemoryService", query: str) -> str:
     if not query:
         return "[Memory] 검색 키워드를 입력해주세요."
     entries = await memory.recall(query, limit=5)
@@ -82,14 +80,14 @@ async def _handle_search(memory: MemoryService, query: str) -> str:
     return "\n".join(lines)
 
 
-async def _handle_forget(memory: MemoryService, entry_id: str) -> str:
+async def _handle_forget(memory: "MemoryService", entry_id: str) -> str:
     if not entry_id:
         return "[Memory] 삭제할 기억의 id를 입력해주세요. (/remember list 에서 확인)"
     await memory.forget(entry_id)
     return f"[Memory] 기억 [{entry_id}]을 삭제했습니다."
 
 
-async def _handle_save(memory: MemoryService, content: str, session_repo: SessionRepo | None) -> str:
+async def _handle_save(memory: "MemoryService", content: str, session_repo: "SessionRepo | None") -> str:
     from jarvis.memory.working.deixis import has_deixis, recent_exchange
 
     referent = None
@@ -101,7 +99,7 @@ async def _handle_save(memory: MemoryService, content: str, session_repo: Sessio
     return f"[Memory] 장기 기억에 저장했습니다. (id: {entry_id[:8]}){linked}"
 
 
-async def _handle_conflicts(memory: MemoryService) -> str:
+async def _handle_conflicts(memory: "MemoryService") -> str:
     """간섭 후보: 주제는 다른데 내용이 비슷한 사실 쌍. 사람이 보고 /remember forget 으로 정리한다."""
     from jarvis.memory.long_term.semantic import CONFLICTS_KEY
     from jarvis.memory.types import MemoryKind

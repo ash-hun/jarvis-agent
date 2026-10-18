@@ -2,12 +2,11 @@
 
 import time
 from datetime import datetime
-
 from fastapi import APIRouter, Path
 from fastapi.responses import JSONResponse
 
-from jarvis.agent_layer.openloop import close_expired
 from jarvis.ui.web.web_schema import OpenLoopStatusRequest, ScheduleToggleRequest
+from jarvis.agent_layer.openloop import close_expired
 from jarvis.ui.web.web_state import WebState
 
 # AGENDA 카드가 보여 주는 열린 약속 수

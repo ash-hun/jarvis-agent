@@ -1,7 +1,5 @@
 """[voice] 이름으로 STT/TTS 프로바이더를 지연 임포트해 만드는 레지스트리를 제공한다."""
 
-from __future__ import annotations
-
 from collections.abc import Callable
 
 from jarvis.voice.protocol import STTProvider, TTSProvider

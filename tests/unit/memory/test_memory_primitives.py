@@ -1,19 +1,8 @@
 """메모리 기본 단위: 항목 모델, 범위, 일화 정책, 작업 기억 상태, 단서 겹침, 컴팩션 요약기, 벤치마크 어댑터 경계."""
 
+import pytest
 from datetime import datetime
 
-import pytest
-
-from jarvis.memory.consolidation.compaction import (
-    llm_summarizer,
-    render_messages,
-    summarize_messages,
-    system_prompt_for,
-)
-from jarvis.memory.eval.adapters.locomo import parse_locomo
-from jarvis.memory.eval.adapters.longmemeval import parse_longmemeval
-from jarvis.memory.long_term.episodic import prepare_episode
-from jarvis.memory.retrieval.cues import cue_overlap
 from jarvis.memory.scope import (
     LOCAL_USER,
     MAIN_AGENT,
@@ -23,10 +12,20 @@ from jarvis.memory.scope import (
     scope_from_context,
     task_scope,
 )
-from jarvis.memory.types import MemoryItem, MemoryKind
+from jarvis.memory.consolidation.compaction import (
+    llm_summarizer,
+    render_messages,
+    summarize_messages,
+    system_prompt_for,
+)
+from jarvis.model_layer.types import AssistantMessage, LLMContext, TextContent, UserMessage
+from jarvis.memory.eval.adapters.longmemeval import parse_longmemeval
 from jarvis.memory.working.in_memory import InMemoryWorkingStore
 from jarvis.memory.working.state import MAX_NOTES, WorkingState
-from jarvis.model_layer.types import AssistantMessage, LLMContext, TextContent, UserMessage
+from jarvis.memory.long_term.episodic import prepare_episode
+from jarvis.memory.eval.adapters.locomo import parse_locomo
+from jarvis.memory.types import MemoryItem, MemoryKind
+from jarvis.memory.retrieval.cues import cue_overlap
 
 SCOPE = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
 

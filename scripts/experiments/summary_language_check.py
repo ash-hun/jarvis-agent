@@ -1,13 +1,13 @@
 """[scripts] 요약이 대화 언어를 따르는지 잰다. 한국어, 영어, 코드가 섞인 한국어 대화를 모델마다 요약한다."""
 
-import argparse
-import asyncio
-import json
 import re
+import json
+import asyncio
+import argparse
+from scripts.experiments.models import model_config
 
 from jarvis.memory.consolidation.compaction import conversation_language, summarize_messages
 from jarvis.model_layer.types import AssistantMessage, Message, TextContent, UserMessage
-from scripts.experiments.models import model_config
 
 HANGUL = re.compile(r"[가-힣]")
 LATIN = re.compile(r"[A-Za-z]")

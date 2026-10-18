@@ -1,11 +1,8 @@
 """SchedulerService / ScheduledTask / loader 테스트."""
-from __future__ import annotations
-
 import sys
+import pytest
 import textwrap
 from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
 
 from jarvis.core.scheduler.task import ScheduledTask
 
@@ -160,9 +157,8 @@ class TestSchedulerService:
 
         # AgentSession is lazily imported inside _execute_task, so patch at source
         with patch("jarvis.core.session.AgentSession", return_value=mock_session):
-            with patch("jarvis.agent_layer.memory.chain.MemoryMiddlewareChain"):
-                with patch("jarvis.core.policy.pipeline.SecurityPipeline"):
-                    await svc._execute_task(task)
+            with patch("jarvis.core.policy.pipeline.SecurityPipeline"):
+                await svc._execute_task(task)
 
         mock_session.prompt.assert_called_once_with("Hello scheduler")
 
@@ -179,9 +175,8 @@ class TestSchedulerService:
         mock_session.prompt = AsyncMock()
 
         with patch("jarvis.core.session.AgentSession", return_value=mock_session) as ctor:
-            with patch("jarvis.agent_layer.memory.chain.MemoryMiddlewareChain"):
-                with patch("jarvis.core.policy.pipeline.SecurityPipeline"):
-                    await svc._execute_task(task)
+            with patch("jarvis.core.policy.pipeline.SecurityPipeline"):
+                await svc._execute_task(task)
 
         kwargs = ctor.call_args.kwargs
         assert (kwargs["model"], kwargs["system_prompt"], kwargs["agent_name"]) == (karen_model, "카렌", "karen")

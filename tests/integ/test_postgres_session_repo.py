@@ -1,10 +1,4 @@
-"""PostgresSessionRepo 통합 테스트.
-
-testcontainers로 실제 PostgreSQL 컨테이너를 띄워 검증한다.
-Docker가 없거나 testcontainers/asyncpg가 설치되지 않으면 자동 skip.
-"""
-
-from __future__ import annotations
+"""PostgresSessionRepo 를 testcontainers 의 실제 PostgreSQL 로 검증한다."""
 
 import pytest
 

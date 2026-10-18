@@ -1,9 +1,9 @@
 """[memory] 메모리 평가 CLI로, --suite 는 기능별 스위트를, --benchmark 와 --path 는 외부 벤치마크를 돌린다."""
 
-import argparse
-import asyncio
-import json
 import sys
+import json
+import asyncio
+import argparse
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -21,13 +21,13 @@ from jarvis.memory.eval.runner import (
 from jarvis.memory.eval.target import TARGETS
 
 if TYPE_CHECKING:
-    from jarvis.memory.consolidation.compaction import Summarizer
     from jarvis.memory.consolidation.semantic_extract import FactExtractor
+    from jarvis.memory.consolidation.compaction import Summarizer
     from jarvis.memory.eval.benchmark import Judge, Summarize
-    from jarvis.memory.eval.faithfulness import FactJudge
-    from jarvis.memory.scope import MemoryScope
-    from jarvis.model_layer.embeddings import Embedder
     from jarvis.model_layer.types import Message, ModelConfig
+    from jarvis.memory.eval.faithfulness import FactJudge
+    from jarvis.model_layer.embeddings import Embedder
+    from jarvis.memory.scope import MemoryScope
 
 
 async def _run_all(
@@ -43,8 +43,8 @@ async def _run_all(
     llm_summarizer_fn: Summarizer | None = None
     llm_judge_fn: FactJudge | None = None
     if summarizer == "llm" or judge == "llm":
-        from jarvis.memory.consolidation import llm_summarizer
         from jarvis.memory.eval.faithfulness import llm_fact_judge
+        from jarvis.memory.consolidation import llm_summarizer
 
         model = _settings_model()
         llm_summarizer_fn = llm_summarizer(model) if summarizer == "llm" else None
@@ -56,8 +56,8 @@ async def _run_all(
 
 
 def _settings_model() -> "ModelConfig":
-    from jarvis.config import get_settings
     from jarvis.model_layer.types import ModelConfig
+    from jarvis.config import get_settings
 
     llm = get_settings().llm
     return ModelConfig(
@@ -67,10 +67,10 @@ def _settings_model() -> "ModelConfig":
 
 
 async def _run_benchmark(args: argparse.Namespace) -> int:
-    from jarvis.memory.eval.adapters import LOADERS
     from jarvis.memory.eval.benchmark import format_benchmark, run_benchmark, sample
-    from jarvis.memory.memory_service import MemoryService
     from jarvis.memory.stores.in_memory import InMemoryItemStore
+    from jarvis.memory.memory_service import MemoryService
+    from jarvis.memory.eval.adapters import LOADERS
 
     questions = sample(LOADERS[args.benchmark](Path(args.path)), args.limit, args.seed)
 
@@ -80,8 +80,8 @@ async def _run_benchmark(args: argparse.Namespace) -> int:
 
         embedder = FakeEmbedder()
     else:
-        from jarvis.config import get_settings
         from jarvis.model_layer.embeddings import build_embedder
+        from jarvis.config import get_settings
 
         mcfg = get_settings().memory
         key = mcfg.embedding_api_key or get_settings().llm.api_key
@@ -98,9 +98,9 @@ async def _run_benchmark(args: argparse.Namespace) -> int:
     summarizer: Summarizer | None = None
     extractor: FactExtractor | None = None
     if args.mode == "full":
-        from jarvis.memory.consolidation import llm_summarizer
-        from jarvis.memory.consolidation.episodic import EpisodicSummarizer
         from jarvis.memory.consolidation.semantic_extract import llm_fact_extractor
+        from jarvis.memory.consolidation.episodic import EpisodicSummarizer
+        from jarvis.memory.consolidation import llm_summarizer
 
         assert model is not None  # mode == "full" 이면 바로 위에서 채웠다
         full_model = model

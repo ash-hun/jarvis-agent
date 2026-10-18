@@ -1,13 +1,10 @@
 """[core] 레벨 순서는 직렬, 같은 레벨은 병렬로 실행하고 누적 결과를 다음 레벨 context 로 넘기는 오케스트레이터."""
 
-from __future__ import annotations
-
 import asyncio
 from typing import Any
 
-from jarvis.core.multi_agent.task import AgentResult, AgentTask
 from jarvis.core.multi_agent.topologies.hierarchical import HierarchicalTopology
-
+from jarvis.core.multi_agent.task import AgentResult, AgentTask
 from .base import BaseOrchestrator
 
 

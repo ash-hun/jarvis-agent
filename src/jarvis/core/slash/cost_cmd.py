@@ -1,13 +1,11 @@
 """[core] 현재 세션의 모델별 토큰 사용량과 추정 비용을 보고하는 /cost 핸들러 factory."""
 
-from __future__ import annotations
-
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, cast
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.protocol import SessionRepo
     from jarvis.model_layer.types import AssistantMessage, Usage
+    from jarvis.agent_layer.session.protocol import SessionRepo
 
 Handler = Callable[[str], Awaitable[str]]
 
@@ -39,7 +37,7 @@ def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     return input_tokens / 1e6 * rate_in + output_tokens / 1e6 * rate_out
 
 
-def make_cost_handler(session_repo: SessionRepo, session_id: str = "default") -> Handler:
+def make_cost_handler(session_repo: "SessionRepo", session_id: str = "default") -> Handler:
     """/cost 핸들러 factory. 현재(기본) 세션의 누적 사용량을 모델별로 집계."""
 
     async def handle(_args: str) -> str:

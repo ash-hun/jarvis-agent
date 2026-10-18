@@ -1,14 +1,14 @@
 """[scripts] Piper 영어 음성의 합성 시간과 실시간 대비 배율(RTF)을 잰다. 백엔드 컨테이너 안에서 돈다."""
 
-import asyncio
 import io
-import json
 import sys
+import json
 import time
 import wave
+import asyncio
 
-from jarvis.config import get_settings
 from jarvis.voice.providers.piper import PiperTTSProvider
+from jarvis.config import get_settings
 
 SENTENCES = [
     "Good evening.",

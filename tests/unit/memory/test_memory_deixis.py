@@ -2,12 +2,12 @@
 
 from datetime import datetime, timedelta
 
-from jarvis.core.slash.remember_cmd import make_remember_handler
+from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage, UserMessage
+from jarvis.memory.working.deixis import has_deixis, recent_exchange, retrieval_query
 from jarvis.memory import MemoryKind, MemoryScope, MemoryService, current_scope
+from jarvis.core.slash.remember_cmd import make_remember_handler
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.types import REFERENT
-from jarvis.memory.working.deixis import has_deixis, recent_exchange, retrieval_query
-from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage, UserMessage
 
 CTX = {"session_id": "s1", "user_id": "u1", "agent_id": "main"}
 SCOPE = MemoryScope(user_id="u1", agent_id="main", session_id="s1")

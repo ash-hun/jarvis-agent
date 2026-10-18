@@ -1,6 +1,4 @@
 """model_layer/types.py: 핵심 타입 직렬화/역직렬화 테스트."""
-from __future__ import annotations
-
 from jarvis.model_layer.types import (
     AssistantMessage,
     TextContent,

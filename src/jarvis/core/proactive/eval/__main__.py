@@ -1,9 +1,9 @@
 """[core] proactive 평가 CLI: python -m jarvis.core.proactive.eval [--suite S] [--engine none|llm] [--json] [-v]."""
 
-import argparse
-import asyncio
-import json
 import sys
+import json
+import asyncio
+import argparse
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -19,8 +19,8 @@ FIXED_CLOCK = datetime(2026, 1, 1, 9, 0, 0)
 def _llm_engine() -> "InnerThoughtEngine":
     from jarvis.agent_layer.thought import InnerThoughtEngine, ThoughtPromptTemplate
     from jarvis.agent_layer.thought.prompt import DEFAULT_REFLECTION_TEMPLATE
-    from jarvis.config import get_settings
     from jarvis.model_layer.types import ModelConfig
+    from jarvis.config import get_settings
 
     settings = get_settings()
     llm, tcfg = settings.llm, settings.thought

@@ -1,19 +1,18 @@
 """Orchestrator 단위 테스트 — 각 패턴의 dispatch 로직 검증."""
 
+import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
-from jarvis.core.multi_agent.blackboard import SharedBlackboard
-from jarvis.core.multi_agent.orchestrators.blackboard import BlackboardOrchestrator
 from jarvis.core.multi_agent.orchestrators.hierarchical import HierarchicalOrchestrator
+from jarvis.core.multi_agent.orchestrators.blackboard import BlackboardOrchestrator
 from jarvis.core.multi_agent.orchestrators.market import Bid, MarketOrchestrator
-from jarvis.core.multi_agent.orchestrators.pipeline import OrchestratorPipeline
-from jarvis.core.multi_agent.task import AgentResult, AgentTask
-from jarvis.core.multi_agent.topologies.blackboard import BlackboardTopology
 from jarvis.core.multi_agent.topologies.hierarchical import HierarchicalTopology
+from jarvis.core.multi_agent.orchestrators.pipeline import OrchestratorPipeline
+from jarvis.core.multi_agent.topologies.blackboard import BlackboardTopology
 from jarvis.core.multi_agent.topologies.supervisor import SupervisorTopology
+from jarvis.core.multi_agent.blackboard import SharedBlackboard
+from jarvis.core.multi_agent.task import AgentResult, AgentTask
 
 # ── 헬퍼 ──────────────────────────────────────────────────────────────────────
 

@@ -1,14 +1,11 @@
 """[core] 작업을 블랙보드에 공표하고 모든 노드를 병렬 실행해 결과를 블랙보드에 모으는 오케스트레이터."""
 
-from __future__ import annotations
-
 import asyncio
 from typing import Any
 
+from jarvis.core.multi_agent.topologies.blackboard import BlackboardTopology
 from jarvis.core.multi_agent.blackboard import SharedBlackboard
 from jarvis.core.multi_agent.task import AgentResult, AgentTask
-from jarvis.core.multi_agent.topologies.blackboard import BlackboardTopology
-
 from .base import BaseOrchestrator
 
 

@@ -1,26 +1,26 @@
 """[ui] WebState: Web HUD 라우터들이 같이 보는 실행 상태(조립 결과, 세션, 승인 브로커, 열린 연결, 놓친 알림)."""
 
-from collections import deque
-from collections.abc import Callable
 from pathlib import Path
+from collections import deque
 from typing import TYPE_CHECKING
+from collections.abc import Callable
 
-from jarvis.common.logger import get_logger
+from jarvis.ui.web.session_registry import SessionRegistry
 from jarvis.ui.web.agent_activity import AgentActivity
 from jarvis.ui.web.approvals import SessionApprovals
-from jarvis.ui.web.session_registry import SessionRegistry
 from jarvis.voice.phrases import load_phrases
+from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.thought.reply import ReplyClassifier
+    from jarvis.core.focus.service import FocusService, SubAgent
+    from jarvis.ui.web.adapter import PerConnectionAdapter
     from jarvis.app.app_assembly import AppAssembly
     from jarvis.app.app_context import AppContext
-    from jarvis.config import JarvisSettings
-    from jarvis.core.focus.service import FocusService, SubAgent
-    from jarvis.core.session import AgentSession
-    from jarvis.ui.web.adapter import PerConnectionAdapter
     from jarvis.voice.service import VoiceService
+    from jarvis.core.session import AgentSession
     from jarvis.voice.wake import WakeDetector
+    from jarvis.config import JarvisSettings
 
 logger = get_logger(__name__)
 
@@ -80,11 +80,11 @@ class WebState:
         import uuid
         from datetime import datetime
 
-        from jarvis.app.subagent_builder import SubagentBuilder
         from jarvis.core.focus.prompts import REFERENCE_TOOLS, SYSTEM_PROMPTS
+        from jarvis.core.multi_agent.factory import AgentDefinition
+        from jarvis.app.subagent_builder import SubagentBuilder
         from jarvis.core.focus.service import FocusService
         from jarvis.core.focus.store import FocusStore
-        from jarvis.core.multi_agent.factory import AgentDefinition
 
         ctx, services = self.assembly.ctx, self.assembly.services
         builder = SubagentBuilder(ctx, services, ctx.tool_registry)

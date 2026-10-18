@@ -1,7 +1,5 @@
 """[agent_layer] inner thought 프롬프트 템플릿을 파일에서 읽어 플레이스홀더를 채운다."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 # 사용자가 직접 조율하는 지점. 파일이 없으면 이 기본 템플릿을 쓴다.
@@ -131,7 +129,7 @@ class ThoughtPromptTemplate:
         self._template = template
 
     @classmethod
-    def load(cls, path: str | None, default: str = DEFAULT_TEMPLATE) -> ThoughtPromptTemplate:
+    def load(cls, path: str | None, default: str = DEFAULT_TEMPLATE) -> "ThoughtPromptTemplate":
         """경로의 파일을 읽되, 없거나 읽기 실패 시 default 템플릿으로 fallback.
 
         default를 바꿔 요청용/성찰용 등 용도별 기본 템플릿을 로딩할 수 있다.

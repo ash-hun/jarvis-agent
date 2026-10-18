@@ -2,19 +2,6 @@
 
 import pytest
 
-from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
-from jarvis.agent_layer.memory.protocol import MemoryMiddleware
-from jarvis.agent_layer.openloop import (
-    InMemoryOpenLoopStore,
-    JsonlOpenLoopStore,
-    OpenLoop,
-    OpenLoopStore,
-    PostgresOpenLoopStore,
-)
-from jarvis.agent_layer.openloop.postgres_store import _row_to_loop
-from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
-from jarvis.agent_layer.session.postgres import PostgresSessionRepo
-from jarvis.agent_layer.session.protocol import SessionRepo
 from jarvis.agent_layer.thought import (
     DefaultThoughtComposer,
     InnerThoughtEngine,
@@ -26,7 +13,18 @@ from jarvis.agent_layer.thought import (
     ThoughtRequest,
     ThoughtSink,
 )
+from jarvis.agent_layer.openloop import (
+    InMemoryOpenLoopStore,
+    JsonlOpenLoopStore,
+    OpenLoop,
+    OpenLoopStore,
+    PostgresOpenLoopStore,
+)
 from jarvis.agent_layer.usermodel import InMemoryUserModelStore, JsonlUserModelStore, UserModel, UserModelStore
+from jarvis.agent_layer.openloop.postgres_store import _row_to_loop
+from jarvis.agent_layer.session.postgres import PostgresSessionRepo
+from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
+from jarvis.agent_layer.session.protocol import SessionRepo
 from jarvis.model_layer.types import UserMessage
 
 DSN = "postgresql://unused@localhost/none"  # 연결하지 않는 테스트만 쓴다
@@ -150,29 +148,6 @@ async def test_thought_sink_base_discards_and_log_nests():
     assert isinstance(outer, ThoughtSink)
     await outer.store(frame, "s")
     assert inner.frames == [(frame, "s")]
-
-
-# ── MemoryMiddleware ──────────────────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-async def test_memory_middleware_base_passes_through():
-    stage = MemoryMiddleware()
-    messages = [UserMessage(content="hi")]
-    assert await stage.transform(messages, {}) is messages
-    assert await stage.store(messages[0], {}) is None
-    assert await stage.retrieve("q", {}) == []
-    assert await stage.clear({}) is None
-
-
-@pytest.mark.asyncio
-async def test_chain_is_middleware_and_nests():
-    inner = MemoryMiddlewareChain([MemoryMiddleware()])
-    outer = MemoryMiddlewareChain([inner])
-    assert isinstance(outer, MemoryMiddleware)
-    messages = [UserMessage(content="hi")]
-    assert await outer.transform(messages, {}) == messages
-    assert await outer.retrieve("q", {}) == []
 
 
 # ── SessionRepo ───────────────────────────────────────────────────────────────

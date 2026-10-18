@@ -2,17 +2,16 @@
 
 import base64
 import contextlib
-from typing import TYPE_CHECKING
-
 from fastapi import WebSocket
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.thought.reply import ReplyClassifier
+    from jarvis.ui.web.adapter import PerConnectionAdapter
     from jarvis.core.focus.service import FocusService
     from jarvis.core.focus.types import FocusCommand
-    from jarvis.core.session import AgentSession
-    from jarvis.ui.web.adapter import PerConnectionAdapter
     from jarvis.voice.service import VoiceService
+    from jarvis.core.session import AgentSession
 
 
 async def run_prompt(

@@ -1,13 +1,9 @@
 """외부 트리거(Proactive Phase 3) 순수 로직 — 이벤트 추론 / dedup / inbox / 소스 / 폴러."""
 
-from __future__ import annotations
-
-import asyncio
 import json
-
 import pytest
+import asyncio
 
-from jarvis.config import MCPServerConfig
 from jarvis.core.external import (
     ExternalEvent,
     ExternalEventInbox,
@@ -22,6 +18,7 @@ from jarvis.core.external import (
     derive_events,
     load_source_specs,
 )
+from jarvis.config import MCPServerConfig
 
 
 class _Clock:

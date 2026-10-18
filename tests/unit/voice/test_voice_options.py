@@ -1,8 +1,8 @@
 """[voice] VoiceService.from_config 는 프로바이더마다 받은 생성 옵션을 그 팩토리에만 넘긴다."""
 
-from jarvis.voice import registry
 from jarvis.voice.protocol import STTProvider, TTSProvider
 from jarvis.voice.service import VoiceService
+from jarvis.voice import registry
 
 
 def test_options_reach_only_their_factory(monkeypatch):

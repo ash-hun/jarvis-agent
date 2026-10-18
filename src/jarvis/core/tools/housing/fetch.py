@@ -1,9 +1,8 @@
 """[core] 공고 게시판 HTML 과 첨부 파일을 가져오는 HTTP 경계와 KST 오늘 날짜. 모두 도구 밖에서 주입할 수 있다."""
 
+import httpx
 from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime, timedelta
-
-import httpx
 
 # 게시판이 봇 UA 를 막는 일이 있어 브라우저 UA 를 쓴다(공개 페이지 읽기만 한다)
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) jarvis-karen/1.0"

@@ -1,16 +1,11 @@
 """[memory] MemoryService 로 턴 전 변환(observe), 범위를 아는 조회(recall, recent), 쓰기(remember), 공고화를 맡는다."""
 
 import time
+from typing import Any
+from datetime import datetime
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from datetime import datetime
-from typing import Any
 
-from jarvis.memory.consolidation.compaction import Summarizer
-from jarvis.memory.consolidation.semantic_extract import FactExtractor
-from jarvis.memory.long_term.episodic import prepare_episode
-from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
-from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
 from jarvis.memory.long_term.task_pattern import (
     SAVE_HINT,
     SAVE_HINT_HEADER,
@@ -22,16 +17,21 @@ from jarvis.memory.long_term.task_pattern import (
     render_block,
     teaches,
 )
-from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, current_task, scope_from_context, task_scope
-from jarvis.memory.stores.protocol import ItemStore
-from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind, Visibility
-from jarvis.memory.working.deixis import retrieval_query
-from jarvis.memory.working.in_memory import InMemoryWorkingStore
-from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.working.window import apply_window, chars_of, cut_at_user_boundary, summary_message
-from jarvis.model_layer.embeddings import Embedder
+from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
+from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank
+from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind, Visibility
+from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
+from jarvis.memory.consolidation.semantic_extract import FactExtractor
+from jarvis.memory.working.state import WorkingState, WorkingStore
+from jarvis.memory.working.in_memory import InMemoryWorkingStore
+from jarvis.memory.consolidation.compaction import Summarizer
+from jarvis.memory.long_term.episodic import prepare_episode
 from jarvis.model_layer.types import Message, UserMessage
+from jarvis.memory.working.deixis import retrieval_query
+from jarvis.memory.stores.protocol import ItemStore
+from jarvis.model_layer.embeddings import Embedder
 
 FACTS_HEADER = "[핵심 사실]"  # 고정 블록: 질의와 무관하게 항상 넣는 상위 의미 사실
 LTM_HEADER = "[장기 기억]"  # 회상 블록: 이번 질의로 떠오른 항목
@@ -348,6 +348,11 @@ class MemoryService:
             candidates = [c for c in candidates if c.id not in exclude]
         return rank(candidates, query, resolved, limit, params=self._scoring, query_embedding=query_embedding)
 
+    async def recall_messages(self, query: str, context: dict[str, Any], limit: int = 10) -> list[Message]:
+        """inner thought 의 회상 콜백(RecallFn) 모양. 범위는 턴 컨텍스트에서 정하고 항목은 사용자 메시지로 감싼다."""
+        items = await self.recall(query, scope_from_context(context), limit=limit)
+        return [UserMessage(content=i.content, timestamp=int(i.created_at.timestamp() * 1000)) for i in items]
+
     async def _embed(self, item: MemoryItem) -> None:
         """임베더가 있으면 항목에 벡터를 붙인다. 임베딩 실패는 저장을 막지 않는다(키워드로는 여전히 찾힌다)."""
         if self._embedder is None:
@@ -407,7 +412,7 @@ class MemoryService:
     # ── 공고화 ──────────────────────────────────────────────────────────────
 
     async def consolidate(self, scope: MemoryScope | None = None) -> int:
-        """세션 종료(와 나중엔 idle)에 부른다. 돌려주는 값은 새로 쓴 의미 사실 수.
+        """세션 종료와 사용자가 조용한 daemon 틱에 부른다. 돌려주는 값은 새로 쓴 의미 사실 수.
 
         1. 아직 추출하지 않은 이 소유자의 일화(요약)에서 사실을 뽑아 shared 의미 항목으로 쓴다.
            importance 가 임계 미만이면 버린다. 같은 주제의 옛 사실은 remember 가 대체한다.

@@ -11,9 +11,9 @@ from jarvis.core.procedures import (
     unregister_procedure,
 )
 from jarvis.core.procedures.tool import INSTRUCTION, register_procedure, to_skill
-from jarvis.core.skills.registry import SkillRegistry
-from jarvis.core.tools.registry import JarvisTool, ToolRegistry
 from jarvis.model_layer.types import AssistantMessage, ModelConfig, TextContent
+from jarvis.core.tools.registry import JarvisTool, ToolRegistry
+from jarvis.core.skills.registry import SkillRegistry
 
 MODEL = ModelConfig(provider="faux", model="faux-model")
 SPAN = TaskSpan(

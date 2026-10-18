@@ -1,12 +1,9 @@
 """[core] Markdown/YAML 스킬(명령 매크로)을 읽어 이름과 별칭으로 찾고 '/스킬 인자' 입력을 프롬프트로 확장한다."""
 
-from __future__ import annotations
-
-from pathlib import Path
-from typing import Any
-
-import frontmatter
 import yaml
+import frontmatter
+from typing import Any
+from pathlib import Path
 
 from jarvis.common.logger import get_logger
 

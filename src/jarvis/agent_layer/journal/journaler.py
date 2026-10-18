@@ -1,12 +1,10 @@
 """[agent_layer] LTM 의 최근 사고 로그를 LLM 으로 성찰해 저널 항목(source=journal)으로 남긴다."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
+from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
 from jarvis.agent_layer.thought.log import THOUGHT_SOURCE
 from jarvis.model_layer.stream import stream_to_message
-from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
 
 if TYPE_CHECKING:
     from jarvis.memory.memory_service import MemoryService
@@ -35,7 +33,7 @@ class ReflectionJournaler:
     def __init__(
         self,
         model: ModelConfig,
-        memory: MemoryService,
+        memory: "MemoryService",
         scan_limit: int = 40,
         prompt: str = DEFAULT_PROMPT,
     ) -> None:

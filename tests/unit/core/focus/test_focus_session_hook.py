@@ -1,11 +1,11 @@
 """AgentSession 턴 훅: 시스템 프롬프트에 Focus 맥락을 더하고, 턴 앞뒤로 훅을 부른다."""
 
 import asyncio
-from collections.abc import AsyncIterator
 from typing import Any
+from collections.abc import AsyncIterator
 
-from jarvis.model_layer.registry import get_default_registry
 from jarvis.model_layer.types import LLMContext, ModelConfig, StreamEvent, StreamOptions
+from jarvis.model_layer.registry import get_default_registry
 from tests.fixtures.faux_provider import FauxProvider
 
 
@@ -45,7 +45,7 @@ def _session(fx: dict[str, Any]) -> Any:
         session_id="focus-hook",
         security_pipeline=fx["pipeline"],
         plugin_runner=fx["plugin_runner"],
-        memory_chain=fx["memory_chain"],
+        memory=fx["session_memory"],
         tool_registry=fx["tool_registry"],
         skill_registry=fx["skill_registry"],
         session_repo=fx["repo"],
@@ -53,14 +53,14 @@ def _session(fx: dict[str, Any]) -> Any:
 
 
 async def test_hook_adds_context_and_runs_around_turn(
-    monkeypatch, permissive_pipeline, plugin_runner, memory_chain, tool_registry, skill_registry, jsonl_repo
+    monkeypatch, permissive_pipeline, plugin_runner, session_memory, tool_registry, skill_registry, jsonl_repo
 ) -> None:
     provider = _Recording()
     monkeypatch.setitem(get_default_registry()._providers, "faux", provider)
     fx = {
         "pipeline": permissive_pipeline,
         "plugin_runner": plugin_runner,
-        "memory_chain": memory_chain,
+        "session_memory": session_memory,
         "tool_registry": tool_registry,
         "skill_registry": skill_registry,
         "repo": jsonl_repo,
@@ -84,14 +84,14 @@ async def test_hook_adds_context_and_runs_around_turn(
 
 
 async def test_proactive_push_is_quiet_while_hook_is_set(
-    permissive_pipeline, plugin_runner, memory_chain, tool_registry, skill_registry, jsonl_repo
+    permissive_pipeline, plugin_runner, session_memory, tool_registry, skill_registry, jsonl_repo
 ) -> None:
     from jarvis.core.proactive.types import ProactiveMessage
 
     fx = {
         "pipeline": permissive_pipeline,
         "plugin_runner": plugin_runner,
-        "memory_chain": memory_chain,
+        "session_memory": session_memory,
         "tool_registry": tool_registry,
         "skill_registry": skill_registry,
         "repo": jsonl_repo,

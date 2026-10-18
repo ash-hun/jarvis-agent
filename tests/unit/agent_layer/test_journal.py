@@ -1,13 +1,11 @@
 """[agent_layer] 자기 성찰 저널(journaler)과 저널 명령 테스트."""
 
-from __future__ import annotations
-
 import pytest
 
 from jarvis.agent_layer.journal import JOURNAL_SOURCE, ReflectionJournaler
+from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.agent_layer.thought.log import THOUGHT_SOURCE
 from jarvis.memory.memory_service import MemoryService
-from jarvis.memory.stores.in_memory import InMemoryItemStore
 
 
 async def _seed_thoughts(ltm, texts):

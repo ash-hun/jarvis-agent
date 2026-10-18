@@ -2,22 +2,22 @@
 
 import time
 import uuid
-from collections.abc import Callable
 from typing import TYPE_CHECKING
+from collections.abc import Callable
 
-from jarvis.common.logger import get_logger
 from jarvis.ui.web.web_auth import auth_enabled
+from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
-    from jarvis.app.agent_registry import AgentRegistry
-    from jarvis.app.app_context import AppContext
-    from jarvis.app.app_services import AppServices
-    from jarvis.core.policy.sandbox import DefaultSandbox
-    from jarvis.core.session import AgentSession
-    from jarvis.core.tools.registry import ToolRegistry
     from jarvis.memory.memory_service import MemoryService
+    from jarvis.core.policy.sandbox import DefaultSandbox
+    from jarvis.app.agent_registry import AgentRegistry
+    from jarvis.core.tools.registry import ToolRegistry
     from jarvis.model_layer.types import ModelConfig
+    from jarvis.app.app_services import AppServices
+    from jarvis.app.app_context import AppContext
+    from jarvis.core.session import AgentSession
 
 logger = get_logger(__name__)
 
@@ -50,9 +50,9 @@ class SessionRegistry:
         """세션 전용 sandbox 와 pipeline 을 새로 만들어 끼운 서비스 사본."""
         from jarvis.core.policy.authenticator import ApiKeyAuthenticator, NoAuthAuthenticator
         from jarvis.core.policy.pipeline import AuthenticatorProtocol, SecurityPipeline
-        from jarvis.core.policy.policy import AllowAllPolicy
-        from jarvis.core.policy.sandbox import DefaultSandbox
         from jarvis.core.policy.validator import DefaultInputValidator
+        from jarvis.core.policy.sandbox import DefaultSandbox
+        from jarvis.core.policy.policy import AllowAllPolicy
 
         s = self._ctx.settings
         sandbox = DefaultSandbox(
@@ -154,8 +154,8 @@ class SessionRegistry:
         self, session_repo: "SessionRepo", memory: "MemoryService", model: "ModelConfig"
     ) -> None:
         """서버 종료 때 활성 세션마다 일화 요약, 사실 공고화, 절차 학습. 한 세션의 실패가 다른 세션을 막지 않는다."""
-        from jarvis.app.session_builder import learn_procedures
         from jarvis.memory.consolidation.episodic import EpisodicSummarizer
+        from jarvis.app.session_builder import learn_procedures
 
         summarizer = EpisodicSummarizer(model=model, memory=memory)
         for session_id, session in list(self._sessions.items()):

@@ -1,9 +1,6 @@
 """Proactive 성찰 트리거(Tier 2 C2) — interval / idle / external / composite."""
-from __future__ import annotations
-
-import asyncio
-
 import pytest
+import asyncio
 
 from jarvis.core.proactive import (
     ActivityClock,

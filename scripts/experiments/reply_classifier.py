@@ -1,14 +1,14 @@
 """[scripts] 짧은 답 분류기(🔔 피드백, 음성 승인)의 정확도, 위험한 허용, 지연을 모델별로 잰다."""
 
-import argparse
-import asyncio
 import json
-import statistics
 import time
+import asyncio
+import argparse
+import statistics
 from pathlib import Path
+from scripts.experiments.models import model_config
 
 from jarvis.agent_layer.thought.reply import ReplyClassifier
-from scripts.experiments.models import model_config
 
 DATASET = Path(__file__).parent / "datasets" / "reply.jsonl"
 ALLOWING = {"allow", "always"}

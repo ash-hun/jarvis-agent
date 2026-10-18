@@ -1,17 +1,14 @@
 """[agent_layer] 세션 저장소 기본 클래스와 세션 엔트리, 메타 모델, 메시지 역직렬화를 둔다."""
 
-from __future__ import annotations
-
-import builtins
 import json
 import time
 import uuid
+import builtins
 from typing import Any
-
 from pydantic import BaseModel
 
-from jarvis.memory.scope import MAIN_AGENT
 from jarvis.model_layer.types import AssistantMessage, Message, ToolResultMessage, UserMessage
+from jarvis.memory.scope import MAIN_AGENT
 
 
 class SessionEntry(BaseModel):

@@ -1,17 +1,7 @@
 """외부 트리거 배선 — 사고 주입 / 세션 drain-once 라우팅 / 게이팅 / 트리거 합성."""
 
-from __future__ import annotations
-
 import pytest
 
-from jarvis.agent_layer.thought.engine import InnerThoughtEngine
-from jarvis.agent_layer.thought.prompt import (
-    DEFAULT_REFLECTION_TEMPLATE,
-    ThoughtPromptTemplate,
-)
-from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
-from jarvis.agent_layer.types import ProactiveMessageEvent
-from jarvis.core.external import ExternalEvent, ExternalEventInbox
 from jarvis.core.proactive import (
     ActivityClock,
     AnyTrigger,
@@ -20,6 +10,14 @@ from jarvis.core.proactive import (
     ExternalTrigger,
     IntervalTrigger,
 )
+from jarvis.agent_layer.thought.prompt import (
+    DEFAULT_REFLECTION_TEMPLATE,
+    ThoughtPromptTemplate,
+)
+from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
+from jarvis.core.external import ExternalEvent, ExternalEventInbox
+from jarvis.agent_layer.thought.engine import InnerThoughtEngine
+from jarvis.agent_layer.types import ProactiveMessageEvent
 
 
 class StubEngine:
@@ -39,7 +37,7 @@ def fx(
     faux_model,
     permissive_pipeline,
     plugin_runner,
-    memory_chain,
+    session_memory,
     tool_registry,
     skill_registry,
     jsonl_repo,
@@ -48,7 +46,7 @@ def fx(
         "model": faux_model,
         "pipeline": permissive_pipeline,
         "plugin_runner": plugin_runner,
-        "memory_chain": memory_chain,
+        "session_memory": session_memory,
         "tool_registry": tool_registry,
         "skill_registry": skill_registry,
         "repo": jsonl_repo,
@@ -63,7 +61,7 @@ def _build_session(fx, session_id, *, engine=None, inbox=None, detail=False, fac
         session_id=session_id,
         security_pipeline=fx["pipeline"],
         plugin_runner=fx["plugin_runner"],
-        memory_chain=fx["memory_chain"],
+        memory=fx["session_memory"],
         tool_registry=fx["tool_registry"],
         skill_registry=fx["skill_registry"],
         session_repo=fx["repo"],
@@ -280,8 +278,8 @@ def test_build_external_is_noop_without_sources(tmp_path):
 
 
 def test_build_external_builds_poller_from_yaml(tmp_path):
-    from jarvis.app.infra_builder import InfraBuilder
     from jarvis.config import JarvisSettings, MCPServerConfig
+    from jarvis.app.infra_builder import InfraBuilder
 
     sources_dir = tmp_path / "external_sources"
     sources_dir.mkdir()
@@ -316,13 +314,13 @@ def test_build_external_skips_when_disabled():
 @pytest.mark.asyncio
 async def test_poller_to_proactive_message_end_to_end(fx):
     """소스 폴링 → dedup → inbox → 성찰 → 발화까지 실제 객체로 한 번에 잇는다."""
-    from jarvis.config import MCPServerConfig
     from jarvis.core.external import (
         ExternalEventPoller,
         InMemorySeenStore,
         McpToolSource,
     )
     from jarvis.core.external.loader import ExternalSourceSpec
+    from jarvis.config import MCPServerConfig
 
     await fx["repo"].create(session_id="s1")
 

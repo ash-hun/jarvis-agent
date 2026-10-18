@@ -1,15 +1,12 @@
 """[core] URL 을 가져와 HTML 을 걷어낸 읽기 쉬운 텍스트로 돌려주는 web_fetch 내장 도구."""
 
-from __future__ import annotations
-
-import html
 import re
+import html
+import httpx
 from typing import Any
 
-import httpx
-
-from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.core.tools.registry import JarvisTool
 
 TOOL_NAME = "web_fetch"
 TOOL_DESCRIPTION = (

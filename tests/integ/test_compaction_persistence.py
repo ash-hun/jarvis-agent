@@ -1,11 +1,4 @@
-"""컴팩션 → Postgres 영속성 통합 테스트.
-
-unit 레벨(test_memory_working.py)은 in-memory 저장소로 observe 의 동작을 검증한다.
-여기서는 실제 PostgreSQL 에 요약이 안착하고, 백엔드를 다시 열어도 재요약 없이 이어지는지 본다.
-Docker/testcontainers 없으면 자동 skip.
-"""
-
-from __future__ import annotations
+"""컴팩션 요약이 실제 PostgreSQL 에 안착하고 백엔드를 다시 열어도 재요약 없이 이어지는지 본다."""
 
 import pytest
 
@@ -34,10 +27,10 @@ def _user_msg(text: str):
 
 
 def _manager(dsn: str, model, threshold: int):
+    from jarvis.memory.working.postgres import PostgresWorkingStore
+    from jarvis.memory.stores.postgres import PostgresItemStore
     from jarvis.memory.consolidation import llm_summarizer
     from jarvis.memory.memory_service import MemoryService
-    from jarvis.memory.stores.postgres import PostgresItemStore
-    from jarvis.memory.working.postgres import PostgresWorkingStore
 
     store, working = PostgresItemStore(dsn=dsn), PostgresWorkingStore(dsn=dsn)
     manager = MemoryService(store, working, summarizer=llm_summarizer(model), threshold_chars=threshold, keep_recent=1)
@@ -46,8 +39,8 @@ def _manager(dsn: str, model, threshold: int):
 
 class TestCompactionPersistence:
     async def test_summary_persists_and_second_turn_does_not_resummarize(self, faux_model_with_response, postgres_dsn):
-        from jarvis.memory import MemoryScope
         from jarvis.memory.eval.probe import count_llm_calls
+        from jarvis.memory import MemoryScope
 
         model = faux_model_with_response("압축 요약: 사용자는 Python과 FastAPI를 다뤘다.")
         memory, store, working = _manager(postgres_dsn, model, threshold=10)

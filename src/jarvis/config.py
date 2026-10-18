@@ -1,9 +1,6 @@
 """[config] JarvisSettings: env 와 .env 에서 읽는 전체 설정 모델."""
 
-from __future__ import annotations
-
 from typing import Annotated, Any, Literal
-
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -78,7 +75,7 @@ class MemoryConfig(BaseModel):
     recency_half_life_hours: float = 168.0  # 검색 점수의 recency 반감기(일주일)
     importance_half_life_days: float = 90.0  # 되뇌기 없는 항목의 importance 반감기. 0 이면 감쇠 없음
     interference_threshold: float = 0.6  # 주제가 다른데 이보다 비슷한 의미 항목 쌍은 간섭 후보로 표시
-    consolidate_on_idle: bool = True  # 사용자가 조용할 때(daemon idle 틱) 요약에서 사실을 추출한다
+    consolidate_on_idle: bool = True  # proactive.daemon_idle_sec 넘게 조용한 daemon 틱에 요약에서 사실을 추출한다
     # 의미 유사도 검색. provider 를 비우면 키워드 검색만 한다. Postgres 는 pgvector 확장이 필요하다
     embedding_provider: str = ""  # "" | openai | ollama | vllm
     embedding_model: str = ""  # 비우면 provider 기본값 (openai: text-embedding-3-small, ollama: nomic-embed-text)

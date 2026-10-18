@@ -1,10 +1,8 @@
 """[core] 한 번 실행 작업을 등록할 때 LLM 으로 알림(reminder)과 작업(task)을 가른다."""
 
-from __future__ import annotations
-
 import asyncio
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Literal
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.model_layer.types import ModelConfig
@@ -30,12 +28,12 @@ REMINDER 또는 TASK 한 단어로만 답하라.
 항목: {text}"""
 
 
-def make_llm_classifier(model: ModelConfig, timeout: float = DEFAULT_TIMEOUT_SEC) -> Callable[[str], Awaitable[Kind]]:
+def make_llm_classifier(model: "ModelConfig", timeout: float = DEFAULT_TIMEOUT_SEC) -> Callable[[str], Awaitable[Kind]]:
     """등록 때 한 번 LLM 으로 알림/작업을 가르는 분류기. 실패·시간 초과·애매한 답은 reminder."""
 
     async def classify(text: str) -> Kind:
-        from jarvis.model_layer.stream import stream_to_message
         from jarvis.model_layer.types import LLMContext, StreamOptions, UserMessage
+        from jarvis.model_layer.stream import stream_to_message
 
         ctx = LLMContext(messages=[UserMessage(content=_PROMPT.format(text=text))], tools=None)
         try:

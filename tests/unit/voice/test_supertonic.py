@@ -3,10 +3,9 @@
 import io
 import sys
 import wave
-from types import ModuleType
-from typing import Any
-
 import pytest
+from typing import Any
+from types import ModuleType
 
 from jarvis.voice.providers.supertonic import SupertonicTTSProvider, _array_to_wav
 

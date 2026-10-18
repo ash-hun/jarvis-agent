@@ -1,7 +1,5 @@
 """[agent_layer] 단일 사용자 모델 저장소 기본 클래스(메모리 저장)와 JSON 파일 스냅샷 저장소를 둔다."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from jarvis.agent_layer.usermodel.types import UserModel

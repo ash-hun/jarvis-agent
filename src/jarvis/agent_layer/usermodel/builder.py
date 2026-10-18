@@ -1,13 +1,11 @@
 """[agent_layer] 누적 기억을 LLM 으로 증류해 UserModel 을 갱신한다(실패하면 이전 모델 유지)."""
 
-from __future__ import annotations
-
 import json
 from typing import Any
 
+from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
 from jarvis.agent_layer.usermodel.types import UserModel
 from jarvis.model_layer.stream import stream_to_message
-from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
 
 DEFAULT_PROMPT = """\
 너는 사용자의 "안정적 모델"을 갱신하는 증류기다. 아래 누적 기억과 이전 모델을 보고,

@@ -3,25 +3,23 @@
 from datetime import datetime
 from types import SimpleNamespace
 
-from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
-from jarvis.agent_layer.memory.protocol import MemoryMiddleware
-from jarvis.memory import MemoryItem, MemoryKind, MemoryScope, MemoryService
-from jarvis.memory.eval.fake_embedder import FakeEmbedder
-from jarvis.memory.eval.schema import SetupStep
-from jarvis.memory.eval.target import TARGETS, EvalTarget, StoreTarget
 from jarvis.memory.long_term.procedural import (
     InMemoryProcedures,
     ProceduralSource,
     Procedure,
     SkillRegistryProcedures,
 )
-from jarvis.memory.stores.in_memory import InMemoryItemStore
-from jarvis.memory.stores.postgres import PostgresItemStore
-from jarvis.memory.stores.protocol import ItemStore
+from jarvis.memory import MemoryItem, MemoryKind, MemoryScope, MemoryService
+from jarvis.memory.eval.target import TARGETS, EvalTarget, StoreTarget
+from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.working.in_memory import InMemoryWorkingStore
 from jarvis.memory.working.postgres import PostgresWorkingStore
-from jarvis.memory.working.state import WorkingState, WorkingStore
+from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.memory.stores.postgres import PostgresItemStore
+from jarvis.memory.eval.fake_embedder import FakeEmbedder
+from jarvis.memory.stores.protocol import ItemStore
 from jarvis.model_layer.embeddings import Embedder
+from jarvis.memory.eval.schema import SetupStep
 
 SCOPE = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
 
@@ -38,7 +36,6 @@ def test_concrete_stores_inherit_their_bases():
     assert isinstance(InMemoryProcedures(), ProceduralSource)
     assert isinstance(SkillRegistryProcedures(object()), ProceduralSource)
     assert isinstance(StoreTarget(), EvalTarget)
-    assert isinstance(MemoryMiddlewareAdapter(MemoryService(ItemStore())), MemoryMiddleware)
     assert isinstance(FakeEmbedder(), Embedder)
 
 

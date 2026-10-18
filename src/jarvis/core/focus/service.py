@@ -1,21 +1,11 @@
 """[core] FocusService: 세션마다 Focus 작업 하나를 열고 닫으며, 턴마다 sub-agent 넷을 돌려 화면에 밀어 보낸다."""
 
 import asyncio
-from collections.abc import Awaitable, Callable
-from dataclasses import replace
 from datetime import datetime
+from dataclasses import replace
 from typing import Any, Protocol
+from collections.abc import Awaitable, Callable
 
-from jarvis.agent_layer.types import AgentEvent, FocusPanelEvent, FocusStateEvent
-from jarvis.common.logger import get_logger
-from jarvis.core.focus.prompts import (
-    analysis_request,
-    log_request,
-    main_addendum,
-    progress_request,
-    reference_request,
-)
-from jarvis.core.focus.store import FocusStore
 from jarvis.core.focus.types import (
     FocusCommand,
     FocusState,
@@ -28,6 +18,16 @@ from jarvis.core.focus.types import (
     state_payload,
     with_instruction,
 )
+from jarvis.core.focus.prompts import (
+    analysis_request,
+    log_request,
+    main_addendum,
+    progress_request,
+    reference_request,
+)
+from jarvis.agent_layer.types import AgentEvent, FocusPanelEvent, FocusStateEvent
+from jarvis.core.focus.store import FocusStore
+from jarvis.common.logger import get_logger
 
 PANEL_TAIL_CHARS = 8000
 REFERENCE_MARKER = "## 조사: "

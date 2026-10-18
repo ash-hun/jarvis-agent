@@ -1,8 +1,8 @@
 """get_logger: 핸들러는 jarvis 루트에 한 번만 달리고, 기록 순간의 sys.stdout 으로 메시지만 쓴다."""
 
 import io
-import logging
 import sys
+import logging
 
 from jarvis.common.logger import ROOT_NAME, _StdoutHandler, get_logger
 

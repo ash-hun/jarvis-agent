@@ -4,8 +4,8 @@ from fastapi import APIRouter, Path
 from fastapi.responses import JSONResponse
 
 from jarvis.model_layer.types import AssistantMessage, UserMessage
-from jarvis.ui.web.session_registry import UnknownAgent
 from jarvis.ui.web.web_schema import CreateSessionRequest
+from jarvis.ui.web.session_registry import UnknownAgent
 from jarvis.ui.web.web_state import WebState
 
 SESSION_ID_DOC = "세션 고유 id. 화면은 8자 hex 를 쓰고 default 는 기동 때 만들어진다"

@@ -1,20 +1,20 @@
 """[app] SessionBuilder: AgentProfile 과 앱 서비스로 AgentSession 하나를 조립한다(TUI, Web 공용)."""
 
 import uuid
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from collections.abc import Awaitable, Callable
 
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.openloop import LoopExpiry
     from jarvis.agent_layer.thought import ThoughtComposer, ThoughtEngine, ThoughtLog, ThoughtSink
-    from jarvis.app.agent_profile import AgentProfile
-    from jarvis.app.app_context import AppContext
-    from jarvis.app.app_services import AppServices
-    from jarvis.core.session import AgentSession
     from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.agent_layer.openloop import LoopExpiry
+    from jarvis.app.agent_profile import AgentProfile
+    from jarvis.app.app_services import AppServices
+    from jarvis.app.app_context import AppContext
+    from jarvis.core.session import AgentSession
     from jarvis.model_layer.types import Message
 
 logger = get_logger(__name__)
@@ -59,7 +59,7 @@ class SessionBuilder:
             session_id=session_id,
             security_pipeline=svc.pipeline,
             plugin_runner=svc.plugin_runner,
-            memory_chain=svc.memory_chain,
+            memory=svc.memory,
             tool_registry=self.tool_registry(),
             skill_registry=svc.skill_registry,
             session_repo=self._ctx.session_repo,
@@ -93,9 +93,9 @@ class SessionBuilder:
         registry = self._ctx.tool_registry
         if not self._profile.tools:
             return registry
+        from jarvis.core.tools.task_pattern import TASK_PATTERN_TOOL
         from jarvis.app.agent_conversation import ASK_AGENT_TOOL
         from jarvis.core.tools.registry import ToolRegistry
-        from jarvis.core.tools.task_pattern import TASK_PATTERN_TOOL
 
         # ponytail: 세션을 만들 때 고른다, 뒤에 등록된 도구(승인된 절차)는 다음 세션부터 보인다
         picked = ToolRegistry()
@@ -130,7 +130,7 @@ class SessionBuilder:
             reflection_template=ThoughtPromptTemplate.load(
                 tcfg.reflection_prompt_path, default=DEFAULT_REFLECTION_TEMPLATE
             ),
-            recall=services.memory_chain.retrieve,
+            recall=services.memory.recall_messages,
             recall_limit=tcfg.recall_limit,
             skip_if_shorter_than=tcfg.skip_if_shorter_than,
             history_window=tcfg.history_turns,

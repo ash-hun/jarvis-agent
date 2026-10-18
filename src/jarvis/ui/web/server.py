@@ -1,20 +1,19 @@
 """[ui] Web HUD FastAPI 앱 조립: 상태, 인증 미들웨어, 기동과 종료, 라우터, 정적 셸을 하나로 묶는다."""
 
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
-
-from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, Request, Response
+from collections.abc import Awaitable, Callable
 
-from jarvis.ui.web.router.agenda_router import build_agenda_router
-from jarvis.ui.web.router.agent_router import build_agent_router
+from jarvis.ui.web.web_auth import auth_enabled, bearer_token, lookup_api_user
 from jarvis.ui.web.router.brand_router import STATIC_DIR, build_brand_router
 from jarvis.ui.web.router.session_router import build_session_router
-from jarvis.ui.web.router.tool_router import build_tool_router
+from jarvis.ui.web.router.agenda_router import build_agenda_router
+from jarvis.ui.web.router.agent_router import build_agent_router
 from jarvis.ui.web.router.voice_router import build_voice_router
+from jarvis.ui.web.router.tool_router import build_tool_router
 from jarvis.ui.web.router.ws_router import build_ws_router
-from jarvis.ui.web.web_auth import auth_enabled, bearer_token, lookup_api_user
 from jarvis.ui.web.web_lifecycle import WebLifecycle
 from jarvis.ui.web.web_state import WebState
 

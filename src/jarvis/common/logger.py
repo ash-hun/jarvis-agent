@@ -1,7 +1,7 @@
 """[common] 프로젝트 전체의 로거 설정. 모든 모듈은 get_logger(__name__) 로 받는다."""
 
-import logging
 import sys
+import logging
 from typing import TextIO
 
 # print 시절과 같은 출력: 표준 출력에 메시지만. "[Thought] ..." 같은 접두는 메시지가 갖고 있다

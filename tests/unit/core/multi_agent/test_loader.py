@@ -1,11 +1,9 @@
 """YAML 기반 AgentDefinition 로더 테스트."""
 
-from __future__ import annotations
-
 import textwrap
 
-from jarvis.core.multi_agent.factory import AgentDefinition
 from jarvis.core.multi_agent.loader import _parse_definition, load_agent_definitions
+from jarvis.core.multi_agent.factory import AgentDefinition
 
 # ---------------------------------------------------------------------------
 # _parse_definition 단위 테스트

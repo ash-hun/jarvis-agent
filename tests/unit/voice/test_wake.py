@@ -1,8 +1,7 @@
 """WakeDetector: 프레임 경계와 무시 구간을 지켜, 이름을 한 번 부르면 한 번만 깨어난다."""
 
-from pathlib import Path
-
 import pytest
+from pathlib import Path
 
 from jarvis.voice.wake import (
     FRAME_BYTES,

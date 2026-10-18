@@ -1,9 +1,9 @@
 """[core] Focus 작업을 ~/.jarvis/focus/ 아래 파일로 남기고 세션당 활성 작업 하나를 보증한다."""
 
-import json
 import os
-from pathlib import Path
+import json
 from typing import Any
+from pathlib import Path
 
 from jarvis.core.focus.types import FocusState
 

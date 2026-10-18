@@ -1,22 +1,18 @@
 """[core] AgentSession 을 멱등한 그래프 노드(정적 AgentNode, 위임 시점에 세션을 정하는 LazyAgentNode)로 감싼다."""
 
-from __future__ import annotations
-
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
+from collections.abc import Awaitable, Callable
 
-from jarvis.agent_layer.types import AgentEvent
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, current_task
 from jarvis.memory.stores.protocol import tokens_of
-
-from .protocol import AgentNodeProtocol
+from jarvis.agent_layer.types import AgentEvent
 from .task import AgentResult, AgentTask
+from .protocol import AgentNodeProtocol
 
 if TYPE_CHECKING:
-    from jarvis.core.session import AgentSession
     from jarvis.memory.memory_service import MemoryService
-
     from .factory import AgentDefinition, AgentFactory
+    from jarvis.core.session import AgentSession
 
 AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
 DELEGATION_SOURCE = "delegation"
@@ -51,7 +47,7 @@ def capability_score(task: AgentTask, name: str, capabilities: list[str]) -> flo
 
 
 async def record_delegation(
-    memory: MemoryService | None, parent_scope: MemoryScope, agent_name: str, task: AgentTask, result: AgentResult
+    memory: "MemoryService | None", parent_scope: MemoryScope, agent_name: str, task: AgentTask, result: AgentResult
 ) -> None:
     """부모가 "무엇을 누구에게 맡겼고 어떻게 됐는지" 를 일화로 기억한다. 저장 실패는 위임 결과를 깨지 않는다."""
     if memory is None:
@@ -89,7 +85,7 @@ class AgentNode(AgentNodeProtocol):
     def __init__(
         self,
         name: str,
-        session: AgentSession | Any,
+        session: "AgentSession | Any",
         capabilities: list[str] | None = None,
         event_sink: AgentEventSink | None = None,
     ) -> None:
@@ -151,9 +147,9 @@ class LazyAgentNode(AgentNodeProtocol):
 
     def __init__(
         self,
-        definition: AgentDefinition,
-        factory: AgentFactory,
-        memory: MemoryService | None = None,
+        definition: "AgentDefinition",
+        factory: "AgentFactory",
+        memory: "MemoryService | None" = None,
     ) -> None:
         self.definition = definition
         self.factory = factory

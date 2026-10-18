@@ -1,7 +1,5 @@
 """[core] 모든 노드가 감독자(LLM)에게 평등하게 보이는 1:N flat 토폴로지."""
 
-from __future__ import annotations
-
 from .base import BaseTopology
 
 

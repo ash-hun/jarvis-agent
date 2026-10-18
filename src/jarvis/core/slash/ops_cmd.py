@@ -1,20 +1,18 @@
 """[core] 운영용 슬래시 명령(/sessions, /branch, /tools, /compact) 핸들러 factory."""
 
-from __future__ import annotations
-
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
-    from jarvis.core.tools.registry import ToolRegistry
     from jarvis.memory.memory_service import MemoryService
+    from jarvis.core.tools.registry import ToolRegistry
     from jarvis.model_layer.types import ModelConfig
 
 Handler = Callable[[str], Awaitable[str]]
 
 
-def make_sessions_handler(session_repo: SessionRepo) -> Handler:
+def make_sessions_handler(session_repo: "SessionRepo") -> Handler:
     """/sessions: 저장된 세션 목록을 표시."""
 
     async def handle(_args: str) -> str:
@@ -31,7 +29,7 @@ def make_sessions_handler(session_repo: SessionRepo) -> Handler:
     return handle
 
 
-def make_branch_handler(session_repo: SessionRepo, default_session_id: str = "default") -> Handler:
+def make_branch_handler(session_repo: "SessionRepo", default_session_id: str = "default") -> Handler:
     """/branch [session_id]: 세션을 특정 시점에서 분기."""
 
     async def handle(args: str) -> str:
@@ -52,7 +50,7 @@ def make_branch_handler(session_repo: SessionRepo, default_session_id: str = "de
     return handle
 
 
-def make_tools_handler(tool_registry: ToolRegistry) -> Handler:
+def make_tools_handler(tool_registry: "ToolRegistry") -> Handler:
     """/tools: 현재 사용 가능한 도구 목록을 표시."""
 
     async def handle(_args: str) -> str:
@@ -71,9 +69,9 @@ def make_tools_handler(tool_registry: ToolRegistry) -> Handler:
 
 
 def make_compact_handler(
-    model: ModelConfig,
-    session_repo: SessionRepo,
-    memory: MemoryService | None = None,
+    model: "ModelConfig",
+    session_repo: "SessionRepo",
+    memory: "MemoryService | None" = None,
     session_id: str = "default",
 ) -> Handler:
     """/compact: 현재 세션을 요약해 장기 기억(LTM)에 저장."""

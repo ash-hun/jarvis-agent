@@ -1,7 +1,4 @@
-"""두 최상위 에이전트가 서로 묻고 답하며 일하는 시나리오. JARVIS 가 KAREN 에게 맡기고, KAREN 이 JARVIS 에게 되묻는다.
-
-각본 프로바이더(tests/fixtures/team_provider.py)로 실 LLM 없이 Web HUD 앱을 띄운다.
-"""
+"""두 최상위 에이전트가 서로 묻고 답하며 일하는 시나리오. JARVIS 가 KAREN 에게 맡기고, KAREN 이 JARVIS 에게 되묻는다."""
 
 import pytest
 
@@ -10,10 +7,10 @@ pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
 from jarvis.app.agent_conversation import PEER_REQUEST_RULE  # noqa: E402
-from jarvis.app.infra_builder import build_app  # noqa: E402
-from jarvis.config import JarvisSettings  # noqa: E402
-from jarvis.ui.web.server import create_app  # noqa: E402
 from tests.fixtures.team_provider import TeamProvider  # noqa: E402
+from jarvis.app.infra_builder import build_app  # noqa: E402
+from jarvis.ui.web.server import create_app  # noqa: E402
+from jarvis.config import JarvisSettings  # noqa: E402
 
 KAREN = (
     "name: K.A.R.E.N.\ndescription: 정보 수집\nsystem_prompt: 당신은 카렌입니다.\n"

@@ -1,7 +1,6 @@
 """[model_layer] Gemini 스트림은 generate_content_stream 코루틴을 await 한 결과를 순회한다."""
 
 import types
-
 import pytest
 
 from jarvis.model_layer.types import LLMContext, ModelConfig, StopEvent, TextDeltaEvent, UserMessage

@@ -1,15 +1,13 @@
 """MCPToolLoader / MCPToolWrapper 테스트."""
-from __future__ import annotations
-
-import asyncio
 import sys
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 
 class TestMCPToolWrapper:
     def _make_wrapper(self):
-        from jarvis.config import MCPServerConfig
         from jarvis.core.tools.mcp_loader import MCPToolWrapper
+        from jarvis.config import MCPServerConfig
 
         server = MCPServerConfig(name="test-server", transport="stdio", command=["echo", "hi"])
         return MCPToolWrapper(
@@ -162,8 +160,8 @@ class TestMCPToolLoader:
 
 class TestMCPToolWrapperTimeout:
     def _make_wrapper(self, timeout: float):
-        from jarvis.config import MCPServerConfig
         from jarvis.core.tools.mcp_loader import MCPToolWrapper
+        from jarvis.config import MCPServerConfig
 
         server = MCPServerConfig(name="s", transport="stdio", command=["x"], timeout=timeout)
         return MCPToolWrapper(server, "slow-tool", "", {})

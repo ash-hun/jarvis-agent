@@ -3,15 +3,14 @@
 import io
 import sys
 import wave
+import pytest
 from pathlib import Path
 from types import ModuleType
 
-import pytest
-
-from jarvis.config import VoiceConfig
 from jarvis.voice.protocol import STTProvider, TTSProvider
 from jarvis.voice.providers.piper import PiperTTSProvider
 from jarvis.voice.service import VoiceService, is_english
+from jarvis.config import VoiceConfig
 
 
 class _FakeConfig:

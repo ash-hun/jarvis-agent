@@ -1,9 +1,9 @@
 """STT/TTS 기본 클래스: 기본 동작(브라우저 위임)과 구현체의 상속 관계를 확인한다."""
 
-from jarvis.voice.protocol import STTProvider, TTSProvider
 from jarvis.voice.providers.browser import BrowserSTTProvider, BrowserTTSProvider
 from jarvis.voice.providers.supertonic import SupertonicTTSProvider
 from jarvis.voice.providers.whisper import WhisperSTTProvider
+from jarvis.voice.protocol import STTProvider, TTSProvider
 from jarvis.voice.service import VoiceService
 
 

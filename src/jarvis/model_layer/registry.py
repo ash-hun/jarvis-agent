@@ -1,7 +1,5 @@
 """[model_layer] 이름으로 LLM 프로바이더를 등록하고 조회하는 레지스트리를 제공한다."""
 
-from __future__ import annotations
-
 from jarvis.model_layer.providers.base import Provider
 
 

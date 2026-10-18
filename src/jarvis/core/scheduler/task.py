@@ -1,11 +1,8 @@
 """[core] 스케줄된 작업 하나의 정의(YAML 또는 /schedule 명령으로 생성)."""
 
-from __future__ import annotations
-
-from datetime import datetime
 from pathlib import Path
 from typing import Literal
-
+from datetime import datetime
 from pydantic import BaseModel, Field, PrivateAttr
 
 from jarvis.memory.scope import MAIN_AGENT

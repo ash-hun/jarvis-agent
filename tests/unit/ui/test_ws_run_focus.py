@@ -1,8 +1,7 @@
 """run_focus: 안내 메시지의 agent_end 가 메인 에이전트가 이어 도는지 알려, 화면이 음성 요청 표시를 지키게 한다."""
 
-from typing import Any
-
 import pytest
+from typing import Any
 
 from jarvis.core.focus.types import parse_command
 from jarvis.ui.web.ws_tasks import run_focus

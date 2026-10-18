@@ -2,8 +2,8 @@
 
 import pytest
 
-from jarvis.core.tools.housing.fetch import FetchError
 from jarvis.core.tools.housing.rental_complex import complex_query, match_complex, parse_complexes, place_and_block
+from jarvis.core.tools.housing.fetch import FetchError
 from tests.unit.core.housing.conftest import page
 
 UNITS = parse_complexes(page("complex_gyeonggi.json"))

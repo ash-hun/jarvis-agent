@@ -1,12 +1,5 @@
-"""MCP stdio transport 통합 테스트 — 실제 in-process MCP 서버 대상.
-
-`mcp` 패키지가 설치돼 있어야 실행된다 (없으면 모듈 전체 skip).
-설치: uv sync --extra mcp
-"""
-from __future__ import annotations
-
+"""MCP stdio transport 를 실제 in-process MCP 서버로 검증한다."""
 import sys
-
 import pytest
 
 pytest.importorskip("mcp")
@@ -85,8 +78,8 @@ async def test_stdio_tool_execution(stdio_server):
 
 async def test_stdio_missing_command_raises():
     """stdio transport인데 command가 없으면 명확한 에러."""
-    from jarvis.config import MCPServerConfig
     from jarvis.core.tools.mcp_loader import _list_mcp_tools
+    from jarvis.config import MCPServerConfig
 
     server = MCPServerConfig(name="bad", transport="stdio", command=[])
     with pytest.raises(ValueError, match="requires command"):

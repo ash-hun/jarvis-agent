@@ -1,15 +1,12 @@
 """[core] 파일을 줄 번호와 함께 읽어 주는 read_file 내장 도구."""
 
-from __future__ import annotations
-
 import asyncio
-from pathlib import Path
-from typing import Any
-
 import aiofiles
+from typing import Any
+from pathlib import Path
 
-from jarvis.core.tools.registry import JarvisTool
 from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.core.tools.registry import JarvisTool
 
 TOOL_NAME = "read_file"
 TOOL_DESCRIPTION = "Read the contents of a file."

@@ -1,7 +1,5 @@
 """[core] 플러그인 훅의 기반 클래스(JarvisPlugin)와 훅 결과 타입(HookResult)을 정한다."""
 
-from __future__ import annotations
-
 from typing import Any, TypedDict
 
 from jarvis.core.policy.pipeline import AuthContext

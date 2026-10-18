@@ -1,11 +1,10 @@
 """Playwright 로 Web HUD 를 조작해 승인 기억과 절차 학습/승인 흐름을 검증한다."""
 
-import json
 import sys
+import json
 import tempfile
 import urllib.request
 from pathlib import Path
-
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(tempfile.gettempdir())

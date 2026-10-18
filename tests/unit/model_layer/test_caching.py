@@ -1,6 +1,4 @@
 """Anthropic Prompt Caching: _inject_cache_breakpoint 단위 테스트."""
-from __future__ import annotations
-
 from jarvis.model_layer.providers.anthropic import _inject_cache_breakpoint
 
 

@@ -1,9 +1,8 @@
 """청약 도구 테스트 공용: 실제 게시판에서 잘라 둔 HTML 과, URL 로 그 HTML 을 돌려주는 가짜 fetch."""
 
-from datetime import date
-from pathlib import Path
-
 import pytest
+from pathlib import Path
+from datetime import date
 
 from jarvis.core.tools.housing.fetch import FetchError
 

@@ -1,14 +1,14 @@
 """[scripts] 약속 중복 판정용 임베딩 비교. 바꿔 말한 같은 약속과 같은 주제의 다른 약속이 코사인으로 갈리는지 잰다."""
 
-import argparse
-import asyncio
 import json
+import asyncio
+import argparse
 from pathlib import Path
+from scripts.experiments.models import OLLAMA_URL
 
 from jarvis.agent_layer.openloop.types import SAME_COSINE, same_loop
-from jarvis.config import get_settings
 from jarvis.model_layer.embeddings import build_embedder, cosine
-from scripts.experiments.models import OLLAMA_URL
+from jarvis.config import get_settings
 
 DATASET = Path(__file__).parent / "datasets" / "loop_pairs.jsonl"
 EMBEDDERS = {

@@ -1,11 +1,9 @@
 """[core] 에이전트가 결과를 게시하고 읽으며 asyncio.Queue 로 변경을 구독하는 공유 블랙보드 저장소."""
 
-from __future__ import annotations
-
 import asyncio
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
 from typing import Any
+from datetime import UTC, datetime
+from dataclasses import dataclass, field
 
 
 @dataclass

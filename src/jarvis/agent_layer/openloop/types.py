@@ -1,14 +1,11 @@
 """[agent_layer] open loop 모델과 기한 표기 해석, 같은 약속 판정, 병합과 만료 같은 순수 규칙을 둔다."""
 
-from __future__ import annotations
-
 import re
 import time
 import uuid
-from dataclasses import dataclass
-from datetime import datetime
 from typing import Literal
-
+from datetime import datetime
+from dataclasses import dataclass
 from pydantic import BaseModel, Field
 
 from jarvis.memory.scope import MAIN_AGENT

@@ -1,7 +1,5 @@
 """[core] 모든 오케스트레이터가 공유하는 토폴로지 보관, 작업 공유 메모리 전달, 승격 자리를 제공한다."""
 
-from __future__ import annotations
-
 from typing import Any
 
 from jarvis.core.multi_agent.protocol import OrchestratorProtocol, TopologyProtocol

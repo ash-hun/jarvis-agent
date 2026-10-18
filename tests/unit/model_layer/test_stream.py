@@ -1,9 +1,6 @@
 """model_layer/stream.py: FauxProvider 기반 스트리밍 테스트."""
-from __future__ import annotations
-
 import pytest
 
-from jarvis.model_layer.stream import stream, stream_to_message
 from jarvis.model_layer.types import (
     LLMContext,
     ModelConfig,
@@ -11,6 +8,7 @@ from jarvis.model_layer.types import (
     TextDeltaEvent,
     UserMessage,
 )
+from jarvis.model_layer.stream import stream, stream_to_message
 
 
 @pytest.fixture

@@ -1,21 +1,20 @@
 """[app] AppServices: 세션을 만들 때 넘기는 앱 단위 서비스 묶음(예전 extra dict)."""
 
-from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
+from dataclasses import dataclass, replace
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
-    from jarvis.agent_layer.openloop.store import OpenLoopStore
     from jarvis.agent_layer.usermodel.store import UserModelStore
-    from jarvis.core.external.inbox import ExternalEventInbox
-    from jarvis.core.plugins.runner import PluginRunner
+    from jarvis.agent_layer.openloop.store import OpenLoopStore
     from jarvis.core.policy.approval_rules import ApprovalRules
-    from jarvis.core.policy.pipeline import SecurityPipeline
-    from jarvis.core.policy.sandbox import DefaultSandbox
-    from jarvis.core.proactive.triggers import ActivityClock
     from jarvis.core.procedures.learner import ProcedureLearner
-    from jarvis.core.skills.registry import SkillRegistry
+    from jarvis.core.external.inbox import ExternalEventInbox
+    from jarvis.core.policy.pipeline import SecurityPipeline
+    from jarvis.core.proactive.triggers import ActivityClock
     from jarvis.memory.memory_service import MemoryService
+    from jarvis.core.policy.sandbox import DefaultSandbox
+    from jarvis.core.skills.registry import SkillRegistry
+    from jarvis.core.plugins.runner import PluginRunner
     from jarvis.model_layer.types import ModelConfig
 
 
@@ -23,7 +22,6 @@ if TYPE_CHECKING:
 class AppServices:
     """기동 때 한 번 만드는 서비스들. 세션마다 다른 것은 보안 파이프라인과 sandbox 뿐이라 with_security 로 바꿔 낀다."""
 
-    memory_chain: "MemoryMiddlewareChain"
     pipeline: "SecurityPipeline"
     plugin_runner: "PluginRunner"
     skill_registry: "SkillRegistry"

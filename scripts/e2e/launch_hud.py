@@ -1,12 +1,11 @@
-"""Web HUD 를 스크립트 프로바이더(실 LLM 없음)와 격리된 임시 디렉토리로 띄운다. e2e 검증용.
+"""Web HUD 를 스크립트 프로바이더(실 LLM 없음)와 격리된 임시 디렉토리로 띄운다. e2e 검증용."""
 
-uv run python scripts/e2e/launch_hud.py &          # 7799 포트
-uv run --with playwright python scripts/e2e/hud_flow.py
-"""
+# uv run python scripts/e2e/launch_hud.py &          # 7799 포트
+# uv run --with playwright python scripts/e2e/hud_flow.py
 
-import json
 import os
 import sys
+import json
 import tempfile
 from pathlib import Path
 
@@ -38,8 +37,8 @@ os.environ.update(
     }
 )
 
-from jarvis.model_layer.registry import get_default_registry  # noqa: E402
 from jarvis.model_layer.types import StopEvent, TextDeltaEvent, ToolCallDeltaEvent, Usage  # noqa: E402
+from jarvis.model_layer.registry import get_default_registry  # noqa: E402
 
 SCRIPTS = {
     "run-echo": ([("bash", {"command": "echo hello"})], "done: hello"),

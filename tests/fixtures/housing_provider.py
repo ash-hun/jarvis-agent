@@ -1,8 +1,8 @@
 """KAREN 이 청약 공고를 찾고 대출을 계산하는 흐름을 각본대로 흉내 내는 테스트용 프로바이더."""
 
-import asyncio
-import json
 import re
+import json
+import asyncio
 from collections.abc import AsyncIterator
 
 from jarvis.model_layer.types import (

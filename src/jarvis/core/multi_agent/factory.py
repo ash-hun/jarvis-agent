@@ -1,13 +1,10 @@
 """[core] 에이전트 정의와 부모 범위로 격리된 자식 세션 노드를 만들고 memory.stm 정책대로 수명을 관리한다."""
 
-from __future__ import annotations
-
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
+from collections.abc import Awaitable, Callable
 
 from jarvis.memory.scope import MemoryScope
-
 from .node import AgentNode
 from .task import AgentTask
 
@@ -68,7 +65,7 @@ class AgentFactory:
 
     def __init__(
         self,
-        event_sink: Callable[[AgentEvent], Awaitable[None]] | None = None,
+        event_sink: "Callable[[AgentEvent], Awaitable[None]] | None" = None,
         build_session: SessionBuilder | None = None,
         session_repo: Any = None,
     ) -> None:

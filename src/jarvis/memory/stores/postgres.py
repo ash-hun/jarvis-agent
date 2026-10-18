@@ -1,16 +1,16 @@
 """[memory] 기존 jarvis_ltm_entries 테이블에 범위 컬럼을 멱등하게 덧붙여 쓰는 PostgreSQL 장기 기억 저장소."""
 
+import json
 import asyncio
 import contextlib
-import json
-from collections.abc import Sequence
-from datetime import UTC, datetime
 from typing import Any
+from datetime import UTC, datetime
+from collections.abc import Sequence
 
-from jarvis.common.logger import get_logger
 from jarvis.memory.scope import MAIN_AGENT, PRIVATE, SHARED, MemoryScope
-from jarvis.memory.stores.protocol import ItemStore, tokens_of
 from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind
+from jarvis.memory.stores.protocol import ItemStore, tokens_of
+from jarvis.common.logger import get_logger
 
 logger = get_logger(__name__)
 

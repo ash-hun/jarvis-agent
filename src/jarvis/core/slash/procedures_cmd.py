@@ -1,10 +1,10 @@
 """[core] 학습된 절차를 나열, 승인, 삭제하고 세션에서 새로 학습하는 /procedures 핸들러 factory."""
 
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
 
-from jarvis.core.procedures.store import STATUS_APPROVED, ProcedureStore
 from jarvis.core.procedures.tool import register_procedure, unregister_procedure
+from jarvis.core.procedures.store import STATUS_APPROVED, ProcedureStore
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo

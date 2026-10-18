@@ -1,14 +1,10 @@
 """[model_layer] OpenAI Chat Completions 스트리밍을 공통 스트림 이벤트로 바꾸는 프로바이더."""
 
-from __future__ import annotations
-
 import json
-from collections.abc import AsyncIterator
 from typing import Any
-
 import openai as openai_sdk
+from collections.abc import AsyncIterator
 
-from jarvis.model_layer.providers.base import Provider
 from jarvis.model_layer.types import (
     ErrorEvent,
     ImageContent,
@@ -24,6 +20,7 @@ from jarvis.model_layer.types import (
     ToolCallDeltaEvent,
     Usage,
 )
+from jarvis.model_layer.providers.base import Provider
 
 
 class OpenAIProvider(Provider):

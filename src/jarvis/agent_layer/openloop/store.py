@@ -1,7 +1,5 @@
 """[agent_layer] open-loop 저장소 기본 클래스(메모리 저장 동작)와 기한 지난 항목 닫기를 둔다."""
 
-from __future__ import annotations
-
 import time
 
 from jarvis.agent_layer.openloop.types import (

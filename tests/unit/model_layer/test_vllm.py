@@ -1,13 +1,10 @@
 """vLLM 프로바이더: OpenAI 호환 SSE 스트림 파싱과 요청 모양을 MockTransport 로 검증한다."""
 
 import json
-from typing import Any
-
 import httpx
 import pytest
+from typing import Any
 
-from jarvis.model_layer.providers import vllm as vllm_mod
-from jarvis.model_layer.providers.vllm import VLLMProvider, _convert_messages, _tool_to_openai
 from jarvis.model_layer.types import (
     AssistantMessage,
     ErrorEvent,
@@ -23,6 +20,8 @@ from jarvis.model_layer.types import (
     ToolResultMessage,
     UserMessage,
 )
+from jarvis.model_layer.providers.vllm import VLLMProvider, _convert_messages, _tool_to_openai
+from jarvis.model_layer.providers import vllm as vllm_mod
 
 TOOL = Tool(name="bash", description="d", parameters={"type": "object", "properties": {}})
 

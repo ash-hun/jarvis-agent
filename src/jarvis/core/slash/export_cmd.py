@@ -1,11 +1,9 @@
 """[core] 현재 세션 대화를 markdown 또는 json 파일로 내보내는 /export 핸들러 factory."""
 
-from __future__ import annotations
-
 import json
-from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
@@ -32,7 +30,7 @@ def _text_of(content: object) -> str:
     return "".join(parts)
 
 
-def conversation_to_markdown(messages: list[Message], session_id: str) -> str:
+def conversation_to_markdown(messages: "list[Message]", session_id: str) -> str:
     """메시지 목록을 사람이 읽기 좋은 마크다운으로 변환."""
     lines = [f"# Jarvis 대화 — {session_id}", ""]
     for msg in messages:
@@ -58,7 +56,7 @@ def conversation_to_markdown(messages: list[Message], session_id: str) -> str:
     return "\n".join(lines).strip() + "\n"
 
 
-def conversation_to_json(messages: list[Message], session_id: str) -> str:
+def conversation_to_json(messages: "list[Message]", session_id: str) -> str:
     """메시지 목록을 원본 구조 그대로 JSON 직렬화."""
     payload = {
         "session_id": session_id,
@@ -69,7 +67,7 @@ def conversation_to_json(messages: list[Message], session_id: str) -> str:
 
 
 def make_export_handler(
-    session_repo: SessionRepo,
+    session_repo: "SessionRepo",
     session_id: str = "default",
     export_dir: str = "~/.jarvis/exports",
 ) -> Handler:

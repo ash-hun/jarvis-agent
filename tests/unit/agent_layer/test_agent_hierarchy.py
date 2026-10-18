@@ -1,19 +1,16 @@
 """[agent_layer] agent_name 이벤트 전파와 계층 추적 단위 테스트."""
 
-from __future__ import annotations
-
+import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
-from jarvis.agent_layer.types import AgentEndEvent, AgentStartEvent
-from jarvis.core.multi_agent.node import AgentNode
-from jarvis.core.multi_agent.task import AgentTask
 from jarvis.ui.tui.bridge import (
     AgentPopAction,
     AgentPushAction,
     EventBridge,
 )
+from jarvis.agent_layer.types import AgentEndEvent, AgentStartEvent
+from jarvis.core.multi_agent.node import AgentNode
+from jarvis.core.multi_agent.task import AgentTask
 
 # ── agent_name 이벤트 필드 ─────────────────────────────────────────────────────
 
@@ -180,9 +177,8 @@ async def test_node_no_sink_no_subscribe():
 @pytest.mark.asyncio
 async def test_harness_passes_agent_name_in_start_event(faux_model_with_response, tmp_path):
     """AgentHarness에 agent_name을 주면 AgentStartEvent에 반영된다."""
-    from jarvis.agent_layer.harness import AgentHarness
-    from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
     from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
+    from jarvis.agent_layer.harness import AgentHarness
 
     received: list[AgentStartEvent] = []
 
@@ -197,7 +193,6 @@ async def test_harness_passes_agent_name_in_start_event(faux_model_with_response
     harness = AgentHarness(
         model=model,
         session_id="s1",
-        memory_chain=MemoryMiddlewareChain([]),
         session_repo=repo,
         agent_name="planner",
     )

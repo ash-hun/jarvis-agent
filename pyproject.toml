@@ -88,7 +88,7 @@ line-length = 120
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
+select = ["E", "F", "UP", "B", "SIM"]  # import 순서는 CLAUDE.md 규칙이라 scripts/sort_imports.py 가 본다
 ignore = ["B008", "SIM117"]
 
 [tool.mypy]

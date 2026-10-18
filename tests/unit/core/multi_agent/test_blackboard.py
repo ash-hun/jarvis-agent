@@ -1,8 +1,7 @@
 """SharedBlackboard 단위 테스트."""
 
-import asyncio
-
 import pytest
+import asyncio
 
 from jarvis.core.multi_agent.blackboard import SharedBlackboard
 

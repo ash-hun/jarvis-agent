@@ -1,7 +1,7 @@
 """승인 기억: 패턴 제안과 대조, 규칙 파일의 멱등 저장, sandbox.authorize 의 결정 순서."""
 
-import pytest
 import yaml
+import pytest
 
 from jarvis.core.policy.approval_rules import (
     ApprovalRule,

@@ -1,7 +1,5 @@
 """[agent_layer] JsonlSessionRepo.create_branch() 로 대화를 갈라 내는 동작 테스트."""
 
-from __future__ import annotations
-
 from jarvis.model_layer.types import UserMessage
 
 

@@ -1,12 +1,10 @@
 """[core] proactive 게이팅 정책. 요청 시점 Dual-Channel 계획과 자율 발화의 말할지 말지를 판정한다."""
 
-from __future__ import annotations
-
 import time
 from collections.abc import Callable
 
-from jarvis.agent_layer.thought.types import ThoughtFrame
 from jarvis.core.proactive.types import ProactiveDecision, ResponsePlan
+from jarvis.agent_layer.thought.types import ThoughtFrame
 
 # filler가 비었을 때 쓰는 대기-신호 fallback. 모두 "오래 걸림"을 명시한다.
 DEFAULT_FILLERS = (

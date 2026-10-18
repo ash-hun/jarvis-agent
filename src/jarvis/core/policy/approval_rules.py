@@ -1,13 +1,12 @@
 """[core] 사용자가 "항상 허용"한 (도구, 패턴) 규칙을 YAML 에 쌓아 같은 패턴의 호출은 다시 묻지 않게 한다."""
 
-import fnmatch
 import os
-import shlex
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
-
 import yaml
+import shlex
+import fnmatch
+from typing import Any
+from pathlib import Path
+from dataclasses import dataclass
 
 DEFAULT_PATH = "~/.jarvis/approvals.yaml"
 PREFIX_WORDS = 2  # bash 는 앞 두 단어까지를 패턴으로 제안한다 (`git status` → `git status …` 전부)

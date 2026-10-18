@@ -1,14 +1,11 @@
 """Proactive 배선 — session.prompt의 Dual-Channel(스텝 4) 통합."""
 
-from __future__ import annotations
-
+import pytest
 import asyncio
 
-import pytest
-
+from jarvis.core.proactive import DefaultProactivityCore, DefaultProactivityPolicy
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
 from jarvis.agent_layer.types import ProactiveMessageEvent
-from jarvis.core.proactive import DefaultProactivityCore, DefaultProactivityPolicy
 
 
 class StubEngine:
@@ -27,7 +24,7 @@ def _build_session(fx, engine=None, proactivity_factory=None, feedback_learner=N
         session_id="test-session",
         security_pipeline=fx["pipeline"],
         plugin_runner=fx["plugin_runner"],
-        memory_chain=fx["memory_chain"],
+        memory=fx["session_memory"],
         tool_registry=fx["tool_registry"],
         skill_registry=fx["skill_registry"],
         session_repo=fx["repo"],
@@ -46,7 +43,7 @@ def fx(
     faux_model,
     permissive_pipeline,
     plugin_runner,
-    memory_chain,
+    session_memory,
     tool_registry,
     skill_registry,
     jsonl_repo,
@@ -55,7 +52,7 @@ def fx(
         "model": faux_model,
         "pipeline": permissive_pipeline,
         "plugin_runner": plugin_runner,
-        "memory_chain": memory_chain,
+        "session_memory": session_memory,
         "tool_registry": tool_registry,
         "skill_registry": skill_registry,
         "repo": jsonl_repo,

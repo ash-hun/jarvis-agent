@@ -1,14 +1,12 @@
 """[core] 디렉터리의 .py 파일에서 플러그인 클래스를 찾아 PluginRunner 에 등록한다."""
 
-from __future__ import annotations
-
-import importlib.util
 import sys
+import importlib.util
 from pathlib import Path
 
-from jarvis.common.logger import get_logger
 from jarvis.core.plugins.protocol import JarvisPlugin
 from jarvis.core.plugins.runner import PluginRunner
+from jarvis.common.logger import get_logger
 
 logger = get_logger(__name__)
 

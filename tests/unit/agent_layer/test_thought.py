@@ -1,11 +1,8 @@
 """[agent_layer] Inner Thought 서브시스템 단위 테스트(실 API 없이 faux provider 사용)."""
 
-from __future__ import annotations
-
 import json
-from datetime import datetime
-
 import pytest
+from datetime import datetime
 
 from jarvis.agent_layer.thought import (
     InnerThoughtEngine,
@@ -17,9 +14,9 @@ from jarvis.agent_layer.thought import (
     ThoughtRequest,
     WorkingNotesSink,
 )
+from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.agent_layer.thought.log import THOUGHT_SOURCE
 from jarvis.memory.memory_service import MemoryService
-from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.model_layer.types import UserMessage
 
 

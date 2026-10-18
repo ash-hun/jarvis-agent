@@ -1,13 +1,10 @@
 """OpenAI 프로바이더: 메시지 변환과 청크 스트림 해석을 가짜 SDK 클라이언트로 검증한다."""
 
 import json
-from types import SimpleNamespace
-from typing import Any
-
 import pytest
+from typing import Any
+from types import SimpleNamespace
 
-from jarvis.model_layer.providers import openai as openai_mod
-from jarvis.model_layer.providers.openai import OpenAIProvider, _content_to_api, _convert_messages, _tool_to_openai
 from jarvis.model_layer.types import (
     AssistantMessage,
     ImageContent,
@@ -23,6 +20,8 @@ from jarvis.model_layer.types import (
     ToolResultMessage,
     UserMessage,
 )
+from jarvis.model_layer.providers.openai import OpenAIProvider, _content_to_api, _convert_messages, _tool_to_openai
+from jarvis.model_layer.providers import openai as openai_mod
 
 TOOL = Tool(name="bash", description="d", parameters={"type": "object", "properties": {}})
 

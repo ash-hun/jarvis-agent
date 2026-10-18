@@ -3,8 +3,8 @@
 import pytest
 
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
-from jarvis.core.proactive import DefaultProactivityCore
 from jarvis.memory.scope import MemoryScope, current_scope
+from jarvis.core.proactive import DefaultProactivityCore
 
 
 class ScopeCapturingEngine:
@@ -26,7 +26,7 @@ def _session(fx, session_id: str, engine: ScopeCapturingEngine):
         session_id=session_id,
         security_pipeline=fx["pipeline"],
         plugin_runner=fx["plugin_runner"],
-        memory_chain=fx["memory_chain"],
+        memory=fx["session_memory"],
         tool_registry=fx["tool_registry"],
         skill_registry=fx["skill_registry"],
         session_repo=fx["repo"],
@@ -36,12 +36,12 @@ def _session(fx, session_id: str, engine: ScopeCapturingEngine):
 
 
 @pytest.fixture
-def fx(faux_model, permissive_pipeline, plugin_runner, memory_chain, tool_registry, skill_registry, jsonl_repo):
+def fx(faux_model, permissive_pipeline, plugin_runner, session_memory, tool_registry, skill_registry, jsonl_repo):
     return {
         "model": faux_model,
         "pipeline": permissive_pipeline,
         "plugin_runner": plugin_runner,
-        "memory_chain": memory_chain,
+        "session_memory": session_memory,
         "tool_registry": tool_registry,
         "skill_registry": skill_registry,
         "repo": jsonl_repo,

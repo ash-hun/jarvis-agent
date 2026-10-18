@@ -1,16 +1,16 @@
 """[app] 최상위 에이전트끼리 일을 맡기고 묻는 ask_agent 도구와, 에이전트 쌍마다 이어지는 대화 세션 규칙."""
 
 import asyncio
-from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any
+from collections.abc import Awaitable, Callable
 
+from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage
+from jarvis.core.tools.registry import JarvisTool, ToolContext
+from jarvis.memory.scope import MAIN_AGENT, current_scope
 from jarvis.agent_layer.openloop.types import same_loop
 from jarvis.common.logger import get_logger
 from jarvis.core.session import SessionBusy
-from jarvis.core.tools.registry import JarvisTool, ToolContext
-from jarvis.memory.scope import MAIN_AGENT, current_scope
-from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage
 
 if TYPE_CHECKING:
     from jarvis.app.agent_registry import AgentRegistry

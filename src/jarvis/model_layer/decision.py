@@ -1,8 +1,7 @@
 """[model_layer] decision model(System One API, 예: Ollama 의 tev1, nimble)에 예/아니오 질문을 던져 확률을 받는다."""
 
-from typing import Any
-
 import httpx
+from typing import Any
 
 from jarvis.common.logger import get_logger
 

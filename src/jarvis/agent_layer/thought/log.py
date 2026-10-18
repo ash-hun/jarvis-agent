@@ -1,7 +1,5 @@
 """[agent_layer] ThoughtFrame 을 LTM, 작업 기억 메모 같은 싱크로 영속하고 여러 싱크에 나눠 보낸다."""
 
-from __future__ import annotations
-
 import asyncio
 import contextlib
 

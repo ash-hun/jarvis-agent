@@ -1,10 +1,7 @@
 """Open-loop session 배선 — 감지 저장 + 회상 주입 (Tier 2 C1)."""
-from __future__ import annotations
-
 import time
-from datetime import datetime
-
 import pytest
+from datetime import datetime
 
 from jarvis.agent_layer.openloop import InMemoryOpenLoopStore, LoopExpiry, OpenLoop
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
@@ -31,7 +28,7 @@ def _build_session(fx, engine, store, user_model_store=None, proactivity_factory
         session_id="test-session",
         security_pipeline=fx["pipeline"],
         plugin_runner=fx["plugin_runner"],
-        memory_chain=fx["memory_chain"],
+        memory=fx["session_memory"],
         tool_registry=fx["tool_registry"],
         skill_registry=fx["skill_registry"],
         session_repo=fx["repo"],
@@ -48,7 +45,7 @@ def fx(
     faux_model,
     permissive_pipeline,
     plugin_runner,
-    memory_chain,
+    session_memory,
     tool_registry,
     skill_registry,
     jsonl_repo,
@@ -57,7 +54,7 @@ def fx(
         "model": faux_model,
         "pipeline": permissive_pipeline,
         "plugin_runner": plugin_runner,
-        "memory_chain": memory_chain,
+        "session_memory": session_memory,
         "tool_registry": tool_registry,
         "skill_registry": skill_registry,
         "repo": jsonl_repo,

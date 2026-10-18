@@ -1,12 +1,12 @@
 """[memory] (user, agent, session) 당 한 행을 upsert 하는 PostgreSQL 작업 기억 저장소."""
 
-import asyncio
 import json
-from datetime import UTC, datetime
+import asyncio
 from typing import Any
+from datetime import UTC, datetime
 
-from jarvis.memory.scope import LOCAL_USER, MemoryScope
 from jarvis.memory.working.state import WorkingState, WorkingStore
+from jarvis.memory.scope import LOCAL_USER, MemoryScope
 
 TABLE = "jarvis_working_memory"
 

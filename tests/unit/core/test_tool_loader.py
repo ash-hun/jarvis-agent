@@ -2,10 +2,10 @@
 
 import pytest
 
-from jarvis.core.tools.builtin.bash import BashTool
-from jarvis.core.tools.builtin.web_search import WebSearchTool
 from jarvis.core.tools.loader import ToolLoader, looks_like_tool
 from jarvis.core.tools.registry import JarvisTool, ToolRegistry
+from jarvis.core.tools.builtin.web_search import WebSearchTool
+from jarvis.core.tools.builtin.bash import BashTool
 
 DUCK_TOOL = """
 class DuckTool:

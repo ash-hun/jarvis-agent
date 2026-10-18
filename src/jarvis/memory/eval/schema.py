@@ -3,7 +3,6 @@
 import json
 from pathlib import Path
 from typing import Literal
-
 from pydantic import BaseModel, Field
 
 from jarvis.memory.scope import MAIN_AGENT, MemoryScope

@@ -2,7 +2,6 @@
 
 import pytest
 
-from jarvis.memory import MemoryKind, MemoryScope, MemoryService
 from jarvis.memory.long_term.task_pattern import (
     PATTERN_HEADER,
     SAVE_HINT_HEADER,
@@ -12,6 +11,7 @@ from jarvis.memory.long_term.task_pattern import (
     pattern_id,
     teaches,
 )
+from jarvis.memory import MemoryKind, MemoryScope, MemoryService
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.model_layer.types import UserMessage
 

@@ -1,7 +1,7 @@
 """사용자가 알려 준 작업 방식을 KAREN 이 저장하고 다음 세션에서 그대로 쓰는 흐름을 흉내 내는 테스트용 프로바이더."""
 
-import asyncio
 import json
+import asyncio
 from collections.abc import AsyncIterator
 
 from jarvis.model_layer.types import (

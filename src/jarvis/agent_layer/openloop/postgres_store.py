@@ -1,15 +1,13 @@
 """[agent_layer] open-loop 을 PostgreSQL 테이블에 영속한다(asyncpg 풀, 상태 변경은 UPDATE)."""
 
-from __future__ import annotations
-
-import asyncio
 import time
+import asyncio
 from typing import Any
 
-from jarvis.agent_layer.openloop.store import OpenLoopStore
 from jarvis.agent_layer.openloop.types import LOOP_STATUSES, OpenLoop
-from jarvis.memory.scope import MAIN_AGENT
+from jarvis.agent_layer.openloop.store import OpenLoopStore
 from jarvis.model_layer.embeddings import Embedder
+from jarvis.memory.scope import MAIN_AGENT
 
 
 class PostgresOpenLoopStore(OpenLoopStore):

@@ -1,22 +1,22 @@
 """[app] AppContext: 화면(TUI, Web)이 기동 뒤 붙잡고 쓰는 앱 단위 인프라 묶음."""
 
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
+from dataclasses import dataclass, field
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.protocol import SessionRepo
-    from jarvis.config import JarvisSettings
-    from jarvis.core.external import ExternalEventInbox, ExternalEventPoller
-    from jarvis.core.notify import Notify
-    from jarvis.core.proactive.feedback import FeedbackLearner
     from jarvis.core.proactive.triggers import ActivityClock, ReflectionTrigger
-    from jarvis.core.procedures.learner import ProcedureLearner
-    from jarvis.core.scheduler.service import SchedulerService
-    from jarvis.core.session import AgentSession
+    from jarvis.core.external import ExternalEventInbox, ExternalEventPoller
     from jarvis.core.slash.dispatcher import SlashCommandDispatcher
-    from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.agent_layer.session.protocol import SessionRepo
+    from jarvis.core.procedures.learner import ProcedureLearner
+    from jarvis.core.proactive.feedback import FeedbackLearner
+    from jarvis.core.scheduler.service import SchedulerService
     from jarvis.memory.memory_service import MemoryService
+    from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.core.session import AgentSession
+    from jarvis.config import JarvisSettings
+    from jarvis.core.notify import Notify
 
 
 @dataclass

@@ -1,8 +1,5 @@
 """Voice 서브시스템: 레지스트리, VoiceService, 서버 STT 핸들러 테스트."""
-from __future__ import annotations
-
 import base64
-
 import pytest
 
 # ── 레지스트리 ─────────────────────────────────────────────────────────────────

@@ -1,13 +1,10 @@
 """[core] ~/.jarvis/agents/*.yaml 파일을 읽어 AgentDefinition 목록으로 바꾼다."""
 
-from __future__ import annotations
-
-from pathlib import Path
 from typing import Any
-
-from jarvis.common.logger import get_logger
+from pathlib import Path
 
 from .factory import AgentDefinition, AgentMemoryPolicy
+from jarvis.common.logger import get_logger
 
 _VALID_FIELDS = frozenset({
     "name", "description", "capabilities",

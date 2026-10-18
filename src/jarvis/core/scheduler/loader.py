@@ -1,13 +1,10 @@
 """[core] 스케줄 YAML 을 읽고, 작업 저장, enabled 토글, 끝난 한 번 실행 작업 정리를 맡는다."""
 
-from __future__ import annotations
-
+import yaml
 from pathlib import Path
 
-import yaml
-
-from jarvis.common.logger import get_logger
 from jarvis.core.scheduler.task import ScheduledTask
+from jarvis.common.logger import get_logger
 
 logger = get_logger(__name__)
 

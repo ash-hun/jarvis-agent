@@ -1,14 +1,11 @@
 """[core] 모든 노드의 입찰(can_handle, score)을 받아 가장 높은 priority 노드 하나에 작업을 맡기는 오케스트레이터."""
 
-from __future__ import annotations
-
 import asyncio
-from dataclasses import dataclass, field
 from typing import Any
+from dataclasses import dataclass, field
 
 from jarvis.core.multi_agent.protocol import AgentNodeProtocol, TopologyProtocol
 from jarvis.core.multi_agent.task import AgentResult, AgentTask
-
 from .base import BaseOrchestrator
 
 

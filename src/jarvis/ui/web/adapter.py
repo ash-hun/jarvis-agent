@@ -1,13 +1,11 @@
 """[ui] PerConnectionAdapter: 에이전트 이벤트를 WebSocket 연결 하나로 보낸다."""
 
-from __future__ import annotations
-
 import contextlib
 from typing import TYPE_CHECKING
 
 from jarvis.agent_layer.types import AgentEvent
-from jarvis.ui.protocol import UIAdapter
 from jarvis.ui.web.approvals import Connection
+from jarvis.ui.protocol import UIAdapter
 
 if TYPE_CHECKING:
     from fastapi import WebSocket
@@ -16,7 +14,7 @@ if TYPE_CHECKING:
 class PerConnectionAdapter(UIAdapter, Connection):
     """WebSocket 연결 하나의 어댑터. 이벤트를 그 연결에만 보낸다. 승인은 세션 단위(SessionApprovals)라 받지 않는다."""
 
-    def __init__(self, ws: WebSocket) -> None:
+    def __init__(self, ws: "WebSocket") -> None:
         self._ws = ws
 
     async def on_agent_event(self, event: AgentEvent) -> None:

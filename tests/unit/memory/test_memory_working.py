@@ -2,15 +2,13 @@
 
 import pytest
 
-from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
-from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
-from jarvis.memory import MemoryScope, MemoryService
-from jarvis.memory.consolidation import llm_summarizer
-from jarvis.memory.eval.probe import count_llm_calls
-from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.working import InMemoryWorkingStore, WorkingState, WorkingStore, apply_window, cut_at_user_boundary
-from jarvis.memory.working.window import SUMMARY_HEADER
 from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage, UserMessage
+from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.memory.working.window import SUMMARY_HEADER
+from jarvis.memory.consolidation import llm_summarizer
+from jarvis.memory import MemoryScope, MemoryService
+from jarvis.memory.eval.probe import count_llm_calls
 
 CTX = {"session_id": "s1", "user_id": "u1", "agent_id": "main"}
 SCOPE = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
@@ -127,8 +125,8 @@ async def test_below_threshold_passes_through_without_llm(faux_model_with_respon
 
 async def test_summary_failure_keeps_history_and_writes_nothing():
     from jarvis.model_layer.registry import get_default_registry
-    from jarvis.model_layer.types import ModelConfig
     from tests.fixtures.faux_provider import FauxProviderFactory
+    from jarvis.model_layer.types import ModelConfig
 
     get_default_registry()._providers["faux"] = FauxProviderFactory.error()
     memory = _manager(ModelConfig(provider="faux", model="faux-model"), threshold_chars=10, keep_recent=1)
@@ -180,31 +178,23 @@ async def test_notes_are_session_scoped():
     assert (await memory.working_state(SCOPE.with_session("s2"))).notes == []
 
 
-# ── 미들웨어 어댑터 ──────────────────────────────────────────────────────────
+# ── 턴 컨텍스트로 범위를 정하는 진입점 ──────────────────────────────────────
 
 
-async def test_adapter_routes_chain_hooks_to_manager():
+async def test_observe_and_recall_messages_scope_by_turn_context():
     memory = MemoryService(InMemoryItemStore(), fixed_facts=0)
     await memory.remember("프로젝트 마감: 금요일", source="explicit", scope=SCOPE)
-    chain = MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(memory)])
 
-    out = await chain.transform([_u("프로젝트 마감 언제")], CTX)
+    out = await memory.observe([_u("프로젝트 마감 언제")], CTX)
     assert out[0].content.startswith("[장기 기억]") and "금요일" in out[0].content
 
-    recalled = await chain.retrieve("프로젝트 마감", CTX, limit=5)
+    recalled = await memory.recall_messages("프로젝트 마감", CTX, limit=5)
     assert [m.content for m in recalled] == ["프로젝트 마감: 금요일"]
-
-    await chain.store(_a("저장되지 않는다"), CTX)
-    assert len(await memory.recent(scope=SCOPE)) == 1
-
-    await memory.add_note("n", scope=SCOPE)
-    await chain.clear(CTX)
-    assert (await memory.working_state(SCOPE)).notes == []
 
 
 @pytest.mark.parametrize("ctx", [{"session_id": "s1"}, {}])
-async def test_adapter_without_user_in_context_uses_local_scope(ctx):
+async def test_observe_without_user_in_context_uses_local_scope(ctx):
     memory = MemoryService(InMemoryItemStore())
     await memory.remember("로컬 기억", source="explicit", scope=MemoryScope(user_id="local"))
-    out = await MemoryMiddlewareAdapter(memory).transform([_u("로컬 기억 찾기")], ctx)
+    out = await memory.observe([_u("로컬 기억 찾기")], ctx)
     assert "로컬 기억" in out[0].content

@@ -1,11 +1,4 @@
-"""Web HUD FastAPI 앱 — REST + WebSocket 엔드투엔드 명세.
-
-faux provider + in_memory 백엔드(conftest 환경)로 실 API/DB 없이
-create_app()을 띄워 라우트 배선을 검증한다. 가장 빈약했던 server.py 커버리지를 메운다.
-
-fastapi가 없으면(web extra 미설치) 모듈 전체 skip."""
-
-from __future__ import annotations
+"""Web HUD FastAPI 앱의 REST 와 WebSocket 라우트 배선을 실 API, DB 없이 엔드투엔드로 검증한다."""
 
 import pytest
 
@@ -14,8 +7,8 @@ pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
 from jarvis.app.infra_builder import build_app  # noqa: E402
-from jarvis.config import JarvisSettings  # noqa: E402
 from jarvis.ui.web.server import create_app  # noqa: E402
+from jarvis.config import JarvisSettings  # noqa: E402
 
 
 @pytest.fixture
@@ -310,8 +303,8 @@ def test_openloop_done_removes_it_from_agenda(agenda):
 
 
 def test_agenda_drops_long_overdue_loops(agenda):
-    import asyncio
     import time
+    import asyncio
 
     from jarvis.agent_layer.openloop.types import OpenLoop
 

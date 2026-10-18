@@ -1,7 +1,5 @@
 """[ui] TUI 렌더링이 쓰는 불변 상태 값(활성 도구, 메모리 통계, UIState)."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 

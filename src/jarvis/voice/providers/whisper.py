@@ -1,9 +1,7 @@
 """[voice] faster-whisper 로 서버에서 음성을 전사하는 로컬 STT 프로바이더."""
 
-from __future__ import annotations
-
-import asyncio
 import io
+import asyncio
 from functools import partial
 
 from jarvis.voice.protocol import DEFAULT_SAMPLE_RATE, STTProvider

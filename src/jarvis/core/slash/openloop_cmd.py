@@ -1,9 +1,7 @@
 """[core] 추적 중인 약속/미완 작업(open loop)을 나열하고 완료, 무시 처리하는 /openloop 핸들러 factory."""
 
-from __future__ import annotations
-
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.openloop import OpenLoopStore
@@ -19,7 +17,7 @@ _USAGE = (
 )
 
 
-def make_openloop_handler(store: OpenLoopStore) -> Handler:
+def make_openloop_handler(store: "OpenLoopStore") -> Handler:
     """SlashCommandDispatcher에 등록할 /openloop 핸들러 factory."""
 
     async def handle(args: str) -> str:
@@ -42,7 +40,7 @@ def make_openloop_handler(store: OpenLoopStore) -> Handler:
     return handle
 
 
-async def _handle_list(store: OpenLoopStore) -> str:
+async def _handle_list(store: "OpenLoopStore") -> str:
     loops = await store.list_open(limit=20)
     if not loops:
         return "[OpenLoop] 열린 항목이 없습니다."
@@ -51,7 +49,7 @@ async def _handle_list(store: OpenLoopStore) -> str:
     return "\n".join(lines)
 
 
-async def _handle_status(store: OpenLoopStore, loop_id: str, status: str) -> str:
+async def _handle_status(store: "OpenLoopStore", loop_id: str, status: str) -> str:
     if not loop_id:
         return "[OpenLoop] id가 필요합니다."
     # 짧은 prefix(8자)로도 찾도록 보조. 전체/접두 일치 모두 허용.

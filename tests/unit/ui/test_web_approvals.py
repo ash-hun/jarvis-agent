@@ -1,8 +1,7 @@
 """승인 요청은 세션의 연결 전부에 가고, 먼저 온 답이 이긴다."""
 
-import asyncio
-
 import pytest
+import asyncio
 
 from jarvis.ui.web.approvals import Connection, SessionApprovals
 

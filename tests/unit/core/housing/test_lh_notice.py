@@ -1,8 +1,7 @@
 """lh_notice: 조건을 게시판 폼으로 바꾸고, 목록과 상세를 읽어 KST 기준 마감을 붙인다."""
 
-import asyncio
-
 import pytest
+import asyncio
 
 from jarvis.core.tools.housing.lh_notice import (
     LhNoticeTool,

@@ -1,7 +1,7 @@
 """[memory] 회상된 증거로 답을 만들고(LLM 1회) 정답과 맞는지 판정한다(LLM 1회, 비싸서 --judge 일 때만)."""
 
-from jarvis.memory.eval.benchmark import BenchmarkQuestion, Judge
 from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
+from jarvis.memory.eval.benchmark import BenchmarkQuestion, Judge
 
 ANSWER_PROMPT = """\
 아래는 과거 대화에서 떠올린 기억이다. 이것만 근거로 질문에 짧게 답하라. 근거가 없으면 "모름" 이라고 답하라.

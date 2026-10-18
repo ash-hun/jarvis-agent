@@ -2,12 +2,12 @@
 
 from datetime import datetime
 
-from jarvis.memory.eval.schema import SetupStep, WorkingCase
 from jarvis.memory.long_term.procedural import InMemoryProcedures, Procedure
-from jarvis.memory.memory_service import MemoryService
-from jarvis.memory.scope import MemoryScope
+from jarvis.memory.eval.schema import SetupStep, WorkingCase
 from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.memory.memory_service import MemoryService
 from jarvis.model_layer.types import Message
+from jarvis.memory.scope import MemoryScope
 
 
 class EvalTarget:
@@ -70,8 +70,8 @@ class WorkingTarget:
         self.calls = 0
 
     async def run_case(self, case: WorkingCase) -> tuple[list[int], list[list[Message]]]:
-        from jarvis.memory.stores.in_memory import InMemoryItemStore
         from jarvis.memory.working.in_memory import InMemoryWorkingStore
+        from jarvis.memory.stores.in_memory import InMemoryItemStore
 
         store, working = InMemoryItemStore(), InMemoryWorkingStore()
 

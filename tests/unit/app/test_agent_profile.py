@@ -1,12 +1,11 @@
 """AgentProfile: 사고 모델은 지정한 항목만 바꾸고, 분류기와 proactivity 팩토리는 켜진 설정에서만 생긴다."""
 
+from pydantic import SecretStr
 from unittest.mock import MagicMock
 
-from pydantic import SecretStr
-
 from jarvis.app.agent_profile import MAIN_AGENT_ID, AgentProfile
-from jarvis.config import JarvisSettings
 from jarvis.model_layer.types import ModelConfig
+from jarvis.config import JarvisSettings
 
 MAIN = ModelConfig(provider="anthropic", model="claude", api_key="mainkey", base_url="https://main", temperature=0.3,
                    max_tokens=123)

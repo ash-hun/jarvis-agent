@@ -1,18 +1,18 @@
 """[ui] jarvis 명령의 진입점. CLI 인자를 StartupPlan 으로 정규화하고 TUI 나 Web 을 띄운다."""
 
-import argparse
-import asyncio
 import sys
+import asyncio
+import argparse
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from jarvis.app.app_assembly import AppAssembly
-    from jarvis.config import JarvisSettings
-    from jarvis.core.session import AgentSession
     from jarvis.ui.tui.voice import TuiVoiceController
+    from jarvis.app.app_assembly import AppAssembly
+    from jarvis.core.session import AgentSession
+    from jarvis.config import JarvisSettings
 
 logger = get_logger(__name__)
 # 에이전트를 정하지 않고 시작하면 붙는 세션. main 의 예전 고정 세션 이름이다

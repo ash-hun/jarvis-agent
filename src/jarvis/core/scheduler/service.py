@@ -1,22 +1,20 @@
 """[core] 스케줄 루프. 때가 된 cron 작업과 한 번 실행 작업을 새 세션에서 돌리고 결과를 알린다."""
 
-from __future__ import annotations
-
-import asyncio
 import uuid
-from collections.abc import Awaitable, Callable, Coroutine
-from dataclasses import dataclass
+import asyncio
 from datetime import datetime
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
+from collections.abc import Awaitable, Callable, Coroutine
 
-from jarvis.common.logger import get_logger
 from jarvis.core.scheduler.task import ScheduledTask
+from jarvis.common.logger import get_logger
 from jarvis.memory.scope import MAIN_AGENT
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
-    from jarvis.core.plugins.runner import PluginRunner
     from jarvis.core.skills.registry import SkillRegistry
+    from jarvis.core.plugins.runner import PluginRunner
     from jarvis.core.tools.registry import ToolRegistry
     from jarvis.model_layer.types import ModelConfig
 
@@ -32,7 +30,7 @@ TICK_SEC = 10
 class TaskAgent:
     """main 이 아닌 에이전트로 작업을 돌릴 때 쓰는 것. 조립 층이 에이전트 정의에서 만들어 준다."""
 
-    model: ModelConfig
+    model: "ModelConfig"
     system_prompt: str | None
     agent_name: str
 
@@ -54,12 +52,12 @@ class SchedulerService:
     def __init__(
         self,
         tasks: list[ScheduledTask],
-        session_repo: SessionRepo,
-        tool_registry: ToolRegistry,
-        model: ModelConfig,
+        session_repo: "SessionRepo",
+        tool_registry: "ToolRegistry",
+        model: "ModelConfig",
         schedules_dir: str | None = None,
-        plugin_runner: PluginRunner | None = None,
-        skill_registry: SkillRegistry | None = None,
+        plugin_runner: "PluginRunner | None" = None,
+        skill_registry: "SkillRegistry | None" = None,
     ) -> None:
         self._tasks = tasks
         # 설정되면 새 작업·토글을 이 디렉토리의 YAML 로 저장해 재시작 후에도 남긴다.
@@ -68,8 +66,8 @@ class SchedulerService:
         self._tool_registry = tool_registry
         self._model = model
         # 주지 않으면 빈 것으로 둔다. None 을 세션에 넘기면 훅 호출에서 작업이 실패한다
-        from jarvis.core.plugins.runner import PluginRunner
         from jarvis.core.skills.registry import SkillRegistry
+        from jarvis.core.plugins.runner import PluginRunner
 
         self._plugin_runner = plugin_runner if plugin_runner is not None else PluginRunner()
         self._skill_registry = skill_registry if skill_registry is not None else SkillRegistry()
@@ -263,11 +261,10 @@ class SchedulerService:
 
     async def _execute_task(self, task: ScheduledTask) -> str | None:
         """작업 프롬프트를 새 세션에서 실행하고 최종 답을 돌려준다. 실패하면 None."""
-        from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
         from jarvis.core.policy.authenticator import NoAuthAuthenticator
         from jarvis.core.policy.pipeline import SecurityPipeline
-        from jarvis.core.policy.policy import AllowAllPolicy
         from jarvis.core.policy.sandbox import PermissiveSandbox
+        from jarvis.core.policy.policy import AllowAllPolicy
         from jarvis.core.session import AgentSession
 
         logger.info(f"[Scheduler] Executing task '{task.name}'")
@@ -304,15 +301,11 @@ class SchedulerService:
         session_id = task.session_id or f"sched-{task.name}-{uuid.uuid4().hex[:8]}"
         await self._session_repo.create(session_id=session_id, agent_id=task.agent)
 
-        # Reuse memory chain from base_extra but create fresh for isolation
-        memory_chain = MemoryMiddlewareChain(stages=[])
-
         session = AgentSession(
             model=model,
             session_id=session_id,
             security_pipeline=pipeline,
             plugin_runner=self._plugin_runner,
-            memory_chain=memory_chain,
             tool_registry=filtered,
             skill_registry=self._skill_registry,
             session_repo=self._session_repo,

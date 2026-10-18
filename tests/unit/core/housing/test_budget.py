@@ -1,14 +1,13 @@
 """housing_budget: 열린 공고를 모아 금액(상세, 공고문 PDF, 단지)을 찾고 예산과 월 상한으로 골라 추천한다."""
 
+import pytest
 import asyncio
 
-import pytest
-
-from jarvis.core.tools.housing import housing_tools
 from jarvis.core.tools.housing.budget import Option, Terms, options_from_units, parse_terms, plan_for
+from tests.unit.core.housing.conftest import TODAY, page
 from jarvis.core.tools.housing.fetch import FetchError
 from jarvis.core.tools.housing.lh_notice import Notice
-from tests.unit.core.housing.conftest import TODAY, page
+from jarvis.core.tools.housing import housing_tools
 
 NOTICE = Notice("1-03-06-10", "행복주택", "테스트 공고", "경기도", "2026.10.01", "2026.10.20", "공고중")
 

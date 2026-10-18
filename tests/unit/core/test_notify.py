@@ -1,6 +1,5 @@
 """외부 알림: 슬랙 본문 포맷, webhook 전송, fan_out 격리, 종류 필터, proactive 이벤트 전달."""
 
-from jarvis.agent_layer.types import MessageUpdateEvent, ProactiveMessageEvent
 from jarvis.core.notify import (
     fan_out,
     format_slack,
@@ -9,6 +8,7 @@ from jarvis.core.notify import (
     proactive_payload,
     slack_notifier,
 )
+from jarvis.agent_layer.types import MessageUpdateEvent, ProactiveMessageEvent
 
 
 def test_format_slack_reminder_and_proactive():

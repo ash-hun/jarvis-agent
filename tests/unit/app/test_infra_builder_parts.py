@@ -2,9 +2,9 @@
 
 import pytest
 
+from jarvis.core.proactive import ActivityClock, AnyTrigger, ExternalTrigger, IdleTrigger, IntervalTrigger
 from jarvis.app.infra_builder import InfraBuilder
 from jarvis.config import JarvisSettings
-from jarvis.core.proactive import ActivityClock, AnyTrigger, ExternalTrigger, IdleTrigger, IntervalTrigger
 
 
 def _builder(**proactive: object) -> InfraBuilder:

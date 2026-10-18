@@ -1,8 +1,4 @@
-"""PerConnectionAdapter — Web HUD WebSocket 어댑터 단위 명세.
-
-실 WebSocket 없이 FakeWebSocket으로 검증(전송 페이로드만 기록)."""
-
-from __future__ import annotations
+"""PerConnectionAdapter 를 실 WebSocket 없이 FakeWebSocket 으로 검증한다."""
 
 from jarvis.agent_layer.types import MessageUpdateEvent
 from jarvis.ui.web.adapter import PerConnectionAdapter

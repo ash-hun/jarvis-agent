@@ -1,9 +1,6 @@
 """[agent_layer] inner thought 의 입력(ThoughtRequest), 출력(ThoughtFrame), 먼저 할 행동 후보 모델을 정의한다."""
 
-from __future__ import annotations
-
 from typing import Any, Literal
-
 from pydantic import BaseModel, Field, field_validator
 
 from jarvis.model_layer.types import Message

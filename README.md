@@ -550,41 +550,6 @@ AgentEndEvent(session_id="...", agent_name="researcher", turns=3)
 
 </details>
 
-<details>
-<summary>메모리 미들웨어 추가</summary>
-
-```python
-from jarvis.agent_layer.memory.protocol import MemoryMiddleware
-
-class MyMemory:
-    async def transform(self, messages, context):
-        # 메시지 리스트를 변형해서 반환
-        return messages
-
-    async def store(self, message, context):
-        # 메시지를 외부 저장소에 저장
-        ...
-
-    async def retrieve(self, query, context, limit):
-        # 관련 메모리 검색
-        return []
-
-    async def clear(self, context):
-        ...
-```
-
-`MemoryMiddlewareChain`에 등록:
-
-```python
-chain = MemoryMiddlewareChain([
-    WindowMemory(max_messages=20),
-    MyMemory(),          # 커스텀 미들웨어 삽입
-    SqliteMemory(db_path="~/.jarvis/memory.db"),
-])
-```
-
-</details>
-
 ---
 
 ## 설정 레퍼런스
@@ -605,7 +570,7 @@ JARVIS_LLM__TEMPERATURE=0.7
 JARVIS_MEMORY__BACKEND=postgres       # in_memory | postgres
 JARVIS_MEMORY__WINDOW_SIZE=50
 JARVIS_MEMORY__COMPACTION_THRESHOLD=100000   # 글자 수
-JARVIS_MEMORY__CONSOLIDATE_ON_IDLE=true  # 조용할 때 요약에서 사실 추출 (daemon_trigger 가 idle 또는 both 일 때)
+JARVIS_MEMORY__CONSOLIDATE_ON_IDLE=true  # 조용할 때 요약에서 사실 추출 (daemon_idle_sec 넘게 입력이 없을 때, 트리거 종류 무관)
 JARVIS_MEMORY__EMBEDDING_PROVIDER=       # 의미 유사도 검색과 약속 중복 판정: openai | ollama | vllm (비우면 키워드만, Postgres 는 pgvector 필요)
 JARVIS_MEMORY__EMBEDDING_MODEL=          # 비우면 provider 기본값. 한국어는 ollama 의 bge-m3 (DIMENSIONS=1024)
 
@@ -704,7 +669,6 @@ tests/
 │   ├── test_types.py            Message/StreamEvent 직렬화
 │   ├── test_stream.py           FauxProvider 스트리밍
 │   ├── test_policy.py           보안 파이프라인 4단계
-│   ├── test_memory.py           MemoryMiddlewareChain
 │   ├── test_tools.py            ToolRegistry, BashTool, ReadFileTool
 │   ├── test_skills.py           SkillRegistry, /command 확장
 │   ├── test_session.py          AgentSession 전체 플로우

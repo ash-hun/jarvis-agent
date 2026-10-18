@@ -1,13 +1,9 @@
 """[agent_layer] run_agent_loop() 직접 테스트(턴 로직, 툴 실행 모드, 중단, 에러 격리)."""
 
-from __future__ import annotations
-
-import asyncio
 import json
-
 import pytest
+import asyncio
 
-from jarvis.agent_layer.loop import _augment_system_prompt, run_agent_loop
 from jarvis.agent_layer.types import (
     AgentContext,
     AgentEndEvent,
@@ -33,6 +29,7 @@ from jarvis.model_layer.types import (
     ToolResultMessage,
     Usage,
 )
+from jarvis.agent_layer.loop import _augment_system_prompt, run_agent_loop
 
 
 class ScriptedProvider:

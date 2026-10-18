@@ -1,8 +1,7 @@
 """[agent_layer] 🔔 짧은 답과 음성 승인 답 분류기(프롬프트, verdict 파싱, 실패 fallback) 테스트."""
 
-import asyncio
-
 import pytest
+import asyncio
 
 from jarvis.agent_layer.thought.reply import (
     FALLBACK,

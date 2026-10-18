@@ -1,7 +1,7 @@
 """[ui] Web HUD 기동과 종료: 첫 세션, 스케줄러, 성찰 daemon, 외부 이벤트 폴러를 켜고 끄고 세션을 저장한다."""
 
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
 
 from jarvis.ui.web.web_state import WebState
 
@@ -32,17 +32,20 @@ class WebLifecycle:
         # 성찰 daemon: 매 틱 활성 세션 전체를 성찰한다(멀티 세션 추종)
         pcfg = state.settings.proactive
         if pcfg.daemon_enabled:
+            from jarvis.memory.consolidation.idle import consolidation_targets
             from jarvis.core.proactive import ProactivityDaemon
-            from jarvis.memory.consolidation.idle import consolidation_targets, should_consolidate_on_idle
 
-            memory = state.assembly.services.memory
-            consolidate = should_consolidate_on_idle(state.settings)
+            services = state.assembly.services
+            consolidate = state.settings.memory.consolidate_on_idle
 
             def targets() -> list[Callable[[], Awaitable[object]]]:
                 sessions = state.registry.sessions_by_recency()
                 reflects: list[Callable[[], Awaitable[object]]] = [s.reflect for s in sessions]
                 # 성찰 뒤에 공고화. 같은 틱에서 먼저 말할지 정한 다음 조용히 기억을 정리한다
-                return reflects + (consolidation_targets(memory, sessions) if consolidate else [])
+                if not consolidate:
+                    return reflects
+                idle_for = services.activity_clock.idle_seconds()
+                return reflects + consolidation_targets(services.memory, sessions, idle_for, pcfg.daemon_idle_sec)
 
             self._daemon = ProactivityDaemon(
                 targets, interval_sec=pcfg.daemon_interval_sec, trigger=ctx.reflection_trigger

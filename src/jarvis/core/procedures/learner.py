@@ -3,8 +3,8 @@
 import hashlib
 
 from jarvis.core.procedures.detect import DEFAULT_MIN_TOOL_CALLS, TaskSpan, find_spans
-from jarvis.core.procedures.distill import Distiller, ProcedureDraft
 from jarvis.core.procedures.store import STATUS_DRAFT, Procedure, ProcedureStore
+from jarvis.core.procedures.distill import Distiller, ProcedureDraft
 from jarvis.model_layer.types import Message
 
 SUFFIX_LEN = 6

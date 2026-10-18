@@ -1,15 +1,15 @@
 """[memory] 외부 벤치마크의 긴 다중 세션 대화를 메모리에 넣고 질문으로 회상해 증거 재현율을 잰다."""
 
 import random
+from typing import Any
+from datetime import datetime
 from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
-from typing import Any
 
+from jarvis.model_layer.types import AssistantMessage, Message, TextContent, UserMessage
 from jarvis.memory.memory_service import MemoryService
 from jarvis.memory.scope import MemoryScope
 from jarvis.memory.types import MemoryItem
-from jarvis.model_layer.types import AssistantMessage, Message, TextContent, UserMessage
 
 USER = "benchmark"
 

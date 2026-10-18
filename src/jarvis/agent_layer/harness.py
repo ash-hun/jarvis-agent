@@ -1,22 +1,20 @@
-"""[agent_layer] 세션 이력, 메모리 미들웨어, 이벤트 구독을 묶어 한 턴의 에이전트 루프를 돌리는 상태 있는 래퍼."""
-
-from __future__ import annotations
+"""[agent_layer] 세션 이력, 작업 기억 변환, 이벤트 구독을 묶어 한 턴의 에이전트 루프를 돌리는 상태 있는 래퍼."""
 
 import asyncio
-from collections.abc import Awaitable, Callable
 from typing import Any
+from collections.abc import Awaitable, Callable
 
-from jarvis.agent_layer.loop import AgentEventSink, run_agent_loop
-from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
-from jarvis.agent_layer.session.protocol import SessionRepo
-from jarvis.agent_layer.types import AgentContext, AgentEvent, AgentLoopConfig
 from jarvis.model_layer.types import AssistantMessage, ModelConfig, Tool, ToolResultMessage
+from jarvis.agent_layer.types import AgentContext, AgentEvent, AgentLoopConfig
+from jarvis.agent_layer.loop import AgentEventSink, run_agent_loop
+from jarvis.agent_layer.session.protocol import SessionRepo
+from jarvis.memory.memory_service import MemoryService
 
 
 class AgentHarness:
     """
     Agent 실행의 stateful 래퍼.
-    메모리 미들웨어 적용, 세션 영속성, 이벤트 구독 관리.
+    작업 기억 변환, 세션 영속성, 이벤트 구독 관리.
     Pi: AgentHarness 패턴.
     """
 
@@ -24,8 +22,8 @@ class AgentHarness:
         self,
         model: ModelConfig,
         session_id: str,
-        memory_chain: MemoryMiddlewareChain,
         session_repo: SessionRepo,
+        memory: MemoryService | None = None,
         system_prompt: str | None = None,
         tools: list[Tool] | None = None,
         loop_config: AgentLoopConfig | None = None,
@@ -33,7 +31,7 @@ class AgentHarness:
     ) -> None:
         self._model = model
         self._session_id = session_id
-        self._memory_chain = memory_chain
+        self._memory = memory
         self._session_repo = session_repo
         self._system_prompt = system_prompt
         self._tools: list[Tool] = tools or []
@@ -77,7 +75,7 @@ class AgentHarness:
             "agent_id": self._agent_name or "main",  # 메모리 범위: 어느 에이전트가 읽고 쓰는가
             **(extra_context or {}),
         }
-        messages = await self._memory_chain.transform(history, mem_context)
+        messages = await self._memory.observe(history, mem_context) if self._memory else history
 
         agent_context = AgentContext(
             session_id=self._session_id,
@@ -102,8 +100,6 @@ class AgentHarness:
         # 최종 메시지만 남기면 세션 재개 시 provider가 tool_use/tool_result 짝 불일치로 거부한다.
         for msg in agent_context.messages[n_before:]:
             await self._session_repo.append(self._session_id, msg)
-        if result is not None and result.error_message is None:
-            await self._memory_chain.store(result, mem_context)
 
         self._running = False
         return result

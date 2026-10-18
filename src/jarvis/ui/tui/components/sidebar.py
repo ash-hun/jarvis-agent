@@ -1,9 +1,6 @@
 """[ui] SidebarPane: TUI 사이드바에 세션 목록과 도구 목록을 보여 준다."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
-
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Label, ListItem, ListView
@@ -40,7 +37,7 @@ class SidebarPane(Vertical):
     }
     """
 
-    async def load_sessions(self, session_repo: SessionRepo) -> None:
+    async def load_sessions(self, session_repo: "SessionRepo") -> None:
         """세션 레포에서 최근 세션 목록을 로드하여 트리 구조로 표시."""
         sessions = await session_repo.list()
         session_list = self.query_one("#session-list", ListView)
@@ -69,7 +66,7 @@ class SidebarPane(Vertical):
                 session_list.append(ListItem(Label(label)))
                 shown += 1
 
-    def load_tools(self, tool_registry: ToolRegistry) -> None:
+    def load_tools(self, tool_registry: "ToolRegistry") -> None:
         """도구 레지스트리에서 등록된 도구 목록을 표시."""
         tool_list = self.query_one("#tool-list", ListView)
         for tool in tool_registry.list_all():

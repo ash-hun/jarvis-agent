@@ -1,18 +1,10 @@
 """[ui] /ws 라우트: 연결 하나의 수명(인증, connected 핸드셰이크, 메시지 분기, 정리)을 맡는다."""
 
-import asyncio
 import json
+import asyncio
 from typing import Any
-
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
-from jarvis.common.logger import get_logger
-from jarvis.core.focus.types import parse_command
-from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope
-from jarvis.ui.web.router.agent_router import agent_summary
-from jarvis.ui.web.session_registry import UnknownAgent
-from jarvis.ui.web.web_auth import auth_enabled, lookup_api_user
-from jarvis.ui.web.web_state import WebState
 from jarvis.ui.web.ws_tasks import (
     first_feedback,
     run_focus,
@@ -21,7 +13,14 @@ from jarvis.ui.web.ws_tasks import (
     run_stt,
     run_tts,
 )
+from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope
+from jarvis.ui.web.web_auth import auth_enabled, lookup_api_user
+from jarvis.ui.web.router.agent_router import agent_summary
+from jarvis.ui.web.session_registry import UnknownAgent
+from jarvis.core.focus.types import parse_command
 from jarvis.voice.speech_text import speech_text
+from jarvis.ui.web.web_state import WebState
+from jarvis.common.logger import get_logger
 from jarvis.voice.wake import WakeDetector
 
 # 키 불일치로 서버가 끊을 때의 close code. 브라우저가 이 코드를 보고 키 입력을 띄운다
@@ -59,8 +58,8 @@ def build_ws_router(state: WebState) -> APIRouter:
             default=None, description="새 세션을 맡을 에이전트 id. 이미 있는 세션은 저장된 에이전트로 열린다"
         ),
     ) -> None:
-        from jarvis.config import ApiUser
         from jarvis.ui.web.adapter import PerConnectionAdapter
+        from jarvis.config import ApiUser
 
         # accept 뒤에 닫아야 브라우저가 close code(4401)를 읽을 수 있다. accept 전에 닫으면 403 으로만 보인다
         await ws.accept()

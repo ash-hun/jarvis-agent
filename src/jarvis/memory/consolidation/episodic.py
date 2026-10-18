@@ -2,9 +2,9 @@
 
 from typing import TYPE_CHECKING
 
+from jarvis.model_layer.types import LLMContext, Message, ModelConfig, StreamOptions, UserMessage
 from jarvis.memory.consolidation.compaction import system_prompt_for
 from jarvis.memory.scope import MemoryScope
-from jarvis.model_layer.types import LLMContext, Message, ModelConfig, StreamOptions, UserMessage
 
 if TYPE_CHECKING:
     from jarvis.memory.memory_service import MemoryService

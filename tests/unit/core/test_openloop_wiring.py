@@ -356,3 +356,25 @@ async def test_open_loops_are_tracked_without_thought(fx):
     await _say(session, "내일까지 보고서 보내기로 했어")
 
     assert [x.description for x in await store.list_open()] == ["보고서 보내기"]
+
+
+@pytest.mark.asyncio
+async def test_agenda_changed_only_when_loops_change(fx):
+    """화면은 이 신호로 AGENDA 를 다시 읽는다. 같은 약속을 다시 잡아 바뀐 게 없으면 보내지 않는다."""
+    from jarvis.agent_layer.types import AgendaChangedEvent
+
+    await fx["repo"].create(session_id="test-session")
+    store = InMemoryOpenLoopStore()
+    judge = CapturingJudge(LoopVerdict(open_loops=["보고서 보내기"]))
+    session = _build_session(fx, None, store, judge=judge)
+    events: list = []
+
+    async def sink(event) -> None:
+        events.append(event)
+
+    session.subscribe(sink)
+
+    await _say(session, "보고서 보내기로 했어")
+    await _say(session, "보고서 보내기 잊지 마")
+
+    assert len([e for e in events if isinstance(e, AgendaChangedEvent)]) == 1

@@ -92,6 +92,14 @@ class ThoughtEndEvent(BaseModel):
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
 
 
+class AgendaChangedEvent(BaseModel):
+    """AGENDA 판단이 약속을 새로 열거나 닫았다. 판단은 응답과 함께 돌아 응답보다 늦게 끝날 수 있다."""
+
+    type: Literal["agenda_changed"] = "agenda_changed"
+    session_id: str
+    timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
+
+
 class ProactiveMessageEvent(BaseModel):
     """시스템 → 사용자 비요청 발화 (Tier 1 Push 채널).
 
@@ -139,6 +147,7 @@ AgentEvent = (
     | InnerThoughtEvent
     | ThoughtRouteEvent
     | ThoughtEndEvent
+    | AgendaChangedEvent
     | ProactiveMessageEvent
     | FocusStateEvent
     | FocusPanelEvent

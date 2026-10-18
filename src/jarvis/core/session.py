@@ -9,6 +9,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any, Literal, Protocol, cast
 
 from jarvis.agent_layer.types import (
+    AgendaChangedEvent,
     AgentEvent,
     AgentLoopConfig,
     InnerThoughtEvent,
@@ -492,8 +493,10 @@ class AgentSession:
         )
         if verdict is None:
             return
-        await self._close_open_loops(verdict.closed_loops, shown, user_input)
-        await self._persist_open_loops(verdict.open_loops, verdict.closed_loops, user_input)
+        closed = await self._close_open_loops(verdict.closed_loops, shown, user_input)
+        opened = await self._persist_open_loops(verdict.open_loops, verdict.closed_loops, user_input)
+        if closed or opened:
+            await self._harness.emit_event(AgendaChangedEvent(session_id=self._session_id))
 
     async def settle(self) -> None:
         """응답과 함께 띄운 사고와 AGENDA 판단이 끝날 때까지 기다린다. 세션 저장과 테스트가 쓴다."""
@@ -626,23 +629,27 @@ class AgentSession:
             return ""
         return model.as_context() if model is not None else ""
 
-    async def _close_open_loops(self, closed: list[str], shown: list[OpenLoop], user_input: str) -> None:
+    async def _close_open_loops(self, closed: list[str], shown: list[OpenLoop], user_input: str) -> bool:
         """AGENDA 판단이 닫으라고 짚은 약속(보여준 번호 또는 문구)은 done, 사용자가 거둔 약속은 dismissed 로 닫는다.
-        두 번 닫아도 결과는 같다."""
+        두 번 닫아도 결과는 같다. 하나라도 닫았으면 True."""
         if self._openloop_store is None:
-            return
+            return False
         done = matching_ids(shown, closed)
         dropped = [i for i in cancelled_ids(shown, user_input) if i not in done]
+        changed = False
         with contextlib.suppress(Exception):
             for loop_id in done:
-                await self._openloop_store.update_status(loop_id, "done")
+                changed = await self._openloop_store.update_status(loop_id, "done") or changed
             for loop_id in dropped:
-                await self._openloop_store.update_status(loop_id, "dismissed")
+                changed = await self._openloop_store.update_status(loop_id, "dismissed") or changed
+        return changed
 
-    async def _persist_open_loops(self, opened: list[str], closed: list[str], user_input: str) -> None:
-        """AGENDA 판단이 새로 감지한 open-loop를 저장(같은 약속이면 store가 기한만 갱신). 부가 작업이라 실패 무시."""
+    async def _persist_open_loops(self, opened: list[str], closed: list[str], user_input: str) -> bool:
+        """AGENDA 판단이 새로 감지한 open-loop를 저장(같은 약속이면 store가 기한만 갱신). 부가 작업이라 실패 무시.
+        새로 열거나 기한을 바꿨으면 True."""
         if self._openloop_store is None or not opened:
-            return
+            return False
+        changed = False
         for note in opened:
             note, evidence = split_evidence(note)
             text, due_ms = parse_loop_note(note)
@@ -652,7 +659,7 @@ class AgentSession:
             if any(refers_to(c, text) for c in closed):
                 continue
             with contextlib.suppress(Exception):
-                await self._openloop_store.add_unique(
+                loop_id = await self._openloop_store.add_unique(
                     OpenLoop(
                         description=text,
                         due_ms=due_ms,
@@ -660,6 +667,8 @@ class AgentSession:
                         agent_id=self.memory_scope.agent_id,
                     )
                 )
+                changed = changed or loop_id is not None
+        return changed
 
     def _check_rate_limit(self, user_id: str, rate_limit: int, window: float = 60.0) -> None:
         """슬라이딩 윈도우(window초)에서 rate_limit 초과 시 PolicyDenied."""

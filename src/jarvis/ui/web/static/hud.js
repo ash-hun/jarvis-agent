@@ -260,16 +260,31 @@ function draw(ts) {
 requestAnimationFrame(draw);
 
 // ── Public API ────────────────────────────────────────────────────────────────
+// router 가 think 로 띄운 사고는 응답보다 늦게 끝날 수 있다. 그동안 idle 을 thinking 으로 보여 준다
+let requestedState = 'idle';
+let backgroundThought = false;
+
+function applyState() {
+  const s = requestedState === 'idle' && backgroundThought ? 'thinking' : requestedState;
+  hudState = s;
+  // 상태 라벨·워드마크 톤은 CSS 가 data-state 로 처리한다
+  document.querySelector('.sphere-wrap')?.setAttribute('data-state', s);
+  if ($status) $status.textContent = STATE_LABEL[s] || s.toUpperCase();
+  $status?.setAttribute('data-state', s);
+}
+
 window.HUD = {
   // sphere.js 가 매 프레임 읽는다
   get state() { return hudState; },
   get level() { return level; },
+  get backgroundThought() { return backgroundThought; },
   setState(s) {
-    hudState = s;
-    // 상태 라벨·워드마크 톤은 CSS 가 data-state 로 처리한다
-    document.querySelector('.sphere-wrap')?.setAttribute('data-state', s);
-    if ($status) $status.textContent = STATE_LABEL[s] || s.toUpperCase();
-    $status?.setAttribute('data-state', s);
+    requestedState = s;
+    applyState();
+  },
+  setBackgroundThought(on) {
+    backgroundThought = on;
+    applyState();
   },
 };
 window.HUD.setState('idle');

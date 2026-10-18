@@ -20,6 +20,17 @@ import { hasPhrase } from './phrases.js';
 import { onWake } from './wake.js';
 
 const ERROR_FLASH_MS = 3000;
+// thought_end 가 오지 않으면(연결 끊김 등) 이만큼 뒤에 사고 중 표시를 푼다
+const THOUGHT_MAX_MS = 120_000;
+let _thoughtTimer = null;
+
+function setBackgroundThought(on) {
+  clearTimeout(_thoughtTimer);
+  HUD.setBackgroundThought(on);
+  if (on) _thoughtTimer = setTimeout(() => HUD.setBackgroundThought(false), THOUGHT_MAX_MS);
+}
+
+export function resetBackgroundThought() { setBackgroundThought(false); }
 // 이 도구가 시작되면 미리 녹음한 문구를 읽는다
 const CUE_BY_TOOL = { web_search: 'web_search', remember_task_pattern: 'remember_pattern' };
 let _analysisBusy = false;  // Focus 분석 영역이 갱신 중인지. 시작하는 순간에만 문구를 읽는다
@@ -81,7 +92,7 @@ export function handleMessage(msg) {
       streamEnd();
       setStatus('READY');
       HUD.setState('idle');
-      fetchAgenda();  // 이번 턴의 inner thought 가 open loop 를 남겼을 수 있다
+      fetchAgenda();  // AGENDA 판단이 응답보다 먼저 끝났으면 여기서 보인다(늦으면 agenda_changed 로)
       fetchTools();   // /procedures approve 처럼 턴 안에서 도구가 늘었을 수 있다
       const usage = msg.final_message?.usage;
       if (usage) updateUsage(usage);
@@ -144,6 +155,22 @@ export function handleMessage(msg) {
         if (msg.busy && !_analysisBusy) cue('analysis');
         _analysisBusy = !!msg.busy;
       }
+      break;
+
+    case 'thought_route': {
+      // router 판정. think 면 사고가 응답과 함께 돌고, 그 결과는 다음 턴에 쓰인다
+      const p = msg.p_think == null ? 'router 응답 없음' : msg.p_think.toFixed(2);
+      logActivity(msg.think ? `💭 think · ${p}` : `💭 skip · direct ${p}`);
+      if (msg.think) setBackgroundThought(true);
+      break;
+    }
+
+    case 'thought_end':
+      setBackgroundThought(false);
+      break;
+
+    case 'agenda_changed':
+      fetchAgenda();  // AGENDA 판단은 응답보다 늦게 끝날 수 있다
       break;
 
     case 'inner_thought': {

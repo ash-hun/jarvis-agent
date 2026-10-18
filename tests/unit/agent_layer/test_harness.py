@@ -1,4 +1,4 @@
-"""[agent_layer] AgentHarness 직접 테스트(메모리 체인, 세션 영속, 이벤트 구독, 중단)."""
+"""[agent_layer] AgentHarness 직접 테스트(작업 기억 변환, 세션 영속, 이벤트 구독, 중단)."""
 
 import pytest
 
@@ -10,39 +10,26 @@ from jarvis.agent_layer.types import (
     InnerThoughtEvent,
 )
 from jarvis.model_layer.types import (
-    AssistantMessage,
     Message,
     TextContent,
     ToolResultMessage,
     UserMessage,
 )
-from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.agent_layer.harness import AgentHarness
 
 
 class SpyMemory:
-    """transform/store 호출을 기록하고 컨텍스트를 변형하는 미들웨어."""
+    """observe 호출을 기록하고 컨텍스트를 변형하는 MemoryService 대역."""
 
     def __init__(self, prefix: str | None = None) -> None:
         self.transform_calls: list[dict] = []
-        self.stored: list[Message] = []
-        self.cleared = 0
         self._prefix = prefix
 
-    async def transform(self, messages: list[Message], context: dict) -> list[Message]:
+    async def observe(self, messages: list[Message], context: dict) -> list[Message]:
         self.transform_calls.append(dict(context))
         if self._prefix is None:
             return messages
         return [UserMessage(content=self._prefix), *messages]
-
-    async def store(self, message: Message, context: dict) -> None:
-        self.stored.append(message)
-
-    async def retrieve(self, query: str, context: dict, limit: int = 10) -> list[Message]:
-        return []
-
-    async def clear(self, context: dict) -> None:
-        self.cleared += 1
 
 
 @pytest.fixture
@@ -51,11 +38,11 @@ async def repo(jsonl_repo):
     return jsonl_repo
 
 
-def _harness(model, repo, chain=None, **kw) -> AgentHarness:
+def _harness(model, repo, memory=None, **kw) -> AgentHarness:
     return AgentHarness(
         model=model,
         session_id="s1",
-        memory_chain=chain or MemoryMiddlewareChain(stages=[]),
+        memory=memory,
         session_repo=repo,
         **kw,
     )
@@ -82,7 +69,7 @@ async def test_existing_history_is_loaded_before_the_new_turn(faux_model_with_re
     await repo.append("s1", UserMessage(content="이전 질문"))
     model = faux_model_with_response("ok")
     spy = SpyMemory()
-    harness = _harness(model, repo, MemoryMiddlewareChain(stages=[spy]))
+    harness = _harness(model, repo, spy)
 
     await harness.run("새 질문")
 
@@ -111,14 +98,14 @@ async def test_no_assistant_message_is_persisted_when_run_is_aborted(
     assert [type(m).__name__ for m in stored] == ["UserMessage"]
 
 
-# ── 메모리 체인 ──────────────────────────────────────────────────────────────
+# ── 작업 기억 ───────────────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
 async def test_memory_transform_output_reaches_the_model(faux_model_with_response, repo):
     model = faux_model_with_response("ok")
     spy = SpyMemory(prefix="[주입된 컨텍스트]")
-    harness = _harness(model, repo, MemoryMiddlewareChain(stages=[spy]))
+    harness = _harness(model, repo, spy)
 
     await harness.run("안녕")
 
@@ -129,22 +116,10 @@ async def test_memory_transform_output_reaches_the_model(faux_model_with_respons
 
 
 @pytest.mark.asyncio
-async def test_result_is_handed_to_memory_store(faux_model_with_response, repo):
-    model = faux_model_with_response("응답")
-    spy = SpyMemory()
-    harness = _harness(model, repo, MemoryMiddlewareChain(stages=[spy]))
-
-    await harness.run("안녕")
-
-    assert len(spy.stored) == 1
-    assert isinstance(spy.stored[0], AssistantMessage)
-
-
-@pytest.mark.asyncio
 async def test_extra_context_flows_into_memory_context(faux_model_with_response, repo):
     model = faux_model_with_response("ok")
     spy = SpyMemory()
-    harness = _harness(model, repo, MemoryMiddlewareChain(stages=[spy]))
+    harness = _harness(model, repo, spy)
 
     await harness.run("안녕", extra_context={"user_id": "u1", "roles": ["admin"]})
 
@@ -327,11 +302,9 @@ async def test_provider_error_persists_only_the_user_message(faux_model, repo):
     from tests.fixtures.faux_provider import FauxProviderFactory
 
     get_default_registry()._providers["faux"] = FauxProviderFactory.error()
-    spy = SpyMemory()
-    harness = _harness(faux_model, repo, MemoryMiddlewareChain(stages=[spy]))
+    harness = _harness(faux_model, repo, SpyMemory())
 
     result = await harness.run("안녕")
 
     assert result is not None and result.error_message is not None
     assert [type(m).__name__ for m in await repo.get_messages("s1")] == ["UserMessage"]
-    assert spy.stored == []

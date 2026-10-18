@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
 from jarvis.model_layer.types import Message
 
-# 메모리 회상 콜백: `MemoryMiddlewareChain.retrieve` 시그니처와 호환.
+# 메모리 회상 콜백: `MemoryService.recall_messages` 시그니처와 호환.
 RecallFn = Callable[[str, dict[str, Any], int], Awaitable[list[Message]]]
 
 

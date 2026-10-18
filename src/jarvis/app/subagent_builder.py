@@ -51,7 +51,7 @@ class SubagentBuilder:
             session_id=session_id,
             security_pipeline=self._services.pipeline,
             plugin_runner=self._services.plugin_runner,
-            memory_chain=self._services.memory_chain,
+            memory=self._services.memory,
             tool_registry=registry,
             skill_registry=self._services.skill_registry,
             session_repo=self._ctx.session_repo,

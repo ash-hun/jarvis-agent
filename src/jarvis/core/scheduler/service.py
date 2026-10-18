@@ -261,7 +261,6 @@ class SchedulerService:
 
     async def _execute_task(self, task: ScheduledTask) -> str | None:
         """작업 프롬프트를 새 세션에서 실행하고 최종 답을 돌려준다. 실패하면 None."""
-        from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
         from jarvis.core.policy.authenticator import NoAuthAuthenticator
         from jarvis.core.policy.pipeline import SecurityPipeline
         from jarvis.core.policy.sandbox import PermissiveSandbox
@@ -302,15 +301,11 @@ class SchedulerService:
         session_id = task.session_id or f"sched-{task.name}-{uuid.uuid4().hex[:8]}"
         await self._session_repo.create(session_id=session_id, agent_id=task.agent)
 
-        # Reuse memory chain from base_extra but create fresh for isolation
-        memory_chain = MemoryMiddlewareChain(stages=[])
-
         session = AgentSession(
             model=model,
             session_id=session_id,
             security_pipeline=pipeline,
             plugin_runner=self._plugin_runner,
-            memory_chain=memory_chain,
             tool_registry=filtered,
             skill_registry=self._skill_registry,
             session_repo=self._session_repo,

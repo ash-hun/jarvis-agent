@@ -9,12 +9,10 @@ from jarvis.memory.long_term.procedural import (
     Procedure,
     SkillRegistryProcedures,
 )
-from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
 from jarvis.memory import MemoryItem, MemoryKind, MemoryScope, MemoryService
 from jarvis.memory.eval.target import TARGETS, EvalTarget, StoreTarget
 from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.working.in_memory import InMemoryWorkingStore
-from jarvis.agent_layer.memory.protocol import MemoryMiddleware
 from jarvis.memory.working.postgres import PostgresWorkingStore
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.stores.postgres import PostgresItemStore
@@ -38,7 +36,6 @@ def test_concrete_stores_inherit_their_bases():
     assert isinstance(InMemoryProcedures(), ProceduralSource)
     assert isinstance(SkillRegistryProcedures(object()), ProceduralSource)
     assert isinstance(StoreTarget(), EvalTarget)
-    assert isinstance(MemoryMiddlewareAdapter(MemoryService(ItemStore())), MemoryMiddleware)
     assert isinstance(FakeEmbedder(), Embedder)
 
 

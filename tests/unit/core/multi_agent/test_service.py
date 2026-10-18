@@ -4,11 +4,9 @@ import pytest
 
 from jarvis.core.slash.orchestrate_cmd import make_orchestrate_handler, parse_args
 from jarvis.memory import MemoryKind, MemoryScope, MemoryService, current_scope
-from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
 from jarvis.core.multi_agent.service import PATTERNS, OrchestrationService
 from jarvis.core.multi_agent.factory import AgentDefinition, AgentFactory
 from jarvis.core.multi_agent.orchestrate_tool import OrchestrateTool
-from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.core.tools.registry import ToolRegistry
 from jarvis.core.session import AgentSession
@@ -26,7 +24,6 @@ def service(memory, faux_model, permissive_pipeline, plugin_runner, skill_regist
     """startup 과 같은 모양: 메인 레지스트리에 에이전트 도구가 꽂히고, 빌더가 정의별 도구 서브셋을 고른다."""
     from jarvis.core.multi_agent.tool import AgentNodeTool
 
-    chain = MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(memory)])
     main_registry = ToolRegistry()
 
     def build_session(definition, session_id: str) -> AgentSession:
@@ -40,7 +37,7 @@ def service(memory, faux_model, permissive_pipeline, plugin_runner, skill_regist
             registry = main_registry
         return AgentSession(
             model=faux_model, session_id=session_id, security_pipeline=permissive_pipeline,
-            plugin_runner=plugin_runner, memory_chain=chain, tool_registry=registry, skill_registry=skill_registry,
+            plugin_runner=plugin_runner, memory=memory, tool_registry=registry, skill_registry=skill_registry,
             session_repo=jsonl_repo, agent_name=definition.name, system_prompt=definition.system_prompt,
             inherit_scope=True,
         )

@@ -4,8 +4,6 @@ import pytest
 
 from jarvis.core.multi_agent.factory import AgentDefinition, AgentFactory, AgentMemoryPolicy, child_session_id
 from jarvis.memory import MemoryKind, MemoryScope, MemoryService, current_scope
-from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
-from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.core.multi_agent.tool import AgentNodeTool
 from jarvis.core.multi_agent.task import AgentTask
@@ -23,7 +21,6 @@ def memory() -> MemoryService:
 @pytest.fixture
 def harness(memory, faux_model, permissive_pipeline, plugin_runner, tool_registry, skill_registry, jsonl_repo):
     """정의 → 자식 AgentSession 을 만드는 빌더와 팩토리, 도구. 실제 startup 배선과 같은 모양."""
-    chain = MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(memory)])
     built: dict[str, AgentSession] = {}
 
     def build_session(definition, session_id: str) -> AgentSession:
@@ -32,7 +29,7 @@ def harness(memory, faux_model, permissive_pipeline, plugin_runner, tool_registr
             session_id=session_id,
             security_pipeline=permissive_pipeline,
             plugin_runner=plugin_runner,
-            memory_chain=chain,
+            memory=memory,
             tool_registry=tool_registry,
             skill_registry=skill_registry,
             session_repo=jsonl_repo,

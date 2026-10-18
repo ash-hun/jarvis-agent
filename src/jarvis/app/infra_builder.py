@@ -58,11 +58,6 @@ class InfraBuilder:
 
         # 작업 패턴 저장은 메모리가 있어야 해서 메모리 다음에 등록한다. 모든 에이전트가 쓴다
         tool_registry.register(TaskPatternTool(memory))
-        from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
-        from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
-
-        # 메모리 모듈은 서비스 하나. harness 의 미들웨어 체인에는 어댑터 한 단계로 꽂힌다
-        memory_chain = MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(memory)])
         session_repo = self.build_session_repo()
 
         from jarvis.core.policy.authenticator import NoAuthAuthenticator
@@ -125,7 +120,6 @@ class InfraBuilder:
         ctx.scheduler = scheduler
 
         services = AppServices(
-            memory_chain=memory_chain,
             pipeline=pipeline,
             plugin_runner=plugin_runner,
             skill_registry=skill_registry,

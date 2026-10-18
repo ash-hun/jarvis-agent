@@ -1,6 +1,5 @@
 """SessionBuilder.thought_parts 단위 테스트 — A1 모델 분리 / A2 싱크 / A3 composer."""
 
-from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from jarvis.agent_layer.thought import (
@@ -27,7 +26,6 @@ def _ctx(**thought_overrides) -> AppContext:
 
 def _extra() -> dict:
     return {
-        "memory_chain": SimpleNamespace(retrieve=lambda *a, **k: []),
         "memory": MemoryService(InMemoryItemStore()),
     }
 
@@ -38,7 +36,6 @@ _MAIN = ModelConfig(provider="anthropic", model="claude", api_key="mainkey", bas
 def _build_thought(ctx: AppContext, extra: dict, main: ModelConfig) -> tuple:
     """옛 _build_thought(ctx, extra, main) 모양으로 SessionBuilder.thought_parts 를 부른다(테스트 본문 유지용)."""
     services = AppServices(
-        memory_chain=extra["memory_chain"],
         pipeline=MagicMock(),
         plugin_runner=MagicMock(),
         skill_registry=MagicMock(),
@@ -150,7 +147,6 @@ def _agent_session(profile_kwargs: dict, tmp_path, agent_tools=None):
         session_repo=JsonlSessionRepo(str(tmp_path)), tool_registry=registry, settings=settings, agent_tools=agent_tools
     )
     services = AppServices(
-        memory_chain=MagicMock(),
         pipeline=MagicMock(),
         plugin_runner=MagicMock(),
         skill_registry=MagicMock(),

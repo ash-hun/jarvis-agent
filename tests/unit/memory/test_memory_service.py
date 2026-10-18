@@ -3,7 +3,6 @@
 import pytest
 
 from jarvis.memory import WRITE_RULES, MemoryItem, MemoryKind, MemoryScope, MemoryService, current_scope
-from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.stores.protocol import ItemStore
 from jarvis.model_layer.types import UserMessage
@@ -110,32 +109,31 @@ async def test_clear_with_scope_removes_only_that_owner(memory):
     assert len(await memory.recent(scope=U2_MAIN)) == 1
 
 
-# ── 미들웨어: harness context 에서 범위를 조립한다 ───────────────────────────
+# ── observe: harness context 에서 범위를 조립한다 ───────────────────────────
 
 
-async def test_long_term_middleware_scopes_by_context(memory):
+async def test_observe_scopes_by_context(memory):
     await memory.remember("선호 음료: 커피", source="explicit", scope=U1_MAIN)
     await memory.remember("세션 요약: 예산 논의", source="auto_summary", scope=U1_MAIN)
-    ltm = MemoryMiddlewareAdapter(MemoryService(memory.store, inject_limit=5))
+    ltm = MemoryService(memory.store, inject_limit=5)
     msgs = [UserMessage(content="커피 그리고 예산 얘기", timestamp=0)]
 
     def injected(out: list) -> str:  # 고정 사실 블록 + 회상 블록(원 메시지 앞에 붙는다)
         return "\n".join(m.content for m in out[:-1])
 
-    as_main = await ltm.transform(msgs, {"user_id": "u1", "agent_id": "main", "session_id": "s9"})
+    as_main = await ltm.observe(msgs, {"user_id": "u1", "agent_id": "main", "session_id": "s9"})
     assert "커피" in injected(as_main) and "예산" in injected(as_main)
 
-    as_sub = await ltm.transform(msgs, {"user_id": "u1", "agent_id": "researcher", "session_id": "x"})
+    as_sub = await ltm.observe(msgs, {"user_id": "u1", "agent_id": "researcher", "session_id": "x"})
     assert "커피" in injected(as_sub) and "예산" not in injected(as_sub)
 
-    as_other = await ltm.transform(msgs, {"user_id": "u2", "agent_id": "main"})
+    as_other = await ltm.observe(msgs, {"user_id": "u2", "agent_id": "main"})
     assert as_other == msgs
 
 
-async def test_middleware_without_user_in_context_falls_back_to_local(memory):
+async def test_observe_without_user_in_context_falls_back_to_local(memory):
     await memory.remember("로컬 사용자 기억", source="explicit", scope=MemoryScope(user_id="local"))
-    ltm = MemoryMiddlewareAdapter(memory)
-    out = await ltm.transform([UserMessage(content="사용자 기억", timestamp=0)], {"session_id": "s"})
+    out = await memory.observe([UserMessage(content="사용자 기억", timestamp=0)], {"session_id": "s"})
     assert "로컬 사용자 기억" in out[0].content
 
 

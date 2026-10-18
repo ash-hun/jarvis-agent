@@ -550,41 +550,6 @@ AgentEndEvent(session_id="...", agent_name="researcher", turns=3)
 
 </details>
 
-<details>
-<summary>메모리 미들웨어 추가</summary>
-
-```python
-from jarvis.agent_layer.memory.protocol import MemoryMiddleware
-
-class MyMemory:
-    async def transform(self, messages, context):
-        # 메시지 리스트를 변형해서 반환
-        return messages
-
-    async def store(self, message, context):
-        # 메시지를 외부 저장소에 저장
-        ...
-
-    async def retrieve(self, query, context, limit):
-        # 관련 메모리 검색
-        return []
-
-    async def clear(self, context):
-        ...
-```
-
-`MemoryMiddlewareChain`에 등록:
-
-```python
-chain = MemoryMiddlewareChain([
-    WindowMemory(max_messages=20),
-    MyMemory(),          # 커스텀 미들웨어 삽입
-    SqliteMemory(db_path="~/.jarvis/memory.db"),
-])
-```
-
-</details>
-
 ---
 
 ## 설정 레퍼런스
@@ -704,7 +669,6 @@ tests/
 │   ├── test_types.py            Message/StreamEvent 직렬화
 │   ├── test_stream.py           FauxProvider 스트리밍
 │   ├── test_policy.py           보안 파이프라인 4단계
-│   ├── test_memory.py           MemoryMiddlewareChain
 │   ├── test_tools.py            ToolRegistry, BashTool, ReadFileTool
 │   ├── test_skills.py           SkillRegistry, /command 확장
 │   ├── test_session.py          AgentSession 전체 플로우

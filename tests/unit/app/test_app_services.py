@@ -8,7 +8,6 @@ from jarvis.app.app_services import AppServices
 
 def _services() -> AppServices:
     return AppServices(
-        memory_chain=MagicMock(),
         pipeline=MagicMock(name="pipeline"),
         plugin_runner=MagicMock(),
         skill_registry=MagicMock(),

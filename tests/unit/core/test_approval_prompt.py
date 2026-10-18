@@ -40,7 +40,7 @@ def _session(pipeline: Any, fx: dict[str, Any]) -> Any:
         session_id="approval-rule",
         security_pipeline=pipeline,
         plugin_runner=fx["plugin_runner"],
-        memory_chain=fx["memory_chain"],
+        memory=fx["session_memory"],
         tool_registry=fx["tool_registry"],
         skill_registry=fx["skill_registry"],
         session_repo=fx["repo"],
@@ -48,7 +48,7 @@ def _session(pipeline: Any, fx: dict[str, Any]) -> Any:
 
 
 async def test_rule_lists_approval_tools_and_denial_keeps_tool_usable(
-    monkeypatch, plugin_runner, memory_chain, tool_registry, skill_registry, jsonl_repo
+    monkeypatch, plugin_runner, session_memory, tool_registry, skill_registry, jsonl_repo
 ) -> None:
     from jarvis.core.policy.pipeline import AuthContext, PolicyResult
     from jarvis.core.policy.sandbox import DefaultSandbox
@@ -62,7 +62,7 @@ async def test_rule_lists_approval_tools_and_denial_keeps_tool_usable(
     sandbox.set_approval_callback(deny)
     fx = {
         "plugin_runner": plugin_runner,
-        "memory_chain": memory_chain,
+        "session_memory": session_memory,
         "tool_registry": tool_registry,
         "skill_registry": skill_registry,
         "repo": jsonl_repo,
@@ -82,13 +82,13 @@ async def test_rule_lists_approval_tools_and_denial_keeps_tool_usable(
 
 
 async def test_no_rule_without_approval_tools(
-    monkeypatch, permissive_pipeline, plugin_runner, memory_chain, tool_registry, skill_registry, jsonl_repo
+    monkeypatch, permissive_pipeline, plugin_runner, session_memory, tool_registry, skill_registry, jsonl_repo
 ) -> None:
     provider = _Recording()
     monkeypatch.setitem(get_default_registry()._providers, "faux", provider)
     fx = {
         "plugin_runner": plugin_runner,
-        "memory_chain": memory_chain,
+        "session_memory": session_memory,
         "tool_registry": tool_registry,
         "skill_registry": skill_registry,
         "repo": jsonl_repo,

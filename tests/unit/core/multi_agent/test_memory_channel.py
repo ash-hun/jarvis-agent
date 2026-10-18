@@ -7,13 +7,11 @@ from jarvis.core.multi_agent.orchestrators.hierarchical import HierarchicalOrche
 from jarvis.core.multi_agent.orchestrators.blackboard import BlackboardOrchestrator
 from jarvis.core.multi_agent.orchestrators.supervisor import SupervisorOrchestrator
 from jarvis.core.multi_agent.topologies.hierarchical import HierarchicalTopology
-from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
 from jarvis.core.multi_agent.topologies.blackboard import BlackboardTopology
 from jarvis.core.multi_agent.topologies.supervisor import SupervisorTopology
 from jarvis.core.multi_agent.orchestrators.market import MarketOrchestrator
 from jarvis.core.multi_agent.factory import AgentDefinition, AgentFactory
 from jarvis.core.multi_agent.node import LazyAgentNode, capability_score
-from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
 from jarvis.core.multi_agent.blackboard import SharedBlackboard
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.model_layer.registry import get_default_registry
@@ -59,12 +57,11 @@ def captured():
 
 @pytest.fixture
 def make_node(memory, faux_model, permissive_pipeline, plugin_runner, tool_registry, skill_registry, jsonl_repo):
-    chain = MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(memory)])
 
     def build_session(definition, session_id: str) -> AgentSession:
         return AgentSession(
             model=faux_model, session_id=session_id, security_pipeline=permissive_pipeline,
-            plugin_runner=plugin_runner, memory_chain=chain, tool_registry=tool_registry,
+            plugin_runner=plugin_runner, memory=memory, tool_registry=tool_registry,
             skill_registry=skill_registry, session_repo=jsonl_repo, agent_name=definition.name, inherit_scope=True,
         )
 
@@ -206,7 +203,7 @@ async def test_supervisor_registers_tools_into_live_session_and_delegates(
     await jsonl_repo.create(session_id="sup")
     supervisor = AgentSession(
         model=model, session_id="sup", security_pipeline=permissive_pipeline, plugin_runner=plugin_runner,
-        memory_chain=MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(memory)]), tool_registry=tool_registry,
+        memory=memory, tool_registry=tool_registry,
         skill_registry=skill_registry, session_repo=jsonl_repo, agent_name="supervisor",
         loop_config=AgentLoopConfig(max_turns=2),
     )

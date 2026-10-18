@@ -93,12 +93,10 @@ def jsonl_repo(tmp_session_dir):
 
 
 @pytest.fixture
-def memory_chain():
-    from jarvis.agent_layer.memory.memory_adapter import MemoryMiddlewareAdapter
-    from jarvis.agent_layer.memory.chain import MemoryMiddlewareChain
+def session_memory():
     from jarvis.memory.stores.in_memory import InMemoryItemStore
     from jarvis.memory.memory_service import MemoryService
-    return MemoryMiddlewareChain(stages=[MemoryMiddlewareAdapter(MemoryService(InMemoryItemStore(), window_size=20))])
+    return MemoryService(InMemoryItemStore(), window_size=20)
 
 
 @pytest.fixture
@@ -124,7 +122,7 @@ async def agent_session(
     faux_model,
     permissive_pipeline,
     plugin_runner,
-    memory_chain,
+    session_memory,
     tool_registry,
     skill_registry,
     jsonl_repo,
@@ -140,7 +138,7 @@ async def agent_session(
         session_id="test-session",
         security_pipeline=permissive_pipeline,
         plugin_runner=plugin_runner,
-        memory_chain=memory_chain,
+        memory=session_memory,
         tool_registry=tool_registry,
         skill_registry=skill_registry,
         session_repo=jsonl_repo,

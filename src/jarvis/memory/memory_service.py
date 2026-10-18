@@ -348,6 +348,11 @@ class MemoryService:
             candidates = [c for c in candidates if c.id not in exclude]
         return rank(candidates, query, resolved, limit, params=self._scoring, query_embedding=query_embedding)
 
+    async def recall_messages(self, query: str, context: dict[str, Any], limit: int = 10) -> list[Message]:
+        """inner thought 의 회상 콜백(RecallFn) 모양. 범위는 턴 컨텍스트에서 정하고 항목은 사용자 메시지로 감싼다."""
+        items = await self.recall(query, scope_from_context(context), limit=limit)
+        return [UserMessage(content=i.content, timestamp=int(i.created_at.timestamp() * 1000)) for i in items]
+
     async def _embed(self, item: MemoryItem) -> None:
         """임베더가 있으면 항목에 벡터를 붙인다. 임베딩 실패는 저장을 막지 않는다(키워드로는 여전히 찾힌다)."""
         if self._embedder is None:

@@ -59,7 +59,7 @@ class SessionBuilder:
             session_id=session_id,
             security_pipeline=svc.pipeline,
             plugin_runner=svc.plugin_runner,
-            memory_chain=svc.memory_chain,
+            memory=svc.memory,
             tool_registry=self.tool_registry(),
             skill_registry=svc.skill_registry,
             session_repo=self._ctx.session_repo,
@@ -130,7 +130,7 @@ class SessionBuilder:
             reflection_template=ThoughtPromptTemplate.load(
                 tcfg.reflection_prompt_path, default=DEFAULT_REFLECTION_TEMPLATE
             ),
-            recall=services.memory_chain.retrieve,
+            recall=services.memory.recall_messages,
             recall_limit=tcfg.recall_limit,
             skip_if_shorter_than=tcfg.skip_if_shorter_than,
             history_window=tcfg.history_turns,

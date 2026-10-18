@@ -160,6 +160,8 @@ class SessionRegistry:
         summarizer = EpisodicSummarizer(model=model, memory=memory)
         for session_id, session in list(self._sessions.items()):
             try:
+                # 응답과 함께 띄운 사고와 AGENDA 판단을 끊지 않고 마무리한다
+                await session.settle()
                 msgs = await session_repo.get_messages(session._session_id)
                 if not msgs:
                     continue

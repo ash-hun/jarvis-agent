@@ -1,0 +1,44 @@
+"""[agent_layer] AGENDA 판단: 프롬프트에 열린 약속과 입력을 싣고, 모델 출력에서 새 약속과 닫을 약속을 읽는다."""
+
+from datetime import datetime
+
+from jarvis.agent_layer.openloop.judge import LoopVerdict, OpenLoopJudge, parse_verdict, render_prompt
+from jarvis.model_layer.types import AssistantMessage, TextContent, UserMessage
+
+NOW = datetime(2026, 10, 19, 9, 0)
+
+
+def test_render_prompt_carries_now_loops_history_and_input():
+    history = [UserMessage(content="회의록 맡을게"), AssistantMessage(content=[TextContent(text="알겠어요")])]
+    prompt = render_prompt(NOW, "보고서는 취소됐어", ["[1] 분기 보고서 제출"], history)
+    assert "[지금] 2026-10-19T09:00:00" in prompt
+    assert "- [1] 분기 보고서 제출" in prompt
+    assert "user: 회의록 맡을게" in prompt and "assistant: 알겠어요" in prompt
+    assert "[사용자 입력] 보고서는 취소됐어" in prompt
+    assert "{{" not in prompt
+
+
+def test_parse_verdict_tolerates_fences_and_object_items():
+    raw = (
+        '```json\n{"open_loops": [{"description": "보고서 보내기", "due": "@2026-10-20 15:00"}],'
+        ' "closed_loops": [2]}\n```'
+    )
+    assert parse_verdict(raw) == LoopVerdict(open_loops=["보고서 보내기 @2026-10-20 15:00"], closed_loops=["2"])
+
+
+def test_parse_verdict_rejects_non_json():
+    assert parse_verdict("약속 없음") is None
+
+
+async def test_judge_reads_model_output(faux_model_with_response):
+    model = faux_model_with_response('{"open_loops": ["보고서 보내기"], "closed_loops": []}')
+    verdict = await OpenLoopJudge(model, clock=lambda: NOW).judge("내일 보고서 보내야 해", [], [])
+    assert verdict == LoopVerdict(open_loops=["보고서 보내기"])
+
+
+async def test_judge_failure_is_none(monkeypatch, faux_model):
+    from jarvis.model_layer.registry import get_default_registry
+    from tests.fixtures.faux_provider import FauxProviderFactory
+
+    monkeypatch.setitem(get_default_registry()._providers, "faux", FauxProviderFactory.error())
+    assert await OpenLoopJudge(faux_model, clock=lambda: NOW).judge("내일 보고서", [], []) is None

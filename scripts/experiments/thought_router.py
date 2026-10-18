@@ -7,35 +7,22 @@ import argparse
 import statistics
 from pathlib import Path
 
+from jarvis.agent_layer.thought.router import ROUTE_CRITERIA, ROUTE_INSTRUCTIONS, route_state
+
 DATASET = Path(__file__).parent / "datasets" / "thought_router.jsonl"
 DEFAULT_URL = "http://127.0.0.1:11435/v1/systemone"
 THRESHOLDS = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6)
-# ctxN: 직전 N 턴을 넣고 한 번 부른다. max: 맥락 없이(ctx0)와 두 턴(ctx2)으로 두 번 불러 큰 값.
+DEFAULT_THRESHOLD = 0.3
+# ctxN: 직전 N 턴을 넣고 한 번 부른다. max: 맥락 없이(ctx0)와 두 턴(ctx2)으로 두 번 불러 큰 값(jarvis 가 쓰는 방식).
 # 맥락을 넣으면 앞 주제를 따라가 화제가 바뀐 요청을 놓치고, 빼면 "응 진행해" 같은 후속 말을 놓친다
 POLICIES = ("ctx0", "ctx1", "ctx2", "max")
-DEFAULT_THRESHOLD = 0.3
-# router 가 학습한 질문 문구 그대로. 한 글자라도 바꾸면 학습 분포 밖이다
-INSTRUCTIONS = "Should the assistant run inner thought on the last request, given the conversation before it?"
-CRITERIA = {
-    "direct": "No inner thought: the reply needs nothing worked out first. Small talk, a known fact, a single command "
-    "or lookup, a one-step answer, or asking back when it is unclear what the user means.",
-    "think": "Inner thought: a good reply needs working out first, in several steps. Calculation, planning, "
-    "comparison, analysis, weighing sources, a judgement call, or long and creative writing.",
-}
-
-
-def route_state(request: str, turns: list[list[str]], context_turns: int = 2) -> str:
-    """학습 때의 state 모양: 직전 턴(최대 두 개)을 User/Assistant 로 적고 빈 줄 뒤에 이번 요청."""
-    recent = turns[-context_turns:] if context_turns else []
-    earlier = "\n".join(f"User: {user}\nAssistant: {reply}" for user, reply in recent)
-    return f"{earlier}\n\n{request}" if earlier else request
 
 
 def p_think(client: httpx.Client, url: str, state: str) -> float:
     body = {
         "model": "router",
         "state": state,
-        "questions": {"route": {"type": "choice", "instructions": INSTRUCTIONS, "criteria": CRITERIA}},
+        "questions": {"route": {"type": "choice", "instructions": ROUTE_INSTRUCTIONS, "criteria": ROUTE_CRITERIA}},
     }
     response = client.post(url, json=body)
     response.raise_for_status()
@@ -43,7 +30,8 @@ def p_think(client: httpx.Client, url: str, state: str) -> float:
 
 
 def routed_p(client: httpx.Client, url: str, case: dict[str, object], policy: str) -> float:
-    request, turns = str(case["request"]), list(case.get("turns", []))  # type: ignore[call-overload]
+    request = str(case["request"])
+    turns = [(str(user), str(reply)) for user, reply in case.get("turns", [])]  # type: ignore[attr-defined]
     if policy == "max":
         return max(p_think(client, url, route_state(request, turns, n)) for n in (0, 2))
     return p_think(client, url, route_state(request, turns, int(policy.removeprefix("ctx"))))

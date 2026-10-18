@@ -73,6 +73,25 @@ class InnerThoughtEvent(BaseModel):
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
 
 
+class ThoughtRouteEvent(BaseModel):
+    """router 가 이번 요청에 inner thought 를 돌릴지 정했다. think 면 사고가 응답과 함께 돈다."""
+
+    type: Literal["thought_route"] = "thought_route"
+    session_id: str
+    think: bool
+    p_think: float | None = None  # None 이면 router 가 답하지 못해 think 로 둔 것
+    timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
+
+
+class ThoughtEndEvent(BaseModel):
+    """think 로 띄운 사고가 끝났다. 실패해도 보낸다(화면이 사고 중 표시를 풀 수 있게)."""
+
+    type: Literal["thought_end"] = "thought_end"
+    session_id: str
+    ok: bool
+    timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
+
+
 class ProactiveMessageEvent(BaseModel):
     """시스템 → 사용자 비요청 발화 (Tier 1 Push 채널).
 
@@ -118,6 +137,8 @@ AgentEvent = (
     | AgentEndEvent
     | AgentErrorEvent
     | InnerThoughtEvent
+    | ThoughtRouteEvent
+    | ThoughtEndEvent
     | ProactiveMessageEvent
     | FocusStateEvent
     | FocusPanelEvent

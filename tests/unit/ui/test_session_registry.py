@@ -1,7 +1,7 @@
 """Web HUD 세션 종료 훅. save_all_sessions 가 session_repo 이력을 요약해 각 세션 범위로 저장한다."""
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.ui.web.session_registry import SessionRegistry
@@ -33,6 +33,7 @@ def _make_manager(sessions: dict) -> SessionRegistry:
 def _mock_session(session_id: str) -> MagicMock:
     s = MagicMock()
     s._session_id = session_id
+    s.settle = AsyncMock()
     s.memory_scope = MemoryScope(user_id="local", session_id=session_id)
     return s
 

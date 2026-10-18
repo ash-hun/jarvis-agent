@@ -866,5 +866,51 @@
     "fixed_p50_ms": 2.07
    }
   }
+ },
+ "thought_router": {
+  "_note": "router(P(think)) 오프라인 평가. 합성은 datasets/thought_router.jsonl 62건(애매 4건 제외 58건), 실사용은 jarvis 세션의 실제 요청 34건(애매 4건 제외 30건, 원문은 저장소에 두지 않음). 라벨은 router 학습 기준 문구로 사람이 아닌 Claude 가 매겼다.",
+  "synthetic": {
+   "ctx2_t0.3": {
+    "accuracy": 0.914,
+    "think_recall": 0.941,
+    "direct_recall": 0.902,
+    "promise_loss": 0.667,
+    "latency_p50": 0.065
+   },
+   "ctx0_t0.3": {
+    "accuracy": 0.931,
+    "think_recall": 0.882,
+    "direct_recall": 0.951,
+    "promise_loss": 0.667,
+    "latency_p50": 0.065
+   },
+   "max_t0.2": {
+    "accuracy": 0.914,
+    "think_recall": 0.941,
+    "direct_recall": 0.902,
+    "promise_loss": 0.667,
+    "latency_p50": 0.129
+   }
+  },
+  "real": {
+   "ctx2_t0.3": {
+    "accuracy": 0.7,
+    "think_recall": 0.75,
+    "direct_recall": 0.682,
+    "latency_p50": 0.117
+   },
+   "ctx0_t0.3": {
+    "accuracy": 0.9,
+    "think_recall": 0.625,
+    "direct_recall": 1.0,
+    "latency_p50": 0.064
+   },
+   "max_t0.2": {
+    "accuracy": 0.767,
+    "think_recall": 1.0,
+    "direct_recall": 0.682,
+    "latency_p50": 0.184
+   }
+  }
  }
 }

@@ -35,6 +35,10 @@ JARVIS_THOUGHT__MODEL=                     # 비우면 메인 모델. 사고 전
 JARVIS_THOUGHT__PROVIDER=                  # 비우면 메인 provider 상속(api_key, base_url 도 같이)
 JARVIS_THOUGHT__REQUEST_TIMING=race        # before | race | after
 JARVIS_THOUGHT__WAIT_SEC=3.0               # race 에서 사고를 기다리는 상한
+JARVIS_THOUGHT__ROUTER_MODEL=              # 지정하면 REQUEST_TIMING 대신 router 가 요청마다 사고 여부를 정한다
+JARVIS_THOUGHT__ROUTER_BASE_URL=http://localhost:11435
+JARVIS_THOUGHT__ROUTER_THRESHOLD=0.2       # P(think) 가 이 이상이면 think
+JARVIS_THOUGHT__ROUTER_TIMEOUT_SEC=1.0     # 넘기면 think 로 둔다
 JARVIS_THOUGHT__HISTORY_TURNS=8            # 사고 프롬프트에 넣는 최근 턴 수
 JARVIS_THOUGHT__HISTORY_CHARS=240          # 턴당 글자 상한
 JARVIS_THOUGHT__PROMPT_PATH=~/.jarvis/inner_thought.md
@@ -70,10 +74,12 @@ JARVIS_PROACTIVE__DECISION_THRESHOLD=0.6   # decision model 을 쓸 때의 임�
 | 값 | 동작 | 언제 |
 |---|---|---|
 | `before` | 사고를 끝내고 응답. 해석이 이번 응답의 시스템 프롬프트에 섞인다 | 사고가 빠를 때 |
-| `race` | `WAIT_SEC` 까지만 기다리고 늦으면 응답을 먼저 시작. 늦은 사고는 💭, open loop, 피드백 학습에만 쓰인다 | 사고와 메인이 다른 곳에서 돌 때(클라우드) |
+| `race` | `WAIT_SEC` 까지만 기다리고 늦으면 응답을 먼저 시작. 늦은 사고는 💭, 사고 기록에만 쓰인다 | 사고와 메인이 다른 곳에서 돌 때(클라우드) |
 | `after` | 응답이 끝난 뒤 사고 | 사고와 메인이 같은 GPU 를 나눠 쓸 때(로컬 Ollama) |
 
 로컬 GPU 한 장에서 실측했을 때, `race` 는 두 모델이 GPU 를 나눠 써서 첫 글자가 21초 뒤에 나왔고 `after` 는 12.8초 뒤에 나왔다.
+
+`JARVIS_THOUGHT__ROUTER_MODEL` 을 지정하면 이 값 대신 [Thought Router](../concepts/architecture/inner-thought.md#thought-router) 가 요청마다 사고할지 정한다. 약속(open loop) 판단은 시점 설정과 상관없이 요청마다 사고와 따로 돈다.
 
 ## Focus 모드
 

@@ -187,6 +187,12 @@ class ThoughtConfig(BaseModel):
     # after: 응답 뒤 사고. 사고와 메인이 같은 GPU 면 after 가 가장 빠르다. race, after 의 늦은 사고는 기록만 남긴다
     request_timing: Literal["before", "race", "after"] = "race"
     wait_sec: float = 3.0  # race 에서 기다리는 상한
+    # router decision model(scripts/router_server.py). 지정하면 request_timing 대신 router 가 턴마다 정한다:
+    # direct 면 사고 없이 답하고, think 면 사고를 응답과 함께 돌려 그 결과를 다음 턴에 넣는다
+    router_model: str = ""
+    router_base_url: str = "http://localhost:11435"
+    router_threshold: float = 0.2  # 맥락 없는 판정과 두 턴 맥락 판정 중 큰 값이 이 이상이면 think
+    router_timeout_sec: float = 1.0  # 넘기면 think 로 둔다
     history_turns: int = 8  # 사고 프롬프트에 넣는 최근 대화 턴 수
     history_chars: int = 240  # 턴당 글자 수 상한
     log_sinks: list[str] = Field(default_factory=lambda: ["ltm"])  # ltm | stm (복수 가능)

@@ -9,6 +9,8 @@ from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.thought import ThoughtComposer, ThoughtEngine, ThoughtLog, ThoughtSink
+    from jarvis.agent_layer.openloop.judge import OpenLoopJudge
+    from jarvis.agent_layer.thought.router import ThoughtRouter
     from jarvis.core.tools.registry import ToolRegistry
     from jarvis.agent_layer.openloop import LoopExpiry
     from jarvis.app.agent_profile import AgentProfile
@@ -27,6 +29,8 @@ class ThoughtParts:
     engine: "ThoughtEngine | None" = None
     log: "ThoughtLog | None" = None
     composer: "ThoughtComposer | None" = None
+    router: "ThoughtRouter | None" = None
+    loop_judge: "OpenLoopJudge | None" = None
 
 
 class SessionBuilder:
@@ -80,6 +84,8 @@ class SessionBuilder:
             external_inbox=svc.external_inbox,
             external_detail_in_prompt=settings.external.store_detail_in_log,
             inherit_scope=inherit_scope,
+            thought_router=thought.router,
+            loop_judge=thought.loop_judge,
         )
         # 먼저 거는 말은 열린 화면뿐 아니라 외부 채널에도 간다. 서브 에이전트와 스케줄 세션은 이 경로를 타지 않는다
         if self._ctx.notifier is not None:
@@ -154,7 +160,23 @@ class SessionBuilder:
             "interpretation_only": InterpretationOnlyComposer,
         }
         composer = composers.get(tcfg.composer, DefaultThoughtComposer)()
-        return ThoughtParts(engine=engine, log=log, composer=composer)
+        from jarvis.agent_layer.openloop.judge import OpenLoopJudge
+
+        # 약속 추적은 사고와 따로 매 턴 돈다. 저장소가 없으면 세션이 부르지 않는다
+        loop_judge = OpenLoopJudge(self._profile.thought_model())
+        return ThoughtParts(
+            engine=engine, log=log, composer=composer, router=self.thought_router(), loop_judge=loop_judge
+        )
+
+    def thought_router(self) -> "ThoughtRouter | None":
+        tcfg = self._profile.thought
+        if not tcfg.router_model:
+            return None
+        from jarvis.agent_layer.thought.router import ThoughtRouter
+        from jarvis.model_layer.decision import DecisionModel
+
+        decision = DecisionModel(tcfg.router_model, tcfg.router_base_url, timeout=tcfg.router_timeout_sec)
+        return ThoughtRouter(decision, threshold=tcfg.router_threshold)
 
     def openloop_expiry(self) -> "LoopExpiry":
         from jarvis.agent_layer.openloop import LoopExpiry

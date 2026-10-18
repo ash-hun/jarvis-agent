@@ -396,18 +396,18 @@ def test_parse_valid_frame_is_silent(capsys):
 
 def test_parse_keeps_frame_when_list_items_are_objects(capsys):
     """작은 모델은 options 에 객체를 넣는다. 글자만 건지고 프레임은 산다."""
-    raw = ('{"decision": "act", "confidence": 0.8, "options": [{"option": "바로 답한다"}, "되묻는다", 3],'
-           ' "open_loops": [{"description": "배포 로그 확인", "due": "오늘"}]}')
+    raw = '{"decision": "act", "confidence": 0.8, "options": [{"option": "바로 답한다"}, "되묻는다", 3]}'
     frame = _engine()._parse(raw)
     assert frame is not None and frame.options == ["바로 답한다", "되묻는다", "3"]
-    assert frame.open_loops == ["배포 로그 확인 오늘"]
     assert capsys.readouterr().out == ""
 
 
 def test_thought_schema_is_frame_schema():
     from jarvis.agent_layer.thought.engine import THOUGHT_SCHEMA
 
-    assert set(THOUGHT_SCHEMA["properties"]) >= {"decision", "confidence", "utterance", "open_loops"}
+    assert set(THOUGHT_SCHEMA["properties"]) >= {"decision", "confidence", "utterance"}
+    # 약속은 AGENDA 판단(openloop.judge)만 잡는다. 두 곳에서 잡으면 같은 약속이 다른 말로 쌓인다
+    assert "open_loops" not in THOUGHT_SCHEMA["properties"]
 
 
 @pytest.mark.asyncio

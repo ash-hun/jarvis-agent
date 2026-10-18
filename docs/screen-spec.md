@@ -75,7 +75,7 @@
 |---|---|---|
 | WS `connected` | 접속 직후 | SYSTEM 의 MODEL, SESSION, 세션 목록과 각 세션의 에이전트(`session_agents`), 세션 에이전트의 이름과 색(`agent`), 슬래시 명령, 음성 STT 모드, 읽기 문구 이름(`voice.phrases`), 웨이크워드 사용 여부(`voice.wake`) |
 | `GET /api/sessions/{id}/messages` | 접속, 세션 전환 직후 | CONVERSATION 복원(마크다운 렌더) |
-| `GET /api/agenda` | 접속, `inner_thought`, `agent_end`, open loop 나 스케줄 조작 직후, 1분마다 | AGENDA |
+| `GET /api/agenda` | 접속, `inner_thought`, `agent_end`, `agenda_changed`, open loop 나 스케줄 조작 직후, 1분마다 | AGENDA |
 | `GET /api/agents` | 첫 접속 때 한 번 | 에이전트 칩, 세션 표식 색, AGENDA 항목의 에이전트 라벨 |
 | `POST /api/sessions {agent}` | `+`, 열린 세션이 없는 에이전트 칩 클릭 | 그 에이전트의 새 세션 |
 | `GET /api/tools?session_id=` | 접속, `agent_end` | SYSTEM 의 TOOLS(지금 세션 에이전트의 도구) |
@@ -88,6 +88,8 @@
 | `GET /api/voice/phrases/{name}` | 그 문구를 처음 읽을 때 한 번(받은 wav 는 탭이 닫힐 때까지 둔다) | 읽기 문구 재생 |
 | WS 바이너리 프레임(보냄), `voice_wake`(받음) | 모드와 상관없이 기다리는 동안 80ms 마다 | 웨이크워드 |
 | WS 이벤트 전부 | 연결 중 | CONVERSATION, 상태 pill, 리액터 상태, ACTIVITY, 사용량 |
+| WS `thought_route`, `thought_end` | router 가 켜져 있으면 요청마다 판정 한 번, think 로 띄운 사고가 끝날 때 | ACTIVITY `💭 think · 0.81` / `💭 skip · direct 0.02`(router 가 답하지 못하면 `💭 think · router 응답 없음`), 응답 뒤에도 사고가 돌면 리액터 `thinking` 유지 |
+| WS `agenda_changed` | AGENDA 판단이 약속을 새로 열거나 닫을 때(응답보다 늦을 수 있다) | AGENDA 다시 읽기 |
 | WS `agent_activity`, `connected.active_agents` | 어느 에이전트든 일을 시작하거나 끝낼 때 | 에이전트 칩의 빛남, 구체 색 섞기, ACTIVITY `⇄ A · B 함께 작업 중` |
 | WS `focus_state` | `/focus` 시작, 매 턴의 진행 갱신, 종료, 진행 중인 작업이 있는 세션에 접속 | Focus 레이아웃 켜고 끄기, PROGRESS(작업, 퍼센트, 막대, 예상 시간, 단계), ACTIVITY `◎ focus · N%` |
 | WS `focus_panel` | sub-agent 가 영역을 갱신하기 시작할 때(`busy`)와 끝낼 때 | REFERENCE(가장 최근 조사 하나), ANALYSIS(가장 최근 지시의 분석, 맨 위에 `지시: … · 시각`, 항목 아래 내용은 한 단계 들여 쓴 목록), LOG(누적) 본문(마크다운). 갱신 중이면 머리글에 `SYNC` |
@@ -104,7 +106,7 @@
 | `hud.sessionsCollapsed` | localStorage | `0` | SESSIONS 접힘 |
 | `hud.mode` | localStorage, `body[data-mode]` | `default` | `default` 또는 `full-voice`. 모르는 값이면 `default`. 새로고침 뒤에도 유지되지만 Full-voice 의 듣기는 사용자 클릭 전에는 시작하지 않는다. 웨이크워드가 켜져 있으면 모드와 상관없이 접속 때 마이크를 연다 |
 | 상태 pill | 메모리 | `READY` | `THINKING`(서브 에이전트면 `THINKING · a → b`), `EXECUTING`, `LISTENING`, `SPEAKING`, `ERROR` |
-| 리액터 상태 | `window.HUD.state` | `idle` | `thinking`, `tool_running`, `listening`, `speaking`, `error`. 링 발광과 구체 움직임이 따라간다 |
+| 리액터 상태 | `window.HUD.state` | `idle` | `thinking`, `tool_running`, `listening`, `speaking`, `error`. 링 발광과 구체 움직임이 따라간다. `thought_route`(think) 부터 `thought_end` 까지는 `idle` 대신 `thinking` 을 보인다(응답이 끝나 입력이 열려도). `thought_end` 가 120초 안에 오지 않거나 다시 접속하면 푼다 |
 | 음성 모드 | 메모리 | 꺼짐 | 구체 클릭으로 토글. 켜져 있으면 응답과 🔔 를 읽어준다. Full-voice 에서는 입력 방식과 상관없이 늘 읽는다 |
 | Focus | `body[data-focus]`, 서버의 `focus_state` | 꺼짐 | 세션마다 하나. 화면은 저장하지 않고 서버가 접속 때 다시 보낸다. 세션을 바꾸면 일단 끄고 그 세션의 상태를 기다린다. 헤더 DEFAULT / FULL-VOICE 와는 별개라 함께 켤 수 있다 |
 | 펼친 대화 | `body.focus-chat-open` | 꺼짐 | Focus 동안 CONVERSATION 띠를 눌렀을 때 |
@@ -195,7 +197,7 @@ WS 끊김: 상단 배너 `연결 끊김 — 재연결 중...`, 입력 잠금, 1�
 - 세션 목록은 프로세스가 띄운 것만 보인다. 저장소에만 있는 세션은 화면에 없다.
 - Postgres 저장소에서 ⑂ 분기는 빈 새 세션이다. 히스토리가 복사되지 않는다.
 - open loop 중복 판정은 정규화 일치, 포함 관계(6자 이상), 임베딩 코사인 0.85 이상(`JARVIS_MEMORY__EMBEDDING_*` 설정이 있을 때), 글자 bigram 겹침(Jaccard 0.4 이상)이다. 뜻이 멀게 바꾼 약속("운동 등록" 과 "헬스장 회원권")은 따로 쌓인다.
-- open loop 는 ✓ / ✕ 말고도, 대화에서 끝났거나 취소됐다고 사고가 판단하면 done 으로, 사용자가 취소하는 말로 가리키면 dismissed 로, 기한이 지나면 expired 로 저절로 닫혀 AGENDA 에서 빠진다. 잘못 닫힌 것을 되살리는 화면은 없다.
+- open loop 는 ✓ / ✕ 말고도, 대화에서 끝났거나 취소됐다고 AGENDA 판단이 판단하면 done 으로, 사용자가 취소하는 말로 가리키면 dismissed 로, 기한이 지나면 expired 로 저절로 닫혀 AGENDA 에서 빠진다. 잘못 닫힌 것을 되살리는 화면은 없다.
 - 사용자 입력과 글자가 거의 겹치지 않는 새 약속은 저장하지 않는다. 입력과 전혀 다른 말로 바꿔 적은 약속은 AGENDA 에 오지 않는다.
 - 구체 색 섞기는 두 색까지다. 세 에이전트가 함께 일해도 앞의 두 색만 섞인다. 링과 패널 색은 지금 에이전트 그대로다.
 - 에이전트끼리의 대화(`peer-<부른 쪽>-<받는 쪽>` 세션)는 세션 목록에 다른 세션처럼 보인다. 눌러서 받는 쪽 대화를 볼 수 있다.
@@ -205,3 +207,4 @@ WS 끊김: 상단 배너 `연결 끊김 — 재연결 중...`, 입력 잠금, 1�
 - 오른쪽 아티팩트 패널은 응답 하나에 코드블록 하나만 보여준다(가장 긴 것).
 - 입력창은 한 줄이다. 줄바꿈 입력 없음.
 - TUI 는 이 문서 범위 밖. 같은 백엔드를 쓰지만 화면 구성이 다르다.
+- router 를 켜면 direct 로 판정된 요청은 사고하지 않는다. 그 턴에는 💭 줄, 💬 filler 가 없다. think 로 판정된 요청의 사고는 응답과 함께 돌아 💭 줄이 응답 뒤에 오고, 그 해석은 이번 응답이 아니라 다음 응답에 쓰인다. 응답이 사고를 기다리지 않으므로 think 턴에도 💬 filler 는 나오지 않는다.

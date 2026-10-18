@@ -139,7 +139,7 @@ class InnerThoughtEngine(ThoughtEngine):
         작은 모델은 proactive_actions 의 kind/risk 에 스키마 밖 값을 자주 넣는다. 그 항목만 버리고
         프레임은 살린다. 프레임 전체가 틀리면 어디가 틀렸는지 남기고 None.
         """
-        payload = _extract_json(raw)
+        payload = extract_json(raw)
         if payload is None:
             return None
         try:
@@ -155,13 +155,17 @@ class InnerThoughtEngine(ThoughtEngine):
         return frame
 
     def _format_history(self, history: list[Message]) -> str:
-        recent = history[-self._history_window :]
-        lines: list[str] = []
-        for m in recent:
-            text = _message_text(m, self._history_chars)
-            if text:
-                lines.append(f"{m.role}: {text}")
-        return "\n".join(lines)
+        return format_history(history, self._history_window, self._history_chars)
+
+
+def format_history(history: list[Message], turns: int = HISTORY_TURNS, chars: int = HISTORY_CHARS) -> str:
+    """최근 메시지를 "역할: 글" 줄로. 글이 없는 메시지(도구 호출만 있는 응답)는 건너뛴다."""
+    lines: list[str] = []
+    for m in history[-turns:]:
+        text = _message_text(m, chars)
+        if text:
+            lines.append(f"{m.role}: {text}")
+    return "\n".join(lines)
 
 
 def _message_text(message: Message, max_chars: int = 400) -> str:
@@ -191,7 +195,7 @@ def _describe(exc: ValidationError, limit: int = 3) -> str:
     return "; ".join(f"{'.'.join(str(p) for p in e['loc'])}: {e['msg']}" for e in exc.errors()[:limit])
 
 
-def _extract_json(raw: str) -> dict[str, Any] | None:
+def extract_json(raw: str) -> dict[str, Any] | None:
     """코드펜스/잡텍스트에 둘러싸인 JSON 객체를 관대하게 추출."""
     if not raw:
         return None

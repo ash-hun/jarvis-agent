@@ -136,6 +136,8 @@ async def save_session_end(assembly: "AppAssembly", session: "AgentSession") -> 
 
     ctx, services = assembly.ctx, assembly.services
     try:
+        # 응답과 함께 띄운 사고와 AGENDA 판단을 끊지 않고 마무리한다
+        await session.settle()
         msgs = await ctx.session_repo.get_messages(session._session_id)
         if not msgs:
             return

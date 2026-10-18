@@ -930,6 +930,9 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `agent_end` | `session_id`, `final_message{usage}`, `turns`, `agent_name?`, `continues?` | 루프 끝. 루트면 입력을 다시 받는다. `continues: true` 는 `/focus` 안내 뒤 메인 에이전트가 이어 돈다는 뜻이라, 화면은 입력 잠금과 음성 요청 표시를 그대로 둔다 |
 | `agent_error` | `message`, `code?` | 루프 실패 |
 | `inner_thought` | `session_id`, `interpretation`, `decision`, `confidence`, `frame` | 요청 시점과 성찰 시점의 사고 1회 |
+| `thought_route` | `session_id`, `think`, `p_think` | router(`JARVIS_THOUGHT__ROUTER_MODEL`)가 켜져 있을 때 요청마다 한 번, 응답보다 먼저. `think: true` 면 사고가 응답과 함께 돌고 그 결과는 다음 턴 시스템 프롬프트에 한 번 들어간다. `p_think` 는 맥락 없는 판정과 직전 두 턴을 넣은 판정 중 큰 값이고, router 가 답하지 못하면 null 이며 `think: true` 로 둔다 |
+| `thought_end` | `session_id`, `ok` | `think: true` 로 띄운 사고가 끝났다. 응답보다 늦게 올 수 있다. 실패해도 `ok: false` 로 보낸다 |
+| `agenda_changed` | `session_id` | 요청마다 사고와 따로 도는 AGENDA 판단이 약속을 새로 열거나(기한 갱신 포함) 닫았다. 응답보다 늦게 올 수 있다. 화면은 `GET /api/agenda` 로 다시 읽는다 |
 | `proactive_message` | `session_id`, `text`, `kind`(`filler`/`proactive`/`answer`), `speak`, `message_id` | 먼저 건네는 말. `proactive` 면 피드백 대상. Focus 작업 중인 세션은 `proactive` 를 보내지 않는다(`filler`, `answer` 는 보낸다) |
 | `approval_request` | `id`, `command`, `reason`, `always_pattern` | 도구 실행 승인 요청. 같은 세션의 열린 연결 전부에 보내고, 기다리는 중에 새로 붙은 연결에도 보낸다. 120초 안에 답이 없으면 거부로 처리 |
 | `approval_resolved` | `id`, `timeout?` | 그 요청이 끝났다(어느 연결의 답, 또는 시간 초과). 아직 모달을 띄운 연결은 닫는다. 시간 초과면 `timeout: true` 이고, 에이전트 응답도 `승인 요청에 시간 안에 답이 없어 …` 로 거부(`승인이 거부되어 …`)와 구분된다 |

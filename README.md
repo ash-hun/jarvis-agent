@@ -127,7 +127,8 @@ jarvis --list-sessions      # 세션 목록
 | **Inner Thought** | 매 요청 시 메인 응답과 분리된 별도 LLM 호출로 구조화된 사고(`ThoughtFrame`) 생성 → 컨텍스트 증강 + 사고 로그·이벤트 노출 (TUI 💭 / Web 은 💭 한 줄로 접혀 있고 클릭하면 해석 전문) |
 | **Dual-Channel** | 오래 걸릴 작업이면 filler("잠깐만요, 확인할게요")를 **즉시 발화**(voice는 TTS)하고 메인 루프는 백그라운드 수행 — 대기 체감 감소 |
 | **Proactivity Daemon** | 요청 없이 주기(기본 120초)/idle 시점에 성찰해, 게이팅을 통과하면 **먼저 말 검**. 건네는 말은 사고 프레임의 `utterance` 이고 비어 있으면 침묵한다(해석문을 대신 내보내지 않는다). 저위험 읽기 작업은 자율로 미리 처리(이중 안전 게이트) |
-| **Open-loop 추적** | 대화에서 흘린 약속·미완 작업을 요청 시점에 감지·저장 → 이후 성찰 시 상기/처리 (`/openloop`). 성찰은 기존 약속을 볼 뿐 새로 저장하지 않는다. 대화에서 끝나거나 취소되면 사고가 닫고(done), 기한이 지나면 expired 로 닫힌다. 바꿔 말한 같은 약속은 기한만 갱신한다 |
+| **Thought Router** | router decision model 이 요청마다 사고가 필요한지(think) 아닌지(direct) 정한다. 어느 쪽이든 바로 답하고, think 일 때만 사고를 응답과 함께 돌려 그 결과를 다음 턴에 넣는다. 끄면(기본) 아래 `REQUEST_TIMING` 대로 매 요청 사고한다 |
+| **Open-loop 추적** | 대화에서 흘린 약속·미완 작업을 매 요청마다 사고와 따로 도는 AGENDA 판단이 감지·저장 → 이후 성찰 시 상기/처리 (`/openloop`). 성찰은 기존 약속을 볼 뿐 새로 저장하지 않는다. 대화에서 끝나거나 취소되면 AGENDA 판단이 닫고(done), 기한이 지나면 expired 로 닫힌다. 바꿔 말한 같은 약속은 기한만 갱신한다 |
 | **피드백 학습** | Proactive Dialogue의 수락/무시를 학습해 발화 임계치를 자동 조정. Web 은 🔔 뒤에 "도움이 됐나요?" 를 묻고 다음 짧은 답(네/아니오)을 읽는다 |
 | **User Model · 저널** | 누적 기억을 증류한 사용자 모델(`/usermodel`)을 사고에 주입, 자기 성찰 저널(`/journal`)을 남겨 회상에 반영 |
 
@@ -144,6 +145,13 @@ JARVIS_THOUGHT__MODEL=gemma4:e2b-it-qat     # 메인이 anthropic 이면 claude-
 JARVIS_PROACTIVE__DAEMON_ENABLED=true
 JARVIS_PROACTIVE__DAEMON_TRIGGER=interval   # interval | idle | both
 JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120   # 로컬과 배포 모두 같은 값
+```
+
+Thought Router 는 Ollama 가 아니라 별도 서버로 띄운다. router 의 판정 head 를 Ollama 가 읽지 못해서다. LLMClick 체크아웃에서 `uv run --frozen python <jarvis>/scripts/router_server.py` 로 11435 포트에 띄우고 아래를 켠다. 서버가 없거나 1초 안에 답하지 않으면 think 로 둔다.
+
+```bash
+JARVIS_THOUGHT__ROUTER_MODEL=router
+JARVIS_THOUGHT__ROUTER_BASE_URL=http://host.docker.internal:11435   # Docker 밖에서 돌리면 http://localhost:11435
 ```
 
 호스트 Ollama 하나로 메인과 사고를 같이 돌리면 성찰 중 사용자 요청이 줄을 선다. brew 서비스면 `launchctl setenv OLLAMA_NUM_PARALLEL 2 && brew services restart ollama` 로 동시 처리 수를 늘린다(재부팅하면 다시 설정).
@@ -610,6 +618,10 @@ JARVIS_THOUGHT__LOG_SINKS=["ltm"]         # ltm | stm (복수 가능)
 JARVIS_THOUGHT__COMPOSER=default          # default | interpretation_only
 JARVIS_THOUGHT__REQUEST_TIMING=race       # before | race | after. 로컬 Ollama(한 GPU)는 after 가 가장 빠르다
 JARVIS_THOUGHT__WAIT_SEC=3.0              # race 에서 사고를 기다리는 상한. 넘기면 응답 먼저, 사고는 기록만
+JARVIS_THOUGHT__ROUTER_MODEL=             # 지정하면 REQUEST_TIMING 대신 router 가 요청마다 사고 여부를 정한다
+JARVIS_THOUGHT__ROUTER_BASE_URL=http://localhost:11435
+JARVIS_THOUGHT__ROUTER_THRESHOLD=0.2      # P(think) 가 이 이상이면 think
+JARVIS_THOUGHT__ROUTER_TIMEOUT_SEC=1.0    # 넘기면 think 로 둔다
 JARVIS_THOUGHT__HISTORY_TURNS=8           # 사고 프롬프트의 최근 대화 턴 수
 JARVIS_THOUGHT__HISTORY_CHARS=240         # 턴당 글자 상한
 

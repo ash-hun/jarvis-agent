@@ -13,7 +13,7 @@ import { fetchTools, setToolsSession } from './tools.js';
 import { voice, cue } from './voice-ui.js';
 import { setPhrases } from './phrases.js';
 import { setWakeEnabled } from './wake.js';
-import { handleMessage, resetAgentStack } from './events.js';
+import { handleMessage, resetAgentStack, resetBackgroundThought } from './events.js';
 import { setReplyClassifier } from './reply.js';
 import { applyBrand, AGENT_ID } from './brand.js';
 import { loadAgents, agents, agentById, isTeam, setActiveAgents } from './agents.js';
@@ -186,6 +186,8 @@ async function onConnected(msg) {
   setReplyClassifier(msg.reply_classifier);
   setStatus('READY');
   setInputEnabled(true);
+  // 다른 세션(또는 끊기기 전)의 사고가 끝났는지는 알 수 없다
+  resetBackgroundThought();
   HUD.setState('idle');
 }
 

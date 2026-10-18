@@ -8,6 +8,17 @@ from datetime import datetime
 from collections.abc import Awaitable, Callable
 from typing import Any, Literal, Protocol, cast
 
+from jarvis.agent_layer.types import (
+    AgendaChangedEvent,
+    AgentEvent,
+    AgentLoopConfig,
+    InnerThoughtEvent,
+    ProactiveMessageEvent,
+    ThoughtEndEvent,
+    ThoughtRouteEvent,
+    ToolExecutionEndEvent,
+    ToolExecutionStartEvent,
+)
 from jarvis.agent_layer.openloop import (
     LoopExpiry,
     OpenLoop,
@@ -19,14 +30,6 @@ from jarvis.agent_layer.openloop import (
     parse_loop_note,
     refers_to,
     split_evidence,
-)
-from jarvis.agent_layer.types import (
-    AgentEvent,
-    AgentLoopConfig,
-    InnerThoughtEvent,
-    ProactiveMessageEvent,
-    ToolExecutionEndEvent,
-    ToolExecutionStartEvent,
 )
 from jarvis.core.proactive import (
     ActivityClock,
@@ -47,7 +50,9 @@ from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult,
 from jarvis.model_layer.types import AssistantMessage, ModelConfig, ToolResultMessage
 from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope, current_scope
 from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
+from jarvis.agent_layer.thought.router import RouteVerdict, ThoughtRouter
 from jarvis.core.tools.registry import JarvisTool, ToolRegistry
+from jarvis.agent_layer.openloop.judge import OpenLoopJudge
 from jarvis.agent_layer.session.protocol import SessionRepo
 from jarvis.agent_layer.usermodel import UserModelStore
 from jarvis.memory.memory_service import MemoryService
@@ -150,6 +155,8 @@ class AgentSession:
         external_detail_in_prompt: bool = False,
         inherit_scope: bool = False,
         memory: MemoryService | None = None,
+        thought_router: ThoughtRouter | None = None,
+        loop_judge: OpenLoopJudge | None = None,
     ) -> None:
         self._security = security_pipeline
         # 서브 에이전트: 사용자는 인증이 아니라 위임한 부모의 범위(current_scope)에서 받는다.
@@ -165,6 +172,11 @@ class AgentSession:
         self._thought_timing = thought_timing
         self._thought_wait_sec = thought_wait_sec
         self._late_thoughts: set[asyncio.Task[Any]] = set()  # 참조를 잃으면 GC 가 끊는다
+        # router 가 있으면 요청 턴의 사고를 think 일 때만 응답과 함께 띄우고, 결과는 다음 턴에 한 번 넣는다
+        self._thought_router = thought_router
+        self._pending_frame: ThoughtFrame | None = None
+        self._loop_judge = loop_judge
+        self._loop_tasks: set[asyncio.Task[Any]] = set()
         self._turn_hook: TurnHook | None = None
         self._hook_tasks: set[asyncio.Task[Any]] = set()
         self._openloop_store = openloop_store
@@ -243,8 +255,16 @@ class AgentSession:
 
         expanded = self._skill_registry.expand(validated.sanitized)
 
-        frame = None if self._thought_timing == "after" else await self._await_thought(expanded)
-        inner_thought_prompt = self._thought_composer.compose(frame) or None if frame is not None else None
+        history = await self._session_repo.get_messages(self._session_id) if self._needs_history() else []
+        route = await self._route(expanded, history)
+        frame: ThoughtFrame | None = None
+        if route is None:
+            frame = None if self._thought_timing == "after" else await self._await_thought(expanded)
+        elif route.think:
+            self._spawn_routed_thought(expanded)
+        self._spawn_loop_judge(expanded, history)
+        shown = frame if frame is not None else self._take_pending_frame()
+        inner_thought_prompt = self._thought_composer.compose(shown) or None if shown is not None else None
         approval_tools = self._security.sandbox.approval_tools()
         if approval_tools:
             rule = APPROVAL_RULE.format(tools=", ".join(approval_tools))
@@ -290,7 +310,7 @@ class AgentSession:
                 return await self._proactivity.dispatch_request(frame, run_main)
             return await run_main()
         finally:
-            if self._thought_timing == "after":
+            if route is None and self._thought_timing == "after":
                 self._spawn_thought(expanded)
 
     async def reflect(self) -> ProactiveDecision | None:
@@ -418,6 +438,70 @@ class AgentSession:
         if not task.cancelled() and task.exception() is not None:
             logger.info(f"[Focus] turn hook failed: {task.exception()!r}")
 
+    def _needs_history(self) -> bool:
+        return self._thought_router is not None or (self._loop_judge is not None and self._openloop_store is not None)
+
+    async def _route(self, user_input: str, history: list[Any]) -> RouteVerdict | None:
+        """router 가 없거나 사고 엔진이 없으면 None(예전 request_timing 동작)."""
+        if self._thought_router is None or self._thought_engine is None:
+            return None
+        verdict = await self._thought_router.route(user_input, history)
+        p = f"{verdict.p_think:.3f}" if verdict.p_think is not None else "none"
+        logger.info(f"[Router] p_think={p} → {'think' if verdict.think else 'direct'}")
+        await self._harness.emit_event(
+            ThoughtRouteEvent(session_id=self._session_id, think=verdict.think, p_think=verdict.p_think)
+        )
+        return verdict
+
+    def _take_pending_frame(self) -> ThoughtFrame | None:
+        """앞 턴에 응답과 함께 돈 사고의 결과. 한 번 넣으면 비워 같은 사고가 두 번 들어가지 않는다."""
+        frame, self._pending_frame = self._pending_frame, None
+        return frame
+
+    def _spawn_routed_thought(self, user_input: str) -> None:
+        task = asyncio.create_task(self._routed_thought(user_input))
+        self._late_thoughts.add(task)
+        task.add_done_callback(self._on_thought_done)
+
+    async def _routed_thought(self, user_input: str) -> None:
+        frame: ThoughtFrame | None = None
+        try:
+            frame = await self._run_inner_thought(user_input)
+            if frame is not None:
+                self._pending_frame = frame
+        finally:
+            await self._harness.emit_event(ThoughtEndEvent(session_id=self._session_id, ok=frame is not None))
+
+    def _spawn_loop_judge(self, user_input: str, history: list[Any]) -> None:
+        if self._loop_judge is None or self._openloop_store is None:
+            return
+        task = asyncio.create_task(self._judge_open_loops(user_input, history))
+        self._loop_tasks.add(task)
+        task.add_done_callback(self._on_loop_judge_done)
+
+    def _on_loop_judge_done(self, task: asyncio.Task[Any]) -> None:
+        self._loop_tasks.discard(task)
+        if not task.cancelled() and task.exception() is not None:
+            logger.info(f"[Agenda] judge failed: {task.exception()!r}")
+
+    async def _judge_open_loops(self, user_input: str, history: list[Any]) -> None:
+        """AGENDA 판단 한 번: 사용자 입력으로 끝난 약속을 닫고 새 약속을 연다."""
+        assert self._loop_judge is not None
+        shown = await self._load_open_loops()
+        verdict = await self._loop_judge.judge(
+            user_input, [f"[{i}] {_loop_line(loop)}" for i, loop in enumerate(shown, 1)], history
+        )
+        if verdict is None:
+            return
+        closed = await self._close_open_loops(verdict.closed_loops, shown, user_input)
+        opened = await self._persist_open_loops(verdict.open_loops, verdict.closed_loops, user_input)
+        if closed or opened:
+            await self._harness.emit_event(AgendaChangedEvent(session_id=self._session_id))
+
+    async def settle(self) -> None:
+        """응답과 함께 띄운 사고와 AGENDA 판단이 끝날 때까지 기다린다. 세션 저장과 테스트가 쓴다."""
+        await asyncio.gather(*self._late_thoughts, *self._loop_tasks, return_exceptions=True)
+
     def _spawn_thought(self, user_input: str) -> asyncio.Task[Any] | None:
         """사고를 뒤에서 돌린다. 끝나면 _run_inner_thought 가 기록과 이벤트를 알아서 남긴다."""
         if self._thought_engine is None:
@@ -476,11 +560,6 @@ class AgentSession:
         )
         if frame is None:
             return None
-
-        # 성찰은 기존 약속을 보는 자리다. 모델이 매번 바꿔 말한 항목을 저장하면 같은 약속이 쌓인다.
-        if mode == "request":
-            await self._close_open_loops(frame, shown_loops, user_input)
-            await self._persist_open_loops(frame, user_input)
 
         await self._harness.emit_event(
             InnerThoughtEvent(
@@ -550,33 +629,37 @@ class AgentSession:
             return ""
         return model.as_context() if model is not None else ""
 
-    async def _close_open_loops(self, frame: ThoughtFrame, shown: list[OpenLoop], user_input: str) -> None:
-        """사고가 닫으라고 짚은 약속(보여준 번호 또는 문구)은 done, 사용자가 거둔 약속은 dismissed 로 닫는다.
-        두 번 닫아도 결과는 같다."""
+    async def _close_open_loops(self, closed: list[str], shown: list[OpenLoop], user_input: str) -> bool:
+        """AGENDA 판단이 닫으라고 짚은 약속(보여준 번호 또는 문구)은 done, 사용자가 거둔 약속은 dismissed 로 닫는다.
+        두 번 닫아도 결과는 같다. 하나라도 닫았으면 True."""
         if self._openloop_store is None:
-            return
-        done = matching_ids(shown, frame.closed_loops)
+            return False
+        done = matching_ids(shown, closed)
         dropped = [i for i in cancelled_ids(shown, user_input) if i not in done]
+        changed = False
         with contextlib.suppress(Exception):
             for loop_id in done:
-                await self._openloop_store.update_status(loop_id, "done")
+                changed = await self._openloop_store.update_status(loop_id, "done") or changed
             for loop_id in dropped:
-                await self._openloop_store.update_status(loop_id, "dismissed")
+                changed = await self._openloop_store.update_status(loop_id, "dismissed") or changed
+        return changed
 
-    async def _persist_open_loops(self, frame: ThoughtFrame, user_input: str) -> None:
-        """사고가 새로 감지한 open-loop를 저장(같은 약속이면 store가 기한만 갱신). 부가 작업이라 실패 무시."""
-        if self._openloop_store is None or not frame.open_loops:
-            return
-        for note in frame.open_loops:
+    async def _persist_open_loops(self, opened: list[str], closed: list[str], user_input: str) -> bool:
+        """AGENDA 판단이 새로 감지한 open-loop를 저장(같은 약속이면 store가 기한만 갱신). 부가 작업이라 실패 무시.
+        새로 열거나 기한을 바꿨으면 True."""
+        if self._openloop_store is None or not opened:
+            return False
+        changed = False
+        for note in opened:
             note, evidence = split_evidence(note)
             text, due_ms = parse_loop_note(note)
             # 작은 모델은 취소하는 턴에 그 약속을 open_loops 에도 적는다. 같은 프레임에서 닫으라고 한 건 열지 않는다
             if not text or not grounded(text, user_input, evidence):
                 continue
-            if any(refers_to(c, text) for c in frame.closed_loops):
+            if any(refers_to(c, text) for c in closed):
                 continue
             with contextlib.suppress(Exception):
-                await self._openloop_store.add_unique(
+                loop_id = await self._openloop_store.add_unique(
                     OpenLoop(
                         description=text,
                         due_ms=due_ms,
@@ -584,6 +667,8 @@ class AgentSession:
                         agent_id=self.memory_scope.agent_id,
                     )
                 )
+                changed = changed or loop_id is not None
+        return changed
 
     def _check_rate_limit(self, user_id: str, rate_limit: int, window: float = 60.0) -> None:
         """슬라이딩 윈도우(window초)에서 rate_limit 초과 시 PolicyDenied."""

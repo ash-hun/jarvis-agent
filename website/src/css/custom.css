@@ -448,3 +448,16 @@ pre,
 .pf-ok { fill: var(--pf-ink); }
 .pf-part { fill: var(--pf-surface); stroke: var(--pf-ink); stroke-width: 1.4; }
 .pf-zero { fill: var(--pf-surface); stroke: var(--pf-deny); stroke-width: 1.4; }
+/* 전후 비교: 이전 코드(주황, 점선, 빈 점)와 지금(청록, 실선, 찬 점). 색 없이도 선 모양과 점으로 구분된다.
+   두 모드 모두 dataviz validate_palette 통과(명도 대역, 채도, 색각 이상 ΔE, 대비) */
+:root { --pf-before: #c47a2c; --pf-after: #00789c; }
+[data-theme='dark'] { --pf-before: #bf7d2c; --pf-after: #3aa3c2; }
+.pf-line--before { fill: none; stroke: var(--pf-before); stroke-width: 2; stroke-dasharray: 5 4; stroke-linecap: round; }
+.pf-line--after { fill: none; stroke: var(--pf-after); stroke-width: 2; stroke-linejoin: round; }
+.pf-dot--before { fill: var(--pf-panel-solid); stroke: var(--pf-before); stroke-width: 2; }
+.pf-dot--after { fill: var(--pf-after); stroke: var(--pf-panel-solid); stroke-width: 2; }
+.pf-link { stroke: var(--pf-muted); stroke-width: 2; stroke-linecap: round; }
+.pf-hit { fill: transparent; }
+.pf-hero { fill: var(--pf-ink); font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pf-mark { stroke: var(--pf-muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.pf-mark-t { fill: var(--pf-ink-2); font-size: 10px; }

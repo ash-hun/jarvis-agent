@@ -210,52 +210,151 @@ def exp_memory(r: dict) -> Fig:
     return finish(fig, y)
 
 
+# 전후 비교 그림의 점 반지름(지름 8px 이상)과 마우스 판정 반지름
+DOT_R = 4.5
+HIT_R = 11
+DUMBBELL_ROW_H = 36  # 원점 값을 점 아래에 적어도 다음 행 이름과 닿지 않는 높이
+
+
+def _dot(fig: Fig, x: float, y: float, side: str, tip: str) -> None:
+    """빈 점(이전)과 찬 점(지금). 판정 원을 점보다 크게 깔고 title 로 값을 띄운다."""
+    fig.parts.append(
+        f'<g><title>{tip}</title><circle class="pf-hit" cx="{x:.1f}" cy="{y:.1f}" r="{HIT_R}"/>'
+        f'<circle class="pf-dot--{side}" cx="{x:.1f}" cy="{y:.1f}" r="{DOT_R}"/></g>'
+    )
+
+
+def _legend_pair(fig: Fig, x: float, y: float) -> None:
+    for side, name in (("before", "이전 코드"), ("after", "지금")):
+        fig.parts.append(f'<line class="pf-line--{side}" x1="{x}" y1="{y}" x2="{x + 26}" y2="{y}"/>')
+        fig.parts.append(f'<circle class="pf-dot--{side}" cx="{x + 13}" cy="{y}" r="{DOT_R}"/>')
+        fig.text(x + 34, y + 4, name, "pf-s")
+        x += 34 + text_width(name, 11) + 22
+
+
+def _line_panel(  # type: ignore[no-untyped-def]
+    fig: Fig, x: float, y: float, w: float, h: float, label: str, sub: str, curves: dict, mark: tuple | None = None
+) -> None:
+    """x 는 쌓인 항목 수(순서 척도), y 는 0~100%. 선 끝에 값을 직접 적는다."""
+    fig.panel(x, y, w, h, label)
+    fig.text(x + 12, y + 36, sub, "pf-s")
+    left, right, top, bottom = x + 46, x + w - 74, y + 58, y + h - 30
+    xs = list(curves["after"])
+    step = (right - left) / (len(xs) - 1)
+
+    def px(i: int) -> float:
+        return left + i * step
+
+    def py(v: float) -> float:
+        return bottom - (bottom - top) * v
+
+    for t in (0, 0.5, 1.0):
+        fig.parts.append(f'<line class="pf-grid" x1="{left}" y1="{py(t):.1f}" x2="{right}" y2="{py(t):.1f}"/>')
+        fig.text(left - 8, py(t) + 3.5, f"{t:.0%}", "pf-axis", "end")
+    for i, n in enumerate(xs):
+        fig.text(px(i), bottom + 15, n, "pf-axis", "middle")
+    if mark is not None:
+        at, text = mark
+        mx = px(xs.index(at))
+        fig.parts.append(f'<line class="pf-mark" x1="{mx:.1f}" y1="{top - 6}" x2="{mx:.1f}" y2="{bottom}"/>')
+        # 오른쪽 위아래로 두 선이 지나가지 않는 띠(50% 근처)에 적는다
+        fig.text(mx + 6, top + (bottom - top) / 2 + 3, text, "pf-mark-t")
+    for side, name in (("before", "이전 코드"), ("after", "지금")):
+        values = [curves[side][n] for n in xs]
+        d = "M" + " L".join(f"{px(i):.1f},{py(v):.1f}" for i, v in enumerate(values))
+        fig.parts.append(f'<path class="pf-line--{side}" d="{d}"/>')
+        for i, v in enumerate(values):
+            _dot(fig, px(i), py(v), side, f"{name}, {xs[i]}개 뒤: {v:.0%}")
+        fig.text(right + 12, py(values[-1]) + 4, f"{name} {values[-1]:.0%}", "pf-val")
+
+
+def _dumbbell(  # type: ignore[no-untyped-def]
+    fig: Fig, x: float, y: float, w: float, rows: list, vmax: float, ticks: list, fmt, label_w: float = 196,
+    tick_fmt=None,
+) -> float:
+    """행마다 이전(빈 점)에서 지금(찬 점)으로 잇는다. 같은 값이면 점 하나와 '전후 같음' 을 적는다."""
+    left, right = x + label_w, x + w - 56
+    row_h = DUMBBELL_ROW_H
+    tick_fmt = tick_fmt or fmt
+
+    def px(v: float) -> float:
+        return left + (right - left) * min(v, vmax) / vmax
+
+    bottom = y + row_h * len(rows)
+    for t in ticks:
+        fig.parts.append(f'<line class="pf-grid" x1="{px(t):.1f}" y1="{y - 6}" x2="{px(t):.1f}" y2="{bottom - 8}"/>')
+        fig.text(px(t), bottom + 6, tick_fmt(t), "pf-axis", "middle")
+    for i, (name, before, after) in enumerate(rows):
+        cy = y + i * row_h + 8
+        fig.text(left - 14, cy + 4, name, "pf-s", "end")
+        if before == after:
+            _dot(fig, px(after), cy, "after", f"{name}: 전후 모두 {fmt(after)}")
+            fig.text(px(after) + 12, cy + 4, f"{fmt(after)}, 전후 같음", "pf-val")
+            continue
+        fig.parts.append(f'<line class="pf-link" x1="{px(before):.1f}" y1="{cy}" x2="{px(after):.1f}" y2="{cy}"/>')
+        _dot(fig, px(before), cy, "before", f"{name}, 이전 코드: {fmt(before)}")
+        _dot(fig, px(after), cy, "after", f"{name}, 지금: {fmt(after)}")
+        (lo_x, lo_v), (hi_x, hi_v) = sorted([(px(before), before), (px(after), after)])
+        fig.text(hi_x + 10, cy + 4, fmt(hi_v), "pf-val")
+        if lo_x - left > 30:
+            fig.text(lo_x - 10, cy + 4, fmt(lo_v), "pf-val", "end")
+        else:  # 축 원점에 붙은 값은 이름과 겹치지 않게 점 아래에 적는다
+            fig.text(lo_x, cy + 17, fmt(lo_v), "pf-axis", "middle")
+    return bottom + 14
+
+
 def exp_memory_recall(r: dict) -> Fig:
     m = r["memory_recall"]
     before, after = m["before"], m["after"]
-    names = {"before": ("이전 코드", "pf-s1"), "after": ("지금", "pf-s2")}
-    keys = list(names)
-    fig = Fig("exp-memory-recall", 0, "회상 품질: 후보 선정, 섬광 기억 자리, 조사, 상대 지칭")
+    fig = Fig("exp-memory-recall", 0, "회상 품질: 이전 코드와 지금")
+    pct = "{:.0%}".format
+    _legend_pair(fig, 22, 22)
+    fig.text(WIDTH - 22, 26, "점에 마우스를 올리면 값이 보인다", "pf-axis", "end")
 
-    def curve(metric: str, unit: str) -> list[tuple[str, dict[str, float | None]]]:
-        return [(f"{n}{unit}", {"before": before[metric][n], "after": after[metric][n]}) for n in after[metric]]
+    y, half = 40, (WIDTH - 30) / 2
+    curve = {side: m[side]["salient_hit_at_3"] for side in ("before", "after")}
+    _line_panel(fig, 10, y, half, 236, "(a) 200일 전 큰 사건을 떠올리는 비율",
+                "가로: 그 뒤 쌓인 같은 낱말의 사소한 일화 수", curve)
+    curve = {side: m[side]["core_fact_kept"] for side in ("before", "after")}
+    _line_panel(fig, 20 + half, y, half, 236, "(b) 100일 전 핵심 사실이 고정 블록에 남는 비율",
+                "가로: 그 뒤 쌓인 사소한 의미 사실 수", curve, mark=("12", "이전 후보 풀 12개"))
+    y += 246
 
-    rows = curve("salient_hit_at_3", "개 뒤")
-    note = "이전 코드는 같은 낱말의 새 일화가 3개만 쌓여도 최근성 가중치에 밀려 0 이 된다"
-    draw = bars_with_legend(fig, keys, rows, 1.0, UNIT, names=names, note=note)
-    label = "(a) 200일 전 importance 1.0 일화가 상위 3개에 드는 비율. 행은 그 뒤에 쌓인 사소한 일화 수"
-    y = section(fig, 10, label, draw)
-
-    rows = curve("core_fact_kept", "개 뒤")
-    note = "이전 코드는 최신순 12개만 후보로 봐서, 새 사실이 12개 쌓이면 핵심 사실이 고정 블록에서 빠진다"
-    draw = bars_with_legend(fig, keys, rows, 1.0, UNIT, names=names, note=note)
-    y = section(fig, y, "(b) 100일 전 핵심 사실(importance 0.9)이 고정 블록 3개에 남는 비율", draw)
-
-    single = [
-        ("조사 붙은 질의 (10)", "particle_hit_at_3"),
-        ("지칭 뒤 회상 (8)", "deictic_recall"),
-        ("지칭으로 남긴 기억 (8)", "referent_recall"),
-        ("과잉일반화 (8, 낮을수록 좋음)", "overreach_rate"),
+    rows = [
+        ("조사 붙은 질의 (10개)", before["particle_hit_at_3"], after["particle_hit_at_3"]),
+        ("\"그거 다시 해줘\" 뒤 회상 (8개)", before["deictic_recall"], after["deictic_recall"]),
+        ("\"그거 기억해\" 로 남긴 기억 (8개)", before["referent_recall"], after["referent_recall"]),
+        ("엉뚱한 질의에 끼어듦 (8개, 낮을수록 좋음)", before["overreach_rate"], after["overreach_rate"]),
     ]
-    rows = [(label, {"before": before[k], "after": after[k]}) for label, k in single]
-    draw = bars_with_legend(fig, keys, rows, 1.0, UNIT, names=names)
-    y = section(fig, y, "(c) 시나리오별 적중률. 괄호는 시나리오 수", draw)
+    height = 52 + DUMBBELL_ROW_H * len(rows) + 22
+    fig.panel(10, y, WIDTH - 20, height, "(c) 시나리오별 적중률")
+    _dumbbell(fig, 20, y + 52, WIDTH - 40, rows, 1.0, [0, 0.5, 1.0], pct, label_w=236)
+    y += height + 10
 
+    left_w = 236
+    lower_h = 46 + DUMBBELL_ROW_H * 3 + 52
+    fig.panel(10, y, left_w, lower_h, "(d) 무관한 10턴의 되뇌기 횟수")
     k = "rehearsal_per_fixed_fact"
-    rows = [("고정 사실 하나당", {"before": before[k], "after": after[k]})]
-    draw = bars_with_legend(fig, keys, rows, 10.0, [0, 5, 10], fmt="{:.0f}", val_fmt="{:.0f}", names=names)
-    y = section(fig, y, "(d) 주제와 무관한 10턴 동안 쌓인 되뇌기 횟수 (낮을수록 좋음)", draw)
+    for i, (side, v, name) in enumerate((("before", before[k], "이전 코드"), ("after", after[k], "지금"))):
+        cx = 34 + i * 108
+        fig.parts.append(f'<circle class="pf-dot--{side}" cx="{cx}" cy="{y + 70}" r="{DOT_R}"/>')
+        fig.text(cx + 12, y + 81, f"{v:.0f}", "pf-hero")
+        fig.text(cx + 12, y + 100, name, "pf-s")
+    fig.text(22, y + lower_h - 14, "고정 사실 하나당. 질의에 걸린 것만 센다", "pf-note")
 
     pb, pa = before["postgres"], after["postgres"]
     rows = [
-        ("recall p50", {"before": pb["recall_p50_ms"], "after": pa["recall_p50_ms"]}),
-        ("recall p95", {"before": pb["recall_p95_ms"], "after": pa["recall_p95_ms"]}),
-        ("fixed_facts p50", {"before": pb["fixed_p50_ms"], "after": pa["fixed_p50_ms"]}),
+        ("recall p50", pb["recall_p50_ms"], pa["recall_p50_ms"]),
+        ("recall p95", pb["recall_p95_ms"], pa["recall_p95_ms"]),
+        ("fixed_facts p50", pb["fixed_p50_ms"], pa["fixed_p50_ms"]),
     ]
-    note = "후보를 세 갈래(최신, 중요도, 거리)로 모으느라 쿼리가 무거워졌다. LLM 호출 한 번(수백 ms 이상)에 비하면 작다"
-    draw = bars_with_legend(fig, keys, rows, 10.0, [0, 5, 10], fmt="{:.0f}", val_fmt="{:.1f}", names=names, note=note)
-    y = section(fig, y, "(e) Postgres 지연 ms. 일화 2,000개, pgvector, 질의 200회 (낮을수록 좋음)", draw)
-    return finish(fig, y)
+    rx, rw = 20 + left_w, WIDTH - 30 - left_w
+    fig.panel(rx, y, rw, lower_h, "(e) Postgres 지연 (ms, 낮을수록 좋음)")
+    _dumbbell(fig, rx + 10, y + 46, rw - 20, rows, 10.0, [0, 5, 10], lambda v: f"{v:.1f}", label_w=104,
+              tick_fmt=lambda v: f"{v:.0f} ms")
+    note = "일화 2,000개, pgvector, 질의 200회. LLM 호출 한 번(수백 ms 이상)에 비하면 작다"
+    fig.text(rx + 12, y + lower_h - 14, note, "pf-note")
+    return finish(fig, y + lower_h + 10)
 
 
 def check_matrix(fig: Fig, x: float, y: float, cols: list[str], rows: list[tuple[str, list[str]]]) -> float:

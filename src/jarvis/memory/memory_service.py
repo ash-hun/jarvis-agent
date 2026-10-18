@@ -412,7 +412,7 @@ class MemoryService:
     # ── 공고화 ──────────────────────────────────────────────────────────────
 
     async def consolidate(self, scope: MemoryScope | None = None) -> int:
-        """세션 종료(와 나중엔 idle)에 부른다. 돌려주는 값은 새로 쓴 의미 사실 수.
+        """세션 종료와 사용자가 조용한 daemon 틱에 부른다. 돌려주는 값은 새로 쓴 의미 사실 수.
 
         1. 아직 추출하지 않은 이 소유자의 일화(요약)에서 사실을 뽑아 shared 의미 항목으로 쓴다.
            importance 가 임계 미만이면 버린다. 같은 주제의 옛 사실은 remember 가 대체한다.

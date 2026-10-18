@@ -570,7 +570,7 @@ JARVIS_LLM__TEMPERATURE=0.7
 JARVIS_MEMORY__BACKEND=postgres       # in_memory | postgres
 JARVIS_MEMORY__WINDOW_SIZE=50
 JARVIS_MEMORY__COMPACTION_THRESHOLD=100000   # 글자 수
-JARVIS_MEMORY__CONSOLIDATE_ON_IDLE=true  # 조용할 때 요약에서 사실 추출 (daemon_trigger 가 idle 또는 both 일 때)
+JARVIS_MEMORY__CONSOLIDATE_ON_IDLE=true  # 조용할 때 요약에서 사실 추출 (daemon_idle_sec 넘게 입력이 없을 때, 트리거 종류 무관)
 JARVIS_MEMORY__EMBEDDING_PROVIDER=       # 의미 유사도 검색과 약속 중복 판정: openai | ollama | vllm (비우면 키워드만, Postgres 는 pgvector 필요)
 JARVIS_MEMORY__EMBEDDING_MODEL=          # 비우면 provider 기본값. 한국어는 ollama 의 bge-m3 (DIMENSIONS=1024)
 

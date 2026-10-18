@@ -1,15 +1,15 @@
-"""idle 공고화: daemon 틱에 얹힌 consolidate 가 사실을 한 번만 뽑고, 실행 중 세션은 건너뛴다."""
+"""idle 공고화: 조용할 때 daemon 틱에 얹힌 consolidate 가 사실을 한 번만 뽑고, 실행 중 세션은 건너뛴다."""
 
 from unittest.mock import MagicMock
 
-from jarvis.memory.consolidation.idle import consolidation_targets, should_consolidate_on_idle
+from jarvis.memory.consolidation.idle import consolidation_targets
 from jarvis.memory import MemoryKind, MemoryScope, MemoryService
 from jarvis.memory.consolidation.semantic_extract import Fact
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.core.proactive import ProactivityDaemon
-from jarvis.config import JarvisSettings
 
 SCOPE = MemoryScope(user_id="jh", agent_id="main", session_id="s1")
+IDLE = {"idle_for": 600.0, "idle_sec": 180.0}
 
 
 def _session(scope: MemoryScope, running: bool = False) -> MagicMock:
@@ -19,21 +19,17 @@ def _session(scope: MemoryScope, running: bool = False) -> MagicMock:
     return s
 
 
-def test_only_idle_or_both_triggers_consolidate():
-    s = JarvisSettings()
-    s.proactive.daemon_trigger = "interval"
-    assert should_consolidate_on_idle(s) is False
-    s.proactive.daemon_trigger = "idle"
-    assert should_consolidate_on_idle(s) is True
-    s.proactive.daemon_trigger = "both"
-    assert should_consolidate_on_idle(s) is True
-    s.memory.consolidate_on_idle = False
-    assert should_consolidate_on_idle(s) is False
+def test_targets_wait_until_the_user_is_quiet_long_enough():
+    memory = MemoryService(InMemoryItemStore())
+    assert consolidation_targets(memory, [_session(SCOPE)], idle_for=179.0, idle_sec=180.0) == []
+    assert len(consolidation_targets(memory, [_session(SCOPE)], idle_for=180.0, idle_sec=180.0)) == 1
 
 
 def test_targets_skip_running_sessions_and_bind_scope():
     memory = MemoryService(InMemoryItemStore())
-    targets = consolidation_targets(memory, [_session(SCOPE), _session(SCOPE.with_session("s2"), running=True)])
+    targets = consolidation_targets(
+        memory, [_session(SCOPE), _session(SCOPE.with_session("s2"), running=True)], **IDLE
+    )
     assert len(targets) == 1
     assert targets[0].args == (SCOPE,)
 
@@ -52,7 +48,7 @@ async def test_daemon_tick_consolidates_once(faux_model_with_response):
     async def reflect() -> None:
         return None
 
-    daemon = ProactivityDaemon(lambda: [reflect, *consolidation_targets(memory, [session])], interval_sec=0)
+    daemon = ProactivityDaemon(lambda: [reflect, *consolidation_targets(memory, [session], **IDLE)], interval_sec=0)
     await daemon.tick()
     await daemon.tick()
 
@@ -73,6 +69,7 @@ async def test_consolidation_failure_does_not_stop_the_tick():
     async def reflect() -> None:
         seen.append("reflect")
 
-    daemon = ProactivityDaemon(lambda: [*consolidation_targets(memory, [_session(SCOPE)]), reflect], interval_sec=0)
+    targets = consolidation_targets(memory, [_session(SCOPE)], **IDLE)
+    daemon = ProactivityDaemon(lambda: [*targets, reflect], interval_sec=0)
     await daemon.tick()
     assert seen == ["reflect"]

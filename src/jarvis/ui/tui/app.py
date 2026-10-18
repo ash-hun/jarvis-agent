@@ -181,19 +181,21 @@ class JarvisTUI(App[None], UIAdapter):
         # Proactivity Daemon (B3) — 요청 없이 주기적으로 성찰해 먼저 말 검.
         pcfg = self._ctx.settings.proactive
         if pcfg.daemon_enabled:
-            from jarvis.memory.consolidation.idle import consolidation_targets, should_consolidate_on_idle
+            from jarvis.memory.consolidation.idle import consolidation_targets
             from jarvis.core.proactive import ProactivityDaemon
 
             memory = self._ctx.memory
-            consolidate = memory is not None and should_consolidate_on_idle(self._ctx.settings)
+            clock = self._ctx.activity_clock
+            consolidate = memory is not None and clock is not None and self._ctx.settings.memory.consolidate_on_idle
 
             # provider는 매 틱 self._session을 다시 읽어 세션 전환을 자동 추종.
             def targets() -> list[Callable[[], Awaitable[object]]]:
                 reflects: list[Callable[[], Awaitable[object]]] = [self._session.reflect]
-                # consolidate 가 참이면 memory 는 None 이 아니다. 클로저 안이라 mypy 가 좁히지 못해 다시 적는다
-                if not consolidate or memory is None:
+                # consolidate 가 참이면 memory, clock 은 None 이 아니다. 클로저 안이라 mypy 가 좁히지 못해 다시 적는다
+                if not consolidate or memory is None or clock is None:
                     return reflects
-                return reflects + consolidation_targets(memory, [self._session])
+                idle_for = clock.idle_seconds()
+                return reflects + consolidation_targets(memory, [self._session], idle_for, pcfg.daemon_idle_sec)
 
             self._proactive_daemon = ProactivityDaemon(
                 targets,

@@ -307,6 +307,25 @@ async def test_add_unique_merges_paraphrase_by_embedding_and_reruns_idempotent()
     assert len(await store.list_open()) == 2
 
 
+class _CountingEmbedder(_TableEmbedder):
+    def __init__(self) -> None:
+        super().__init__({})
+        self.texts: list[str] = []
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        self.texts += texts
+        return await super().embed(texts)
+
+
+async def test_open_loops_are_embedded_once_each():
+    embedder = _CountingEmbedder()
+    store = InMemoryOpenLoopStore(embedder)
+    for text in ("참석자 목록 확정", "배포 결과 공유", "알림 주기 확정", "회의록 정리"):
+        await store.add_unique(_loop(text))
+    # 새 약속마다 앞의 열린 약속 전부를 다시 보내지 않는다
+    assert sorted(embedder.texts) == sorted(["참석자 목록 확정", "배포 결과 공유", "알림 주기 확정", "회의록 정리"])
+
+
 async def test_add_unique_falls_back_to_text_when_embedding_fails():
     embedder = _TableEmbedder({}, fail=True)
     store = InMemoryOpenLoopStore(embedder)

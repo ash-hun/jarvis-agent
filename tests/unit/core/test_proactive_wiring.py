@@ -335,5 +335,43 @@ async def test_unanswered_proactive_learned_once_as_weak_dismiss(fx):
     assert learner.threshold() == pytest.approx(0.625)
 
 
+@pytest.mark.asyncio
+async def test_restart_keeps_gate_and_recent_proactive(fx):
+    await fx["repo"].create(session_id="test-session")
+    engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="구조화 잘 되고 있나요?"))
+    factory = lambda emit: DefaultProactivityCore(  # noqa: E731
+        emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0)
+    )
+    assert (await _build_session(fx, engine=engine, proactivity_factory=factory).reflect()).speak is True
+
+    # 재시작: 같은 저장소로 새 세션을 만든다
+    restarted = _build_session(fx, engine=engine, proactivity_factory=factory)
+    second = await restarted.reflect()
+    assert second.speak is False and second.reason == "awaiting reply"
+    assert second.ignored is False  # 재시작 전에 셌을 수 있는 무시를 다시 세지 않는다
+    assert len(engine.requests) == 1
+
+    await restarted.prompt("응 잘 되고 있어")
+    assert (await restarted.reflect()).speak is True
+    assert engine.requests[1].recent_proactive == ["구조화 잘 되고 있나요?"]
+    assert await fx["repo"].get_messages("test-session")  # 🔔 는 대화 기록에 섞이지 않는다
+    assert all(m.role != "assistant" or "구조화" not in m.text() for m in await fx["repo"].get_messages("test-session"))
+
+
+@pytest.mark.asyncio
+async def test_restart_after_user_reply_does_not_close_gate(fx):
+    await fx["repo"].create(session_id="test-session")
+    engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="x"))
+    factory = lambda emit: DefaultProactivityCore(  # noqa: E731
+        emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0)
+    )
+    session = _build_session(fx, engine=engine, proactivity_factory=factory)
+    await session.reflect()
+    await session.prompt("답했어")
+
+    restarted = _build_session(fx, engine=engine, proactivity_factory=factory)
+    assert (await restarted.reflect()).speak is True
+
+
 async def _noop():
     return None

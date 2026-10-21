@@ -39,6 +39,9 @@ class ProactivityPolicy:
     def note_user_activity(self, session_id: str = "default") -> None:
         pass
 
+    def restore_awaiting(self, session_id: str = "default") -> None:
+        pass
+
     def decide_proactive(
         self, frame: ThoughtFrame, *, session_id: str = "default", now: float | None = None
     ) -> ProactiveDecision:
@@ -69,7 +72,7 @@ class DefaultProactivityPolicy(ProactivityPolicy):
         self._last_spoke: dict[str, float] = {}
         self._ignore_after = ignore_after_sec
         # 세션별 "답을 기다리는 발화" 시각과 무시로 이미 셌는지. 사용자가 무엇이든 보내면 지운다.
-        # ponytail: 메모리에만 있어 재시작하면 게이트가 풀린다, 재시작 뒤 재발화가 문제면 세션 저장소로
+        # 재시작하면 세션이 저장된 🔔 로 restore_awaiting 을 불러 되살린다.
         self._awaiting: dict[str, tuple[float, bool]] = {}
         self._filler_idx = 0
 
@@ -107,6 +110,10 @@ class DefaultProactivityPolicy(ProactivityPolicy):
     def note_user_activity(self, session_id: str = "default") -> None:
         """사용자가 메시지나 피드백을 보냈다. 다시 먼저 말할 수 있다. 몇 번 불러도 같다."""
         self._awaiting.pop(session_id, None)
+
+    def restore_awaiting(self, session_id: str = "default") -> None:
+        """재시작 전에 건넨 말이 아직 답을 못 받았다. 무시는 재시작 전에 셌을 수 있어 다시 세지 않는다."""
+        self._awaiting.setdefault(session_id, (self._clock(), True))
 
     # ── daemon 자율 발화 게이팅 ────────────────────────────────────────────────
 

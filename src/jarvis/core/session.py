@@ -46,8 +46,8 @@ from jarvis.agent_layer.thought import (
     ThoughtLog,
     ThoughtRequest,
 )
+from jarvis.model_layer.types import AssistantMessage, ModelConfig, ToolResultMessage, UserMessage
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
-from jarvis.model_layer.types import AssistantMessage, ModelConfig, ToolResultMessage
 from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope, current_scope
 from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
 from jarvis.agent_layer.thought.router import RouteVerdict, ThoughtRouter
@@ -186,8 +186,8 @@ class AgentSession:
         self._user_model_store = user_model_store
         self._external_inbox = external_inbox
         self._external_detail_in_prompt = external_detail_in_prompt
-        # ponytail: 최근 🔔 는 메모리에만 있어 재시작하면 빈다, 재시작 뒤 같은 말이 문제면 세션 저장소로
         self._recent_proactive: deque[str] = deque(maxlen=RECENT_PROACTIVE_MAX)
+        self._proactive_restored = False
         # 코어는 세션별 emit에 바인딩되어야 하므로 팩토리로 주입받아 여기서 생성.
         self._proactivity: ProactivityCore | None = (
             proactivity_factory(self._emit_proactive) if proactivity_factory else None
@@ -238,6 +238,7 @@ class AgentSession:
             self._activity_clock.touch()
         # 사용자가 말했으니 먼저 건넨 말에 대한 대기는 끝났다
         if self._proactivity is not None:
+            await self._restore_proactive()
             self._proactivity.note_user_activity(self._session_id)
 
         validated, auth_ctx, policy_result = await self._security.run(
@@ -324,6 +325,7 @@ class AgentSession:
         """
         if self._thought_engine is None or self._proactivity is None:
             return None
+        await self._restore_proactive()
         # 답을 기다리는 🔔 가 있으면 사고 모델을 부르지 않는다. 외부 이벤트도 꺼내지 않고 남겨 둔다.
         awaiting = self._proactivity.check_awaiting(self._session_id)
         if awaiting is not None:
@@ -583,6 +585,11 @@ class AgentSession:
             return
         if message.kind == "proactive":
             self._recent_proactive.append(message.text)
+            # 내보내기 전에 남긴다. 남긴 뒤 죽으면 재시작 뒤 게이트가 닫혀 있어 같은 말을 다시 하지 않는다
+            try:
+                await self._session_repo.append_proactive(self._session_id, message.id, message.text)
+            except Exception as exc:
+                logger.warning(f"[Proactive] not saved, a restart may repeat it: {exc!r}")
         await self._harness.emit_event(
             ProactiveMessageEvent(
                 session_id=self._session_id,
@@ -591,6 +598,24 @@ class AgentSession:
                 message_id=message.id,
             )
         )
+
+    async def _restore_proactive(self) -> None:
+        """재시작 전에 먼저 건넨 말과 그 말의 응답 대기를 되살린다. 세션당 한 번만 읽는다."""
+        if self._proactive_restored or self._proactivity is None:
+            return
+        self._proactive_restored = True
+        try:
+            said = await self._session_repo.get_proactive(self._session_id)
+            messages = await self._session_repo.get_messages(self._session_id)
+        except Exception as exc:
+            logger.warning(f"[Proactive] restore failed: {exc!r}")
+            return
+        self._recent_proactive.extend(e.content.get("text", "") for e in said)
+        last_user = max((m.timestamp for m in messages if isinstance(m, UserMessage)), default=0)
+        # ponytail: 피드백으로 푼 대기와 쿨다운은 남기지 않는다(재시작하면 사용자가 말할 때까지 조용),
+        # 그 침묵이 문제면 피드백도 엔트리로 남긴다
+        if said and said[-1].timestamp > last_user:
+            self._proactivity.restore_awaiting(self._session_id)
 
     async def record_feedback(self, accepted: bool) -> None:
         """proactive 발화에 대한 사용자 피드백(수락/무시)을 학습기에 기록 (C3).

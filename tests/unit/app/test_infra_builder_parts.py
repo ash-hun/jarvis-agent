@@ -64,3 +64,35 @@ def test_external_trigger_is_combined_with_any_mode():
 
 def test_build_notifier_none_without_channel():
     assert _builder().build_notifier() is None
+
+
+async def test_build_notifier_sends_to_slack_and_discord(monkeypatch):
+    from pydantic import SecretStr
+
+    sent: list[str] = []
+
+    async def fake_post(url, body):
+        sent.append(url)
+        return 204
+
+    monkeypatch.setattr("jarvis.core.notify.slack.post_json", fake_post)
+    monkeypatch.setattr("jarvis.core.notify.discord.post_json", fake_post)
+    builder = _builder()
+    builder._settings.notify.slack_webhook_url = SecretStr("https://hooks.slack.com/x")
+    builder._settings.notify.discord_webhook_url = SecretStr("https://discord.com/api/webhooks/1/t")
+    notify = builder.build_notifier()
+    assert notify is not None
+    await notify({"type": "reminder", "name": "n", "text": "t"})
+    assert sent == ["https://hooks.slack.com/x", "https://discord.com/api/webhooks/1/t"]
+
+
+def test_agent_identities_use_brand_names_and_avatar_folder(tmp_path):
+    (tmp_path / "karen.yaml").write_text("name: K.A.R.E.N.\n", encoding="utf-8")
+    builder = _builder()
+    builder._settings.team.dir = str(tmp_path)
+    builder._settings.notify.avatar_base_url = "https://cdn.example/avatars/"
+    identities = builder.agent_identities()
+    assert identities["karen"] == ("K.A.R.E.N.", "https://cdn.example/avatars/karen.png")
+    assert identities["main"] == (builder._settings.brand.name, "https://cdn.example/avatars/main.png")
+    builder._settings.notify.avatar_base_url = ""
+    assert builder.agent_identities()["karen"] == ("K.A.R.E.N.", "")

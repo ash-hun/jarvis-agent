@@ -444,14 +444,31 @@ class InfraBuilder:
         return AnyTrigger([base, external_trigger])
 
     def build_notifier(self) -> "Notify | None":
-        """채널 설정이 하나도 없으면 None(기존 동작 그대로)."""
+        """채널 설정이 하나도 없으면 None(기존 동작 그대로). 둘 다 있으면 둘 다 보낸다."""
         cfg = self._settings.notify
-        if cfg.slack_webhook_url is None:
-            return None
-        from jarvis.core.notify import only_kinds, slack_notifier
+        from jarvis.core.notify import discord_notifier, fan_out, only_kinds, slack_notifier, with_agents
 
-        logger.info("[Notify] slack channel enabled")
-        return only_kinds(cfg.kinds, slack_notifier(cfg.slack_webhook_url.get_secret_value()))
+        channels = []
+        if cfg.slack_webhook_url is not None:
+            channels.append(slack_notifier(cfg.slack_webhook_url.get_secret_value()))
+            logger.info("[Notify] slack channel enabled")
+        if cfg.discord_webhook_url is not None:
+            channels.append(discord_notifier(cfg.discord_webhook_url.get_secret_value()))
+            logger.info("[Notify] discord channel enabled")
+        if not channels:
+            return None
+        notify = channels[0] if len(channels) == 1 else fan_out(*channels)
+        return only_kinds(cfg.kinds, with_agents(self.agent_identities(), notify))
+
+    def agent_identities(self) -> dict[str, tuple[str, str]]:
+        """에이전트 id → (이름, 아바타 주소). 이름은 브랜드 워드마크, 정의 파일을 읽는 곳은 load_agent_specs 하나다."""
+        from jarvis.app.agent_registry import load_agent_specs
+        from jarvis.memory.scope import MAIN_AGENT
+
+        base = self._settings.notify.avatar_base_url.rstrip("/")
+        names = {MAIN_AGENT: self._settings.brand.name}
+        names.update({agent_id: spec.name for agent_id, spec in load_agent_specs(self._settings.team.dir).items()})
+        return {agent_id: (name, f"{base}/{agent_id}.png" if base else "") for agent_id, name in names.items()}
 
     def build_subagents(
         self, ctx: AppContext, services: AppServices, agent_defs: list["AgentDefinition"]

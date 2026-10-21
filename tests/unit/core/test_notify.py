@@ -168,3 +168,9 @@ def test_reminder_title_hides_names_the_schedule_command_made_up():
     assert [task_label(t) for t in (once, task, named)] == ["알림", "공고 새로 나온 것 정리해줘", "daily-news"]
     head = format_discord({"type": "reminder", "name": "once-ba15fed1", "label": "알림", "text": "회의 자료 챙기기"})
     assert head["content"] == "**⏰ 알림**\n회의 자료 챙기기"
+
+
+def test_task_results_use_the_same_icon_as_the_hud():
+    task = format_discord({"type": "reminder", "kind": "task", "label": "공고 정리", "text": "세 건"})
+    reminder = format_discord({"type": "reminder", "kind": "reminder", "label": "알림", "text": "회의"})
+    assert task["content"].startswith("**⏱ 공고 정리**") and reminder["content"].startswith("**⏰ 알림**")

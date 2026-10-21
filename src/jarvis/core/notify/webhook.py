@@ -13,7 +13,9 @@ def headline(payload: dict[str, Any]) -> tuple[str, str]:
     """알림 payload → (제목, 본문). 순수 함수."""
     kind = payload.get("type", "")
     if kind == "reminder":
-        head = f"⏰ {payload.get('label') or payload.get('name', '')}".strip()
+        # 화면과 같은 아이콘: 알림은 ⏰, 할 일을 실행한 작업 결과는 ⏱
+        mark = "⏱" if payload.get("kind") == "task" else "⏰"
+        head = f"{mark} {payload.get('label') or payload.get('name', '')}".strip()
         if payload.get("error"):
             head += " (실패)"
         return head, str(payload.get("text", ""))

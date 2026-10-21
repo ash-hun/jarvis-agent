@@ -34,6 +34,7 @@ export function resetBackgroundThought() { setBackgroundThought(false); }
 // 이 도구가 시작되면 미리 녹음한 문구를 읽는다
 const CUE_BY_TOOL = { web_search: 'web_search', remember_task_pattern: 'remember_pattern' };
 let _analysisBusy = false;  // Focus 분석 영역이 갱신 중인지. 시작하는 순간에만 문구를 읽는다
+let _deferredReply = false;  // 대기 안내를 받았다. 다음 응답은 뒤로 넘긴 작업의 답이다
 let _agentStack = []; // [{name: string|null}, ...] — 서브 에이전트 계층 추적
 
 function breadcrumb() {
@@ -97,12 +98,13 @@ export function handleMessage(msg) {
       const usage = msg.final_message?.usage;
       if (usage) updateUsage(usage);
       if ((isVoiceMode() || isFullVoice()) && lastStreamText()) {
-        requestSpeech(lastStreamText(), { thenListen: isFullVoice, source: 'reply' });
+        requestSpeech(lastStreamText(), { thenListen: isFullVoice, source: _deferredReply ? 'answer' : 'reply' });
       } else {
         // 음성 요청에 말 없는 응답(도구만)이 오면 음성 처리 중 상태를 풀어 준다
         if (voice.state === 'processing') voice.setIdle();
         setInputEnabled(true);
       }
+      _deferredReply = false;
       clearVoiceMode();
       break;
     }
@@ -188,8 +190,11 @@ export function handleMessage(msg) {
     case 'proactive_message': {
       // 시스템 비요청 발화 — filler(💬 대기) / proactive·answer(🔔 먼저 건넨 말).
       const ptext = (msg.text || '').trim();
-      if (!ptext) break;
+      // 뒤로 넘긴 작업의 답은 스트림으로 이미 보였다. answer 는 외부 채널(디스코드)용이다
+      if (!ptext || msg.kind === 'answer') break;
       const isFiller = msg.kind === 'filler';
+      // 대기 안내 뒤에 오는 응답은 뒤로 넘긴 작업의 답이다. 서버가 answer 로 이미 밖에 알린다
+      if (isFiller) _deferredReply = true;
       const div = appendMsg(isFiller ? '💬' : '🔔', 'proactive', renderMarkdown(ptext));
       logActivity(`${isFiller ? '💬' : '🔔'} ${ptext}`, 'proactive');
       showLive(lastLine(ptext), CAPTION_HOLD_MS);

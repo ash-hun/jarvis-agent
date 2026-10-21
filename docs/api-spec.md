@@ -934,10 +934,10 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `thought_route` | `session_id`, `think`, `p_think` | router(`JARVIS_THOUGHT__ROUTER_MODEL`)가 켜져 있을 때 요청마다 한 번, 응답보다 먼저. `think: true` 면 사고가 응답과 함께 돌고 그 결과는 다음 턴 시스템 프롬프트에 한 번 들어간다. `p_think` 는 맥락 없는 판정과 직전 두 턴을 넣은 판정 중 큰 값이고, router 가 답하지 못하면 null 이며 `think: true` 로 둔다 |
 | `thought_end` | `session_id`, `ok` | `think: true` 로 띄운 사고가 끝났다. 응답보다 늦게 올 수 있다. 실패해도 `ok: false` 로 보낸다 |
 | `agenda_changed` | `session_id` | 요청마다 사고와 따로 도는 AGENDA 판단이 약속을 새로 열거나(기한 갱신 포함) 닫았다. 응답보다 늦게 올 수 있다. 화면은 `GET /api/agenda` 로 다시 읽는다 |
-| `proactive_message` | `session_id`, `text`, `kind`(`filler`/`proactive`/`answer`), `speak`, `message_id` | 먼저 건네는 말. `proactive` 면 피드백 대상. Focus 작업 중인 세션은 `proactive` 를 보내지 않는다(`filler`, `answer` 는 보낸다) |
+| `proactive_message` | `session_id`, `text`, `kind`(`filler`/`proactive`/`answer`), `speak`, `message_id` | 먼저 건네는 말. `proactive` 면 피드백 대상. `answer` 는 대기 안내(`filler`) 뒤 뒤로 넘긴 작업이 끝났을 때의 답이고, 답은 스트림으로 이미 왔으므로 화면은 그리지 않는다(외부 알림 채널용). Focus 작업 중인 세션은 `proactive` 를 보내지 않는다(`filler`, `answer` 는 보낸다) |
 | `approval_request` | `id`, `command`, `reason`, `always_pattern` | 도구 실행 승인 요청. 같은 세션의 열린 연결 전부에 보내고, 기다리는 중에 새로 붙은 연결에도 보낸다. 120초 안에 답이 없으면 거부로 처리 |
 | `approval_resolved` | `id`, `timeout?` | 그 요청이 끝났다(어느 연결의 답, 또는 시간 초과). 아직 모달을 띄운 연결은 닫는다. 시간 초과면 `timeout: true` 이고, 에이전트 응답도 `승인 요청에 시간 안에 답이 없어 …` 로 거부(`승인이 거부되어 …`)와 구분된다 |
-| `reminder` | `id`, `name`, `kind`, `agent`, `once`, `title`, `text`, `error`, `delayed_sec`, `fired_at`, `missed?` | 스케줄 실행 결과. 열린 연결 전부에 방송하고, 없으면 최근 20건을 쌓아 다음 접속 때 `missed: true` 로 보낸다 |
+| `reminder` | `id`, `name`, `label`, `kind`, `agent`, `once`, `title`, `text`, `error`, `delayed_sec`, `fired_at`, `missed?` | 스케줄 실행 결과. 열린 연결 전부에 방송하고, 없으면 최근 20건을 쌓아 다음 접속 때 `missed: true` 로 보낸다. `label` 은 사람에게 보일 제목이다(사람이 붙인 이름, `/schedule` 이 붙인 이름이면 알림은 `알림`, 작업은 할 일 첫 줄) |
 | `voice_tts_audio` | `data`(base64), `mime`, `text`, `id` | 합성 결과. `data` 가 비면 브라우저 TTS 로(`text` 는 기호를 지운 문장). `id` 는 요청의 `id`(없었으면 null). 화면은 멈춘 읽기의 결과를 이 값으로 버린다 |
 | `voice_stt_result` | `text`, `error?` | 전사 결과 |
 | `voice_wake` | `score` | 바이너리 프레임의 오디오에서 "Jarvis" 를 들었다. 점수가 `JARVIS_VOICE__WAKE_THRESHOLD`(0.5) 이상인 첫 프레임에서 한 번 보내고, 그 뒤 1초(13프레임)는 다시 보내지 않는다 |

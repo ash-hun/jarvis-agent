@@ -402,7 +402,8 @@ class JarvisTUI(App[None], UIAdapter):
                     self._chat.add_inner_thought(f"{interp}  ({dec} · {conf:.0%})")
 
             case ProactiveMessageAction(text=ptext, msg_kind=mk, speak=spk, message_id=mid):
-                if ptext:
+                # 뒤로 넘긴 작업의 답은 스트림으로 이미 그렸다. answer 는 외부 채널용이다
+                if ptext and mk != "answer":
                     self._chat.add_proactive(ptext, mk)
                     # filler가 아닌 먼저 건넨 말은 피드백 대상으로 기록 (ctrl+y/ctrl+g).
                     if mk != "filler" and mid:

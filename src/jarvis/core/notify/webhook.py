@@ -13,12 +13,14 @@ def headline(payload: dict[str, Any]) -> tuple[str, str]:
     """알림 payload → (제목, 본문). 순수 함수."""
     kind = payload.get("type", "")
     if kind == "reminder":
-        head = f"⏰ {payload.get('name', '')}".strip()
+        head = f"⏰ {payload.get('label') or payload.get('name', '')}".strip()
         if payload.get("error"):
             head += " (실패)"
         return head, str(payload.get("text", ""))
     if kind == "proactive_message":
-        return f"💭 {payload.get('agent_name') or 'Jarvis'}", str(payload.get("text", ""))
+        # 뒤로 넘긴 작업의 답(answer)은 먼저 건넨 말과 구분해 보인다
+        mark = "💬" if payload.get("kind") == "answer" else "💭"
+        return f"{mark} {payload.get('agent_name') or 'Jarvis'}", str(payload.get("text", ""))
     if kind == "spoken":
         return f"🔊 {payload.get('agent_name') or 'Jarvis'}", str(payload.get("text", ""))
     return str(kind or "jarvis"), str(payload.get("text", payload))

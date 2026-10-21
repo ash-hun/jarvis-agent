@@ -100,6 +100,9 @@ class AgentHarness:
         # 최종 메시지만 남기면 세션 재개 시 provider가 tool_use/tool_result 짝 불일치로 거부한다.
         for msg in agent_context.messages[n_before:]:
             await self._session_repo.append(self._session_id, msg)
+        if self._memory is not None:
+            # 떠올린 기억 중 답에 쓰인 것만 강해진다
+            await self._memory.reinforce(result.text() if result is not None else "", mem_context)
 
         self._running = False
         return result

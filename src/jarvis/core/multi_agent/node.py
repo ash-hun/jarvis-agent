@@ -1,9 +1,10 @@
 """[core] AgentSession 을 멱등한 그래프 노드(정적 AgentNode, 위임 시점에 세션을 정하는 LazyAgentNode)로 감싼다."""
 
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 from collections.abc import Awaitable, Callable
 
-from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, current_task
+from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_task
 from jarvis.memory.stores.protocol import tokens_of
 from jarvis.agent_layer.types import AgentEvent
 from .task import AgentResult, AgentTask
@@ -109,7 +110,7 @@ class AgentNode(AgentNodeProtocol):
             unsub = self._session.subscribe(self._event_sink)
 
         try:
-            msg = await self._session.prompt(task.content)
+            msg = await self._session.prompt(task.content, caller_scope=task.scope)
             # AssistantMessage.text 는 메서드다. 테스트 더블은 문자열 속성을 줄 수 있어 둘 다 받는다
             text = getattr(msg, "text", "") if msg else ""
             content = text() if callable(text) else (text or "")
@@ -158,17 +159,16 @@ class LazyAgentNode(AgentNodeProtocol):
         self.capabilities: list[str] = list(definition.capabilities)
 
     async def invoke(self, task: AgentTask) -> AgentResult:
-        parent_scope = task.scope or current_scope.get() or MemoryScope(user_id=LOCAL_USER)
+        parent_scope = task.scope or MemoryScope(user_id=LOCAL_USER)
         node, child_scope = await self.factory.node_for(self.definition, parent_scope, task)
         # 오케스트레이션 안이면 루트 작업(parent_task_id)이 공유 키, 단독 위임이면 자기 작업
         shared_key = task.parent_task_id or task.task_id
-        scope_token = current_scope.set(child_scope)
         task_token = current_task.set(shared_key)
         try:
-            result = await node.invoke(task)
+            # 자식 세션은 task.scope(부모 범위)에서 사용자를 받는다
+            result = await node.invoke(replace(task, scope=parent_scope))
         finally:
             current_task.reset(task_token)
-            current_scope.reset(scope_token)  # 부모 턴의 나머지가 자식 범위로 쓰지 않도록 되돌린다
             await self.factory.release(self.definition, child_scope.session_id or "")
         await record_delegation(self.memory, parent_scope, self.name, task, result)
         return result

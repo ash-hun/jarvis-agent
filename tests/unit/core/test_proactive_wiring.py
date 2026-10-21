@@ -373,5 +373,32 @@ async def test_restart_after_user_reply_does_not_close_gate(fx):
     assert (await restarted.reflect()).speak is True
 
 
+@pytest.mark.asyncio
+async def test_restart_keeps_feedback_release_and_cooldown(fx):
+    from jarvis.agent_layer.session.protocol import PROACTIVE_ACK_ENTRY
+
+    await fx["repo"].create(session_id="test-session")
+    engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="x"))
+    no_cooldown = lambda emit: DefaultProactivityCore(  # noqa: E731
+        emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0)
+    )
+    session = _build_session(fx, engine=engine, proactivity_factory=no_cooldown)
+    await session.reflect()
+    await session.record_feedback(accepted=True)
+    await session.record_feedback(accepted=True)
+    assert len(await fx["repo"].get_proactive("test-session", PROACTIVE_ACK_ENTRY)) == 1  # 같은 🔔 의 피드백은 하나
+
+    # 피드백으로 답한 🔔 는 재시작해도 대기를 다시 걸지 않는다
+    assert (await _build_session(fx, engine=engine, proactivity_factory=no_cooldown).reflect()).speak is True
+
+    # 쿨다운은 마지막 🔔 시각부터 이어 센다
+    with_cooldown = lambda emit: DefaultProactivityCore(  # noqa: E731
+        emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=300)
+    )
+    restarted = _build_session(fx, engine=engine, proactivity_factory=with_cooldown)
+    await restarted.record_feedback(accepted=True)
+    assert (await restarted.reflect()).reason == "cooldown"
+
+
 async def _noop():
     return None

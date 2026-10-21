@@ -31,6 +31,9 @@ class SpyMemory:
             return messages
         return [UserMessage(content=self._prefix), *messages]
 
+    async def reinforce(self, answer: str, context: dict) -> list[str]:
+        return []
+
 
 @pytest.fixture
 async def repo(jsonl_repo):

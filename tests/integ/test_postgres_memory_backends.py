@@ -2,8 +2,12 @@
 
 import pytest
 
+from jarvis.memory.scope import MemoryScope
+
 testcontainers = pytest.importorskip("testcontainers", reason="testcontainers not installed")
 pytest.importorskip("asyncpg", reason="asyncpg not installed")
+
+LOCAL = MemoryScope(user_id="local")
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -122,50 +126,50 @@ class TestPostgresWorkingStore:
 
 class TestPostgresLTM:
     async def test_store_and_get_recent(self, ltm):
-        await ltm.remember("Python 배우기", source="explicit")
+        await ltm.remember("Python 배우기", source="explicit", scope=LOCAL)
 
-        recent = await ltm.recent(limit=5)
+        recent = await ltm.recent(LOCAL, limit=5)
         contents = [r.content for r in recent]
         assert "Python 배우기" in contents
 
     async def test_search_keyword(self, ltm):
-        await ltm.remember("LangChain 튜토리얼", source="explicit")
-        await ltm.remember("Python 기초 문법", source="explicit")
+        await ltm.remember("LangChain 튜토리얼", source="explicit", scope=LOCAL)
+        await ltm.remember("Python 기초 문법", source="explicit", scope=LOCAL)
 
-        results = await ltm.recall("LangChain")
+        results = await ltm.recall("LangChain", LOCAL)
         assert any("LangChain" in r.content for r in results)
 
     async def test_search_case_insensitive(self, ltm):
-        await ltm.remember("FastAPI 정리", source="explicit")
-        results = await ltm.recall("fastapi")
+        await ltm.remember("FastAPI 정리", source="explicit", scope=LOCAL)
+        results = await ltm.recall("fastapi", LOCAL)
         assert any("FastAPI" in r.content for r in results)
 
     async def test_search_no_match(self, ltm):
-        await ltm.remember("FastAPI 가이드", source="explicit")
-        results = await ltm.recall("Django999")
+        await ltm.remember("FastAPI 가이드", source="explicit", scope=LOCAL)
+        results = await ltm.recall("Django999", LOCAL)
         assert results == []
 
     async def test_delete(self, ltm):
-        entry_id = await ltm.remember("삭제할 항목", source="explicit")
+        entry_id = await ltm.remember("삭제할 항목", source="explicit", scope=LOCAL)
         await ltm.forget(entry_id)
 
-        recent = await ltm.recent(limit=100)
+        recent = await ltm.recent(LOCAL, limit=100)
         assert all(r.id != entry_id for r in recent)
 
     async def test_store_upsert(self, ltm):
-        item_id = await ltm.remember("원본", source="explicit")
-        await ltm.remember("업데이트", source="explicit", item_id=item_id)
+        item_id = await ltm.remember("원본", source="explicit", scope=LOCAL)
+        await ltm.remember("업데이트", source="explicit", scope=LOCAL, item_id=item_id)
 
-        recent = await ltm.recent(limit=100)
+        recent = await ltm.recent(LOCAL, limit=100)
         matched = [r for r in recent if r.id == item_id]
         assert len(matched) == 1
         assert matched[0].content == "업데이트"
 
     async def test_clear_all(self, ltm):
         for i in range(3):
-            await ltm.remember(f"항목 {i}", source="explicit")
+            await ltm.remember(f"항목 {i}", source="explicit", scope=LOCAL)
         await ltm.clear()
-        assert await ltm.recent() == []
+        assert await ltm.recent(LOCAL) == []
 
 
 # ── 마이그레이션 멱등성과 backfill ────────────────────────────────────────────

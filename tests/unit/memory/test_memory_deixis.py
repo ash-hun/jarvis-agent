@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 
 from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage, UserMessage
 from jarvis.memory.working.deixis import has_deixis, recent_exchange, retrieval_query
-from jarvis.memory import MemoryKind, MemoryScope, MemoryService, current_scope
 from jarvis.core.slash.remember_cmd import make_remember_handler
+from jarvis.memory import MemoryKind, MemoryScope, MemoryService
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.types import REFERENT
 
@@ -102,12 +102,8 @@ class _Repo:
 async def test_remember_command_links_referent_only_for_deictic_content():
     memory = MemoryService(InMemoryItemStore())
     handler = make_remember_handler(memory, _Repo([_u("커밋 메시지 규칙 정해줘"), _a("제목 50자, 본문은 why")]))
-    token = current_scope.set(SCOPE)
-    try:
-        linked = await handler("그거 기억해")
-        plain = await handler("거주지: 서울")
-    finally:
-        current_scope.reset(token)
+    linked = await handler("그거 기억해", SCOPE)
+    plain = await handler("거주지: 서울", SCOPE)
 
     assert "가리킨 대화" in linked and "가리킨 대화" not in plain
     items = {i.content: i for i in await memory.recent(SCOPE, kinds=[MemoryKind.SEMANTIC])}

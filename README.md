@@ -180,8 +180,8 @@ Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는�
 ```
 
 - 자연 키는 `<session_id>#<메시지 인덱스>`. 같은 구간은 두 번 배우지 않고, 세션 종료 훅을 다시 돌려도 파일이 늘지 않는다.
-- 도구 오류가 하나라도 있었던 작업은 배우지 않는다. 도구 호출이 `JARVIS_PROCEDURES__MIN_TOOL_CALLS`(기본 3) 미만이어도 건너뛴다.
-- 절차 도구는 레시피를 돌려주고 에이전트가 그대로 따른다. 직접 실행하지 않는다.
+- 실패한 도구 호출 뒤에 같은 도구가 성공했으면 회복으로 보고 성공한 경로만 배운다. 회복하지 못한 오류가 있거나 도구 호출이 `JARVIS_PROCEDURES__MIN_TOOL_CALLS`(기본 3) 미만이면 건너뛴다.
+- 입력만 채우면 다시 돌릴 수 있는 계획(`plan`)이 있으면 절차 도구가 단계를 차례로 실행한다. 단계마다 세션의 권한, 승인 검사를 그대로 거친다. 계획이 없거나 입력이 빠졌으면 레시피를 돌려주고 에이전트가 따른다.
 
 ### 승인 기억 (Approval Memory)
 
@@ -316,7 +316,7 @@ JARVIS_SECURITY__API_KEYS='{"<long-random-key>": {"name": "jh", "roles": ["admin
 | `/branch` | — | `[session_id]` 세션을 특정 시점에서 분기 |
 | `/tools` | — | 현재 사용 가능한 도구 목록 표시 |
 | `/procedures` | — | 학습된 절차 (`approve <name>` \| `reject <name>` \| `show <name>` \| `learn [session_id]`) |
-| `/compact` | — | 현재 세션을 요약해 장기 기억에 저장 |
+| `/compact` | — | 명령을 친 세션을 요약해 장기 기억에 저장 |
 | `/export` | — | 현재 세션 대화를 파일로 내보내기 (`md` \| `json`, `~/.jarvis/exports/`) |
 | `/cost` | — | 현재 세션 토큰 사용량·추정 비용 리포트 (모델별 집계) |
 | `/openloop` | — | 추적 중인 약속/미완 작업 (`done <id>` \| `dismiss <id>`) — proactive |

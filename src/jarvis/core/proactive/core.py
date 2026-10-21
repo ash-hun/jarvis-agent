@@ -47,6 +47,9 @@ class ProactivityCore:
     def restore_awaiting(self, session_id: str = "default") -> None:
         pass
 
+    def restore_last_spoke(self, session_id: str, seconds_ago: float) -> None:
+        pass
+
 
 class DefaultProactivityCore(ProactivityCore):
     """기본 Dual-Channel 오케스트레이터.
@@ -114,6 +117,9 @@ class DefaultProactivityCore(ProactivityCore):
 
     def restore_awaiting(self, session_id: str = "default") -> None:
         self._policy.restore_awaiting(session_id)
+
+    def restore_last_spoke(self, session_id: str, seconds_ago: float) -> None:
+        self._policy.restore_last_spoke(session_id, seconds_ago)
 
     async def _run_deferred(self, run_main: RunMain) -> None:
         # 메인 루프는 자체 이벤트(stream/agent_end)를 그대로 emit → 답은 그 경로로 전달.

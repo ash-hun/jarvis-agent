@@ -31,9 +31,10 @@ class TaskSpan:
 
 
 def find_spans(messages: list[Message], min_tool_calls: int = DEFAULT_MIN_TOOL_CALLS) -> list[TaskSpan]:
-    """사용자 메시지부터 다음 사용자 메시지 전까지가 한 구간. 도구 오류가 하나라도 있으면 버린다.
+    """사용자 메시지부터 다음 사용자 메시지 전까지가 한 구간.
 
-    # ponytail: 중간에 실패했다가 회복한 작업도 통째로 버린다, 회복 패턴 자체를 배우고 싶어지면 오류 뒤 성공을 허용
+    실패한 도구 호출은 뒤에서 같은 도구가 성공했으면 회복으로 보고 절차에서 뺀다.
+    회복하지 못한 오류가 있으면 구간을 버린다.
     """
     starts = [i for i, m in enumerate(messages) if m.role == "user" and isinstance(m.content, str)]
     spans: list[TaskSpan] = []
@@ -47,17 +48,29 @@ def find_spans(messages: list[Message], min_tool_calls: int = DEFAULT_MIN_TOOL_C
 
 def _span(messages: list[Message], start: int, end: int) -> TaskSpan | None:
     request = str(messages[start].content).strip()
-    steps: list[ToolStep] = []
+    calls: list[tuple[str, ToolStep]] = []  # (호출 id, 단계)
+    failed: set[str] = set()
     outcome = ""
     for m in messages[start + 1 : end]:
         if isinstance(m, AssistantMessage):
             if m.error_message:
                 return None
-            steps.extend(ToolStep(name=tc.name, args=dict(tc.arguments)) for tc in m.tool_calls())
+            calls.extend((tc.id, ToolStep(name=tc.name, args=dict(tc.arguments))) for tc in m.tool_calls())
             if m.stop_reason == "stop" and m.text().strip():
                 outcome = m.text().strip()
         elif isinstance(m, ToolResultMessage) and m.is_error:
-            return None
-    if not request or not outcome:
+            failed.add(m.tool_call_id)
+    if not request or not outcome or not _recovered(calls, failed):
         return None
-    return TaskSpan(start=start, request=request, steps=tuple(steps), outcome=outcome)
+    steps = tuple(step for call_id, step in calls if call_id not in failed)
+    return TaskSpan(start=start, request=request, steps=steps, outcome=outcome)
+
+
+def _recovered(calls: list[tuple[str, ToolStep]], failed: set[str]) -> bool:
+    """실패한 호출마다 그 뒤에 같은 도구의 성공한 호출이 있다."""
+    for i, (call_id, step) in enumerate(calls):
+        if call_id in failed and not any(
+            later_id not in failed and later.name == step.name for later_id, later in calls[i + 1 :]
+        ):
+            return False
+    return True

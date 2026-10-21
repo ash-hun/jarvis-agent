@@ -9,6 +9,8 @@ from jarvis.memory.memory_service import MemoryService
 from jarvis.model_layer.types import UserMessage
 from jarvis.memory import MemoryScope
 
+LOCAL = MemoryScope(user_id="local")
+
 
 class _Repo:
     def __init__(self, histories: dict[str, list] | None = None, fail_on: set[str] | None = None) -> None:
@@ -50,7 +52,7 @@ async def test_save_all_stores_episodic(faux_model_with_response):
 
     await _make_manager({"sess1": _mock_session("sess1")}).save_all_sessions(repo, ltm, model)
 
-    recent = await ltm.recent()
+    recent = await ltm.recent(LOCAL)
     assert len(recent) == 1
     assert recent[0].session_id == "sess1"
     assert recent[0].source == "session_end"
@@ -64,7 +66,7 @@ async def test_save_all_multiple_sessions(faux_model_with_response):
 
     await _make_manager({"a": _mock_session("a"), "b": _mock_session("b")}).save_all_sessions(repo, ltm, model)
 
-    assert {e.session_id for e in await ltm.recent()} == {"a", "b"}
+    assert {e.session_id for e in await ltm.recent(LOCAL)} == {"a", "b"}
 
 
 @pytest.mark.asyncio
@@ -72,21 +74,21 @@ async def test_save_all_skips_empty_sessions(faux_model_with_response):
     ltm = MemoryService(InMemoryItemStore())
     model = faux_model_with_response("요약")
     await _make_manager({"empty": _mock_session("empty")}).save_all_sessions(_Repo(), ltm, model)
-    assert await ltm.recent() == []
+    assert await ltm.recent(LOCAL) == []
 
 
 @pytest.mark.asyncio
 async def test_save_all_no_sessions_does_nothing(faux_model_with_response):
     ltm = MemoryService(InMemoryItemStore())
     await _make_manager({}).save_all_sessions(_Repo(), ltm, faux_model_with_response("요약"))
-    assert await ltm.recent() == []
+    assert await ltm.recent(LOCAL) == []
 
 
 @pytest.mark.asyncio
 async def test_save_all_failure_is_non_fatal():
     ltm = MemoryService(InMemoryItemStore())
     await _make_manager({"crash": _mock_session("crash")}).save_all_sessions(_Repo(fail_on={"crash"}), ltm, MagicMock())
-    assert await ltm.recent() == []
+    assert await ltm.recent(LOCAL) == []
 
 
 @pytest.mark.asyncio
@@ -98,7 +100,7 @@ async def test_save_all_partial_failure_continues(faux_model_with_response):
 
     await _make_manager(sessions).save_all_sessions(repo, ltm, model)
 
-    recent = await ltm.recent()
+    recent = await ltm.recent(LOCAL)
     assert len(recent) == 1 and recent[0].session_id == "ok"
 
 

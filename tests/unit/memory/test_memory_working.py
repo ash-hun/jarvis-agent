@@ -156,7 +156,7 @@ async def test_no_summarizer_means_window_only():
 # ── 회상 주입과 되뇌기 ───────────────────────────────────────────────────────
 
 
-async def test_recall_block_is_injected_and_rehearsal_counted():
+async def test_recall_block_is_injected_and_only_used_recall_is_rehearsed():
     memory = MemoryService(InMemoryItemStore())
     item_id = await memory.remember("선호 음료: 커피", source="explicit", scope=SCOPE)
 
@@ -164,10 +164,15 @@ async def test_recall_block_is_injected_and_rehearsal_counted():
     # 의미 사실은 고정 블록으로 항상 들어가고, 회상 블록은 거기 없는 것만 싣는다
     assert out[0].content.startswith("[핵심 사실]") and "커피" in out[0].content
     assert not any(m.content.startswith("[장기 기억]") for m in out)
+    # 떠올렸다고 바로 세지 않는다. 답에 쓰였을 때만 센다
+    assert (await memory.working_state(SCOPE)).rehearsal == {}
+    assert await memory.reinforce("선호 음료는 커피였어요", CTX) == [item_id]
+    assert await memory.reinforce("선호 음료는 커피였어요", CTX) == []  # 같은 턴을 두 번 세지 않는다
     assert (await memory.working_state(SCOPE)).rehearsal == {item_id: 1}
 
     await memory.observe([_u("선호 음료 뭐였지"), _a("커피"), _u("선호 음료 다시")], CTX)
-    assert (await memory.working_state(SCOPE)).rehearsal == {item_id: 2}
+    assert await memory.reinforce("오늘은 비가 와요", CTX) == []  # 답에 안 쓰였다
+    assert (await memory.working_state(SCOPE)).rehearsal == {item_id: 1}
 
 
 async def test_notes_are_session_scoped():

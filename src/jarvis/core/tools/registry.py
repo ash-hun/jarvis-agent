@@ -4,6 +4,7 @@ import asyncio
 import inspect
 from typing import Any
 from dataclasses import dataclass
+from collections.abc import Awaitable, Callable
 
 from jarvis.model_layer.types import TextContent, Tool, ToolResultMessage
 
@@ -15,6 +16,9 @@ class ToolContext:
     scope: Any  # MemoryScope. 순환 import 를 피해 Any
     session_id: str | None = None
     user_id: str | None = None
+    # 세션의 도구 실행기 (tool_call_id, 도구 이름, 인자). 권한, 플러그인, 승인 검사를 거친다.
+    # 다른 도구를 부르는 도구(절차)는 레지스트리가 아니라 이것으로 불러야 검사를 건너뛰지 않는다
+    call: Callable[[str, str, dict[str, Any]], Awaitable[ToolResultMessage]] | None = None
 
 
 # 기반을 상속하지 않은 덕 타이핑 도구(사용자 디렉터리 도구, 테스트 더블)도 받으므로 Any
@@ -75,7 +79,7 @@ class ToolRegistry:
                 parameters=t.parameters,
                 execution_mode=t.execution_mode,
             )
-            for t in self._tools.values()
+            for t in self.list_all()
         ]
 
     async def execute(
@@ -107,3 +111,40 @@ class ToolRegistry:
                 content=[TextContent(text=f"Tool execution error: {exc}")],
                 is_error=True,
             )
+
+
+class PickedToolRegistry(ToolRegistry):
+    """다른 레지스트리에서 이름(이나 접두어)으로 고른 도구만 보이는 창.
+
+    고를 때가 아니라 볼 때 찾으므로 세션을 만든 뒤 등록된 도구(승인된 절차)도 바로 보인다.
+    register 로 직접 더한 도구는 이 창에만 있다.
+    """
+
+    def __init__(
+        self, sources: tuple["ToolRegistry | None", ...], names: tuple[str, ...], prefixes: tuple[str, ...] = ()
+    ) -> None:
+        super().__init__()
+        self._sources = [s for s in sources if s is not None]
+        self._names = names
+        self._prefixes = prefixes
+
+    def _picked(self) -> dict[str, JarvisTool]:
+        found: dict[str, JarvisTool] = {}
+        for name in self._names:
+            tool = next((t for s in self._sources if (t := s.get(name)) is not None), None)
+            if tool is not None:
+                found.setdefault(name, tool)
+        if self._prefixes:
+            for source in self._sources:
+                for tool in source.list_all():
+                    if tool.name.startswith(self._prefixes):
+                        found.setdefault(tool.name, tool)
+        for name, tool in self._tools.items():
+            found.setdefault(name, tool)
+        return found
+
+    def get(self, name: str) -> JarvisTool | None:
+        return self._picked().get(name)
+
+    def list_all(self) -> list[JarvisTool]:
+        return list(self._picked().values())

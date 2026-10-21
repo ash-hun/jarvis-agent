@@ -94,7 +94,7 @@ class InnerThoughtEngine(ThoughtEngine):
         try:
             messages = await self._recall(
                 request.user_input,
-                {"session_id": request.session_id},
+                {"session_id": request.session_id, "user_id": request.user_id, "agent_id": request.agent_id},
                 self._recall_limit,
             )
         except Exception:

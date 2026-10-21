@@ -3,9 +3,9 @@
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 from jarvis.core.tools.registry import JarvisTool, ToolContext
+from jarvis.memory.scope import LOCAL_USER, MemoryScope
 from .node import LazyAgentNode, record_delegation
 from .protocol import AgentNodeProtocol
 from .task import AgentTask
@@ -68,7 +68,7 @@ class AgentNodeTool(JarvisTool):
         signal: asyncio.Event | None = None,
         context: ToolContext | None = None,
     ) -> ToolResultMessage:
-        parent_scope = getattr(context, "scope", None) or current_scope.get() or MemoryScope(user_id=LOCAL_USER)
+        parent_scope = getattr(context, "scope", None) or MemoryScope(user_id=LOCAL_USER)
         task = AgentTask.create(content=params["task"], scope=parent_scope)
         result = await self._node.invoke(task)
         if not isinstance(self._node, LazyAgentNode):

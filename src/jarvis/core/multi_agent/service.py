@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 from collections.abc import Sequence
 
-from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, current_task
+from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_task
 from .orchestrators.hierarchical import HierarchicalOrchestrator
 from .orchestrators.blackboard import BlackboardOrchestrator
 from .orchestrators.supervisor import SupervisorOrchestrator
@@ -86,7 +86,7 @@ class OrchestrationService:
         if not definitions:
             raise ValueError("no agents defined. add YAML definitions under agents_dir first")
 
-        parent = parent_scope or current_scope.get() or MemoryScope(user_id=LOCAL_USER)
+        parent = parent_scope or MemoryScope(user_id=LOCAL_USER)
         task = AgentTask.create(task_text, context={"pattern": pattern}, scope=parent)
         orchestrators = [await self._build(stage, definitions, parent, task) for stage in stages]
         orchestrator: OrchestratorProtocol = (

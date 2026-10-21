@@ -7,8 +7,8 @@ from collections.abc import Awaitable, Callable
 
 from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage
 from jarvis.core.tools.registry import JarvisTool, ToolContext
-from jarvis.memory.scope import MAIN_AGENT, current_scope
 from jarvis.agent_layer.openloop.types import same_loop
+from jarvis.memory.scope import MAIN_AGENT, MemoryScope
 from jarvis.common.logger import get_logger
 from jarvis.core.session import SessionBusy
 
@@ -74,9 +74,12 @@ def refusal(
     return None
 
 
-async def ask(session: "AgentSession", text: str) -> str:
-    """받는 쪽 세션에 한 턴을 보내고 답 텍스트를 받는다. 백그라운드로 답하면 끝날 때까지 기다려 저장소에서 읽는다."""
-    reply = await session.prompt(text)
+async def ask(session: "AgentSession", text: str, caller_scope: "MemoryScope | None" = None) -> str:
+    """받는 쪽 세션에 한 턴을 보내고 답 텍스트를 받는다. 백그라운드로 답하면 끝날 때까지 기다려 저장소에서 읽는다.
+
+    받는 쪽은 caller_scope 의 사용자로 기억을 읽고 쓴다.
+    """
+    reply = await session.prompt(text, caller_scope=caller_scope)
     if reply is None:
         while session.is_running:
             await asyncio.sleep(PEER_POLL_SEC)
@@ -129,7 +132,7 @@ class AskAgentTool(JarvisTool):
         signal: asyncio.Event | None = None,
         context: ToolContext | None = None,
     ) -> ToolResultMessage:
-        scope = getattr(context, "scope", None) or current_scope.get()
+        scope = getattr(context, "scope", None)
         caller = scope.agent_id if scope is not None else MAIN_AGENT
         target = str(params.get("agent", ""))
         message = str(params.get("message", "")).strip()
@@ -146,7 +149,7 @@ class AskAgentTool(JarvisTool):
             session = await self._opener(target, peer_session_id(caller, target), getattr(context, "session_id", None))
             logger.info(f"[Team] {caller} 가 {target} 에게 요청: {message[:80]}")
             request = peer_request_text(caller_name, message)
-            reply = await asyncio.wait_for(ask(session, request), PEER_TIMEOUT_SEC)
+            reply = await asyncio.wait_for(ask(session, request, scope), PEER_TIMEOUT_SEC)
         except SessionBusy:
             busy = f"{target_name} 가 지금 같은 대화에서 다른 일을 하고 있다. 잠시 뒤 다시 묻는다"
             return _result(tool_call_id, busy, True)

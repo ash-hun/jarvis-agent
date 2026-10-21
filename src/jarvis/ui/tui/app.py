@@ -323,7 +323,7 @@ class JarvisTUI(App[None], UIAdapter):
 
         # 슬래시 명령 인터셉트 — 텍스트 어디서나 /command 처리 후 나머지만 LLM으로 전달
         if self._ctx.dispatcher is not None:
-            result = await self._ctx.dispatcher.dispatch(text)
+            result = await self._ctx.dispatcher.dispatch(text, self._session.memory_scope)
             for feedback in result.feedbacks:
                 self._chat.add_assistant(feedback)
             if result.fully_consumed:

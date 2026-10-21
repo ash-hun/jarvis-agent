@@ -5,6 +5,9 @@ import textwrap
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from jarvis.core.scheduler.task import ScheduledTask
+from jarvis.memory.scope import MemoryScope
+
+SCOPE = MemoryScope(user_id="local")
 
 
 class TestScheduledTask:
@@ -430,10 +433,12 @@ class TestScheduleOnceHandler:
 
         scheduler = self._scheduler()
         classify = AsyncMock(return_value="task")
-        out = await make_schedule_handler(scheduler, classify)("10분 뒤에 오늘 뉴스 요약해줘")
+        scope = MemoryScope(user_id="local", agent_id="karen")
+        out = await make_schedule_handler(scheduler, classify)("10분 뒤에 오늘 뉴스 요약해줘", scope)
 
         task = scheduler.add_task.call_args[0][0]
         assert task.run_at is not None and task.schedule == ""
+        assert task.agent == "karen"  # 명령을 친 세션의 에이전트가 맡는다
         assert task.kind == "task"
         assert task.prompt == "오늘 뉴스 요약해줘"
         classify.assert_awaited_once_with("오늘 뉴스 요약해줘")
@@ -443,7 +448,7 @@ class TestScheduleOnceHandler:
         from jarvis.core.slash.schedule_cmd import make_schedule_handler
 
         scheduler = self._scheduler()
-        await make_schedule_handler(scheduler)("5분 뒤에 물 마시기")
+        await make_schedule_handler(scheduler)("5분 뒤에 물 마시기", SCOPE)
         assert scheduler.add_task.call_args[0][0].kind == "reminder"
 
     async def test_classifier_failure_falls_back_to_reminder(self):
@@ -451,14 +456,14 @@ class TestScheduleOnceHandler:
 
         scheduler = self._scheduler()
         classify = AsyncMock(side_effect=RuntimeError("llm down"))
-        await make_schedule_handler(scheduler, classify)("5분 뒤에 물 마시기")
+        await make_schedule_handler(scheduler, classify)("5분 뒤에 물 마시기", SCOPE)
         assert scheduler.add_task.call_args[0][0].kind == "reminder"
 
     async def test_past_time_rejected(self):
         from jarvis.core.slash.schedule_cmd import make_schedule_handler
 
         scheduler = self._scheduler()
-        out = await make_schedule_handler(scheduler)("2020.01.01 오전 9시에 x")
+        out = await make_schedule_handler(scheduler)("2020.01.01 오전 9시에 x", SCOPE)
         assert "이미 지났" in out
         scheduler.add_task.assert_not_called()
 

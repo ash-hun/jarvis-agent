@@ -8,8 +8,10 @@ if TYPE_CHECKING:
     from jarvis.memory.memory_service import MemoryService
     from jarvis.core.tools.registry import ToolRegistry
     from jarvis.model_layer.types import ModelConfig
+    from jarvis.memory.scope import MemoryScope
 
 Handler = Callable[[str], Awaitable[str]]
+ScopedHandler = Callable[[str, "MemoryScope"], Awaitable[str]]
 
 
 def make_sessions_handler(session_repo: "SessionRepo") -> Handler:
@@ -72,11 +74,11 @@ def make_compact_handler(
     model: "ModelConfig",
     session_repo: "SessionRepo",
     memory: "MemoryService | None" = None,
-    session_id: str = "default",
-) -> Handler:
-    """/compact: 현재 세션을 요약해 장기 기억(LTM)에 저장."""
+) -> ScopedHandler:
+    """/compact: 명령을 친 세션을 요약해 장기 기억(LTM)에 저장."""
 
-    async def handle(_args: str) -> str:
+    async def handle(_args: str, scope: "MemoryScope") -> str:
+        session_id = scope.session_id or "default"
         messages = await session_repo.get_messages(session_id)
         if len(messages) < 2:
             return "[Compact] 요약할 대화 내용이 충분하지 않습니다."
@@ -88,8 +90,7 @@ def make_compact_handler(
             return "[Compact] 요약 모델 호출에 실패했습니다."
 
         if memory is not None:
-            scope = memory.resolve_scope().with_session(session_id)
-            await memory.remember(summary, source="manual_compact", scope=scope)
+            await memory.remember(summary, source="manual_compact", scope=scope.with_session(session_id))
             saved = " (장기 기억에 저장됨)"
         else:
             saved = ""

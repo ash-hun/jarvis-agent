@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, cast
 from dataclasses import dataclass, replace
 
+from jarvis.core.procedures.plan import PlanStep, parse_plan
 from jarvis.common.logger import get_logger
 
 DEFAULT_DIR = "~/.jarvis/procedures"
@@ -25,6 +26,9 @@ class Procedure:
     source: str = ""  # "<session_id>#<start>" 학습 출처. 같은 출처는 두 번 배우지 않는다
     tools: tuple[str, ...] = ()
     parameters: str = ""
+    # 입력만 채우면 그대로 돌릴 수 있는 도구 호출 순서. 비면 본문(레시피)만 돌려준다
+    inputs: tuple[str, ...] = ()
+    plan: tuple[PlanStep, ...] = ()
 
     @property
     def approved(self) -> bool:
@@ -43,6 +47,9 @@ class Procedure:
             tools=list(self.tools),
             parameters=self.parameters,
         )
+        if self.plan:
+            post["inputs"] = list(self.inputs)
+            post["plan"] = [{"tool": step.tool, "args": step.args} for step in self.plan]
         return frontmatter.dumps(post, sort_keys=False) + "\n"
 
 
@@ -60,6 +67,8 @@ def parse_procedure(text: str, fallback_name: str) -> Procedure:
         # frontmatter 메타는 object 로 타입이 잡힌다. tools 는 to_markdown 이 list 로 쓴다
         tools=tuple(str(t) for t in cast(list[Any], meta.get("tools") or [])),
         parameters=str(meta.get("parameters", "")),
+        inputs=tuple(str(i) for i in cast(list[Any], meta.get("inputs") or [])),
+        plan=parse_plan(meta.get("plan")),
     )
 
 

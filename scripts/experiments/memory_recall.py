@@ -4,6 +4,7 @@ import sys
 import json
 import time
 import asyncio
+import inspect
 import argparse
 import statistics
 from pathlib import Path
@@ -12,9 +13,9 @@ from datetime import datetime, timedelta
 from jarvis.model_layer.types import AssistantMessage, TextContent, UserMessage
 from jarvis.core.slash.remember_cmd import make_remember_handler
 from jarvis.memory.stores.in_memory import InMemoryItemStore
-from jarvis.memory.scope import MemoryScope, current_scope
 from jarvis.memory.eval.fake_embedder import FakeEmbedder
 from jarvis.memory.memory_service import MemoryService
+from jarvis.memory.scope import MemoryScope
 
 RESULTS = Path(__file__).resolve().parent / "results.json"
 KEY = "memory_recall"
@@ -155,11 +156,16 @@ async def referent_rate() -> float:
             handler = make_remember_handler(memory, _Repo([_u(question), _a(answer)]))  # type: ignore[call-arg]
         except TypeError:  # 지칭을 모르는 이전 코드는 session_repo 를 받지 않는다
             handler = make_remember_handler(memory)
-        token = current_scope.set(SCOPE)
-        try:
-            await handler(note)
-        finally:
-            current_scope.reset(token)
+        if len(inspect.signature(handler).parameters) == 2:
+            await handler(note, SCOPE)  # type: ignore[call-arg]
+        else:  # 범위를 인자로 받기 전 코드는 contextvar 로 받는다
+            from jarvis.memory.scope import current_scope  # type: ignore[attr-defined]
+
+            token = current_scope.set(SCOPE)
+            try:
+                await handler(note)  # type: ignore[call-arg]
+            finally:
+                current_scope.reset(token)
         hits += any(i.content == note for i in await memory.recall(later, SCOPE, limit=TOP_K))
     return hits / len(REFERENT)
 

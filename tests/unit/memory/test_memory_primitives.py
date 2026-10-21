@@ -3,20 +3,19 @@
 import pytest
 from datetime import datetime
 
-from jarvis.memory.scope import (
-    LOCAL_USER,
-    MAIN_AGENT,
-    TASK_AGENT,
-    MemoryScope,
-    current_scope,
-    scope_from_context,
-    task_scope,
-)
 from jarvis.memory.consolidation.compaction import (
     llm_summarizer,
     render_messages,
     summarize_messages,
     system_prompt_for,
+)
+from jarvis.memory.scope import (
+    LOCAL_USER,
+    MAIN_AGENT,
+    TASK_AGENT,
+    MemoryScope,
+    scope_from_context,
+    task_scope,
 )
 from jarvis.model_layer.types import AssistantMessage, LLMContext, TextContent, UserMessage
 from jarvis.memory.eval.adapters.longmemeval import parse_longmemeval
@@ -57,16 +56,11 @@ def test_task_scope_depends_only_on_user_and_task():
     assert task_scope(None, "t9").user_id == LOCAL_USER
 
 
-def test_scope_from_context_falls_back_to_contextvar_then_local():
+def test_scope_from_context_uses_only_what_the_caller_passed():
     local = MemoryScope(user_id=LOCAL_USER, agent_id=MAIN_AGENT, session_id="s")
     assert scope_from_context({"session_id": "s"}) == local
-    token = current_scope.set(MemoryScope(user_id="jh", agent_id="coder"))
-    try:
-        assert scope_from_context({"session_id": "s"}) == MemoryScope(user_id="jh", agent_id="coder", session_id="s")
-        explicit = scope_from_context({"user_id": "u2", "agent_id": "a2"})
-        assert explicit == MemoryScope(user_id="u2", agent_id="a2", session_id=None)
-    finally:
-        current_scope.reset(token)
+    explicit = scope_from_context({"user_id": "u2", "agent_id": "a2", "session_id": "s"})
+    assert explicit == MemoryScope(user_id="u2", agent_id="a2", session_id="s")
 
 
 # ── long_term.episodic ───────────────────────────────────────────────────────

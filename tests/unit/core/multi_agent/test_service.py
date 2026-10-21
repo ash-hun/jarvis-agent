@@ -3,12 +3,13 @@
 import pytest
 
 from jarvis.core.slash.orchestrate_cmd import make_orchestrate_handler, parse_args
-from jarvis.memory import MemoryKind, MemoryScope, MemoryService, current_scope
 from jarvis.core.multi_agent.service import PATTERNS, OrchestrationService
 from jarvis.core.multi_agent.factory import AgentDefinition, AgentFactory
 from jarvis.core.multi_agent.orchestrate_tool import OrchestrateTool
+from jarvis.memory import MemoryKind, MemoryScope, MemoryService
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.core.tools.registry import ToolRegistry
+from jarvis.core.tools.registry import ToolContext
 from jarvis.core.session import AgentSession
 
 PARENT = MemoryScope(user_id="jh", agent_id="main", session_id="s1")
@@ -55,11 +56,7 @@ def service(memory, faux_model, permissive_pipeline, plugin_runner, skill_regist
 
 
 async def _run(service, *args, **kw):
-    token = current_scope.set(PARENT)  # 메인 턴 안에서 호출되는 상황
-    try:
-        return await service.run(*args, **kw)
-    finally:
-        current_scope.reset(token)
+    return await service.run(*args, parent_scope=PARENT, **kw)  # 메인 턴이 자기 범위를 넘기는 상황
 
 
 # ── 서비스 ────────────────────────────────────────────────────────────────────
@@ -126,12 +123,9 @@ async def test_orchestrate_tool_describes_patterns_and_agents(service, faux_mode
     assert tool.name == "orchestrate" and set(tool.parameters["properties"]["pattern"]["enum"]) == set(PATTERNS)
     assert "planner" in tool.description and "writer" in tool.description
 
-    token = current_scope.set(PARENT)
-    try:
-        ok = await tool.execute("c1", {"pattern": "blackboard", "task": "분석"})
-        bad = await tool.execute("c2", {"pattern": "nope", "task": "분석"})
-    finally:
-        current_scope.reset(token)
+    context = ToolContext(scope=PARENT)
+    ok = await tool.execute("c1", {"pattern": "blackboard", "task": "분석"}, context=context)
+    bad = await tool.execute("c2", {"pattern": "nope", "task": "분석"}, context=context)
     assert not ok.is_error and "ok" in ok.content[0].text
     assert bad.is_error and "unknown pattern" in bad.content[0].text
 
@@ -149,16 +143,12 @@ def test_parse_args_handles_flags_anywhere():
 async def test_slash_handler_list_run_and_errors(service, faux_model_with_response):
     faux_model_with_response("결과물")
     handler = make_orchestrate_handler(service)
-    listing = await handler("list")
+    listing = await handler("list", PARENT)
     assert "hierarchical" in listing and "writer (level 1, 작성, 보고서)" in listing
-    assert "[Orchestrate] 사용법" in await handler("")
+    assert "[Orchestrate] 사용법" in await handler("", PARENT)
 
-    token = current_scope.set(PARENT)
-    try:
-        out = await handler("blackboard 보고서")
-        err = await handler("nope 보고서")
-    finally:
-        current_scope.reset(token)
+    out = await handler("blackboard 보고서", PARENT)
+    err = await handler("nope 보고서", PARENT)
     assert out.startswith("[Orchestrate] blackboard 완료") and "결과물" in out
     assert err.startswith("[Orchestrate] unknown pattern")
 
@@ -183,7 +173,6 @@ async def test_tool_context_carries_parent_scope_without_contextvar(
     registry = ToolRegistry()
     registry.register(OrchestrateTool(service))
     parent = MemoryScope(user_id="jh", agent_id="main", session_id="ctx-session")
-    assert current_scope.get() is None  # contextvar 없이
 
     result = await registry.execute("c1", "orchestrate", {"pattern": "blackboard", "task": "분석"},
                                     context=ToolContext(scope=parent, session_id="ctx-session", user_id="jh"))

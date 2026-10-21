@@ -3,10 +3,11 @@
 import pytest
 
 from jarvis.core.multi_agent.factory import AgentDefinition, AgentFactory, AgentMemoryPolicy, child_session_id
-from jarvis.memory import MemoryKind, MemoryScope, MemoryService, current_scope
+from jarvis.memory import MemoryKind, MemoryScope, MemoryService
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.core.multi_agent.tool import AgentNodeTool
 from jarvis.core.multi_agent.task import AgentTask
+from jarvis.core.tools.registry import ToolContext
 from jarvis.core.session import AgentSession
 
 PARENT_S1 = MemoryScope(user_id="jh", agent_id="main", session_id="s1")
@@ -47,11 +48,8 @@ def harness(memory, faux_model, permissive_pipeline, plugin_runner, tool_registr
 
 
 async def _delegate(tool: AgentNodeTool, parent: MemoryScope, task: str = "논문 3편 요약해줘"):
-    token = current_scope.set(parent)  # 부모 턴 안에서 도구가 실행되는 상황
-    try:
-        return await tool.execute("c1", {"task": task})
-    finally:
-        current_scope.reset(token)
+    # 부모 턴의 도구 실행기가 넘기는 것과 같은 context
+    return await tool.execute("c1", {"task": task}, context=ToolContext(scope=parent, session_id=parent.session_id))
 
 
 async def test_child_session_inherits_user_and_gets_its_own_session(harness, faux_model_with_response):
@@ -65,18 +63,6 @@ async def test_child_session_inherits_user_and_gets_its_own_session(harness, fau
     child = built["agent_researcher__s1"]
     assert child.memory_scope == MemoryScope(user_id="jh", agent_id="researcher", session_id="agent_researcher__s1")
     assert len(factory) == 1
-
-
-async def test_parent_scope_is_restored_after_delegation(harness, faux_model_with_response):
-    faux_model_with_response("ok")
-    make, _ = harness
-    tool, _ = make(AgentDefinition(name="researcher", description="리서치"))
-    token = current_scope.set(PARENT_S1)
-    try:
-        await tool.execute("c1", {"task": "x"})
-        assert current_scope.get() == PARENT_S1
-    finally:
-        current_scope.reset(token)
 
 
 async def test_two_parent_sessions_get_separate_child_sessions_and_histories(

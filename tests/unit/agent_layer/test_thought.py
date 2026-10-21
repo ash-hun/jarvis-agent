@@ -18,6 +18,9 @@ from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.agent_layer.thought.log import THOUGHT_SOURCE
 from jarvis.memory.memory_service import MemoryService
 from jarvis.model_layer.types import UserMessage
+from jarvis.memory.scope import MemoryScope
+
+S1 = MemoryScope(user_id="local", session_id="s1")
 
 
 def _frame_json(**overrides) -> str:
@@ -279,9 +282,9 @@ async def test_ltm_sink_persists_full_frame():
     log = ThoughtLog([LTMThoughtSink(backend)])
     frame = ThoughtFrame(decision="ask", confidence=0.7, interpretation="x")
 
-    await log.store(frame, session_id="s1")
+    await log.store(frame, S1)
 
-    entries = await backend.recent(limit=10)
+    entries = await backend.recent(S1, limit=10)
     assert len(entries) == 1
     entry = entries[0]
     assert entry.source == THOUGHT_SOURCE
@@ -294,44 +297,40 @@ async def test_ltm_sink_persists_full_frame():
 
 @pytest.mark.asyncio
 async def test_notes_sink_writes_to_working_memory_not_to_context():
-    from jarvis.memory import MemoryScope
-
     memory = MemoryService(InMemoryItemStore())
     log = ThoughtLog([WorkingNotesSink(memory)])
     frame = ThoughtFrame(decision="silent", interpretation="속마음")
 
-    await log.store(frame, session_id="s1")
+    await log.store(frame, S1)
 
-    notes = (await memory.working_state(MemoryScope(user_id="local", session_id="s1"))).notes
+    notes = (await memory.working_state(S1)).notes
     assert len(notes) == 1 and THOUGHT_SOURCE in notes[0] and "속마음" in notes[0]
-    assert await memory.recent() == []  # 장기 기억에는 쓰지 않는다
+    assert await memory.recent(S1) == []  # 장기 기억에는 쓰지 않는다
 
 
 @pytest.mark.asyncio
 async def test_thought_log_fans_out_to_multiple_sinks():
-    from jarvis.memory import MemoryScope
-
     ltm = MemoryService(InMemoryItemStore())
     log = ThoughtLog([LTMThoughtSink(ltm), WorkingNotesSink(ltm)])
 
-    await log.store(ThoughtFrame(interpretation="y"), session_id="s1")
+    await log.store(ThoughtFrame(interpretation="y"), S1)
 
-    assert len(await ltm.recent(limit=10)) == 1
-    assert len((await ltm.working_state(MemoryScope(user_id="local", session_id="s1"))).notes) == 1
+    assert len(await ltm.recent(S1, limit=10)) == 1
+    assert len((await ltm.working_state(S1)).notes) == 1
 
 
 @pytest.mark.asyncio
 async def test_thought_log_isolates_sink_failure():
     class BoomSink:
-        async def store(self, frame, session_id=None):
+        async def store(self, frame, scope):
             raise RuntimeError("sink down")
 
     ltm = MemoryService(InMemoryItemStore())
     log = ThoughtLog([BoomSink(), LTMThoughtSink(ltm)])
 
     # 한 싱크가 터져도 나머지는 저장되고 예외는 전파되지 않는다.
-    await log.store(ThoughtFrame(interpretation="z"), session_id="s1")
-    assert len(await ltm.recent(limit=10)) == 1
+    await log.store(ThoughtFrame(interpretation="z"), S1)
+    assert len(await ltm.recent(S1, limit=10)) == 1
 
 
 # ── Composer (A3) ─────────────────────────────────────────────────────────────

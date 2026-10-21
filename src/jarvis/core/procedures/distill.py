@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from collections.abc import Awaitable, Callable
 
 from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
+from jarvis.core.procedures.plan import PlanStep, parse_plan
 from jarvis.core.procedures.detect import TaskSpan
 
 MAX_NAME_LEN = 40
@@ -22,7 +23,11 @@ JSON 객체 하나로만 답하라:
 {{"name": "영문 소문자와 하이픈만 쓴 짧은 이름(예: run-tests-and-summarize)",
   "description": "이 절차가 하는 일 한 줄(한국어)",
   "parameters": "입력으로 받아야 하는 것 한 줄(없으면 빈 문자열)",
-  "steps": ["1단계: 도구 이름과 목적", "2단계: ..."]}}
+  "steps": ["1단계: 도구 이름과 목적", "2단계: ..."],
+  "inputs": ["입력 이름(영문 소문자와 밑줄)", "..."],
+  "plan": [{{"tool": "도구 이름", "args": {{"인자": "값. 입력에서 오는 부분은 {{{{입력 이름}}}}"}}}}]}}
+plan 은 입력만 채우면 그대로 다시 실행할 수 있는 도구 호출 순서다. 위 도구 호출 순서에 있는 도구만 쓴다.
+실패했다가 다시 한 호출, 결과를 보고 판단해야 하는 호출이 있어 그대로 다시 실행할 수 없으면 plan 을 빈 배열로 둔다.
 
 [사용자 요청]
 {request}
@@ -41,6 +46,8 @@ class ProcedureDraft:
     description: str
     steps: tuple[str, ...]
     parameters: str = ""
+    inputs: tuple[str, ...] = ()
+    plan: tuple[PlanStep, ...] = ()
 
 
 # 작업 구간 → 초안. 실패하면 None(호출자는 아무것도 쓰지 않는다).
@@ -66,6 +73,7 @@ def parse_draft(raw: str) -> ProcedureDraft | None:
     raw_steps = data.get("steps")
     steps = [str(s).strip() for s in raw_steps if str(s).strip()] if isinstance(raw_steps, list) else []
     description = str(data.get("description", "")).strip()
+    raw_inputs = data.get("inputs")
     if not steps or not description:
         return None
     return ProcedureDraft(
@@ -73,6 +81,8 @@ def parse_draft(raw: str) -> ProcedureDraft | None:
         description=description,
         steps=tuple(steps),
         parameters=str(data.get("parameters", "")).strip(),
+        inputs=tuple(str(i).strip() for i in raw_inputs if str(i).strip()) if isinstance(raw_inputs, list) else (),
+        plan=parse_plan(data.get("plan")),
     )
 
 

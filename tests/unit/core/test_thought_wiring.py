@@ -137,9 +137,10 @@ async def test_session_stores_thought_log(session_fixtures):
 
     await session.prompt("안녕하세요 잘 지내시나요")
 
-    entries = await backend.recent(limit=10)
+    entries = await backend.recent(session.memory_scope, limit=10)
     assert len(entries) == 1
     assert entries[0].source == THOUGHT_SOURCE
+    assert entries[0].scope == session.memory_scope  # 세션의 범위로 남긴다
 
 
 @pytest.mark.asyncio

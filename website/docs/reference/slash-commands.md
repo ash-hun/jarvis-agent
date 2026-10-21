@@ -20,7 +20,7 @@ title: 공용 커맨드
 | `/branch` | | `[session_id]` 세션을 특정 시점에서 분기 |
 | `/tools` | | 현재 사용 가능한 도구 목록 |
 | `/procedures` | | 학습된 절차 (`approve <name>`, `reject <name>`, `show <name>`, `learn [session_id]`) |
-| `/compact` | | 현재 세션을 요약해 장기 기억에 저장 |
+| `/compact` | | 명령을 친 세션을 요약해 장기 기억에 저장 |
 | `/export` | | 현재 세션 대화를 파일로 (`md`, `json`, `~/.jarvis/exports/`) |
 | `/cost` | | 현재 세션 토큰 사용량과 추정 비용, 모델별 집계 |
 | `/openloop` | | 추적 중인 약속과 미완 작업 (`done <id>`, `dismiss <id>`) |

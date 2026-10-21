@@ -102,10 +102,9 @@ class _FakeLTM:
     def __init__(self, contents):
         self._contents = contents
 
-    async def recent(self, limit=10):
-        from jarvis.memory import MemoryItem, MemoryKind, MemoryScope
+    async def recent(self, scope, limit=10):
+        from jarvis.memory import MemoryItem, MemoryKind
 
-        scope = MemoryScope(user_id="local")
         return [
             MemoryItem(content=c, kind=MemoryKind.SEMANTIC, scope=scope, source="x") for c in self._contents[:limit]
         ]
@@ -114,6 +113,9 @@ class _FakeLTM:
 @pytest.mark.asyncio
 async def test_usermodel_command_build_and_show(faux_model_with_response):
     from jarvis.core.slash.usermodel_cmd import make_usermodel_handler
+    from jarvis.memory import MemoryScope
+
+    scope = MemoryScope(user_id="local")
 
     model = faux_model_with_response(response=_model_json())
     store = InMemoryUserModelStore()
@@ -122,12 +124,12 @@ async def test_usermodel_command_build_and_show(faux_model_with_response):
     )
 
     # show: 아직 없음
-    assert "아직 모델이 없습니다" in await handler("")
+    assert "아직 모델이 없습니다" in await handler("", scope)
 
     # build → 저장 + 표시
-    out = await handler("build")
+    out = await handler("build", scope)
     assert "간결·직접적" in out
     assert (await store.get()).summary == "간결·직접적 답 선호"
 
     # show: 이제 표시됨
-    assert "간결·직접적" in await handler("")
+    assert "간결·직접적" in await handler("", scope)

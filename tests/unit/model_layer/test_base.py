@@ -35,7 +35,7 @@ def test_base_capabilities_default_to_false() -> None:
     [
         (AnthropicProvider, "anthropic", True, True),
         (OpenAIProvider, "openai", False, True),
-        (OllamaProvider, "ollama", False, True),
+        (OllamaProvider, "ollama", True, True),
         (VLLMProvider, "vllm", False, False),
         (GeminiProvider, "gemini", False, True),
     ],

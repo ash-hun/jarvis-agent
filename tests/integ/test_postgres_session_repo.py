@@ -292,3 +292,16 @@ class TestClose:
         r = PostgresSessionRepo(dsn=postgres_dsn)
         await r.close()  # 풀 없이 닫아도 예외 없음
         await r.close()  # 두 번 닫아도 예외 없음
+
+
+async def test_proactive_is_idempotent_and_kept_out_of_messages(repo):
+    await repo.create(session_id="proactive-s")
+    await repo.append("proactive-s", _user_msg("안녕"))
+    await repo.append_proactive("proactive-s", "pm1", "먼저 하는 말")
+    await repo.append_proactive("proactive-s", "pm1", "먼저 하는 말")
+    await repo.append_proactive("proactive-s", "pm2", "두 번째 말")
+
+    said = await repo.get_proactive("proactive-s")
+    assert [(e.id, e.content["text"]) for e in said] == [("pm1", "먼저 하는 말"), ("pm2", "두 번째 말")]
+    assert len(await repo.get_messages("proactive-s")) == 1
+    assert (await repo.get_meta("proactive-s")).message_count == 1

@@ -159,6 +159,21 @@ def test_session_repos_share_base(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_jsonl_proactive_is_idempotent_and_kept_out_of_messages(tmp_path):
+    repo = JsonlSessionRepo(sessions_root=str(tmp_path))
+    await repo.create("s")
+    await repo.append("s", UserMessage(content="안녕"))
+    await repo.append_proactive("s", "m1", "먼저 하는 말")
+    await repo.append_proactive("s", "m1", "먼저 하는 말")
+    await repo.append_proactive("s", "m2", "두 번째 말")
+
+    said = await repo.get_proactive("s")
+    assert [(e.id, e.content["text"]) for e in said] == [("m1", "먼저 하는 말"), ("m2", "두 번째 말")]
+    assert len(await repo.get_messages("s")) == 1
+    assert (await repo.get_meta("s")).message_count == 1
+
+
+@pytest.mark.asyncio
 async def test_session_repo_base_has_no_storage():
     repo = SessionRepo()
     with pytest.raises(NotImplementedError):

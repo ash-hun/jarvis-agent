@@ -5,7 +5,13 @@ import aiofiles
 import builtins
 from pathlib import Path
 
-from jarvis.agent_layer.session.protocol import SessionEntry, SessionMetadata, SessionRepo, deserialize_message
+from jarvis.agent_layer.session.protocol import (
+    PROACTIVE_ENTRY,
+    SessionEntry,
+    SessionMetadata,
+    SessionRepo,
+    deserialize_message,
+)
 from jarvis.model_layer.types import Message
 from jarvis.memory.scope import MAIN_AGENT
 
@@ -73,10 +79,35 @@ class JsonlSessionRepo(SessionRepo):
         return sorted(metas, key=lambda m: m.updated_at, reverse=True)
 
     async def get_messages(self, session_id: str) -> builtins.list[Message]:
+        messages = []
+        for entry in await self._read_entries(session_id, "message"):
+            msg = deserialize_message(entry.content)
+            if msg:
+                messages.append(msg)
+        return messages
+
+    async def append_proactive(self, session_id: str, message_id: str, text: str) -> None:
+        entry = SessionEntry(
+            id=message_id,
+            timestamp=self._now_ms(),
+            type=PROACTIVE_ENTRY,
+            content={"text": text},
+        )
+        async with aiofiles.open(self._session_path(session_id), "a") as f:
+            await f.write(entry.model_dump_json() + "\n")
+
+    async def get_proactive(self, session_id: str) -> builtins.list[SessionEntry]:
+        # append 만 하는 파일이라 같은 id 가 두 줄일 수 있다. 처음 남긴 줄을 쓴다
+        first: dict[str, SessionEntry] = {}
+        for entry in await self._read_entries(session_id, PROACTIVE_ENTRY):
+            first.setdefault(entry.id, entry)
+        return list(first.values())
+
+    async def _read_entries(self, session_id: str, entry_type: str) -> builtins.list[SessionEntry]:
         path = self._session_path(session_id)
         if not path.exists():
             return []
-        messages = []
+        entries = []
         async with aiofiles.open(path) as f:
             async for line in f:
                 line = line.strip()
@@ -84,13 +115,11 @@ class JsonlSessionRepo(SessionRepo):
                     continue
                 try:
                     entry = SessionEntry.model_validate(json.loads(line))
-                    if entry.type == "message":
-                        msg = deserialize_message(entry.content)
-                        if msg:
-                            messages.append(msg)
                 except Exception:
                     continue
-        return messages
+                if entry.type == entry_type:
+                    entries.append(entry)
+        return entries
 
     async def append(self, session_id: str, message: Message) -> str:
         entry_id = self._new_id()

@@ -5,7 +5,13 @@ import asyncio
 import builtins
 from typing import Any
 
-from jarvis.agent_layer.session.protocol import SessionMetadata, SessionRepo, deserialize_message
+from jarvis.agent_layer.session.protocol import (
+    PROACTIVE_ENTRY,
+    SessionEntry,
+    SessionMetadata,
+    SessionRepo,
+    deserialize_message,
+)
 from jarvis.model_layer.types import Message
 from jarvis.memory.scope import MAIN_AGENT
 
@@ -207,6 +213,39 @@ class PostgresSessionRepo(SessionRepo):
                 now, session_id,
             )
         return entry_id
+
+    async def append_proactive(self, session_id: str, message_id: str, text: str) -> None:
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO jarvis_entries (id, session_id, parent_id, timestamp, type, content)
+                VALUES ($1, $2, NULL, $3, $4, $5::jsonb)
+                ON CONFLICT (id) DO NOTHING
+                """,
+                message_id, session_id, self._now_ms(), PROACTIVE_ENTRY, json.dumps({"text": text}),
+            )
+
+    async def get_proactive(self, session_id: str) -> builtins.list[SessionEntry]:
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT id, timestamp, type, content FROM jarvis_entries
+                WHERE session_id = $1 AND type = $2
+                ORDER BY timestamp, seq
+                """,
+                session_id, PROACTIVE_ENTRY,
+            )
+        return [
+            SessionEntry(
+                id=row["id"],
+                timestamp=row["timestamp"],
+                type=row["type"],
+                content=json.loads(row["content"]) if isinstance(row["content"], str) else row["content"],
+            )
+            for row in rows
+        ]
 
     async def delete(self, session_id: str) -> None:
         pool = await self._get_pool()

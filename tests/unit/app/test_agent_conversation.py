@@ -68,7 +68,9 @@ async def test_tool_opens_pair_session_and_returns_named_reply():
     result = await tool.execute("c1", {"agent": "karen", "message": "뉴스 찾아 줘"}, context=_context())
 
     opener.assert_awaited_once_with("karen", "peer-main-karen", "default")
-    session.prompt.assert_awaited_once_with(f"[J.A.R.V.I.S. 의 요청] 뉴스 찾아 줘\n({PEER_REQUEST_RULE})")
+    session.prompt.assert_awaited_once_with(
+        f"[J.A.R.V.I.S. 의 요청] 뉴스 찾아 줘\n({PEER_REQUEST_RULE})", caller_scope=_context().scope
+    )
     assert not result.is_error
     assert result.content[0].text == "[K.A.R.E.N. 의 답]\n뉴스 셋"
     assert peer_chain.get() == ()  # 끝나면 되돌린다
@@ -77,7 +79,7 @@ async def test_tool_opens_pair_session_and_returns_named_reply():
 async def test_tool_passes_chain_to_receiver_and_refuses_too_deep():
     seen = []
 
-    async def prompt(text):
+    async def prompt(text, caller_scope=None):
         seen.append(peer_chain.get())
         return _reply("ok")
 
@@ -138,7 +140,7 @@ def test_bouncing_received_task_back_is_refused():
 async def test_receiver_sees_the_request_it_got():
     seen = []
 
-    async def prompt(text):
+    async def prompt(text, caller_scope=None):
         from jarvis.app.agent_conversation import peer_request
 
         seen.append(peer_request.get())

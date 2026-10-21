@@ -5,8 +5,9 @@ from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.memory.memory_service import MemoryService
+    from jarvis.memory.scope import MemoryScope
 
-Handler = Callable[[str], Awaitable[str]]
+ScopedHandler = Callable[[str, "MemoryScope"], Awaitable[str]]
 
 USAGE = (
     "[Patterns] 사용법:\n"
@@ -15,20 +16,20 @@ USAGE = (
 )
 
 
-def make_patterns_handler(memory: "MemoryService") -> Handler:
-    async def handle(args: str) -> str:
+def make_patterns_handler(memory: "MemoryService") -> ScopedHandler:
+    async def handle(args: str, scope: "MemoryScope") -> str:
         args = args.strip()
         if args.startswith("forget"):
             name = args[len("forget"):].strip()
             if not name:
                 return USAGE
-            removed = await memory.forget_pattern(name)
+            removed = await memory.forget_pattern(name, scope)
             if not removed:
                 return f"[Patterns] '{name}' 이라는 패턴이 없습니다."
             return f"[Patterns] '{name}' 을 지웠습니다."
         if args:
             return USAGE
-        patterns = await memory.task_patterns()
+        patterns = await memory.task_patterns(scope)
         if not patterns:
             return "[Patterns] 저장된 작업 패턴이 없습니다. 작업 방식을 알려 주고 기억해 달라고 하면 저장됩니다."
         lines = ["[Patterns] 이 에이전트의 작업 패턴:"]

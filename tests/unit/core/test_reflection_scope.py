@@ -1,20 +1,22 @@
-"""[core] 성찰은 자기 세션의 기억 범위로 사고를 기록하고, 끝나면 호출자의 범위를 되돌린다."""
+"""[core] 성찰은 자기 세션의 기억 범위(사용자, 에이전트, 세션)를 사고 요청에 실어 보낸다."""
 
 import pytest
 
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
-from jarvis.memory.scope import MemoryScope, current_scope
 from jarvis.core.proactive import DefaultProactivityCore
+from jarvis.memory.scope import MemoryScope
 
 
 class ScopeCapturingEngine:
-    """think 가 불린 순간의 current_scope 를 기록한다."""
+    """사고 요청에 실린 범위를 기록한다. 회상은 이 범위로 기억을 읽는다."""
 
     def __init__(self) -> None:
-        self.seen: list[MemoryScope | None] = []
+        self.seen: list[MemoryScope] = []
 
     async def think(self, request: ThoughtRequest) -> ThoughtFrame | None:
-        self.seen.append(current_scope.get())
+        self.seen.append(
+            MemoryScope(user_id=request.user_id or "", agent_id=request.agent_id or "", session_id=request.session_id)
+        )
         return ThoughtFrame()
 
 
@@ -59,13 +61,3 @@ async def test_reflection_thinks_in_its_own_session_scope(fx):
     assert [s.session_id for s in engine.seen] == ["s1", "s2"]
     assert engine.seen[0] == first.memory_scope
 
-
-@pytest.mark.asyncio
-async def test_reflection_restores_callers_scope(fx):
-    outer = MemoryScope(user_id="someone", session_id="outer")
-    token = current_scope.set(outer)
-    try:
-        await _session(fx, "s1", ScopeCapturingEngine()).reflect()
-        assert current_scope.get() == outer
-    finally:
-        current_scope.reset(token)

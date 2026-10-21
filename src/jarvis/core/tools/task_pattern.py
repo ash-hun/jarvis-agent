@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 from jarvis.memory.long_term.task_pattern import TaskPattern, normalize_keywords
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 from jarvis.core.tools.registry import JarvisTool, ToolContext
-from jarvis.memory.scope import current_scope
 
 if TYPE_CHECKING:
     from jarvis.memory.memory_service import MemoryService
@@ -55,9 +54,12 @@ class TaskPatternTool(JarvisTool):
         keywords = normalize_keywords(params.get("keywords") or "")
         if not (name and when and steps and keywords):
             return _result(tool_call_id, "name, when, steps, keywords(두 글자 이상 하나 이상)가 모두 필요하다", True)
-        scope = getattr(context, "scope", None) or current_scope.get()
+        scope = getattr(context, "scope", None)
+        if scope is None:
+            # 누구의 기억인지 모르면 쓰지 않는다. 세션의 도구 실행기는 늘 범위를 넘긴다
+            return _result(tool_call_id, "부른 세션의 범위가 없어 작업 패턴을 저장하지 않았다", True)
         await self._memory.remember_pattern(TaskPattern(name, when, steps, keywords), scope=scope)
-        agent = scope.agent_id if scope is not None else "main"
+        agent = scope.agent_id
         return _result(
             tool_call_id,
             f"작업 패턴 '{name}' 을 {agent} 의 기억에 저장했다(같은 이름이면 고쳐 썼다)."

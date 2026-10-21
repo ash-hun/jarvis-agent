@@ -41,23 +41,16 @@ class MemoryScope:
 
 
 def scope_from_context(context: dict[str, Any]) -> MemoryScope:
-    """harness 가 미들웨어에 넘기는 context(session_id, user_id, agent_id)에서 범위를 조립한다.
+    """harness 와 사고 엔진이 넘기는 context(session_id, user_id, agent_id)에서 범위를 조립한다.
 
-    context 에 user_id 가 없으면(사고 엔진의 회상처럼 session_id 만 주는 호출자) 현재 턴의
-    contextvar 사용자를 쓰고, 그것도 없으면 로컬 사용자다.
+    비운 값은 로컬 사용자와 main 에이전트다. 호출자가 범위를 다 넘겨야 다른 사용자의 기억을 읽지 않는다.
     """
-    current = current_scope.get()
     return MemoryScope(
-        user_id=context.get("user_id") or (current.user_id if current else None) or LOCAL_USER,
-        agent_id=context.get("agent_id") or (current.agent_id if current else None) or MAIN_AGENT,
+        user_id=context.get("user_id") or LOCAL_USER,
+        agent_id=context.get("agent_id") or MAIN_AGENT,
         session_id=context.get("session_id"),
     )
 
-
-# 턴 바깥에서 쓰는 경로(슬래시 명령, 사고 로그, 저널)가 현재 사용자를 알 수 있게 하는 통로.
-# AgentSession.prompt 와 web 핸들러가 설정한다. 없으면 LOCAL_USER 의 메인 범위로 본다.
-# ponytail: 전역 contextvar, 디스패처가 사용자를 인자로 받게 되면 제거
-current_scope: ContextVar[MemoryScope | None] = ContextVar("jarvis_memory_scope", default=None)
 
 # 오케스트레이션 작업 범위. 한 작업에 참여하는 에이전트들이 공유하는 작업 기억의 키(루트 task_id).
 # LazyAgentNode 가 위임 동안 설정하고, observe 가 읽어 [작업 공유 메모리] 블록을 넣는다.

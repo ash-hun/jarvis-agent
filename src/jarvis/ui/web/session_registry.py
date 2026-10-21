@@ -165,7 +165,7 @@ class SessionRegistry:
                 msgs = await session_repo.get_messages(session._session_id)
                 if not msgs:
                     continue
-                scope = getattr(session, "memory_scope", None)
+                scope = session.memory_scope
                 entry_id = await summarizer.save_session(session._session_id, msgs, scope=scope)
                 if entry_id:
                     logger.info(f"[Episodic] Session {session_id[:8]} summary saved (id: {entry_id[:8]})")

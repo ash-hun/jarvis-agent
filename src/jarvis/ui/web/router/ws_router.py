@@ -13,9 +13,9 @@ from jarvis.ui.web.ws_tasks import (
     run_stt,
     run_tts,
 )
-from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope
 from jarvis.ui.web.web_auth import auth_enabled, lookup_api_user
 from jarvis.ui.web.router.agent_router import agent_summary
+from jarvis.memory.scope import LOCAL_USER, MemoryScope
 from jarvis.ui.web.session_registry import UnknownAgent
 from jarvis.core.focus.types import parse_command
 from jarvis.voice.speech_text import speech_text
@@ -152,11 +152,6 @@ def build_ws_router(state: WebState) -> APIRouter:
                         state.registry.touch(session_id)
                         focus_command = parse_command(text) if state.focus is not None else None
                         if state.focus is not None and focus_command is not None:
-                            current_scope.set(MemoryScope(
-                                user_id=user.name if user is not None else LOCAL_USER,
-                                agent_id=agent_id,
-                                session_id=session_id,
-                            ))
                             asyncio.create_task(
                                 run_focus(session, adapter, state.focus, focus_command, credentials)
                             )
@@ -164,12 +159,12 @@ def build_ws_router(state: WebState) -> APIRouter:
                         # 슬래시 명령 인터셉트: 텍스트 어디서나 /command 를 처리하고 나머지만 LLM 으로 보낸다
                         if ctx.dispatcher is not None:
                             # /remember 같은 명령이 이 연결의 사용자 범위로 기억을 쓰게 한다
-                            current_scope.set(MemoryScope(
+                            scope = MemoryScope(
                                 user_id=user.name if user is not None else LOCAL_USER,
                                 agent_id=agent_id,
                                 session_id=session_id,
-                            ))
-                            result = await ctx.dispatcher.dispatch(text)
+                            )
+                            result = await ctx.dispatcher.dispatch(text, scope)
                             for feedback in result.feedbacks:
                                 await ws.send_json({"type": "agent_start"})
                                 await ws.send_json({"type": "stream_delta", "text": feedback})

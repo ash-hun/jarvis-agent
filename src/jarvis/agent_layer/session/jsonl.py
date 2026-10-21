@@ -86,20 +86,24 @@ class JsonlSessionRepo(SessionRepo):
                 messages.append(msg)
         return messages
 
-    async def append_proactive(self, session_id: str, message_id: str, text: str) -> None:
+    async def append_proactive(
+        self, session_id: str, message_id: str, text: str, entry_type: str = PROACTIVE_ENTRY
+    ) -> None:
         entry = SessionEntry(
             id=message_id,
             timestamp=self._now_ms(),
-            type=PROACTIVE_ENTRY,
+            type=entry_type,
             content={"text": text},
         )
         async with aiofiles.open(self._session_path(session_id), "a") as f:
             await f.write(entry.model_dump_json() + "\n")
 
-    async def get_proactive(self, session_id: str) -> builtins.list[SessionEntry]:
+    async def get_proactive(
+        self, session_id: str, entry_type: str = PROACTIVE_ENTRY
+    ) -> builtins.list[SessionEntry]:
         # append 만 하는 파일이라 같은 id 가 두 줄일 수 있다. 처음 남긴 줄을 쓴다
         first: dict[str, SessionEntry] = {}
-        for entry in await self._read_entries(session_id, PROACTIVE_ENTRY):
+        for entry in await self._read_entries(session_id, entry_type):
             first.setdefault(entry.id, entry)
         return list(first.values())
 

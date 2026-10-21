@@ -8,7 +8,9 @@ from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.core.scheduler.service import SchedulerService
+    from jarvis.core.slash.dispatcher import ScopedHandler
     from jarvis.core.scheduler.task import ScheduledTask
+    from jarvis.memory.scope import MemoryScope
 
 # YYYY.MM.DD 오전/오후 N시까지 <prompt>
 _KO_AMPM_RE = re.compile(
@@ -180,14 +182,6 @@ def build_once_task(run_at: datetime, prompt: str, kind: Literal["reminder", "ta
     )
 
 
-def _current_agent() -> str:
-    """명령을 친 세션의 에이전트. 화면 핸들러가 current_scope 를 걸어 둔다. 없으면 main."""
-    from jarvis.memory.scope import MAIN_AGENT, current_scope
-
-    scope = current_scope.get()
-    return scope.agent_id if scope is not None else MAIN_AGENT
-
-
 def _fmt_left(run_at: datetime, now: datetime) -> str:
     mins = max(0, round((run_at - now).total_seconds() / 60))
     if mins < 60:
@@ -240,13 +234,13 @@ USAGE = (
 def make_schedule_handler(
     scheduler: "SchedulerService | None",
     classify: Classifier | None = None,
-) -> Callable[[str], Awaitable[str]]:
+) -> "ScopedHandler":
     """SlashCommandDispatcher에 등록할 /schedule 핸들러 factory.
 
     classify 가 없으면 한 번 실행 항목은 모두 알림(reminder)으로 등록한다.
     """
 
-    async def handle_once(run_at: datetime, prompt: str) -> str:
+    async def handle_once(run_at: datetime, prompt: str, agent: str) -> str:
         now = datetime.now()
         if not prompt:
             return "[Schedule] 내용이 비어 있습니다. 시각 뒤에 알릴 내용이나 할 일을 작성해주세요."
@@ -260,11 +254,12 @@ def make_schedule_handler(
                 kind = await classify(prompt)
             except Exception:
                 kind = "reminder"
-        task = build_once_task(run_at, prompt, kind).model_copy(update={"agent": _current_agent()})
+        task = build_once_task(run_at, prompt, kind).model_copy(update={"agent": agent})
         scheduler.add_task(task)
         return format_once_confirmation(task, now)
 
-    async def handle(args: str) -> str:
+    async def handle(args: str, scope: "MemoryScope") -> str:
+        """일정은 명령을 친 세션의 에이전트가 맡는다."""
         if not args.strip():
             return "[Schedule] 인자가 필요합니다.\n" + USAGE
 
@@ -272,7 +267,7 @@ def make_schedule_handler(
         if parsed is None:
             once = parse_once(args)
             if once is not None:
-                return await handle_once(*once)
+                return await handle_once(*once, scope.agent_id)
             return "[Schedule] 시각 파싱 실패.\n" + USAGE
 
         deadline, prompt = parsed
@@ -285,7 +280,7 @@ def make_schedule_handler(
         if scheduler is None:
             return "[Schedule] 스케줄러가 비활성화 상태입니다. (JARVIS_SCHEDULER__ENABLED=true 필요)"
 
-        task = build_schedule_task(deadline, prompt).model_copy(update={"agent": _current_agent()})
+        task = build_schedule_task(deadline, prompt).model_copy(update={"agent": scope.agent_id})
         scheduler.add_task(task)
         return format_confirmation(task, deadline)
 

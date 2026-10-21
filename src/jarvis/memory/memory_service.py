@@ -17,10 +17,10 @@ from jarvis.memory.long_term.task_pattern import (
     render_block,
     teaches,
 )
-from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_scope, current_task, scope_from_context, task_scope
 from jarvis.memory.working.window import apply_window, chars_of, cut_at_user_boundary, summary_message
 from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
-from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank
+from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank, relevance
+from jarvis.memory.scope import MemoryScope, current_task, scope_from_context, task_scope
 from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind, Visibility
 from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
 from jarvis.memory.consolidation.semantic_extract import FactExtractor
@@ -69,6 +69,8 @@ PATTERN_INJECT_LIMIT = 2
 PATTERN_SCAN_LIMIT = 100
 # 일반 회상 블록은 일화와 사실만. 작업 패턴은 따로 고른다
 RECALL_KINDS = (MemoryKind.EPISODIC, MemoryKind.SEMANTIC)
+# 떠올린 항목의 낱말이 답에 이만큼 나오면 답에 쓰였다고 보고 되뇌기로 센다
+USED_OVERLAP = 0.5
 _DEFAULT_RULE = WriteRule(MemoryKind.SEMANTIC, "private", None)
 
 
@@ -107,6 +109,8 @@ class MemoryService:
         self._interference_threshold = interference_threshold
         self._embedder = embedder
         self._min_similarity = min_similarity
+        # 이번 턴에 떠올린 항목. 답이 나오면 reinforce 가 꺼내 쓰였는지 본다. 턴 하나 동안만 산다
+        self._pending_recall: dict[MemoryScope, list[MemoryItem]] = {}
 
     @property
     def store(self) -> ItemStore:
@@ -115,10 +119,6 @@ class MemoryService:
     @property
     def working(self) -> WorkingStore:
         return self._working
-
-    def resolve_scope(self, scope: MemoryScope | None = None) -> MemoryScope:
-        """명시 scope > 현재 턴의 contextvar > 로컬 사용자의 메인 범위."""
-        return scope or current_scope.get() or MemoryScope(user_id=LOCAL_USER)
 
     # ── 턴 전 변환 ──────────────────────────────────────────────────────────
 
@@ -188,24 +188,36 @@ class MemoryService:
             if notes:
                 blocks.append(UserMessage(content=f"{TASK_HEADER}\n" + "\n".join(f"- {n}" for n in notes),
                                           timestamp=int(time.time() * 1000)))
-        # 질의에 걸린 것만 되뇌기로 센다. 고정 블록에 들어갔다는 이유만으로 세면 한 번 고정된 사실이
-        # 매 턴 스스로 강해지고 최근해져서 영영 자리를 내주지 않는다
-        # ponytail: 떠올린 것을 세고 답에 쓰였는지는 보지 않는다, 답과 항목의 대조 신호가 생기면 그것으로 바꾼다
+        # 질의에 걸린 것만 후보로 둔다. 고정 블록에 들어갔다는 이유만으로 세면 한 번 고정된 사실이
+        # 매 턴 스스로 강해지고 최근해져서 영영 자리를 내주지 않는다. 되뇌기는 답에 쓰인 것만 reinforce 가 센다
+        self._pending_recall[scope] = cued
         if cued:
             await self._store.touch([i.id for i in cued], datetime.now())
-            for item in cued:
-                state.rehearse(item.id)
-            dirty = True
 
         if dirty:
             await self._working.save(state)
         return blocks + out
 
-    async def fixed_facts(self, scope: MemoryScope | None = None) -> list[MemoryItem]:
+    async def reinforce(self, answer: str, context: dict[str, Any]) -> list[str]:
+        """이번 턴에 떠올린 항목 중 답에 쓰인 것만 되뇌기로 센다. 두 번 불러도 한 번만 센다.
+
+        # ponytail: 항목 낱말이 답에 절반 넘게 나와야 쓰였다고 본다(긴 일화는 덜 잡힌다), 누락이 보이면 임베딩 유사도로
+        """
+        scope = scope_from_context(context)
+        cued = self._pending_recall.pop(scope, [])
+        used = [item.id for item in cued if answer and relevance(item.content, answer) >= USED_OVERLAP]
+        if used:
+            state = await self._working.load(scope)
+            for item_id in used:
+                state.rehearse(item_id)
+            await self._working.save(state)
+        return used
+
+    async def fixed_facts(self, scope: MemoryScope) -> list[MemoryItem]:
         """질의와 무관하게 항상 넣는 의미 사실. 중요도와 최근성으로 고른다."""
         if self._fixed_facts <= 0:
             return []
-        resolved = self.resolve_scope(scope)
+        resolved = scope
         pool = self._fixed_facts * 4
         # 최신순으로만 고르면 의미 사실이 pool 개를 넘는 순간 오래된 핵심 사실(이름, 알레르기)이 후보에서 빠진다
         recent = await self._store.recent(resolved, kinds=[MemoryKind.SEMANTIC], limit=pool)
@@ -217,23 +229,23 @@ class MemoryService:
 
     # ── 작업 패턴(사용자가 알려 준 방식, 에이전트 전용) ─────────────────────────
 
-    async def remember_pattern(self, pattern: TaskPattern, scope: MemoryScope | None = None) -> str:
+    async def remember_pattern(self, pattern: TaskPattern, scope: MemoryScope) -> str:
         """같은 (사용자, 에이전트, 이름)이면 같은 항목을 덮는다. 다시 불러도 하나만 남는다."""
-        resolved = self.resolve_scope(scope).with_session(None)
+        resolved = scope.with_session(None)
         return await self.remember(
             pattern.content(), source=TASK_PATTERN_SOURCE, scope=resolved, metadata=pattern.metadata(),
             importance=0.8, item_id=pattern_id(resolved, pattern.name),
         )
 
-    async def task_patterns(self, scope: MemoryScope | None = None) -> list[TaskPattern]:
+    async def task_patterns(self, scope: MemoryScope) -> list[TaskPattern]:
         """이 에이전트가 받은 작업 패턴. 다른 에이전트의 패턴은 private 이라 보이지 않는다."""
-        resolved = self.resolve_scope(scope)
+        resolved = scope
         items = await self._store.recent(resolved, kinds=[MemoryKind.PROCEDURAL], limit=PATTERN_SCAN_LIMIT)
         mine = [i for i in items if i.scope.agent_id == resolved.agent_id]
         return [p for p in (from_item(i) for i in mine) if p is not None]
 
-    async def forget_pattern(self, name: str, scope: MemoryScope | None = None) -> bool:
-        resolved = self.resolve_scope(scope).with_session(None)
+    async def forget_pattern(self, name: str, scope: MemoryScope) -> bool:
+        resolved = scope.with_session(None)
         item_id = pattern_id(resolved, name)
         if await self._store.get(item_id) is None:
             return False
@@ -245,16 +257,16 @@ class MemoryService:
 
     # ── 작업 공유 메모리(오케스트레이션) ────────────────────────────────────
 
-    async def share(self, root_task_id: str, text: str, author: str, scope: MemoryScope | None = None) -> None:
+    async def share(self, root_task_id: str, text: str, author: str, scope: MemoryScope) -> None:
         """작업에 참여하는 에이전트 전원이 볼 메모를 남긴다. 블랙보드와 레벨 간 결과 전달이 이 통로를 쓴다."""
-        await self.add_note(f"[{author}] {text}", scope=task_scope(self.resolve_scope(scope).user_id, root_task_id))
+        await self.add_note(f"[{author}] {text}", scope=task_scope(scope.user_id, root_task_id))
 
-    async def task_notes(self, root_task_id: str, scope: MemoryScope | None = None) -> list[str]:
-        state = await self._working.load(task_scope(self.resolve_scope(scope).user_id, root_task_id))
+    async def task_notes(self, root_task_id: str, scope: MemoryScope) -> list[str]:
+        state = await self._working.load(task_scope(scope.user_id, root_task_id))
         return list(state.notes)
 
-    async def clear_task(self, root_task_id: str, scope: MemoryScope | None = None) -> None:
-        await self._working.clear(task_scope(self.resolve_scope(scope).user_id, root_task_id))
+    async def clear_task(self, root_task_id: str, scope: MemoryScope) -> None:
+        await self._working.clear(task_scope(scope.user_id, root_task_id))
 
     async def legacy_stm_rows(self) -> int | None:
         """옛 STM 테이블 행 수. 저장소가 모르면(in-memory) None."""
@@ -263,17 +275,17 @@ class MemoryService:
     async def drop_legacy_stm(self) -> None:
         await self._working.drop_legacy_stm()
 
-    async def add_note(self, text: str, scope: MemoryScope | None = None) -> None:
-        resolved = self.resolve_scope(scope)
+    async def add_note(self, text: str, scope: MemoryScope) -> None:
+        resolved = scope
         state = await self._working.load(resolved)
         state.add_note(text)
         await self._working.save(state)
 
-    async def working_state(self, scope: MemoryScope | None = None) -> WorkingState:
-        return await self._working.load(self.resolve_scope(scope))
+    async def working_state(self, scope: MemoryScope) -> WorkingState:
+        return await self._working.load(scope)
 
-    async def clear_working(self, scope: MemoryScope | None = None) -> None:
-        await self._working.clear(self.resolve_scope(scope))
+    async def clear_working(self, scope: MemoryScope) -> None:
+        await self._working.clear(scope)
 
     # ── 장기 기억 ───────────────────────────────────────────────────────────
 
@@ -281,7 +293,7 @@ class MemoryService:
         self,
         content: str,
         source: str,
-        scope: MemoryScope | None = None,
+        scope: MemoryScope,
         *,
         kind: MemoryKind | None = None,
         visibility: Visibility | None = None,
@@ -299,7 +311,7 @@ class MemoryService:
         referent 는 content 의 상대 지칭이 가리키는 대화다. 검색과 임베딩, 회상 표시에 같이 쓴다.
         """
         rule = WRITE_RULES.get(source, _DEFAULT_RULE)
-        resolved = self.resolve_scope(scope)
+        resolved = scope
         item = MemoryItem(
             content=content,
             kind=kind or rule.kind,
@@ -333,13 +345,13 @@ class MemoryService:
     async def recall(
         self,
         query: str,
-        scope: MemoryScope | None = None,
+        scope: MemoryScope,
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
         exclude: set[str] | None = None,
     ) -> list[MemoryItem]:
         """키워드와 의미 유사도로 후보를 넓게 모은 뒤 합성 점수로 상위 limit 개."""
-        resolved = self.resolve_scope(scope)
+        resolved = scope
         query_embedding = await self._embed_query(query)
         candidates = await self._store.search(
             query, resolved, kinds, limit * 4, query_embedding=query_embedding, min_similarity=self._min_similarity
@@ -371,14 +383,14 @@ class MemoryService:
         except Exception:
             return None
 
-    async def reembed(self, scope: MemoryScope | None = None, limit: int = 500) -> int:
+    async def reembed(self, scope: MemoryScope, limit: int = 500) -> int:
         """벡터가 없거나 다른 모델로 만든 항목을 현재 임베더로 다시 임베딩한다. 돌려주는 값은 갱신 수.
 
         두 번 돌려도 같은 상태: 현재 모델로 된 항목은 건너뛴다.
         """
         if self._embedder is None:
             return 0
-        resolved = self.resolve_scope(scope)
+        resolved = scope
         items = await self._store.recent(resolved, limit=limit)
         stale = [i for i in items if i.embedding is None or i.embedding_model != self._embedder.model]
         if not stale:
@@ -391,11 +403,11 @@ class MemoryService:
 
     async def recent(
         self,
-        scope: MemoryScope | None = None,
+        scope: MemoryScope,
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
     ) -> list[MemoryItem]:
-        return await self._store.recent(self.resolve_scope(scope), kinds, limit)
+        return await self._store.recent(scope, kinds, limit)
 
     async def get(self, item_id: str) -> MemoryItem | None:
         return await self._store.get(item_id)
@@ -411,7 +423,7 @@ class MemoryService:
 
     # ── 공고화 ──────────────────────────────────────────────────────────────
 
-    async def consolidate(self, scope: MemoryScope | None = None) -> int:
+    async def consolidate(self, scope: MemoryScope) -> int:
         """세션 종료와 사용자가 조용한 daemon 틱에 부른다. 돌려주는 값은 새로 쓴 의미 사실 수.
 
         1. 아직 추출하지 않은 이 소유자의 일화(요약)에서 사실을 뽑아 shared 의미 항목으로 쓴다.
@@ -420,7 +432,7 @@ class MemoryService:
         3. 작업 기억의 되뇌기 횟수를 항목의 rehearsal_count 로 옮기고 비운다.
         두 번 불러도 같은 상태: 추출한 일화와 간섭 쌍은 metadata 로 표시하고 되뇌기는 비운다.
         """
-        resolved = self.resolve_scope(scope)
+        resolved = scope
         written = 0
         if self._extractor is not None:
             episodes = await self._store.recent(resolved, kinds=[MemoryKind.EPISODIC], limit=50)

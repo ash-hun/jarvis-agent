@@ -5,6 +5,7 @@ import contextlib
 
 from jarvis.agent_layer.thought.types import ThoughtFrame
 from jarvis.memory.memory_service import MemoryService
+from jarvis.memory.scope import MemoryScope
 
 # 사고 로그를 식별하는 태그. 회상 시 일반 기억과 구분/필터하는 데 쓴다.
 THOUGHT_SOURCE = "thought"
@@ -13,7 +14,7 @@ THOUGHT_SOURCE = "thought"
 class ThoughtSink:
     """`ThoughtFrame`을 어딘가에 영속화하는 교체 가능한 싱크의 기본 클래스. 그대로 쓰면 프레임을 버린다."""
 
-    async def store(self, frame: ThoughtFrame, session_id: str | None = None) -> None:
+    async def store(self, frame: ThoughtFrame, scope: MemoryScope) -> None:
         return None
 
 
@@ -23,8 +24,7 @@ class LTMThoughtSink(ThoughtSink):
     def __init__(self, memory: MemoryService) -> None:
         self._memory = memory
 
-    async def store(self, frame: ThoughtFrame, session_id: str | None = None) -> None:
-        scope = self._memory.resolve_scope().with_session(session_id)
+    async def store(self, frame: ThoughtFrame, scope: MemoryScope) -> None:
         await self._memory.remember(
             frame.model_dump_json(),
             source=THOUGHT_SOURCE,
@@ -40,9 +40,8 @@ class WorkingNotesSink(ThoughtSink):
     def __init__(self, memory: MemoryService) -> None:
         self._memory = memory
 
-    async def store(self, frame: ThoughtFrame, session_id: str | None = None) -> None:
+    async def store(self, frame: ThoughtFrame, scope: MemoryScope) -> None:
         summary = frame.interpretation or frame.observation
-        scope = self._memory.resolve_scope().with_session(session_id or "default")
         await self._memory.add_note(f"[{THOUGHT_SOURCE}:{frame.decision}] {summary}", scope=scope)
 
 
@@ -56,9 +55,9 @@ class ThoughtLog(ThoughtSink):
     def __init__(self, sinks: list[ThoughtSink]) -> None:
         self._sinks = sinks
 
-    async def store(self, frame: ThoughtFrame, session_id: str | None = None) -> None:
+    async def store(self, frame: ThoughtFrame, scope: MemoryScope) -> None:
         async def _safe(sink: ThoughtSink) -> None:
             with contextlib.suppress(Exception):
-                await sink.store(frame, session_id)
+                await sink.store(frame, scope)
 
         await asyncio.gather(*[_safe(s) for s in self._sinks])

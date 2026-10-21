@@ -223,3 +223,30 @@ class TestEditFileTool:
         result = await edit_tool.execute("c1", {"path": "/nonexistent.py", "old_string": "x", "new_string": "y"})
         assert result.is_error is True
         assert "not found" in result.content[0].text
+
+
+class _Named:
+    def __init__(self, name: str) -> None:
+        self.name, self.description, self.parameters, self.execution_mode = name, name, {}, "parallel"
+
+    async def execute(self, tool_call_id, params, signal=None):
+        raise AssertionError("실행하지 않는다")
+
+
+def test_picked_registry_sees_tools_registered_after_it_was_made():
+    from jarvis.core.tools.registry import PickedToolRegistry, ToolRegistry
+
+    app, opt_in = ToolRegistry(), ToolRegistry()
+    app.register(_Named("lh_notice"))
+    app.register(_Named("bash"))
+    opt_in.register(_Named("ask_agent"))
+    picked = PickedToolRegistry((app, opt_in), ("lh_notice", "ask_agent"), prefixes=("procedure_",))
+    assert [t.name for t in picked.list_all()] == ["lh_notice", "ask_agent"]
+
+    app.register(_Named("procedure_weekly-report"))  # 세션을 만든 뒤 승인된 절차
+    picked.register(_Named("focus_note"))  # 세션이 직접 더한 도구
+    names = [t.name for t in picked.to_llm_tools()]
+    assert names == ["lh_notice", "ask_agent", "procedure_weekly-report", "focus_note"]
+    assert picked.get("bash") is None  # 정의에 없는 도구는 계속 안 보인다
+    app.unregister("procedure_weekly-report")
+    assert picked.get("procedure_weekly-report") is None

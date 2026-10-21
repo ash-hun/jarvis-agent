@@ -5,6 +5,8 @@ from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.core.multi_agent.service import OrchestrationService
+    from jarvis.core.slash.dispatcher import ScopedHandler
+    from jarvis.memory.scope import MemoryScope
 
 Handler = Callable[[str], Awaitable[str]]
 
@@ -42,8 +44,8 @@ def parse_args(args: str) -> tuple[str, list[str] | None, bool, str]:
     return pattern, agents, promote, task
 
 
-def make_orchestrate_handler(service: "OrchestrationService") -> Handler:
-    async def handle(args: str) -> str:
+def make_orchestrate_handler(service: "OrchestrationService") -> "ScopedHandler":
+    async def handle(args: str, scope: "MemoryScope") -> str:
         args = args.strip()
         if not args or args.lower() in ("help", "?"):
             return _USAGE
@@ -58,7 +60,7 @@ def make_orchestrate_handler(service: "OrchestrationService") -> Handler:
             return "\n".join(lines)
         try:
             pattern, agents, promote, task = parse_args(args)
-            result = await service.run(pattern, task, agents=agents, promote=promote)
+            result = await service.run(pattern, task, agents=agents, promote=promote, parent_scope=scope)
         except ValueError as exc:
             return str(exc) if str(exc).startswith("[Orchestrate]") else f"[Orchestrate] {exc}"
         if not result.success:

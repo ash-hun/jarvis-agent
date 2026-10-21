@@ -11,6 +11,7 @@ from jarvis.model_layer.types import (
     StopEvent,
     StreamOptions,
     TextContent,
+    ThinkingDeltaEvent,
     Tool,
     ToolCall,
     ToolCallDeltaEvent,
@@ -109,3 +110,19 @@ async def test_format_is_sent_only_with_schema(monkeypatch, schema):
     sent: list[dict] = []
     await _stream_with(monkeypatch, body, StreamOptions(json_schema=schema), sent)
     assert sent[0].get("format") == schema
+
+
+async def test_thinking_is_off_unless_asked_and_streamed_when_on(monkeypatch):
+    body = _ndjson(
+        {"message": {"thinking": "먼저 목록을 보고"}},
+        {"message": {"content": "다 봤어요"}},
+        {"done": True, "done_reason": "stop"},
+    )
+    sent: list = []
+    events = await _stream_with(monkeypatch, body, StreamOptions(enable_thinking=True), sent=sent)
+    assert sent[0]["think"] is True
+    assert [e.thinking for e in events if isinstance(e, ThinkingDeltaEvent)] == ["먼저 목록을 보고"]
+    assert OllamaProvider().supports_thinking()
+
+    await _stream_with(monkeypatch, _ndjson({"done": True}), sent=sent)
+    assert sent[1]["think"] is False  # 기본은 끈다. 켜면 작은 모델이 출력 한도를 생각에 다 쓴다

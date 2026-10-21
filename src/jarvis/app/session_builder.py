@@ -100,18 +100,17 @@ class SessionBuilder:
         if not self._profile.tools:
             return registry
         from jarvis.core.tools.task_pattern import TASK_PATTERN_TOOL
+        from jarvis.core.tools.registry import PickedToolRegistry
         from jarvis.app.agent_conversation import ASK_AGENT_TOOL
-        from jarvis.core.tools.registry import ToolRegistry
+        from jarvis.core.procedures import TOOL_PREFIX
 
-        # ponytail: 세션을 만들 때 고른다, 뒤에 등록된 도구(승인된 절차)는 다음 세션부터 보인다
-        picked = ToolRegistry()
-        # 팀 대화와 작업 패턴 저장은 정의에 적지 않아도 늘 쓴다. 팀이 한 명이면 팀 대화는 등록돼 있지 않다
-        opt_in = self._ctx.agent_tools
-        for name in (*self._profile.tools, ASK_AGENT_TOOL, TASK_PATTERN_TOOL):
-            tool = registry.get(name) or (opt_in.get(name) if opt_in is not None else None)
-            if tool is not None:
-                picked.register(tool)
-        return picked
+        # 팀 대화와 작업 패턴 저장은 정의에 적지 않아도 늘 쓴다. 팀이 한 명이면 팀 대화는 등록돼 있지 않다.
+        # 승인된 절차도 보인다. 절차의 단계는 이 창을 거쳐 실행되므로 정의에 없는 도구는 그 단계에서 멈춘다
+        return PickedToolRegistry(
+            (registry, self._ctx.agent_tools),
+            (*self._profile.tools, ASK_AGENT_TOOL, TASK_PATTERN_TOOL),
+            prefixes=(TOOL_PREFIX,),
+        )
 
     def thought_parts(self, services: "AppServices") -> ThoughtParts:
         """사고 엔진(분리된 사고 모델), 사고 로그 싱크, composer. 사고가 꺼져 있으면 빈 ThoughtParts."""

@@ -8,6 +8,7 @@ from jarvis.model_layer.stream import stream_to_message
 
 if TYPE_CHECKING:
     from jarvis.memory.memory_service import MemoryService
+    from jarvis.memory.scope import MemoryScope
 
 # 저널 항목을 식별하는 LTM source 태그.
 JOURNAL_SOURCE = "journal"
@@ -42,8 +43,8 @@ class ReflectionJournaler:
         self._scan_limit = scan_limit
         self._prompt = prompt
 
-    async def write(self) -> str | None:
-        entries = await self._memory.recent(limit=self._scan_limit)
+    async def write(self, scope: "MemoryScope") -> str | None:
+        entries = await self._memory.recent(scope, limit=self._scan_limit)
         thoughts = [e.content for e in entries if e.source == THOUGHT_SOURCE]
         if not thoughts:
             return None
@@ -62,12 +63,12 @@ class ReflectionJournaler:
             return None
 
         try:
-            await self._memory.remember(text, source=JOURNAL_SOURCE)
+            await self._memory.remember(text, source=JOURNAL_SOURCE, scope=scope)
         except Exception:
             return text  # 저장 실패해도 작성 내용은 반환
         return text
 
-    async def recent(self, limit: int = 5) -> list[str]:
-        entries = await self._memory.recent(limit=self._scan_limit)
+    async def recent(self, scope: "MemoryScope", limit: int = 5) -> list[str]:
+        entries = await self._memory.recent(scope, limit=self._scan_limit)
         journal = [e.content for e in entries if e.source == JOURNAL_SOURCE]
         return journal[:limit]

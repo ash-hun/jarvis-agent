@@ -1,12 +1,13 @@
 """오케스트레이션 통로: 에이전트 간 결과가 작업 공유 메모리를 거쳐 다음 에이전트의 프롬프트에 실제로 도달한다."""
 
 import pytest
+from types import SimpleNamespace
 
-from jarvis.memory import MemoryKind, MemoryScope, MemoryService, current_scope, current_task
 from jarvis.core.multi_agent.orchestrators.hierarchical import HierarchicalOrchestrator
 from jarvis.core.multi_agent.orchestrators.blackboard import BlackboardOrchestrator
 from jarvis.core.multi_agent.orchestrators.supervisor import SupervisorOrchestrator
 from jarvis.core.multi_agent.topologies.hierarchical import HierarchicalTopology
+from jarvis.memory import MemoryKind, MemoryScope, MemoryService, current_task
 from jarvis.core.multi_agent.topologies.blackboard import BlackboardTopology
 from jarvis.core.multi_agent.topologies.supervisor import SupervisorTopology
 from jarvis.core.multi_agent.orchestrators.market import MarketOrchestrator
@@ -14,7 +15,6 @@ from jarvis.core.multi_agent.factory import AgentDefinition, AgentFactory
 from jarvis.core.multi_agent.node import LazyAgentNode, capability_score
 from jarvis.core.multi_agent.blackboard import SharedBlackboard
 from jarvis.memory.stores.in_memory import InMemoryItemStore
-from jarvis.model_layer.registry import get_default_registry
 from jarvis.agent_layer.types import AgentLoopConfig
 from jarvis.memory.memory_service import TASK_HEADER
 from jarvis.core.multi_agent.task import AgentTask
@@ -29,30 +29,22 @@ def memory() -> MemoryService:
 
 
 @pytest.fixture
-def captured():
-    """faux provider 가 받은 LLMContext 를 세션 id 별로 기록한다. 자식 에이전트가 무엇을 봤는지 확인용.
-
-    faux_model_with_response 가 provider 인스턴스를 바꾸므로, 그 뒤에 start() 를 불러 현재 인스턴스를 감싼다.
-    """
+def captured(memory):
+    """세션 id 별로 observe 가 LLM 에 넘긴 메시지를 기록한다. 자식 에이전트가 무엇을 봤는지 확인용."""
     seen: dict[str, list] = {}
-    restore: list = []
+    original = memory.observe
+
+    async def recording(messages, context):
+        out = await original(messages, context)
+        seen.setdefault(context.get("session_id") or "?", []).append(SimpleNamespace(messages=out))
+        return out
 
     def start() -> dict[str, list]:
-        provider = get_default_registry().get("faux")
-        original = provider.stream
-
-        def recording(model, context, options=None):
-            scope = current_scope.get()
-            seen.setdefault(scope.session_id if scope else "?", []).append(context)
-            return original(model, context, options)
-
-        provider.stream = recording
-        restore.append((provider, original))
+        memory.observe = recording
         return seen
 
     yield start
-    for provider, original in restore:
-        provider.stream = original
+    memory.observe = original
 
 
 @pytest.fixture
@@ -150,20 +142,20 @@ async def test_task_notes_are_isolated_per_root_task(memory):
 # ── LazyAgentNode: contextvar 복원과 공유 키 ─────────────────────────────────
 
 
-async def test_lazy_node_restores_scope_and_task_and_uses_parent_task_as_shared_key(
-    make_node, memory, faux_model_with_response
+async def test_lazy_node_restores_task_and_child_reads_as_the_parent_user(
+    make_node, memory, captured, faux_model_with_response
 ):
     faux_model_with_response("ok")
+    seen = captured()
     node = make_node("worker")
-    token = current_scope.set(PARENT)
-    try:
-        sub = AgentTask.create("하위 작업", parent_task_id="root-1", scope=PARENT)
-        await memory.share("root-1", "앞선 결과", author="other", scope=PARENT)
-        result = await node.invoke(sub)
-        assert result.success
-        assert current_scope.get() == PARENT and current_task.get() is None
-    finally:
-        current_scope.reset(token)
+    sub = AgentTask.create("하위 작업", parent_task_id="root-1", scope=PARENT)
+    await memory.share("root-1", "앞선 결과", author="other", scope=PARENT)
+    result = await node.invoke(sub)
+    assert result.success
+    assert current_task.get() is None
+    # 자식 세션은 부모의 사용자로 루트 작업의 공유 메모리를 읽는다
+    [sid] = seen
+    assert "[other] 앞선 결과" in _injected(seen[sid], TASK_HEADER)[0]
 
 
 # ── Market: capabilities 토큰 매칭 입찰 ──────────────────────────────────────

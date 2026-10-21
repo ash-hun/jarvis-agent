@@ -214,7 +214,9 @@ class PostgresSessionRepo(SessionRepo):
             )
         return entry_id
 
-    async def append_proactive(self, session_id: str, message_id: str, text: str) -> None:
+    async def append_proactive(
+        self, session_id: str, message_id: str, text: str, entry_type: str = PROACTIVE_ENTRY
+    ) -> None:
         pool = await self._get_pool()
         async with pool.acquire() as conn:
             await conn.execute(
@@ -223,10 +225,12 @@ class PostgresSessionRepo(SessionRepo):
                 VALUES ($1, $2, NULL, $3, $4, $5::jsonb)
                 ON CONFLICT (id) DO NOTHING
                 """,
-                message_id, session_id, self._now_ms(), PROACTIVE_ENTRY, json.dumps({"text": text}),
+                message_id, session_id, self._now_ms(), entry_type, json.dumps({"text": text}),
             )
 
-    async def get_proactive(self, session_id: str) -> builtins.list[SessionEntry]:
+    async def get_proactive(
+        self, session_id: str, entry_type: str = PROACTIVE_ENTRY
+    ) -> builtins.list[SessionEntry]:
         pool = await self._get_pool()
         async with pool.acquire() as conn:
             rows = await conn.fetch(
@@ -235,7 +239,7 @@ class PostgresSessionRepo(SessionRepo):
                 WHERE session_id = $1 AND type = $2
                 ORDER BY timestamp, seq
                 """,
-                session_id, PROACTIVE_ENTRY,
+                session_id, entry_type,
             )
         return [
             SessionEntry(

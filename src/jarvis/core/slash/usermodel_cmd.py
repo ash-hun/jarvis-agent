@@ -6,8 +6,9 @@ from collections.abc import Awaitable, Callable
 if TYPE_CHECKING:
     from jarvis.agent_layer.usermodel import UserModelBuilder, UserModelStore
     from jarvis.memory.memory_service import MemoryService
+    from jarvis.memory.scope import MemoryScope
 
-Handler = Callable[[str], Awaitable[str]]
+ScopedHandler = Callable[[str, "MemoryScope"], Awaitable[str]]
 
 _USAGE = (
     "[UserModel] 증류된 사용자 모델 (Tier 3).\n"
@@ -22,13 +23,13 @@ def make_usermodel_handler(
     builder: "UserModelBuilder",
     memory: "MemoryService",
     build_source_limit: int = 30,
-) -> Handler:
+) -> ScopedHandler:
     """SlashCommandDispatcher에 등록할 /usermodel 핸들러 factory."""
 
-    async def handle(args: str) -> str:
+    async def handle(args: str, scope: "MemoryScope") -> str:
         sub = args.strip().lower()
         if sub == "build":
-            return await _handle_build(store, builder, memory, build_source_limit)
+            return await _handle_build(store, builder, memory, scope, build_source_limit)
         if sub in ("", "show", "view"):
             return await _handle_show(store)
         return _USAGE
@@ -51,9 +52,10 @@ async def _handle_build(
     store: "UserModelStore",
     builder: "UserModelBuilder",
     memory: "MemoryService",
+    scope: "MemoryScope",
     limit: int,
 ) -> str:
-    entries = await memory.recent(limit=limit)
+    entries = await memory.recent(scope, limit=limit)
     sources = [e.content for e in entries if e.content]
     if not sources:
         return "[UserModel] 증류할 기억이 없습니다."

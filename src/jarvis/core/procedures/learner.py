@@ -5,6 +5,7 @@ import hashlib
 from jarvis.core.procedures.detect import DEFAULT_MIN_TOOL_CALLS, TaskSpan, find_spans
 from jarvis.core.procedures.store import STATUS_DRAFT, Procedure, ProcedureStore
 from jarvis.core.procedures.distill import Distiller, ProcedureDraft
+from jarvis.core.procedures.plan import valid_plan
 from jarvis.model_layer.types import Message
 
 SUFFIX_LEN = 6
@@ -30,6 +31,8 @@ def build_procedure(draft: ProcedureDraft, span: TaskSpan, source: str, name: st
     lines.append("")
     lines.append("절차:")
     lines.extend(f"{i}. {step}" for i, step in enumerate(draft.steps, 1))
+    # 모델이 낸 계획은 학습한 작업에서 쓴 도구와 선언한 입력만 쓸 때 남긴다. 아니면 레시피만 둔다
+    runnable = valid_plan(draft.plan, draft.inputs, span.tool_names)
     return Procedure(
         name=name,
         description=draft.description,
@@ -38,6 +41,8 @@ def build_procedure(draft: ProcedureDraft, span: TaskSpan, source: str, name: st
         source=source,
         tools=span.tool_names,
         parameters=draft.parameters,
+        inputs=draft.inputs if runnable else (),
+        plan=draft.plan if runnable else (),
     )
 
 

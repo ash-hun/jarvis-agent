@@ -530,14 +530,16 @@ class InfraBuilder:
             skill_registry=services.skill_registry,
         )
         ctx.dispatcher = dispatcher
-        dispatcher.register(
+        dispatcher.register_scoped(
             "remember",
             make_remember_handler(memory, session_repo),
             "내용 저장/검색/삭제 (list | search <키워드> | forget <id>)",
         )
         from jarvis.core.slash.patterns_cmd import make_patterns_handler
 
-        dispatcher.register("patterns", make_patterns_handler(memory), "지금 에이전트의 작업 패턴 (forget <이름>)")
+        dispatcher.register_scoped(
+            "patterns", make_patterns_handler(memory), "지금 에이전트의 작업 패턴 (forget <이름>)"
+        )
         if services.openloop_store is not None:
             from jarvis.core.slash.openloop_cmd import make_openloop_handler
 
@@ -550,7 +552,7 @@ class InfraBuilder:
             from jarvis.core.slash.usermodel_cmd import make_usermodel_handler
             from jarvis.agent_layer.usermodel import UserModelBuilder
 
-            dispatcher.register(
+            dispatcher.register_scoped(
                 "usermodel",
                 make_usermodel_handler(
                     services.user_model_store,
@@ -564,7 +566,7 @@ class InfraBuilder:
             from jarvis.core.slash.journal_cmd import make_journal_handler
             from jarvis.agent_layer.journal import ReflectionJournaler
 
-            dispatcher.register(
+            dispatcher.register_scoped(
                 "journal",
                 make_journal_handler(ReflectionJournaler(model_config, memory)),
                 "자기 성찰 저널 (write로 작성)",
@@ -595,7 +597,7 @@ class InfraBuilder:
             ),
             "학습된 절차 (approve <name> | reject <name> | show <name> | learn [session_id])",
         )
-        dispatcher.register(
+        dispatcher.register_scoped(
             "compact", make_compact_handler(model_config, session_repo, memory), "현재 세션을 요약해 장기 기억에 저장"
         )
         per_agent_sessions = {f"agent_{d.name}" for d in agent_defs if d.memory.stm == "per_agent"}
@@ -607,7 +609,7 @@ class InfraBuilder:
         if orchestration is not None:
             from jarvis.core.slash.orchestrate_cmd import make_orchestrate_handler
 
-            dispatcher.register(
+            dispatcher.register_scoped(
                 "orchestrate",
                 make_orchestrate_handler(orchestration),
                 "<pattern> [--agents a,b] [--promote] <작업>: 서브 에이전트들을 패턴으로 조율",

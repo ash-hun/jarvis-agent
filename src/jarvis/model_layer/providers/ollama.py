@@ -16,6 +16,7 @@ from jarvis.model_layer.types import (
     StreamOptions,
     TextContent,
     TextDeltaEvent,
+    ThinkingDeltaEvent,
     Tool,
     ToolCallDeltaEvent,
     Usage,
@@ -29,7 +30,7 @@ class OllamaProvider(Provider):
     provider_name = "ollama"
 
     def supports_thinking(self) -> bool:
-        return False
+        return True
 
     def supports_images(self) -> bool:
         return True
@@ -49,7 +50,7 @@ class OllamaProvider(Provider):
             "messages": messages,
             "stream": True,
             # 생각하는 모델(qwen3 계열)은 기본값이 think=on 이라 num_predict 를 전부 thinking 에 쓰고 content 가 빈다.
-            # ponytail: thinking 델타를 버리므로 끈다, 사고 과정을 보여줄 때 supports_thinking 과 함께 켠다
+            # 그래서 호출자가 enable_thinking 으로 켤 때만 생각하고, 켜면 생각 과정을 thinking 델타로 넘긴다
             "think": bool(options and options.enable_thinking),
             "options": {
                 "temperature": model.temperature,
@@ -73,6 +74,9 @@ class OllamaProvider(Provider):
                             continue
                         chunk = json.loads(line)
                         msg = chunk.get("message", {})
+
+                        if thinking := msg.get("thinking"):
+                            yield ThinkingDeltaEvent(thinking=thinking)
 
                         if content := msg.get("content"):
                             yield TextDeltaEvent(delta=content)

@@ -19,7 +19,7 @@ class EpisodicSummarizer:
         self,
         session_id: str,
         messages: list[Message],
-        scope: MemoryScope | None = None,
+        scope: MemoryScope,
     ) -> str | None:
         """저장된 항목 id. 메시지가 없거나 요약 LLM 호출이 실패하면 None."""
         if not messages:
@@ -27,8 +27,7 @@ class EpisodicSummarizer:
         summary = await self._summarize(session_id, messages)
         if summary is None:
             return None
-        resolved = self._memory.resolve_scope(scope).with_session(session_id)
-        return await self._memory.remember(summary, source="session_end", scope=resolved)
+        return await self._memory.remember(summary, source="session_end", scope=scope.with_session(session_id))
 
     async def _summarize(self, session_id: str, messages: list[Message]) -> str | None:
         from jarvis.model_layer.stream import stream_to_message

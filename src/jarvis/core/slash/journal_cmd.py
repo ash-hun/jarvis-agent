@@ -5,8 +5,9 @@ from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.journal import ReflectionJournaler
+    from jarvis.memory.scope import MemoryScope
 
-Handler = Callable[[str], Awaitable[str]]
+ScopedHandler = Callable[[str, "MemoryScope"], Awaitable[str]]
 
 _USAGE = (
     "[Journal] 자기 성찰 저널 (Tier 3).\n"
@@ -16,18 +17,18 @@ _USAGE = (
 )
 
 
-def make_journal_handler(journaler: "ReflectionJournaler") -> Handler:
+def make_journal_handler(journaler: "ReflectionJournaler") -> ScopedHandler:
     """SlashCommandDispatcher에 등록할 /journal 핸들러 factory."""
 
-    async def handle(args: str) -> str:
+    async def handle(args: str, scope: "MemoryScope") -> str:
         sub = args.strip().lower()
         if sub == "write":
-            entry = await journaler.write()
+            entry = await journaler.write(scope)
             if not entry:
                 return "[Journal] 성찰할 사고 기록이 없습니다."
             return f"[Journal] 새 성찰:\n{entry}"
         if sub in ("", "list", "show"):
-            entries = await journaler.recent(limit=5)
+            entries = await journaler.recent(scope, limit=5)
             if not entries:
                 return "[Journal] 저널이 비어 있습니다. /journal write 로 작성하세요."
             return "[Journal] 최근 성찰:\n" + "\n".join(f"  · {e}" for e in entries)

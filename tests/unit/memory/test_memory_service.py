@@ -2,7 +2,7 @@
 
 import pytest
 
-from jarvis.memory import WRITE_RULES, MemoryItem, MemoryKind, MemoryScope, MemoryService, current_scope
+from jarvis.memory import WRITE_RULES, MemoryItem, MemoryKind, MemoryScope, MemoryService
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.stores.protocol import ItemStore
 from jarvis.model_layer.types import UserMessage
@@ -45,20 +45,6 @@ async def test_remember_keyword_overrides_rule(memory):
 
 def test_every_known_source_has_a_rule():
     assert {"explicit", "auto_summary", "manual_compact", "session_end", "thought", "journal"} <= set(WRITE_RULES)
-
-
-# ── 범위 해석 ────────────────────────────────────────────────────────────────
-
-
-async def test_resolve_scope_prefers_explicit_then_contextvar_then_local(memory):
-    assert memory.resolve_scope(U2_MAIN) == U2_MAIN
-    token = current_scope.set(U1_RESEARCHER)
-    try:
-        assert memory.resolve_scope() == U1_RESEARCHER
-        assert memory.resolve_scope(U2_MAIN) == U2_MAIN
-    finally:
-        current_scope.reset(token)
-    assert memory.resolve_scope() == MemoryScope(user_id="local")
 
 
 # ── 저장소 격리 ──────────────────────────────────────────────────────────────

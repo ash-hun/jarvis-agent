@@ -5,6 +5,9 @@ from jarvis.memory.consolidation.episodic import EpisodicSummarizer
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.memory_service import MemoryService
 from jarvis.model_layer.types import UserMessage
+from jarvis.memory.scope import MemoryScope
+
+SCOPE = MemoryScope(user_id="local")
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -25,10 +28,10 @@ async def test_episodic_save_session_stores_to_ltm(faux_model_with_response, ltm
     summarizer = EpisodicSummarizer(model=model, memory=ltm)
 
     msgs = [_user_msg("Python 기초를 배우고 싶어"), _user_msg("변수 선언 방법 알려줘")]
-    entry_id = await summarizer.save_session("test-session", msgs)
+    entry_id = await summarizer.save_session("test-session", msgs, SCOPE)
 
     assert entry_id is not None
-    recent = await ltm.recent()
+    recent = await ltm.recent(SCOPE)
     assert len(recent) == 1
     assert recent[0].source == "session_end"
     assert recent[0].session_id == "test-session"
@@ -40,9 +43,9 @@ async def test_episodic_empty_messages_returns_none(faux_model_with_response, lt
     model = faux_model_with_response("요약")
     summarizer = EpisodicSummarizer(model=model, memory=ltm)
 
-    result = await summarizer.save_session("test-session", [])
+    result = await summarizer.save_session("test-session", [], SCOPE)
     assert result is None
-    assert await ltm.recent() == []
+    assert await ltm.recent(SCOPE) == []
 
 
 @pytest.mark.asyncio
@@ -50,7 +53,7 @@ async def test_episodic_saves_entry_id(faux_model_with_response, ltm):
     model = faux_model_with_response("요약 내용")
     summarizer = EpisodicSummarizer(model=model, memory=ltm)
 
-    entry_id = await summarizer.save_session("s1", [_user_msg("안녕")])
+    entry_id = await summarizer.save_session("s1", [_user_msg("안녕")], SCOPE)
     assert isinstance(entry_id, str)
     assert len(entry_id) == 32  # MemoryItem.id 는 uuid4().hex (32자)
 
@@ -60,10 +63,10 @@ async def test_episodic_multiple_sessions_stored_separately(faux_model_with_resp
     model = faux_model_with_response("요약")
     summarizer = EpisodicSummarizer(model=model, memory=ltm)
 
-    await summarizer.save_session("session-a", [_user_msg("첫 번째 세션")])
-    await summarizer.save_session("session-b", [_user_msg("두 번째 세션")])
+    await summarizer.save_session("session-a", [_user_msg("첫 번째 세션")], SCOPE)
+    await summarizer.save_session("session-b", [_user_msg("두 번째 세션")], SCOPE)
 
-    recent = await ltm.recent()
+    recent = await ltm.recent(SCOPE)
     assert len(recent) == 2
     session_ids = {e.session_id for e in recent}
     assert "session-a" in session_ids
@@ -86,7 +89,7 @@ def faux_model_error():
 async def test_episodic_skips_store_when_summary_llm_fails(faux_model_error, ltm):
     summarizer = EpisodicSummarizer(model=faux_model_error, memory=ltm)
 
-    entry_id = await summarizer.save_session("s", [_user_msg("hi")])
+    entry_id = await summarizer.save_session("s", [_user_msg("hi")], SCOPE)
 
     assert entry_id is None
-    assert await ltm.recent() == []
+    assert await ltm.recent(SCOPE) == []

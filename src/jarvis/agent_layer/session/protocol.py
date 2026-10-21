@@ -12,13 +12,15 @@ from jarvis.memory.scope import MAIN_AGENT
 
 # 먼저 건넨 말(🔔). 대화 기록이 아니라 get_messages 에는 섞이지 않는다
 PROACTIVE_ENTRY = "proactive"
+# 🔔 에 사용자가 피드백(수락/무시)으로 답했다. 재시작 뒤 응답 대기를 다시 걸지 않게 한다
+PROACTIVE_ACK_ENTRY = "proactive_ack"
 
 
 class SessionEntry(BaseModel):
     id: str
     parent_id: str | None = None
     timestamp: int
-    type: str  # "message" | "branch" | "compaction" | "proactive"
+    type: str  # "message" | "branch" | "compaction" | "proactive" | "proactive_ack"
     content: dict[str, Any]
 
 
@@ -73,12 +75,16 @@ class SessionRepo:
     async def append(self, session_id: str, message: Message) -> str:
         raise NotImplementedError("메시지 저장은 저장 매체마다 다르다")
 
-    async def append_proactive(self, session_id: str, message_id: str, text: str) -> None:
-        """먼저 건넨 말을 남긴다. 같은 message_id 는 몇 번 불러도 하나다."""
+    async def append_proactive(
+        self, session_id: str, message_id: str, text: str, entry_type: str = PROACTIVE_ENTRY
+    ) -> None:
+        """먼저 건넨 말(이나 그 말의 피드백)을 남긴다. 같은 message_id 는 몇 번 불러도 하나다."""
         raise NotImplementedError("🔔 저장은 저장 매체마다 다르다")
 
-    async def get_proactive(self, session_id: str) -> builtins.list[SessionEntry]:
-        """먼저 건넨 말을 남긴 순서대로. content 는 {"text": ...}."""
+    async def get_proactive(
+        self, session_id: str, entry_type: str = PROACTIVE_ENTRY
+    ) -> builtins.list[SessionEntry]:
+        """남긴 순서대로. content 는 {"text": ...}."""
         raise NotImplementedError("🔔 조회는 저장 매체마다 다르다")
 
     async def delete(self, session_id: str) -> None:

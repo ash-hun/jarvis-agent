@@ -42,6 +42,9 @@ class ProactivityPolicy:
     def restore_awaiting(self, session_id: str = "default") -> None:
         pass
 
+    def restore_last_spoke(self, session_id: str, seconds_ago: float) -> None:
+        pass
+
     def decide_proactive(
         self, frame: ThoughtFrame, *, session_id: str = "default", now: float | None = None
     ) -> ProactiveDecision:
@@ -114,6 +117,10 @@ class DefaultProactivityPolicy(ProactivityPolicy):
     def restore_awaiting(self, session_id: str = "default") -> None:
         """재시작 전에 건넨 말이 아직 답을 못 받았다. 무시는 재시작 전에 셌을 수 있어 다시 세지 않는다."""
         self._awaiting.setdefault(session_id, (self._clock(), True))
+
+    def restore_last_spoke(self, session_id: str, seconds_ago: float) -> None:
+        """재시작 전에 마지막으로 먼저 말한 지 seconds_ago 초 지났다. 쿨다운을 그 시각부터 이어 센다."""
+        self._last_spoke.setdefault(session_id, self._clock() - max(0.0, seconds_ago))
 
     # ── daemon 자율 발화 게이팅 ────────────────────────────────────────────────
 

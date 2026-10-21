@@ -2,6 +2,10 @@
 from unittest.mock import MagicMock
 from datetime import datetime, timedelta
 
+from jarvis.memory.scope import MemoryScope
+
+SCOPE = MemoryScope(user_id="local")
+
 
 class TestParseDeadline:
     def test_korean_am(self):
@@ -117,50 +121,50 @@ class TestSlashCommandDispatcher:
 
     async def test_no_slash_returns_empty_feedbacks(self):
         d = self._make_dispatcher()
-        result = await d.dispatch("오늘 날씨 알려줘")
+        result = await d.dispatch("오늘 날씨 알려줘", SCOPE)
         assert result.feedbacks == []
         assert result.remaining_text == "오늘 날씨 알려줘"
         assert not result.fully_consumed
 
     async def test_help_command(self):
         d = self._make_dispatcher()
-        result = await d.dispatch("/help")
+        result = await d.dispatch("/help", SCOPE)
         assert len(result.feedbacks) == 1
         assert "/schedule" in result.feedbacks[0]
         assert result.fully_consumed
 
     async def test_question_mark_alias(self):
         d = self._make_dispatcher()
-        result = await d.dispatch("/?")
+        result = await d.dispatch("/?", SCOPE)
         assert len(result.feedbacks) == 1
         assert "/schedule" in result.feedbacks[0]
 
     async def test_unknown_command(self):
         d = self._make_dispatcher()
-        result = await d.dispatch("/foobar")
+        result = await d.dispatch("/foobar", SCOPE)
         assert len(result.feedbacks) == 1
         assert "알 수 없는 명령" in result.feedbacks[0]
 
     async def test_schedule_no_args(self):
         d = self._make_dispatcher()
-        result = await d.dispatch("/schedule")
+        result = await d.dispatch("/schedule", SCOPE)
         assert "인자가 필요" in result.feedbacks[0]
 
     async def test_schedule_bad_format(self):
         d = self._make_dispatcher()
-        result = await d.dispatch("/schedule 내일 오전에 해줘")
+        result = await d.dispatch("/schedule 내일 오전에 해줘", SCOPE)
         assert "파싱 실패" in result.feedbacks[0]
 
     async def test_schedule_no_scheduler(self):
         d = self._make_dispatcher(scheduler=None)
         future = datetime.now() + timedelta(days=5)
         cmd = f"/schedule {future.strftime('%Y.%m.%d')} 오전 9시까지 자료 수집해줘"
-        result = await d.dispatch(cmd)
+        result = await d.dispatch(cmd, SCOPE)
         assert "비활성화" in result.feedbacks[0]
 
     async def test_schedule_past_deadline(self):
         d = self._make_dispatcher(scheduler=MagicMock())
-        result = await d.dispatch("/schedule 2020.01.01 오전 9시까지 자료 수집해줘")
+        result = await d.dispatch("/schedule 2020.01.01 오전 9시까지 자료 수집해줘", SCOPE)
         assert "이미 지났" in result.feedbacks[0]
 
     async def test_schedule_success_registers_task(self):
@@ -170,7 +174,7 @@ class TestSlashCommandDispatcher:
 
         future = datetime.now() + timedelta(days=5)
         cmd = f"/schedule {future.strftime('%Y.%m.%d')} 오전 9시까지 웹검색으로 자료 수집해줘"
-        result = await d.dispatch(cmd)
+        result = await d.dispatch(cmd, SCOPE)
 
         assert "등록 완료" in result.feedbacks[0]
         mock_scheduler.add_task.assert_called_once()
@@ -184,7 +188,7 @@ class TestSlashCommandDispatcher:
         d = self._make_dispatcher(scheduler=mock_scheduler)
         future = datetime.now() + timedelta(days=5)
         cmd = f"/schedule {future.strftime('%Y.%m.%d')} 오전 9시까지"  # no prompt
-        result = await d.dispatch(cmd)
+        result = await d.dispatch(cmd, SCOPE)
         assert result.feedbacks  # 에러 메시지 있어야 함
         mock_scheduler.add_task.assert_not_called()
 
@@ -193,7 +197,7 @@ class TestSlashCommandDispatcher:
     async def test_inline_command_at_end(self):
         """지시문 끝에 /help — remaining_text로 앞 텍스트 남김."""
         d = self._make_dispatcher()
-        result = await d.dispatch("이것저것 알려줘 /help")
+        result = await d.dispatch("이것저것 알려줘 /help", SCOPE)
         assert len(result.feedbacks) == 1
         assert "/schedule" in result.feedbacks[0]
         assert result.remaining_text == "이것저것 알려줘"
@@ -202,7 +206,7 @@ class TestSlashCommandDispatcher:
     async def test_inline_command_in_middle(self):
         """지시문 중간에 /help — 앞뒤 텍스트 모두 remaining_text."""
         d = self._make_dispatcher()
-        result = await d.dispatch("앞부분 /help 뒷부분")
+        result = await d.dispatch("앞부분 /help 뒷부분", SCOPE)
         # /help 이후 "뒷부분"은 같은 줄이므로 help의 args로 흡수됨 (줄 끝까지)
         assert len(result.feedbacks) == 1
         assert result.remaining_text == "앞부분"
@@ -211,7 +215,7 @@ class TestSlashCommandDispatcher:
         """멀티라인 입력 — /command가 포함된 줄 제거 후 나머지 전달."""
         d = self._make_dispatcher()
         text = "파일 분석해줘\n/help\n요약도 해줘"
-        result = await d.dispatch(text)
+        result = await d.dispatch(text, SCOPE)
         assert len(result.feedbacks) == 1
         assert "파일 분석해줘" in result.remaining_text
         assert "요약도 해줘" in result.remaining_text
@@ -219,13 +223,13 @@ class TestSlashCommandDispatcher:
     async def test_multiple_commands_same_input(self):
         """두 개의 /command가 같은 입력에 존재."""
         d = self._make_dispatcher()
-        result = await d.dispatch("/help\n/help")
+        result = await d.dispatch("/help\n/help", SCOPE)
         assert len(result.feedbacks) == 2
 
     async def test_url_not_matched(self):
         """URL 안의 /path는 slash command로 파싱하지 않음."""
         d = self._make_dispatcher()
-        result = await d.dispatch("https://example.com/path 보여줘")
+        result = await d.dispatch("https://example.com/path 보여줘", SCOPE)
         assert result.feedbacks == []
         assert result.remaining_text == "https://example.com/path 보여줘"
 
@@ -237,7 +241,7 @@ class TestSlashCommandDispatcher:
             return f"custom: {args}"
 
         d.register("mytest", my_handler, "테스트 명령")
-        result = await d.dispatch("/mytest hello world")
+        result = await d.dispatch("/mytest hello world", SCOPE)
         assert result.feedbacks == ["custom: hello world"]
         assert result.fully_consumed
 
@@ -249,7 +253,7 @@ class TestSlashCommandDispatcher:
             return "ok"
 
         d.register("mytest", my_handler, "내 테스트 명령")
-        result = await d.dispatch("/help")
+        result = await d.dispatch("/help", SCOPE)
         assert "mytest" in result.feedbacks[0]
 
     async def test_inline_schedule_with_remaining(self):
@@ -260,7 +264,7 @@ class TestSlashCommandDispatcher:
 
         future = datetime.now() + timedelta(days=5)
         text = f"파일도 분석해줘\n/schedule {future.strftime('%Y.%m.%d')} 오전 9시까지 웹검색 자료 수집"
-        result = await d.dispatch(text)
+        result = await d.dispatch(text, SCOPE)
 
         assert len(result.feedbacks) == 1
         assert "등록 완료" in result.feedbacks[0]
@@ -318,9 +322,9 @@ async def test_known_skill_is_passed_through_to_llm_path():
     skills.register(Skill(name="deploy", description="d", aliases=["dep"], content="배포해: {{args}}", metadata={}))
     dispatcher = SlashCommandDispatcher(skill_registry=skills)
 
-    result = await dispatcher.dispatch("/deploy staging")
+    result = await dispatcher.dispatch("/deploy staging", SCOPE)
     assert result.remaining_text == "/deploy staging" and result.feedbacks == []
-    result = await dispatcher.dispatch("/dep staging")  # 별칭도 통과
+    result = await dispatcher.dispatch("/dep staging", SCOPE)  # 별칭도 통과
     assert result.remaining_text == "/dep staging"
-    result = await dispatcher.dispatch("/nope x")  # 스킬도 명령도 아니면 안내
+    result = await dispatcher.dispatch("/nope x", SCOPE)  # 스킬도 명령도 아니면 안내
     assert result.fully_consumed and "알 수 없는 명령" in result.feedbacks[0]

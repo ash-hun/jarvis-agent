@@ -2,6 +2,9 @@
 import pytest
 
 from jarvis.model_layer.types import UserMessage
+from jarvis.memory.scope import MemoryScope
+
+SCOPE = MemoryScope(user_id="local", session_id="default")
 
 # ── /sessions ─────────────────────────────────────────────────────────────────
 
@@ -93,7 +96,7 @@ class TestCompactHandler:
 
         await jsonl_repo.create(session_id="default")
         handler = make_compact_handler(model_config, jsonl_repo, ltm)
-        assert "충분하지 않습니다" in await handler("")
+        assert "충분하지 않습니다" in await handler("", SCOPE)
 
     async def test_compacts_and_stores(self, jsonl_repo, model_config, ltm):
         from jarvis.core.slash.ops_cmd import make_compact_handler
@@ -103,9 +106,10 @@ class TestCompactHandler:
         await jsonl_repo.append("default", UserMessage(content="두 번째 메시지입니다"))
 
         handler = make_compact_handler(model_config, jsonl_repo, ltm)
-        out = await handler("")
+        out = await handler("", SCOPE)
         assert "요약했습니다" in out
 
-        stored = await ltm.recent(limit=5)
+        stored = await ltm.recent(SCOPE, limit=5)
         assert len(stored) == 1
         assert stored[0].source == "manual_compact"
+        assert stored[0].scope == SCOPE

@@ -9,12 +9,15 @@ if TYPE_CHECKING:
     from jarvis.core.scheduler.service import SchedulerService
     from jarvis.core.skills.registry import SkillRegistry
     from jarvis.core.slash.schedule_cmd import Classifier
+    from jarvis.memory.scope import MemoryScope
 
 # /command at start-of-string or after whitespace.
 # Negative lookbehind (?<!\S) prevents matching paths inside URLs (http://host/path).
 _CMD_RE = re.compile(r"(?<!\S)/([a-zA-Z?][a-zA-Z0-9_-]*)")
 
 Handler = Callable[[str], Awaitable[str]]
+# 명령을 친 화면의 (사용자, 에이전트, 세션)까지 받는 핸들러. 기억을 읽고 쓰는 명령이 쓴다
+ScopedHandler = Callable[[str, "MemoryScope"], Awaitable[str]]
 
 
 @dataclass
@@ -42,14 +45,22 @@ class SlashCommandDispatcher:
         schedule_classifier: "Classifier | None" = None,
         skill_registry: "SkillRegistry | None" = None,
     ) -> None:
-        self._handlers: dict[str, Handler] = {}
+        self._handlers: dict[str, ScopedHandler] = {}
         self._descriptions: dict[str, str] = {}
         # 스킬(/test 처럼 프롬프트로 확장되는 매크로)은 여기서 실행하지 않고 LLM 경로로 넘긴다
         self._skills = skill_registry
         self._register_builtins(scheduler, schedule_classifier)
 
     def register(self, name: str, handler: Handler, description: str = "") -> None:
-        """새 슬래시 명령을 등록한다."""
+        """범위가 필요 없는 슬래시 명령을 등록한다."""
+
+        async def unscoped(args: str, _scope: "MemoryScope") -> str:
+            return await handler(args)
+
+        self.register_scoped(name, unscoped, description)
+
+    def register_scoped(self, name: str, handler: ScopedHandler, description: str = "") -> None:
+        """명령을 친 화면의 범위를 받는 슬래시 명령을 등록한다."""
         self._handlers[name.lower()] = handler
         self._descriptions[name.lower()] = description
 
@@ -58,8 +69,9 @@ class SlashCommandDispatcher:
         """등록된 명령 이름 → 설명 딕셔너리 (? alias 제외)."""
         return {k: v for k, v in self._descriptions.items() if k != "?"}
 
-    async def dispatch(self, text: str) -> ParseResult:
-        """
+    async def dispatch(self, text: str, scope: "MemoryScope") -> ParseResult:
+        """scope 는 명령을 친 화면의 사용자, 에이전트, 세션이다. 기억을 쓰는 명령은 이 범위로만 읽고 쓴다.
+
         텍스트에서 /command 패턴을 모두 추출·실행한다.
         반환값: ParseResult(remaining_text=LLM 전달용 텍스트, feedbacks=명령 실행 메시지 목록)
         slash command가 없으면 feedbacks가 비어 있고 remaining_text == text.
@@ -77,7 +89,7 @@ class SlashCommandDispatcher:
             if handler is None:
                 feedbacks.append(f"알 수 없는 명령: /{cmd_name}\n\n{self._help_text()}")
             else:
-                feedbacks.append(await handler(args))
+                feedbacks.append(await handler(args, scope))
 
         return ParseResult(remaining_text=remaining, feedbacks=feedbacks)
 
@@ -125,7 +137,7 @@ class SlashCommandDispatcher:
     ) -> None:
         from jarvis.core.slash.schedule_cmd import make_schedule_handler
 
-        self.register(
+        self.register_scoped(
             "schedule",
             make_schedule_handler(scheduler, classifier),
             "<시각>에 <내용> (한 번) | YYYY.MM.DD 오전/오후 N시까지 <프롬프트> (반복)",

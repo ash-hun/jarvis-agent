@@ -48,12 +48,12 @@ from jarvis.agent_layer.thought import (
 )
 from jarvis.model_layer.types import AssistantMessage, ModelConfig, ToolResultMessage, UserMessage
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
-from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope, current_scope
+from jarvis.agent_layer.session.protocol import PROACTIVE_ACK_ENTRY, SessionRepo
 from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
 from jarvis.agent_layer.thought.router import RouteVerdict, ThoughtRouter
+from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope
 from jarvis.core.tools.registry import JarvisTool, ToolRegistry
 from jarvis.agent_layer.openloop.judge import OpenLoopJudge
-from jarvis.agent_layer.session.protocol import SessionRepo
 from jarvis.agent_layer.usermodel import UserModelStore
 from jarvis.memory.memory_service import MemoryService
 from jarvis.core.skills.registry import SkillRegistry
@@ -159,7 +159,7 @@ class AgentSession:
         loop_judge: OpenLoopJudge | None = None,
     ) -> None:
         self._security = security_pipeline
-        # 서브 에이전트: 사용자는 인증이 아니라 위임한 부모의 범위(current_scope)에서 받는다.
+        # 서브 에이전트: 사용자는 인증이 아니라 부른 쪽 범위(prompt 의 caller_scope)에서 받는다.
         self._inherit_scope = inherit_scope
         self._plugins = plugin_runner
         self._tool_registry = tool_registry
@@ -188,6 +188,7 @@ class AgentSession:
         self._external_detail_in_prompt = external_detail_in_prompt
         self._recent_proactive: deque[str] = deque(maxlen=RECENT_PROACTIVE_MAX)
         self._proactive_restored = False
+        self._last_proactive_id: str | None = None  # 피드백이 어느 🔔 에 대한 답인지
         # 코어는 세션별 emit에 바인딩되어야 하므로 팩토리로 주입받아 여기서 생성.
         self._proactivity: ProactivityCore | None = (
             proactivity_factory(self._emit_proactive) if proactivity_factory else None
@@ -218,21 +219,22 @@ class AgentSession:
         self,
         raw_input: str,
         credentials: dict[str, Any] | None = None,
+        caller_scope: MemoryScope | None = None,
     ) -> AssistantMessage | None:
+        """caller_scope 는 이 세션을 부른 쪽(위임한 부모, 말을 건 에이전트)의 범위다. inherit_scope 세션만 쓴다."""
         if self._busy:
             raise SessionBusy(BUSY_MESSAGE)
         self._busy = True
-        outer_scope = current_scope.get()
         try:
-            return await self._prompt(raw_input, credentials or {})
+            return await self._prompt(raw_input, credentials or {}, caller_scope)
         except BaseException:
             # run_main 진입 전 실패(검증·인증·rate limit·사고). run_main 의 finally 가 못 끈다.
             self._busy = False
             raise
-        finally:
-            current_scope.set(outer_scope)  # 이 세션이 설정한 범위가 호출자(부모 턴)에 새지 않도록
 
-    async def _prompt(self, raw_input: str, creds: dict[str, Any]) -> AssistantMessage | None:
+    async def _prompt(
+        self, raw_input: str, creds: dict[str, Any], caller_scope: MemoryScope | None
+    ) -> AssistantMessage | None:
         # 사용자 활동 기록. idle 트리거가 "조용해진 시점"을 알도록 리셋한다.
         if self._activity_clock is not None:
             self._activity_clock.touch()
@@ -250,9 +252,8 @@ class AgentSession:
         if policy_result.rate_limit is not None:
             self._check_rate_limit(auth_ctx.user_id, policy_result.rate_limit)
 
-        inherited = current_scope.get() if self._inherit_scope else None
+        inherited = caller_scope if self._inherit_scope else None
         self._last_user_id = (inherited.user_id if inherited and inherited.user_id else None) or auth_ctx.user_id
-        current_scope.set(self.memory_scope)
 
         expanded = self._skill_registry.expand(validated.sanitized)
 
@@ -332,22 +333,17 @@ class AgentSession:
             self._learn_ignored(awaiting)
             logger.info(f"[Thought] proactive silent: {awaiting.reason}")
             return awaiting
-        # 성찰은 daemon 태스크에서 세션을 차례로 돈다. 이 세션의 범위를 걸고 끝나면 되돌려야
-        # 사고 기록과 자율 행동이 main 범위나 앞 세션의 범위로 새지 않는다
-        token = current_scope.set(self.memory_scope)
-        try:
-            frame = await self._run_inner_thought(
-                REFLECTION_SEED,
-                mode="reflection",
-                external_events=self._drain_external_events(),
-            )
-            if frame is None:
-                return None
-            decision = await self._proactivity.reflect(
-                frame, session_id=self._session_id, execute=self._execute_autonomous
-            )
-        finally:
-            current_scope.reset(token)
+        # 사고 기록과 자율 행동은 이 세션의 범위(memory_scope)를 인자로 받는다
+        frame = await self._run_inner_thought(
+            REFLECTION_SEED,
+            mode="reflection",
+            external_events=self._drain_external_events(),
+        )
+        if frame is None:
+            return None
+        decision = await self._proactivity.reflect(
+            frame, session_id=self._session_id, execute=self._execute_autonomous
+        )
         self._learn_ignored(decision)
         if not decision.speak:
             # 🔔 가 안 뜨는 이유(임계치 미달, 쿨다운, utterance 비움)를 로그에서 볼 수 있게.
@@ -386,9 +382,10 @@ class AgentSession:
             )
             is_error = True
             try:
-                result = await self._tool_registry.execute(
-                    call_id, action.tool_name, action.args
-                )
+                from jarvis.core.tools.registry import ToolContext
+
+                context = ToolContext(scope=self.memory_scope, session_id=self._session_id, user_id=self._last_user_id)
+                result = await self._tool_registry.execute(call_id, action.tool_name, action.args, context=context)
                 is_error = bool(getattr(result, "is_error", False))
             except Exception:
                 is_error = True
@@ -553,6 +550,8 @@ class AgentSession:
                 user_input=user_input,
                 history=await self._session_repo.get_messages(self._session_id),
                 session_id=self._session_id,
+                user_id=self.memory_scope.user_id,
+                agent_id=self.memory_scope.agent_id,
                 open_loops=[f"[{i}] {_loop_line(loop)}" for i, loop in enumerate(shown_loops, 1)],
                 user_model=await self._load_user_model(),
                 external_events=external_events or [],
@@ -573,7 +572,7 @@ class AgentSession:
             )
         )
         if self._thought_log is not None:
-            await self._thought_log.store(frame, self._session_id)
+            await self._thought_log.store(frame, self.memory_scope)
 
         return frame
 
@@ -585,6 +584,7 @@ class AgentSession:
             return
         if message.kind == "proactive":
             self._recent_proactive.append(message.text)
+            self._last_proactive_id = message.id
             # 내보내기 전에 남긴다. 남긴 뒤 죽으면 재시작 뒤 게이트가 닫혀 있어 같은 말을 다시 하지 않는다
             try:
                 await self._session_repo.append_proactive(self._session_id, message.id, message.text)
@@ -606,16 +606,22 @@ class AgentSession:
         self._proactive_restored = True
         try:
             said = await self._session_repo.get_proactive(self._session_id)
+            acks = await self._session_repo.get_proactive(self._session_id, PROACTIVE_ACK_ENTRY)
             messages = await self._session_repo.get_messages(self._session_id)
         except Exception as exc:
             logger.warning(f"[Proactive] restore failed: {exc!r}")
             return
         self._recent_proactive.extend(e.content.get("text", "") for e in said)
+        if not said:
+            return
+        last = said[-1]
+        self._last_proactive_id = last.id
+        # 사용자가 말했거나 피드백을 줬으면 그 🔔 의 대기는 끝났다
         last_user = max((m.timestamp for m in messages if isinstance(m, UserMessage)), default=0)
-        # ponytail: 피드백으로 푼 대기와 쿨다운은 남기지 않는다(재시작하면 사용자가 말할 때까지 조용),
-        # 그 침묵이 문제면 피드백도 엔트리로 남긴다
-        if said and said[-1].timestamp > last_user:
+        released = max(last_user, max((a.timestamp for a in acks), default=0))
+        if last.timestamp > released:
             self._proactivity.restore_awaiting(self._session_id)
+        self._proactivity.restore_last_spoke(self._session_id, (time.time() * 1000 - last.timestamp) / 1000)
 
     async def record_feedback(self, accepted: bool) -> None:
         """proactive 발화에 대한 사용자 피드백(수락/무시)을 학습기에 기록 (C3).
@@ -625,7 +631,14 @@ class AgentSession:
         if self._feedback_learner is not None:
             self._feedback_learner.record(accepted)
         if self._proactivity is not None:
+            await self._restore_proactive()
             self._proactivity.note_user_activity(self._session_id)
+            if self._last_proactive_id is not None:
+                # 재시작 뒤에도 이 🔔 에는 답을 받았다고 본다. 같은 🔔 의 피드백은 몇 번 와도 하나다
+                with contextlib.suppress(Exception):
+                    await self._session_repo.append_proactive(
+                        self._session_id, f"ack-{self._last_proactive_id}", "", PROACTIVE_ACK_ENTRY
+                    )
 
     async def _load_open_loops(self) -> list[OpenLoop]:
         """기한이 지난 약속을 닫은 뒤 사고에 보여줄 열린 open-loop(store 미설정이면 빈 목록)."""
@@ -784,7 +797,9 @@ class AgentSession:
 
             from jarvis.core.tools.registry import ToolContext
 
-            context = ToolContext(scope=self.memory_scope, session_id=self._session_id, user_id=self._last_user_id)
+            context = ToolContext(
+                scope=self.memory_scope, session_id=self._session_id, user_id=self._last_user_id, call=executor
+            )
             result = await self._tool_registry.execute(tool_call_id, tool_name, params, context=context)
             await self._plugins.emit_after_tool_call(tool_name, params, {"is_error": result.is_error})
             return result

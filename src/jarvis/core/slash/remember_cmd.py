@@ -6,8 +6,9 @@ from collections.abc import Awaitable, Callable
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
     from jarvis.memory.memory_service import MemoryService
+    from jarvis.memory.scope import MemoryScope
 
-Handler = Callable[[str], Awaitable[str]]
+ScopedHandler = Callable[[str, "MemoryScope"], Awaitable[str]]
 
 _USAGE = (
     "[Memory] 인자가 필요합니다.\n"
@@ -21,13 +22,13 @@ _USAGE = (
 )
 
 
-def make_remember_handler(memory: "MemoryService", session_repo: "SessionRepo | None" = None) -> Handler:
+def make_remember_handler(memory: "MemoryService", session_repo: "SessionRepo | None" = None) -> ScopedHandler:
     """SlashCommandDispatcher에 등록할 /remember 핸들러 factory.
 
     session_repo 가 있으면 "/remember 그거" 처럼 상대 지칭으로 저장할 때 가리킨 대화를 같이 남긴다.
     """
 
-    async def handle(args: str) -> str:
+    async def handle(args: str, scope: "MemoryScope") -> str:
         args = args.strip()
 
         if not args:
@@ -38,26 +39,26 @@ def make_remember_handler(memory: "MemoryService", session_repo: "SessionRepo | 
         rest = parts[1].strip() if len(parts) > 1 else ""
 
         if subcmd == "list":
-            return await _handle_list(memory)
+            return await _handle_list(memory, scope)
         if subcmd == "search":
-            return await _handle_search(memory, rest)
+            return await _handle_search(memory, scope, rest)
         if subcmd == "forget":
             return await _handle_forget(memory, rest)
         if subcmd == "conflicts":
-            return await _handle_conflicts(memory)
+            return await _handle_conflicts(memory, scope)
         if subcmd == "reembed":
-            count = await memory.reembed()
+            count = await memory.reembed(scope)
             if not count:
                 return "[Memory] 다시 만들 벡터가 없습니다."
             return f"[Memory] {count}개 항목의 벡터를 다시 만들었습니다."
 
-        return await _handle_save(memory, args, session_repo)
+        return await _handle_save(memory, scope, args, session_repo)
 
     return handle
 
 
-async def _handle_list(memory: "MemoryService") -> str:
-    entries = await memory.recent(limit=10)
+async def _handle_list(memory: "MemoryService", scope: "MemoryScope") -> str:
+    entries = await memory.recent(scope, limit=10)
     if not entries:
         return "[Memory] 저장된 장기 기억이 없습니다."
     lines = ["[Memory] 최근 장기 기억:"]
@@ -67,10 +68,10 @@ async def _handle_list(memory: "MemoryService") -> str:
     return "\n".join(lines)
 
 
-async def _handle_search(memory: "MemoryService", query: str) -> str:
+async def _handle_search(memory: "MemoryService", scope: "MemoryScope", query: str) -> str:
     if not query:
         return "[Memory] 검색 키워드를 입력해주세요."
-    entries = await memory.recall(query, limit=5)
+    entries = await memory.recall(query, scope, limit=5)
     if not entries:
         return f"[Memory] '{query}'에 해당하는 기억이 없습니다."
     lines = [f"[Memory] '{query}' 검색 결과:"]
@@ -87,24 +88,26 @@ async def _handle_forget(memory: "MemoryService", entry_id: str) -> str:
     return f"[Memory] 기억 [{entry_id}]을 삭제했습니다."
 
 
-async def _handle_save(memory: "MemoryService", content: str, session_repo: "SessionRepo | None") -> str:
+async def _handle_save(
+    memory: "MemoryService", scope: "MemoryScope", content: str, session_repo: "SessionRepo | None"
+) -> str:
     from jarvis.memory.working.deixis import has_deixis, recent_exchange
 
     referent = None
-    session_id = memory.resolve_scope().session_id
+    session_id = scope.session_id
     if session_repo is not None and session_id and has_deixis(content):
         referent = recent_exchange(await session_repo.get_messages(session_id)) or None
-    entry_id = await memory.remember(content, source="explicit", referent=referent)
+    entry_id = await memory.remember(content, source="explicit", scope=scope, referent=referent)
     linked = " 가리킨 대화를 함께 남겼습니다." if referent else ""
     return f"[Memory] 장기 기억에 저장했습니다. (id: {entry_id[:8]}){linked}"
 
 
-async def _handle_conflicts(memory: "MemoryService") -> str:
+async def _handle_conflicts(memory: "MemoryService", scope: "MemoryScope") -> str:
     """간섭 후보: 주제는 다른데 내용이 비슷한 사실 쌍. 사람이 보고 /remember forget 으로 정리한다."""
     from jarvis.memory.long_term.semantic import CONFLICTS_KEY
     from jarvis.memory.types import MemoryKind
 
-    items = await memory.recent(kinds=[MemoryKind.SEMANTIC], limit=200)
+    items = await memory.recent(scope, kinds=[MemoryKind.SEMANTIC], limit=200)
     by_id = {i.id: i for i in items}
     seen: set[frozenset[str]] = set()
     lines: list[str] = []

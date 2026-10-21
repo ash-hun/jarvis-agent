@@ -46,8 +46,8 @@ from jarvis.agent_layer.thought import (
     ThoughtLog,
     ThoughtRequest,
 )
-from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
 from jarvis.model_layer.types import AssistantMessage, ModelConfig, ToolResultMessage, UserMessage
+from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
 from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope, current_scope
 from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
 from jarvis.agent_layer.thought.router import RouteVerdict, ThoughtRouter

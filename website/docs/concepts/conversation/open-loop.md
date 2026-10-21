@@ -102,7 +102,7 @@ gemma4:e2b-it-qat 에 입력 5개를 두 번씩 넣었을 때 약속을 낸 9번
    docker compose up -d --build jarvis-backend
    ```
 
-4. 이미 저장된 메모리 항목에 벡터를 채운다. Web HUD 나 TUI 에서 `/remember reembed` 를 입력한다. 열린 약속은 판정 때마다 다시 임베딩하므로 따로 채울 것이 없다.
+4. 이미 저장된 메모리 항목에 벡터를 채운다. Web HUD 나 TUI 에서 `/remember reembed` 를 입력한다. 열린 약속은 판정 때 임베딩해 프로세스 메모리에 기억해 두므로 따로 채울 것이 없다(재시작 뒤 첫 판정에서 다시 임베딩한다).
 
 :::warning[nomic-embed-text 는 한국어 약속을 구분하지 못한다]
 ollama 기본값인 nomic-embed-text 는 한국어 문장끼리 코사인이 0.68~0.97 로 몰렸다. "PR 리뷰 해주기" 와 "PR 머지하기" 가 0.93 이라 0.85 문턱에서 다른 약속이 합쳐진다. 한국어로 대화한다면 bge-m3 를 쓴다.

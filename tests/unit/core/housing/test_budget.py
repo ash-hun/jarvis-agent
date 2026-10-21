@@ -3,7 +3,7 @@
 import pytest
 import asyncio
 
-from jarvis.core.tools.housing.budget import Option, Terms, options_from_units, parse_terms, plan_for
+from jarvis.core.tools.housing.budget import CONCURRENCY, Option, Terms, options_from_units, parse_terms, plan_for
 from tests.unit.core.housing.conftest import TODAY, page
 from jarvis.core.tools.housing.fetch import FetchError
 from jarvis.core.tools.housing.lh_notice import Notice
@@ -127,3 +127,30 @@ def test_pdf_failure_falls_back_without_crashing():
 def test_same_day_same_answer():
     params = {"budget": 3e8, "cash": 1.2e8, "monthly_limit": 2e6}
     assert _run(Board(page("rent_terms_uiwang.txt")), params) == _run(Board(page("rent_terms_uiwang.txt")), params)
+
+
+class SlowBoard(Board):
+    """상세가 거꾸로 늦게 온다(먼저 부른 것이 가장 늦다). 동시에 열린 요청 수를 잰다."""
+
+    def __init__(self, pdf_text: str | None = None) -> None:
+        super().__init__(pdf_text)
+        self.open = 0
+        self.peak = 0
+        self.order = 0
+
+    async def fetch(self, url: str, query: dict[str, str]) -> str:
+        if not url.endswith("selectWrtancInfo.do"):
+            return await super().fetch(url, query)
+        self.order += 1
+        self.open += 1
+        self.peak = max(self.peak, self.open)
+        await asyncio.sleep(0.01 * (10 - self.order))
+        self.open -= 1
+        return await super().fetch(url, query)
+
+
+def test_parallel_details_keep_the_deadline_order_and_the_limit():
+    params = {"budget": 3e8, "cash": 1.2e8, "monthly_limit": 2e6}
+    slow = SlowBoard(page("rent_terms_uiwang.txt"))
+    assert _run(slow, params) == _run(Board(page("rent_terms_uiwang.txt")), params)
+    assert 1 < slow.peak <= CONCURRENCY

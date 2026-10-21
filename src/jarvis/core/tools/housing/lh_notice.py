@@ -21,6 +21,8 @@ DEFAULT_LIMIT = 10
 MAX_LIMIT = 50
 # 게시판은 15, 30, 50, 100 건만 받는다. 그 밖의 값은 오류 페이지를 준다
 PAGE_SIZES = (15, 30, 50, 100)
+# ponytail: 전부 볼 때 100건씩 MAX_PAGES 쪽까지만 넘긴다, 조건에 맞는 공고가 그보다 많으면 지역이나 상태로 좁혀 부른다
+MAX_PAGES = 5
 # 게시판 기본 기간(최근 2개월)보다 넓게 본다. 수시모집 공고는 연초에 올라와 연말까지 열려 있다
 DEFAULT_PERIOD_DAYS = 365
 DETAIL_TEXT_LIMIT = 1200
@@ -143,6 +145,12 @@ class Query:
     closing_within_days: int | None
     limit: int
     order: str = "최신순"
+    all_pages: bool = False  # 첫 쪽만이 아니라 조건에 맞는 공고 전부
+
+    @property
+    def exhaustive(self) -> bool:
+        """마감순은 최신 한 쪽만 보면 일찍 올라온 임박 공고를 놓친다."""
+        return self.all_pages or self.order == "마감순"
 
 
 def notice_id(pan_id: str, system: str, upp: str, ais: str) -> str:
@@ -199,7 +207,7 @@ def build_queries(params: dict[str, Any]) -> tuple[list[Query], str | None]:
     return [Query(c, code, region, status, keyword, closing, limit, order) for c in categories], None
 
 
-def form_of(query: Query, today: date) -> dict[str, str]:
+def form_of(query: Query, today: date, page: int = 1) -> dict[str, str]:
     """게시판 검색 폼과 같은 값. 빠진 칸이 있으면 게시판이 오류 페이지를 준다."""
     cat = CATEGORIES[query.category]
     upp, _, ais = query.code.partition("/")
@@ -207,16 +215,34 @@ def form_of(query: Query, today: date) -> dict[str, str]:
         period = ("0", today - timedelta(days=DEFAULT_PERIOD_DAYS), today)
     else:
         period = ("1", today, today + timedelta(days=query.closing_within_days))
-    # ponytail: 첫 쪽(최대 100건)만 읽는다, 쪽 넘김 폼이 기간 조건을 잃어서다. 더 볼 일이 생기면 쪽 넘김 폼 값을 맞춘다
-    page_size = next(size for size in PAGE_SIZES if size >= query.limit)
-    return {
-        "mi": cat.menu, "currPage": "1", "srchY": "Y", "indVal": "N", "srchFilter": "N",
+    page_size = PAGE_SIZES[-1] if query.exhaustive else next(size for size in PAGE_SIZES if size >= query.limit)
+    form = {
+        "mi": cat.menu, "currPage": str(page), "srchY": "Y", "indVal": "N", "srchFilter": "N",
         "panId": "", "ccrCnntSysDsCd": "", "prevListCo": "", "viewType": "", "netbgn": "",
         "srchUppAisTpCd": upp or cat.srch, "uppAisTpCd": upp or cat.upp, "aisTpCd": ais, "srchAisTpCd": ais,
         "mvinQf": "0", "cnpCd": query.region, "panSs": query.status,
         "schTy": period[0], "startDt": period[1].isoformat(), "endDt": period[2].isoformat(),
         "panNm": query.keyword, "listCo": str(page_size),
     }
+    if page > 1:
+        # 새 검색(srchY=Y)으로 보내면 게시판이 1쪽을 다시 준다. 앞 쪽 크기(prevListCo)까지 있어야 다음 쪽이다
+        form.update(srchY="N", prevListCo=str(page_size))
+    return form
+
+
+def unique(notices: list[Notice]) -> list[Notice]:
+    """게시판 순서를 지키고 같은 공고는 처음 것만. 쪽 사이에 새 공고가 올라오면 한 칸씩 밀려 겹친다."""
+    first: dict[str, Notice] = {}
+    for notice in notices:
+        first.setdefault(notice.id, notice)
+    return list(first.values())
+
+
+def pages_of(total: int | None) -> int:
+    """전부 볼 때 받을 쪽 수. 마지막 쪽을 넘기면 게시판이 마지막 쪽을 다시 주므로 건수로 멈춘다."""
+    if not total:
+        return 1
+    return min(MAX_PAGES, -(-total // PAGE_SIZES[-1]))
 
 
 def parse_list(page: str) -> tuple[int | None, list[Notice]]:
@@ -398,6 +424,10 @@ class LhNoticeTool(JarvisTool):
             total, notices = parse_list(await self._fetch(LIST_URL, form_of(query, today)))
             if total is None and not notices:
                 raise ValueError(f"LH 게시판({query.category})이 예상한 목록 표를 주지 않았다")
+            if query.exhaustive:
+                for page in range(2, pages_of(total) + 1):
+                    notices += parse_list(await self._fetch(LIST_URL, form_of(query, today, page)))[1]
+                notices = unique(notices)
             found.append((query.category, total, notices))
         return found
 

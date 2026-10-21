@@ -2,10 +2,10 @@
 
 import re
 import asyncio
-from typing import Any
 from datetime import date
-from collections.abc import Callable
+from typing import Any, TypeVar
 from dataclasses import dataclass, replace
+from collections.abc import Awaitable, Callable
 
 from jarvis.core.tools.housing.lh_notice import LhNoticeTool, Notice, build_queries, detail_url, resolve_region
 from jarvis.core.tools.housing.fetch import Fetch, FetchBytes, FetchError, fetch_bytes, fetch_html, kst_today
@@ -17,16 +17,18 @@ from jarvis.core.tools.housing.loan import annuity_payment, won
 from jarvis.core.tools.registry import JarvisTool
 
 TOOL_NAME = "housing_budget"
+T = TypeVar("T")
 # 사용자가 금리, 기간을 주지 않을 때의 가정. 결과 첫 줄에 밝힌다
 DEFAULT_RATE = 4.0
 DEFAULT_YEARS = 30
 DEFAULT_LIMIT = 3
 MAX_LIMIT = 10
-# ponytail: 상세를 공고 20건까지만 연다(게시판 부하와 응답 시간), 열린 공고가 늘면 지역이나 유형으로 나눠 부른다
-MAX_DETAILS = 20
-# ponytail: 공고문 PDF 는 한 번에 8건까지만 받는다(건당 1MB 안팎, 수 초), 더 필요하면 지역을 나눠 부른다
-MAX_PDFS = 8
-LIST_SIZE = 50
+# ponytail: 상세를 공고 100건까지만 연다(전국 공고중이 80건 안팎), 열린 공고가 더 늘면 지역이나 유형으로 나눠 부른다
+MAX_DETAILS = 100
+# ponytail: 공고문 PDF 는 한 번에 40건까지만 받는다(건당 1MB 안팎, 수 초), 더 필요하면 지역을 나눠 부른다
+MAX_PDFS = 40
+# 게시판과 공고문 서버에 동시에 거는 요청 수. 순서대로 열면 전국 조회가 몇 분 걸린다
+CONCURRENCY = 4
 OPEN_STATUS = "공고중"
 DEFAULT_REGIONS = ("전국",)
 
@@ -224,25 +226,30 @@ class HousingBudgetTool(JarvisTool):
         today = self._today()
         notices: dict[str, Notice] = {}
         for region in regions:
-            queries, reason = build_queries({"region": region, "status": OPEN_STATUS, "limit": LIST_SIZE})
+            queries, reason = build_queries({"region": region, "status": OPEN_STATUS})
             if reason is not None:
                 raise ValueError(reason)
-            for _, _, found in await self._notices.search(queries, today):
+            for _, _, found in await self._notices.search([replace(q, all_pages=True) for q in queries], today):
                 for n in found:
                     close = parse_date(n.closes)
                     if close is None or close >= today:
                         notices.setdefault(n.id, n)
         ordered = sorted(notices.values(), key=lambda n: parse_date(n.closes) or date.max)
+        targets = ordered[:MAX_DETAILS]
+        gate = asyncio.Semaphore(CONCURRENCY)
+        details = await asyncio.gather(*(_bounded(gate, self._notices.detail(n.id)) for n in targets))
+        priced = [options_from_units(d["units"]) for d in details]
+        # 상세에 금액이 없는 공고만 공고문을 받는다. 어느 공고를 받을지는 마감순으로 미리 정해 결과가 매번 같다
+        pdf_ids = [None if priced[i] else pick_notice_pdf(d["file_ids"]) for i, d in enumerate(details)]
+        need = [(i, pdf) for i, pdf in enumerate(pdf_ids) if pdf is not None][:MAX_PDFS]
+        rows = await asyncio.gather(
+            *(_bounded(gate, self._pdf_terms(pdf, detail_url(targets[i].id))) for i, pdf in need)
+        )
+        for (i, _), terms_rows in zip(need, rows, strict=True):
+            priced[i] = options_from_terms(terms_rows)
         complexes: dict[str, list[ComplexUnit]] = {}
         plans, over, unknown = [], [], []
-        pdfs = 0
-        for notice in ordered[:MAX_DETAILS]:
-            detail = await self._notices.detail(notice.id)
-            options = options_from_units(detail["units"])
-            pdf_id = pick_notice_pdf(detail["file_ids"])
-            if not options and pdf_id is not None and pdfs < MAX_PDFS:
-                pdfs += 1
-                options = options_from_terms(await self._pdf_terms(pdf_id, detail_url(notice.id)))
+        for notice, options in zip(targets, priced, strict=True):
             if not options:
                 options = options_from_complex(await self._complex_rows(notice, complexes))
             if not options:
@@ -271,6 +278,11 @@ class HousingBudgetTool(JarvisTool):
         if code not in cache:
             cache[code] = await fetch_complexes(self._fetch, code)
         return match_complex(notice.title, notice.kind, cache[code])
+
+
+async def _bounded(gate: asyncio.Semaphore, work: Awaitable[T]) -> T:
+    async with gate:
+        return await work
 
 
 def parse_terms(params: dict[str, Any]) -> tuple[Terms, list[str], int]:

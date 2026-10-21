@@ -1,14 +1,17 @@
 """lh_notice: 조건을 게시판 폼으로 바꾸고, 목록과 상세를 읽어 KST 기준 마감을 붙인다."""
 
+import re
 import pytest
 import asyncio
 
 from jarvis.core.tools.housing.lh_notice import (
+    MAX_PAGES,
     LhNoticeTool,
     Query,
     build_queries,
     detail_url,
     form_of,
+    pages_of,
     parse_detail,
     parse_list,
     resolve_region,
@@ -72,6 +75,33 @@ def test_form_period_and_page_size():
     assert (form["cnpCd"], form["panSs"], form["panNm"]) == ("11", "공고중", "청년")
     closing = form_of(Query("임대", "", "", "", "", 7, 10), TODAY)
     assert (closing["schTy"], closing["startDt"], closing["endDt"]) == ("1", "2026-10-13", "2026-10-20")
+
+
+def test_later_pages_continue_the_search_instead_of_starting_over():
+    query = Query("임대", "", "11", "공고중", "", None, 10, order="마감순")
+    first, second = form_of(query, TODAY), form_of(query, TODAY, page=2)
+    # 전부 볼 때는 가장 큰 쪽으로 받는다. 2쪽부터 srchY=N 과 앞 쪽 크기가 없으면 게시판이 1쪽을 다시 준다
+    assert (first["listCo"], first["srchY"], first["currPage"]) == ("100", "Y", "1")
+    assert (second["srchY"], second["prevListCo"], second["currPage"]) == ("N", "100", "2")
+    assert {k: v for k, v in second.items() if k not in ("srchY", "prevListCo", "currPage")} == {
+        k: v for k, v in first.items() if k not in ("srchY", "prevListCo", "currPage")
+    }
+
+
+@pytest.mark.parametrize(("total", "pages"), [(None, 1), (0, 1), (61, 1), (100, 1), (101, 2), (10_000, MAX_PAGES)])
+def test_pages_of_stops_at_total_and_cap(total, pages):
+    assert pages_of(total) == pages
+
+
+def test_exhaustive_search_reads_every_page_once_and_drops_repeats():
+    html = re.sub(r"(전체\s*<strong>\s*)[\d,]+", r"\g<1>250", page("lh_list.html"))
+    board = FakeBoard({"selectWrtancList.do": html})
+    single = parse_list(page("lh_list.html"))[1]
+    query = Query("임대", "", "", "", "", None, 10, all_pages=True)
+    [(_, total, notices)] = asyncio.run(LhNoticeTool(board, lambda: TODAY).search([query], TODAY))
+    assert total == 250
+    assert [q["currPage"] for _, q in board.calls] == ["1", "2", "3"]
+    assert [n.id for n in notices] == [n.id for n in single]  # 같은 공고가 쪽마다 와도 한 번만
 
 
 def test_same_query_gives_same_form():

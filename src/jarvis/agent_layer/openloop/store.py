@@ -13,6 +13,8 @@ from jarvis.model_layer.embeddings import Embedder, cosine
 
 # 만료 검사 때 보는 열린 항목 상한. 세션마다 몇 건이라 넉넉하다
 EXPIRE_SCAN_LIMIT = 200
+# 기억해 둘 약속 벡터 수. 세션 여럿의 열린 약속이 들어가고, 넘치면 가장 오래 안 쓴 것부터 버린다
+VECTOR_CACHE_MAX = 256
 
 
 class OpenLoopStore:
@@ -26,6 +28,8 @@ class OpenLoopStore:
     def __init__(self, embedder: Embedder | None = None) -> None:
         self._loops: dict[str, OpenLoop] = {}
         self._embedder = embedder
+        # 설명 → 벡터. 같은 모델이면 같은 글의 벡터는 같아서 열린 약속을 매번 다시 임베딩하지 않는다
+        self._vectors: dict[str, list[float]] = {}
 
     async def add(self, loop: OpenLoop) -> str:
         self._loops[loop.id] = loop
@@ -46,12 +50,24 @@ class OpenLoopStore:
         """새 약속과 후보들의 임베딩 코사인. 임베딩을 못 하면 None 이라 판정은 글자 겹침으로만 한다."""
         if self._embedder is None or not candidates:
             return None
-        # ponytail: 열린 약속을 매번 다시 임베딩한다, 세션당 열린 약속이 수십 건을 넘으면 벡터를 레코드에 저장
-        try:
-            vectors = await self._embedder.embed([loop.description, *(c.description for c in candidates)])
-        except Exception:
+        texts = [loop.description, *(c.description for c in candidates)]
+        missing = list(dict.fromkeys(t for t in texts if t not in self._vectors))
+        if missing:
+            try:
+                fresh = await self._embedder.embed(missing)
+            except Exception:
+                return None
+            self._vectors.update(zip(missing, fresh, strict=False))
+        # ponytail: 벡터는 프로세스 메모리에만 있어 재시작 뒤 첫 판정은 다시 임베딩한다, 그 비용이 보이면 레코드에 저장
+        for text in texts:
+            if text in self._vectors:
+                self._vectors[text] = self._vectors.pop(text)  # 방금 쓴 것을 뒤로
+        while len(self._vectors) > VECTOR_CACHE_MAX:
+            del self._vectors[next(iter(self._vectors))]
+        query = self._vectors.get(loop.description)
+        if query is None:
             return None
-        return {c.id: cosine(vectors[0], v) for c, v in zip(candidates, vectors[1:], strict=False)}
+        return {c.id: cosine(query, self._vectors[c.description]) for c in candidates if c.description in self._vectors}
 
     async def list_open(self, session_id: str | None = None, limit: int = 20) -> list[OpenLoop]:
         items = [

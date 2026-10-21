@@ -26,6 +26,7 @@ from jarvis.memory.long_term.episodic import prepare_episode
 from jarvis.memory.eval.adapters.locomo import parse_locomo
 from jarvis.memory.types import MemoryItem, MemoryKind
 from jarvis.memory.retrieval.cues import cue_overlap
+from jarvis.memory.stores.protocol import tokens_of
 
 SCOPE = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
 
@@ -208,3 +209,17 @@ def test_summary_language_follows_conversation_text() -> None:
     assert conversation_language([UserMessage(content="pytest 로 tests/unit/test_api.py 돌려줘")]) == "ko"
     assert "한국어로 쓴다" in system_prompt_for(ko)
     assert "English" in system_prompt_for(en)
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ("서울에서?", ["서울"]),
+        ("'회의' 언제야", ["회의", "언제야"]),
+        ("배포 - 금요일", ["배포", "금요일"]),  # 문장부호만인 토큰은 모든 항목에 걸리므로 버린다
+        ("e-mail 보내", ["e-mail", "보내"]),  # 가운데 문장부호는 남긴다
+        ("회의가 끝나면", ["회의", "끝나면"]),
+    ],
+)
+def test_tokens_of_strips_edge_punctuation_before_josa(query, expected):
+    assert tokens_of(query) == expected

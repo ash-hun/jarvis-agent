@@ -2,6 +2,8 @@
 
 # docker compose --profile web up -d
 # uv run --with playwright --with pillow python scripts/capture_avatars.py main karen
+# 그림을 바꿨으면 머지 뒤 JARVIS_NOTIFY__AVATAR_BASE_URL 을 그 커밋 경로로 바꾼다.
+# 디스코드가 같은 주소의 옛 그림을 캐시한다
 
 import io
 import sys
@@ -12,6 +14,8 @@ from playwright.sync_api import Page, sync_playwright
 BASE = "http://localhost:7777"
 OUT = Path(__file__).resolve().parents[1] / "assets" / "avatars"
 SIZE = 512
+# 구체 영역 중 가운데 이만큼만 쓴다. 바깥 링이 원 가장자리에 닿아야 40px 아바타에서도 색이 보인다
+CROP = 0.86
 SETTLE_MS = 4000  # 팔레트 전환과 idle 호흡이 가라앉을 때까지
 MAIN = "main"
 
@@ -20,7 +24,7 @@ def shoot(page: Page, agent_id: str) -> None:
     page.wait_for_timeout(SETTLE_MS)
     box = page.locator(".sphere-wrap").bounding_box()
     assert box is not None, "구체를 찾지 못했다"
-    side = min(box["width"], box["height"])
+    side = min(box["width"], box["height"]) * CROP
     clip = {
         "x": box["x"] + (box["width"] - side) / 2,
         "y": box["y"] + (box["height"] - side) / 2,

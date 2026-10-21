@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 from collections.abc import Awaitable, Callable, Coroutine
 
-from jarvis.core.scheduler.task import ScheduledTask
+from jarvis.core.scheduler.task import ScheduledTask, task_label
 from jarvis.common.logger import get_logger
 from jarvis.memory.scope import MAIN_AGENT
 
@@ -240,6 +240,7 @@ class SchedulerService:
             "type": "reminder",
             "id": uuid.uuid4().hex,
             "name": task.name,
+            "label": task_label(task),  # 알림 제목. /schedule 이 붙인 이름(once-xxxx)은 보이지 않는다
             "kind": task.kind,
             "agent": task.agent,
             "once": task.run_at is not None,

@@ -7,6 +7,12 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 from jarvis.memory.scope import MAIN_AGENT
 
+# /schedule 이 사람 대신 붙이는 이름의 머리. 이런 이름은 알림 제목으로 보이지 않는다
+ONCE_PREFIX = "once-"
+SLASH_PREFIX = "slash-"
+AUTO_NAME_PREFIXES = (ONCE_PREFIX, SLASH_PREFIX)
+REMINDER_LABEL = "알림"
+
 
 class ScheduledTask(BaseModel):
     """스케줄된 작업 정의. ~/.jarvis/schedules/*.yaml 또는 /schedule 슬래시 명령으로 생성."""
@@ -29,3 +35,12 @@ class ScheduledTask(BaseModel):
     # 이 작업을 읽어 온(또는 저장한) YAML 파일. 토글을 원본 파일에 되쓰는 데 쓴다.
     # 직렬화 대상이 아니다. None 이면 아직 파일이 없는 메모리 전용 작업.
     _source: Path | None = PrivateAttr(default=None)
+
+
+def task_label(task: ScheduledTask) -> str:
+    """알림 제목. 사람이 붙인 이름이면 그 이름, /schedule 이 붙인 이름이면 알림은 "알림", 작업은 할 일 첫 줄."""
+    if not task.name.startswith(AUTO_NAME_PREFIXES):
+        return task.name
+    if task.kind == "reminder":
+        return REMINDER_LABEL
+    return task.prompt.strip().splitlines()[0][:80] if task.prompt.strip() else REMINDER_LABEL

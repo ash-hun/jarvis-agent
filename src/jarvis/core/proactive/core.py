@@ -122,10 +122,14 @@ class DefaultProactivityCore(ProactivityCore):
         self._policy.restore_last_spoke(session_id, seconds_ago)
 
     async def _run_deferred(self, run_main: RunMain) -> None:
-        # 메인 루프는 자체 이벤트(stream/agent_end)를 그대로 emit → 답은 그 경로로 전달.
+        # 메인 루프는 자체 이벤트(stream/agent_end)를 그대로 emit → 답은 그 경로로 화면에 간다.
+        # 오래 걸린다고 해 두고 자리를 뜬 사람에게도 닿게 끝난 답을 answer 로 한 번 더 알린다(외부 채널용).
         # 백그라운드 실패가 호출부를 깨지 않도록 격리.
         with contextlib.suppress(Exception):
-            await run_main()
+            result = await run_main()
+            text = result.text().strip() if result is not None else ""
+            if text:
+                await self._emit(ProactiveMessage(text=text, kind="answer"))
 
     def _default_spawn(self, coro: Awaitable[None]) -> None:
         # spawn 계약은 Awaitable 이지만 실제로 넘기는 것은 _run_deferred 코루틴이다

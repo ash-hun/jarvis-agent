@@ -136,6 +136,7 @@ def test_spoken_payload_skips_what_the_server_already_sent():
     # 🔔 과 ⏰ 은 서버가 이미 보냈다. 화면이 읽었다고 또 보내면 디스코드에 두 번 뜬다
     assert spoken_payload("회의 10분 전", "main", "reminder") is None
     assert spoken_payload("배포 결과 공유할까요?", "main", "proactive") is None
+    assert spoken_payload("분석 끝났어요", "main", "answer") is None  # 뒤로 넘긴 작업의 답도 서버가 보냈다
     assert spoken_payload("   ", "main", "reply") is None
 
 
@@ -150,3 +151,20 @@ async def test_spoken_is_a_default_kind_and_reads_as_the_agent():
     notify = only_kinds(NotifyConfig().kinds, with_agents({"karen": ("K.A.R.E.N.", "")}, sink))
     await notify(spoken_payload("공고 세 건 찾았어요", "karen", "reply"))
     assert sent[0]["content"] == "**🔊 K.A.R.E.N.**\n공고 세 건 찾았어요" and sent[0]["username"] == "K.A.R.E.N."
+
+
+def test_deferred_answer_reads_apart_from_a_proactive_message():
+    answer = format_discord({"type": "proactive_message", "kind": "answer", "agent_name": "K.A.R.E.N.", "text": "끝"})
+    nudge = format_discord({"type": "proactive_message", "kind": "proactive", "agent_name": "K.A.R.E.N.", "text": "?"})
+    assert answer["content"].startswith("**💬 K.A.R.E.N.**") and nudge["content"].startswith("**💭 K.A.R.E.N.**")
+
+
+def test_reminder_title_hides_names_the_schedule_command_made_up():
+    from jarvis.core.scheduler.task import ScheduledTask, task_label
+
+    once = ScheduledTask(name="once-ba15fed1", prompt="회의 자료 챙기기", kind="reminder")
+    task = ScheduledTask(name="slash-1a2b3c4d", prompt="공고 새로 나온 것 정리해줘\n지역은 경기", kind="task")
+    named = ScheduledTask(name="daily-news", prompt="뉴스 요약", kind="task")
+    assert [task_label(t) for t in (once, task, named)] == ["알림", "공고 새로 나온 것 정리해줘", "daily-news"]
+    head = format_discord({"type": "reminder", "name": "once-ba15fed1", "label": "알림", "text": "회의 자료 챙기기"})
+    assert head["content"] == "**⏰ 알림**\n회의 자료 챙기기"

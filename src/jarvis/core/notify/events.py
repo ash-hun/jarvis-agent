@@ -9,8 +9,9 @@ from jarvis.memory.scope import MAIN_AGENT
 
 # filler 는 "잠깐만요" 류 대기 신호라 밖으로 내보낼 가치가 없다.
 FORWARD_KINDS = frozenset({"proactive", "answer"})
-# 화면이 읽은 말 중 서버가 이미 따로 보내는 것(🔔 은 proactive_payload, ⏰ 은 스케줄러). 다시 보내면 두 번 간다
-SPOKEN_ELSEWHERE = frozenset({"proactive", "reminder"})
+# 화면이 읽은 말 중 서버가 이미 따로 보내는 것(🔔 과 뒤로 넘긴 작업의 답은 proactive_payload, ⏰ 은 스케줄러).
+# 다시 보내면 두 번 간다
+SPOKEN_ELSEWHERE = frozenset({"proactive", "reminder", "answer"})
 
 logger = get_logger(__name__)
 

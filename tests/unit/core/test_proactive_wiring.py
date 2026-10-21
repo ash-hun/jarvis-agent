@@ -94,6 +94,10 @@ async def test_deferred_frame_emits_filler_then_backgrounds(fx):
 
     # 백그라운드 메인 루프가 완료될 때까지 잠시 양보.
     await asyncio.sleep(0.05)
+    # 끝난 답은 화면 스트림과 별개로 answer 로 한 번 더 나간다(자리를 뜬 사람에게 닿는 외부 채널용)
+    answers = [e for e in events if isinstance(e, ProactiveMessageEvent) and e.kind == "answer"]
+    history = await fx["repo"].get_messages("test-session")
+    assert [a.text for a in answers] == [history[-1].text().strip()]
 
 
 @pytest.mark.asyncio

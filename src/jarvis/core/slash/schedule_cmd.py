@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Literal
 from collections.abc import Awaitable, Callable
 
+from jarvis.core.scheduler.task import ONCE_PREFIX, SLASH_PREFIX
+
 if TYPE_CHECKING:
     from jarvis.core.scheduler.service import SchedulerService
     from jarvis.core.slash.dispatcher import ScopedHandler
@@ -157,7 +159,7 @@ def build_schedule_task(deadline: datetime, prompt: str) -> "ScheduledTask":
     from jarvis.core.scheduler.task import ScheduledTask
 
     schedule = infer_schedule(deadline)
-    name = f"slash-{uuid.uuid4().hex[:8]}"
+    name = f"{SLASH_PREFIX}{uuid.uuid4().hex[:8]}"
     return ScheduledTask(
         name=name,
         schedule=schedule,
@@ -173,7 +175,7 @@ def build_once_task(run_at: datetime, prompt: str, kind: Literal["reminder", "ta
     from jarvis.core.scheduler.task import ScheduledTask
 
     return ScheduledTask(
-        name=f"once-{uuid.uuid4().hex[:8]}",
+        name=f"{ONCE_PREFIX}{uuid.uuid4().hex[:8]}",
         prompt=prompt,
         run_at=run_at,
         kind=kind,

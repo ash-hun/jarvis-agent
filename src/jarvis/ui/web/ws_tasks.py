@@ -3,7 +3,7 @@
 import base64
 import contextlib
 from fastapi import WebSocket
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.thought.reply import ReplyClassifier
@@ -12,6 +12,15 @@ if TYPE_CHECKING:
     from jarvis.core.focus.types import FocusCommand
     from jarvis.voice.service import VoiceService
     from jarvis.core.session import AgentSession
+    from jarvis.core.notify import Notify
+
+
+async def notify_quietly(notify: "Notify | None", payload: dict[str, Any] | None) -> None:
+    """밖으로 알린다. 알림 채널이 실패해도 읽기와 대화는 계속된다."""
+    if notify is None or payload is None:
+        return
+    with contextlib.suppress(Exception):
+        await notify(payload)
 
 
 async def run_prompt(

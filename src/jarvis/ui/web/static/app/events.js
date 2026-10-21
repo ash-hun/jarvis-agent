@@ -97,7 +97,7 @@ export function handleMessage(msg) {
       const usage = msg.final_message?.usage;
       if (usage) updateUsage(usage);
       if ((isVoiceMode() || isFullVoice()) && lastStreamText()) {
-        requestSpeech(lastStreamText(), { thenListen: isFullVoice });
+        requestSpeech(lastStreamText(), { thenListen: isFullVoice, source: 'reply' });
       } else {
         // 음성 요청에 말 없는 응답(도구만)이 오면 음성 처리 중 상태를 풀어 준다
         if (voice.state === 'processing') voice.setIdle();
@@ -201,10 +201,12 @@ export function handleMessage(msg) {
       if (isFiller && (isFullVoice() || isVoiceMode()) && hasPhrase('horizontal_task')) {
         cue('horizontal_task');  // 오래 걸리는 일을 뒤로 넘겼다. 대기 문장 대신 녹음한 문구를 읽는다
       } else if (isFullVoice()) {
-        requestSpeech(asks ? `${ptext} ${QUESTION_SPOKEN}` : ptext,
-          { thenListen: () => asks && isFullVoice() && isFeedbackPending() });
+        requestSpeech(asks ? `${ptext} ${QUESTION_SPOKEN}` : ptext, {
+          thenListen: () => asks && isFullVoice() && isFeedbackPending(),
+          source: isFiller ? 'filler' : 'proactive',
+        });
       } else if (isVoiceMode() || msg.speak) {
-        requestSpeech(ptext);
+        requestSpeech(ptext, { source: isFiller ? 'filler' : 'proactive' });
       }
       break;
     }
@@ -220,7 +222,7 @@ export function handleMessage(msg) {
       logActivity(`⚡ approval · ${msg.command || ''}`, 'tool');
       if (byVoice) {
         listenForApproval();
-        requestSpeech(approvalSpeech(msg.command, msg.always_pattern));
+        requestSpeech(approvalSpeech(msg.command, msg.always_pattern), { source: 'approval' });
       }
       break;
     }

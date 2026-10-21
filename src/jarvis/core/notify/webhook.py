@@ -19,6 +19,8 @@ def headline(payload: dict[str, Any]) -> tuple[str, str]:
         return head, str(payload.get("text", ""))
     if kind == "proactive_message":
         return f"💭 {payload.get('agent_name') or 'Jarvis'}", str(payload.get("text", ""))
+    if kind == "spoken":
+        return f"🔊 {payload.get('agent_name') or 'Jarvis'}", str(payload.get("text", ""))
     return str(kind or "jarvis"), str(payload.get("text", payload))
 
 

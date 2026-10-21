@@ -145,7 +145,7 @@ JARVIS_PROCEDURES__MIN_TOOL_CALLS=3
 JARVIS_NOTIFY__SLACK_WEBHOOK_URL=
 JARVIS_NOTIFY__DISCORD_WEBHOOK_URL=
 JARVIS_NOTIFY__AVATAR_BASE_URL=
-JARVIS_NOTIFY__KINDS=["reminder","proactive"]
+JARVIS_NOTIFY__KINDS=["reminder","proactive","spoken"]
 
 JARVIS_PLUGIN__TOOLS_DIR=~/.jarvis/tools
 JARVIS_PLUGIN__SKILLS_DIR=./skills          # .env.example 값. 코드 기본은 ~/.jarvis/skills

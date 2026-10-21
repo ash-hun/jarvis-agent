@@ -48,7 +48,7 @@ export const voice = new VoiceManager({
       if (!heard) { voice.setIdle(); return; }  // 분류 중에 클릭이나 다른 창이 먼저 답했다
       appendMsg('SYS', 'sys', escapeHtml(heard));
       logActivity(`⚡ approval · 음성 · ${heard}`, 'tool');
-      requestSpeech(heard);
+      requestSpeech(heard, { source: 'approval_answer' });
       return;
     }
     // proactive 직후 짧은 음성 답을 수락/무시로 해석 (C3, voice).
@@ -106,18 +106,21 @@ export async function cue(name, { always = false } = {}) {
   if (!hasPhrase(name) || !(always || isFullVoice() || _voiceMode)) return false;
   const wav = await phraseWav(name);
   if (!wav) return false;
+  send({ type: 'voice_spoken', phrase: name });  // 서버가 이 문구의 문장을 밖에 알린다
   await voice.playWav(wav);
   return true;
 }
 
 // 텍스트를 읽어 달라고 서버에 요청한다. 응답은 voice_tts_audio 로 온다.
 // thenListen 은 읽기가 끝난 시점에 평가한다. 그사이 모달이 닫혔으면 듣지 않는다.
-export function requestSpeech(text, { thenListen = null } = {}) {
+// source 는 무엇을 읽는지(reply, filler, proactive, reminder, approval, approval_answer)다.
+// 서버가 읽는 말을 밖(디스코드)에도 알릴 때 이미 따로 보낸 🔔, ⏰ 을 거른다
+export function requestSpeech(text, { thenListen = null, source = '' } = {}) {
   _thenListen = thenListen;
   voice.setProcessing();
   const id = ++_speechSeq;
   _awaitingSpeech.add(id);
-  send({ type: 'voice_tts_request', text, id });
+  send({ type: 'voice_tts_request', text, id, source });
 }
 
 // 음성 승인 답을 기다린다. 질문이나 다른 읽기가 끝날 때, 인식이 말 없이 끝날 때마다 다시 듣는다.

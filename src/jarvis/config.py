@@ -285,7 +285,10 @@ class NotifyConfig(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    slack_webhook_url: SecretStr | None = None  # 비우면 외부 알림 없음
+    slack_webhook_url: SecretStr | None = None  # 비우면 그 채널로 보내지 않는다
+    discord_webhook_url: SecretStr | None = None  # https://discord.com/api/webhooks/{id}/{token}
+    # 에이전트 아바타 폴더 주소. <주소>/<에이전트 id>.png 를 디스코드가 받아 간다. 비우면 webhook 기본 그림
+    avatar_base_url: str = ""
     kinds: list[str] = Field(default_factory=lambda: ["reminder", "proactive"])  # reminder | proactive
 
 

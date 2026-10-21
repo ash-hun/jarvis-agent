@@ -200,16 +200,18 @@ rules:
   - {tool: write_file, pattern: "docs/*"}
 ```
 
-### 외부 알림 (Slack)
+### 외부 알림 (Slack, Discord)
 
-열린 화면이 없어도 스케줄 결과와 Proactive Dialogue가 닿도록 슬랙 incoming webhook 으로 보낸다. TUI, Web 둘 다 같은 채널을 쓴다.
+열린 화면이 없어도 스케줄 결과와 Proactive Dialogue가 닿도록 슬랙 incoming webhook 이나 디스코드 채널 webhook 으로 보낸다. 둘 다 설정하면 둘 다 보낸다. TUI, Web 둘 다 같은 채널을 쓴다.
 
 ```bash
 JARVIS_NOTIFY__SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+JARVIS_NOTIFY__DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/<id>/<token>   # 채널 설정 > 연동 > 웹후크
+JARVIS_NOTIFY__AVATAR_BASE_URL=https://raw.githubusercontent.com/ash-hun/jarvis-agent/main/assets/avatars   # 디스코드에서 에이전트마다 이름과 구체 아바타로 보낸다
 JARVIS_NOTIFY__KINDS=["reminder","proactive"]   # reminder=스케줄 결과, proactive=먼저 거는 말
 ```
 
-> 슬랙 webhook 은 중복 제거 키가 없어 재시도하지 않는다(실패는 로그). 자체 앱으로 바꿀 때는 `core/notify` 에 채널 하나를 더하면 된다.
+> 슬랙, 디스코드 webhook 은 중복 제거 키가 없어 재시도하지 않는다(실패는 로그). 자체 앱으로 바꿀 때는 `core/notify` 에 채널 하나를 더하면 된다.
 
 ### Web HUD 화면
 
@@ -595,7 +597,9 @@ JARVIS_SECURITY__APPROVALS_PATH=~/.jarvis/approvals.yaml   # "항상 허용" 규
 JARVIS_PROCEDURES__ENABLED=true
 JARVIS_PROCEDURES__DIR=~/.jarvis/procedures
 JARVIS_PROCEDURES__MIN_TOOL_CALLS=3
-JARVIS_NOTIFY__SLACK_WEBHOOK_URL=     # 비우면 외부 알림 없음
+JARVIS_NOTIFY__SLACK_WEBHOOK_URL=     # 비우면 그 채널로 보내지 않는다
+JARVIS_NOTIFY__DISCORD_WEBHOOK_URL=   # https://discord.com/api/webhooks/<id>/<token>
+JARVIS_NOTIFY__AVATAR_BASE_URL=       # <주소>/<에이전트 id>.png 를 디스코드 아바타로. 비우면 webhook 기본 그림
 JARVIS_NOTIFY__KINDS=["reminder","proactive"]
 
 # ── 플러그인 ─────────────────────────────────────────────────────────────────

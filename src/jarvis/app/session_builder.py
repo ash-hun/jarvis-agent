@@ -91,7 +91,7 @@ class SessionBuilder:
         if self._ctx.notifier is not None:
             from jarvis.core.notify import proactive_forwarder
 
-            session.subscribe(proactive_forwarder(self._ctx.notifier))
+            session.subscribe(proactive_forwarder(self._ctx.notifier, self._profile.agent_id))
         return session
 
     def tool_registry(self) -> "ToolRegistry":

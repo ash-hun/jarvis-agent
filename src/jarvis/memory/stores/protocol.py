@@ -1,5 +1,6 @@
 """[memory] 장기 기억 저장소 기반 클래스로, scope 필수 조회와 대체 항목 제외 규칙을 프로세스 메모리 dict 로 구현한다."""
 
+import string
 from datetime import datetime
 from collections.abc import Sequence
 
@@ -13,6 +14,8 @@ JOSA = (
     "은", "는", "이", "가", "을", "를", "의", "에", "와", "과", "도", "만", "로", "랑",
 )
 MIN_STEM_CHARS = 2
+# 토큰 앞뒤에서 떼는 문장부호. 붙어 있으면 '서울에서?' 의 조사를 못 떼고 '-' 하나가 모든 항목에 걸린다
+EDGE_PUNCT = string.punctuation + "“”‘’「」『』《》〈〉…·"
 
 
 class ItemStore:
@@ -114,12 +117,16 @@ class ItemStore:
 
 
 def tokens_of(query: str) -> list[str]:
-    """공백 토큰을 소문자로 바꾸고 끝의 한국어 조사를 뗀다. '서울에서' 는 '거주지: 서울' 의 부분 문자열이 아니다."""
-    return [_strip_josa(t.lower()) for t in query.split() if t]
+    """공백 토큰의 앞뒤 문장부호를 떼고 소문자로 바꾼 뒤 끝의 한국어 조사를 뗀다.
+
+    '서울에서' 는 '거주지: 서울' 의 부분 문자열이 아니다.
+    """
+    return [_strip_josa(t) for t in (w.strip(EDGE_PUNCT).lower() for w in query.split()) if t]
 
 
 def _strip_josa(token: str) -> str:
-    # ponytail: 조사 목록 휴리스틱(고양이 → 고양 처럼 넓게 잡힌다), 평가에서 오탐이 보이면 형태소 분석기로 바꾼다
+    # ponytail: 조사 목록 휴리스틱('~도' 로 끝나는 명사를 자른다, 중요도 → 중요), 실데이터에서 명사를 자른
+    # 비율은 0.02% 였다. 그 비율이 늘거나 잘린 말이 엉뚱한 기억을 끌어오면 형태소 분석기로 바꾼다
     for josa in JOSA:
         if token.endswith(josa) and len(token) - len(josa) >= MIN_STEM_CHARS:
             return token[: -len(josa)]

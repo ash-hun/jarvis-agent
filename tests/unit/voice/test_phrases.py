@@ -1,8 +1,8 @@
-"""load_phrases: 목록에 있고 wav 도 있는 문구만 이름으로 찾는다."""
+"""load_phrases: 목록에 있고 wav 도 있는 문구만 이름으로 찾는다. load_phrase_texts: 문구의 문장."""
 
 import json
 
-from jarvis.voice.phrases import PHRASES_INDEX, load_phrases
+from jarvis.voice.phrases import PHRASES_INDEX, load_phrase_texts, load_phrases
 
 
 def write_index(root, entries):
@@ -30,3 +30,12 @@ def test_non_wav_audio_is_skipped(tmp_path):
     write_index(tmp_path, {"notes": {"audio": "phrases/notes.txt"}})
 
     assert load_phrases(str(tmp_path)) == {}
+
+
+def test_phrase_texts_name_what_each_phrase_says(tmp_path):
+    write_index(tmp_path, {
+        "wake_up": {"audio": "phrases/wake_up.wav", "text": "At your service, sir."},
+        "silent": {"audio": "phrases/silent.wav"},
+    })
+    assert load_phrase_texts(str(tmp_path)) == {"wake_up": "At your service, sir."}
+    assert load_phrase_texts("") == {}

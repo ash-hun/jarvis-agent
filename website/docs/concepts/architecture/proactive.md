@@ -141,7 +141,7 @@ sequenceDiagram
 
 ## 외부 알림
 
-JARVIS 는 열린 화면이 없어도 먼저 건네는 말과 스케줄 결과를 Slack incoming webhook 이나 Discord 채널 webhook 으로 보낸다. 주소는 `JARVIS_NOTIFY__SLACK_WEBHOOK_URL`, `JARVIS_NOTIFY__DISCORD_WEBHOOK_URL` 이고 둘 다 있으면 둘 다 보낸다. Discord 로 보낼 때는 `@everyone` 같은 멘션이 사람을 부르지 않게 막고, webhook 하나로 보내되 메시지마다 보낸 에이전트의 이름(브랜드 워드마크)과 아바타(`JARVIS_NOTIFY__AVATAR_BASE_URL`/`<에이전트 id>.png`)를 붙여 에이전트마다 다른 봇처럼 보이게 한다. 아바타는 Web HUD 의 에이전트별 구체를 `scripts/capture_avatars.py` 로 찍어 `assets/avatars/` 에 둔다. 보낼 종류는 `JARVIS_NOTIFY__KINDS`(`reminder`, `proactive`)로 정한다. filler 는 보내지 않는다. 재시도는 하지 않고, 실패는 로그에 남긴다.
+JARVIS 는 열린 화면이 없어도 먼저 건네는 말과 스케줄 결과를 Slack incoming webhook 이나 Discord 채널 webhook 으로 보낸다. 주소는 `JARVIS_NOTIFY__SLACK_WEBHOOK_URL`, `JARVIS_NOTIFY__DISCORD_WEBHOOK_URL` 이고 둘 다 있으면 둘 다 보낸다. Discord 로 보낼 때는 `@everyone` 같은 멘션이 사람을 부르지 않게 막고, webhook 하나로 보내되 메시지마다 보낸 에이전트의 이름(브랜드 워드마크)과 아바타(`JARVIS_NOTIFY__AVATAR_BASE_URL`/`<에이전트 id>.png`)를 붙여 에이전트마다 다른 봇처럼 보이게 한다. 아바타는 Web HUD 의 에이전트별 구체를 `scripts/capture_avatars.py` 로 찍어 `assets/avatars/` 에 둔다. 보낼 종류는 `JARVIS_NOTIFY__KINDS`(`reminder`, `proactive`, `spoken`)로 정한다. `spoken` 은 Web HUD 가 소리 내어 읽은 말(답변, 대기 안내, 승인 질문과 되읽기, 녹음 문구)을 읽은 그대로 보낸다. 화면이 읽기를 요청할 때 무엇을 읽는지(`source`)를 함께 보내고, 서버가 이미 보낸 🔔 와 ⏰ 는 빼서 두 번 가지 않게 한다. 읽은 말이 없으면(음성 모드가 꺼져 있으면) 보내지 않는다. 먼저 건넨 말의 대기 안내(filler)는 읽혔을 때만 `spoken` 으로 간다. 재시도는 하지 않고, 실패는 로그에 남긴다.
 
 ## 성능 실험
 

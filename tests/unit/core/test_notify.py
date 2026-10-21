@@ -10,6 +10,7 @@ from jarvis.core.notify import (
     proactive_forwarder,
     proactive_payload,
     slack_notifier,
+    spoken_payload,
 )
 from jarvis.agent_layer.types import MessageUpdateEvent, ProactiveMessageEvent
 
@@ -125,3 +126,27 @@ async def test_discord_posts_as_the_agent_named_in_the_payload():
     assert sent[0]["content"].startswith("**💭 K.A.R.E.N.**")
     assert (sent[1]["username"], sent[1]["avatar_url"]) == ("J.A.R.V.I.S.", "https://x/main.png")
     assert "username" not in sent[2]
+
+
+def test_spoken_payload_skips_what_the_server_already_sent():
+    assert spoken_payload("오늘 일정은 두 개예요", "karen", "reply") == {
+        "type": "spoken", "agent": "karen", "source": "reply", "text": "오늘 일정은 두 개예요",
+    }
+    assert spoken_payload("At your service, sir.", "main", "phrase")["source"] == "phrase"
+    # 🔔 과 ⏰ 은 서버가 이미 보냈다. 화면이 읽었다고 또 보내면 디스코드에 두 번 뜬다
+    assert spoken_payload("회의 10분 전", "main", "reminder") is None
+    assert spoken_payload("배포 결과 공유할까요?", "main", "proactive") is None
+    assert spoken_payload("   ", "main", "reply") is None
+
+
+async def test_spoken_is_a_default_kind_and_reads_as_the_agent():
+    sent: list[dict] = []
+
+    async def sink(payload):
+        sent.append(format_discord(payload))
+
+    from jarvis.config import NotifyConfig
+
+    notify = only_kinds(NotifyConfig().kinds, with_agents({"karen": ("K.A.R.E.N.", "")}, sink))
+    await notify(spoken_payload("공고 세 건 찾았어요", "karen", "reply"))
+    assert sent[0]["content"] == "**🔊 K.A.R.E.N.**\n공고 세 건 찾았어요" and sent[0]["username"] == "K.A.R.E.N."

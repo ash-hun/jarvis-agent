@@ -289,7 +289,8 @@ class NotifyConfig(BaseModel):
     discord_webhook_url: SecretStr | None = None  # https://discord.com/api/webhooks/{id}/{token}
     # 에이전트 아바타 폴더 주소. <주소>/<에이전트 id>.png 를 디스코드가 받아 간다. 비우면 webhook 기본 그림
     avatar_base_url: str = ""
-    kinds: list[str] = Field(default_factory=lambda: ["reminder", "proactive"])  # reminder | proactive
+    # reminder(스케줄 결과) | proactive(먼저 건넨 말) | spoken(Web HUD 가 소리 내어 읽은 말)
+    kinds: list[str] = Field(default_factory=lambda: ["reminder", "proactive", "spoken"])
 
 
 class FocusConfig(BaseModel):

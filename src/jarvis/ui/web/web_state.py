@@ -5,10 +5,10 @@ from collections import deque
 from typing import TYPE_CHECKING
 from collections.abc import Callable
 
+from jarvis.voice.phrases import load_phrase_texts, load_phrases
 from jarvis.ui.web.session_registry import SessionRegistry
 from jarvis.ui.web.agent_activity import AgentActivity
 from jarvis.ui.web.approvals import SessionApprovals
-from jarvis.voice.phrases import load_phrases
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
@@ -45,6 +45,8 @@ class WebState:
         self.voice_service = self._build_voice_service()
         # 미리 녹음한 읽기 문구. 이름은 connected 로 화면에 알리고 wav 는 /api/voice/phrases 가 내준다
         self.phrases: dict[str, Path] = load_phrases(self.settings.voice.phrases_dir)
+        # 화면이 녹음 문구를 재생하면 그 문장을 밖(디스코드 등)에 알린다
+        self.phrase_texts: dict[str, str] = load_phrase_texts(self.settings.voice.phrases_dir)
         # 연결마다 웨이크워드 감지기를 하나씩 만든다. 꺼져 있거나 준비가 안 되면 None
         self.wake: Callable[[], WakeDetector] | None = self._build_wake_factory()
         self.focus: FocusService | None = self._build_focus_service()

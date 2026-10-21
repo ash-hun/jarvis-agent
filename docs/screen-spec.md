@@ -107,7 +107,7 @@
 | `hud.mode` | localStorage, `body[data-mode]` | `default` | `default` 또는 `full-voice`. 모르는 값이면 `default`. 새로고침 뒤에도 유지되지만 Full-voice 의 듣기는 사용자 클릭 전에는 시작하지 않는다. 웨이크워드가 켜져 있으면 모드와 상관없이 접속 때 마이크를 연다 |
 | 상태 pill | 메모리 | `READY` | `THINKING`(서브 에이전트면 `THINKING · a → b`), `EXECUTING`, `LISTENING`, `SPEAKING`, `ERROR` |
 | 리액터 상태 | `window.HUD.state` | `idle` | `thinking`, `tool_running`, `listening`, `speaking`, `error`. 링 발광과 구체 움직임이 따라간다. `thought_route`(think) 부터 `thought_end` 까지는 `idle` 대신 `thinking` 을 보인다(응답이 끝나 입력이 열려도). `thought_end` 가 120초 안에 오지 않거나 다시 접속하면 푼다 |
-| 음성 모드 | 메모리 | 꺼짐 | 구체 클릭으로 토글. 켜져 있으면 응답과 🔔 를 읽어준다. Full-voice 에서는 입력 방식과 상관없이 늘 읽는다 |
+| 음성 모드 | 메모리 | 꺼짐 | 구체 클릭으로 토글. 켜져 있으면 응답과 🔔 를 읽어준다. Full-voice 에서는 입력 방식과 상관없이 늘 읽는다. 읽는 말과 재생한 녹음 문구는 서버가 같은 글로 외부 알림 채널(Discord 등)에도 보낸다(🔔, ⏰ 는 서버가 따로 보내므로 빼고) |
 | Focus | `body[data-focus]`, 서버의 `focus_state` | 꺼짐 | 세션마다 하나. 화면은 저장하지 않고 서버가 접속 때 다시 보낸다. 세션을 바꾸면 일단 끄고 그 세션의 상태를 기다린다. 헤더 DEFAULT / FULL-VOICE 와는 별개라 함께 켤 수 있다 |
 | 펼친 대화 | `body.focus-chat-open` | 꺼짐 | Focus 동안 CONVERSATION 띠를 눌렀을 때 |
 

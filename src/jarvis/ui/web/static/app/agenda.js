@@ -154,6 +154,6 @@ export function showNotice(n) {
   }
 
   // 놓친 알림은 한꺼번에 몰려올 수 있어 읽지 않는다
-  if (!n.missed && text) requestSpeech(text.slice(0, 400));
+  if (!n.missed && text) requestSpeech(text.slice(0, 400), { source: 'reminder' });
   fetchAgenda();  // 한 번 실행 알림은 울린 뒤 목록에서 빠진다
 }

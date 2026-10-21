@@ -3,7 +3,7 @@
 from typing import Any
 from collections.abc import Awaitable, Callable
 
-from jarvis.core.notify.events import proactive_forwarder, proactive_payload
+from jarvis.core.notify.events import proactive_forwarder, proactive_payload, spoken_payload
 from jarvis.core.notify.discord import discord_notifier, format_discord
 from jarvis.core.notify.slack import format_slack, slack_notifier
 from jarvis.common.logger import get_logger
@@ -13,7 +13,7 @@ from jarvis.memory.scope import MAIN_AGENT
 Notify = Callable[[dict[str, Any]], Awaitable[None]]
 
 # 설정의 kinds 이름 → payload["type"]. 사용자는 짧은 이름으로 고른다.
-KIND_TYPES: dict[str, str] = {"reminder": "reminder", "proactive": "proactive_message"}
+KIND_TYPES: dict[str, str] = {"reminder": "reminder", "proactive": "proactive_message", "spoken": "spoken"}
 
 logger = get_logger(__name__)
 
@@ -66,5 +66,6 @@ __all__ = [
     "proactive_forwarder",
     "proactive_payload",
     "slack_notifier",
+    "spoken_payload",
     "with_agents",
 ]

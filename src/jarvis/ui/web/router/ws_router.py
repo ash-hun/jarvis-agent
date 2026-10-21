@@ -7,6 +7,7 @@ from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from jarvis.ui.web.ws_tasks import (
     first_feedback,
+    notify_quietly,
     run_focus,
     run_prompt,
     run_reply_classify,
@@ -19,6 +20,7 @@ from jarvis.memory.scope import LOCAL_USER, MemoryScope
 from jarvis.ui.web.session_registry import UnknownAgent
 from jarvis.core.focus.types import parse_command
 from jarvis.voice.speech_text import speech_text
+from jarvis.core.notify import spoken_payload
 from jarvis.ui.web.web_state import WebState
 from jarvis.common.logger import get_logger
 from jarvis.voice.wake import WakeDetector
@@ -193,6 +195,12 @@ def build_ws_router(state: WebState) -> APIRouter:
                 elif msg_type == "voice_tts_request":
                     text = speech_text(msg.get("text", ""))
                     lang = msg.get("lang", settings.voice.tts_lang)
+                    # 화면이 소리 내어 읽는 말을 같은 글로 밖에도 알린다. 🔔 과 ⏰ 은 서버가 이미 보냈다
+                    # ponytail: 음성 모드 화면을 여럿 열면 같은 말이 화면 수만큼 간다,
+                    # 문제되면 (에이전트, 글)로 잠깐 거른다
+                    asyncio.create_task(notify_quietly(
+                        ctx.notifier, spoken_payload(text, agent_id, str(msg.get("source") or ""))
+                    ))
                     # 화면이 멈춘 읽기의 늦은 응답을 버릴 수 있게 요청 id 를 그대로 돌려준다
                     request_id = msg.get("id")
                     if text and voice_service:
@@ -200,6 +208,11 @@ def build_ws_router(state: WebState) -> APIRouter:
                     else:
                         # 음성 서비스가 없거나 읽을 글자가 없어도 답한다. 안 주면 HUD 가 '음성 처리 중' 에 멈춘다
                         await ws.send_json({"type": "voice_tts_audio", "data": "", "text": text, "id": request_id})
+
+                elif msg_type == "voice_spoken":
+                    # 녹음 문구는 화면이 바로 재생한다. 재생했다고 알려 오면 그 문장을 밖에 알린다
+                    phrase = state.phrase_texts.get(str(msg.get("phrase") or ""), "")
+                    asyncio.create_task(notify_quietly(ctx.notifier, spoken_payload(phrase, agent_id, "phrase")))
 
                 elif msg_type == "voice_stt_submit":
                     data = msg.get("data", "")

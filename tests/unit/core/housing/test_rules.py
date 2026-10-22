@@ -3,8 +3,8 @@
 from datetime import date
 
 from jarvis.core.tools.housing.rules import NO, OK, UNKNOWN, Area, eligibility, load_rules, loan_limit, notice_access
-from jarvis.core.tools.housing.rules import rate_range
 from jarvis.core.tools.housing.profile import HousingProfile
+from jarvis.core.tools.housing.rules import rate_range
 
 TODAY = date(2026, 10, 22)
 RULES = load_rules()

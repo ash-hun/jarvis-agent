@@ -4,8 +4,8 @@ from datetime import date
 
 from jarvis.core.tools.housing.scenario import CASH_ALL, LOAN_MAX, NO_LOAN, Deposit, deposit_cases, fits
 from jarvis.core.tools.housing.scenario import purchase_cases
-from jarvis.core.tools.housing.rules import Area, load_rules
 from jarvis.core.tools.housing.profile import HousingProfile
+from jarvis.core.tools.housing.rules import Area, load_rules
 
 TODAY = date(2026, 10, 22)
 RULES = load_rules()

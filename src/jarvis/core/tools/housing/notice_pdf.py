@@ -4,8 +4,8 @@ import io
 import re
 import asyncio
 from pypdf import PdfReader
-from dataclasses import dataclass, replace
 from collections.abc import Callable
+from dataclasses import dataclass, replace
 
 from jarvis.core.tools.housing.fetch import FetchBytes
 

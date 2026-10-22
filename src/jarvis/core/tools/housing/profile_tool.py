@@ -1,8 +1,8 @@
 """[core] 사용자의 주거 프로필(대출 자격 조건)을 보고, 고치고, 지우는 housing_profile 도구."""
 
 import asyncio
-from datetime import date
 from typing import Any
+from datetime import date
 from collections.abc import Callable
 
 from jarvis.core.tools.housing.profile import KNOWN, HousingProfile, ProfileStore, apply_updates

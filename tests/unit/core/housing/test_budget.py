@@ -6,10 +6,10 @@ import asyncio
 from jarvis.core.tools.housing.budget import CONCURRENCY, Option, Terms, excluded_by_profile, options_from_units
 from jarvis.core.tools.housing.budget import parse_terms, plan_for
 from jarvis.core.tools.housing.profile import HousingProfile
-from jarvis.core.tools.housing.rules import load_rules
 from tests.unit.core.housing.conftest import TODAY, page
 from jarvis.core.tools.housing.fetch import FetchError
 from jarvis.core.tools.housing.lh_notice import Notice
+from jarvis.core.tools.housing.rules import load_rules
 from jarvis.core.tools.housing import housing_tools
 
 NOTICE = Notice("1-03-06-10", "행복주택", "테스트 공고", "경기도", "2026.10.01", "2026.10.20", "공고중")

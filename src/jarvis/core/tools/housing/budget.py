@@ -7,19 +7,19 @@ from typing import Any, TypeVar
 from dataclasses import dataclass, replace
 from collections.abc import Awaitable, Callable
 
-from jarvis.core.tools.housing.lh_notice import LhNoticeTool, Notice, build_queries, detail_url, is_sale
-from jarvis.core.tools.housing.lh_notice import resolve_region
+from jarvis.core.tools.housing.rules import NO, OK, UNKNOWN, Rules, Verdict, eligibility, load_rules, notice_access
 from jarvis.core.tools.housing.fetch import Fetch, FetchBytes, FetchError, fetch_bytes, fetch_html, kst_today
-from jarvis.core.tools.housing.scenario import BASE, CASH_ALL, NO_LOAN, Case, Deposit, deposit_cases, fits
 from jarvis.core.tools.housing.notice_pdf import RentTerm, SaleTerm, notice_text, pdf_text, pick_notice_pdf
-from jarvis.core.tools.housing.notice_pdf import rent_terms, sale_terms
+from jarvis.core.tools.housing.scenario import BASE, CASH_ALL, NO_LOAN, Case, Deposit, deposit_cases, fits
+from jarvis.core.tools.housing.lh_notice import LhNoticeTool, Notice, build_queries, detail_url, is_sale
 from jarvis.core.tools.housing.profile import HousingProfile, ProfileStore, apply_updates, parse_pairs
 from jarvis.core.tools.housing.rental_complex import ComplexUnit, fetch_complexes, match_complex
-from jarvis.core.tools.housing.rules import NO, OK, UNKNOWN, Rules, Verdict, eligibility, load_rules, notice_access
 from jarvis.core.tools.housing.markup import deadline_label, parse_date
+from jarvis.core.tools.housing.notice_pdf import rent_terms, sale_terms
 from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.tools.housing.scenario import purchase_cases
+from jarvis.core.tools.housing.lh_notice import resolve_region
 from jarvis.core.tools.registry import JarvisTool, ToolContext
+from jarvis.core.tools.housing.scenario import purchase_cases
 from jarvis.core.tools.housing.amount import parse_won
 from jarvis.memory.scope import LOCAL_USER
 

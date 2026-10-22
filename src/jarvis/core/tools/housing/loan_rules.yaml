@@ -1,0 +1,185 @@
+# 주택 대출 상품과 규제. 숫자는 조사한 출처의 값이고, 바뀌면 이 파일만 고친다.
+# basis: 공식(정부, 공공기관 원문) | 기사(언론 보도) | 가정(출처 없이 둔 값. 결과에 가정이라고 밝힌다)
+# 금액은 원, 비율은 %, 금리는 연 %. null 은 조사하지 못한 값이다(계산에 쓰지 않고 미확인으로 적는다).
+checked: 2026-10-22
+# 이 날수가 지나면 결과에 규칙이 오래됐다고 적고 web_search 로 다시 확인하라고 한다
+stale_after_days: 60
+
+regulation:
+  basis: 공식
+  sources:
+    - https://www.korea.kr/news/policyNewsView.do?newsId=148945077
+    - https://fsc.go.kr/no010101/85432
+    - https://www.hankyung.com/article/202604086672O
+  # 10.15 대책 규제지역(조정대상지역, 투기과열지구). 공고 지역이나 제목에 이 말이 있으면 규제지역으로 본다
+  regulated_areas: [서울, 과천, 광명, 분당, 수정구, 중원구, 영통, 장안구, 팔달, 동안구, 수지, 의왕, 하남]
+  # 경기도의 일부만 규제지역이다. 시도가 이것이고 위 이름이 없으면 규제 여부를 두 경우로 펼친다
+  partly_regulated: [경기]
+  capital_areas: [서울, 경기, 인천]
+  mortgage:
+    ltv: {regulated: 40, other: 70}
+    ltv_first_home: {capital_or_regulated: 70, other: 80}
+    # 수도권, 규제지역 구입 주담대 한도(시가 구간별)
+    caps_capital_or_regulated:
+      - {price_max: 1500000000, cap: 600000000}
+      - {price_max: 2500000000, cap: 400000000}
+      - {price_max: null, cap: 200000000}
+    max_years_capital_or_regulated: 30
+    dsr: 40
+    # DSR 을 셀 때 금리에 더하는 스트레스 금리
+    stress_rate: {capital_or_regulated: 3.0, other: 0.75}
+    stress_basis: 수도권, 규제지역 3%p 는 공식. 지방 0.75%p 는 3단계 유예 보도를 따른 가정
+
+# 공고 유형별 신청 자격. 대출 자격이 아니라 그 공고에 신청할 수 있는지다. 2026년 LH 공고문 원문에서 옮겼다.
+# 소득은 세전 세대 월평균소득, 1인 가구 기준(가구원이 많으면 기준 금액이 올라간다). 공고마다 다를 수 있어 판정이 아니라 가능성으로 적는다.
+notice_kinds:
+  basis: 공식
+  # 제목에 이 말이 있으면 소득, 자산 기준을 완화하거나 뺀 모집이다(남원노암 영구임대 공고: 소득요건 배제)
+  relaxed_words: [자격완화, 입주자격 완화, 소득요건 배제]
+  married_only:
+    match: 신혼희망
+    who: 신혼부부(혼인 7년 이내 또는 6세 이하 자녀), 예비신혼부부(입주 때까지 혼인 증명), 6세 이하 자녀를 둔 한부모
+    single_path: 미혼이면 예비신혼부부(입주 때까지 혼인 증명)로만 신청할 수 있다. 잔여세대 선착순도 같다
+    source: 광주선운2 A-1,3블록 신혼희망타운 선착순계약 공고문(2026.07.06) 신청자격
+  income:
+    - match: 영구임대
+      monthly_one_person: 2669354
+      basis: 일반 입주자 기준, 2025년 도시근로자 월평균소득 50%(1인 70%). 수급자, 유공자, 장애인 등은 순위와 기준이 따로다
+      source: 대전광역시 영구임대주택 예비입주자 모집 공고문(2026.10.06)
+    - match: 국민임대
+      monthly_one_person: 3432027
+      basis: 2025년 도시근로자 월평균소득 70%(1인 90%)
+      source: 태백철암1 국민임대주택 예비입주자 모집 공고문
+    - match: 통합공공임대
+      monthly_one_person: 4359205
+      basis: 일반공급 기준, 기준 중위소득 150%(1인 +20%p). 우선공급은 100%
+      source: 부산모라 1블록 통합공공임대 입주자 최초모집 공고문(2026.10.15)
+    - match: 행복주택
+      monthly_one_person: 4576036
+      basis: 청년 계층 기준, 2025년 도시근로자 월평균소득 100%(1인 120%). 대학생, 신혼부부, 고령자 계층은 기준이 다르다
+      source: 창원시 행복주택 예비입주자 모집공고(2026.10.15)
+
+products:
+  - id: didimdol
+    name: 디딤돌 대출
+    purpose: purchase
+    provider: 주택도시기금
+    basis: 공식
+    source: https://nhuf.molit.go.kr/FP/FP05/FP0503/FP05030101.jsp
+    rate: [2.85, 4.15]
+    rate_basis: 공식(소득, 만기 구간별 표는 확인하지 못해 범위로 둔다)
+    years: 30
+    repayment: 원리금균등
+    homeless: true
+    income_max: 60000000
+    income_max_first_home: 70000000
+    income_max_married: 85000000
+    assets_max: 511000000
+    price_max: 500000000
+    price_max_married: 600000000
+    cap: 200000000
+    cap_first_home: 240000000
+    cap_married: 320000000
+    ltv: 70
+    ltv_first_home: 80
+    ltv_first_home_capital_or_regulated: 70
+    debt_ratio: {kind: DTI, limit: 60}
+    # 만 30세 미만 미혼 단독세대주는 대상이 아니다(부양가족이 있거나 토지임대부 분양주택이면 예외)
+    single_min_age: 30
+    # 만 30세 이상 미혼 단독세대주는 집과 한도가 줄어든다
+    single:
+      price_max: 300000000
+      area_max: 60
+      cap: 150000000
+      cap_first_home: 200000000
+    note: 미혼 단독세대주 나이 제한은 부양가족이 있거나 토지임대부 분양주택이면 예외. 신혼 소득 기준 8,500만원은 확인하지 못한 값
+
+  - id: bogeumjari
+    name: 보금자리론
+    purpose: purchase
+    provider: 한국주택금융공사
+    basis: 공식
+    source: https://www.hf.go.kr/ko/sub01/sub01_01_01.do
+    # 2026년 10월 아낌e 보금자리론 만기별 금리(동결). 규제지역은 regulated_add 를 더한다
+    rate_by_years: {10: 4.90, 15: 5.00, 20: 5.05, 30: 5.10, 40: 5.15, 50: 5.20}
+    rate_source: https://view.asiae.co.kr/article/2026092810503848169
+    rate_basis: 기사(우대금리 최대 1.0%p 는 빼지 않았다)
+    regulated_add: 0.2
+    years: 30
+    # 만기를 이만큼 길게 하려면 나이가 이 미만이어야 한다
+    years_age_max: {40: 40, 50: 35}
+    repayment: 원리금균등
+    homeless: false
+    income_max: 70000000
+    price_max: 600000000
+    cap: 360000000
+    cap_first_home: 420000000
+    ltv: 70
+    ltv_non_apartment: 65
+    # 규제지역은 LTV 를 이만큼 낮춘다. 생애최초는 낮추지 않는다
+    regulated_ltv_cut: 10
+    debt_ratio: {kind: DTI, limit: 60}
+    note: 무주택이나 1주택(처분 조건). 미혼은 본인 소득으로 본다
+
+  - id: bank_mortgage
+    name: 시중은행 주택담보대출
+    purpose: purchase
+    provider: 시중은행
+    basis: 공식
+    source: https://fsc.go.kr/no010101/85432
+    rate: [4.66, 6.0]
+    rate_source: https://biz.sbs.co.kr/amp/article/20000337490
+    rate_basis: 하단은 한국은행 2026년 8월 신규 주담대 평균 4.66%(기사). 상단 6%는 10월 '하단 5%대' 보도를 반영한 가정
+    years: 30
+    repayment: 원리금균등
+    market: true
+    debt_ratio: {kind: DSR, limit: 40}
+    note: LTV, 한도, DSR 은 regulation.mortgage 를 따른다. 다른 대출이 없다고 보고 DSR 을 셌다
+
+  - id: beotimmok
+    name: 버팀목 전세자금대출
+    purpose: deposit
+    provider: 주택도시기금
+    basis: 공식
+    source: https://nhuf.molit.go.kr/FP/FP05/FP0502/FP05020101.jsp
+    rate: [2.5, 3.5]
+    homeless: true
+    income_max: 50000000
+    income_max_married: 75000000
+    assets_max: 345000000
+    deposit_max: {capital: 300000000, other: 200000000}
+    cap: {capital: 120000000, other: 80000000}
+    ratio: 70
+    ratio_married: 80
+    repayment: 만기일시
+    note: 2년 단위 연장, 최장 10년
+
+  - id: youth_beotimmok
+    name: 청년전용 버팀목 전세자금대출
+    purpose: deposit
+    provider: 주택도시기금
+    basis: 공식
+    source: https://nhuf.molit.go.kr/FP/FP05/FP0502/FP05020301.jsp
+    rate: [2.2, 3.3]
+    homeless: true
+    age_range: [19, 34]
+    income_max: 50000000
+    assets_max: 345000000
+    deposit_max: {capital: 300000000, other: 300000000}
+    cap: {capital: 150000000, other: 150000000}
+    ratio: 80
+    repayment: 만기일시
+    note: 만 25세 미만 단독세대주는 한도 1.2억. 대출 접수일에 이미 공공임대에 살고 있으면 안 된다
+
+  - id: bank_jeonse
+    name: 시중은행 전세자금대출(HF 보증)
+    purpose: deposit
+    provider: 시중은행
+    basis: 기사
+    source: https://www.hf.go.kr/ko/sub02/sub02_01_07_01.do
+    rate: [4.28, 4.81]
+    rate_basis: 주택금융공사 공시 2026-10-12~18 주간 평균(우리 4.28, 국민 4.50, 하나 4.81)
+    ratio: 80
+    cap: null
+    repayment: 만기일시
+    note: 수도권 보증비율 80%(6.27 대책). 보증기관 한도와 LH 공공임대 보증금에 쓸 수 있는지는 확인하지 못했다

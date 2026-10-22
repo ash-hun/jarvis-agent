@@ -158,9 +158,19 @@ def notice_id(pan_id: str, system: str, upp: str, ais: str) -> str:
     return f"{pan_id}-{system}-{upp}-{ais}"
 
 
+def _menu(upp: str, ais: str) -> str:
+    return "1027" if (upp, ais) == ("39", "39") else MENU_BY_UPP.get(upp, CATEGORIES["임대"].menu)
+
+
+def is_sale(nid: str) -> bool:
+    """분양(매각 포함) 공고인가. 게시판이 분양 메뉴(1027)로 여는 공고다."""
+    match = _ID_RE.match(nid)
+    return match is not None and _menu(match.group(3), match.group(4)) == "1027"
+
+
 def detail_url(nid: str) -> str:
     pan_id, system, upp, ais = _ID_RE.match(nid).groups()  # type: ignore[union-attr]  # 부른 쪽이 검사했다
-    menu = "1027" if (upp, ais) == ("39", "39") else MENU_BY_UPP.get(upp, CATEGORIES["임대"].menu)
+    menu = _menu(upp, ais)
     return f"{DETAIL_URL}?panId={pan_id}&ccrCnntSysDsCd={system}&uppAisTpCd={upp}&aisTpCd={ais}&mi={menu}"
 
 

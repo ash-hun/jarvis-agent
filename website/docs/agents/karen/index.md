@@ -5,7 +5,7 @@ title: KAREN
 
 # KAREN
 
-<span className="agent agent--karen">K.A.R.E.N.</span> 는 정한 분야의 정보를 찾아 모으고 출처와 함께 요약하는 정보 수집 담당 에이전트다(id `karen`). 지금은 LH, SH 청약 공고 조회, 예산에 맞는 공고 추천, 주택 대출 원리금 계산을 맡는다.
+<span className="agent agent--karen">K.A.R.E.N.</span> 는 정한 분야의 정보를 찾아 모으고 출처와 함께 요약하는 정보 수집 담당 에이전트다(id `karen`). 지금은 LH, SH 청약 공고 조회, 현금과 월 여유자금으로 공고별 대출 경우의 수 계산, 주택 대출 원리금 계산을 맡는다.
 
 ![KAREN 세션의 Web HUD. 녹색 리액터 구체와 청약 공고 대화가 보이는 CONVERSATION 카드](/img/agents/karen-hud.png)
 
@@ -26,7 +26,8 @@ title: KAREN
 | 도구 | 용도 |
 |---|---|
 | `lh_notice`, `sh_notice` | LH, SH 청약 공고 조회 |
-| `housing_budget` | 총예산과 현금으로 공고 추천 |
+| `housing_budget` | 현금과 월 여유자금으로 공고마다 대출 경우의 수(상품, 규제, 보증금 전환, 현금 투입)와 월 부담 계산 |
+| `housing_profile` | 대출 자격을 가르는 주거 프로필 보기, 고치기 |
 | `housing_loan` | 월, 연간 원리금 상환액과 이자 계산 |
 | `web_search`, `web_fetch` | 웹 검색과 페이지 읽기 |
 | `read_file`, `list_dir`, `glob`, `grep` | 로컬 파일 읽기 |

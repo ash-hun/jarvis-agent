@@ -1,0 +1,8 @@
+{"text": "내가 가진 현금자본이 약 1억 5천, 월별 여유자금은 200만원이야. 현재 진행중인 공고중에 내가 이자율 + 원금상환율 고려했을 때 적절한 청약공고 찾아줘.", "tool": "housing_budget", "cash": 150000000, "monthly_limit": 2000000, "budget": null}
+{"text": "현금 1억 2천 있고 한 달에 150 정도 낼 수 있어. 지금 넣을 만한 LH 공고 있어?", "tool": "housing_budget", "cash": 120000000, "monthly_limit": 1500000, "budget": null}
+{"text": "총 3억 안쪽으로, 현금 1억 2천, 월 200만원 이하로 갈 수 있는 공고 추천해줘", "tool": "housing_budget", "cash": 120000000, "monthly_limit": 2000000, "budget": 300000000}
+{"text": "모은 돈 8천만원이랑 월 100만원으로 대출 끼고 들어갈 수 있는 청약 찾아줘", "tool": "housing_budget", "cash": 80000000, "monthly_limit": 1000000, "budget": null}
+{"text": "현금 2억5천, 월 상환 300까지 괜찮아. 진행 중인 분양 공고 중에 원리금 계산해서 골라줘", "tool": "housing_budget", "cash": 250000000, "monthly_limit": 3000000, "budget": null}
+{"text": "보유현금 5000만원, 월세랑 이자 합쳐서 70만원 넘으면 안 돼. 들어갈 만한 공고?", "tool": "housing_budget", "cash": 50000000, "monthly_limit": 700000, "budget": null}
+{"text": "1.5억 들고 있고 매달 200 가능한데 이자랑 원금 다 따져서 공고 골라줘", "tool": "housing_budget", "cash": 150000000, "monthly_limit": 2000000, "budget": null}
+{"text": "예산은 4억까지, 그중 현금은 1억 8천이고 월 부담은 250만원 이하로 맞춰줘", "tool": "housing_budget", "cash": 180000000, "monthly_limit": 2500000, "budget": 400000000}

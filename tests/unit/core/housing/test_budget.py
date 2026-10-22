@@ -6,10 +6,10 @@ import asyncio
 from jarvis.core.tools.housing.budget import CONCURRENCY, Option, Terms, excluded_by_profile, options_from_units
 from jarvis.core.tools.housing.budget import parse_terms, plan_for
 from jarvis.core.tools.housing.profile import HousingProfile
-from jarvis.core.tools.housing.rules import load_rules
 from tests.unit.core.housing.conftest import TODAY, page
 from jarvis.core.tools.housing.fetch import FetchError
 from jarvis.core.tools.housing.lh_notice import Notice
+from jarvis.core.tools.housing.rules import load_rules
 from jarvis.core.tools.housing import housing_tools
 
 NOTICE = Notice("1-03-06-10", "행복주택", "테스트 공고", "경기도", "2026.10.01", "2026.10.20", "공고중")
@@ -192,3 +192,13 @@ def test_case_lines_stand_alone_and_show_access():
     assert "· 시중은행 전세자금대출(HF 보증) 연 4.28~4.81% 만기일시(이자만): 대출 2,480만원" in text
     assert "마감 2026.10.27" in text
     assert "신청 가능성 낮음: 미혼이면 예비신혼부부(입주 때까지 혼인 증명)로만 신청할 수 있다" in text
+
+
+def test_result_is_the_answer_but_errors_are_not():
+    """계산 결과는 모델이 옮기지 않고 그대로 답이 된다. 오류는 모델이 받아 다시 부르거나 설명한다."""
+    board = Board(pdf_text=page("rent_terms_uiwang.txt"))
+    ok = asyncio.run(_tool(board).execute("t1", {"cash": "1억 5천"}))
+    bad = asyncio.run(_tool(board).execute("t2", {"cash": "많이"}))
+    assert ok.final and not ok.is_error
+    assert bad.is_error and not bad.final
+    assert "답할 때" not in ok.content[0].text and "알려 주면 자격을 가려 다시 계산한다" in ok.content[0].text

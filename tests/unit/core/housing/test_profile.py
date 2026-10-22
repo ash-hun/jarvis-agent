@@ -6,8 +6,8 @@ from datetime import date
 
 from jarvis.core.tools.housing.profile import HousingProfile, ProfileStore, apply_updates, from_metadata, parse_pairs
 from jarvis.core.tools.housing.profile_tool import HousingProfileTool
-from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.core.slash.housing_cmd import make_housing_handler
+from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.memory_service import MemoryService
 from jarvis.core.tools.registry import ToolContext
 from jarvis.memory.scope import MemoryScope

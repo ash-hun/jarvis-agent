@@ -80,6 +80,8 @@ class ToolResultMessage(BaseModel):
     denied: bool = False
     # denied 중 승인 요청이 시간 안에 답을 받지 못한 경우. 사용자에게 거부와 다르게 알린다
     timed_out: bool = False
+    # 도구가 쓴 글이 곧 답이다. 한 번에 부른 결과가 모두 final 이면 루프가 모델에 다시 묻지 않고 이 글로 턴을 끝낸다
+    final: bool = False
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
 
 

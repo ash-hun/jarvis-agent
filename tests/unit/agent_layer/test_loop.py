@@ -227,6 +227,40 @@ async def test_partly_denied_lets_model_answer():
     assert result is not None and result.text() == "읽었습니다"
 
 
+async def _final_executor(tool_call_id, tool_name, params) -> ToolResultMessage:
+    return ToolResultMessage(
+        tool_call_id=tool_call_id, tool_name=tool_name, content=[TextContent(text="표 그대로")], final=True
+    )
+
+
+async def test_final_result_is_the_answer_without_asking_model_again():
+    provider = ScriptedProvider([_tool_turn(("c1", "housing_budget", {})), _text_turn("요약")])
+    rec = Recorder()
+    context = _context(_register(provider))
+
+    result = await run_agent_loop(context, AgentLoopConfig(), rec, _final_executor)
+
+    assert len(provider.calls) == 1
+    assert result is not None and result.text() == "표 그대로"
+    assert [m.text_delta for m in rec.of(MessageUpdateEvent)] == ["표 그대로"]
+    assert [type(m).__name__ for m in context.messages] == ["AssistantMessage", "ToolResultMessage", "AssistantMessage"]
+
+
+async def test_final_mixed_with_other_results_lets_model_answer():
+    async def mixed(tool_call_id, tool_name, params):
+        if tool_name == "housing_budget":
+            return await _final_executor(tool_call_id, tool_name, params)
+        return await _ok_executor(tool_call_id, tool_name, params)
+
+    provider = ScriptedProvider(
+        [_tool_turn(("c1", "housing_budget", {}), ("c2", "read_file", {"path": "a"})), _text_turn("정리")]
+    )
+    result = await run_agent_loop(_context(_register(provider)), AgentLoopConfig(), Recorder(), mixed)
+
+    assert len(provider.calls) == 2
+    assert result is not None and result.text() == "정리"
+
+
 @pytest.mark.asyncio
 async def test_loop_stops_when_no_tool_executor():
     model = _register(ScriptedProvider([_tool_turn(("c1", "bash", {}))]))

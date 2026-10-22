@@ -165,7 +165,7 @@ WS 끊김: 상단 배너 `연결 끊김 — 재연결 중...`, 입력 잠금, 1�
 |---|---|---|---|
 | `panel-head` + `setupCollapse` | `shell.js` | 토글 id, body 클래스, localStorage 키 | SESSIONS, CONVERSATION |
 | 메시지(`appendMsg`, `appendThought`, 스트림, 도구 흔적, 대기 자리표시, 히스토리) | `messages.js` | 역할 라벨, 종류, HTML | CONVERSATION |
-| 마크다운 렌더(`renderMarkdown`, `attachCopyBtns`) | `markdown.js` | 텍스트 | 응답, 히스토리, 🔔, 스케줄 작업 알림, Focus 영역. `[글자](URL)` 는 글자만, 맨 URL 은 40자를 넘으면 도메인만 링크로 보인다(http, https 만, 새 탭) |
+| 마크다운 렌더(`renderMarkdown`, `attachCopyBtns`) | `markdown.js` | 텍스트 | 응답, 히스토리, 🔔, 스케줄 작업 알림, Focus 영역. `[글자](URL)` 는 글자만, 맨 URL 은 40자를 넘으면 도메인만 링크로 보인다(http, https 만, 새 탭). 번호 목록은 원문 번호에서 시작한다(항목 사이에 문단이 끼어도 `2.` 가 2 로 보인다) |
 | 승인 오버레이, 음성 답 해석(`parseApprovalAnswer`) | `approval.js` | `approval_request`, 전사 텍스트 | 전역 모달 |
 | 모드 세그먼트 | `mode.js` | 클릭, `hud.mode` | 헤더 |
 | 슬래시 팝업, 입력 하이라이트 | `composer.js` | 명령 목록 | 입력 독 |

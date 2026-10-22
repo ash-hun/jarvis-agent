@@ -80,8 +80,9 @@ export function renderMarkdown(src) {
     const ul = line.match(/^[-*+] (.+)/);
     if (ul) { closeSub(); if (listType !== 'ul') { closeList(); out += '<ul>'; listType = 'ul'; } out += `<li>${inlineParse(ul[1])}</li>`; i++; continue; }
 
-    const ol = line.match(/^\d+[.)]\s+(.+)/);
-    if (ol) { closeSub(); if (listType !== 'ol') { closeList(); out += '<ol>'; listType = 'ol'; } out += `<li>${inlineParse(ol[1])}</li>`; i++; continue; }
+    // 항목 사이에 문단이 끼면 목록이 새로 열린다. 원문 번호에서 시작해야 2. 가 1. 로 보이지 않는다
+    const ol = line.match(/^(\d+)[.)]\s+(.+)/);
+    if (ol) { closeSub(); if (listType !== 'ol') { closeList(); out += `<ol start="${ol[1]}">`; listType = 'ol'; } out += `<li>${inlineParse(ol[2])}</li>`; i++; continue; }
 
     closeList();
     out += `<p>${inlineParse(line)}</p>`;

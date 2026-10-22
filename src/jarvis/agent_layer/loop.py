@@ -87,9 +87,14 @@ async def run_agent_loop(
         context.messages.extend(tool_results)
         if tool_results and all(r.denied for r in tool_results):
             final_message = _denied_reply(context, tool_results)
-            await emit(MessageUpdateEvent(text_delta=final_message.text()))
-            context.messages.append(final_message)
-            break
+        elif tool_results and all(r.final and not r.is_error for r in tool_results):
+            # 모델이 긴 표를 옮겨 적다 줄과 링크를 떨어뜨린다. 도구 글을 그대로 답으로 쓴다
+            final_message = _reply(context, "\n\n".join(_text(r) for r in tool_results))
+        else:
+            continue
+        await emit(MessageUpdateEvent(text_delta=final_message.text()))
+        context.messages.append(final_message)
+        break
 
     _close_dangling_tool_calls(context.messages)
 
@@ -105,11 +110,17 @@ async def run_agent_loop(
 def _denied_reply(context: AgentContext, results: list[ToolResultMessage]) -> AssistantMessage:
     tools = ", ".join(dict.fromkeys(r.tool_name for r in results))
     reply = DENIED_TIMEOUT_REPLY if all(r.timed_out for r in results) else DENIED_REPLY
+    return _reply(context, reply.format(tools=tools))
+
+
+def _reply(context: AgentContext, text: str) -> AssistantMessage:
     return AssistantMessage(
-        content=[TextContent(text=reply.format(tools=tools))],
-        provider=context.model.provider,
-        model=context.model.model,
+        content=[TextContent(text=text)], provider=context.model.provider, model=context.model.model
     )
+
+
+def _text(result: ToolResultMessage) -> str:
+    return "\n".join(c.text for c in result.content if isinstance(c, TextContent))
 
 
 def _empty_after_tools(message: AssistantMessage, history: list[Message]) -> bool:

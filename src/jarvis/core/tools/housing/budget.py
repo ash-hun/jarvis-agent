@@ -52,6 +52,7 @@ TOOL_DESCRIPTION = (
     " 현금을 다 넣는 경우와 대출을 최대로 쓰는 경우를 같이 보인다."
     " 자격은 사용자의 주거 프로필(무주택, 생애최초, 혼인, 소득, 나이)로 가린다."
     " 프로필은 housing_profile 로 보고 고친다."
+    " 결과 글은 고치지 않고 그대로 사용자 답이 되니, 프로필을 고칠 일이 있으면 먼저 끝내고 이 도구는 혼자 부른다."
     " '현금 1억 5천, 월 200만원으로 맞는 공고' 같은 요청에 쓴다. 금액은 숫자(원)나 사용자가 말한 그대로('1억 5천')."
 )
 _AMOUNT = "원 단위 숫자나 사용자가 말한 그대로의 금액 글. 예: 150000000, '1억 5천', '200만원'"
@@ -360,14 +361,17 @@ def render(
     if blocked:
         lines.append("프로필로 자격이 안 되어 뺀 상품: " + "; ".join(blocked))
     if unsure:
-        lines.append("프로필에 없어 자격을 확정하지 못한 상품(계산은 했다): " + "; ".join(unsure))
+        lines.append(
+            "프로필에 없어 자격을 확정하지 못한 상품(계산은 했다): " + "; ".join(unsure)
+            + ". 무주택, 생애최초, 혼인, 연소득, 나이를 알려 주면 자격을 가려 다시 계산한다"
+        )
     rate = f"사용자가 준 연 {terms.rate:g}%" if terms.rate is not None else "상품별 조사 범위(하단~상단)"
     lines.append(
         f"가정: 금리는 {rate}. 맞음 여부는 금리 상단으로 본다."
         " 분양은 입주 때 잔금 대출 기준(계약금, 중도금 일정은 단지별)."
         f" 다른 대출은 없다고 보고 DSR/DTI 를 셌다. 마감은 KST {today.isoformat()} 기준"
     )
-    stale = " 오래됐다. web_search 로 금리와 규제를 다시 확인하라고 적는다." if rules.stale(today) else ""
+    stale = " 오래됐으니 금리와 규제를 은행, 기금 사이트에서 다시 확인한다." if rules.stale(today) else ""
     lines.append(f"대출 규칙 기준일 {rules.checked.isoformat()}(loan_rules.yaml).{stale}")
     for title, sale in (("분양(구입 대출)", True), ("임대(보증금 대출)", False)):
         group = sorted((p for p in plans if p.option.sale is sale), key=_rank)
@@ -400,21 +404,19 @@ def render(
             for n in unknown[:MAX_UNKNOWN_LISTED]
         ]
         if len(unknown) > MAX_UNKNOWN_LISTED:
-            lines.append(f"- 그 밖에 {len(unknown) - MAX_UNKNOWN_LISTED}건(lh_notice 로 볼 수 있다)")
+            lines.append(f"- 그 밖에 {len(unknown) - MAX_UNKNOWN_LISTED}건(LH 공고 목록에서 볼 수 있다)")
     if skipped:
-        lines.append(f"\n상세를 {MAX_DETAILS}건까지만 열어 {skipped}건은 보지 않았다. 지역을 나눠 다시 부른다.")
+        lines.append(
+            f"\n상세를 {MAX_DETAILS}건까지만 열어 {skipped}건은 보지 않았다. 지역을 나눠 다시 물으면 나머지를 본다."
+        )
     used = [p for p in rules.products if any(c.product is p for plan in plans for c in plan.cases)]
     if used:
         lines.append("\n출처: " + "; ".join(f"{p.name} {p.get('source')}" for p in used))
     lines.append(
-        "\n답할 때 위 숫자를 그대로 쓴다."
-        " [분양]과 [임대] 두 묶음을 다 쓴다. 마감은 '마감' 값 그대로 쓴다."
-        " 보인 공고마다 '신청 가능성' 줄과 '·' 줄을 하나도 빼거나 줄이지 말고 그대로 옮긴다"
-        "(한 줄이 상품 하나이고, ' / ' 로 나뉜 경우를 다 남긴다)."
-        " 한 경우로 단정하지 말고 상품, 규제지역, 현금 투입 방식별 경우를 나눠 보인다."
-        " 금리 범위, 자격 확인 조건, 출처, 기준일을 밝힌다."
-        " 주택형 이름의 공급대상(수급자, 청년, 대학생 등)과 공고의 소득, 자산 기준은 신청 자격이라 확인하라고 적는다."
-        " 매입임대와 전세임대는 집마다 금액이 달라 공고문 확인 목록에 남는다. SH 공고는 금액이 첨부에만 있어 빠진다."
+        "\n이 계산은 정해진 답이 아니라 고를 수 있는 경우의 수다."
+        " 신청 가능성은 1인 가구 기준과 공고 제목으로 본 가늠이라, 주택형 이름의 공급대상(수급자, 청년, 대학생 등)과"
+        " 공고문의 소득, 자산 기준을 신청 전에 확인한다."
+        " 매입임대와 전세임대는 집마다 금액이 달라 공고문 확인 목록에 남고, SH 공고는 금액이 첨부에만 있어 빠진다."
     )
     return "\n".join(lines)
 
@@ -459,7 +461,7 @@ class HousingBudgetTool(JarvisTool):
         except (TypeError, ValueError) as exc:
             return _result(tool_call_id, f"조건을 읽을 수 없다: {exc}", True)
         try:
-            return _result(tool_call_id, await self._recommend(terms, regions, limit, profile, note, today))
+            return _result(tool_call_id, await self._recommend(terms, regions, limit, profile, note, today), final=True)
         except (FetchError, ValueError) as exc:
             return _result(tool_call_id, f"LH 조회 실패: {exc}", True)
 
@@ -471,7 +473,7 @@ class HousingBudgetTool(JarvisTool):
         if self._profiles is not None and scope is not None:
             profile = await self._profiles.get(scope.user_id or LOCAL_USER)
             if not profile.is_empty():
-                note = "저장된 프로필. housing_profile 로 바꾼다"
+                note = "저장된 프로필. /housing 이나 말로 알려 주면 바꾼다"
         if conditions.strip():
             profile = apply_updates(profile, parse_pairs(conditions), today)
             note += ". 이번 계산에만 조건을 덧씌움: " + conditions.strip()
@@ -573,7 +575,8 @@ def parse_terms(params: dict[str, Any]) -> tuple[Terms, list[str], int]:
     return Terms(cash, monthly_limit, budget, rate, years), regions, limit
 
 
-def _result(tool_call_id: str, text: str, is_error: bool = False) -> ToolResultMessage:
+def _result(tool_call_id: str, text: str, is_error: bool = False, final: bool = False) -> ToolResultMessage:
     return ToolResultMessage(
-        tool_call_id=tool_call_id, tool_name=TOOL_NAME, content=[TextContent(text=text)], is_error=is_error
+        tool_call_id=tool_call_id, tool_name=TOOL_NAME, content=[TextContent(text=text)], is_error=is_error,
+        final=final,
     )

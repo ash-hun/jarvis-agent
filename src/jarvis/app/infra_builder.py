@@ -93,7 +93,7 @@ class InfraBuilder:
             session_repo=session_repo,
             tool_registry=tool_registry,
             settings=settings,
-            agent_tools=self.build_agent_tools(),
+            agent_tools=self.build_agent_tools(memory),
         )
         # open loop 과 사용자 모델 저장소는 앱에 하나(모든 세션과 daemon 이 공유)
         openloop_store = self.build_openloop_store() if settings.thought.enabled else None
@@ -168,13 +168,14 @@ class InfraBuilder:
             registry.register(tool)
         return registry
 
-    def build_agent_tools(self) -> "ToolRegistry":
+    def build_agent_tools(self, memory: "MemoryService | None" = None) -> "ToolRegistry":
         """에이전트 정의가 이름으로 골라야 쓰는 도구. JARVIS(도구 목록 없음)의 레지스트리에는 넣지 않는다."""
-        from jarvis.core.tools.housing import housing_tools
+        from jarvis.core.tools.housing import ProfileStore, housing_tools
         from jarvis.core.tools.registry import ToolRegistry
 
         registry = ToolRegistry()
-        for tool in housing_tools():
+        profiles = ProfileStore(memory) if memory is not None else None
+        for tool in housing_tools(profiles=profiles):
             registry.register(tool)
         return registry
 
@@ -539,6 +540,12 @@ class InfraBuilder:
 
         dispatcher.register_scoped(
             "patterns", make_patterns_handler(memory), "지금 에이전트의 작업 패턴 (forget <이름>)"
+        )
+        from jarvis.core.slash.housing_cmd import make_housing_handler
+        from jarvis.core.tools.housing import ProfileStore
+
+        dispatcher.register_scoped(
+            "housing", make_housing_handler(ProfileStore(memory)), "대출 자격용 주거 프로필 (set 항목=값 | clear)"
         )
         if services.openloop_store is not None:
             from jarvis.core.slash.openloop_cmd import make_openloop_handler

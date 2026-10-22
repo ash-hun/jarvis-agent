@@ -1,916 +1,924 @@
 {
- "_note": "scripts/experiments 의 실험 결과. 문서의 표와 그래프는 이 파일에서 나온다. 조건은 각 문서의 성능 실험 절에 있다.",
- "reply_feedback": {
-  "e2b": {
-   "accuracy": 1.0,
-   "latency_p50": 0.21
-  },
-  "e4b": {
-   "accuracy": 0.972,
-   "latency_p50": 0.38
-  },
-  "gpt": {
-   "accuracy": 0.917,
-   "latency_p50": 0.67
-  },
-  "top_miss": {
-   "gpt": "이미 보냈어 → accept 3/3",
-   "e4b": "이미 보냈어 → other 1/3"
-  }
- },
- "reply_approval": {
-  "e2b": {
-   "label_accuracy": 0.778,
-   "decision_accuracy": 0.917,
-   "unsafe_allow": 0,
-   "missed_allow": 3,
-   "label_errors": 8,
-   "latency_p50": 0.21
-  },
-  "e4b": {
-   "label_accuracy": 0.75,
-   "decision_accuracy": 1.0,
-   "unsafe_allow": 0,
-   "missed_allow": 0,
-   "label_errors": 9,
-   "latency_p50": 0.38
-  },
-  "gpt": {
-   "label_accuracy": 0.639,
-   "decision_accuracy": 0.75,
-   "unsafe_allow": 0,
-   "missed_allow": 9,
-   "label_errors": 13,
-   "latency_p50": 0.67
-  },
-  "allow_trials": 18
- },
- "proactive_situation": {
-  "e2b": {
-   "recall": 1.0,
-   "precision": 0.783,
-   "false_alarm": 0.278,
-   "mention_ok": "16/18",
-   "sec_per_case": 5.9,
-   "misses": {
-    "far_future_loop_is_silent": 3,
-    "irrelevant_external_event_is_silent": 1,
-    "marketing_event_is_silent": 1
-   }
-  },
-  "e4b": {
-   "recall": 1.0,
-   "precision": 0.692,
-   "false_alarm": 0.444,
-   "mention_ok": "16/18",
-   "sec_per_case": 9.71,
-   "misses": {
-    "finished_task_is_silent": 2,
-    "marketing_event_is_silent": 2,
-    "far_future_loop_is_silent": 3,
-    "irrelevant_external_event_is_silent": 1
-   }
-  },
-  "gpt": {
-   "recall": 0.167,
-   "precision": 1.0,
-   "false_alarm": 0.0,
-   "mention_ok": "3/3",
-   "sec_per_case": 1.77,
-   "misses": {
-    "due_open_loop_speaks": 3,
-    "meeting_soon_speaks": 3,
-    "ci_failed_on_user_branch_speaks": 3,
-    "overdue_promise_speaks": 3,
-    "urgent_relevant_event_speaks": 1,
-    "disk_almost_full_speaks": 2
-   }
-  }
- },
- "thought_frames": {
-  "e2b": {
-   "valid": 1.0,
-   "loop_recall": 1.0,
-   "loop_precision": 0.706,
-   "latency_p50": 5.4
-  },
-  "e4b": {
-   "valid": 1.0,
-   "loop_recall": 0.75,
-   "loop_precision": 1.0,
-   "latency_p50": 9.79
-  },
-  "gpt": {
-   "valid": 1.0,
-   "loop_recall": 0.75,
-   "loop_precision": 1.0,
-   "latency_p50": 2.33
-  }
- },
- "thought_timing": {
-  "local": {
-   "before": {
-    "first": 15.61,
-    "total": 21.32
-   },
-   "race": {
-    "first": 5.98,
-    "total": 24.45
-   },
-   "after": {
-    "first": 2.28,
-    "total": 12.43
-   }
-  },
-  "cloud": {
-   "before": {
-    "first": 3.54,
-    "total": 4.5
-   },
-   "race": {
-    "first": 3.24,
-    "total": 4.32
-   },
-   "after": {
-    "first": 0.93,
-    "total": 1.93
-   }
-  }
- },
- "loop_embedding": {
-  "bge-m3": {
-   "same_loop_acc": 0.833,
-   "false_merge": 0,
-   "acc_at_085": 0.833,
-   "pairs": [
-    {
-     "cos": 0.956,
-     "same": true
+  "_note": "scripts/experiments 의 실험 결과. 문서의 표와 그래프는 이 파일에서 나온다. 조건은 각 문서의 성능 실험 절에 있다.",
+  "reply_feedback": {
+    "e2b": {
+      "accuracy": 1.0,
+      "latency_p50": 0.21
     },
-    {
-     "cos": 0.958,
-     "same": true
+    "e4b": {
+      "accuracy": 0.972,
+      "latency_p50": 0.38
     },
-    {
-     "cos": 0.753,
-     "same": true
+    "gpt": {
+      "accuracy": 0.917,
+      "latency_p50": 0.67
     },
-    {
-     "cos": 0.783,
-     "same": true
-    },
-    {
-     "cos": 0.598,
-     "same": true
-    },
-    {
-     "cos": 0.866,
-     "same": true
-    },
-    {
-     "cos": 0.856,
-     "same": true
-    },
-    {
-     "cos": 0.896,
-     "same": true
-    },
-    {
-     "cos": 0.789,
-     "same": false
-    },
-    {
-     "cos": 0.697,
-     "same": false
-    },
-    {
-     "cos": 0.546,
-     "same": false
-    },
-    {
-     "cos": 0.695,
-     "same": false
-    },
-    {
-     "cos": 0.698,
-     "same": false
-    },
-    {
-     "cos": 0.727,
-     "same": false
-    },
-    {
-     "cos": 0.681,
-     "same": false
-    },
-    {
-     "cos": 0.722,
-     "same": false
-    },
-    {
-     "cos": 0.525,
-     "same": false
-    },
-    {
-     "cos": 0.557,
-     "same": false
+    "top_miss": {
+      "gpt": "이미 보냈어 → accept 3/3",
+      "e4b": "이미 보냈어 → other 1/3"
     }
-   ]
   },
-  "nomic-embed-text": {
-   "same_loop_acc": 0.611,
-   "false_merge": 5,
-   "acc_at_085": 0.611,
-   "pairs": [
-    {
-     "cos": 0.788,
-     "same": true
+  "reply_approval": {
+    "e2b": {
+      "label_accuracy": 0.778,
+      "decision_accuracy": 0.917,
+      "unsafe_allow": 0,
+      "missed_allow": 3,
+      "label_errors": 8,
+      "latency_p50": 0.21
     },
-    {
-     "cos": 0.874,
-     "same": true
+    "e4b": {
+      "label_accuracy": 0.75,
+      "decision_accuracy": 1.0,
+      "unsafe_allow": 0,
+      "missed_allow": 0,
+      "label_errors": 9,
+      "latency_p50": 0.38
     },
-    {
-     "cos": 0.896,
-     "same": true
+    "gpt": {
+      "label_accuracy": 0.639,
+      "decision_accuracy": 0.75,
+      "unsafe_allow": 0,
+      "missed_allow": 9,
+      "label_errors": 13,
+      "latency_p50": 0.67
     },
-    {
-     "cos": 0.867,
-     "same": true
+    "allow_trials": 18
+  },
+  "proactive_situation": {
+    "e2b": {
+      "recall": 1.0,
+      "precision": 0.783,
+      "false_alarm": 0.278,
+      "mention_ok": "16/18",
+      "sec_per_case": 5.9,
+      "misses": {
+        "far_future_loop_is_silent": 3,
+        "irrelevant_external_event_is_silent": 1,
+        "marketing_event_is_silent": 1
+      }
     },
-    {
-     "cos": 0.836,
-     "same": true
+    "e4b": {
+      "recall": 1.0,
+      "precision": 0.692,
+      "false_alarm": 0.444,
+      "mention_ok": "16/18",
+      "sec_per_case": 9.71,
+      "misses": {
+        "finished_task_is_silent": 2,
+        "marketing_event_is_silent": 2,
+        "far_future_loop_is_silent": 3,
+        "irrelevant_external_event_is_silent": 1
+      }
     },
-    {
-     "cos": 0.878,
-     "same": true
-    },
-    {
-     "cos": 0.979,
-     "same": true
-    },
-    {
-     "cos": 0.908,
-     "same": true
-    },
-    {
-     "cos": 0.88,
-     "same": false
-    },
-    {
-     "cos": 0.888,
-     "same": false
-    },
-    {
-     "cos": 0.816,
-     "same": false
-    },
-    {
-     "cos": 0.936,
-     "same": false
-    },
-    {
-     "cos": 0.885,
-     "same": false
-    },
-    {
-     "cos": 0.823,
-     "same": false
-    },
-    {
-     "cos": 0.857,
-     "same": false
-    },
-    {
-     "cos": 0.832,
-     "same": false
-    },
-    {
-     "cos": 0.665,
-     "same": false
-    },
-    {
-     "cos": 0.775,
-     "same": false
+    "gpt": {
+      "recall": 0.167,
+      "precision": 1.0,
+      "false_alarm": 0.0,
+      "mention_ok": "3/3",
+      "sec_per_case": 1.77,
+      "misses": {
+        "due_open_loop_speaks": 3,
+        "meeting_soon_speaks": 3,
+        "ci_failed_on_user_branch_speaks": 3,
+        "overdue_promise_speaks": 3,
+        "urgent_relevant_event_speaks": 1,
+        "disk_almost_full_speaks": 2
+      }
     }
-   ]
   },
-  "text-embedding-3-small": {
-   "same_loop_acc": 0.556,
-   "false_merge": 0,
-   "acc_at_085": 0.556,
-   "pairs": [
-    {
-     "cos": 0.731,
-     "same": true
+  "thought_frames": {
+    "e2b": {
+      "valid": 1.0,
+      "loop_recall": 1.0,
+      "loop_precision": 0.706,
+      "latency_p50": 5.4
     },
-    {
-     "cos": 0.514,
-     "same": true
+    "e4b": {
+      "valid": 1.0,
+      "loop_recall": 0.75,
+      "loop_precision": 1.0,
+      "latency_p50": 9.79
     },
-    {
-     "cos": 0.629,
-     "same": true
-    },
-    {
-     "cos": 0.609,
-     "same": true
-    },
-    {
-     "cos": 0.432,
-     "same": true
-    },
-    {
-     "cos": 0.754,
-     "same": true
-    },
-    {
-     "cos": 0.668,
-     "same": true
-    },
-    {
-     "cos": 0.757,
-     "same": true
-    },
-    {
-     "cos": 0.526,
-     "same": false
-    },
-    {
-     "cos": 0.639,
-     "same": false
-    },
-    {
-     "cos": 0.401,
-     "same": false
-    },
-    {
-     "cos": 0.633,
-     "same": false
-    },
-    {
-     "cos": 0.672,
-     "same": false
-    },
-    {
-     "cos": 0.44,
-     "same": false
-    },
-    {
-     "cos": 0.579,
-     "same": false
-    },
-    {
-     "cos": 0.575,
-     "same": false
-    },
-    {
-     "cos": 0.26,
-     "same": false
-    },
-    {
-     "cos": 0.106,
-     "same": false
+    "gpt": {
+      "valid": 1.0,
+      "loop_recall": 0.75,
+      "loop_precision": 1.0,
+      "latency_p50": 2.33
     }
-   ]
   },
-  "none": {
-   "same_loop_acc": 0.556,
-   "false_merge": 0
-  }
- },
- "compaction_faithfulness": {
-  "e2b": {
-   "llm": 1.0,
-   "contains": 1.0
+  "thought_timing": {
+    "local": {
+      "before": {
+        "first": 15.61,
+        "total": 21.32
+      },
+      "race": {
+        "first": 5.98,
+        "total": 24.45
+      },
+      "after": {
+        "first": 2.28,
+        "total": 12.43
+      }
+    },
+    "cloud": {
+      "before": {
+        "first": 3.54,
+        "total": 4.5
+      },
+      "race": {
+        "first": 3.24,
+        "total": 4.32
+      },
+      "after": {
+        "first": 0.93,
+        "total": 1.93
+      }
+    }
   },
-  "e4b": {
-   "llm": 1.0,
-   "contains": 1.0
+  "loop_embedding": {
+    "bge-m3": {
+      "same_loop_acc": 0.833,
+      "false_merge": 0,
+      "acc_at_085": 0.833,
+      "pairs": [
+        {
+          "cos": 0.956,
+          "same": true
+        },
+        {
+          "cos": 0.958,
+          "same": true
+        },
+        {
+          "cos": 0.753,
+          "same": true
+        },
+        {
+          "cos": 0.783,
+          "same": true
+        },
+        {
+          "cos": 0.598,
+          "same": true
+        },
+        {
+          "cos": 0.866,
+          "same": true
+        },
+        {
+          "cos": 0.856,
+          "same": true
+        },
+        {
+          "cos": 0.896,
+          "same": true
+        },
+        {
+          "cos": 0.789,
+          "same": false
+        },
+        {
+          "cos": 0.697,
+          "same": false
+        },
+        {
+          "cos": 0.546,
+          "same": false
+        },
+        {
+          "cos": 0.695,
+          "same": false
+        },
+        {
+          "cos": 0.698,
+          "same": false
+        },
+        {
+          "cos": 0.727,
+          "same": false
+        },
+        {
+          "cos": 0.681,
+          "same": false
+        },
+        {
+          "cos": 0.722,
+          "same": false
+        },
+        {
+          "cos": 0.525,
+          "same": false
+        },
+        {
+          "cos": 0.557,
+          "same": false
+        }
+      ]
+    },
+    "nomic-embed-text": {
+      "same_loop_acc": 0.611,
+      "false_merge": 5,
+      "acc_at_085": 0.611,
+      "pairs": [
+        {
+          "cos": 0.788,
+          "same": true
+        },
+        {
+          "cos": 0.874,
+          "same": true
+        },
+        {
+          "cos": 0.896,
+          "same": true
+        },
+        {
+          "cos": 0.867,
+          "same": true
+        },
+        {
+          "cos": 0.836,
+          "same": true
+        },
+        {
+          "cos": 0.878,
+          "same": true
+        },
+        {
+          "cos": 0.979,
+          "same": true
+        },
+        {
+          "cos": 0.908,
+          "same": true
+        },
+        {
+          "cos": 0.88,
+          "same": false
+        },
+        {
+          "cos": 0.888,
+          "same": false
+        },
+        {
+          "cos": 0.816,
+          "same": false
+        },
+        {
+          "cos": 0.936,
+          "same": false
+        },
+        {
+          "cos": 0.885,
+          "same": false
+        },
+        {
+          "cos": 0.823,
+          "same": false
+        },
+        {
+          "cos": 0.857,
+          "same": false
+        },
+        {
+          "cos": 0.832,
+          "same": false
+        },
+        {
+          "cos": 0.665,
+          "same": false
+        },
+        {
+          "cos": 0.775,
+          "same": false
+        }
+      ]
+    },
+    "text-embedding-3-small": {
+      "same_loop_acc": 0.556,
+      "false_merge": 0,
+      "acc_at_085": 0.556,
+      "pairs": [
+        {
+          "cos": 0.731,
+          "same": true
+        },
+        {
+          "cos": 0.514,
+          "same": true
+        },
+        {
+          "cos": 0.629,
+          "same": true
+        },
+        {
+          "cos": 0.609,
+          "same": true
+        },
+        {
+          "cos": 0.432,
+          "same": true
+        },
+        {
+          "cos": 0.754,
+          "same": true
+        },
+        {
+          "cos": 0.668,
+          "same": true
+        },
+        {
+          "cos": 0.757,
+          "same": true
+        },
+        {
+          "cos": 0.526,
+          "same": false
+        },
+        {
+          "cos": 0.639,
+          "same": false
+        },
+        {
+          "cos": 0.401,
+          "same": false
+        },
+        {
+          "cos": 0.633,
+          "same": false
+        },
+        {
+          "cos": 0.672,
+          "same": false
+        },
+        {
+          "cos": 0.44,
+          "same": false
+        },
+        {
+          "cos": 0.579,
+          "same": false
+        },
+        {
+          "cos": 0.575,
+          "same": false
+        },
+        {
+          "cos": 0.26,
+          "same": false
+        },
+        {
+          "cos": 0.106,
+          "same": false
+        }
+      ]
+    },
+    "none": {
+      "same_loop_acc": 0.556,
+      "false_merge": 0
+    }
   },
-  "gpt": {
-   "llm": 1.0,
-   "contains": 1.0
+  "compaction_faithfulness": {
+    "e2b": {
+      "llm": 1.0,
+      "contains": 1.0
+    },
+    "e4b": {
+      "llm": 1.0,
+      "contains": 1.0
+    },
+    "gpt": {
+      "llm": 1.0,
+      "contains": 1.0
+    },
+    "judge": "gpt-4o-mini",
+    "judge_check": {
+      "gpt-4o-mini": "16/16",
+      "gemma4:e4b": "16/16"
+    },
+    "facts": 36
   },
-  "judge": "gpt-4o-mini",
-  "judge_check": {
-   "gpt-4o-mini": "16/16",
-   "gemma4:e4b": "16/16"
-  },
-  "facts": 36
- },
- "approval_compliance": [
-  {
-   "stage": "고치기 전 (gpt-4o-mini)",
-   "cells": [
-    "2/2",
-    "0/2",
-    "기록 없음"
-   ]
-  },
-  {
-   "stage": "프롬프트 규칙만 (gpt-4o-mini)",
-   "cells": [
-    "1/1",
-    "0/2",
-    "1/1"
-   ]
-  },
-  {
-   "stage": "규칙 + 루프 종료 (gpt-4o-mini)",
-   "cells": [
-    "3/3",
-    "3/3",
-    "3/3"
-   ]
-  },
-  {
-   "stage": "규칙 + 루프 종료 (gemma4:e4b)",
-   "cells": [
-    "3/3",
-    "3/3",
-    "3/3"
-   ]
-  }
- ],
- "piper": [
-  {
-   "chars": 13,
-   "synth_s": 0.142,
-   "audio_s": 0.65
-  },
-  {
-   "chars": 58,
-   "synth_s": 0.578,
-   "audio_s": 3.02
-  },
-  {
-   "chars": 89,
-   "synth_s": 0.985,
-   "audio_s": 4.71
-  },
-  {
-   "chars": 110,
-   "synth_s": 1.319,
-   "audio_s": 6.12
-  }
- ],
- "delegation": {
-  "local": {
-   "total_s": 36.48,
-   "ask_agent": "3/3",
-   "karen_tool": "3/3"
-  },
-  "cloud": {
-   "total_s": 8.48,
-   "ask_agent": "3/3",
-   "karen_tool": "3/3"
-  }
- },
- "focus": {
-  "first_reply": [
-   {
-    "task": "온보딩 계획",
-    "local": 20.08,
-    "cloud": 2.77
-   },
-   {
-    "task": "발표 목차",
-    "local": 19.47,
-    "cloud": 2.89
-   }
+  "approval_compliance": [
+    {
+      "stage": "고치기 전 (gpt-4o-mini)",
+      "cells": [
+        "2/2",
+        "0/2",
+        "기록 없음"
+      ]
+    },
+    {
+      "stage": "프롬프트 규칙만 (gpt-4o-mini)",
+      "cells": [
+        "1/1",
+        "0/2",
+        "1/1"
+      ]
+    },
+    {
+      "stage": "규칙 + 루프 종료 (gpt-4o-mini)",
+      "cells": [
+        "3/3",
+        "3/3",
+        "3/3"
+      ]
+    },
+    {
+      "stage": "규칙 + 루프 종료 (gemma4:e4b)",
+      "cells": [
+        "3/3",
+        "3/3",
+        "3/3"
+      ]
+    }
   ],
-  "reference": [
-   {
-    "rule": "조사 결과가 남음(작업)",
-    "cells": [
-     "2/2",
-     "2/2"
-    ]
-   },
-   {
-    "rule": "선례 3개 이하(조사 건)",
-    "cells": [
-     "2/4",
-     "4/4"
-    ]
-   },
-   {
-    "rule": "출처가 URL(선례)",
-    "cells": [
-     "9/12",
-     "6/8"
-    ]
-   },
-   {
-    "rule": "특징 두 줄 이하(선례)",
-    "cells": [
-     "10/12",
-     "6/8"
-    ]
-   },
-   {
-    "rule": "특징 60자 이하(선례)",
-    "cells": [
-     "5/12",
-     "6/8"
-    ]
-   },
-   {
-    "rule": "한국어(선례)",
-    "cells": [
-     "10/12",
-     "8/8"
-    ]
-   },
-   {
-    "rule": "번호 목록 없음(조사 건)",
-    "cells": [
-     "4/4",
-     "4/4"
-    ]
-   }
+  "piper": [
+    {
+      "chars": 13,
+      "synth_s": 0.142,
+      "audio_s": 0.65
+    },
+    {
+      "chars": 58,
+      "synth_s": 0.578,
+      "audio_s": 3.02
+    },
+    {
+      "chars": 89,
+      "synth_s": 0.985,
+      "audio_s": 4.71
+    },
+    {
+      "chars": 110,
+      "synth_s": 1.319,
+      "audio_s": 6.12
+    }
   ],
-  "steps": {
-   "local": [
-    5,
-    5
-   ],
-   "cloud": [
-    5,
-    1
-   ]
-  }
- },
- "proactive_compare": {
-  "_note": "dev 12사례(지시문과 임계치를 고를 때 봤다), holdout 12사례(지시문을 쓰기 전에 봐서 오염됐다), test 20사례(지시문을 보지 않은 에이전트가 만든 블라인드). 모두 x3. 임계치는 dev 에서 고른 값을 그대로 썼다",
-  "holdout": [
-   {
-    "label": "옛 지시문 · gpt-4o-mini",
-    "threshold": 0.6,
-    "recall": 0.333,
-    "false_alarm": 0.0
-   },
-   {
-    "label": "옛 지시문 · gemma4:e2b",
-    "threshold": 0.6,
-    "recall": 0.944,
-    "false_alarm": 0.556
-   },
-   {
-    "label": "옛 지시문 · gemma4:e4b",
-    "threshold": 0.6,
-    "recall": 1.0,
-    "false_alarm": 0.444
-   },
-   {
-    "label": "새 지시문 · gpt-4o-mini",
-    "threshold": 0.85,
-    "recall": 0.778,
-    "false_alarm": 0.0
-   },
-   {
-    "label": "새 지시문 · gemma4:e2b",
-    "threshold": 0.9,
-    "recall": 0.778,
-    "false_alarm": 0.0
-   },
-   {
-    "label": "새 지시문 · gemma4:e4b",
-    "threshold": 0.85,
-    "recall": 1.0,
-    "false_alarm": 0.0
-   },
-   {
-    "label": "decision tev1:0.8b",
-    "threshold": 0.6,
-    "recall": 0.0,
-    "false_alarm": 0.0
-   },
-   {
-    "label": "decision tev1",
-    "threshold": 0.6,
-    "recall": 1.0,
-    "false_alarm": 0.0
-   },
-   {
-    "label": "decision nimble",
-    "threshold": 0.6,
-    "recall": 1.0,
-    "false_alarm": 0.0
-   }
-  ],
-  "dev": [
-   {
-    "label": "옛 지시문 · gpt-4o-mini",
-    "threshold": 0.6,
-    "recall": 0.167,
-    "false_alarm": 0.0
-   },
-   {
-    "label": "옛 지시문 · gemma4:e2b",
-    "threshold": 0.6,
-    "recall": 1.0,
-    "false_alarm": 0.444
-   },
-   {
-    "label": "옛 지시문 · gemma4:e4b",
-    "threshold": 0.6,
-    "recall": 1.0,
-    "false_alarm": 0.444
-   },
-   {
-    "label": "새 지시문 · gpt-4o-mini",
-    "threshold": 0.85,
-    "recall": 0.889,
-    "false_alarm": 0.0
-   },
-   {
-    "label": "새 지시문 · gemma4:e2b",
-    "threshold": 0.9,
-    "recall": 0.944,
-    "false_alarm": 0.167
-   },
-   {
-    "label": "새 지시문 · gemma4:e4b",
-    "threshold": 0.85,
-    "recall": 1.0,
-    "false_alarm": 0.0
-   },
-   {
-    "label": "decision tev1:0.8b",
-    "threshold": 0.6,
-    "recall": 0.0,
-    "false_alarm": 0.0
-   },
-   {
-    "label": "decision tev1",
-    "threshold": 0.6,
-    "recall": 1.0,
-    "false_alarm": 0.0
-   },
-   {
-    "label": "decision nimble",
-    "threshold": 0.6,
-    "recall": 1.0,
-    "false_alarm": 0.167
-   }
-  ],
-  "new_prompt_at_0_6": {
-   "dev": {
-    "gpt": [
-     1.0,
-     0.444
+  "delegation": {
+    "local": {
+      "total_s": 36.48,
+      "ask_agent": "3/3",
+      "karen_tool": "3/3"
+    },
+    "cloud": {
+      "total_s": 8.48,
+      "ask_agent": "3/3",
+      "karen_tool": "3/3"
+    }
+  },
+  "focus": {
+    "first_reply": [
+      {
+        "task": "온보딩 계획",
+        "local": 20.08,
+        "cloud": 2.77
+      },
+      {
+        "task": "발표 목차",
+        "local": 19.47,
+        "cloud": 2.89
+      }
     ],
-    "e2b": [
-     1.0,
-     0.833
+    "reference": [
+      {
+        "rule": "조사 결과가 남음(작업)",
+        "cells": [
+          "2/2",
+          "2/2"
+        ]
+      },
+      {
+        "rule": "선례 3개 이하(조사 건)",
+        "cells": [
+          "2/4",
+          "4/4"
+        ]
+      },
+      {
+        "rule": "출처가 URL(선례)",
+        "cells": [
+          "9/12",
+          "6/8"
+        ]
+      },
+      {
+        "rule": "특징 두 줄 이하(선례)",
+        "cells": [
+          "10/12",
+          "6/8"
+        ]
+      },
+      {
+        "rule": "특징 60자 이하(선례)",
+        "cells": [
+          "5/12",
+          "6/8"
+        ]
+      },
+      {
+        "rule": "한국어(선례)",
+        "cells": [
+          "10/12",
+          "8/8"
+        ]
+      },
+      {
+        "rule": "번호 목록 없음(조사 건)",
+        "cells": [
+          "4/4",
+          "4/4"
+        ]
+      }
     ],
-    "e4b": [
-     1.0,
-     0.389
-    ]
-   },
-   "holdout": {
-    "gpt": [
-     1.0,
-     0.667
+    "steps": {
+      "local": [
+        5,
+        5
+      ],
+      "cloud": [
+        5,
+        1
+      ]
+    }
+  },
+  "proactive_compare": {
+    "_note": "dev 12사례(지시문과 임계치를 고를 때 봤다), holdout 12사례(지시문을 쓰기 전에 봐서 오염됐다), test 20사례(지시문을 보지 않은 에이전트가 만든 블라인드). 모두 x3. 임계치는 dev 에서 고른 값을 그대로 썼다",
+    "holdout": [
+      {
+        "label": "옛 지시문 · gpt-4o-mini",
+        "threshold": 0.6,
+        "recall": 0.333,
+        "false_alarm": 0.0
+      },
+      {
+        "label": "옛 지시문 · gemma4:e2b",
+        "threshold": 0.6,
+        "recall": 0.944,
+        "false_alarm": 0.556
+      },
+      {
+        "label": "옛 지시문 · gemma4:e4b",
+        "threshold": 0.6,
+        "recall": 1.0,
+        "false_alarm": 0.444
+      },
+      {
+        "label": "새 지시문 · gpt-4o-mini",
+        "threshold": 0.85,
+        "recall": 0.778,
+        "false_alarm": 0.0
+      },
+      {
+        "label": "새 지시문 · gemma4:e2b",
+        "threshold": 0.9,
+        "recall": 0.778,
+        "false_alarm": 0.0
+      },
+      {
+        "label": "새 지시문 · gemma4:e4b",
+        "threshold": 0.85,
+        "recall": 1.0,
+        "false_alarm": 0.0
+      },
+      {
+        "label": "decision tev1:0.8b",
+        "threshold": 0.6,
+        "recall": 0.0,
+        "false_alarm": 0.0
+      },
+      {
+        "label": "decision tev1",
+        "threshold": 0.6,
+        "recall": 1.0,
+        "false_alarm": 0.0
+      },
+      {
+        "label": "decision nimble",
+        "threshold": 0.6,
+        "recall": 1.0,
+        "false_alarm": 0.0
+      }
     ],
-    "e2b": [
-     0.889,
-     0.556
+    "dev": [
+      {
+        "label": "옛 지시문 · gpt-4o-mini",
+        "threshold": 0.6,
+        "recall": 0.167,
+        "false_alarm": 0.0
+      },
+      {
+        "label": "옛 지시문 · gemma4:e2b",
+        "threshold": 0.6,
+        "recall": 1.0,
+        "false_alarm": 0.444
+      },
+      {
+        "label": "옛 지시문 · gemma4:e4b",
+        "threshold": 0.6,
+        "recall": 1.0,
+        "false_alarm": 0.444
+      },
+      {
+        "label": "새 지시문 · gpt-4o-mini",
+        "threshold": 0.85,
+        "recall": 0.889,
+        "false_alarm": 0.0
+      },
+      {
+        "label": "새 지시문 · gemma4:e2b",
+        "threshold": 0.9,
+        "recall": 0.944,
+        "false_alarm": 0.167
+      },
+      {
+        "label": "새 지시문 · gemma4:e4b",
+        "threshold": 0.85,
+        "recall": 1.0,
+        "false_alarm": 0.0
+      },
+      {
+        "label": "decision tev1:0.8b",
+        "threshold": 0.6,
+        "recall": 0.0,
+        "false_alarm": 0.0
+      },
+      {
+        "label": "decision tev1",
+        "threshold": 0.6,
+        "recall": 1.0,
+        "false_alarm": 0.0
+      },
+      {
+        "label": "decision nimble",
+        "threshold": 0.6,
+        "recall": 1.0,
+        "false_alarm": 0.167
+      }
     ],
-    "e4b": [
-     1.0,
-     0.556
-    ]
-   }
+    "new_prompt_at_0_6": {
+      "dev": {
+        "gpt": [
+          1.0,
+          0.444
+        ],
+        "e2b": [
+          1.0,
+          0.833
+        ],
+        "e4b": [
+          1.0,
+          0.389
+        ]
+      },
+      "holdout": {
+        "gpt": [
+          1.0,
+          0.667
+        ],
+        "e2b": [
+          0.889,
+          0.556
+        ],
+        "e4b": [
+          1.0,
+          0.556
+        ]
+      }
+    },
+    "old_gpt_silence": "hold-out 에서 놓친 12번 모두 사고의 decision=silent",
+    "test": [
+      {
+        "label": "옛 지시문 · gpt-4o-mini",
+        "threshold": 0.6,
+        "recall": 0.633,
+        "false_alarm": 0.0
+      },
+      {
+        "label": "옛 지시문 · gemma4:e2b",
+        "threshold": 0.9,
+        "recall": 0.467,
+        "false_alarm": 0.267
+      },
+      {
+        "label": "옛 지시문 · gemma4:e4b",
+        "threshold": 0.85,
+        "recall": 1.0,
+        "false_alarm": 0.2
+      },
+      {
+        "label": "새 지시문 · gpt-4o-mini",
+        "threshold": 0.85,
+        "recall": 0.767,
+        "false_alarm": 0.233
+      },
+      {
+        "label": "새 지시문 · gemma4:e2b",
+        "threshold": 0.9,
+        "recall": 0.833,
+        "false_alarm": 0.2
+      },
+      {
+        "label": "새 지시문 · gemma4:e4b",
+        "threshold": 0.85,
+        "recall": 0.967,
+        "false_alarm": 0.2
+      },
+      {
+        "label": "decision tev1:0.8b",
+        "threshold": 0.6,
+        "recall": 0.0,
+        "false_alarm": 0.0
+      },
+      {
+        "label": "decision tev1",
+        "threshold": 0.6,
+        "recall": 1.0,
+        "false_alarm": 0.3
+      },
+      {
+        "label": "decision nimble",
+        "threshold": 0.6,
+        "recall": 1.0,
+        "false_alarm": 0.3
+      }
+    ],
+    "old_prompt_dev_best_threshold": {
+      "gpt": "0.6 (어느 임계치도 recall 0.167 을 넘지 못함)",
+      "e2b": "0.9 (0.833/0.056)",
+      "e4b": "0.85 (1.0/0.222)"
+    },
+    "test_hard_negatives": [
+      "test_tax_docs_due_mid_january",
+      "test_promo_newsletter",
+      "test_reminder_already_acknowledged",
+      "test_afternoon_1on1_confirmed"
+    ],
+    "sec_per_case_test": {
+      "gpt-4o-mini": 2.28,
+      "gpt-4o-mini + tev1": 2.77,
+      "gpt-4o-mini + nimble": 3.05,
+      "gemma4:e2b": 6.97,
+      "gemma4:e4b": 10.96
+    },
+    "_dev_note": "dev 의 옛 지시문은 임계치 0.6 값(old_dev_sweep). 블라인드(test) 에는 dev 에서 고른 임계치(e2b 0.9, e4b 0.85)를 썼다"
   },
-  "old_gpt_silence": "hold-out 에서 놓친 12번 모두 사고의 decision=silent",
-  "test": [
-   {
-    "label": "옛 지시문 · gpt-4o-mini",
-    "threshold": 0.6,
-    "recall": 0.633,
-    "false_alarm": 0.0
-   },
-   {
-    "label": "옛 지시문 · gemma4:e2b",
-    "threshold": 0.9,
-    "recall": 0.467,
-    "false_alarm": 0.267
-   },
-   {
-    "label": "옛 지시문 · gemma4:e4b",
-    "threshold": 0.85,
-    "recall": 1.0,
-    "false_alarm": 0.2
-   },
-   {
-    "label": "새 지시문 · gpt-4o-mini",
-    "threshold": 0.85,
-    "recall": 0.767,
-    "false_alarm": 0.233
-   },
-   {
-    "label": "새 지시문 · gemma4:e2b",
-    "threshold": 0.9,
-    "recall": 0.833,
-    "false_alarm": 0.2
-   },
-   {
-    "label": "새 지시문 · gemma4:e4b",
-    "threshold": 0.85,
-    "recall": 0.967,
-    "false_alarm": 0.2
-   },
-   {
-    "label": "decision tev1:0.8b",
-    "threshold": 0.6,
-    "recall": 0.0,
-    "false_alarm": 0.0
-   },
-   {
-    "label": "decision tev1",
-    "threshold": 0.6,
-    "recall": 1.0,
-    "false_alarm": 0.3
-   },
-   {
-    "label": "decision nimble",
-    "threshold": 0.6,
-    "recall": 1.0,
-    "false_alarm": 0.3
-   }
-  ],
-  "old_prompt_dev_best_threshold": {
-   "gpt": "0.6 (어느 임계치도 recall 0.167 을 넘지 못함)",
-   "e2b": "0.9 (0.833/0.056)",
-   "e4b": "0.85 (1.0/0.222)"
+  "summary_language": {
+    "before": {
+      "e2b": {
+        "korean": "5/9",
+        "verbatim": 0.722
+      },
+      "e4b": {
+        "korean": "2/9",
+        "verbatim": 0.556
+      },
+      "gpt": {
+        "korean": "0/9",
+        "verbatim": 0.333
+      }
+    },
+    "after": {
+      "e2b": {
+        "korean": "9/9",
+        "verbatim": 1.0
+      },
+      "e4b": {
+        "korean": "9/9",
+        "verbatim": 1.0
+      },
+      "gpt": {
+        "korean": "9/9",
+        "verbatim": 1.0
+      }
+    },
+    "retention_llm": {
+      "before": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "after": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "english_check": "scripts/experiments/summary_language_check.py: 한국어 2, 영어 2, 코드 섞인 한국어 1 대화 x2. 세 모델 모두 10/10 대화 언어로 요약"
   },
-  "test_hard_negatives": [
-   "test_tax_docs_due_mid_january",
-   "test_promo_newsletter",
-   "test_reminder_already_acknowledged",
-   "test_afternoon_1on1_confirmed"
-  ],
-  "sec_per_case_test": {
-   "gpt-4o-mini": 2.28,
-   "gpt-4o-mini + tev1": 2.77,
-   "gpt-4o-mini + nimble": 3.05,
-   "gemma4:e2b": 6.97,
-   "gemma4:e4b": 10.96
+  "memory_recall": {
+    "before": {
+      "salient_hit_at_3": {
+        "0": 1.0,
+        "3": 0.0,
+        "6": 0.0,
+        "9": 0.0,
+        "12": 0.0,
+        "20": 0.0,
+        "40": 0.0
+      },
+      "core_fact_kept": {
+        "0": 1.0,
+        "4": 1.0,
+        "8": 1.0,
+        "12": 0.0,
+        "20": 0.0,
+        "40": 0.0
+      },
+      "particle_hit_at_3": 0.0,
+      "deictic_recall": 0.0,
+      "referent_recall": 0.125,
+      "rehearsal_per_fixed_fact": 10.0,
+      "overreach_rate": 0.0,
+      "postgres": {
+        "recall_p50_ms": 2.33,
+        "recall_p95_ms": 3.01,
+        "fixed_p50_ms": 0.66
+      }
+    },
+    "after": {
+      "salient_hit_at_3": {
+        "0": 1.0,
+        "3": 1.0,
+        "6": 1.0,
+        "9": 1.0,
+        "12": 1.0,
+        "20": 1.0,
+        "40": 1.0
+      },
+      "core_fact_kept": {
+        "0": 1.0,
+        "4": 1.0,
+        "8": 1.0,
+        "12": 1.0,
+        "20": 1.0,
+        "40": 1.0
+      },
+      "particle_hit_at_3": 1.0,
+      "deictic_recall": 1.0,
+      "referent_recall": 1.0,
+      "rehearsal_per_fixed_fact": 0.0,
+      "overreach_rate": 0.0,
+      "postgres": {
+        "recall_p50_ms": 7.27,
+        "recall_p95_ms": 8.85,
+        "fixed_p50_ms": 2.07
+      }
+    }
   },
-  "_dev_note": "dev 의 옛 지시문은 임계치 0.6 값(old_dev_sweep). 블라인드(test) 에는 dev 에서 고른 임계치(e2b 0.9, e4b 0.85)를 썼다"
- },
- "summary_language": {
-  "before": {
-   "e2b": {
-    "korean": "5/9",
-    "verbatim": 0.722
-   },
-   "e4b": {
-    "korean": "2/9",
-    "verbatim": 0.556
-   },
-   "gpt": {
-    "korean": "0/9",
-    "verbatim": 0.333
-   }
+  "thought_router": {
+    "_note": "router(P(think)) 오프라인 평가. 합성은 datasets/thought_router.jsonl 62건(애매 4건 제외 58건), 실사용은 jarvis 세션의 실제 요청 34건(애매 4건 제외 30건, 원문은 저장소에 두지 않음). 라벨은 router 학습 기준 문구로 사람이 아닌 Claude 가 매겼다.",
+    "synthetic": {
+      "ctx2_t0.3": {
+        "accuracy": 0.914,
+        "think_recall": 0.941,
+        "direct_recall": 0.902,
+        "promise_loss": 0.667,
+        "latency_p50": 0.065
+      },
+      "ctx0_t0.3": {
+        "accuracy": 0.931,
+        "think_recall": 0.882,
+        "direct_recall": 0.951,
+        "promise_loss": 0.667,
+        "latency_p50": 0.065
+      },
+      "max_t0.2": {
+        "accuracy": 0.914,
+        "think_recall": 0.941,
+        "direct_recall": 0.902,
+        "promise_loss": 0.667,
+        "latency_p50": 0.129
+      }
+    },
+    "real": {
+      "ctx2_t0.3": {
+        "accuracy": 0.7,
+        "think_recall": 0.75,
+        "direct_recall": 0.682,
+        "latency_p50": 0.117
+      },
+      "ctx0_t0.3": {
+        "accuracy": 0.9,
+        "think_recall": 0.625,
+        "direct_recall": 1.0,
+        "latency_p50": 0.064
+      },
+      "max_t0.2": {
+        "accuracy": 0.767,
+        "think_recall": 1.0,
+        "direct_recall": 0.682,
+        "latency_p50": 0.184
+      }
+    }
   },
-  "after": {
-   "e2b": {
-    "korean": "9/9",
-    "verbatim": 1.0
-   },
-   "e4b": {
-    "korean": "9/9",
-    "verbatim": 1.0
-   },
-   "gpt": {
-    "korean": "9/9",
-    "verbatim": 1.0
-   }
-  },
-  "retention_llm": {
-   "before": [
-    1.0,
-    1.0,
-    1.0
-   ],
-   "after": [
-    1.0,
-    1.0,
-    1.0
-   ]
-  },
-  "english_check": "scripts/experiments/summary_language_check.py: 한국어 2, 영어 2, 코드 섞인 한국어 1 대화 x2. 세 모델 모두 10/10 대화 언어로 요약"
- },
- "memory_recall": {
-  "before": {
-   "salient_hit_at_3": {
-    "0": 1.0,
-    "3": 0.0,
-    "6": 0.0,
-    "9": 0.0,
-    "12": 0.0,
-    "20": 0.0,
-    "40": 0.0
-   },
-   "core_fact_kept": {
-    "0": 1.0,
-    "4": 1.0,
-    "8": 1.0,
-    "12": 0.0,
-    "20": 0.0,
-    "40": 0.0
-   },
-   "particle_hit_at_3": 0.0,
-   "deictic_recall": 0.0,
-   "referent_recall": 0.125,
-   "rehearsal_per_fixed_fact": 10.0,
-   "overreach_rate": 0.0,
-   "postgres": {
-    "recall_p50_ms": 2.33,
-    "recall_p95_ms": 3.01,
-    "fixed_p50_ms": 0.66
-   }
-  },
-  "after": {
-   "salient_hit_at_3": {
-    "0": 1.0,
-    "3": 1.0,
-    "6": 1.0,
-    "9": 1.0,
-    "12": 1.0,
-    "20": 1.0,
-    "40": 1.0
-   },
-   "core_fact_kept": {
-    "0": 1.0,
-    "4": 1.0,
-    "8": 1.0,
-    "12": 1.0,
-    "20": 1.0,
-    "40": 1.0
-   },
-   "particle_hit_at_3": 1.0,
-   "deictic_recall": 1.0,
-   "referent_recall": 1.0,
-   "rehearsal_per_fixed_fact": 0.0,
-   "overreach_rate": 0.0,
-   "postgres": {
-    "recall_p50_ms": 7.27,
-    "recall_p95_ms": 8.85,
-    "fixed_p50_ms": 2.07
-   }
+  "karen_budget_calls": {
+    "model": "gpt-4o-mini",
+    "repeat": 3,
+    "cases": 8,
+    "correct": 24,
+    "total": 24,
+    "misses": []
   }
- },
- "thought_router": {
-  "_note": "router(P(think)) 오프라인 평가. 합성은 datasets/thought_router.jsonl 62건(애매 4건 제외 58건), 실사용은 jarvis 세션의 실제 요청 34건(애매 4건 제외 30건, 원문은 저장소에 두지 않음). 라벨은 router 학습 기준 문구로 사람이 아닌 Claude 가 매겼다.",
-  "synthetic": {
-   "ctx2_t0.3": {
-    "accuracy": 0.914,
-    "think_recall": 0.941,
-    "direct_recall": 0.902,
-    "promise_loss": 0.667,
-    "latency_p50": 0.065
-   },
-   "ctx0_t0.3": {
-    "accuracy": 0.931,
-    "think_recall": 0.882,
-    "direct_recall": 0.951,
-    "promise_loss": 0.667,
-    "latency_p50": 0.065
-   },
-   "max_t0.2": {
-    "accuracy": 0.914,
-    "think_recall": 0.941,
-    "direct_recall": 0.902,
-    "promise_loss": 0.667,
-    "latency_p50": 0.129
-   }
-  },
-  "real": {
-   "ctx2_t0.3": {
-    "accuracy": 0.7,
-    "think_recall": 0.75,
-    "direct_recall": 0.682,
-    "latency_p50": 0.117
-   },
-   "ctx0_t0.3": {
-    "accuracy": 0.9,
-    "think_recall": 0.625,
-    "direct_recall": 1.0,
-    "latency_p50": 0.064
-   },
-   "max_t0.2": {
-    "accuracy": 0.767,
-    "think_recall": 1.0,
-    "direct_recall": 0.682,
-    "latency_p50": 0.184
-   }
-  }
- }
 }

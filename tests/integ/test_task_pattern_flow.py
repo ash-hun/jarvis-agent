@@ -93,7 +93,7 @@ def test_karen_learns_a_pattern_and_uses_it_in_a_new_session(client, provider):
     # 새 세션에서도 패턴이 떠올라 되묻지 않고 예산 추천을 바로 했다
     assert provider.calls[:2] == [("karen", "housing_budget"), ("karen", "say")]
     assert ASK_BACK not in answer
-    assert "의왕청계2 A1블록" in answer and "월 부담 867,297원" in answer
+    assert "의왕청계2 A1블록" in answer and "월 이자 195,453~219,657원" in answer
     assert "예산 기반 공고 추천" in listed and "대출 = 공고 금액 - 현금" in listed
 
 

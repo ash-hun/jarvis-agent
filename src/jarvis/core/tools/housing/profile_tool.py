@@ -12,10 +12,12 @@ from jarvis.core.tools.housing.fetch import kst_today
 from jarvis.memory.scope import LOCAL_USER
 
 TOOL_NAME = "housing_profile"
-FIELDS = ("homeless", "first_home", "married", "income", "assets", "birth_date", "age")
+FIELDS = ("homeless", "first_home", "married", "income", "assets", "birth_date", "age", "household", "welfare",
+          "student")
 
 TOOL_DESCRIPTION = (
-    "대출 자격을 가르는 사용자의 주거 프로필(무주택, 생애최초, 혼인, 연소득, 순자산, 생년월일이나 나이)을"
+    "대출과 공공주택 신청 자격을 가르는 사용자의 주거 프로필(무주택, 생애최초, 혼인, 연소득, 순자산,"
+    " 생년월일이나 나이, 가구원수, 기초생활 수급자, 대학생)을"
     " 보거나 고친다. 사용자가 자기 조건을 말하거나 바뀌었다고 하면('연소득이 7천으로 올랐어', '결혼했어')"
     " action=set 으로 그 항목만 넣는다."
     " 준 항목만 바뀌고 나머지는 그대로다. housing_budget 은 저장된 프로필로 자격을 가린다."
@@ -31,6 +33,9 @@ TOOL_PARAMETERS: dict[str, Any] = {
         "assets": {"type": "string", "description": "순자산. 예: 2억"},
         "birth_date": {"type": "string", "description": "생년월일 YYYY-MM-DD. 사용자가 말했을 때만"},
         "age": {"type": "integer", "description": "만 나이. 생년월일을 모를 때만"},
+        "household": {"type": "integer", "description": "본인을 넣은 세대 구성원 수"},
+        "welfare": {"type": "boolean", "description": "기초생활 수급자(생계, 의료, 주거급여)인가"},
+        "student": {"type": "boolean", "description": "대학생(재학, 휴학)인가"},
     },
     "required": ["action"],
 }

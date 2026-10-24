@@ -86,3 +86,17 @@ def test_slash_command_sets_shows_and_clears():
     assert "저장했습니다" in saved and "연소득: 60,000,000원" in shown
     assert "지웠습니다" in cleared and "저장된 주거 프로필이 없다" in empty
     assert "모르는 항목" in bad
+
+
+def test_household_welfare_and_student_read_from_spoken_words():
+    from datetime import date
+
+    from jarvis.core.tools.housing.profile import HousingProfile, apply_updates, parse_pairs
+
+    today = date(2026, 10, 24)
+    profile = apply_updates(HousingProfile(), parse_pairs("가구원수=3명, 수급자=아니오, 대학생=재학"), today)
+    assert (profile.household, profile.welfare, profile.student) == (3, False, True)
+    assert "가구원수: 3명" in profile.lines(today) and "대학생: 예" in profile.lines(today)
+    # 같은 값을 다시 넣어도 같다
+    assert apply_updates(profile, {"가구원수": "3인"}, today) == profile
+    assert apply_updates(profile, {"가구원수": "모름"}, today).household is None

@@ -147,6 +147,24 @@ def eligibility(product: Product, profile: HousingProfile, today: date, price: f
     return Verdict(UNKNOWN if unknown else OK, tuple(unknown))
 
 
+def unit_mismatch(rules: Rules, unit: str, profile: HousingProfile, today: date) -> str | None:
+    """주택형 이름의 공급대상과 프로필이 어긋나면 그 대상(예: 신혼부부). 맞거나 모르면 None."""
+    age = profile.age_on(today)
+    for target in rules.notice_kinds.get("unit_targets", ()):
+        if target["word"] not in unit or any(word in unit for word in target.get("unless", ())):
+            continue
+        need, value = target["need"], target.get("value")
+        if need == "age_min":
+            off = age is not None and age < value
+        elif need == "age_range":
+            off = age is not None and not value[0] <= age <= value[1]
+        else:
+            off = getattr(profile, need) is False
+        if off:
+            return str(target["who"])
+    return None
+
+
 def notice_access(rules: Rules, kind: str, title: str, profile: HousingProfile) -> Verdict:
     """공고 유형으로 본 신청 가능성. 가구원 수와 공고별 기준을 몰라 불가도 '가능성 낮음'으로만 쓴다."""
     kinds = rules.notice_kinds
@@ -162,15 +180,26 @@ def notice_access(rules: Rules, kind: str, title: str, profile: HousingProfile) 
     rule = next((r for r in kinds.get("income", ()) if r["match"] in kind), None)
     if rule is None:
         return Verdict(UNKNOWN, ("공고문 신청자격 확인",))
+    basis = f"{rule['basis']}. 근거: {rule['source']}"
+    if profile.welfare and rule.get("welfare"):
+        return Verdict(OK, (rule["welfare"], basis))
+    if profile.student and rule.get("student"):
+        return Verdict(UNKNOWN, (rule["student"], basis))
     limit = int(rule["monthly_one_person"])
     text = f"소득 기준 1인 가구 월 {limit:,}원 이하"
-    basis = f"{rule['basis']}. 근거: {rule['source']}"
     if profile.income is None:
         return Verdict(UNKNOWN, (text, "소득을 몰라 대 보지 못했다", basis))
     monthly = round(profile.income / 12)
-    if monthly > limit:
-        return Verdict(NO, (f"{text}인데 프로필 소득은 월 {monthly:,}원", "가구원이 많으면 기준이 올라간다", basis))
-    return Verdict(OK, (f"{text} 안(프로필 월 {monthly:,}원)", basis))
+    if monthly <= limit:
+        return Verdict(OK, (f"{text} 안(프로필 월 {monthly:,}원)", basis))
+    over = f"{text}인데 프로필 소득은 월 {monthly:,}원"
+    # ponytail: 가구원수별 기준표 없이 1인 기준만 댄다(공개 표끼리 2인 값이 어긋나 옮기지 않았다),
+    # 공고문 원문의 가구원수별 표를 확인하면 notice_kinds 에 넣어 2인 이상도 가른다
+    if profile.household is not None and profile.household > 1:
+        return Verdict(UNKNOWN, (over, f"{profile.household}인 가구 기준은 더 높아 공고문으로 확인한다", basis))
+    if profile.household is None:
+        return Verdict(NO, (over, "가구원이 많으면 기준이 올라간다(프로필에 가구원수가 없다)", basis))
+    return Verdict(NO, (over, basis))
 
 
 def _price_max(product: Product, profile: HousingProfile, today: date, area: Area) -> float | None:

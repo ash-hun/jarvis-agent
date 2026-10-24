@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from jarvis.core.multi_agent.factory import AgentDefinition
     from jarvis.core.procedures.learner import ProcedureLearner
     from jarvis.core.scheduler.service import SchedulerService
+    from jarvis.core.notify.discord_voice import DiscordVoice
     from jarvis.core.procedures.store import ProcedureStore
     from jarvis.memory.memory_service import MemoryService
     from jarvis.core.skills.registry import SkillRegistry
@@ -447,19 +448,59 @@ class InfraBuilder:
     def build_notifier(self) -> "Notify | None":
         """채널 설정이 하나도 없으면 None(기존 동작 그대로). 둘 다 있으면 둘 다 보낸다."""
         cfg = self._settings.notify
-        from jarvis.core.notify import discord_notifier, fan_out, only_kinds, slack_notifier, with_agents
+        from jarvis.core.notify import KIND_TYPES, discord_notifier, fan_out, only_kinds, slack_notifier, with_agents
 
         channels = []
         if cfg.slack_webhook_url is not None:
             channels.append(slack_notifier(cfg.slack_webhook_url.get_secret_value()))
             logger.info("[Notify] slack channel enabled")
         if cfg.discord_webhook_url is not None:
-            channels.append(discord_notifier(cfg.discord_webhook_url.get_secret_value()))
-            logger.info("[Notify] discord channel enabled")
+            text = discord_notifier(cfg.discord_webhook_url.get_secret_value())
+            voice = self.build_discord_voice()
+            if voice is None:
+                channels.append(text)
+            else:
+                from jarvis.core.notify.discord_voice import voice_first
+
+                types = {KIND_TYPES[k] for k in cfg.discord_voice_kinds if k in KIND_TYPES}
+                channels.append(voice_first(voice, types, text))
+            logger.info("[Notify] discord channel enabled" + (" (voice first)" if voice is not None else ""))
         if not channels:
             return None
         notify = channels[0] if len(channels) == 1 else fan_out(*channels)
         return only_kinds(cfg.kinds, with_agents(self.agent_identities(), notify))
+
+    def build_discord_voice(self) -> "DiscordVoice | None":
+        """봇 토큰, 서버, 사용자 id 가 다 있고 TTS 와 discord.py 가 준비되면 음성. 하나라도 없으면 None(글로만)."""
+        cfg = self._settings.notify
+        if cfg.discord_bot_token is None or cfg.discord_guild_id is None or cfg.discord_user_id is None:
+            return None
+        import importlib.util
+
+        if importlib.util.find_spec("discord") is None:
+            logger.warning("[Notify] discord voice off, text only: uv sync --extra discord 가 필요하다")
+            return None
+        try:
+            from jarvis.core.notify.discord_voice import DiscordGateway, DiscordVoice
+            from jarvis.voice.speech_text import speech_text
+            from jarvis.voice.service import VoiceService
+
+            v = self._settings.voice
+            tts = VoiceService.from_config(
+                stt_provider="browser",
+                tts_provider=cfg.discord_tts_provider,
+                english_tts_provider=v.english_tts_provider,
+                english_tts_options=v.english_tts_options(),
+            )
+        except Exception as exc:
+            logger.warning(f"[Notify] discord voice off, text only: {exc}")
+            return None
+
+        async def synthesize(text: str) -> bytes:
+            return await tts.synthesize(text, v.tts_lang)
+
+        gateway = DiscordGateway(cfg.discord_bot_token.get_secret_value(), cfg.discord_guild_id)
+        return DiscordVoice(gateway, cfg.discord_user_id, synthesize, speech_text)
 
     def agent_identities(self) -> dict[str, tuple[str, str]]:
         """에이전트 id → (이름, 아바타 주소). 이름은 브랜드 워드마크, 정의 파일을 읽는 곳은 load_agent_specs 하나다."""

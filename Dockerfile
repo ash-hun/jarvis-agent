@@ -46,7 +46,11 @@ FROM base AS runtime-web
 # scheduler extra(croniter)가 없으면 스케줄러가 조용히 꺼지고 HUD Agenda 의 다음 실행 시각도 비는다.
 # piper extra 는 영어 문장을 서버에서 읽는 음성(JARVIS_VOICE__ENGLISH_TTS_PROVIDER=piper)용이다.
 # wake extra 는 "Jarvis" 웨이크워드(JARVIS_VOICE__WAKE_MODEL_DIR)용이다.
-RUN uv sync --frozen --extra web --extra scheduler --extra piper --extra wake --no-dev
+# discord extra 는 봇이 음성 채널에서 알림을 읽는 데 쓰고(JARVIS_NOTIFY__DISCORD_BOT_TOKEN), 재생에 ffmpeg 가 필요하다.
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN uv sync --frozen --extra web --extra scheduler --extra piper --extra wake --extra discord --no-dev
+# TTS 모델(supertonic)을 볼륨(/root/.jarvis)에 받아 컨테이너를 다시 만들어도 다시 받지 않는다
+ENV HF_HOME=/root/.jarvis/cache/huggingface
 
 COPY . .
 

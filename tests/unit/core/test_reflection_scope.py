@@ -23,7 +23,7 @@ class ScopeCapturingEngine:
 def _session(fx, session_id: str, engine: ScopeCapturingEngine):
     from jarvis.core.session import AgentSession
 
-    return AgentSession(
+    session = AgentSession(
         model=fx["model"],
         session_id=session_id,
         security_pipeline=fx["pipeline"],
@@ -35,6 +35,9 @@ def _session(fx, session_id: str, engine: ScopeCapturingEngine):
         thought_engine=engine,
         proactivity_factory=lambda emit: DefaultProactivityCore(emit_proactive=emit),
     )
+    # 성찰 연결 테스트라 사용자가 이미 말한 세션으로 둔다(말한 적 없는 세션은 성찰하지 않는다)
+    session._user_spoke = True
+    return session
 
 
 @pytest.fixture

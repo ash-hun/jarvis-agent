@@ -56,7 +56,7 @@ def fx(
 def _build_session(fx, session_id, *, engine=None, inbox=None, detail=False, factory=None):
     from jarvis.core.session import AgentSession
 
-    return AgentSession(
+    session = AgentSession(
         model=fx["model"],
         session_id=session_id,
         security_pipeline=fx["pipeline"],
@@ -70,6 +70,9 @@ def _build_session(fx, session_id, *, engine=None, inbox=None, detail=False, fac
         external_inbox=inbox,
         external_detail_in_prompt=detail,
     )
+    # 성찰 연결 테스트라 사용자가 이미 말한 세션으로 둔다(말한 적 없는 세션은 성찰하지 않는다)
+    session._user_spoke = True
+    return session
 
 
 def _speaking_factory(threshold: float = 0.5):

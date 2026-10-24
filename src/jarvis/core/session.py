@@ -54,6 +54,7 @@ from jarvis.agent_layer.thought.router import RouteVerdict, ThoughtRouter
 from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope
 from jarvis.core.tools.registry import JarvisTool, ToolRegistry
 from jarvis.agent_layer.openloop.judge import OpenLoopJudge
+from jarvis.agent_layer.openloop.types import same_loop
 from jarvis.agent_layer.usermodel import UserModelStore
 from jarvis.memory.memory_service import MemoryService
 from jarvis.core.skills.registry import SkillRegistry
@@ -188,6 +189,8 @@ class AgentSession:
         self._external_detail_in_prompt = external_detail_in_prompt
         self._recent_proactive: deque[str] = deque(maxlen=RECENT_PROACTIVE_MAX)
         self._proactive_restored = False
+        # 사용자가 이 세션에서 말한 적이 있는가. 없으면 성찰할 대화가 없어 먼저 말하지 않는다
+        self._user_spoke = False
         self._last_proactive_id: str | None = None  # 피드백이 어느 🔔 에 대한 답인지
         # 코어는 세션별 emit에 바인딩되어야 하므로 팩토리로 주입받아 여기서 생성.
         self._proactivity: ProactivityCore | None = (
@@ -242,6 +245,7 @@ class AgentSession:
         if self._proactivity is not None:
             await self._restore_proactive()
             self._proactivity.note_user_activity(self._session_id)
+        self._user_spoke = True
 
         validated, auth_ctx, policy_result = await self._security.run(
             raw_input=raw_input,
@@ -333,14 +337,22 @@ class AgentSession:
             self._learn_ignored(awaiting)
             logger.info(f"[Thought] proactive silent: {awaiting.reason}")
             return awaiting
+        external_events = self._drain_external_events()
+        if not self._user_spoke and not external_events:
+            # 앱이나 화면이 새 세션을 열기만 했다. 대화가 없으면 작은 모델은 빈 인사("무엇을 도와드릴까요?")를 건넨다
+            return ProactiveDecision(speak=False, reason="no conversation yet")
         # 사고 기록과 자율 행동은 이 세션의 범위(memory_scope)를 인자로 받는다
         frame = await self._run_inner_thought(
             REFLECTION_SEED,
             mode="reflection",
-            external_events=self._drain_external_events(),
+            external_events=external_events,
         )
         if frame is None:
             return None
+        if frame.utterance.strip() and any(same_loop(frame.utterance, said) for said in self._recent_proactive):
+            # 최근에 건넨 말을 사고 프롬프트에 보여 줘도 같은 말을 다시 고른다. 같은 🔔 와 피드백 질문이 반복된다
+            logger.info("[Thought] proactive silent: repeats a recent proactive message")
+            return ProactiveDecision(speak=False, reason="repeat")
         decision = await self._proactivity.reflect(
             frame, session_id=self._session_id, execute=self._execute_autonomous
         )
@@ -612,6 +624,7 @@ class AgentSession:
             logger.warning(f"[Proactive] restore failed: {exc!r}")
             return
         self._recent_proactive.extend(e.content.get("text", "") for e in said)
+        self._user_spoke = self._user_spoke or any(isinstance(m, UserMessage) for m in messages)
         if not said:
             return
         last = said[-1]

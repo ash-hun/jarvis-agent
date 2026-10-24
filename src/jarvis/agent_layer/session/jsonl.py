@@ -1,8 +1,10 @@
 """[agent_layer] 세션 메타와 메시지를 세션별 JSONL 파일에 append 로 영속한다."""
 
+import os
 import json
 import aiofiles
 import builtins
+import tempfile
 from pathlib import Path
 
 from jarvis.agent_layer.session.protocol import (
@@ -50,9 +52,7 @@ class JsonlSessionRepo(SessionRepo):
             message_count=0,
             agent_id=agent_id,
         )
-        meta_path = self._meta_path(sid)
-        async with aiofiles.open(meta_path, "w") as f:
-            await f.write(meta.model_dump_json())
+        await self._write_meta(sid, meta.model_dump_json())
         self._session_path(sid).touch()
         return meta
 
@@ -176,8 +176,7 @@ class JsonlSessionRepo(SessionRepo):
             parent_id=parent_session_id,
             agent_id=parent_meta.agent_id if parent_meta is not None else MAIN_AGENT,
         )
-        async with aiofiles.open(self._meta_path(branch_id), "w") as f:
-            await f.write(meta.model_dump_json())
+        await self._write_meta(branch_id, meta.model_dump_json())
         return meta
 
     async def _update_meta(self, session_id: str) -> None:
@@ -188,7 +187,14 @@ class JsonlSessionRepo(SessionRepo):
             data = json.loads(await f.read())
         data["updated_at"] = self._now_ms()
         data["message_count"] = data.get("message_count", 0) + 1
-        async with aiofiles.open(meta_path, "w") as f:
-            await f.write(json.dumps(data))
+        await self._write_meta(session_id, json.dumps(data))
+
+    async def _write_meta(self, session_id: str, text: str) -> None:
+        """임시 파일에 다 쓴 뒤 바꿔치기한다. 같은 세션에 동시에 붙은 화면이 쓰다 만 빈 파일을 읽지 않는다."""
+        fd, tmp = tempfile.mkstemp(dir=self._root, suffix=".meta.tmp")
+        os.close(fd)
+        async with aiofiles.open(tmp, "w") as f:
+            await f.write(text)
+        os.replace(tmp, self._meta_path(session_id))
 
 

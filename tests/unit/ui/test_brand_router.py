@@ -17,7 +17,8 @@ def test_render_brand_js_embeds_brand_json_and_sets_css_vars():
     js = render_brand_js(brand)
     first_line = js.splitlines()[0]
     assert first_line.startswith("window.BRAND = ") and first_line.endswith(";")
-    assert json.loads(first_line[len("window.BRAND = "):-1]) == brand.model_dump()
+    # 개성 문장은 모델에게 주는 지시라 화면에 싣지 않는다
+    assert json.loads(first_line[len("window.BRAND = "):-1]) == brand.model_dump(exclude={"persona"})
     assert "준비 완료" in js  # ensure_ascii=False
     for var in ("--primary", "--accent", "--bg-0", "--nebula-"):
         assert var in js

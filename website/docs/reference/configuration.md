@@ -203,6 +203,7 @@ TZ=Asia/Seoul                           # 스케줄과 /schedule 마감 시각�
 
 JARVIS_BRAND__NAME=J.A.R.V.I.S.
 JARVIS_BRAND__QUOTE=Proof the Heart
+JARVIS_BRAND__PERSONA="..."                 # JARVIS 의 말투와 성격. 기본은 침착한 집사(config.py DEFAULT_PERSONA). 비우면 모델 기본 말투
 JARVIS_BRAND__PALETTE__PRIMARY=#5fc8e2
 JARVIS_BRAND__PALETTE__ACCENT=#f0b35f
 JARVIS_BRAND__PALETTE__BACKGROUND=#02060c

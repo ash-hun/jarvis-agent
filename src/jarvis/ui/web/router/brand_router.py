@@ -14,7 +14,8 @@ BRAND_JS_EXAMPLE = 'window.BRAND = {"name": "J.A.R.V.I.S.", ...};\n(function (p)
 
 def render_brand_js(brand: BrandConfig) -> str:
     """<head> 에서 동기 로드되는 스크립트. 첫 페인트 전에 CSS 변수와 window.BRAND 를 채운다."""
-    payload = json.dumps(brand.model_dump(), ensure_ascii=False)
+    # 개성 문장은 모델에게 주는 지시라 화면에 싣지 않는다
+    payload = json.dumps(brand.model_dump(exclude={"persona"}), ensure_ascii=False)
     return (
         f"window.BRAND = {payload};\n"
         "(function (p) {\n"

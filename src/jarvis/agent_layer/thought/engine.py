@@ -50,8 +50,11 @@ class InnerThoughtEngine(ThoughtEngine):
         history_chars: int = HISTORY_CHARS,
         clock: Callable[[], datetime] | None = None,
         reflection_template: ThoughtPromptTemplate | None = None,
+        persona: str = "",
     ) -> None:
         self._model = model
+        # 이 사고가 속한 에이전트의 말투. 먼저 건네는 말과 filler 를 그 말투로 쓰게 한다
+        self._persona = persona
         self._template = template or ThoughtPromptTemplate()
         # 성찰 전용 템플릿(mode="reflection"). 미지정 시 요청용 템플릿으로 폴백.
         self._reflection_template = reflection_template or self._template
@@ -110,6 +113,7 @@ class InnerThoughtEngine(ThoughtEngine):
         external = "\n".join(f"- {x}" for x in request.external_events)
         recent = "\n".join(f"- {x}" for x in request.recent_proactive)
         rendered = template.render(
+            persona=self._persona,
             now=self._clock().isoformat(timespec="seconds"),
             open_loops="\n".join(f"- {x}" for x in request.open_loops),
             external_events=external,
@@ -123,6 +127,8 @@ class InnerThoughtEngine(ThoughtEngine):
         # 없다. 이벤트가 있는데 자리가 없으면 뒤에 덧붙여 조용한 유실을 막는다.
         if external and not template.has_placeholder("external_events"):
             rendered = f"{rendered}\n\n[외부 이벤트]\n{external}"
+        if self._persona and not template.has_placeholder("persona"):
+            rendered = f"{rendered}\n\n[말투] utterance 와 filler 는 이 말투로 쓴다\n{self._persona}"
         if recent and request.mode == "reflection" and not template.has_placeholder("recent_proactive"):
             rendered = f"{rendered}\n\n[최근에 먼저 건넨 말] 같은 취지면 다시 말하지 마라\n{recent}"
         return rendered

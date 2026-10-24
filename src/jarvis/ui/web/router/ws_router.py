@@ -92,6 +92,11 @@ def build_ws_router(state: WebState) -> APIRouter:
         wake_detector: WakeDetector | None = None
         wake_on = state.wake is not None
 
+        def notify_spoken(payload: dict[str, Any] | None) -> None:
+            # 같은 세션을 연 화면마다 같은 말을 읽어 알려 온다. 밖으로는 첫 번째만 보낸다
+            if payload is not None and state.spoken_once.first((session_id, payload["text"])):
+                asyncio.create_task(notify_quietly(ctx.notifier, payload))
+
         try:
             stt_browser = voice_service is None or voice_service.stt_is_browser
             await ws.send_json({
@@ -196,11 +201,7 @@ def build_ws_router(state: WebState) -> APIRouter:
                     text = speech_text(msg.get("text", ""))
                     lang = msg.get("lang", settings.voice.tts_lang)
                     # 화면이 소리 내어 읽는 말을 같은 글로 밖에도 알린다. 🔔 과 ⏰ 은 서버가 이미 보냈다
-                    # ponytail: 음성 모드 화면을 여럿 열면 같은 말이 화면 수만큼 간다,
-                    # 문제되면 (에이전트, 글)로 잠깐 거른다
-                    asyncio.create_task(notify_quietly(
-                        ctx.notifier, spoken_payload(text, agent_id, str(msg.get("source") or ""))
-                    ))
+                    notify_spoken(spoken_payload(text, agent_id, str(msg.get("source") or "")))
                     # 화면이 멈춘 읽기의 늦은 응답을 버릴 수 있게 요청 id 를 그대로 돌려준다
                     request_id = msg.get("id")
                     if text and voice_service:
@@ -212,7 +213,7 @@ def build_ws_router(state: WebState) -> APIRouter:
                 elif msg_type == "voice_spoken":
                     # 녹음 문구는 화면이 바로 재생한다. 재생했다고 알려 오면 그 문장을 밖에 알린다
                     phrase = state.phrase_texts.get(str(msg.get("phrase") or ""), "")
-                    asyncio.create_task(notify_quietly(ctx.notifier, spoken_payload(phrase, agent_id, "phrase")))
+                    notify_spoken(spoken_payload(phrase, agent_id, "phrase"))
 
                 elif msg_type == "voice_stt_submit":
                     data = msg.get("data", "")

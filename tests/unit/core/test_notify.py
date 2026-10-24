@@ -174,3 +174,16 @@ def test_task_results_use_the_same_icon_as_the_hud():
     task = format_discord({"type": "reminder", "kind": "task", "label": "공고 정리", "text": "세 건"})
     reminder = format_discord({"type": "reminder", "kind": "reminder", "label": "알림", "text": "회의"})
     assert task["content"].startswith("**⏱ 공고 정리**") and reminder["content"].startswith("**⏰ 알림**")
+
+
+def test_recent_once_lets_the_same_key_through_once_per_window():
+    from jarvis.core.notify.dedupe import RecentOnce
+
+    now = [0.0]
+    once = RecentOnce(10.0, lambda: now[0])
+    # 같은 세션을 연 두 화면이 같은 답을 읽었다고 알려 온다
+    assert once.first(("s1", "공고 세 건 찾았어요")) is True
+    assert once.first(("s1", "공고 세 건 찾았어요")) is False
+    assert once.first(("s2", "공고 세 건 찾았어요")) is True  # 다른 세션은 따로 센다
+    now[0] = 10.0
+    assert once.first(("s1", "공고 세 건 찾았어요")) is True

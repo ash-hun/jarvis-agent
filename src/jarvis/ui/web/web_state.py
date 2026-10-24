@@ -1,10 +1,12 @@
 """[ui] WebState: Web HUD 라우터들이 같이 보는 실행 상태(조립 결과, 세션, 승인 브로커, 열린 연결, 놓친 알림)."""
 
+import time
 from pathlib import Path
 from collections import deque
 from typing import TYPE_CHECKING
 from collections.abc import Callable
 
+from jarvis.core.notify.dedupe import SPOKEN_DEDUPE_SEC, RecentOnce
 from jarvis.voice.phrases import load_phrase_texts, load_phrases
 from jarvis.ui.web.session_registry import SessionRegistry
 from jarvis.ui.web.agent_activity import AgentActivity
@@ -47,6 +49,8 @@ class WebState:
         self.phrases: dict[str, Path] = load_phrases(self.settings.voice.phrases_dir)
         # 화면이 녹음 문구를 재생하면 그 문장을 밖(디스코드 등)에 알린다
         self.phrase_texts: dict[str, str] = load_phrase_texts(self.settings.voice.phrases_dir)
+        # 같은 세션을 연 화면들이 읽었다고 알려 온 같은 말은 한 번만 밖에 보낸다. 재시작하면 잊는다
+        self.spoken_once = RecentOnce(SPOKEN_DEDUPE_SEC, time.monotonic)
         # 연결마다 웨이크워드 감지기를 하나씩 만든다. 꺼져 있거나 준비가 안 되면 None
         self.wake: Callable[[], WakeDetector] | None = self._build_wake_factory()
         self.focus: FocusService | None = self._build_focus_service()
@@ -78,7 +82,6 @@ class WebState:
         cfg = self.settings.focus
         if not cfg.enabled:
             return None
-        import time
         import uuid
         from datetime import datetime
 

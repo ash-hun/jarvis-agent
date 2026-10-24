@@ -19,7 +19,7 @@ class StubEngine:
 def _build_session(fx, engine=None, proactivity_factory=None, feedback_learner=None):
     from jarvis.core.session import AgentSession
 
-    return AgentSession(
+    session = AgentSession(
         model=fx["model"],
         session_id="test-session",
         security_pipeline=fx["pipeline"],
@@ -32,6 +32,9 @@ def _build_session(fx, engine=None, proactivity_factory=None, feedback_learner=N
         proactivity_factory=proactivity_factory,
         feedback_learner=feedback_learner,
     )
+    # 성찰 연결 테스트라 사용자가 이미 말한 세션으로 둔다(말한 적 없는 세션은 성찰하지 않는다)
+    session._user_spoke = True
+    return session
 
 
 def _factory(emit):
@@ -256,14 +259,22 @@ async def test_proactive_event_carries_message_id(fx):
     assert pmsgs and pmsgs[0].message_id  # 피드백 참조용 id가 실려야 한다
 
 
+# 성찰마다 다른 말을 건네는 사고 모델. 같은 말은 세션이 반복으로 막는다
+FRESH_LINES = ("회의 자료는 다 모으셨어요?", "오늘 운동 일정 잡을까요?", "보고서 초안 봐 드릴까요?")
+
+
 class CountingEngine(StubEngine):
-    def __init__(self, frame: ThoughtFrame | None) -> None:
+    def __init__(self, frame: ThoughtFrame | None, fresh: bool = False) -> None:
         super().__init__(frame)
         self.requests: list[ThoughtRequest] = []
+        self._fresh = fresh
 
     async def think(self, request: ThoughtRequest) -> ThoughtFrame | None:
         self.requests.append(request)
-        return self._frame
+        n = len(self.requests) - 1
+        if not self._fresh or self._frame is None or n == 0:
+            return self._frame
+        return self._frame.model_copy(update={"utterance": FRESH_LINES[(n - 1) % len(FRESH_LINES)]})
 
 
 @pytest.mark.asyncio
@@ -287,7 +298,8 @@ async def test_reflect_skips_thought_while_awaiting_reply(fx):
 @pytest.mark.asyncio
 async def test_feedback_releases_gate_and_reflection_sees_recent_proactive(fx):
     await fx["repo"].create(session_id="test-session")
-    engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="구조화 잘 되고 있나요?"))
+    frame = ThoughtFrame(decision="ask", confidence=0.95, utterance="구조화 잘 되고 있나요?")
+    engine = CountingEngine(frame, fresh=True)
     factory = lambda emit: DefaultProactivityCore(  # noqa: E731
         emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0)
     )
@@ -342,7 +354,8 @@ async def test_unanswered_proactive_learned_once_as_weak_dismiss(fx):
 @pytest.mark.asyncio
 async def test_restart_keeps_gate_and_recent_proactive(fx):
     await fx["repo"].create(session_id="test-session")
-    engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="구조화 잘 되고 있나요?"))
+    frame = ThoughtFrame(decision="ask", confidence=0.95, utterance="구조화 잘 되고 있나요?")
+    engine = CountingEngine(frame, fresh=True)
     factory = lambda emit: DefaultProactivityCore(  # noqa: E731
         emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0)
     )
@@ -365,7 +378,7 @@ async def test_restart_keeps_gate_and_recent_proactive(fx):
 @pytest.mark.asyncio
 async def test_restart_after_user_reply_does_not_close_gate(fx):
     await fx["repo"].create(session_id="test-session")
-    engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="x"))
+    engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="x"), fresh=True)
     factory = lambda emit: DefaultProactivityCore(  # noqa: E731
         emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0)
     )
@@ -382,7 +395,7 @@ async def test_restart_keeps_feedback_release_and_cooldown(fx):
     from jarvis.agent_layer.session.protocol import PROACTIVE_ACK_ENTRY
 
     await fx["repo"].create(session_id="test-session")
-    engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="x"))
+    engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="x"), fresh=True)
     no_cooldown = lambda emit: DefaultProactivityCore(  # noqa: E731
         emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0)
     )
@@ -406,3 +419,32 @@ async def test_restart_keeps_feedback_release_and_cooldown(fx):
 
 async def _noop():
     return None
+
+
+
+@pytest.mark.asyncio
+async def test_same_proactive_line_is_not_repeated(fx):
+    """사고 모델이 방금 건넨 인사를 또 고르면 보내지 않는다. 피드백 질문이 같은 인사마다 반복되던 문제."""
+    await fx["repo"].create(session_id="test-session")
+    engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="안녕하세요! 무엇을 도와드릴까요?"))
+    factory = lambda emit: DefaultProactivityCore(  # noqa: E731
+        emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0)
+    )
+    session = _build_session(fx, engine=engine, proactivity_factory=factory)
+    assert (await session.reflect()).speak is True
+    await session.record_feedback(accepted=True)
+    again = await session.reflect()
+    assert again.speak is False and again.reason == "repeat"
+
+
+@pytest.mark.asyncio
+async def test_session_without_conversation_does_not_reflect(fx):
+    """앱이나 화면이 세션을 열기만 했으면 사고 모델을 부르지 않는다."""
+    await fx["repo"].create(session_id="test-session")
+    engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="안녕하세요!"))
+    session = _build_session(fx, engine=engine, proactivity_factory=lambda emit: DefaultProactivityCore(
+        emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0)
+    ))
+    session._user_spoke = False
+    decision = await session.reflect()
+    assert decision.speak is False and decision.reason == "no conversation yet" and engine.requests == []

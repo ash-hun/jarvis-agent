@@ -57,6 +57,8 @@ def test_first_run_sets_a_baseline_then_only_new_notices_come_once(tmp_path):
     board.notices = [RENTAL, LATER, NEWLYWED]
     text = _run(tool, {"regions": "강원", "quiet": True})
     assert "새 LH 공고 1건" in text and "창원시 행복주택" in text and "광주선운2" not in text
+    # 링크는 앞 글과 구분자로 떨어져 있다(디스코드가 목록 안 줄바꿈을 지운다)
+    assert " | https://apply.lh.or.kr/" in text
     # 다시 불러도 같은 공고는 오지 않는다
     assert _run(tool, {"regions": "강원", "quiet": True}) == ""
     assert "새로 알릴 공고가 없다" in _run(tool, {"regions": "강원"})

@@ -88,7 +88,8 @@ def render(regions: list[str], picked: list[tuple[Notice, Verdict]], today: date
         label = deadline_label(parse_date(n.closes), today)
         lines.append(
             f"- [{label}] {n.title}\n  유형 {n.kind} | 지역 {n.region} | 마감 {n.closes or '-'}"
-            f" | 신청 가능성 {ACCESS_LABEL[verdict.status]}: {'; '.join(verdict.reasons)}\n  {detail_url(n.id)}"
+            # 디스코드는 목록 안의 들여쓴 줄바꿈을 지워 링크가 앞 글자에 붙는다. 구분자 뒤 같은 줄에 둔다
+            f" | 신청 가능성 {ACCESS_LABEL[verdict.status]}: {'; '.join(verdict.reasons)} | {detail_url(n.id)}"
         )
     if len(picked) > MAX_LISTED:
         lines.append(f"\n그 밖에 {len(picked) - MAX_LISTED}건. 전부 보려면 lh_notice 로 찾는다")

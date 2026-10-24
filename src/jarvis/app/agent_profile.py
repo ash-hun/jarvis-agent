@@ -17,6 +17,12 @@ MAIN_AGENT_ID = "main"
 ProactivityFactory = Callable[["EmitProactive"], "ProactivityCore"]
 
 
+def compose_system_prompt(persona: str, instructions: str | None) -> str | None:
+    """개성(말투)을 업무 지시 앞에 둔다. 둘 다 비면 None(모델 기본 시스템 프롬프트)."""
+    parts = [p.strip() for p in (persona, instructions or "") if p and p.strip()]
+    return "\n\n".join(parts) or None
+
+
 @dataclass(frozen=True)
 class AgentProfile:
     """에이전트마다 달라질 수 있는 것을 한곳에 모은다. 세션 조립은 이 묶음만 보고 에이전트를 만든다."""
@@ -27,7 +33,7 @@ class AgentProfile:
     thought: "ThoughtConfig"
     proactive: "ProactiveConfig"
     feedback_learner: "FeedbackLearner"
-    # 아래 셋은 정의 파일에서 온다. main 은 비워 둬서 기존 동작(기본 시스템 프롬프트, 도구 전체)을 지킨다
+    # 아래 셋은 정의 파일에서 온다. main 은 개성만 시스템 프롬프트로 두고 도구는 전체를 쓴다
     description: str = ""
     system_prompt: str | None = None
     tools: tuple[str, ...] = ()
@@ -53,6 +59,7 @@ class AgentProfile:
             thought=settings.thought,
             proactive=settings.proactive,
             feedback_learner=feedback_learner,
+            system_prompt=compose_system_prompt(settings.brand.persona, None),
         )
 
     def thought_model(self) -> "ModelConfig":

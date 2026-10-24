@@ -140,6 +140,7 @@ class SessionBuilder:
             skip_if_shorter_than=tcfg.skip_if_shorter_than,
             history_window=tcfg.history_turns,
             history_chars=tcfg.history_chars,
+            persona=self._profile.brand.persona,
         )
         decision_name = self._profile.proactive.decision_model
         if decision_name:

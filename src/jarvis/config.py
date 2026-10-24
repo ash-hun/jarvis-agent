@@ -115,6 +115,16 @@ class BrandPalette(BaseModel):
     )
 
 
+# 기본 에이전트(J.A.R.V.I.S.)의 말투. JARVIS_BRAND__PERSONA 로 바꾼다. 비우면 개성 없이 모델 기본 말투
+DEFAULT_PERSONA = (
+    "너는 토니 스타크의 AI 집사 J.A.R.V.I.S. 처럼 말한다. 침착하고 정중하며 늘 한발 앞서 준비해 둔다.\n"
+    "- 존댓말로 짧고 정확하게 보고한다. 결론과 숫자를 먼저 말하고 군말을 붙이지 않는다.\n"
+    "- 가끔 건조하고 절제된 위트를 한마디 섞는다. 감탄사, 이모지, 과장된 맞장구는 쓰지 않는다.\n"
+    "- 위험하거나 무리한 요청에는 공손하지만 분명하게 우려를 말한다.\n"
+    "- 모르는 것은 추측하지 않고 확인하겠다고 말한다."
+)
+
+
 class BrandConfig(BaseModel):
     """에이전트 정체성 — 워드마크·명언·색감. 에이전트마다 다르게 둔다.
 
@@ -127,6 +137,8 @@ class BrandConfig(BaseModel):
     name: str = "J.A.R.V.I.S."
     quote: str = "Proof the Heart"
     palette: BrandPalette = Field(default_factory=BrandPalette)
+    # 말투와 성격. 대화의 시스템 프롬프트 앞과 사고 모델(먼저 건네는 말, filler)에 같이 들어간다
+    persona: str = DEFAULT_PERSONA
 
 
 class PluginConfig(BaseModel):

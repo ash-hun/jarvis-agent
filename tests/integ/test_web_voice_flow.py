@@ -99,3 +99,23 @@ def test_binary_frames_are_ignored_when_wake_is_off(make_client):
         reply = ws.receive_json()
 
     assert reply["type"] == "voice_tts_audio"
+
+
+def test_two_screens_reading_the_same_reply_notify_once(make_client):
+    sent: list[dict] = []
+
+    async def notify(payload):
+        sent.append(payload)
+
+    assembly = build_app(JarvisSettings())
+    assembly.ctx.notifier = notify
+    client = TestClient(create_app(assembly, initial_session_id="default"))
+    # 같은 세션을 연 두 화면이 같은 답을 읽고 각자 알려 온다
+    with client, client.websocket_connect("/ws?session_id=v5") as a, client.websocket_connect("/ws?session_id=v5") as b:
+        a.receive_json()
+        b.receive_json()
+        for ws in (a, b):
+            ws.send_json({"type": "voice_tts_request", "text": "공고 세 건 찾았어요", "source": "reply"})
+            ws.receive_json()
+
+    assert [p["text"] for p in sent] == ["공고 세 건 찾았어요"]

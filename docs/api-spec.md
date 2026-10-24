@@ -129,7 +129,7 @@ $ curl -s http://localhost:7777/api/agents
 
 ### GET /api/agenda
 
-AGENDA 카드가 보여줄 스케줄 작업과 열린 open loop.
+AGENDA 카드가 보여줄 스케줄 작업, 열린 open loop, 최근 닫힌 open loop.
 
 #### Endpoint
 
@@ -163,6 +163,7 @@ GET /api/agenda
 |---|---|---|---|
 | `schedules` | `Schedule[]` | 아니오 | 스케줄러가 없으면 빈 배열. 다음 실행이 가까운 순, 다음 실행이 없는 것(꺼짐, 만료)은 뒤 |
 | `open_loops` | `OpenLoop[]` | 아니오 | 상태가 `open` 인 것만, 최신순 최대 20개. 기한이 지난 것은 응답 전에 닫혀 빠진다 |
+| `closed_loops` | `ClosedLoop[]` | 아니오 | 상태가 `done`, `dismissed`, `expired` 인 것, 마지막으로 바뀐 순 최대 10개. 항목은 `id`, `description`, `status`, `updated_at`(epoch ms), `due_ms`, `agent`. 저장소가 꺼져 있으면 빈 배열 |
 
 #### 응답 코드
 
@@ -174,7 +175,7 @@ GET /api/agenda
 
 ```bash
 $ curl -s http://localhost:7777/api/agenda
-{"schedules": [], "open_loops": [{"id": "e17dc364ae404c6c9d341b69a3a12b79", "description": "내일 오전 10시 회의의 구체적인 아젠다 및 발표 범위 확정", "due_ms": null, "created_at": 1791613276663, "origin_session": "default"}]}
+{"schedules": [], "open_loops": [{"id": "e17dc364ae404c6c9d341b69a3a12b79", "description": "내일 오전 10시 회의의 구체적인 아젠다 및 발표 범위 확정", "due_ms": null, "created_at": 1791613276663, "origin_session": "default", "agent": "main"}], "closed_loops": [{"id": "a03c5e1f", "description": "보고서 보내기", "status": "done", "updated_at": 1791613276663, "due_ms": null, "agent": "main"}]}
 ```
 
 #### 특이사항
@@ -187,7 +188,7 @@ $ curl -s http://localhost:7777/api/agenda
 
 ### POST /api/openloops/{loop_id}
 
-open loop 하나를 완료 또는 무시로 닫는다.
+open loop 하나를 완료 또는 무시로 닫거나, 닫힌 것을 다시 연다.
 
 #### Endpoint
 
@@ -209,13 +210,13 @@ POST /api/openloops/{loop_id}
 
 | 필드 | 타입 | 필수 | 기본값 | 설명 |
 |---|---|---|---|---|
-| `status` | `"done" \| "dismissed"` | 예 | 없음 | 닫는 방식 |
+| `status` | `"done" \| "dismissed" \| "open"` | 예 | 없음 | 바꿀 상태. `open` 은 닫힌 약속을 되살린다 |
 
 #### Query / Path 파라미터
 
 | 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
 |---|---|---|---|---|---|
-| `loop_id` | path | string | 예 | 없음 | `GET /api/agenda` 의 `open_loops[].id` |
+| `loop_id` | path | string | 예 | 없음 | `GET /api/agenda` 의 `open_loops[].id` 또는 `closed_loops[].id` |
 
 #### Response Body
 
@@ -229,8 +230,9 @@ POST /api/openloops/{loop_id}
 | 코드 | 의미 | 본문 |
 |---|---|---|
 | `200` | 정상 | `{"id", "status"}` |
-| `400` | `status` 가 둘 중 하나가 아님 | `{"error": "status must be 'done' or 'dismissed'"}` |
+| `400` | `status` 가 셋 중 하나가 아님 | `{"error": "status must be 'done', 'dismissed' or 'open'"}` |
 | `404` | id 없음, 또는 open loop 저장소가 꺼져 있음 | `{"error": "open loop not found"}` |
+| `409` | `open` 인데 기한이 `JARVIS_OPENLOOP__EXPIRE_AFTER_SEC` 넘게 지났거나, 기한 없이 `JARVIS_OPENLOOP__MAX_AGE_SEC` 보다 오래됨. 열자마자 다시 만료되므로 상태를 바꾸지 않는다 | `{"error": "open loop is past its due or age"}` |
 
 #### 호출 예시
 
@@ -239,7 +241,7 @@ $ curl -s -X POST -H 'Content-Type: application/json' -d '{"status":"dismissed"}
 {"id":"e17dc364ae404c6c9d341b69a3a12b79","status":"dismissed"}
 
 $ curl -s -X POST -H 'Content-Type: application/json' -d '{"status":"maybe"}' http://localhost:7777/api/openloops/x
-{"error":"status must be 'done' or 'dismissed'"}
+{"error":"status must be 'done', 'dismissed' or 'open'"}
 
 $ curl -s -X POST -H 'Content-Type: application/json' -d '{"status":"done"}' http://localhost:7777/api/openloops/nope
 {"error":"open loop not found"}
@@ -247,7 +249,7 @@ $ curl -s -X POST -H 'Content-Type: application/json' -d '{"status":"done"}' htt
 
 #### 특이사항
 
-**재호출**: 멱등. 같은 id 에 같은 status 를 다시 보내도 결과가 같고 `updated_at` 만 갱신된다. 이미 `done` 인 것을 `dismissed` 로 바꾸는 것도 허용된다(마지막 호출이 이긴다). 되돌려 `open` 으로 만드는 API 는 없다.
+**재호출**: 멱등. 같은 id 에 같은 status 를 다시 보내도 결과가 같고 `updated_at` 만 갱신된다. 이미 `done` 인 것을 `dismissed` 로 바꾸는 것도 허용된다(마지막 호출이 이긴다). `open` 도 같다. 이미 열린 것을 다시 열어도 그대로 열려 있다. 되살린 약속은 기한과 생성 시각을 그대로 두므로 만료 규칙도 원래 기한 기준이다.
 
 jsonl 저장소는 append-only 라 호출마다 한 줄이 붙고 읽을 때 마지막 줄이 이긴다.
 

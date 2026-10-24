@@ -1,4 +1,4 @@
-"""[ui] AGENDA REST: 스케줄과 열린 약속 조회, 약속 닫기, 스케줄 켜고 끄기."""
+"""[ui] AGENDA REST: 스케줄과 약속 조회, 약속 닫기와 되살리기, 스케줄 켜고 끄기."""
 
 import time
 from datetime import datetime
@@ -6,11 +6,16 @@ from fastapi import APIRouter, Path
 from fastapi.responses import JSONResponse
 
 from jarvis.ui.web.web_schema import OpenLoopStatusRequest, ScheduleToggleRequest
+from jarvis.agent_layer.openloop.types import expired_ids
 from jarvis.agent_layer.openloop import close_expired
 from jarvis.ui.web.web_state import WebState
 
 # AGENDA 카드가 보여 주는 열린 약속 수
 AGENDA_LOOP_LIMIT = 20
+# 되살릴 수 있게 보여 주는 최근 닫힌 약속 수
+AGENDA_CLOSED_LIMIT = 10
+LOOP_UPDATE_STATUSES = ("done", "dismissed", "open")
+BAD_STATUS = "status must be 'done', 'dismissed' or 'open'"
 PROMPT_PREVIEW_CHARS = 160
 
 
@@ -22,13 +27,15 @@ def build_agenda_router(state: WebState) -> APIRouter:
         "/api/agenda",
         summary="AGENDA 카드 내용",
         description=(
-            "스케줄(곧 돌 것이 위)과 열린 약속(최신순 20개). 모든 에이전트의 것이 섞여 오고"
-            " agent 로 누구 것인지 가른다. 기한이 지난 약속은 응답 전에 expired 로 닫힌다."
+            "스케줄(곧 돌 것이 위), 열린 약속(최신순 20개), 최근 닫힌 약속(닫힌 순 10개). 모든 에이전트의 것이"
+            " 섞여 오고 agent 로 누구 것인지 가른다. 기한이 지난 약속은 응답 전에 expired 로 닫힌다."
         ),
         responses={200: {"content": {"application/json": {"example": {
             "schedules": [],
             "open_loops": [{"id": "e17d", "description": "회의 준비", "due_ms": None, "created_at": 1791613276663,
                             "origin_session": "default", "agent": "main"}],
+            "closed_loops": [{"id": "a03c", "description": "보고서 보내기", "status": "done",
+                              "updated_at": 1791613276663, "due_ms": None, "agent": "main"}],
         }}}}},
     )
     async def get_agenda() -> JSONResponse:
@@ -56,6 +63,7 @@ def build_agenda_router(state: WebState) -> APIRouter:
             schedules.sort(key=lambda t: (t["next_run"] is None, str(t["next_run"] or ""), str(t["name"])))
 
         loops: list[dict[str, object]] = []
+        closed: list[dict[str, object]] = []
         store = state.assembly.services.openloop_store
         if store is not None:
             # 화면이 사고 tick 을 기다리지 않고 지난 약속을 내리게, 목록을 줄 때도 만료를 맞춘다
@@ -70,16 +78,30 @@ def build_agenda_router(state: WebState) -> APIRouter:
                     "origin_session": loop.origin_session,
                     "agent": loop.agent_id,
                 })
-        return JSONResponse({"schedules": schedules, "open_loops": loops})
+            for loop in await store.list_closed(limit=AGENDA_CLOSED_LIMIT):
+                closed.append({
+                    "id": loop.id,
+                    "description": loop.description,
+                    "status": loop.status,
+                    "updated_at": loop.updated_at,
+                    "due_ms": loop.due_ms,
+                    "agent": loop.agent_id,
+                })
+        return JSONResponse({"schedules": schedules, "open_loops": loops, "closed_loops": closed})
 
     @router.post(
         "/api/openloops/{loop_id}",
-        summary="약속 닫기",
-        description="열린 약속을 완료(done) 또는 무시(dismissed)로 닫는다. 같은 값을 다시 보내도 결과가 같다.",
+        summary="약속 닫기와 되살리기",
+        description=(
+            "약속을 완료(done)나 무시(dismissed)로 닫거나, 닫힌 약속을 다시 연다(open)."
+            " 다시 열면 곧바로 만료될 약속(기한이나 수명이 지난 것)은 409 로 거절한다."
+            " 같은 값을 다시 보내도 결과가 같다."
+        ),
         responses={
             200: {"content": {"application/json": {"example": {"id": "e17d", "status": "done"}}}},
-            400: {"content": {"application/json": {"example": {"error": "status must be 'done' or 'dismissed'"}}}},
+            400: {"content": {"application/json": {"example": {"error": BAD_STATUS}}}},
             404: {"content": {"application/json": {"example": {"error": "open loop not found"}}}},
+            409: {"content": {"application/json": {"example": {"error": "open loop is past its due or age"}}}},
         },
     )
     async def update_openloop(
@@ -87,9 +109,18 @@ def build_agenda_router(state: WebState) -> APIRouter:
         loop_id: str = Path(description="GET /api/agenda 가 준 약속 id", examples=["e17d"]),
     ) -> JSONResponse:
         status = payload.status
-        if status not in ("done", "dismissed"):
-            return JSONResponse({"error": "status must be 'done' or 'dismissed'"}, status_code=400)
+        if status not in LOOP_UPDATE_STATUSES:
+            return JSONResponse({"error": BAD_STATUS}, status_code=400)
         store = state.assembly.services.openloop_store
+        if store is not None and status == "open":
+            loop = await store.get(loop_id)
+            if loop is None:
+                return JSONResponse({"error": "open loop not found"}, status_code=404)
+            # 다시 열자마자 다음 AGENDA 조회가 expired 로 닫을 약속은 열지 않는다
+            cfg = state.settings.openloop
+            reopened = loop.model_copy(update={"status": "open"})
+            if expired_ids([reopened], int(time.time() * 1000), cfg.expire_after_sec * 1000, cfg.max_age_sec * 1000):
+                return JSONResponse({"error": "open loop is past its due or age"}, status_code=409)
         if store is None or not await store.update_status(loop_id, str(status)):
             return JSONResponse({"error": "open loop not found"}, status_code=404)
         return JSONResponse({"id": loop_id, "status": status})

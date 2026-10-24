@@ -92,6 +92,13 @@ class OpenLoopStore:
     async def all(self) -> list[OpenLoop]:
         return list(self._loops.values())
 
+    async def list_closed(self, limit: int = 20) -> list[OpenLoop]:
+        """닫힌 항목을 마지막으로 바뀐 순으로. 잘못 닫힌 약속을 되살리는 화면이 쓴다."""
+        # ponytail: 전부 읽어 고른다(약속은 하루 몇 건), 쌓여 느려지면 저장소마다 updated_at 순 조회로 바꾼다
+        items = [x for x in await self.all() if x.status != "open"]
+        items.sort(key=lambda x: x.updated_at, reverse=True)
+        return items[:limit]
+
 
 class InMemoryOpenLoopStore(OpenLoopStore):
     """테스트·로컬용 in-memory 구현. 프로세스 재시작 시 소멸(영속화는 후속). 동작은 기본 클래스 그대로다."""

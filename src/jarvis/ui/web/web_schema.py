@@ -4,7 +4,9 @@ from pydantic import BaseModel, Field, JsonValue
 
 
 class OpenLoopStatusRequest(BaseModel):
-    status: JsonValue = Field(default=None, description="닫는 방식. done 또는 dismissed", examples=["done"])
+    status: JsonValue = Field(
+        default=None, description="바꿀 상태. done, dismissed, 또는 다시 여는 open", examples=["done"]
+    )
 
 
 class ScheduleToggleRequest(BaseModel):

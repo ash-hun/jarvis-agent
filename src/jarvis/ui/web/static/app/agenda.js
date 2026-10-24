@@ -1,4 +1,4 @@
-// AGENDA 카드(스케줄 + open loops)와 스케줄 알림.
+// AGENDA 카드(스케줄 + open loops + 최근 닫힌 약속)와 스케줄 알림.
 // 서버에 변경 이벤트가 없으므로 접속·inner thought·응답 종료·조작 직후, 그리고 1분마다 다시 불러온다.
 import { AGENT_NAME } from './brand.js';
 import { apiFetch } from './api.js';
@@ -11,9 +11,13 @@ import { loadAgents, isTeam, agentTag } from './agents.js';
 const $scheduleList = document.getElementById('schedule-list');
 const $openloopList = document.getElementById('openloop-list');
 const $agendaCount  = document.getElementById('agenda-count');
+const $closedBox    = document.getElementById('closedloop-box');
+const $closedList   = document.getElementById('closedloop-list');
+const $closedCount  = document.getElementById('closedloop-count');
 
 const REFRESH_MS = 60000;
 const pad = (n) => String(n).padStart(2, '0');
+const CLOSED_LABEL = { done: '완료', dismissed: '무시', expired: '만료' };
 
 // 오늘이면 HH:MM, 내일이면 '내일 HH:MM', 그 뒤면 'M/D HH:MM'. 24시간 안이면 남은 시간도.
 function fmtWhen(iso) {
@@ -26,6 +30,13 @@ function fmtWhen(iso) {
   const mins = Math.round((d - now) / 60000);
   const left = mins < 60 ? `${Math.max(mins, 0)}분 후` : mins < 1440 ? `${Math.round(mins / 60)}시간 후` : '';
   return `${day}${hm}${left ? ' · ' + left : ''}`;
+}
+
+// 지난 시각. 오늘이면 HH:MM, 아니면 M/D HH:MM.
+function fmtPast(ms) {
+  const d = new Date(ms);
+  const sameDay = d.toDateString() === new Date().toDateString();
+  return `${sameDay ? '' : `${d.getMonth() + 1}/${d.getDate()} `}${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function agendaItem(text, when, cls = '', agent = null) {
@@ -43,7 +54,7 @@ function agendaItem(text, when, cls = '', agent = null) {
   return li;
 }
 
-function renderAgenda({ schedules = [], open_loops = [] }) {
+function renderAgenda({ schedules = [], open_loops = [], closed_loops = [] }) {
   $scheduleList.innerHTML = '';
   for (const t of schedules) {
     let when = t.next_run ? fmtWhen(t.next_run) : (t.enabled ? '다음 실행 없음' : '꺼짐');
@@ -83,6 +94,21 @@ function renderAgenda({ schedules = [], open_loops = [] }) {
     $openloopList.appendChild(li);
   }
 
+  $closedList.innerHTML = '';
+  for (const lp of closed_loops) {
+    const li = agendaItem(lp.description, `${CLOSED_LABEL[lp.status] || lp.status} · ${fmtPast(lp.updated_at)}`, '', lp.agent);
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'icon-btn reopen';
+    b.textContent = '↺';
+    b.title = '되살리기';
+    b.addEventListener('click', () => reopenOpenLoop(lp, li));
+    li.querySelector('.acts').appendChild(b);
+    $closedList.appendChild(li);
+  }
+  $closedBox.hidden = closed_loops.length === 0;
+  $closedCount.textContent = closed_loops.length ? pad(closed_loops.length) : '';
+
   const active = schedules.filter(t => t.enabled).length + open_loops.length;
   $agendaCount.textContent = pad(active);
 }
@@ -107,6 +133,24 @@ async function closeOpenLoop(loop, status, li) {
     logActivity(`${status === 'done' ? '✓ 완료' : '✕ 무시'} · ${loop.description}`, status === 'done' ? 'ok' : '');
   } else {
     logActivity(`open loop 처리 실패 · ${loop.description}`, 'err');
+  }
+  fetchAgenda();
+}
+
+async function reopenOpenLoop(loop, li) {
+  li.classList.add('leaving');
+  const res = await apiFetch(`/api/openloops/${encodeURIComponent(loop.id)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'open' }),
+  }).catch(() => null);
+  if (res && res.ok) {
+    logActivity(`↺ 되살림 · ${loop.description}`, 'ok');
+  } else if (res && res.status === 409) {
+    // 기한이나 수명이 지나 열자마자 다시 만료될 약속이다
+    logActivity(`기한이 지나 되살리지 않음 · ${loop.description}`, 'err');
+  } else {
+    logActivity(`open loop 되살리기 실패 · ${loop.description}`, 'err');
   }
   fetchAgenda();
 }

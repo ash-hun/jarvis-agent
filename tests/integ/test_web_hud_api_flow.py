@@ -302,6 +302,36 @@ def test_openloop_done_removes_it_from_agenda(agenda):
     assert client.get("/api/agenda").json()["open_loops"] == []
 
 
+def test_wrongly_closed_loop_comes_back_but_an_overdue_one_does_not(agenda):
+    import time
+    import asyncio
+
+    from jarvis.agent_layer.openloop.types import OpenLoop
+
+    client, store, _ = agenda
+    now_ms = int(time.time() * 1000)
+    keep = asyncio.run(store.add(OpenLoop(description="리뷰 자료 보내기", origin_session="default")))
+    late = asyncio.run(store.add(OpenLoop(description="어제 회의 준비", due_ms=now_ms - 7 * 3600 * 1000)))
+    # AGENDA 판단이 잘못 닫은 것처럼 done 으로
+    asyncio.run(store.update_status(keep, "done"))
+    asyncio.run(store.update_status(late, "done"))
+
+    body = client.get("/api/agenda").json()
+    assert body["open_loops"] == []
+    assert {lp["id"]: lp["status"] for lp in body["closed_loops"]} == {keep: "done", late: "done"}
+
+    # 두 번 열어도 결과가 같다
+    for _ in range(2):
+        resp = client.post(f"/api/openloops/{keep}", json={"status": "open"})
+        assert resp.status_code == 200 and resp.json() == {"id": keep, "status": "open"}
+    body = client.get("/api/agenda").json()
+    assert [lp["id"] for lp in body["open_loops"]] == [keep]
+    assert [lp["id"] for lp in body["closed_loops"]] == [late]
+    # 기한이 한참 지난 약속은 열어도 바로 만료되므로 거절한다
+    assert client.post(f"/api/openloops/{late}", json={"status": "open"}).status_code == 409
+    assert asyncio.run(store.get(late)).status == "done"
+
+
 def test_agenda_drops_long_overdue_loops(agenda):
     import time
     import asyncio
@@ -321,7 +351,8 @@ def test_agenda_drops_long_overdue_loops(agenda):
 
 def test_openloop_rejects_bad_status_and_unknown_id(agenda):
     client, _, _ = agenda
-    assert client.post("/api/openloops/nope", json={"status": "open"}).status_code == 400
+    assert client.post("/api/openloops/nope", json={"status": "maybe"}).status_code == 400
+    assert client.post("/api/openloops/nope", json={"status": "open"}).status_code == 404
     assert client.post("/api/openloops/nope", json={"status": "done"}).status_code == 404
 
 

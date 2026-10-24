@@ -59,6 +59,13 @@ scheduler = [
 piper = [
     "piper-tts>=1.8,<2",
 ]
+# 디스코드 봇이 사용자가 있는 음성 채널에서 알림을 읽는다(JARVIS_NOTIFY__DISCORD_BOT_TOKEN). 재생에 ffmpeg 가 필요하다.
+# 읽는 목소리는 서버 한국어 TTS(supertonic)라 voice extra 의 STT(faster-whisper) 없이 그것만 함께 깐다
+discord = [
+    "discord.py[voice]>=2.7,<3",
+    "supertonic>=0.1.0",
+    "numpy>=1.26.0",
+]
 # "Jarvis" 웨이크워드(JARVIS_VOICE__WAKE_MODEL_DIR). onnx 로만 돌린다
 wake = [
     "openwakeword==0.6.0",
@@ -101,7 +108,9 @@ packages = ["jarvis"]
 
 [[tool.mypy.overrides]]
 # 음성 extra(piper, wake, supertonic)를 깔지 않은 환경에서도 같은 결과가 나오게 선택 의존성은 없는 것으로 본다
-module = ["google.*", "mcp.*", "piper", "piper.*", "openwakeword", "openwakeword.*", "supertonic", "numpy"]
+module = [
+    "google.*", "mcp.*", "piper", "piper.*", "openwakeword", "openwakeword.*", "supertonic", "numpy", "discord", "discord.*",
+]
 ignore_missing_imports = true
 
 # 스텁 없이 쓰는 서드파티. 개발 의존성을 늘리지 않으려고 모듈 단위로만 건다

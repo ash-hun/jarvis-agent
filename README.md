@@ -211,6 +211,16 @@ JARVIS_NOTIFY__AVATAR_BASE_URL=https://raw.githubusercontent.com/ash-hun/jarvis-
 JARVIS_NOTIFY__KINDS=["reminder","proactive","spoken"]   # reminder=스케줄 결과, proactive=먼저 거는 말, spoken=Web HUD 가 소리 내어 읽은 말
 ```
 
+디스코드 봇을 더하면 내가 음성 채널에 있을 때 봇이 그 채널에 들어가 알림을 읽고 나간다. 음성 채널에 없거나 읽기에 실패하면 위 webhook 글로 보낸다. 300자를 넘는 알림은 앞부분만 읽고 전문은 글로도 남긴다. `spoken` 은 화면이 이미 읽은 말이라 글로만 간다.
+
+```bash
+uv sync --extra discord                                  # discord.py[voice] + 한국어 TTS(supertonic). 재생에 ffmpeg 필요
+JARVIS_NOTIFY__DISCORD_BOT_TOKEN=...                     # Developer Portal > Bot > Reset Token. 초대 권한 Connect, Speak
+JARVIS_NOTIFY__DISCORD_GUILD_ID=123456789012345678       # 서버 id
+JARVIS_NOTIFY__DISCORD_USER_ID=123456789012345678        # 내 사용자 id
+JARVIS_NOTIFY__DISCORD_VOICE_KINDS=["reminder","proactive"]
+```
+
 > 슬랙, 디스코드 webhook 은 중복 제거 키가 없어 재시도하지 않는다(실패는 로그). 자체 앱으로 바꿀 때는 `core/notify` 에 채널 하나를 더하면 된다.
 
 ### Web HUD 화면
@@ -601,6 +611,11 @@ JARVIS_NOTIFY__SLACK_WEBHOOK_URL=     # 비우면 그 채널로 보내지 않는
 JARVIS_NOTIFY__DISCORD_WEBHOOK_URL=   # https://discord.com/api/webhooks/<id>/<token>
 JARVIS_NOTIFY__AVATAR_BASE_URL=       # <주소>/<에이전트 id>.png 를 디스코드 아바타로. 비우면 webhook 기본 그림
 JARVIS_NOTIFY__KINDS=["reminder","proactive","spoken"]
+JARVIS_NOTIFY__DISCORD_BOT_TOKEN=     # 디스코드 봇. 토큰, 서버 id, 사용자 id 가 다 있어야 음성 채널에서 읽는다
+JARVIS_NOTIFY__DISCORD_GUILD_ID=
+JARVIS_NOTIFY__DISCORD_USER_ID=
+JARVIS_NOTIFY__DISCORD_VOICE_KINDS=["reminder","proactive"]
+JARVIS_NOTIFY__DISCORD_TTS_PROVIDER=supertonic
 
 # ── 플러그인 ─────────────────────────────────────────────────────────────────
 JARVIS_PLUGIN__TOOLS_DIR=~/.jarvis/tools

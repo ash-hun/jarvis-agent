@@ -291,6 +291,15 @@ class NotifyConfig(BaseModel):
     avatar_base_url: str = ""
     # reminder(스케줄 결과) | proactive(먼저 건넨 말) | spoken(Web HUD 가 소리 내어 읽은 말)
     kinds: list[str] = Field(default_factory=lambda: ["reminder", "proactive", "spoken"])
+    # 디스코드 봇. 셋 다 있으면 discord_user_id 가 들어가 있는 음성 채널에서 알림을 읽고, 없으면 webhook 글로 보낸다
+    discord_bot_token: SecretStr | None = None
+    discord_guild_id: int | None = None
+    discord_user_id: int | None = None
+    # 음성으로 읽는 종류. spoken 은 화면이 이미 소리 내어 읽은 말이라 글로만 보낸다
+    discord_voice_kinds: list[str] = Field(default_factory=lambda: ["reminder", "proactive"])
+    # 음성 채널에서 읽을 한국어 TTS. 화면의 tts_provider(기본 browser)와 따로 둔다.
+    # 영어 문장은 voice 의 english_tts 설정을 따른다
+    discord_tts_provider: str = "supertonic"
 
 
 class FocusConfig(BaseModel):
@@ -310,7 +319,7 @@ class VoiceConfig(BaseModel):
     stt_provider: str = "browser"    # browser | whisper
     tts_provider: str = "browser"    # browser | supertonic
     whisper_model_size: str = "base"
-    supertonic_model: str = "Supertone/supertonic-3"
+    supertonic_model: str = "supertonic-3"  # supertonic 패키지가 받는 모델 이름(HuggingFace 경로가 아니다)
     tts_lang: str = "ko"
     english_tts_provider: str = ""   # 비우면 영어 문장도 tts_provider 가 읽는다. piper
     piper_model: str = "~/.jarvis/voices/en-voice.onnx"  # 같은 자리에 .onnx.json 이 있어야 한다

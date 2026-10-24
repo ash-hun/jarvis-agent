@@ -146,6 +146,11 @@ JARVIS_NOTIFY__SLACK_WEBHOOK_URL=
 JARVIS_NOTIFY__DISCORD_WEBHOOK_URL=
 JARVIS_NOTIFY__AVATAR_BASE_URL=
 JARVIS_NOTIFY__KINDS=["reminder","proactive","spoken"]
+JARVIS_NOTIFY__DISCORD_BOT_TOKEN=           # 셋 다 있으면 음성 채널에 있는 사용자에게 봇이 읽는다. 없으면 webhook 글
+JARVIS_NOTIFY__DISCORD_GUILD_ID=
+JARVIS_NOTIFY__DISCORD_USER_ID=
+JARVIS_NOTIFY__DISCORD_VOICE_KINDS=["reminder","proactive"]
+JARVIS_NOTIFY__DISCORD_TTS_PROVIDER=supertonic
 
 JARVIS_PLUGIN__TOOLS_DIR=~/.jarvis/tools
 JARVIS_PLUGIN__SKILLS_DIR=./skills          # .env.example 값. 코드 기본은 ~/.jarvis/skills

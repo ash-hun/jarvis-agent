@@ -13,15 +13,20 @@ np = pytest.importorskip("numpy")
 
 
 class _FakeTTS:
+    """supertonic 1.3 의 TTS 모양. synthesize 는 ((1, N) 파형, 길이)를 돌려준다."""
+
     sample_rate = 16000
 
     def __init__(self, model_name: str) -> None:
         self.model_name = model_name
-        self.calls: list[tuple[str, str]] = []
+        self.calls: list[tuple[str, str, str]] = []
 
-    def tts(self, text: str, language: str) -> Any:
-        self.calls.append((text, language))
-        return np.array([0.0, 0.5, -2.0], dtype=np.float32)
+    def get_voice_style(self, voice_name: str) -> str:
+        return f"style:{voice_name}"
+
+    def synthesize(self, text: str, voice_style: str, lang: str | None = None) -> tuple[Any, Any]:
+        self.calls.append((text, voice_style, str(lang)))
+        return np.array([[0.0, 0.5, -2.0]], dtype=np.float32), np.array([0.1])
 
 
 def _install_fake(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -43,8 +48,8 @@ async def test_synthesize_returns_mono_16bit_wav_at_model_rate(monkeypatch: pyte
     assert (channels, width, rate) == (1, 2, 16000)
     # 범위를 넘는 -2.0 은 -1.0 으로 잘린다
     assert list(np.frombuffer(frames, dtype=np.int16)) == [0, 16383, -32767]
-    assert provider._tts.calls == [("안녕", "en")]
-    assert provider._tts.model_name == "Supertone/supertonic-3"
+    assert provider._tts.calls == [("안녕", "style:F1", "en")]
+    assert provider._tts.model_name == "supertonic-3"
 
 
 def test_array_to_wav_uses_given_rate() -> None:

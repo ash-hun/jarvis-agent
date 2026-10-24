@@ -121,6 +121,8 @@ def build_tui_voice(settings: "JarvisSettings") -> "TuiVoiceController | None":
         service = VoiceService.from_config(
             stt_provider=vcfg.stt_provider,
             tts_provider=vcfg.tts_provider,
+            stt_options=vcfg.stt_options(),
+            tts_options=vcfg.tts_options(),
             english_tts_provider=vcfg.english_tts_provider,
             english_tts_options=vcfg.english_tts_options(),
         )

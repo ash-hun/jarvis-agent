@@ -489,6 +489,7 @@ class InfraBuilder:
             tts = VoiceService.from_config(
                 stt_provider="browser",
                 tts_provider=cfg.discord_tts_provider,
+                tts_options=v.tts_options(cfg.discord_tts_provider),
                 english_tts_provider=v.english_tts_provider,
                 english_tts_options=v.english_tts_options(),
             )

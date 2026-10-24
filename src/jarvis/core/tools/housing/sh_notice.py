@@ -196,6 +196,14 @@ class ShNoticeTool(JarvisTool):
         except FetchError as exc:
             return _result(tool_call_id, f"SH 게시판 조회 실패: {exc}", True)
 
+    async def latest(self, category: str) -> list[Post]:
+        """그 종류 게시판의 첫 쪽(최신 10건). 목록 표가 없으면 ValueError, 게시판 장애는 FetchError."""
+        board = BOARDS[category]
+        parsed = parse_list(await self._fetch(list_url(board), list_query(board, "", "제목", 1)))
+        if parsed is None:
+            raise ValueError("SH 게시판이 목록 표를 주지 않았다")
+        return parsed[1]
+
     async def _search(
         self, tool_call_id: str, board: Board, category: str, params: dict[str, Any]
     ) -> ToolResultMessage:

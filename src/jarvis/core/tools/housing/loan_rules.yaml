@@ -45,6 +45,8 @@ notice_kinds:
     - match: 영구임대
       monthly_one_person: 2669354
       basis: 일반 입주자 기준, 2025년 도시근로자 월평균소득 50%(1인 70%). 수급자, 유공자, 장애인 등은 순위와 기준이 따로다
+      # 프로필이 수급자면 일반 소득 기준을 대지 않고 이 말로 가능성을 높게 본다
+      welfare: 수급자 계층으로 신청한다(생계, 의료급여 수급자가 1순위. 순위와 서류는 공고문)
       source: 대전광역시 영구임대주택 예비입주자 모집 공고문(2026.10.06)
     - match: 국민임대
       monthly_one_person: 3432027
@@ -57,7 +59,18 @@ notice_kinds:
     - match: 행복주택
       monthly_one_person: 4576036
       basis: 청년 계층 기준, 2025년 도시근로자 월평균소득 100%(1인 120%). 대학생, 신혼부부, 고령자 계층은 기준이 다르다
+      # 프로필이 대학생이면 청년 기준을 대지 않는다
+      student: 대학생 계층은 소득 기준이 청년 계층과 달라 공고문으로 확인한다
       source: 창원시 행복주택 예비입주자 모집공고(2026.10.15)
+  # 주택형 이름에 이 말이 있으면 그 공급대상만 신청한다. 프로필 값이 어긋나면 그 주택형을 계산에서 뺀다(모르면 둔다).
+  # 앞에서부터 처음 맞는 대상으로 적는다(주거급여수급자는 주거급여로). need: married(기혼), student(대학생), welfare(수급자), age_min(만 value 세 이상), age_range(만 value 세 사이)
+  unit_targets:
+    - {word: 신혼, unless: [한부모], need: married, who: 신혼부부}
+    - {word: 고령자, need: age_min, value: 65, who: 만 65세 이상 고령자}
+    - {word: 청년, need: age_range, value: [19, 39], who: 만 19~39세 청년}
+    - {word: 대학생, need: student, who: 대학생}
+    - {word: 주거급여, need: welfare, who: 주거급여 수급자}
+    - {word: 수급자, need: welfare, who: 기초생활 수급자}
 
 products:
   - id: didimdol

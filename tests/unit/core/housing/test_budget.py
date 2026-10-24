@@ -3,7 +3,7 @@
 import pytest
 import asyncio
 
-from jarvis.core.tools.housing.budget import CONCURRENCY, Option, Terms, excluded_by_profile, options_from_units
+from jarvis.core.tools.housing.budget import CONCURRENCY, Option, Terms, options_from_units
 from jarvis.core.tools.housing.budget import parse_terms, plan_for
 from jarvis.core.tools.housing.profile import HousingProfile
 from tests.unit.core.housing.conftest import TODAY, page
@@ -80,11 +80,20 @@ def test_options_from_units_skip_unpriced_cells():
 
 
 def test_profile_drops_supply_groups_that_do_not_match():
-    single = HousingProfile(married=False, age=28)
-    assert excluded_by_profile("44A 신혼부부", single, TODAY)
-    assert not excluded_by_profile("44A 신혼부부·한부모가족", single, TODAY)
-    assert excluded_by_profile("26B 고령자", single, TODAY)
-    assert not excluded_by_profile("26B 고령자", HousingProfile(), TODAY)
+    from jarvis.core.tools.housing.rules import load_rules, unit_mismatch
+
+    rules = load_rules()
+    single = HousingProfile(married=False, age=28, student=False, welfare=False)
+    assert unit_mismatch(rules, "44A 신혼부부", single, TODAY) == "신혼부부"
+    assert unit_mismatch(rules, "44A 신혼부부·한부모가족", single, TODAY) is None
+    assert unit_mismatch(rules, "26B 고령자", single, TODAY) == "만 65세 이상 고령자"
+    assert unit_mismatch(rules, "26B 고령자", HousingProfile(), TODAY) is None
+    assert unit_mismatch(rules, "16A 대학생", single, TODAY) == "대학생"
+    assert unit_mismatch(rules, "26A 주거급여수급자", single, TODAY) == "주거급여 수급자"
+    assert unit_mismatch(rules, "26A 청년", single, TODAY) is None
+    assert unit_mismatch(rules, "26A 청년", HousingProfile(age=45), TODAY) == "만 19~39세 청년"
+    # 모르는 조건은 빼지 않는다. 계산에 남겨 사용자가 공고문으로 확인한다
+    assert unit_mismatch(rules, "16A 대학생", HousingProfile(), TODAY) is None
 
 
 def test_plan_prefers_fitting_cheapest_unit():

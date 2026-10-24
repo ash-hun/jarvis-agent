@@ -1,6 +1,7 @@
 """대출 규칙: 프로필로 자격을 가르고, 한도는 상품 한도, LTV, 규제 한도, DSR/DTI 중 가장 작은 값이다."""
 
 from datetime import date
+from dataclasses import replace
 
 from jarvis.core.tools.housing.rules import NO, OK, UNKNOWN, Area, eligibility, load_rules, loan_limit, notice_access
 from jarvis.core.tools.housing.profile import HousingProfile
@@ -86,3 +87,19 @@ def test_notice_access_by_kind_and_profile():
     low = HousingProfile(income=36_000_000)
     assert notice_access(RULES, "행복주택", "창원시 행복주택 예비입주자 모집", low).status == OK
     assert notice_access(RULES, "분양주택", "익산평화 공공분양주택", DEV).status == UNKNOWN
+
+
+def test_notice_access_uses_household_welfare_and_student():
+    """1인 기준을 넘어도 가구원이 많으면 단정하지 않고, 수급자와 대학생은 일반 기준을 대지 않는다."""
+    title = "대전광역시 영구임대주택 예비입주자 모집"
+    alone = replace(DEV, household=1)
+    assert notice_access(RULES, "영구임대", title, alone).status == NO
+    assert "가구원" not in " ".join(notice_access(RULES, "영구임대", title, alone).reasons)
+    family = notice_access(RULES, "영구임대", title, replace(DEV, household=3))
+    assert family.status == UNKNOWN and "3인 가구" in family.reasons[1]
+    welfare = notice_access(RULES, "영구임대", title, replace(DEV, welfare=True))
+    assert welfare.status == OK and "수급자" in welfare.reasons[0]
+    # 국민임대에는 수급자 경로를 적지 않았다. 일반 기준으로 댄다
+    assert notice_access(RULES, "국민임대", "태백철암1 국민임대", replace(DEV, welfare=True)).status == NO
+    student = notice_access(RULES, "행복주택", "창원시 행복주택 예비입주자 모집", replace(DEV, student=True))
+    assert student.status == UNKNOWN and "대학생" in student.reasons[0]

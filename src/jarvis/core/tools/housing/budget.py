@@ -20,6 +20,7 @@ from jarvis.model_layer.types import TextContent, ToolResultMessage
 from jarvis.core.tools.housing.lh_notice import resolve_region
 from jarvis.core.tools.registry import JarvisTool, ToolContext
 from jarvis.core.tools.housing.scenario import purchase_cases
+from jarvis.core.tools.housing.rules import unit_mismatch
 from jarvis.core.tools.housing.amount import parse_won
 from jarvis.memory.scope import LOCAL_USER
 
@@ -37,8 +38,6 @@ MAX_UNKNOWN_LISTED = 10
 CONCURRENCY = 4
 OPEN_STATUS = "공고중"
 DEFAULT_REGIONS = ("전국",)
-# 고령자 주택형을 받는 만 나이
-ELDERLY_AGE = 65
 INCREASE, DECREASE = "보증금 증액 전환", "보증금 감액 전환"
 # 신청 가능성이 높은 공고부터 보인다. 가능성이 낮아도 빼지 않고 뒤로 보낸다
 ACCESS_ORDER = {OK: 0, UNKNOWN: 1, NO: 2}
@@ -50,7 +49,7 @@ TOOL_DESCRIPTION = (
     " 공고문의 보증금 증액, 감액 전환을 펼친다. 대출 한도는 상품 한도, LTV, 규제 한도, DSR/DTI 중 가장 작은 값이고,"
     " 금리는 조사한 범위(하단~상단)로 월 이자와 원금 상환을 계산한다."
     " 현금을 다 넣는 경우와 대출을 최대로 쓰는 경우를 같이 보인다."
-    " 자격은 사용자의 주거 프로필(무주택, 생애최초, 혼인, 소득, 나이)로 가린다."
+    " 자격은 사용자의 주거 프로필(무주택, 생애최초, 혼인, 소득, 나이, 가구원수, 수급자, 대학생)로 가린다."
     " 프로필은 housing_profile 로 보고 고친다."
     " 결과 글은 고치지 않고 그대로 사용자 답이 되니, 프로필을 고칠 일이 있으면 먼저 끝내고 이 도구는 혼자 부른다."
     " '현금 1억 5천, 월 200만원으로 맞는 공고' 같은 요청에 쓴다. 금액은 숫자(원)나 사용자가 말한 그대로('1억 5천')."
@@ -171,15 +170,6 @@ def options_from_complex(rows: list[ComplexUnit]) -> list[Option]:
     ]
 
 
-def excluded_by_profile(unit: str, profile: HousingProfile, today: date) -> bool:
-    """주택형 이름의 공급대상이 프로필과 어긋나면 뺀다(미혼의 신혼부부형, 65세 미만의 고령자형)."""
-    # ponytail: 이름의 낱말로만 가른다(수급자, 대학생, 소득 기준은 모른다), 공급대상 자격을 프로필에 넣으면 그때 가른다
-    age = profile.age_on(today)
-    if profile.married is False and "신혼" in unit and "한부모" not in unit:
-        return True
-    return age is not None and age < ELDERLY_AGE and "고령자" in unit
-
-
 def plan_for(notice: Notice, options: list[Option], terms: Terms, rules: Rules, profile: HousingProfile,
              today: date) -> Plan | None:
     """주택형마다 경우를 펼쳐, 맞는 경우의 월 부담(금리 상단)이 가장 작은 주택형.
@@ -194,7 +184,7 @@ def plan_for(notice: Notice, options: list[Option], terms: Terms, rules: Rules, 
     best: Plan | None = None
     fitting = 0
     for option in options:
-        if excluded_by_profile(option.unit, profile, today):
+        if unit_mismatch(rules, option.unit, profile, today) is not None:
             continue
         if terms.budget is not None and option.price > terms.budget:
             continue
@@ -363,7 +353,7 @@ def render(
     if unsure:
         lines.append(
             "프로필에 없어 자격을 확정하지 못한 상품(계산은 했다): " + "; ".join(unsure)
-            + ". 무주택, 생애최초, 혼인, 연소득, 나이를 알려 주면 자격을 가려 다시 계산한다"
+            + ". 무주택, 생애최초, 혼인, 연소득, 나이, 가구원수를 알려 주면 자격을 가려 다시 계산한다"
         )
     rate = f"사용자가 준 연 {terms.rate:g}%" if terms.rate is not None else "상품별 조사 범위(하단~상단)"
     lines.append(
@@ -414,8 +404,8 @@ def render(
         lines.append("\n출처: " + "; ".join(f"{p.name} {p.get('source')}" for p in used))
     lines.append(
         "\n이 계산은 정해진 답이 아니라 고를 수 있는 경우의 수다."
-        " 신청 가능성은 1인 가구 기준과 공고 제목으로 본 가늠이라, 주택형 이름의 공급대상(수급자, 청년, 대학생 등)과"
-        " 공고문의 소득, 자산 기준을 신청 전에 확인한다."
+        " 신청 가능성은 프로필, 1인 가구 소득 기준, 공고 제목과 주택형 이름으로 본 가늠이라"
+        " 공고문의 소득, 자산 기준과 공급대상을 신청 전에 확인한다."
         " 매입임대와 전세임대는 집마다 금액이 달라 공고문 확인 목록에 남고, SH 공고는 금액이 첨부에만 있어 빠진다."
     )
     return "\n".join(lines)

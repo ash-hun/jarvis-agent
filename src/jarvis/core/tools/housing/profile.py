@@ -1,4 +1,4 @@
-"""[core] 대출 자격을 가르는 사용자의 주거 조건(무주택, 생애최초, 혼인, 소득, 나이)과 그 변경 규칙."""
+"""[core] 대출과 공공주택 신청 자격을 가르는 사용자의 주거 조건과 그 변경 규칙."""
 
 import re
 import hashlib
@@ -23,12 +23,16 @@ ALIASES = {
     "assets": "assets", "순자산": "assets", "자산": "assets",
     "birth_date": "birth_date", "생년월일": "birth_date",
     "age": "age", "나이": "age", "만나이": "age",
+    "household": "household", "가구원": "household", "가구원수": "household", "세대원수": "household",
+    "welfare": "welfare", "수급자": "welfare", "기초수급": "welfare", "기초생활수급": "welfare",
+    "student": "student", "대학생": "student",
 }
 _YES = {"true", "yes", "y", "1", "예", "네", "응", "어", "o", "맞음", "있음", "가능", "미사용", "무주택", "기혼",
-        "결혼"}
-_NO = {"false", "no", "n", "0", "아니오", "아니", "x", "없음", "불가", "사용", "유주택", "미혼"}
+        "결혼", "수급", "재학", "휴학"}
+_NO = {"false", "no", "n", "0", "아니오", "아니", "x", "없음", "불가", "사용", "유주택", "미혼", "비수급", "졸업"}
 _UNSET = {"", "none", "null", "모름", "삭제", "비움"}
-KNOWN = "무주택, 생애최초, 혼인, 연소득, 순자산, 생년월일, 나이"
+KNOWN = "무주택, 생애최초, 혼인, 연소득, 순자산, 생년월일, 나이, 가구원수, 수급자, 대학생"
+FLAGS = ("homeless", "first_home", "married", "welfare", "student")
 
 
 @dataclass(frozen=True)
@@ -43,6 +47,9 @@ class HousingProfile:
     birth_date: date | None = None
     age: int | None = None  # 생년월일이 없을 때의 만 나이
     age_as_of: date | None = None  # age 를 받은 날. 해가 지나면 그만큼 더한다
+    household: int | None = None  # 본인을 넣은 세대 구성원 수. 공공임대 소득 기준이 이것으로 달라진다
+    welfare: bool | None = None  # 기초생활 수급자(생계, 의료, 주거급여 중 하나)
+    student: bool | None = None  # 대학생(재학, 휴학 포함). 행복주택 대학생 계층
 
     def is_empty(self) -> bool:
         return all(getattr(self, f.name) is None for f in fields(self))
@@ -74,6 +81,9 @@ class HousingProfile:
             f"연소득: {'모름' if self.income is None else f'{self.income:,}원'}",
             f"순자산: {'모름' if self.assets is None else f'{self.assets:,}원'}",
             f"나이: {age_text}",
+            f"가구원수: {'모름' if self.household is None else f'{self.household}명'}",
+            f"수급자: {yn(self.welfare, '예', '아니오')}",
+            f"대학생: {yn(self.student, '예', '아니오')}",
         ]
 
 
@@ -94,6 +104,13 @@ def _flag(raw: str) -> bool:
     if word in _NO:
         return False
     raise ValueError(f"예/아니오로 읽을 수 없다: {raw}")
+
+
+def _count(raw: str) -> int:
+    match = re.fullmatch(r"(\d{1,2})\s*(?:명|인|인가구|인 가구)?", raw.strip())
+    if match is None or int(match.group(1)) < 1:
+        raise ValueError(f"가구원수를 읽을 수 없다: {raw}")
+    return int(match.group(1))
 
 
 def _age(raw: str) -> int:
@@ -123,8 +140,10 @@ def apply_updates(profile: HousingProfile, updates: dict[str, Any], today: date)
             if name == "age":
                 changes["age_as_of"] = None
             continue
-        if name in ("homeless", "first_home", "married"):
+        if name in FLAGS:
             changes[name] = raw if isinstance(raw, bool) else _flag(text)
+        elif name == "household":
+            changes[name] = raw if isinstance(raw, int) else _count(text)
         elif name in ("income", "assets"):
             changes[name] = parse_won(raw)
         elif name == "birth_date":

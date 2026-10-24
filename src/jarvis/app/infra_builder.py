@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from jarvis.core.plugins.runner import PluginRunner
     from jarvis.core.tools.registry import ToolRegistry
     from jarvis.model_layer.embeddings import Embedder
+    from jarvis.core.notify.webpush import PushStore
     from jarvis.model_layer.types import ModelConfig
     from jarvis.config import JarvisSettings
     from jarvis.core.notify import Notify
@@ -113,7 +114,8 @@ class InfraBuilder:
         ctx.external_inbox = external_inbox
         ctx.external_poller = external_poller
         ctx.memory = memory
-        ctx.notifier = self.build_notifier()
+        ctx.push_store = self.build_push_store()
+        ctx.notifier = self.build_notifier(ctx.push_store)
         ctx.procedure_learner = procedure_learner
         # TUI 모드엔 화면 방송이 없다. 외부 채널이 있으면 스케줄 결과가 거기로 간다(web 은 기동 시 fan_out 으로 덮는다)
         if scheduler is not None and ctx.notifier is not None:
@@ -445,8 +447,21 @@ class InfraBuilder:
             return base
         return AnyTrigger([base, external_trigger])
 
-    def build_notifier(self) -> "Notify | None":
-        """채널 설정이 하나도 없으면 None(기존 동작 그대로). 둘 다 있으면 둘 다 보낸다."""
+    def build_push_store(self) -> "PushStore | None":
+        """앱 Web Push 구독 저장소. VAPID 키 둘과 subject, Postgres 세션 저장소가 다 있을 때만."""
+        cfg, session = self._settings.notify, self._settings.session
+        keys = cfg.webpush_vapid_public_key and cfg.webpush_vapid_private_key is not None and cfg.webpush_subject
+        if not keys:
+            return None
+        if session.persistence_backend != "postgres" or not session.postgres_dsn:
+            logger.info("[Notify] web push off: 구독을 둘 Postgres 세션 저장소가 없다")
+            return None
+        from jarvis.core.notify.webpush import PushStore
+
+        return PushStore(session.postgres_dsn)
+
+    def build_notifier(self, push_store: "PushStore | None" = None) -> "Notify | None":
+        """채널 설정이 하나도 없으면 None(기존 동작 그대로). 여럿이면 모두에 보낸다."""
         cfg = self._settings.notify
         from jarvis.core.notify import KIND_TYPES, discord_notifier, fan_out, only_kinds, slack_notifier, with_agents
 
@@ -465,6 +480,12 @@ class InfraBuilder:
                 types = {KIND_TYPES[k] for k in cfg.discord_voice_kinds if k in KIND_TYPES}
                 channels.append(voice_first(voice, types, text))
             logger.info("[Notify] discord channel enabled" + (" (voice first)" if voice is not None else ""))
+        if push_store is not None and cfg.webpush_vapid_private_key is not None:
+            from jarvis.core.notify.webpush import pywebpush_sender, webpush_notifier
+
+            send = pywebpush_sender(cfg.webpush_vapid_private_key.get_secret_value(), cfg.webpush_subject)
+            channels.append(webpush_notifier(push_store, send))
+            logger.info("[Notify] web push channel enabled")
         if not channels:
             return None
         notify = channels[0] if len(channels) == 1 else fan_out(*channels)

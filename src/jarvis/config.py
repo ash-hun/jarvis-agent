@@ -297,6 +297,11 @@ class NotifyConfig(BaseModel):
     discord_user_id: int | None = None
     # 음성으로 읽는 종류. spoken 은 화면이 이미 소리 내어 읽은 말이라 글로만 보낸다
     discord_voice_kinds: list[str] = Field(default_factory=lambda: ["reminder", "proactive"])
+    # 앱(iOS 홈 화면 웹앱) Web Push. 키 둘과 subject 가 다 있고 세션 저장소가 Postgres 일 때만 켠다.
+    # 키는 `npx web-push generate-vapid-keys` 로 한 번 만든다. 바꾸면 기존 구독이 전부 무효가 된다
+    webpush_vapid_public_key: str = ""
+    webpush_vapid_private_key: SecretStr | None = None
+    webpush_subject: str = ""  # mailto:<주소>. Apple 푸시 서비스가 요구한다
     # 음성 채널에서 읽을 한국어 TTS. 화면의 tts_provider(기본 browser)와 따로 둔다.
     # 영어 문장은 voice 의 english_tts 설정을 따른다
     discord_tts_provider: str = "supertonic"

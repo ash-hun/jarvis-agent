@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from jarvis.core.scheduler.service import SchedulerService
     from jarvis.memory.memory_service import MemoryService
     from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.core.notify.webpush import PushStore
     from jarvis.core.session import AgentSession
     from jarvis.config import JarvisSettings
     from jarvis.core.notify import Notify
@@ -42,6 +43,8 @@ class AppContext:
     memory: "MemoryService | None" = field(default=None)
     # 스케줄 결과와 proactive 발화를 받는 외부 채널(슬랙 등). 설정이 없으면 None
     notifier: "Notify | None" = field(default=None)
+    # 앱 Web Push 구독 저장소. VAPID 키와 Postgres 가 있을 때만 있다
+    push_store: "PushStore | None" = field(default=None)
     # 세션 종료 때 다단계 작업을 절차 초안으로 남긴다. 꺼져 있으면 None
     procedure_learner: "ProcedureLearner | None" = field(default=None)
     # 정의의 tools 에 이름을 적은 에이전트만 쓰는 도구(청약 공고 조회 등). 앱 레지스트리에 없어 JARVIS 에게는 안 보인다

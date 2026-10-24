@@ -12,6 +12,7 @@ from jarvis.ui.web.router.session_router import build_session_router
 from jarvis.ui.web.router.agenda_router import build_agenda_router
 from jarvis.ui.web.router.agent_router import build_agent_router
 from jarvis.ui.web.router.voice_router import build_voice_router
+from jarvis.ui.web.router.push_router import build_push_router
 from jarvis.ui.web.router.tool_router import build_tool_router
 from jarvis.ui.web.router.ws_router import build_ws_router
 from jarvis.ui.web.web_lifecycle import WebLifecycle
@@ -49,6 +50,7 @@ def create_app(assembly: "AppAssembly", initial_session_id: str = "default") -> 
     app.include_router(build_session_router(state))
     app.include_router(build_tool_router(state))
     app.include_router(build_agenda_router(state))
+    app.include_router(build_push_router(state))
     app.include_router(build_ws_router(state))
     app.include_router(build_brand_router(state))
     app.include_router(build_voice_router(state))

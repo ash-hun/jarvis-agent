@@ -3,7 +3,7 @@
 | 항목 | 값 |
 |---|---|
 | Last Updated | 2026-10-18 |
-| Base URL | `http://localhost:7777` (Docker `web` 프로파일, nginx 가 `/api/`, `/ws`, `/brand.js`, `/manifest.json` 을 백엔드로 프록시) |
+| Base URL | `http://localhost:7777` (Docker `web` 프로파일, nginx 가 `/api/`, `/ws`, `/brand.js`, `/manifest.json` 을 백엔드로 프록시하고 `/m/` 에서 모바일 앱 빌드 결과를 서빙. 포트는 127.0.0.1 에만 열리고 밖에서는 `tailscale serve` 로 들어온다) |
 | 데이터 포맷 | JSON (UTF-8) |
 | 인증 | 기본 없음. `JARVIS_SECURITY__API_KEYS` 가 비어 있지 않으면 `/api/*` 와 `/ws` 가 키를 요구한다 |
 
@@ -20,6 +20,9 @@
    - [GET /api/agents](#get-apiagents)
    - [GET /api/agenda](#get-apiagenda)
    - [POST /api/openloops/{loop_id}](#post-apiopenloopsloop_id)
+   - [GET /api/push/vapid](#get-apipushvapid)
+   - [PUT /api/push/subscriptions](#put-apipushsubscriptions)
+   - [DELETE /api/push/subscriptions](#delete-apipushsubscriptions)
    - [POST /api/schedules/{name}](#post-apischedulesname)
    - [GET /api/sessions](#get-apisessions)
    - [POST /api/sessions](#post-apisessions)
@@ -252,6 +255,187 @@ $ curl -s -X POST -H 'Content-Type: application/json' -d '{"status":"done"}' htt
 **재호출**: 멱등. 같은 id 에 같은 status 를 다시 보내도 결과가 같고 `updated_at` 만 갱신된다. 이미 `done` 인 것을 `dismissed` 로 바꾸는 것도 허용된다(마지막 호출이 이긴다). `open` 도 같다. 이미 열린 것을 다시 열어도 그대로 열려 있다. 되살린 약속은 기한과 생성 시각을 그대로 두므로 만료 규칙도 원래 기한 기준이다.
 
 jsonl 저장소는 append-only 라 호출마다 한 줄이 붙고 읽을 때 마지막 줄이 이긴다.
+
+---
+
+### GET /api/push/vapid
+
+모바일 앱(iOS 홈 화면 웹앱)이 Web Push 를 구독할 때 쓰는 VAPID 공개키.
+
+#### Endpoint
+
+```
+GET /api/push/vapid
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | 설정 시 필요 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `public_key` | string | 아니오 | base64url(패딩 없음), 65바이트 P-256 비압축 공개키 |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | `{"public_key"}` |
+| `404` | 푸시가 꺼져 있음. `JARVIS_NOTIFY__WEBPUSH_VAPID_PUBLIC_KEY`, `..._PRIVATE_KEY`, `..._SUBJECT` 중 하나가 없거나 세션 저장소가 Postgres 가 아니다 | `{"error": "push disabled"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s http://localhost:7777/api/push/vapid
+{"public_key":"BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U"}
+```
+
+#### 특이사항
+
+**재호출**: 상태를 바꾸지 않는다. 키를 바꾸면 기존 구독이 전부 무효가 된다.
+
+---
+
+### PUT /api/push/subscriptions
+
+Web Push 구독을 등록한다. 앱은 "알림 켜기"를 누를 때마다 다시 보낸다.
+
+#### Endpoint
+
+```
+PUT /api/push/subscriptions
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `PUT` |
+| 인증 | 설정 시 필요 |
+| 요청 Content-Type | `application/json` |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | `Content-Type` |
+
+#### Request Body
+
+브라우저 `PushSubscription.toJSON()` 을 그대로 보낸다.
+
+| 필드 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|
+| `endpoint` | string | 예 | 없음 | 푸시 서비스 주소. `https://` 로 시작한다 |
+| `expirationTime` | number \| null | 아니오 | null | 받기만 하고 쓰지 않는다 |
+| `keys.p256dh` | string | 예 | 없음 | 본문 암호화 공개키 |
+| `keys.auth` | string | 예 | 없음 | 본문 암호화 인증 비밀 |
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `ok` | boolean | 아니오 | 항상 `true` |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | `{"ok": true}` |
+| `400` | 본문이 JSON 객체가 아니거나, `endpoint` 가 `https://` 가 아니거나, 키가 비었다 | `{"error": "endpoint must start with https://"}` |
+| `404` | 푸시가 꺼져 있음 | `{"error": "push disabled"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s -X PUT -H 'Content-Type: application/json' -d '{"endpoint":"https://web.push.apple.com/QH...","expirationTime":null,"keys":{"p256dh":"BN...","auth":"k8..."}}' http://localhost:7777/api/push/subscriptions
+{"ok":true}
+```
+
+#### 특이사항
+
+**재호출**: `endpoint` 를 자연 키로 upsert 한다(`push_subscriptions` 테이블의 기본 키). 몇 번 보내도 행은 하나이고 키와 `updated_at` 만 갱신된다. 인증이 켜져 있으면 그 키의 사용자 이름을 `user_id` 로 남긴다.
+
+**발송**: `JARVIS_NOTIFY__KINDS` 의 알림(스케줄 결과, 🔔 등)을 구독 전부에 `{"title", "body", "tag"}` 로 보낸다. `title`, `body` 는 디스코드 알림과 같은 제목과 본문이고 `body` 는 1000자에서 자른다. `tag` 는 알림 id 라 같은 알림이 두 번 가도 iPhone 에는 하나로 보인다. 푸시 서비스가 404, 410 을 주면 그 구독을 지우고, 그 밖의 실패는 로그만 남기고 다시 보내지 않는다.
+
+---
+
+### DELETE /api/push/subscriptions
+
+Web Push 구독을 지운다.
+
+#### Endpoint
+
+```
+DELETE /api/push/subscriptions
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `DELETE` |
+| 인증 | 설정 시 필요 |
+| 요청 Content-Type | `application/json` |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | `Content-Type` |
+
+#### Request Body
+
+| 필드 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|
+| `endpoint` | string | 예 | 없음 | 지울 구독의 endpoint |
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `ok` | boolean | 아니오 | 항상 `true` |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상. 없는 endpoint 도 200 | `{"ok": true}` |
+| `400` | `endpoint` 가 없다 | `{"error": "endpoint is required"}` |
+| `404` | 푸시가 꺼져 있음 | `{"error": "push disabled"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s -X DELETE -H 'Content-Type: application/json' -d '{"endpoint":"https://web.push.apple.com/QH..."}' http://localhost:7777/api/push/subscriptions
+{"ok":true}
+```
+
+#### 특이사항
+
+**재호출**: 멱등. 이미 지운 구독을 다시 지워도 200 이다.
 
 ---
 

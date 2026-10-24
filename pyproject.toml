@@ -100,7 +100,8 @@ mypy_path = "src"
 packages = ["jarvis"]
 
 [[tool.mypy.overrides]]
-module = ["google.*", "mcp.*", "piper", "piper.*", "openwakeword", "openwakeword.*"]
+# 음성 extra(piper, wake, supertonic)를 깔지 않은 환경에서도 같은 결과가 나오게 선택 의존성은 없는 것으로 본다
+module = ["google.*", "mcp.*", "piper", "piper.*", "openwakeword", "openwakeword.*", "supertonic", "numpy"]
 ignore_missing_imports = true
 
 # 스텁 없이 쓰는 서드파티. 개발 의존성을 늘리지 않으려고 모듈 단위로만 건다

@@ -9,7 +9,6 @@
 ## 화면
 
 - **에어팟에서 승인 되읽기 확인(사용자).** Full-voice 에서 "허용" 뒤 "허용으로 들었습니다." 가 에어팟에서 안 들렸다. #79 로 인식이 닫힌 뒤 0.6초 쉬고, 1.5초 안에 시작하지 않으면 한 번 다시 읽게 했지만 실기기 확인 전이다. Mac 내장 스피커에서는 원래도 들렸다. 안 들리면 브라우저 콘솔의 `[voice] tts start / error / did not start` 줄이 다음 단서다(`voice.js`).
-- **Focus 모드.** Default 와 Full-voice 는 헤더 세그먼트로 들어갔다(`app/mode.js`). Focus 는 🔔 를 세션 단위로 끄려면 ws `set_mode` 와 daemon 게이팅이 필요해 서버와 `docs/api-spec.md` 가 바뀐다. 카드 숨김(AGENDA, ACTIVITY, SYSTEM)은 클라이언트에서 `body[data-mode="focus"]` CSS 로 끝난다. 요구가 정해지면 한다.
 - **오른쪽 여백(사용자 보고).** 헤더와 스테이지가 창보다 좁게 보인 스크린샷. headless 1000~2000px, DPR 1~2 에서 재현 안 됨. Claude 세션에 Chrome 확장이 없어 사용자 브라우저 값을 못 읽었다. HUD 탭 콘솔에 아래를 붙인 결과가 있어야 다음 단계.
   ```js
   ({ innerWidth, clientWidth: document.documentElement.clientWidth, stageRight: document.querySelector('.stage').getBoundingClientRect().right, headerRight: document.querySelector('header').getBoundingClientRect().right, dpr: devicePixelRatio, zoom: Math.round(outerWidth / innerWidth * 100) })

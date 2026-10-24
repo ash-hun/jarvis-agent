@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 from collections.abc import Awaitable, Callable, Coroutine
 
+from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope
 from jarvis.core.scheduler.task import ScheduledTask, task_label
 from jarvis.common.logger import get_logger
-from jarvis.memory.scope import MAIN_AGENT
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
@@ -33,6 +33,8 @@ class TaskAgent:
     model: "ModelConfig"
     system_prompt: str | None
     agent_name: str
+    # 그 에이전트 정의가 고른 도구. None 이면 스케줄러의 레지스트리(main 의 도구)를 쓴다
+    tools: "ToolRegistry | None" = None
 
 
 # 에이전트 id → TaskAgent. 모르는 id 면 None
@@ -222,19 +224,26 @@ class SchedulerService:
         remove_task_file(task, self._schedules_dir)
 
     async def _fire_once(self, task: ScheduledTask, delay_sec: int) -> None:
-        if task.kind == "reminder":
-            await self._deliver(task, task.prompt, delay_sec)
-            return
-        text = await self._execute_task(task)
-        await self._deliver(task, text, delay_sec)
+        await self._deliver(task, await self._produce(task), delay_sec)
 
     async def _run_and_deliver(self, task: ScheduledTask) -> None:
-        text = await self._execute_task(task)
-        await self._deliver(task, text, 0)
+        await self._deliver(task, await self._produce(task), 0)
+
+    async def _produce(self, task: ScheduledTask) -> str | None:
+        """알릴 글. 실패하면 None."""
+        if task.kind == "reminder":
+            return task.prompt
+        if task.kind == "tool":
+            return await self._execute_tool(task)
+        return await self._execute_task(task)
 
     async def _deliver(self, task: ScheduledTask, text: str | None, delay_sec: int) -> None:
         """결과를 notify 로 보낸다. text 가 None 이면 실행 실패."""
         if self._notify is None:
+            return
+        if task.kind == "tool" and text is not None and not text.strip():
+            # 도구가 알릴 것이 없다고 빈 글을 줬다(새 공고 없음 등)
+            logger.info(f"[Scheduler] Tool task '{task.name}' had nothing to report")
             return
         payload = {
             "type": "reminder",
@@ -244,7 +253,7 @@ class SchedulerService:
             "kind": task.kind,
             "agent": task.agent,
             "once": task.run_at is not None,
-            "title": task.prompt[:160],
+            "title": (task.prompt or task_label(task))[:160],
             "text": text if text is not None else "실행에 실패했습니다.",
             "error": text is None,
             "delayed_sec": delay_sec,
@@ -270,16 +279,11 @@ class SchedulerService:
 
         logger.info(f"[Scheduler] Executing task '{task.name}'")
 
-        # Filtered ToolRegistry — only tools_allowed (empty = all tools)
-        if task.tools_allowed:
-            from jarvis.core.tools.registry import ToolRegistry
-            filtered = ToolRegistry()
-            for name in task.tools_allowed:
-                tool = self._tool_registry.get(name)
-                if tool:
-                    filtered.register(tool)
-        else:
-            filtered = self._tool_registry
+        resolved = self._resolve(task)
+        if task.agent != MAIN_AGENT and resolved is None:
+            logger.info(f"[Scheduler] Task '{task.name}' failed: unknown agent '{task.agent}'")
+            return None
+        filtered = self._registry_for(task, resolved)
 
         # PermissiveSandbox: auto-approve all (no HITL)
         from jarvis.core.policy.validator import DefaultInputValidator
@@ -292,11 +296,7 @@ class SchedulerService:
         )
 
         model, system_prompt, agent_name = self._model, None, None
-        if task.agent != MAIN_AGENT:
-            resolved = self._agent_resolver(task.agent) if self._agent_resolver is not None else None
-            if resolved is None:
-                logger.info(f"[Scheduler] Task '{task.name}' failed: unknown agent '{task.agent}'")
-                return None
+        if resolved is not None:
             model, system_prompt, agent_name = resolved.model, resolved.system_prompt, resolved.agent_name
 
         session_id = task.session_id or f"sched-{task.name}-{uuid.uuid4().hex[:8]}"
@@ -321,3 +321,52 @@ class SchedulerService:
         except Exception as exc:
             logger.info(f"[Scheduler] Task '{task.name}' failed: {exc}")
             return None
+
+    def _resolve(self, task: ScheduledTask) -> TaskAgent | None:
+        if task.agent == MAIN_AGENT or self._agent_resolver is None:
+            return None
+        return self._agent_resolver(task.agent)
+
+    def _registry_for(self, task: ScheduledTask, resolved: TaskAgent | None) -> "ToolRegistry":
+        """그 에이전트의 도구에서 tools_allowed 만 고른 레지스트리(비어 있으면 전부)."""
+        base = resolved.tools if resolved is not None and resolved.tools is not None else self._tool_registry
+        if not task.tools_allowed:
+            return base
+        from jarvis.core.tools.registry import ToolRegistry
+
+        filtered = ToolRegistry()
+        for name in task.tools_allowed:
+            tool = base.get(name)
+            if tool:
+                filtered.register(tool)
+        return filtered
+
+    async def _execute_tool(self, task: ScheduledTask) -> str | None:
+        """task.tool 을 task.args 로 바로 부른 글. 도구가 없거나 오류면 None."""
+        from jarvis.core.tools.registry import ToolContext, accepts_context
+        from jarvis.model_layer.types import TextContent
+
+        resolved = self._resolve(task)
+        if task.agent != MAIN_AGENT and resolved is None:
+            logger.info(f"[Scheduler] Tool task '{task.name}' failed: unknown agent '{task.agent}'")
+            return None
+        tool = self._registry_for(task, resolved).get(task.tool)
+        if tool is None:
+            logger.info(f"[Scheduler] Tool task '{task.name}' failed: unknown tool '{task.tool}'")
+            return None
+        call_id = f"sched-{task.name}"
+        # 스케줄은 사람이 없는 실행이라 로컬 사용자의 범위로 부른다(대화 세션의 memory_scope 와 같은 기본값)
+        context = ToolContext(scope=MemoryScope(user_id=LOCAL_USER, agent_id=task.agent), session_id=call_id)
+        try:
+            if accepts_context(tool):
+                result = await tool.execute(call_id, dict(task.args), None, context)
+            else:
+                result = await tool.execute(call_id, dict(task.args), None)
+        except Exception as exc:
+            logger.info(f"[Scheduler] Tool task '{task.name}' failed: {exc!r}")
+            return None
+        text = "\n".join(c.text for c in result.content if isinstance(c, TextContent))
+        if result.is_error:
+            logger.info(f"[Scheduler] Tool task '{task.name}' failed: {text[:200]}")
+            return None
+        return text

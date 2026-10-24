@@ -153,6 +153,11 @@ async def test_spoken_is_a_default_kind_and_reads_as_the_agent():
     assert sent[0]["content"] == "**🔊 K.A.R.E.N.**\n공고 세 건 찾았어요" and sent[0]["username"] == "K.A.R.E.N."
 
 
+def test_tool_task_result_reads_like_a_task_result():
+    tool = format_discord({"type": "reminder", "kind": "tool", "label": "새 LH 공고", "text": "새 LH 공고 1건"})
+    assert tool["content"].startswith("**⏱ 새 LH 공고**")
+
+
 def test_deferred_answer_reads_apart_from_a_proactive_message():
     answer = format_discord({"type": "proactive_message", "kind": "answer", "agent_name": "K.A.R.E.N.", "text": "끝"})
     nudge = format_discord({"type": "proactive_message", "kind": "proactive", "agent_name": "K.A.R.E.N.", "text": "?"})

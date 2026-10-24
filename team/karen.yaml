@@ -41,6 +41,7 @@ tools:
   - housing_loan
   - housing_budget
   - housing_profile
+  - housing_watch
   - web_search
   - web_fetch
   - read_file

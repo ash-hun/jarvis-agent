@@ -939,7 +939,7 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `proactive_message` | `session_id`, `text`, `kind`(`filler`/`proactive`/`answer`), `speak`, `message_id` | 먼저 건네는 말. `proactive` 면 피드백 대상. `answer` 는 대기 안내(`filler`) 뒤 뒤로 넘긴 작업이 끝났을 때의 답이고, 답은 스트림으로 이미 왔으므로 화면은 그리지 않는다(외부 알림 채널용). Focus 작업 중인 세션은 `proactive` 를 보내지 않는다(`filler`, `answer` 는 보낸다) |
 | `approval_request` | `id`, `command`, `reason`, `always_pattern` | 도구 실행 승인 요청. 같은 세션의 열린 연결 전부에 보내고, 기다리는 중에 새로 붙은 연결에도 보낸다. 120초 안에 답이 없으면 거부로 처리 |
 | `approval_resolved` | `id`, `timeout?` | 그 요청이 끝났다(어느 연결의 답, 또는 시간 초과). 아직 모달을 띄운 연결은 닫는다. 시간 초과면 `timeout: true` 이고, 에이전트 응답도 `승인 요청에 시간 안에 답이 없어 …` 로 거부(`승인이 거부되어 …`)와 구분된다 |
-| `reminder` | `id`, `name`, `label`, `kind`, `agent`, `once`, `title`, `text`, `error`, `delayed_sec`, `fired_at`, `missed?` | 스케줄 실행 결과. 열린 연결 전부에 방송하고, 없으면 최근 20건을 쌓아 다음 접속 때 `missed: true` 로 보낸다. `label` 은 사람에게 보일 제목이다(사람이 붙인 이름, `/schedule` 이 붙인 이름이면 알림은 `알림`, 작업은 할 일 첫 줄) |
+| `reminder` | `id`, `name`, `label`, `kind`, `agent`, `once`, `title`, `text`, `error`, `delayed_sec`, `fired_at`, `missed?` | 스케줄 실행 결과. 열린 연결 전부에 방송하고, 없으면 최근 20건을 쌓아 다음 접속 때 `missed: true` 로 보낸다. `label` 은 사람에게 보일 제목이다(사람이 붙인 이름, `/schedule` 이 붙인 이름이면 알림은 `알림`, 작업은 할 일 첫 줄). `kind: tool` 작업은 도구가 빈 글을 주면 보내지 않는다(새 공고가 없는 날 등) |
 | `voice_tts_audio` | `data`(base64), `mime`, `text`, `id` | 합성 결과. `data` 가 비면 브라우저 TTS 로(`text` 는 기호를 지운 문장). `id` 는 요청의 `id`(없었으면 null). 화면은 멈춘 읽기의 결과를 이 값으로 버린다 |
 | `voice_stt_result` | `text`, `error?` | 전사 결과 |
 | `voice_wake` | `score` | 바이너리 프레임의 오디오에서 "Jarvis" 를 들었다. 점수가 `JARVIS_VOICE__WAKE_THRESHOLD`(0.5) 이상인 첫 프레임에서 한 번 보내고, 그 뒤 1초(13프레임)는 다시 보내지 않는다 |
@@ -1002,7 +1002,7 @@ Focus 동안 매 턴 앞에서 분석 sub-agent 가, 뒤에서 기록과 진행 
 | `description` | string | 아니오 | 설명. 자동 생성일 수 있다 |
 | `prompt` | string | 아니오 | 실행 프롬프트 앞 160자 |
 | `schedule` | string | 아니오 | cron 식 |
-| `kind` | `"reminder" \| "task"` | 아니오 | 알림인지 작업인지 |
+| `kind` | `"reminder" \| "task" \| "tool"` | 아니오 | 알림, 에이전트가 도는 작업, 도구를 바로 부르는 작업 |
 | `agent` | string | 아니오 | 작업을 실행하는 에이전트 id |
 | `once` | boolean | 아니오 | 한 번만 도는 작업 |
 | `enabled` | boolean | 아니오 | 켜짐 여부 |

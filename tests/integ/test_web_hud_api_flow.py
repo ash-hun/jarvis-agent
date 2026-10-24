@@ -545,3 +545,47 @@ def test_branch_copies_history_and_messages_are_text_only(monkeypatch, tmp_path)
         branch_id = body["session_id"]
         assert branch_id in c.get("/api/sessions").json()["sessions"]
         assert c.get(f"/api/sessions/{branch_id}/messages").json() == {"messages": expected}
+
+
+def test_push_api_upserts_by_endpoint_and_is_off_without_a_store(monkeypatch, tmp_path):
+    """구독은 endpoint 가 자연 키다. 같은 본문을 두 번 보내도 하나, 없는 endpoint 해제도 200."""
+    from fastapi.testclient import TestClient
+
+    from jarvis.app.infra_builder import build_app
+    from jarvis.ui.web.server import create_app
+    from jarvis.config import JarvisSettings
+
+    monkeypatch.setenv("JARVIS_PROACTIVE__DAEMON_ENABLED", "false")
+    monkeypatch.setenv("JARVIS_SCHEDULER__ENABLED", "false")
+    monkeypatch.setenv("JARVIS_MEMORY__BACKEND", "in_memory")
+    monkeypatch.setenv("JARVIS_SESSION__PERSISTENCE_BACKEND", "jsonl")
+    monkeypatch.setenv("JARVIS_SESSION__SESSIONS_DIR", str(tmp_path / "sessions"))
+    assembly = build_app(JarvisSettings())
+    with TestClient(create_app(assembly, initial_session_id="default")) as client:
+        assert client.get("/api/push/vapid").status_code == 404
+
+    class Store:
+        def __init__(self):
+            self.rows: dict[str, tuple] = {}
+
+        async def upsert(self, sub, user_id):
+            self.rows[sub.endpoint] = (sub.p256dh, sub.auth, user_id)
+
+        async def delete(self, endpoint):
+            self.rows.pop(endpoint, None)
+
+    monkeypatch.setenv("JARVIS_NOTIFY__WEBPUSH_VAPID_PUBLIC_KEY", "BPUBLIC")
+    assembly = build_app(JarvisSettings())
+    store = Store()
+    assembly.ctx.push_store = store
+    body = {"endpoint": "https://web.push.apple.com/x", "expirationTime": None, "keys": {"p256dh": "p", "auth": "a"}}
+    with TestClient(create_app(assembly, initial_session_id="default")) as client:
+        assert client.get("/api/push/vapid").json() == {"public_key": "BPUBLIC"}
+        for _ in range(2):
+            assert client.put("/api/push/subscriptions", json=body).json() == {"ok": True}
+        assert len(store.rows) == 1
+        assert client.put("/api/push/subscriptions", json={**body, "endpoint": "http://x"}).status_code == 400
+        unsubscribe = "/api/push/subscriptions"
+        assert client.request("DELETE", unsubscribe, json={"endpoint": "https://none"}).status_code == 200
+        assert client.request("DELETE", unsubscribe, json={"endpoint": body["endpoint"]}).json() == {"ok": True}
+        assert store.rows == {}

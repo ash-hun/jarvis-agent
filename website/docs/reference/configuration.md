@@ -151,6 +151,9 @@ JARVIS_NOTIFY__DISCORD_GUILD_ID=
 JARVIS_NOTIFY__DISCORD_USER_ID=
 JARVIS_NOTIFY__DISCORD_VOICE_KINDS=["reminder","proactive"]
 JARVIS_NOTIFY__DISCORD_TTS_PROVIDER=supertonic
+JARVIS_NOTIFY__WEBPUSH_VAPID_PUBLIC_KEY=    # 모바일 앱 Web Push. 셋 다 있고 세션 저장소가 Postgres 일 때만
+JARVIS_NOTIFY__WEBPUSH_VAPID_PRIVATE_KEY=
+JARVIS_NOTIFY__WEBPUSH_SUBJECT=             # mailto:<주소>
 
 JARVIS_PLUGIN__TOOLS_DIR=~/.jarvis/tools
 JARVIS_PLUGIN__SKILLS_DIR=./skills          # .env.example 값. 코드 기본은 ~/.jarvis/skills

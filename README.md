@@ -223,6 +223,15 @@ JARVIS_NOTIFY__DISCORD_USER_ID=123456789012345678        # 내 사용자 id
 JARVIS_NOTIFY__DISCORD_VOICE_KINDS=["reminder","proactive"]
 ```
 
+모바일 앱(jarvis_agent_app)은 같은 출처의 `/m/` 에서 서빙되는 홈 화면 웹앱이고, 앱이 꺼져 있어도 Web Push 로 알림을 받는다. 앱이 `PUT /api/push/subscriptions` 로 구독하면 위 알림 종류가 구독 전부에 간다. 구독은 Postgres(`push_subscriptions`)에 두므로 jsonl 세션 저장소에서는 꺼진다. 앱 빌드 결과는 `JARVIS_APP_DIST`(기본 `../jarvis_agent_app/dist`)를 nginx 가 마운트한다.
+
+```bash
+npx web-push generate-vapid-keys                          # 한 번만. 바꾸면 기존 구독이 무효
+JARVIS_NOTIFY__WEBPUSH_VAPID_PUBLIC_KEY=B...
+JARVIS_NOTIFY__WEBPUSH_VAPID_PRIVATE_KEY=...
+JARVIS_NOTIFY__WEBPUSH_SUBJECT=mailto:me@example.com
+```
+
 > 슬랙, 디스코드 webhook 은 중복 제거 키가 없어 재시도하지 않는다(실패는 로그). 자체 앱으로 바꿀 때는 `core/notify` 에 채널 하나를 더하면 된다.
 
 ### Web HUD 화면
@@ -618,6 +627,9 @@ JARVIS_NOTIFY__DISCORD_GUILD_ID=
 JARVIS_NOTIFY__DISCORD_USER_ID=
 JARVIS_NOTIFY__DISCORD_VOICE_KINDS=["reminder","proactive"]
 JARVIS_NOTIFY__DISCORD_TTS_PROVIDER=supertonic
+JARVIS_NOTIFY__WEBPUSH_VAPID_PUBLIC_KEY=      # 앱(iOS 홈 화면 웹앱) Web Push. npx web-push generate-vapid-keys 로 한 번 만든다
+JARVIS_NOTIFY__WEBPUSH_VAPID_PRIVATE_KEY=     # 키를 바꾸면 기존 구독이 전부 무효
+JARVIS_NOTIFY__WEBPUSH_SUBJECT=               # mailto:<주소>. 셋 다 있고 세션 저장소가 Postgres 일 때만 켠다
 
 # ── 플러그인 ─────────────────────────────────────────────────────────────────
 JARVIS_PLUGIN__TOOLS_DIR=~/.jarvis/tools

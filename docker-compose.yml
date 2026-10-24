@@ -123,7 +123,8 @@ services:
   jarvis-frontend:
     image: nginx:alpine
     ports:
-      - "7777:80"
+      # 루프백에만 연다. 같은 Wi-Fi 의 기기도 키만 맞추면 들어오던 것을 막고, 집 밖에서는 tailscale serve 로만 들어온다
+      - "127.0.0.1:7777:80"
     volumes:
       - ./src/jarvis/ui/web/static:/usr/share/nginx/html:ro
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro

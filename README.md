@@ -52,6 +52,8 @@ docker compose --profile web down
 | `app` | jarvis TUI + postgres | 터미널 |
 | `web` | nginx + jarvis-backend + postgres | http://localhost:7777 |
 
+7777 은 루프백(127.0.0.1)에만 열린다. 같은 네트워크의 다른 기기나 집 밖에서는 `tailscale serve --bg 7777` 로 들어온다. 공개 포트(`tailscale funnel`)는 쓰지 않는다. 에이전트가 `bash`, `write_file` 도구를 갖고 있어서다.
+
 </details>
 
 ---

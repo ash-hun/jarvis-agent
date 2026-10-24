@@ -29,8 +29,9 @@ def housing_tools(
     """
     lh = LhNoticeTool(fetch, today)
     budget = HousingBudgetTool(lh, fetch, today, fetch_file, read_pdf, profiles)
-    watch = HousingWatchTool(lh, SeenStore(seen_dir), today, profiles)
-    tools: list[JarvisTool] = [lh, ShNoticeTool(fetch), HousingLoanTool(lh.price_of), budget, watch]
+    sh = ShNoticeTool(fetch)
+    watch = HousingWatchTool(lh, SeenStore(seen_dir), today, profiles, sh=sh)
+    tools: list[JarvisTool] = [lh, sh, HousingLoanTool(lh.price_of), budget, watch]
     if profiles is not None:
         tools.append(HousingProfileTool(profiles, today))
     return tools

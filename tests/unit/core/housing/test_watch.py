@@ -52,13 +52,13 @@ def test_first_run_reports_what_is_open_then_only_new_notices_come_once(tmp_path
 
     # 처음에는 지금 공고중인 것 중 가능성이 있는 것을 전부 알린다
     first = _run(tool, {"regions": "강원", "quiet": True})
-    assert "지금 공고중인 LH 공고 중 신청 가능성이 있는 것 1건" in first and "태백철암1" in first
+    assert "지금 공고중인 공고 중 신청 가능성이 있는 것 1건" in first and "태백철암1" in first
     assert _run(tool, {"regions": "강원", "quiet": True}) == ""
 
     # 새 공고 둘. 미혼에게 신혼희망은 가능성이 낮아 알리지 않는다
     board.notices = [RENTAL, LATER, NEWLYWED]
     text = _run(tool, {"regions": "강원", "quiet": True})
-    assert "새 LH 공고 1건" in text and "창원시 행복주택" in text and "광주선운2" not in text
+    assert "새 공고 1건" in text and "창원시 행복주택" in text and "광주선운2" not in text
     # 링크는 앞 글과 구분자로 떨어져 있다(디스코드가 목록 안 줄바꿈을 지운다)
     assert " | https://apply.lh.or.kr/" in text
     # 다시 불러도 같은 공고는 오지 않는다
@@ -80,3 +80,56 @@ def test_unknown_region_is_an_error(tmp_path):
     tool = HousingWatchTool(Board([]), SeenStore(str(tmp_path)), lambda: TODAY)
     result = asyncio.run(tool.execute("t", {"regions": "아틀란티스"}))
     assert result.is_error and "모르는 지역" in result.content[0].text
+
+
+class ShBoard:
+    """housing_watch 가 쓰는 latest 만 흉내 낸다. 종류마다 최신 글을 준다."""
+
+    def __init__(self, posts: dict, fail: bool = False) -> None:
+        self.posts = posts
+        self.fail = fail
+        self.asked: list[str] = []
+
+    async def latest(self, category):
+        from jarvis.core.tools.housing.fetch import FetchError
+
+        self.asked.append(category)
+        if self.fail:
+            raise FetchError("SH 점검")
+        return self.posts.get(category, [])
+
+
+def _post(seq: str, title: str, status: str = "모집/접수"):
+    from jarvis.core.tools.housing.sh_notice import Post
+
+    return Post(seq, title, "주거복지처", "2026-10-20", "120", status)
+
+
+def test_seoul_watch_also_reads_sh_rental_and_sale_boards(tmp_path):
+    sh = ShBoard({
+        "임대": [
+            _post("301", "2026년 2차 청년매입임대주택 입주자 모집공고"),
+            _post("300", "1차 결과 발표", "당첨/발표"),
+        ],
+        "분양": [_post("401", "고덕강일 신혼희망타운 입주자 모집공고")],
+    })
+    single = HousingProfile(married=False, income=36_000_000)
+    tool = HousingWatchTool(Board([]), SeenStore(str(tmp_path)), lambda: TODAY, Profiles(single), sh=sh)
+
+    first = _run(tool, {"regions": "서울"})
+    # 발표 글은 모집이 아니라 빼고, 미혼에게 신혼희망은 가능성이 낮아 뺀다
+    assert "[SH] 2026년 2차 청년매입임대주택" in first and "결과 발표" not in first and "고덕강일" not in first
+    assert "i-sh.co.kr" in first and "seq=301" in first
+    assert _run(tool, {"regions": "서울", "quiet": True}) == ""
+
+    sh.posts["임대"].insert(0, _post("302", "행복주택 예비입주자 모집공고"))
+    assert "새 공고 1건" in _run(tool, {"regions": "서울", "quiet": True})
+
+
+def test_sh_is_only_for_seoul_and_its_failure_keeps_the_lh_report(tmp_path):
+    sh = ShBoard({}, fail=True)
+    tool = HousingWatchTool(Board([RENTAL]), SeenStore(str(tmp_path)), lambda: TODAY, sh=sh)
+    _run(tool, {"regions": "강원"})
+    assert sh.asked == []
+    text = _run(tool, {"regions": "전국"})
+    assert "태백철암1" in text and "SH 조회 실패: SH 점검" in text

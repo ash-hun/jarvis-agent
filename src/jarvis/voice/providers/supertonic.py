@@ -24,7 +24,7 @@ class SupertonicTTSProvider(TTSProvider):
 
     def __init__(self, model_name: str = "Supertone/supertonic-3") -> None:
         try:
-            import supertonic  # type: ignore[import-untyped]  # 스텁 없는 선택 의존성
+            import supertonic
         except ImportError as exc:
             raise ImportError(
                 "supertonic이 설치되지 않았습니다. `pip install supertonic` 으로 설치하세요."

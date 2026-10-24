@@ -343,28 +343,22 @@ class SchedulerService:
 
     async def _execute_tool(self, task: ScheduledTask) -> str | None:
         """task.tool 을 task.args 로 바로 부른 글. 도구가 없거나 오류면 None."""
-        from jarvis.core.tools.registry import ToolContext, accepts_context
+        from jarvis.core.tools.registry import ToolContext
         from jarvis.model_layer.types import TextContent
 
         resolved = self._resolve(task)
         if task.agent != MAIN_AGENT and resolved is None:
             logger.info(f"[Scheduler] Tool task '{task.name}' failed: unknown agent '{task.agent}'")
             return None
-        tool = self._registry_for(task, resolved).get(task.tool)
-        if tool is None:
+        registry = self._registry_for(task, resolved)
+        if registry.get(task.tool) is None:
             logger.info(f"[Scheduler] Tool task '{task.name}' failed: unknown tool '{task.tool}'")
             return None
         call_id = f"sched-{task.name}"
         # 스케줄은 사람이 없는 실행이라 로컬 사용자의 범위로 부른다(대화 세션의 memory_scope 와 같은 기본값)
         context = ToolContext(scope=MemoryScope(user_id=LOCAL_USER, agent_id=task.agent), session_id=call_id)
-        try:
-            if accepts_context(tool):
-                result = await tool.execute(call_id, dict(task.args), None, context)
-            else:
-                result = await tool.execute(call_id, dict(task.args), None)
-        except Exception as exc:
-            logger.info(f"[Scheduler] Tool task '{task.name}' failed: {exc!r}")
-            return None
+        # 도구의 예외는 레지스트리가 오류 결과로 바꿔 준다
+        result = await registry.execute(call_id, task.tool, dict(task.args), None, context)
         text = "\n".join(c.text for c in result.content if isinstance(c, TextContent))
         if result.is_error:
             logger.info(f"[Scheduler] Tool task '{task.name}' failed: {text[:200]}")

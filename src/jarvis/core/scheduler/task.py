@@ -1,8 +1,8 @@
 """[core] 스케줄된 작업 하나의 정의(YAML 또는 /schedule 명령으로 생성)."""
 
 from pathlib import Path
-from typing import Literal
 from datetime import datetime
+from typing import Any, Literal
 from pydantic import BaseModel, Field, PrivateAttr
 
 from jarvis.memory.scope import MAIN_AGENT
@@ -28,7 +28,10 @@ class ScheduledTask(BaseModel):
     run_at: datetime | None = None  # 설정되면 cron 대신 이 시각에 한 번 실행하고 사라진다
     # reminder: 정한 시각에 prompt 문구를 그대로 알린다(LLM 호출 없음)
     # task: prompt 를 에이전트가 실행하고 그 답을 알린다
-    kind: Literal["reminder", "task"] = "task"
+    # tool: tool 을 args 로 바로 부르고 그 글을 알린다(LLM 호출 없음). 글이 비면 알리지 않는다
+    kind: Literal["reminder", "task", "tool"] = "task"
+    tool: str = ""
+    args: dict[str, Any] = Field(default_factory=dict)
     # 작업을 실행할 최상위 에이전트 id. 그 에이전트의 모델과 시스템 프롬프트, 기억 범위로 돈다
     agent: str = MAIN_AGENT
 
@@ -43,4 +46,6 @@ def task_label(task: ScheduledTask) -> str:
         return task.name
     if task.kind == "reminder":
         return REMINDER_LABEL
+    if task.kind == "tool":
+        return task.description or task.tool
     return task.prompt.strip().splitlines()[0][:80] if task.prompt.strip() else REMINDER_LABEL

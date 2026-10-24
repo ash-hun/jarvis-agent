@@ -51,7 +51,7 @@ function renderAgenda({ schedules = [], open_loops = [] }) {
       const u = new Date(t.run_until);
       when += ` · ~${u.getMonth() + 1}/${u.getDate()} ${pad(u.getHours())}:${pad(u.getMinutes())}`;
     }
-    if (t.once) when += ` · 한 번 · ${t.kind === 'task' ? '작업' : '알림'}`;
+    if (t.once) when += ` · 한 번 · ${t.kind === 'reminder' ? '알림' : '작업'}`;
     // /schedule 로 만든 작업의 description 은 자동 문구라, 사용자가 쓴 프롬프트를 보여준다
     const fromSlash = t.name.startsWith('slash-') || t.name.startsWith('once-');
     const label = fromSlash ? t.prompt : (t.description || t.prompt || t.name);
@@ -135,15 +135,16 @@ function noticeSuffix(n) {
 export function showNotice(n) {
   const suffix = noticeSuffix(n);
   const text = (n.text || '').trim();
-  // 작업이면 무엇을 실행한 결과인지 제목을 붙인다
-  const header = n.kind === 'task' ? `<div class="notice-title">⏱ ${escapeHtml(n.title || '')}${escapeHtml(suffix)}</div>` : '';
-  const body = n.kind === 'task'
+  // 작업(에이전트가 돈 task, 도구를 바로 부른 tool)이면 무엇을 실행한 결과인지 제목을 붙인다
+  const result = n.kind === 'task' || n.kind === 'tool';
+  const header = result ? `<div class="notice-title">⏱ ${escapeHtml(n.title || '')}${escapeHtml(suffix)}</div>` : '';
+  const body = result
     ? header + renderMarkdown(text)
     : `${escapeHtml(text)}${suffix ? `<span class="thought-meta">${escapeHtml(suffix)}</span>` : ''}`;
   const div = appendMsg('🔔', n.error ? 'err' : 'proactive', body);
   attachCopyBtns(div);
 
-  logActivity(`🔔 ${n.kind === 'task' ? n.title : text}${suffix}`, n.error ? 'err' : 'proactive');
+  logActivity(`🔔 ${result ? n.title : text}${suffix}`, n.error ? 'err' : 'proactive');
   showLive(lastLine(text) || n.title || '', CAPTION_HOLD_MS);
 
   if ('Notification' in window && Notification.permission === 'granted' &&

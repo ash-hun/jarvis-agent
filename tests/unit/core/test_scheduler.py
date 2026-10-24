@@ -572,3 +572,57 @@ class TestSchedulerOnceFiring:
         remove_task_file(task, str(tmp_path))
         items = yaml.safe_load(path.read_text())
         assert path.exists() and items[0]["enabled"] is False and "enabled" not in items[1]
+
+
+class TestToolTask:
+    """kind: tool 은 LLM 없이 도구를 바로 부르고, 빈 글이면 알리지 않는다."""
+
+    def _service(self, tool):
+        from jarvis.core.scheduler.service import SchedulerService, TaskAgent
+        from jarvis.core.tools.registry import ToolRegistry
+
+        agent_tools = ToolRegistry()
+        agent_tools.register(tool)
+        svc = SchedulerService(tasks=[], session_repo=MagicMock(), tool_registry=ToolRegistry(), model=MagicMock())
+        svc.set_agent_resolver(lambda a: TaskAgent(MagicMock(), None, "karen", agent_tools) if a == "karen" else None)
+        sent: list[dict] = []
+
+        async def notify(payload):
+            sent.append(payload)
+
+        svc.set_notifier(notify)
+        return svc, sent
+
+    def _tool(self, texts: list[str], error: bool = False):
+        from jarvis.model_layer.types import TextContent, ToolResultMessage
+        from jarvis.core.tools.registry import JarvisTool
+
+        class Echo(JarvisTool):
+            name = "housing_watch"
+            description = "x"
+            parameters = {"type": "object", "properties": {}}
+            calls: list[dict] = []
+
+            async def execute(self, tool_call_id, params, signal=None, context=None):
+                Echo.calls.append({"params": params, "agent": context.scope.agent_id})
+                return ToolResultMessage(tool_call_id=tool_call_id, tool_name=self.name,
+                                         content=[TextContent(text=texts.pop(0))], is_error=error)
+
+        return Echo()
+
+    async def test_runs_the_agents_tool_and_skips_empty_text(self):
+        tool = self._tool(["", "새 LH 공고 1건"])
+        svc, sent = self._service(tool)
+        task = ScheduledTask(name="watch", schedule="0 9 * * *", prompt="", kind="tool", tool="housing_watch",
+                             args={"regions": "서울", "quiet": True}, agent="karen", description="새 공고")
+        await svc._run_and_deliver(task)
+        assert sent == []
+        await svc._run_and_deliver(task)
+        assert [p["text"] for p in sent] == ["새 LH 공고 1건"] and sent[0]["label"] == "watch"
+        assert tool.calls[0] == {"params": {"regions": "서울", "quiet": True}, "agent": "karen"}
+
+    async def test_tool_error_or_unknown_tool_is_a_failed_notice(self):
+        svc, sent = self._service(self._tool(["LH 조회 실패"], error=True))
+        await svc._run_and_deliver(ScheduledTask(name="w", prompt="", kind="tool", tool="housing_watch", agent="karen"))
+        await svc._run_and_deliver(ScheduledTask(name="g", prompt="", kind="tool", tool="ghost", agent="karen"))
+        assert [p["error"] for p in sent] == [True, True]

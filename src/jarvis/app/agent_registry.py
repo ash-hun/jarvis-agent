@@ -145,13 +145,17 @@ class AgentRegistry:
         return self._peer_sessions[session_id]
 
     def task_agent(self, agent_id: str) -> "TaskAgent | None":
-        """스케줄 작업을 이 에이전트로 돌릴 때 쓰는 모델, 프롬프트, 이름. 모르는 id 면 None."""
+        """스케줄 작업을 이 에이전트로 돌릴 때 쓰는 모델, 프롬프트, 이름, 도구. 모르는 id 면 None."""
         from jarvis.core.scheduler.service import TaskAgent
 
-        profile = self.get(agent_id)
-        if profile is None:
+        builder = self._builders.get(agent_id)
+        if builder is None:
             return None
-        return TaskAgent(model=profile.model, system_prompt=profile.system_prompt, agent_name=profile.agent_id)
+        profile = builder.profile
+        return TaskAgent(
+            model=profile.model, system_prompt=profile.system_prompt, agent_name=profile.agent_id,
+            tools=builder.tool_registry(),
+        )
 
     def builder(self, agent_id: str) -> SessionBuilder:
         """모르는 id 는 KeyError. 부르는 쪽이 사용자 입력을 먼저 `in` 으로 거른다."""

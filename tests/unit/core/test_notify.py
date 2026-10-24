@@ -174,3 +174,8 @@ def test_task_results_use_the_same_icon_as_the_hud():
     task = format_discord({"type": "reminder", "kind": "task", "label": "공고 정리", "text": "세 건"})
     reminder = format_discord({"type": "reminder", "kind": "reminder", "label": "알림", "text": "회의"})
     assert task["content"].startswith("**⏱ 공고 정리**") and reminder["content"].startswith("**⏰ 알림**")
+
+
+def test_tool_task_result_reads_like_a_task_result():
+    tool = format_discord({"type": "reminder", "kind": "tool", "label": "새 LH 공고", "text": "새 LH 공고 1건"})
+    assert tool["content"].startswith("**⏱ 새 LH 공고**")

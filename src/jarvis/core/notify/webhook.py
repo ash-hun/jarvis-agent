@@ -4,6 +4,8 @@ from typing import Any
 from collections.abc import Awaitable, Callable
 
 TIMEOUT_SEC = 10.0
+# 무엇을 실행한 결과인 스케줄(할 일을 에이전트가 돈 task, 도구를 바로 부른 tool). 나머지는 정한 문구를 알리는 reminder
+RESULT_KINDS = ("task", "tool")
 
 # (url, json body) -> HTTP 상태. 기본은 httpx. 테스트는 가짜를 넣는다.
 Post = Callable[[str, dict[str, Any]], Awaitable[int]]
@@ -13,8 +15,8 @@ def headline(payload: dict[str, Any]) -> tuple[str, str]:
     """알림 payload → (제목, 본문). 순수 함수."""
     kind = payload.get("type", "")
     if kind == "reminder":
-        # 화면과 같은 아이콘: 알림은 ⏰, 할 일을 실행한 작업 결과는 ⏱
-        mark = "⏱" if payload.get("kind") == "task" else "⏰"
+        # 화면과 같은 아이콘: 알림은 ⏰, 실행한 작업 결과는 ⏱
+        mark = "⏱" if payload.get("kind") in RESULT_KINDS else "⏰"
         head = f"{mark} {payload.get('label') or payload.get('name', '')}".strip()
         if payload.get("error"):
             head += " (실패)"

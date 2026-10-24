@@ -104,7 +104,7 @@ docker compose --profile web restart jarvis-backend
 ```
 
 2. 기대: AGENDA 의 UPCOMING 에 `새 LH 공고` 가 `K.A.R.E.N.` 라벨로 보인다.
-3. 다음 5분 경계에 화면에 🔔 `housing-watch` 와 디스코드에 `⏱ housing-watch` "지금 공고중 N건(서울, 경기)을 기준으로 삼았다" 가 뜬다. Full-voice 면 소리 내어 읽는다.
+3. 다음 5분 경계에 화면에 🔔 `housing-watch` 와 디스코드에 `⏱ housing-watch` "지금 공고중인 LH 공고 중 신청 가능성이 있는 것 N건" 목록이 뜬다. Full-voice 면 소리 내어 읽는다.
 4. 그다음 5분 경계에는 아무것도 뜨지 않는다(새 공고가 없으면 알리지 않는다). 백엔드 로그에 `had nothing to report` 가 남는다.
 5. 새 공고가 생긴 경우를 보려면 본 공고 기록에서 하나를 뺀다. 다음 경계에 `새 LH 공고 1건` 이 링크와 함께 한 번 오고, 그다음 경계는 다시 조용하다.
 

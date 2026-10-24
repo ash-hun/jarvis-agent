@@ -333,6 +333,14 @@ class VoiceConfig(BaseModel):
     tui_enabled: bool = False        # TUI 음성 입출력 활성화 (whisper/supertonic + 시스템 오디오 도구 필요)
     tui_record_seconds: float = 5.0  # TUI 음성 입력(Ctrl+R) 녹음 길이(초)
 
+    def stt_options(self) -> dict[str, object]:
+        """stt_provider 팩토리에 넘길 생성 옵션."""
+        return {"model_size": self.whisper_model_size} if self.stt_provider == "whisper" else {}
+
+    def tts_options(self, provider: str = "") -> dict[str, object]:
+        """provider(비우면 tts_provider) 팩토리에 넘길 생성 옵션."""
+        return {"model_name": self.supertonic_model} if (provider or self.tts_provider) == "supertonic" else {}
+
     def english_tts_options(self) -> dict[str, object]:
         """english_tts_provider 팩토리에 넘길 생성 옵션."""
         if self.english_tts_provider != "piper":

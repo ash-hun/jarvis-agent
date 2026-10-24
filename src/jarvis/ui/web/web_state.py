@@ -123,6 +123,8 @@ class WebState:
             return VoiceService.from_config(
                 stt_provider=v.stt_provider,
                 tts_provider=v.tts_provider,
+                stt_options=v.stt_options(),
+                tts_options=v.tts_options(),
                 english_tts_provider=v.english_tts_provider,
                 english_tts_options=v.english_tts_options(),
             )

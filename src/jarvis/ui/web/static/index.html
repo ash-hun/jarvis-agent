@@ -115,6 +115,11 @@
         <ul class="agenda-list" id="schedule-list" data-empty="예정된 작업 없음"></ul>
         <div class="agenda-sub">Open loops</div>
         <ul class="agenda-list" id="openloop-list" data-empty="남은 할 일 없음"></ul>
+        <!-- 최근 닫힌 약속. 잘못 닫힌 것을 ↺ 로 되살린다. 평소엔 접어 둔다 -->
+        <details class="agenda-closed" id="closedloop-box" hidden>
+          <summary class="agenda-sub">Closed <span id="closedloop-count"></span></summary>
+          <ul class="agenda-list" id="closedloop-list"></ul>
+        </details>
       </div>
     </section>
 

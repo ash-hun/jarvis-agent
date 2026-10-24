@@ -422,6 +422,11 @@ body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
 .agenda-item .icon-btn { width: 20px; height: 20px; font-size: 11px; }
 .agenda-item .icon-btn.dismiss:hover { border-color: var(--red); color: var(--red); background: transparent; }
 .agenda-item.leaving { opacity: 0; transition: opacity .25s ease; }
+.agenda-closed summary { cursor: pointer; list-style: none; }
+.agenda-closed summary::-webkit-details-marker { display: none; }
+.agenda-closed summary::before { content: '▸ '; }
+.agenda-closed[open] summary::before { content: '▾ '; }
+#closedloop-list .agenda-item .what, #closedloop-list .agenda-item .when { color: var(--text-faint); }
 
 /* on/off 토글 스위치 */
 .switch {

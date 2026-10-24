@@ -45,12 +45,14 @@ def _run(tool: HousingWatchTool, params: dict) -> str:
     return result.content[0].text
 
 
-def test_first_run_sets_a_baseline_then_only_new_notices_come_once(tmp_path):
+def test_first_run_reports_what_is_open_then_only_new_notices_come_once(tmp_path):
     board = Board([RENTAL])
     single = HousingProfile(married=False, income=36_000_000)
     tool = HousingWatchTool(board, SeenStore(str(tmp_path)), lambda: TODAY, Profiles(single))
 
-    assert "기준으로 삼았다" in _run(tool, {"regions": "강원", "quiet": True})
+    # 처음에는 지금 공고중인 것 중 가능성이 있는 것을 전부 알린다
+    first = _run(tool, {"regions": "강원", "quiet": True})
+    assert "지금 공고중인 LH 공고 중 신청 가능성이 있는 것 1건" in first and "태백철암1" in first
     assert _run(tool, {"regions": "강원", "quiet": True}) == ""
 
     # 새 공고 둘. 미혼에게 신혼희망은 가능성이 낮아 알리지 않는다

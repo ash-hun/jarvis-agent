@@ -32,7 +32,7 @@ ACCESS_LABEL = {OK: "높음", UNKNOWN: "확인 필요"}
 TOOL_DESCRIPTION = (
     "지난번 housing_watch 뒤로 새로 올라온 LH 공고중 공고 중, 주거 프로필로 신청 가능성이 있는 것만 알린다."
     " 지역마다 본 공고를 기억해 같은 공고는 두 번 알리지 않는다."
-    " 처음 부르면 지금 공고중인 것을 기준으로 삼고 알리지 않는다."
+    " 처음 부르면 지금 공고중인 것 중 신청 가능성이 있는 것을 전부 알리고, 그다음부터는 새 공고만 알린다."
     " quiet=true 면 새 공고가 없을 때 빈 글을 준다(스케줄 알림이 울리지 않는다)."
     " 매일 알림은 schedules 에 kind: tool, tool: housing_watch 작업으로 건다."
 )
@@ -82,8 +82,9 @@ def remember(seen: list[str], notices: list[Notice]) -> list[str]:
     return merged[-SEEN_MAX:]
 
 
-def render(regions: list[str], picked: list[tuple[Notice, Verdict]], today: date) -> str:
-    lines = [f"새 LH 공고 {len(picked)}건 ({', '.join(regions)}). 마감은 KST {today.isoformat()} 기준"]
+def render(regions: list[str], picked: list[tuple[Notice, Verdict]], today: date, first: bool = False) -> str:
+    what = "지금 공고중인 LH 공고 중 신청 가능성이 있는 것" if first else "새 LH 공고"
+    lines = [f"{what} {len(picked)}건 ({', '.join(regions)}). 마감은 KST {today.isoformat()} 기준"]
     for n, verdict in picked[:MAX_LISTED]:
         label = deadline_label(parse_date(n.closes), today)
         lines.append(
@@ -166,14 +167,15 @@ class HousingWatchTool(JarvisTool):
         profile = await self._profiles.get(user) if self._profiles is not None else HousingProfile()
         key = watch_key(user, regions)
         seen = self._seen.load(key)
-        picked = [] if seen is None else pick_new(notices, seen, self._rules(), profile)
+        # 처음이면 본 것이 없으니 지금 공고중인 것이 모두 새 공고다
+        picked = pick_new(notices, seen or [], self._rules(), profile)
         # ponytail: 알리기 전에 본 것으로 적는다(알림이 실패하면 그 공고는 다시 오지 않는다),
         # 놓친 알림이 보이면 알림이 간 뒤에 기록하도록 바꾼다
         self._seen.save(key, regions, remember(seen or [], notices))
-        if seen is None:
-            text = f"지금 공고중 {len(notices)}건({', '.join(regions)})을 기준으로 삼았다. 다음부터 새 공고만 알린다."
-        elif picked:
-            text = render(regions, picked, today)
+        if picked:
+            text = render(regions, picked, today, first=seen is None)
+            if seen is None:
+                text += "\n\n다음부터는 새로 올라온 공고만 알린다."
         else:
             text = "" if params.get("quiet") else f"지난번 뒤로 새로 알릴 공고가 없다({', '.join(regions)})."
         return _result(tool_call_id, text)

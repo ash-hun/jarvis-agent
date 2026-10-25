@@ -2,13 +2,13 @@
 
 from jarvis.agent_layer.thought.prompt import DEFAULT_REFLECTION_TEMPLATE, DEFAULT_TEMPLATE, ThoughtPromptTemplate
 from jarvis.app.agent_registry import load_agent_specs, profile_from_spec
-from jarvis.app.agent_profile import compose_system_prompt
+from jarvis.app.agent_profile import ANSWER_RULE, compose_system_prompt
 
 
-def test_persona_comes_before_the_work_instructions():
-    assert compose_system_prompt("차분하게", "공고는 lh_notice 로") == "차분하게\n\n공고는 lh_notice 로"
-    assert compose_system_prompt("차분하게", None) == "차분하게"
-    assert compose_system_prompt("", "  ") is None
+def test_persona_comes_before_the_work_instructions_and_every_agent_gets_the_answer_rule():
+    assert compose_system_prompt("차분하게", "lh_notice 로") == f"차분하게\n\nlh_notice 로\n\n{ANSWER_RULE}"
+    assert compose_system_prompt("차분하게", None) == f"차분하게\n\n{ANSWER_RULE}"
+    assert compose_system_prompt("", "  ") == ANSWER_RULE
 
 
 def test_both_thought_templates_have_a_persona_slot():

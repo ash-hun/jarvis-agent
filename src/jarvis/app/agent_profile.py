@@ -14,13 +14,18 @@ if TYPE_CHECKING:
 # 지금은 에이전트가 하나다. 기존 메모리와 세션 데이터가 이 id 로 쌓여 있으므로 바꾸지 않는다
 MAIN_AGENT_ID = "main"
 
+# 개성과 상관없이 모든 에이전트가 지킨다. 업무 지시보다 뒤에 둬서 마지막으로 읽히게 한다
+ANSWER_RULE = (
+    "답은 간결하게 한다. 지시받은 것에 필요한 말만 하고, 묻지 않은 설명, 일반론, 대안, 부연은 붙이지 않는다."
+)
+
 ProactivityFactory = Callable[["EmitProactive"], "ProactivityCore"]
 
 
-def compose_system_prompt(persona: str, instructions: str | None) -> str | None:
-    """개성(말투)을 업무 지시 앞에 둔다. 둘 다 비면 None(모델 기본 시스템 프롬프트)."""
-    parts = [p.strip() for p in (persona, instructions or "") if p and p.strip()]
-    return "\n\n".join(parts) or None
+def compose_system_prompt(persona: str, instructions: str | None) -> str:
+    """개성(말투), 업무 지시, 모든 에이전트 공통 답변 규칙 순으로 잇는다."""
+    parts = [p.strip() for p in (persona, instructions or "", ANSWER_RULE) if p and p.strip()]
+    return "\n\n".join(parts)
 
 
 @dataclass(frozen=True)

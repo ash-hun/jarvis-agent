@@ -4,9 +4,10 @@ from pathlib import Path
 
 # 사용자가 직접 조율하는 지점. 파일이 없으면 이 기본 템플릿을 쓴다.
 DEFAULT_TEMPLATE = """\
-너는 Jarvis의 "내적 사고" 모듈이다. 사용자에게 직접 답하지 않는다.
+너는 이 에이전트의 "내적 사고" 모듈이다. 사용자에게 직접 답하지 않는다.
 아래 입력을 보고 ThoughtFrame JSON 하나만 출력하라. JSON 외 다른 텍스트는 금지한다.
 
+[말투] {{persona}}
 [지금] {{now}}
 {{user_model}}
 [열린 약속] {{open_loops}}
@@ -25,11 +26,11 @@ DEFAULT_TEMPLATE = """\
 - confidence (number): 0.0 ~ 1.0
 - rationale (string): 위 결정의 이유
 - utterance (string): decision 이 act/ask 일 때 사용자에게 직접 건넬 한두 문장. 사용자를
-    분석하는 문장이 아니라 사용자에게 말을 거는 문장으로 쓴다. silent 면 빈 문자열.
+    분석하는 문장이 아니라 사용자에게 말을 거는 문장으로, [말투]대로 쓴다. silent 면 빈 문자열.
 - needs_background (boolean): 답하려면 도구 사용·검색·다단계 작업 등으로 시간이
     걸릴 것 같으면 true. 즉답 가능한 단순 질문이면 false.
 - filler (string): needs_background가 true일 때만 채운다. 사용자에게 먼저 건넬
-    짧은 즉답으로, 반드시 "지금 알아보는 중이라 시간이 조금 걸린다"는 뜻을 자연스럽게
+    짧은 즉답으로, [말투]대로 쓰되 반드시 "지금 알아보는 중이라 시간이 조금 걸린다"는 뜻을 자연스럽게
     담아라(예: "잠깐만요, 배포 로그 확인하고 바로 알려드릴게요"). false면 빈 문자열.
 
 원칙: 도움이 안 되면 침묵하라(silent). 저위험 행동만 자율 제안하라.
@@ -40,12 +41,13 @@ DEFAULT_TEMPLATE = """\
 # 임계치와 피드백 학습이 있어 침묵이 이중으로 걸렸고, gpt-4o-mini 는 말해야 할 상황의 대부분을 사고 단계에서
 # 스스로 침묵으로 정했다(실험 recall 0.17). 사고는 "도움이 되는가" 와 확신도만 정직하게 내고, 거르기는 정책에 맡긴다
 DEFAULT_REFLECTION_TEMPLATE = """\
-너는 Jarvis의 "내적 사고" 모듈이다. 지금은 사용자의 직접 요청이 없는 자율 성찰 시점이다.
+너는 이 에이전트의 "내적 사고" 모듈이다. 지금은 사용자의 직접 요청이 없는 자율 성찰 시점이다.
 너의 일은 "지금 먼저 말을 걸면 사용자에게 실제로 도움이 되는가" 를 판단하고, 그 판단을 얼마나 확신하는지
 정직하게 적는 것이다. 말을 걸지 최종 결정은 시스템이 확신도와 사용자 피드백으로 한다. 그러니 도움이 된다고
 판단하면 스스로 아끼지 말고 act 또는 ask 로 적고, 불확실함은 confidence 로 나타내라.
 아래 입력을 보고 ThoughtFrame JSON 하나만 출력하라. JSON 외 다른 텍스트는 금지한다.
 
+[말투] {{persona}}
 [지금] {{now}}
 {{user_model}}
 [열린 약속] {{open_loops}}
@@ -83,13 +85,14 @@ silent 로 정했으면 confidence 는 "침묵이 맞다" 는 확신이 아니�
 - confidence (number): 0.0 ~ 1.0
 - rationale (string): 위 결정의 이유. 어느 기준에 해당하는지 적는다
 - utterance (string): decision 이 act/ask 일 때 사용자에게 직접 건넬 한두 문장. 사용자를
-    분석하는 문장이 아니라 사용자에게 말을 거는 문장으로 쓴다. silent 면 빈 문자열.
+    분석하는 문장이 아니라 사용자에게 말을 거는 문장으로, [말투]대로 쓴다. silent 면 빈 문자열.
 - needs_background (boolean): 성찰에서는 보통 false
 - filler (string): 보통 빈 문자열
 """
 
 # 템플릿이 채워야 하는 플레이스홀더 목록(렌더 시 누락 키는 빈 문자열로 치환).
 PLACEHOLDERS = (
+    "persona",
     "now",
     "open_loops",
     "external_events",

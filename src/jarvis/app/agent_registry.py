@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from jarvis.app.agent_profile import MAIN_AGENT_ID, AgentProfile
+from jarvis.app.agent_profile import MAIN_AGENT_ID, AgentProfile, compose_system_prompt
 from jarvis.app.session_builder import SessionBuilder
 from jarvis.config import BrandConfig, BrandPalette
 from jarvis.common.logger import get_logger
@@ -34,6 +34,8 @@ class AgentSpec(BaseModel):
     description: str = ""
     quote: str = ""
     palette: BrandPalette = Field(default_factory=BrandPalette)
+    # 말투와 성격. 비우면 개성 없이 업무 지시(system_prompt)만 쓴다. main 의 개성은 이어받지 않는다
+    persona: str = ""
     system_prompt: str | None = None
     # 모델 이름만 바꾼다. 프로바이더, 키, 주소는 main 것을 쓴다
     model: str | None = None
@@ -72,13 +74,13 @@ def profile_from_spec(agent_id: str, spec: AgentSpec, main: AgentProfile) -> Age
     )
     return AgentProfile(
         agent_id=agent_id,
-        brand=BrandConfig(name=spec.name, quote=spec.quote, palette=spec.palette),
+        brand=BrandConfig(name=spec.name, quote=spec.quote, palette=spec.palette, persona=spec.persona),
         model=model,
         thought=main.thought,
         proactive=proactive,
         feedback_learner=FeedbackLearner(base_threshold=proactive.effective_threshold()),
         description=spec.description,
-        system_prompt=spec.system_prompt,
+        system_prompt=compose_system_prompt(spec.persona, spec.system_prompt),
         tools=tuple(spec.tools),
     )
 

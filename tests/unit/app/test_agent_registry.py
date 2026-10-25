@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import MagicMock
 
 from jarvis.app.agent_registry import AgentRegistry, load_agent_specs, profile_from_spec
-from jarvis.app.agent_profile import MAIN_AGENT_ID, AgentProfile
+from jarvis.app.agent_profile import ANSWER_RULE, MAIN_AGENT_ID, AgentProfile
 from jarvis.model_layer.types import ModelConfig
 from jarvis.app.app_context import AppContext
 from jarvis.config import JarvisSettings
@@ -40,7 +40,7 @@ def test_spec_file_becomes_profile_on_top_of_main(tmp_path):
     # 모델은 이름만 바뀌고 프로바이더와 주소는 main 것
     assert (karen.model.provider, karen.model.model, karen.model.base_url) == ("ollama", "gemma-small", "http://x")
     assert karen.tools == ("web_search", "read_file")
-    assert karen.system_prompt == "당신은 카렌입니다."
+    assert karen.system_prompt == f"당신은 카렌입니다.\n\n{ANSWER_RULE}"
     assert karen.proactive.enabled is False
     assert karen.thought is main.thought
     # 피드백 학습은 에이전트마다 따로
@@ -53,7 +53,7 @@ def test_unset_fields_inherit_main(tmp_path):
     scout = profile_from_spec("scout", load_agent_specs(str(tmp_path))["scout"], main)
     assert scout.model is main.model
     assert scout.proactive is main.proactive
-    assert scout.tools == () and scout.system_prompt is None
+    assert scout.tools == () and scout.system_prompt == ANSWER_RULE
 
 
 @pytest.mark.parametrize("filename", ["main.yaml", "Bad Name.yaml", "9lives.yaml"])

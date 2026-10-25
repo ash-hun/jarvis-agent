@@ -27,6 +27,6 @@ def test_karen_has_her_own_persona_and_keeps_her_rules(monkeypatch):
     main = AgentProfile.main(settings, ModelConfig(provider="faux", model="m"), FeedbackLearner())
     karen = profile_from_spec("karen", load_agent_specs("team")["karen"], main)
     assert main.system_prompt is not None and "J.A.R.V.I.S." in main.system_prompt
-    assert karen.system_prompt is not None and karen.system_prompt.startswith("너는 피터 파커 슈트의 AI K.A.R.E.N.")
+    assert karen.system_prompt is not None and karen.system_prompt.startswith("너는 애쉬의 유능한")
     assert "housing_budget" in karen.system_prompt and "J.A.R.V.I.S." not in karen.system_prompt
     assert karen.brand.persona != main.brand.persona

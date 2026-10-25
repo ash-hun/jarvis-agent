@@ -52,6 +52,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -r
 RUN uv sync --frozen --extra web --extra scheduler --extra piper --extra wake --extra discord --extra voice --no-dev
 # 음성 모델(supertonic, faster-whisper)을 볼륨(/root/.jarvis)에 받아 컨테이너를 다시 만들어도 다시 받지 않는다
 ENV HF_HOME=/root/.jarvis/cache/huggingface
+# supertonic 은 HF_HOME 을 보지 않고 ~/.cache/supertonic3 에 받는다. 같은 볼륨으로 돌린다
+ENV SUPERTONIC_CACHE_DIR=/root/.jarvis/cache/supertonic3
 
 COPY . .
 

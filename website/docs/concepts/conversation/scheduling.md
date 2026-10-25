@@ -62,6 +62,20 @@ args: {regions: "서울,경기", quiet: true}
 prompt: ""
 ```
 
+공고는 하루 중에도 올라온다. 아침 보고와 별개로 낮 동안 매시 확인하려면 같은 지역으로 작업을 하나 더 둔다. 두 작업은 본 공고 기록(사용자와 지역이 키)을 같이 써서, 한쪽이 알린 공고를 다른 쪽이 다시 알리지 않는다. `quiet: true` 라 새 공고가 없는 시간에는 알림이 가지 않는다.
+
+```yaml
+# ~/.jarvis/schedules/housing-hourly.yaml
+name: housing-hourly
+description: 새 LH, SH 공고(낮 동안 매시)
+schedule: "0 10-22 * * *"
+kind: tool
+agent: karen
+tool: housing_watch
+args: {regions: "서울,경기", quiet: true}
+prompt: ""
+```
+
 :::danger
 
 스케줄 실행 세션은 승인 없는 샌드박스를 쓴다. 스케줄 작업이 부르는 도구는 사람에게 묻지 않고 실행된다.

@@ -8,6 +8,7 @@ from collections.abc import Callable
 
 from jarvis.core.notify.dedupe import SPOKEN_DEDUPE_SEC, RecentOnce
 from jarvis.voice.phrases import load_phrase_texts, load_phrases
+from jarvis.voice.english import Translate, make_llm_translator
 from jarvis.ui.web.session_registry import SessionRegistry
 from jarvis.ui.web.agent_activity import AgentActivity
 from jarvis.ui.web.approvals import SessionApprovals
@@ -45,6 +46,10 @@ class WebState:
         self.live_clients: set[PerConnectionAdapter] = set()
         self.pending_notices: deque[dict[str, object]] = deque(maxlen=PENDING_NOTICE_MAX)
         self.voice_service = self._build_voice_service()
+        # JARVIS 의 한국어 답을 소리로만 영어로 옮긴다. 영어 TTS 가 없으면 옮겨도 JARVIS 목소리가 아니라 끈다
+        self.translate_english: Translate | None = None
+        if self.settings.voice.speak_english and self.voice_service is not None and self.voice_service.has_english_tts:
+            self.translate_english = make_llm_translator(assembly.services.model_config)
         # 미리 녹음한 읽기 문구. 이름은 connected 로 화면에 알리고 wav 는 /api/voice/phrases 가 내준다
         self.phrases: dict[str, Path] = load_phrases(self.settings.voice.phrases_dir)
         # 화면이 녹음 문구를 재생하면 그 문장을 밖(디스코드 등)에 알린다

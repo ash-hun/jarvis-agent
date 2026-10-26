@@ -350,6 +350,8 @@ class VoiceConfig(BaseModel):
     supertonic_model: str = "supertonic-3"  # supertonic 패키지가 받는 모델 이름(HuggingFace 경로가 아니다)
     tts_lang: str = "ko"
     english_tts_provider: str = ""   # 비우면 영어 문장도 tts_provider 가 읽는다. piper
+    # JARVIS 가 말로 받은 요청의 한국어 답을 소리로만 영어로 옮겨 english_tts(JARVIS 목소리)로 읽는다. 화면 글은 한국어
+    speak_english: bool = False
     piper_model: str = "~/.jarvis/voices/en-voice.onnx"  # 같은 자리에 .onnx.json 이 있어야 한다
     piper_noise_scale: float = 0.4   # 낮을수록 음정 떨림이 줄고 말투가 단조로워진다. Piper 기본은 0.667
     # 미리 녹음한 읽기 문구(phrases.json 과 wav). 비우면 문구를 재생하지 않는다

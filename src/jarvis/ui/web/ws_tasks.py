@@ -5,9 +5,9 @@ import contextlib
 from fastapi import WebSocket
 from typing import TYPE_CHECKING, Any
 
+from jarvis.voice.service import ENGLISH_LANG, is_unclear
 from jarvis.app.agent_profile import MAIN_AGENT_ID
 from jarvis.common.logger import get_logger
-from jarvis.voice.service import is_unclear
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.thought.reply import ReplyClassifier
@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from jarvis.core.focus.types import FocusCommand
     from jarvis.voice.service import VoiceService
     from jarvis.core.session import AgentSession
+    from jarvis.voice.english import Translate
     from jarvis.core.notify import Notify
 
 # 잘 못 들었을 때 되묻는 말. JARVIS 는 영어라 직전 "Yes, sir?" 와 같은 목소리(영어 TTS)로 나온다
@@ -90,16 +91,29 @@ async def run_stt(
 
 
 async def run_tts(
-    ws: WebSocket, voice_service: "VoiceService", text: str, lang: str, request_id: object = None
+    ws: WebSocket,
+    voice_service: "VoiceService",
+    text: str,
+    lang: str,
+    request_id: object = None,
+    translate: "Translate | None" = None,
 ) -> None:
-    """서버 TTS 결과를 보낸다. 브라우저 TTS 프로바이더면 빈 data 와 원문을 돌려 화면이 직접 읽게 한다."""
+    """서버 TTS 결과를 보낸다. 브라우저 TTS 프로바이더면 빈 data 와 원문을 돌려 화면이 직접 읽게 한다.
+
+    translate 가 있으면 소리로만 영어로 옮겨 영어 TTS(JARVIS 목소리)로 읽는다. 옮기지 못하면 원문으로 읽는다.
+    """
     try:
+        english = await translate(text) if translate is not None else None
+        if english:
+            text, lang = english, ENGLISH_LANG
         audio_bytes = await voice_service.synthesize(text, lang)
         if audio_bytes:
             await ws.send_json({
                 "type": "voice_tts_audio",
                 "data": base64.b64encode(audio_bytes).decode(),
                 "mime": "audio/wav",
+                # 실제로 읽은 글. 영어로 옮겼으면 그 영어다
+                "text": text,
                 "id": request_id,
             })
         else:

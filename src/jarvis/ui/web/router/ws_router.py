@@ -18,6 +18,7 @@ from jarvis.ui.web.web_auth import auth_enabled, lookup_api_user
 from jarvis.ui.web.router.agent_router import agent_summary
 from jarvis.memory.scope import LOCAL_USER, MemoryScope
 from jarvis.ui.web.session_registry import UnknownAgent
+from jarvis.voice.english import should_speak_english
 from jarvis.core.focus.types import parse_command
 from jarvis.voice.speech_text import speech_text
 from jarvis.core.notify import spoken_payload
@@ -207,7 +208,10 @@ def build_ws_router(state: WebState) -> APIRouter:
                     # 화면이 멈춘 읽기의 늦은 응답을 버릴 수 있게 요청 id 를 그대로 돌려준다
                     request_id = msg.get("id")
                     if text and voice_service:
-                        asyncio.create_task(run_tts(ws, voice_service, text, lang, request_id))
+                        source = str(msg.get("source") or "")
+                        english = should_speak_english(text, source, agent_id)
+                        translate = state.translate_english if english else None
+                        asyncio.create_task(run_tts(ws, voice_service, text, lang, request_id, translate))
                     else:
                         # 음성 서비스가 없거나 읽을 글자가 없어도 답한다. 안 주면 HUD 가 '음성 처리 중' 에 멈춘다
                         await ws.send_json({"type": "voice_tts_audio", "data": "", "text": text, "id": request_id})

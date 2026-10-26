@@ -12,8 +12,8 @@ from collections.abc import Callable
 
 from jarvis.core.tools.housing.lh_notice import LhNoticeTool, Notice, build_queries, detail_url, resolve_region
 from jarvis.core.tools.housing.rules import NO, OK, UNKNOWN, Rules, Verdict, load_rules, notice_access
+from jarvis.core.tools.housing.profile import HousingProfile, ProfileStore, regions_or_home
 from jarvis.core.tools.housing.sh_notice import BOARDS, ShNoticeTool, view_url
-from jarvis.core.tools.housing.profile import HousingProfile, ProfileStore
 from jarvis.core.tools.housing.markup import deadline_label, parse_date
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 from jarvis.core.tools.housing.fetch import FetchError, kst_today
@@ -27,7 +27,6 @@ SEEN_MAX = 2000
 # 한 번에 이름을 적는 새 공고 수. 넘치면 수만 센다
 MAX_LISTED = 10
 OPEN_STATUS = "공고중"
-DEFAULT_REGIONS = ("전국",)
 ACCESS_LABEL = {OK: "높음", UNKNOWN: "확인 필요"}
 # SH 는 서울 공고만 있다. 지역에 서울이나 전국이 있을 때만 본다
 SH_REGION = "서울"
@@ -47,7 +46,7 @@ TOOL_DESCRIPTION = (
 TOOL_PARAMETERS: dict[str, Any] = {
     "type": "object",
     "properties": {
-        "regions": {"type": "string", "description": "지역. 쉼표로 여럿. 예: 서울,경기. 비우면 전국"},
+        "regions": {"type": "string", "description": "지역. 쉼표로 여럿. 예: 서울,경기. 비우면 관심 지역(없으면 전국)"},
         "quiet": {"type": "boolean", "description": "새 공고가 없으면 빈 글(스케줄용)"},
     },
 }
@@ -187,13 +186,13 @@ class HousingWatchTool(JarvisTool):
         context: ToolContext | None = None,
     ) -> ToolResultMessage:
         today = self._today()
-        raw = str(params.get("regions") or "").replace("/", ",")
-        regions = [r.strip() for r in raw.split(",") if r.strip()] or list(DEFAULT_REGIONS)
+        scope = getattr(context, "scope", None)
+        user = (scope.user_id if scope is not None else None) or LOCAL_USER
+        profile = await self._profiles.get(user) if self._profiles is not None else HousingProfile()
+        regions = regions_or_home(params.get("regions"), profile)
         unknown = [r for r in regions if resolve_region(r) is None]
         if unknown:
             return _result(tool_call_id, f"모르는 지역: {', '.join(unknown)}", True)
-        scope = getattr(context, "scope", None)
-        user = (scope.user_id if scope is not None else None) or LOCAL_USER
         try:
             notices = open_notices(await self._search(regions, today), today)
         except (FetchError, ValueError) as exc:
@@ -206,7 +205,6 @@ class HousingWatchTool(JarvisTool):
             except (FetchError, ValueError) as exc:
                 # SH 가 막혀도 LH 보고는 보낸다. SH 글은 다음 조회 때 새 공고로 온다
                 sh_note = f"\n\nSH 조회 실패: {exc}"
-        profile = await self._profiles.get(user) if self._profiles is not None else HousingProfile()
         key = watch_key(user, regions)
         seen = self._seen.load(key)
         # 처음이면 본 것이 없으니 지금 공고중인 것이 모두 새 공고다

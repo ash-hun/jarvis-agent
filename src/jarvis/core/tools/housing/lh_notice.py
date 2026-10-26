@@ -2,15 +2,19 @@
 
 import re
 import asyncio
-from typing import Any
 from dataclasses import dataclass
 from collections.abc import Callable
 from datetime import date, timedelta
+from typing import TYPE_CHECKING, Any
 
 from jarvis.core.tools.housing.markup import deadline_label, lines_of, parse_date, table_rows, text_of
 from jarvis.core.tools.housing.fetch import Fetch, FetchError, fetch_html, kst_today
 from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.tools.registry import JarvisTool
+from jarvis.core.tools.registry import JarvisTool, ToolContext
+from jarvis.memory.scope import LOCAL_USER
+
+if TYPE_CHECKING:
+    from jarvis.core.tools.housing.profile import ProfileStore
 
 TOOL_NAME = "lh_notice"
 LH_BASE = "https://apply.lh.or.kr"
@@ -99,7 +103,7 @@ TOOL_PARAMETERS: dict[str, Any] = {
         "id": {"type": "string", "description": "상세를 볼 공고 id. 목록 결과의 id 그대로. 주면 다른 조건은 무시"},
         "category": {"type": "string", "enum": list(CATEGORIES), "description": "공고유형. 비우면 임대와 분양"},
         "subtype": {"type": "string", "enum": list(SUBTYPES), "description": "세부유형. 주면 category 는 무시"},
-        "region": {"type": "string", "description": "지역. 예: 서울, 경기도, 부산광역시. 비우면 전국"},
+        "region": {"type": "string", "description": "지역. 예: 서울, 경기도, 전국. 비우면 관심 지역(없으면 전국)"},
         "status": {
             "type": "string",
             "enum": list(STATUSES),
@@ -400,32 +404,62 @@ class LhNoticeTool(JarvisTool):
     parameters = TOOL_PARAMETERS
     execution_mode = "parallel"
 
-    def __init__(self, fetch: Fetch | None = None, today: Callable[[], date] = kst_today) -> None:
+    def __init__(
+        self,
+        fetch: Fetch | None = None,
+        today: Callable[[], date] = kst_today,
+        profiles: "ProfileStore | None" = None,
+    ) -> None:
         self._fetch = fetch or fetch_html
         self._today = today
+        self._profiles = profiles
 
     async def execute(
-        self, tool_call_id: str, params: dict[str, Any], signal: asyncio.Event | None = None
+        self,
+        tool_call_id: str,
+        params: dict[str, Any],
+        signal: asyncio.Event | None = None,
+        context: ToolContext | None = None,
     ) -> ToolResultMessage:
         today = self._today()
         nid = str(params.get("id") or "").strip()
         try:
             if nid:
                 return await self._detail(tool_call_id, nid, today)
-            return await self._search(tool_call_id, params, today)
+            return await self._search(tool_call_id, params, today, await self._home_regions(params, context))
         except FetchError as exc:
             return _result(tool_call_id, f"LH 게시판 조회 실패: {exc}", True)
 
-    async def _search(self, tool_call_id: str, params: dict[str, Any], today: date) -> ToolResultMessage:
-        queries, reason = build_queries(params)
-        if reason is not None:
-            return _result(tool_call_id, reason, True)
-        try:
-            found = await self.search(queries, today)
-        except ValueError as exc:
-            return _result(tool_call_id, str(exc), True)
-        first = queries[0]
-        return _result(tool_call_id, render_list(_describe(params, first), found, first.limit, today, first.order))
+    async def _home_regions(self, params: dict[str, Any], context: ToolContext | None) -> list[str]:
+        """지역을 주지 않았으면 사용자의 관심 지역들. 프로필이 없으면 전국 하나."""
+        # 프로필 모듈이 지역 해석을 이 모듈에서 가져가므로 여기서는 늦게 읽는다
+        from jarvis.core.tools.housing.profile import HousingProfile, regions_or_home
+
+        profile = HousingProfile()
+        scope = getattr(context, "scope", None)
+        if self._profiles is not None and scope is not None and not str(params.get("region") or "").strip():
+            profile = await self._profiles.get(scope.user_id or LOCAL_USER)
+        return regions_or_home(params.get("region"), profile)
+
+    async def _search(
+        self, tool_call_id: str, params: dict[str, Any], today: date, regions: list[str]
+    ) -> ToolResultMessage:
+        texts = []
+        for region in regions:
+            each = {**params, "region": region}
+            queries, reason = build_queries(each)
+            if reason is not None:
+                return _result(tool_call_id, reason, True)
+            try:
+                found = await self.search(queries, today)
+            except ValueError as exc:
+                return _result(tool_call_id, str(exc), True)
+            first = queries[0]
+            texts.append(render_list(_describe(each, first), found, first.limit, today, first.order))
+        if not str(params.get("region") or "").strip() and regions != ["전국"]:
+            note = f"지역을 주지 않아 관심 지역({', '.join(regions)})으로 찾았다. 다른 지역은 region 에 넣는다"
+            texts.insert(0, note)
+        return _result(tool_call_id, "\n\n".join(texts))
 
     async def search(self, queries: list[Query], today: date) -> list[tuple[str, int | None, list[Notice]]]:
         """분류마다 (분류, 전체 건수, 공고). 목록 표가 없으면 ValueError, 게시판 장애는 FetchError."""

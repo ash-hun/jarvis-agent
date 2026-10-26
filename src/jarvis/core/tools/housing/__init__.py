@@ -27,7 +27,7 @@ def housing_tools(
 
     profiles(사용자 기억)가 있어야 주거 프로필 도구가 생기고 housing_budget 이 프로필로 자격을 가린다.
     """
-    lh = LhNoticeTool(fetch, today)
+    lh = LhNoticeTool(fetch, today, profiles)
     budget = HousingBudgetTool(lh, fetch, today, fetch_file, read_pdf, profiles)
     sh = ShNoticeTool(fetch)
     watch = HousingWatchTool(lh, SeenStore(seen_dir), today, profiles, sh=sh)

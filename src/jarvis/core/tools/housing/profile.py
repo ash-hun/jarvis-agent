@@ -6,6 +6,7 @@ from datetime import date
 from typing import TYPE_CHECKING, Any
 from dataclasses import asdict, dataclass, fields, replace
 
+from jarvis.core.tools.housing.lh_notice import resolve_region
 from jarvis.core.tools.housing.amount import parse_won
 from jarvis.memory.scope import LOCAL_USER
 
@@ -26,13 +27,15 @@ ALIASES = {
     "household": "household", "가구원": "household", "가구원수": "household", "세대원수": "household",
     "welfare": "welfare", "수급자": "welfare", "기초수급": "welfare", "기초생활수급": "welfare",
     "student": "student", "대학생": "student",
+    "regions": "regions", "관심지역": "regions", "지역": "regions", "희망지역": "regions",
 }
 _YES = {"true", "yes", "y", "1", "예", "네", "응", "어", "o", "맞음", "있음", "가능", "미사용", "무주택", "기혼",
         "결혼", "수급", "재학", "휴학"}
 _NO = {"false", "no", "n", "0", "아니오", "아니", "x", "없음", "불가", "사용", "유주택", "미혼", "비수급", "졸업"}
 _UNSET = {"", "none", "null", "모름", "삭제", "비움"}
-KNOWN = "무주택, 생애최초, 혼인, 연소득, 순자산, 생년월일, 나이, 가구원수, 수급자, 대학생"
+KNOWN = "무주택, 생애최초, 혼인, 연소득, 순자산, 생년월일, 나이, 가구원수, 수급자, 대학생, 관심지역"
 FLAGS = ("homeless", "first_home", "married", "welfare", "student")
+NATIONWIDE = "전국"
 
 
 @dataclass(frozen=True)
@@ -50,6 +53,8 @@ class HousingProfile:
     household: int | None = None  # 본인을 넣은 세대 구성원 수. 공공임대 소득 기준이 이것으로 달라진다
     welfare: bool | None = None  # 기초생활 수급자(생계, 의료, 주거급여 중 하나)
     student: bool | None = None  # 대학생(재학, 휴학 포함). 행복주택 대학생 계층
+    # 관심 지역. 공고 도구가 지역을 따로 받지 않으면 전국 대신 이 지역들로 찾는다
+    regions: tuple[str, ...] | None = None
 
     def is_empty(self) -> bool:
         return all(getattr(self, f.name) is None for f in fields(self))
@@ -84,7 +89,14 @@ class HousingProfile:
             f"가구원수: {'모름' if self.household is None else f'{self.household}명'}",
             f"수급자: {yn(self.welfare, '예', '아니오')}",
             f"대학생: {yn(self.student, '예', '아니오')}",
+            f"관심 지역: {', '.join(self.regions) if self.regions else '없음(전국)'}",
         ]
+
+
+def regions_or_home(raw: Any, profile: HousingProfile) -> list[str]:
+    """도구가 받은 지역(쉼표로 여럿). 비었으면 프로필의 관심 지역, 그것도 없으면 전국. 순수 함수."""
+    given = [r.strip() for r in str(raw or "").replace("/", ",").split(",") if r.strip()]
+    return given or list(profile.regions or ()) or [NATIONWIDE]
 
 
 def from_metadata(meta: dict[str, Any]) -> HousingProfile:
@@ -93,7 +105,12 @@ def from_metadata(meta: dict[str, Any]) -> HousingProfile:
         raw = meta.get(f.name)
         if raw is None:
             continue
-        values[f.name] = date.fromisoformat(raw) if f.name in ("birth_date", "age_as_of") else raw
+        if f.name in ("birth_date", "age_as_of"):
+            values[f.name] = date.fromisoformat(raw)
+        elif f.name == "regions":
+            values[f.name] = tuple(raw)
+        else:
+            values[f.name] = raw
     return HousingProfile(**values)
 
 
@@ -111,6 +128,18 @@ def _count(raw: str) -> int:
     if match is None or int(match.group(1)) < 1:
         raise ValueError(f"가구원수를 읽을 수 없다: {raw}")
     return int(match.group(1))
+
+
+def _regions(raw: Any) -> tuple[str, ...]:
+    """'서울, 경기' 나 ['서울', '경기'] 를 게시판이 아는 지역 이름 묶음으로. 같은 지역을 두 번 써도 하나다."""
+    words = raw if isinstance(raw, (list, tuple)) else re.split(r"[,/\s]+", str(raw))
+    names = tuple(dict.fromkeys(w.strip() for w in words if str(w).strip()))
+    unknown = [n for n in names if resolve_region(n) is None]
+    if unknown:
+        raise ValueError(f"모르는 지역: {', '.join(unknown)}")
+    if not names or any(resolve_region(n) == "" for n in names):
+        raise ValueError("관심 지역은 시도 이름이다(전국은 지우기로). 예: 서울, 경기")
+    return names
 
 
 def _age(raw: str) -> int:
@@ -148,6 +177,8 @@ def apply_updates(profile: HousingProfile, updates: dict[str, Any], today: date)
             changes[name] = parse_won(raw)
         elif name == "birth_date":
             changes[name] = _birth(text)
+        elif name == "regions":
+            changes[name] = _regions(raw)
         else:
             changes["age"] = int(raw) if isinstance(raw, int) else _age(text)
             changes["age_as_of"] = today

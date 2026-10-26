@@ -133,3 +133,17 @@ def test_sh_is_only_for_seoul_and_its_failure_keeps_the_lh_report(tmp_path):
     assert sh.asked == []
     text = _run(tool, {"regions": "전국"})
     assert "태백철암1" in text and "SH 조회 실패: SH 점검" in text
+
+
+def test_watch_without_regions_uses_the_home_regions(tmp_path):
+    asked: list[str] = []
+
+    class Recording(Board):
+        async def search(self, queries, today):
+            asked.extend(q.region for q in queries)
+            return await super().search(queries, today)
+
+    home = HousingProfile(married=False, income=36_000_000, regions=("강원",))
+    tool = HousingWatchTool(Recording([RENTAL]), SeenStore(str(tmp_path)), lambda: TODAY, Profiles(home))
+    assert "(강원)" in _run(tool, {"quiet": True})
+    assert set(asked) == {"51"}  # 강원 코드만, 전국("")은 묻지 않았다

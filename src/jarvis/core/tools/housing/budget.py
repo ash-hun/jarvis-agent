@@ -219,6 +219,29 @@ def _rank(plan: Plan) -> tuple[int, bool, float, float]:
     return access, True, *_distance(plan.best)
 
 
+def top_pick(plans: list[Plan]) -> Plan | None:
+    """한 묶음(분양 또는 임대)에서 하나를 고른다. 맞는 경우가 있고 신청 가능성이 낮지 않은 공고 중
+    가능성이 높은 것, 그다음 월 부담이 작은 것, 같으면 마감이 이른 것. 고를 것이 없으면 None. 순수 함수.
+
+    분양과 임대는 월 부담의 뜻이 달라(원금 상환과 임대료) 서로 견주지 않는다.
+    """
+    live = [p for p in plans if p.fitted and p.access.status != NO]
+    return min(live, key=lambda p: (_rank(p), p.notice.closes or "9999")) if live else None
+
+
+def pick_line(title: str, plan: Plan | None, terms: Terms) -> str:
+    if plan is None:
+        return f"추천 1순위({title}): 없음. 맞는 경우가 있으면서 신청 가능성이 낮지 않은 공고가 없다"
+    n, case = plan.notice, plan.best
+    room = (
+        f", 월 여유 {man(terms.monthly_limit - case.monthly)} 남음" if terms.monthly_limit is not None else ""
+    )
+    return (
+        f"추천 1순위({title}): {n.title} | 신청 가능성 {ACCESS_LABEL[plan.access.status]}"
+        f" | {plan.option.unit} 월 부담 최대 {man(case.monthly)}{room} | 마감 {n.closes or '미상'}"
+    )
+
+
 def man(amount: float) -> str:
     """만원 단위 읽기. 예: 2억 7,000만원, 9,280만원, 0원."""
     value = round(amount / 10_000)
@@ -362,6 +385,9 @@ def render(
     )
     stale = " 오래됐으니 금리와 규제를 은행, 기금 사이트에서 다시 확인한다." if rules.stale(today) else ""
     lines.append(f"대출 규칙 기준일 {rules.checked.isoformat()}(loan_rules.yaml).{stale}")
+    # 하나를 물으면 이 줄로 답한다. 목록 위에 둬야 모델이 옮기며 떨어뜨리지 않는다
+    for title, sale in (("분양", True), ("임대", False)):
+        lines.append(pick_line(title, top_pick([p for p in plans if p.option.sale is sale]), terms))
     for title, sale in (("분양(구입 대출)", True), ("임대(보증금 대출)", False)):
         group = sorted((p for p in plans if p.option.sale is sale), key=_rank)
         fitted = sum(p.fitted for p in group)

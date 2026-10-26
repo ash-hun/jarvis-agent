@@ -221,3 +221,27 @@ def test_budget_without_regions_uses_the_home_regions():
     assert parse_terms({"cash": "1억"}, home)[1] == ["서울", "경기"]
     assert parse_terms({"cash": "1억", "regions": "부산"}, home)[1] == ["부산"]
     assert parse_terms({"cash": "1억"})[1] == ["전국"]
+
+
+def test_one_top_pick_per_group_comes_before_the_lists():
+    board = Board(pdf_text=page("rent_terms_uiwang.txt"))
+    text, _ = _run(board, {"budget": 3e8, "cash": 1.2e8, "monthly_limit": 2e6})
+    pick = next(line for line in text.splitlines() if line.startswith("추천 1순위(임대)"))
+    assert "의왕청계2 A1블록" in pick and "월 부담 최대" in pick and "월 여유" in pick and "마감 " in pick
+    # 분양은 총액 상한에 걸려 고를 것이 없다
+    assert "추천 1순위(분양): 없음" in text
+    assert text.index("추천 1순위(임대)") < text.index("[분양(구입 대출)]")
+
+
+def test_top_pick_skips_unlikely_and_unfit_plans_and_breaks_ties_by_deadline():
+    from dataclasses import replace
+
+    from jarvis.core.tools.housing.rules import NO, Verdict
+    from jarvis.core.tools.housing.budget import top_pick
+
+    terms = Terms(1.2e8, 2e6, None, None, None)
+    plan = plan_for(NOTICE, [Option("s", 1e8, 300_000, False, "x")], terms, load_rules(), HousingProfile(), TODAY)
+    later = replace(plan, notice=replace(NOTICE, title="늦게 마감", closes="2026.12.01"))
+    unlikely = replace(plan, access=Verdict(NO, ("신혼부부 대상",)))
+    assert top_pick([later, plan]) is plan  # 같은 조건이면 마감이 이른 쪽
+    assert top_pick([unlikely]) is None and top_pick([replace(plan, fitted=False)]) is None

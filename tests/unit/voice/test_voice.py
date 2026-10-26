@@ -164,3 +164,52 @@ class TestRunStt:
         assert ws.sent[0]["type"] == "voice_stt_result"
         assert ws.sent[0]["text"] == ""
         assert "error" in ws.sent[0]
+
+
+class TestRunSttUnclear:
+    class _ScoredSTT:
+        def __init__(self, transcript):
+            self.transcript = transcript
+
+        async def transcribe_scored(self, audio_bytes, sample_rate=16000):
+            return self.transcript
+
+    class _RecordingTTS:
+        def __init__(self, audio):
+            self.audio, self.read = audio, []
+
+        async def synthesize(self, text, lang="ko"):
+            self.read.append(text)
+            return self.audio
+
+    async def _run(self, transcript, agent_id="main"):
+        from jarvis.voice.service import VoiceService
+        from jarvis.ui.web.ws_tasks import run_stt
+
+        ws = _FakeWS()
+        korean, english = self._RecordingTTS(b"ko-wav"), self._RecordingTTS(b"en-wav")
+        svc = VoiceService(stt=self._ScoredSTT(transcript), tts=korean, english_tts=english)
+        await run_stt(ws, svc, base64.b64encode(b"x").decode(), 16000, agent_id)
+        return ws.sent, korean.read, english.read
+
+    async def test_unsure_transcript_is_not_passed_on_and_jarvis_asks_again_in_english(self):
+        from jarvis.voice.protocol import Transcript
+
+        sent, korean, english = await self._run(Transcript("자비스 외골", avg_logprob=-1.4))
+        assert sent[0] == {"type": "voice_stt_result", "text": "", "unclear": True, "heard": "자비스 외골"}
+        # 영어 TTS(JARVIS 목소리)가 읽고, id 가 없어 화면이 바로 재생한다
+        assert english == ["I'm sorry, sir. I didn't catch that."] and korean == []
+        assert sent[1]["type"] == "voice_tts_audio" and sent[1]["id"] is None
+
+    async def test_other_agents_ask_again_in_korean(self):
+        from jarvis.voice.protocol import Transcript
+
+        _sent, korean, english = await self._run(Transcript("", no_speech_prob=0.9), agent_id="karen")
+        assert korean == ["잘 못 들었어요. 한 번 더 말씀해 주세요."] and english == []
+
+    async def test_confident_transcript_goes_through_untouched(self):
+        from jarvis.voice.protocol import Transcript
+
+        sent, korean, english = await self._run(Transcript("지금 몇 시야", no_speech_prob=0.1, avg_logprob=-0.3))
+        assert sent == [{"type": "voice_stt_result", "text": "지금 몇 시야"}]
+        assert korean == english == []

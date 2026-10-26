@@ -5,6 +5,10 @@ import contextlib
 from fastapi import WebSocket
 from typing import TYPE_CHECKING, Any
 
+from jarvis.app.agent_profile import MAIN_AGENT_ID
+from jarvis.common.logger import get_logger
+from jarvis.voice.service import is_unclear
+
 if TYPE_CHECKING:
     from jarvis.agent_layer.thought.reply import ReplyClassifier
     from jarvis.ui.web.adapter import PerConnectionAdapter
@@ -13,6 +17,12 @@ if TYPE_CHECKING:
     from jarvis.voice.service import VoiceService
     from jarvis.core.session import AgentSession
     from jarvis.core.notify import Notify
+
+# 잘 못 들었을 때 되묻는 말. JARVIS 는 영어라 직전 "Yes, sir?" 와 같은 목소리(영어 TTS)로 나온다
+UNCLEAR_REPLY_MAIN = "I'm sorry, sir. I didn't catch that."
+UNCLEAR_REPLY = "잘 못 들었어요. 한 번 더 말씀해 주세요."
+
+logger = get_logger(__name__)
 
 
 async def notify_quietly(notify: "Notify | None", payload: dict[str, Any] | None) -> None:
@@ -53,15 +63,30 @@ async def run_focus(
         await run_prompt(session, adapter, follow_up, credentials)
 
 
-async def run_stt(ws: WebSocket, voice_service: "VoiceService", audio_b64: str, sample_rate: int) -> None:
-    """base64 오디오를 디코딩해 백엔드 STT 로 전사하고 결과를 보낸다. 실패도 결과 메시지로 돌려준다."""
+def unclear_reply(agent_id: str) -> str:
+    return UNCLEAR_REPLY_MAIN if agent_id == MAIN_AGENT_ID else UNCLEAR_REPLY
+
+
+async def run_stt(
+    ws: WebSocket, voice_service: "VoiceService", audio_b64: str, sample_rate: int, agent_id: str = MAIN_AGENT_ID
+) -> None:
+    """base64 오디오를 전사해 결과를 보낸다. 잘 못 들었으면 에이전트에 넘기지 않고 되묻는 말을 읽어 준다."""
     try:
         audio_bytes = base64.b64decode(audio_b64)
-        text = await voice_service.transcribe(audio_bytes, sample_rate)
-        await ws.send_json({"type": "voice_stt_result", "text": text})
+        heard = await voice_service.transcribe_scored(audio_bytes, sample_rate)
     except Exception as exc:
         with contextlib.suppress(Exception):
             await ws.send_json({"type": "voice_stt_result", "text": "", "error": str(exc)})
+        return
+    # 기준값을 실제 기록으로 맞추려고 남긴다
+    logger.info(
+        f"[Voice] stt no_speech={heard.no_speech_prob:.2f} logprob={heard.avg_logprob:.2f} text={heard.text!r}"
+    )
+    if not is_unclear(heard):
+        await ws.send_json({"type": "voice_stt_result", "text": heard.text})
+        return
+    await ws.send_json({"type": "voice_stt_result", "text": "", "unclear": True, "heard": heard.text})
+    await run_tts(ws, voice_service, unclear_reply(agent_id), "ko")
 
 
 async def run_tts(

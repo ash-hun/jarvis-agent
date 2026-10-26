@@ -219,7 +219,7 @@ def build_ws_router(state: WebState) -> APIRouter:
                     data = msg.get("data", "")
                     sample_rate = int(msg.get("sample_rate", DEFAULT_STT_SAMPLE_RATE))
                     if data and voice_service:
-                        asyncio.create_task(run_stt(ws, voice_service, data, sample_rate))
+                        asyncio.create_task(run_stt(ws, voice_service, data, sample_rate, agent_id))
 
                 elif msg_type == "abort":
                     session.abort()

@@ -48,6 +48,10 @@ class VoiceService:
         return await self._tts.synthesize(text, lang)
 
     @property
+    def has_english_tts(self) -> bool:
+        return self._english_tts is not None
+
+    @property
     def tts_is_browser(self) -> bool:
         from jarvis.voice.providers.browser import BrowserTTSProvider
         return isinstance(self._tts, BrowserTTSProvider)

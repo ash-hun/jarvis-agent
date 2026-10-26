@@ -14,6 +14,7 @@ from jarvis.ui.web.ws_tasks import (
     run_stt,
     run_tts,
 )
+from jarvis.core.notify import spoken_notice_text, spoken_payload
 from jarvis.ui.web.web_auth import auth_enabled, lookup_api_user
 from jarvis.ui.web.router.agent_router import agent_summary
 from jarvis.memory.scope import LOCAL_USER, MemoryScope
@@ -21,7 +22,6 @@ from jarvis.ui.web.session_registry import UnknownAgent
 from jarvis.voice.english import should_speak_english
 from jarvis.core.focus.types import parse_command
 from jarvis.voice.speech_text import speech_text
-from jarvis.core.notify import spoken_payload
 from jarvis.ui.web.web_state import WebState
 from jarvis.common.logger import get_logger
 from jarvis.voice.wake import WakeDetector
@@ -204,7 +204,9 @@ def build_ws_router(state: WebState) -> APIRouter:
                     text = speech_text(msg.get("text", ""))
                     lang = msg.get("lang", settings.voice.tts_lang)
                     # 화면이 소리 내어 읽는 말을 같은 글로 밖에도 알린다. 🔔 과 ⏰ 은 서버가 이미 보냈다
-                    notify_spoken(spoken_payload(text, agent_id, str(msg.get("source") or "")))
+                    # 화면이 문장 조각으로 나눠 보내면 첫 조각에서 원문 전체로 한 번만
+                    notice = spoken_notice_text(text, msg.get("part"), speech_text(msg.get("full_text") or ""))
+                    notify_spoken(spoken_payload(notice, agent_id, str(msg.get("source") or "")))
                     # 화면이 멈춘 읽기의 늦은 응답을 버릴 수 있게 요청 id 를 그대로 돌려준다
                     request_id = msg.get("id")
                     if text and voice_service:

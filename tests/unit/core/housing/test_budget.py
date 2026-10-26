@@ -211,3 +211,13 @@ def test_result_is_the_answer_but_errors_are_not():
     assert ok.final and not ok.is_error
     assert bad.is_error and not bad.final
     assert "답할 때" not in ok.content[0].text and "알려 주면 자격을 가려 다시 계산한다" in ok.content[0].text
+
+
+def test_budget_without_regions_uses_the_home_regions():
+    from jarvis.core.tools.housing.profile import HousingProfile
+    from jarvis.core.tools.housing.budget import parse_terms
+
+    home = HousingProfile(regions=("서울", "경기"))
+    assert parse_terms({"cash": "1억"}, home)[1] == ["서울", "경기"]
+    assert parse_terms({"cash": "1억", "regions": "부산"}, home)[1] == ["부산"]
+    assert parse_terms({"cash": "1억"})[1] == ["전국"]

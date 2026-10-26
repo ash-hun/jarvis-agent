@@ -239,3 +239,25 @@ def test_price_of_notice(lh_board):
 def test_price_of_unknown_unit(lh_board):
     with pytest.raises(ValueError, match="주택형: 55.9000A, 55.8800B, 55.7600C"):
         asyncio.run(LhNoticeTool(lh_board, lambda: TODAY).price_of("0000061179-02-39-39", "84A"))
+
+
+def test_search_without_region_uses_each_home_region(lh_board):
+    from types import SimpleNamespace
+
+    from jarvis.core.tools.housing.profile import HousingProfile
+    from jarvis.memory.scope import MemoryScope
+
+    class Profiles:
+        async def get(self, user_id):
+            return HousingProfile(regions=("서울", "경기"))
+
+    tool = LhNoticeTool(lh_board, lambda: TODAY, Profiles())  # type: ignore[arg-type]  # get 만 흉내 낸다
+    context = SimpleNamespace(scope=MemoryScope(user_id="u1", agent_id="karen"))
+    result = asyncio.run(tool.execute("t1", {"category": "임대", "limit": 1}, None, context))
+    text = result.content[0].text
+    assert text.startswith("지역을 주지 않아 관심 지역(서울, 경기)으로 찾았다")
+    assert [form["cnpCd"] for _, form in lh_board.calls] == ["11", "41"]
+    # 지역을 주면 관심 지역은 보지 않는다
+    lh_board.calls.clear()
+    asyncio.run(tool.execute("t1", {"category": "임대", "region": "부산", "limit": 1}, None, context))
+    assert [form["cnpCd"] for _, form in lh_board.calls] == ["26"]

@@ -7,12 +7,12 @@ from typing import Any, TypeVar
 from dataclasses import dataclass, replace
 from collections.abc import Awaitable, Callable
 
+from jarvis.core.tools.housing.profile import HousingProfile, ProfileStore, apply_updates, parse_pairs, regions_or_home
 from jarvis.core.tools.housing.rules import NO, OK, UNKNOWN, Rules, Verdict, eligibility, load_rules, notice_access
 from jarvis.core.tools.housing.fetch import Fetch, FetchBytes, FetchError, fetch_bytes, fetch_html, kst_today
 from jarvis.core.tools.housing.notice_pdf import RentTerm, SaleTerm, notice_text, pdf_text, pick_notice_pdf
 from jarvis.core.tools.housing.scenario import BASE, CASH_ALL, NO_LOAN, Case, Deposit, deposit_cases, fits
 from jarvis.core.tools.housing.lh_notice import LhNoticeTool, Notice, build_queries, detail_url, is_sale
-from jarvis.core.tools.housing.profile import HousingProfile, ProfileStore, apply_updates, parse_pairs
 from jarvis.core.tools.housing.rental_complex import ComplexUnit, fetch_complexes, match_complex
 from jarvis.core.tools.housing.markup import deadline_label, parse_date
 from jarvis.core.tools.housing.notice_pdf import rent_terms, sale_terms
@@ -37,7 +37,6 @@ MAX_UNKNOWN_LISTED = 10
 # 게시판과 공고문 서버에 동시에 거는 요청 수. 순서대로 열면 전국 조회가 몇 분 걸린다
 CONCURRENCY = 4
 OPEN_STATUS = "공고중"
-DEFAULT_REGIONS = ("전국",)
 INCREASE, DECREASE = "보증금 증액 전환", "보증금 감액 전환"
 # 신청 가능성이 높은 공고부터 보인다. 가능성이 낮아도 빼지 않고 뒤로 보낸다
 ACCESS_ORDER = {OK: 0, UNKNOWN: 1, NO: 2}
@@ -61,7 +60,7 @@ TOOL_PARAMETERS: dict[str, Any] = {
         "cash": {"type": "string", "description": f"보유 현금. {_AMOUNT}"},
         "monthly_limit": {"type": "string", "description": f"월 여유자금(대출 상환 + 월임대료 상한). {_AMOUNT}"},
         "budget": {"type": "string", "description": f"총액 상한(분양가나 보증금). 사용자가 말했을 때만. {_AMOUNT}"},
-        "regions": {"type": "string", "description": "지역. 쉼표로 여럿. 예: 서울,경기. 비우면 전국"},
+        "regions": {"type": "string", "description": "지역. 쉼표로 여럿. 예: 서울,경기. 비우면 관심 지역(없으면 전국)"},
         "annual_rate_percent": {"type": "number", "description": "사용자가 금리를 정했을 때만. 비우면 상품별 범위"},
         "years": {"type": "integer", "description": "분양 대출 기간(년). 비우면 상품 기본(30년)"},
         "conditions": {
@@ -446,8 +445,8 @@ class HousingBudgetTool(JarvisTool):
     ) -> ToolResultMessage:
         today = self._today()
         try:
-            terms, regions, limit = parse_terms(params)
             profile, note = await self._profile(context, str(params.get("conditions") or ""), today)
+            terms, regions, limit = parse_terms(params, profile)
         except (TypeError, ValueError) as exc:
             return _result(tool_call_id, f"조건을 읽을 수 없다: {exc}", True)
         try:
@@ -543,8 +542,8 @@ def _amount(params: dict[str, Any], key: str) -> float | None:
     return float(parse_won(value))
 
 
-def parse_terms(params: dict[str, Any]) -> tuple[Terms, list[str], int]:
-    """인자를 검사한 계산 조건, 지역 목록, 추천 수. 틀리면 ValueError."""
+def parse_terms(params: dict[str, Any], profile: HousingProfile | None = None) -> tuple[Terms, list[str], int]:
+    """인자를 검사한 계산 조건, 지역 목록(비우면 프로필의 관심 지역), 추천 수. 틀리면 ValueError."""
     cash = _amount(params, "cash") or 0.0
     monthly_limit = _amount(params, "monthly_limit")
     budget = _amount(params, "budget")
@@ -556,8 +555,7 @@ def parse_terms(params: dict[str, Any]) -> tuple[Terms, list[str], int]:
     years = int(years_value) if years_value not in (None, "", 0) else None
     if (rate is not None and not 0 <= rate <= 100) or (years is not None and not 1 <= years <= 50):
         raise ValueError("금리는 0~100%, 기간은 1~50년이다")
-    raw = str(params.get("regions") or "").replace("/", ",")
-    regions = [r.strip() for r in raw.split(",") if r.strip()] or list(DEFAULT_REGIONS)
+    regions = regions_or_home(params.get("regions"), profile or HousingProfile())
     unknown = [r for r in regions if resolve_region(r) is None]
     if unknown:
         raise ValueError(f"모르는 지역: {', '.join(unknown)}")

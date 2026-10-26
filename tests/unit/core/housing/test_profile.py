@@ -100,3 +100,24 @@ def test_household_welfare_and_student_read_from_spoken_words():
     # 같은 값을 다시 넣어도 같다
     assert apply_updates(profile, {"가구원수": "3인"}, today) == profile
     assert apply_updates(profile, {"가구원수": "모름"}, today).household is None
+
+
+def test_home_regions_are_saved_once_and_used_when_no_region_is_given():
+    from jarvis.core.tools.housing.profile import regions_or_home
+
+    saved = apply_updates(HousingProfile(), {"관심지역": "서울, 경기, 서울"}, TODAY)
+    assert saved.regions == ("서울", "경기")
+    assert apply_updates(saved, {"regions": ["서울", "경기"]}, TODAY) == saved
+    assert from_metadata(saved.metadata()) == saved
+    assert "관심 지역: 서울, 경기" in saved.lines(TODAY)
+    # 도구가 지역을 받았으면 그것, 아니면 관심 지역, 그것도 없으면 전국
+    assert regions_or_home("부산", saved) == ["부산"]
+    assert regions_or_home("", saved) == ["서울", "경기"]
+    assert regions_or_home(None, HousingProfile()) == ["전국"]
+    assert apply_updates(saved, {"지역": "모름"}, TODAY).regions is None
+
+
+@pytest.mark.parametrize("value", ["화성시청", "전국"])
+def test_bad_home_regions_raise(value):
+    with pytest.raises(ValueError):
+        apply_updates(HousingProfile(), {"관심지역": value}, TODAY)

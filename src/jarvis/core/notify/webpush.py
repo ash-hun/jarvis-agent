@@ -36,9 +36,22 @@ class Subscription:
         return {"endpoint": self.endpoint, "keys": {"p256dh": self.p256dh, "auth": self.auth}}
 
 
+def push_title(payload: dict[str, Any], title: str) -> str:
+    """스케줄 알림 제목에 보낸 에이전트를 넣는다. 푸시는 앱 이름(JARVIS) 아래 뜨므로 KAREN 알림도 JARVIS 것처럼 보인다.
+
+    디스코드는 보낸 사람 이름으로 에이전트가 보여 headline 에 넣지 않고 여기서만 붙인다. 순수 함수.
+    """
+    name = str(payload.get("agent_name") or "")
+    if payload.get("type") != "reminder" or not name:
+        return title
+    mark, _, label = title.partition(" ")
+    return f"{mark} {name} | {label}" if label else f"{mark} {name}"
+
+
 def push_body(payload: dict[str, Any]) -> dict[str, str] | None:
     """service worker 가 받는 {title, body, tag}. 보일 글이 없으면 None(빈 푸시는 iOS 가 구독을 끊는다). 순수 함수."""
     title, body = headline(payload)
+    title = push_title(payload, title)
     if not title.strip() and not body.strip():
         return None
     tag = str(payload.get("id") or payload.get("message_id") or "")

@@ -57,6 +57,7 @@ tools:
   - housing_budget
   - housing_profile
   - housing_watch
+  - schedule
   - web_search
   - web_fetch
   - read_file

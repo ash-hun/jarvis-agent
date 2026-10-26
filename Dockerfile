@@ -60,4 +60,5 @@ COPY . .
 ENV PYTHONPATH=/app/src
 ENV PATH="/app/.venv/bin:$PATH"
 
-CMD ["uv", "run", "jarvis", "--web", "--host", "0.0.0.0", "--port", "7777"]
+# uv run 은 시작할 때마다 dev 그룹까지 맞추려고 mypy, ruff 등을 받는다. 빌드 때 맞춘 .venv 를 그대로 쓴다
+CMD ["jarvis", "--web", "--host", "0.0.0.0", "--port", "7777"]

@@ -192,3 +192,17 @@ def test_recent_once_lets_the_same_key_through_once_per_window():
     assert once.first(("s2", "공고 세 건 찾았어요")) is True  # 다른 세션은 따로 센다
     now[0] = 10.0
     assert once.first(("s1", "공고 세 건 찾았어요")) is True
+
+
+def test_split_speech_is_announced_once_with_the_whole_text():
+    from jarvis.core.notify import spoken_notice_text
+
+    assert spoken_notice_text("공고 두 건이에요.", None, "") == "공고 두 건이에요."
+    whole = "공고 두 건이에요. 마감은 내일이에요."
+    assert spoken_notice_text("공고 두 건이에요.", 0, whole) == whole
+    assert spoken_notice_text("마감은 내일이에요.", 1, "") == ""
+    assert spoken_notice_text("세 번째 문장.", 2, "") == ""
+    # 첫 조각에 원문이 빠져 와도 그 조각은 알린다
+    assert spoken_notice_text("공고 두 건이에요.", 0, "") == "공고 두 건이에요."
+    # 빈 글이면 spoken_payload 가 알리지 않는다
+    assert spoken_payload(spoken_notice_text("마감은 내일이에요.", 1, ""), "karen", "reply") is None

@@ -3,7 +3,7 @@
 from typing import Any
 from collections.abc import Awaitable, Callable, Mapping
 
-from jarvis.core.notify.events import proactive_forwarder, proactive_payload, spoken_payload
+from jarvis.core.notify.events import proactive_forwarder, proactive_payload, spoken_notice_text, spoken_payload
 from jarvis.core.notify.discord import discord_notifier, format_discord
 from jarvis.core.notify.slack import format_slack, slack_notifier
 from jarvis.common.logger import get_logger
@@ -70,6 +70,7 @@ __all__ = [
     "proactive_forwarder",
     "proactive_payload",
     "slack_notifier",
+    "spoken_notice_text",
     "spoken_payload",
     "with_agents",
 ]

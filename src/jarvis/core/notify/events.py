@@ -29,6 +29,18 @@ def proactive_payload(event: AgentEvent, agent_id: str = MAIN_AGENT) -> dict[str
     }
 
 
+def spoken_notice_text(text: str, part: object, full_text: str) -> str:
+    """화면이 글을 문장 조각(part 0, 1, ...)으로 나눠 읽게 하면 밖에는 첫 조각에서 원문 전체로 한 번만 알린다.
+
+    나누지 않은 요청(part 없음)은 그 글 그대로, 둘째 조각부터는 빈 글(알리지 않음). 순수 함수.
+    """
+    if part is None:
+        return text
+    if part == 0:
+        return full_text or text
+    return ""
+
+
 def spoken_payload(text: str, agent_id: str, source: str) -> dict[str, Any] | None:
     """화면이 소리 내어 읽은 말. source 는 화면이 붙인 종류(reply, filler, approval, phrase 등)다."""
     if not text.strip() or source in SPOKEN_ELSEWHERE:

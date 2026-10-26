@@ -111,3 +111,34 @@ async def test_proactive_push_is_quiet_while_hook_is_set(
     await session._emit_proactive(ProactiveMessage(text="물 마실 시간이에요", kind="proactive"))
 
     assert seen == [("filler", "잠깐만요"), ("proactive", "물 마실 시간이에요")]
+
+
+async def test_no_proactive_message_while_the_agent_is_answering(
+    permissive_pipeline, plugin_runner, session_memory, tool_registry, skill_registry, jsonl_repo
+):
+    from jarvis.core.proactive.types import ProactiveMessage
+
+    fx = {
+        "pipeline": permissive_pipeline,
+        "plugin_runner": plugin_runner,
+        "session_memory": session_memory,
+        "tool_registry": tool_registry,
+        "skill_registry": skill_registry,
+        "repo": jsonl_repo,
+    }
+    session = _session(fx)
+    seen: list[tuple[str, str]] = []
+
+    async def listen(event: Any) -> None:
+        if event.type == "proactive_message":
+            seen.append((event.kind, event.text))
+
+    session._harness.subscribe(listen)
+    session._set_busy(True)
+    await session._emit_proactive(ProactiveMessage(text="조건을 말씀해 주세요", kind="proactive"))
+    await session._emit_proactive(ProactiveMessage(text="잠깐만요", kind="filler"))
+    session._set_busy(False)
+    await session._emit_proactive(ProactiveMessage(text="공고 마감이 내일이에요", kind="proactive"))
+
+    # 답하는 중에는 🔔 를 내지 않고, filler 와 답이 끝난 뒤의 🔔 는 낸다
+    assert seen == [("filler", "잠깐만요"), ("proactive", "공고 마감이 내일이에요")]

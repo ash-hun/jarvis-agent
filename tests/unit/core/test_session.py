@@ -123,12 +123,17 @@ class TestAgentSessionSession:
 
 
 class TestConcurrentPromptIsRejected:
-    async def test_second_prompt_is_rejected_while_first_runs(self, agent_session, faux_model_with_response):
+    async def test_second_prompt_is_rejected_while_first_runs(
+        self, agent_session, faux_model_with_response, monkeypatch
+    ):
         import asyncio
         from unittest.mock import AsyncMock
 
+        import jarvis.core.session as session_module
         from jarvis.core.session import SessionBusy
 
+        # 긴 작업 도중에 온 요청은 잠깐 기다린 뒤에도 거절한다. 테스트에서는 기다림을 짧게
+        monkeypatch.setattr(session_module, "BUSY_GRACE_SEC", 0.05)
         faux_model_with_response("ok")
         gate = asyncio.Event()
 
@@ -149,6 +154,30 @@ class TestConcurrentPromptIsRejected:
         assert agent_session.is_running is False
         # 첫 요청이 끝나면 다시 받는다.
         await agent_session.prompt("세 번째 요청")
+
+    async def test_prompt_sent_during_the_wrap_up_waits_instead_of_failing(
+        self, agent_session, faux_model_with_response
+    ):
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        faux_model_with_response("ok")
+        gate = asyncio.Event()
+
+        async def wrapping_up(**_kw):
+            # 화면은 agent_end 를 이미 받았고 세션은 대화를 저장하는 중이다
+            await gate.wait()
+            return None
+
+        agent_session._harness.run = AsyncMock(side_effect=wrapping_up)
+        first = asyncio.create_task(agent_session.prompt("첫 요청"))
+        await asyncio.sleep(0)
+        second = asyncio.create_task(agent_session.prompt("바로 이어 보낸 요청"))
+        await asyncio.sleep(0.05)
+        gate.set()
+        await first
+        await second  # 거절되지 않고 첫 요청이 끝난 뒤 처리된다
+        assert agent_session._harness.run.await_count == 2
 
     async def test_failure_before_main_loop_releases_the_session(self, agent_session, faux_model_with_response):
         faux_model_with_response("ok")

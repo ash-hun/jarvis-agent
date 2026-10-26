@@ -117,6 +117,9 @@ THOUGHT_WAIT_SEC = 3.0
 RECENT_PROACTIVE_MAX = 3
 
 BUSY_MESSAGE = "이전 요청을 아직 처리 중입니다. 끝나길 기다리거나 중단(abort)한 뒤 다시 보내세요."
+# 화면은 agent_end 를 받자마자 다음 말을 보낼 수 있다. 그때 세션은 대화 저장 같은 마무리 중이라(수백 ms)
+# 바로 거절하지 않고 이만큼 기다린다. 긴 작업 도중에 온 요청은 기다린 뒤에도 거절한다
+BUSY_GRACE_SEC = 3.0
 
 
 class AgentSession:
@@ -201,6 +204,8 @@ class AgentSession:
         # prompt 진입 즉시 켜고 메인 루프가 끝날 때 끈다. harness.is_running 은 inner thought
         # 이후에야 켜져서 그 틈에 두 요청이 동시에 통과해 히스토리를 섞는다.
         self._busy = False
+        self._idle = asyncio.Event()
+        self._idle.set()
         # 마지막으로 인증된 사용자. 세션 종료 요약처럼 턴 바깥에서 쓰는 메모리 범위의 근거.
         self._last_user_id: str | None = None
 
@@ -226,14 +231,25 @@ class AgentSession:
     ) -> AssistantMessage | None:
         """caller_scope 는 이 세션을 부른 쪽(위임한 부모, 말을 건 에이전트)의 범위다. inherit_scope 세션만 쓴다."""
         if self._busy:
+            with contextlib.suppress(TimeoutError):
+                await asyncio.wait_for(self._idle.wait(), BUSY_GRACE_SEC)
+        # 기다린 사이 다른 요청이 먼저 들어갔을 수 있다. 확인과 켜기 사이에 await 가 없어 둘이 함께 통과하지 않는다
+        if self._busy:
             raise SessionBusy(BUSY_MESSAGE)
-        self._busy = True
+        self._set_busy(True)
         try:
             return await self._prompt(raw_input, credentials or {}, caller_scope)
         except BaseException:
             # run_main 진입 전 실패(검증·인증·rate limit·사고). run_main 의 finally 가 못 끈다.
-            self._busy = False
+            self._set_busy(False)
             raise
+
+    def _set_busy(self, busy: bool) -> None:
+        self._busy = busy
+        if busy:
+            self._idle.clear()
+        else:
+            self._idle.set()
 
     async def _prompt(
         self, raw_input: str, creds: dict[str, Any], caller_scope: MemoryScope | None
@@ -307,7 +323,7 @@ class AgentSession:
                 return result
             finally:
                 # Dual-Channel 백그라운드 모드에서는 prompt() 가 먼저 돌아오므로 여기서 꺼야 한다.
-                self._busy = False
+                self._set_busy(False)
 
         # Dual-Channel: proactivity가 있으면 needs_background 시 filler 즉시 발화 후
         # 백그라운드 수행(반환 None). 없거나 즉시 모드면 현재 동작 그대로.
@@ -593,6 +609,10 @@ class AgentSession:
         # Focus 같은 턴 훅이 붙어 있으면 먼저 거는 말은 집중을 깨므로 내지 않는다. filler, 맡긴 일의 답은 보낸다
         if message.kind == "proactive" and self._turn_hook is not None:
             logger.info(f"[Proactive] suppressed during turn hook: {message.text[:40]}")
+            return
+        # 답하는 중에 먼저 거는 말은 그 답과 엇갈린다(공고 계산 중에 "조건을 말해 주세요"). 끝난 뒤 성찰이 다시 본다
+        if message.kind == "proactive" and self._busy:
+            logger.info(f"[Proactive] suppressed while answering: {message.text[:40]}")
             return
         if message.kind == "proactive":
             self._recent_proactive.append(message.text)

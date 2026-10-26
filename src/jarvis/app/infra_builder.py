@@ -90,6 +90,13 @@ class InfraBuilder:
             self.load_extensions(session_repo, tool_registry, skill_registry, plugin_runner, procedure_store)
         )
         scheduler = self.build_scheduler(session_repo, tool_registry, model_config, plugin_runner, skill_registry)
+        if scheduler is not None:
+            from jarvis.core.slash.schedule_cmd import make_schedule_handler
+            from jarvis.core.scheduler.classify import make_llm_classifier
+            from jarvis.core.scheduler.tool import ScheduleTool
+
+            # 말로 "1분 뒤에 알려줘" 해도 /schedule 과 같은 일정이 생기게
+            tool_registry.register(ScheduleTool(make_schedule_handler(scheduler, make_llm_classifier(model_config))))
 
         ctx = AppContext(
             session_repo=session_repo,

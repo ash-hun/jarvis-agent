@@ -4,7 +4,7 @@ import io
 import asyncio
 from functools import partial
 
-from jarvis.voice.protocol import DEFAULT_SAMPLE_RATE, STTProvider
+from jarvis.voice.protocol import DEFAULT_SAMPLE_RATE, STTProvider, Transcript
 
 
 class WhisperSTTProvider(STTProvider):
@@ -24,9 +24,20 @@ class WhisperSTTProvider(STTProvider):
         self._model = WhisperModel(model_size, device=device, compute_type="int8")
 
     async def transcribe(self, audio_bytes: bytes, sample_rate: int = DEFAULT_SAMPLE_RATE) -> str:
+        return (await self.transcribe_scored(audio_bytes, sample_rate)).text
+
+    async def transcribe_scored(self, audio_bytes: bytes, sample_rate: int = DEFAULT_SAMPLE_RATE) -> Transcript:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, partial(self._transcribe_sync, audio_bytes))
 
-    def _transcribe_sync(self, audio_bytes: bytes) -> str:
+    def _transcribe_sync(self, audio_bytes: bytes) -> Transcript:
         segments, _ = self._model.transcribe(io.BytesIO(audio_bytes), language="ko")
-        return "".join(seg.text for seg in segments).strip()
+        segs = list(segments)
+        text = "".join(seg.text for seg in segs).strip()
+        if not segs:
+            return Transcript(text)
+        return Transcript(
+            text,
+            no_speech_prob=max(float(getattr(s, "no_speech_prob", 0.0)) for s in segs),
+            avg_logprob=sum(float(getattr(s, "avg_logprob", 0.0)) for s in segs) / len(segs),
+        )

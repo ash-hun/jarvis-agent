@@ -2,9 +2,12 @@
 
 import re
 
-from jarvis.voice.protocol import DEFAULT_LANG, DEFAULT_SAMPLE_RATE, STTProvider, TTSProvider
+from jarvis.voice.protocol import DEFAULT_LANG, DEFAULT_SAMPLE_RATE, STTProvider, Transcript, TTSProvider
 
 ENGLISH_LANG = "en"
+# faster-whisper 가 구간을 버리는 기본 기준과 같다. 실제 기록(로그의 [Voice] stt 줄)을 보며 맞춘다
+NO_SPEECH_MAX = 0.6
+AVG_LOGPROB_MIN = -1.0
 # 한글, 가나, 한자가 한 글자라도 있으면 영어 음성 모델이 읽지 못한다
 _NON_LATIN_SCRIPT = re.compile(r"[\u1100-\u11ff\u3040-\u30ff\u3130-\u318f\u4e00-\u9fff\uac00-\ud7a3]")
 _LATIN_LETTER = re.compile(r"[A-Za-z]")
@@ -13,6 +16,11 @@ _LATIN_LETTER = re.compile(r"[A-Za-z]")
 def is_english(text: str) -> bool:
     """라틴 문자만으로 된 문장이면 True. 한국어 문장 속 영어 단어는 한국어로 본다."""
     return bool(_LATIN_LETTER.search(text)) and not _NON_LATIN_SCRIPT.search(text)
+
+
+def is_unclear(t: Transcript) -> bool:
+    """글이 비었거나, 말소리가 없었을 것 같거나, 받아 적은 글을 모델이 확신하지 못하면 True."""
+    return not t.text.strip() or t.no_speech_prob > NO_SPEECH_MAX or t.avg_logprob < AVG_LOGPROB_MIN
 
 
 class VoiceService:
@@ -25,6 +33,13 @@ class VoiceService:
 
     async def transcribe(self, audio_bytes: bytes, sample_rate: int = DEFAULT_SAMPLE_RATE) -> str:
         return await self._stt.transcribe(audio_bytes, sample_rate)
+
+    async def transcribe_scored(self, audio_bytes: bytes, sample_rate: int = DEFAULT_SAMPLE_RATE) -> Transcript:
+        scored = getattr(self._stt, "transcribe_scored", None)
+        if scored is None:
+            return Transcript(await self._stt.transcribe(audio_bytes, sample_rate))
+        result: Transcript = await scored(audio_bytes, sample_rate)
+        return result
 
     async def synthesize(self, text: str, lang: str = DEFAULT_LANG) -> bytes:
         """텍스트 → WAV bytes. 빈 bytes이면 클라이언트가 browser TTS를 사용해야 함."""

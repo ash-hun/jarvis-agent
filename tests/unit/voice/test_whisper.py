@@ -37,3 +37,18 @@ def test_missing_package_raises_import_error_with_hint(monkeypatch: pytest.Monke
     monkeypatch.setitem(sys.modules, "faster_whisper", None)
     with pytest.raises(ImportError, match="faster-whisper"):
         WhisperSTTProvider()
+
+
+async def test_scored_transcript_takes_worst_no_speech_and_mean_logprob(monkeypatch: pytest.MonkeyPatch) -> None:
+    _install_fake(monkeypatch)
+    provider = WhisperSTTProvider(model_size="tiny")
+    provider._model.transcribe = lambda audio, language: (  # type: ignore[method-assign]  # 구간 확신도를 준다
+        [
+            SimpleNamespace(text=" 지금", no_speech_prob=0.1, avg_logprob=-0.2),
+            SimpleNamespace(text=" 몇 시야", no_speech_prob=0.7, avg_logprob=-0.6),
+        ],
+        None,
+    )
+    heard = await provider.transcribe_scored(b"pcm")
+    assert heard.text == "지금 몇 시야"
+    assert heard.no_speech_prob == 0.7 and abs(heard.avg_logprob - (-0.4)) < 1e-9

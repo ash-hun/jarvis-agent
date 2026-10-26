@@ -30,6 +30,14 @@ def test_body_uses_the_headline_and_the_id_as_tag():
     assert proactive is not None and len(proactive["body"]) == BODY_MAX and proactive["tag"] == "m"
 
 
+def test_reminder_title_names_the_agent_that_sent_it():
+    karen = {"type": "reminder", "kind": "tool", "label": "오늘의 LH 공고", "text": "x", "agent_name": "K.A.R.E.N."}
+    assert push_body(karen)["title"] == "⏱ K.A.R.E.N. | 오늘의 LH 공고"  # type: ignore[index]
+    # 이름을 모르면 그대로, 제목 없는 알림이면 이름만
+    assert push_body({**karen, "agent_name": ""})["title"] == "⏱ 오늘의 LH 공고"  # type: ignore[index]
+    assert push_body({**karen, "label": "", "name": ""})["title"] == "⏱ K.A.R.E.N."  # type: ignore[index]
+
+
 def test_gone_and_validation():
     assert is_gone(404) and is_gone(410) and not is_gone(201) and not is_gone(429)
     sub = validate_subscription({"endpoint": "https://e", "expirationTime": None, "keys": {"p256dh": "p", "auth": "a"}})

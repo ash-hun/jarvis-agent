@@ -376,7 +376,7 @@ $ curl -s -X PUT -H 'Content-Type: application/json' -d '{"endpoint":"https://we
 
 **재호출**: `endpoint` 를 자연 키로 upsert 한다(`push_subscriptions` 테이블의 기본 키). 몇 번 보내도 행은 하나이고 키와 `updated_at` 만 갱신된다. 인증이 켜져 있으면 그 키의 사용자 이름을 `user_id` 로 남긴다.
 
-**발송**: `JARVIS_NOTIFY__KINDS` 의 알림(스케줄 결과, 🔔 등)을 구독 전부에 `{"title", "body", "tag"}` 로 보낸다. `title`, `body` 는 디스코드 알림과 같은 제목과 본문이고 `body` 는 1000자에서 자른다. `tag` 는 알림 id 라 같은 알림이 두 번 가도 iPhone 에는 하나로 보인다. 푸시 서비스가 404, 410 을 주면 그 구독을 지우고, 그 밖의 실패는 로그만 남기고 다시 보내지 않는다.
+**발송**: `JARVIS_NOTIFY__KINDS` 의 알림(스케줄 결과, 🔔 등)을 구독 전부에 `{"title", "body", "tag"}` 로 보낸다. `title`, `body` 는 디스코드 알림과 같은 제목과 본문이고(스케줄 알림 제목에는 보낸 에이전트 이름을 넣는다. 예: `⏱ K.A.R.E.N. | 오늘의 LH 공고`) `body` 는 1000자에서 자른다. `tag` 는 알림 id 라 같은 알림이 두 번 가도 iPhone 에는 하나로 보인다. 푸시 서비스가 404, 410 을 주면 그 구독을 지우고, 그 밖의 실패는 로그만 남기고 다시 보내지 않는다.
 
 ---
 

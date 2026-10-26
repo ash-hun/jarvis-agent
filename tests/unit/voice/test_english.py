@@ -2,21 +2,19 @@
 
 import base64
 
-from jarvis.voice.english import clean_english, should_speak_english
+from jarvis.voice.english import FALLBACK_LINE, clean_english, should_speak_english
 from jarvis.voice.service import VoiceService
 from jarvis.ui.web.ws_tasks import run_tts
 
 
-def test_only_jarvis_spoken_korean_replies_are_translated():
-    assert should_speak_english("내일 오전엔 운동하시면 됩니다.", "reply", "main")
-    assert should_speak_english("분석 끝났습니다.", "answer", "main")
-    # KAREN 은 JARVIS 목소리로 읽지 않는다. 🔔, 승인, filler 는 원문
-    assert not should_speak_english("공고 두 건이에요.", "reply", "karen")
-    assert not should_speak_english("회의 10분 전입니다.", "proactive", "main")
-    assert not should_speak_english("명령을 실행할까요.", "approval", "main")
-    # 이미 영어거나 빈 글은 옮길 것이 없다
-    assert not should_speak_english("At your service, sir.", "reply", "main")
-    assert not should_speak_english("  ", "reply", "main")
+def test_every_korean_jarvis_utterance_is_translated_but_not_other_agents():
+    assert should_speak_english("내일 오전엔 운동하시면 됩니다.", "main")
+    assert should_speak_english("회의 10분 전입니다.", "main")  # 🔔, filler 등 종류와 상관없이
+    # KAREN 은 JARVIS 목소리로 읽지 않는다
+    assert not should_speak_english("공고 두 건이에요.", "karen")
+    # 이미 영어거나 빈 글은 옮길 것이 없다(영어는 그대로 영어 TTS 가 읽는다)
+    assert not should_speak_english("At your service, sir.", "main")
+    assert not should_speak_english("  ", "main")
 
 
 def test_clean_english_strips_quotes_and_rejects_korean():
@@ -65,7 +63,7 @@ async def test_translated_reply_is_read_by_the_english_voice_and_reports_what_it
     assert (sent["text"], sent["id"]) == ("Exercise in the morning, sir.", 7)
 
 
-async def test_failed_translation_reads_the_korean_original():
+async def test_failed_translation_reads_a_fixed_english_line_in_the_jarvis_voice():
     sent, korean, english = await _speak(None)
-    assert korean == [("내일 오전엔 운동하시면 됩니다.", "ko")] and english == []
-    assert sent["text"] == "내일 오전엔 운동하시면 됩니다."
+    assert english == [(FALLBACK_LINE, "en")] and korean == []
+    assert sent["text"] == FALLBACK_LINE

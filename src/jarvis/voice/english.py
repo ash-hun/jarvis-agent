@@ -1,4 +1,4 @@
-"""[voice] JARVIS 의 한국어 답을 JARVIS 목소리(영어 TTS)로 읽으려고 소리로만 짧은 영어 구어체로 옮긴다."""
+"""[voice] JARVIS 가 소리 내는 한국어 글을 JARVIS 목소리(영어 TTS)로 읽으려고 소리로만 짧은 영어 구어체로 옮긴다."""
 
 import asyncio
 from typing import TYPE_CHECKING
@@ -10,28 +10,28 @@ from jarvis.memory.scope import MAIN_AGENT
 if TYPE_CHECKING:
     from jarvis.model_layer.types import ModelConfig
 
-# 화면이 말로 받은 요청의 답을 읽을 때 붙이는 source. 🔔, 승인 질문, filler 는 지금처럼 원문으로 읽는다
-SPOKEN_SOURCES = frozenset({"reply", "answer"})
 TIMEOUT_SEC = 8.0
+# 옮기지 못했을 때 읽는 말. 한국어 원문을 다른 목소리로 읽지 않고 화면을 보게 한다
+FALLBACK_LINE = "Sir, I've put it on your screen."
 # 길게 옮기면 읽는 데 오래 걸린다. 긴 답은 요점만
 MAX_WORDS = 45
 
 _PROMPT = """\
-You are J.A.R.V.I.S., Tony Stark's AI butler. Below is your reply to the user, written in Korean.
+You are J.A.R.V.I.S., Tony Stark's AI butler. Below is what you are about to say to the user, written in Korean.
 Say it out loud in English, the way JARVIS would speak it: calm, polite British butler, address the user as "sir".
-- At most two short sentences and {max_words} words. If the reply is long, give only the conclusion and the key numbers.
+- At most two short sentences and {max_words} words. If it is long, give only the conclusion and the key numbers.
 - Keep names, numbers, dates and times exact. Spoken words only: no lists, markdown, emoji, URLs or code.
 - Output only the English line, nothing else.
 
-Korean reply:
+Korean:
 {text}"""
 
 Translate = Callable[[str], Awaitable[str | None]]
 
 
-def should_speak_english(text: str, source: str, agent_id: str) -> bool:
-    """JARVIS 가 말로 받은 요청에 한 한국어 답만 옮긴다. KAREN 등 다른 에이전트는 JARVIS 목소리로 읽지 않는다."""
-    return agent_id == MAIN_AGENT and source in SPOKEN_SOURCES and bool(text.strip()) and not is_english(text)
+def should_speak_english(text: str, agent_id: str) -> bool:
+    """JARVIS 가 내는 한국어 글은 무엇이든(답, 🔔, filler, 앞으로 생길 종류) 옮긴다. KAREN 등은 원문 그대로."""
+    return agent_id == MAIN_AGENT and bool(text.strip()) and not is_english(text)
 
 
 def clean_english(raw: str) -> str | None:

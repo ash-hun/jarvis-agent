@@ -92,12 +92,13 @@ async def test_build_notifier_sends_to_slack_and_discord(monkeypatch):
 
 
 def test_agent_identities_use_brand_names_and_avatar_folder(tmp_path):
-    (tmp_path / "karen.yaml").write_text("name: K.A.R.E.N.\n", encoding="utf-8")
+    (tmp_path / "karen.yaml").write_text("name: K.A.R.E.N.\npalette:\n  primary: \"#97BC62\"\n", encoding="utf-8")
     builder = _builder()
     builder._settings.team.dir = str(tmp_path)
     builder._settings.notify.avatar_base_url = "https://cdn.example/avatars/"
     identities = builder.agent_identities()
-    assert identities["karen"] == ("K.A.R.E.N.", "https://cdn.example/avatars/karen.png")
-    assert identities["main"] == (builder._settings.brand.name, "https://cdn.example/avatars/main.png")
+    assert identities["karen"] == ("K.A.R.E.N.", "https://cdn.example/avatars/karen.png", "#97BC62")
+    main_brand = builder._settings.brand
+    assert identities["main"] == (main_brand.name, "https://cdn.example/avatars/main.png", main_brand.palette.primary)
     builder._settings.notify.avatar_base_url = ""
-    assert builder.agent_identities()["karen"] == ("K.A.R.E.N.", "")
+    assert builder.agent_identities()["karen"][:2] == ("K.A.R.E.N.", "")

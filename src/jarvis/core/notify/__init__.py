@@ -1,7 +1,7 @@
 """[core] 외부 알림 채널. 스케줄 결과와 proactive 발화를 열린 UI 밖(슬랙, 디스코드)으로도 보낸다."""
 
 from typing import Any
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 
 from jarvis.core.notify.events import proactive_forwarder, proactive_payload, spoken_payload
 from jarvis.core.notify.discord import discord_notifier, format_discord
@@ -32,13 +32,17 @@ def fan_out(*notifiers: Notify | None) -> Notify:
     return notify
 
 
-def with_agents(identities: dict[str, tuple[str, str]], notify: Notify) -> Notify:
-    """payload 의 agent id 에 이름(agent_name)과 아바타 주소(agent_avatar)를 붙인다. 모르는 id 는 그대로 보낸다."""
+def with_agents(identities: Mapping[str, tuple[str, ...]], notify: Notify) -> Notify:
+    """payload 의 agent id 에 이름(agent_name), 아바타 주소(agent_avatar), 주색(agent_color)을 붙인다.
+
+    identities 의 값은 (이름, 아바타 주소[, 주색 #rrggbb]). 모르는 id 는 그대로 보낸다.
+    """
 
     async def named(payload: dict[str, Any]) -> None:
         identity = identities.get(str(payload.get("agent") or MAIN_AGENT))
         if identity is not None:
-            payload = {**payload, "agent_name": identity[0], "agent_avatar": identity[1]}
+            color = identity[2] if len(identity) > 2 else ""
+            payload = {**payload, "agent_name": identity[0], "agent_avatar": identity[1], "agent_color": color}
         await notify(payload)
 
     return named

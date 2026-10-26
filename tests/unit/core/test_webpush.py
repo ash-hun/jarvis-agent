@@ -4,7 +4,7 @@ import json
 import pytest
 import asyncio
 
-from jarvis.core.notify.webpush import BODY_MAX, Subscription, is_gone, push_body, validate_subscription
+from jarvis.core.notify.webpush import BODY_MAX, Subscription, is_gone, push_body, sphere, validate_subscription
 from jarvis.core.notify.webpush import webpush_notifier
 
 ALIVE = Subscription("https://web.push.apple.com/alive", "p", "a")
@@ -30,12 +30,27 @@ def test_body_uses_the_headline_and_the_id_as_tag():
     assert proactive is not None and len(proactive["body"]) == BODY_MAX and proactive["tag"] == "m"
 
 
-def test_reminder_title_names_the_agent_that_sent_it():
-    karen = {"type": "reminder", "kind": "tool", "label": "오늘의 LH 공고", "text": "x", "agent_name": "K.A.R.E.N."}
-    assert push_body(karen)["title"] == "⏱ K.A.R.E.N. | 오늘의 LH 공고"  # type: ignore[index]
-    # 이름을 모르면 그대로, 제목 없는 알림이면 이름만
+def test_the_title_is_the_agent_sphere_and_name_like_discord():
+    karen = {
+        "type": "reminder", "kind": "tool", "label": "오늘의 LH 공고", "text": "공고 2건",
+        "agent_name": "K.A.R.E.N.", "agent_color": "#97BC62", "agent_avatar": "https://cdn/karen.png",
+    }
+    assert push_body(karen) == {
+        "title": "🟢 K.A.R.E.N.", "body": "⏱ 오늘의 LH 공고\n공고 2건", "tag": "", "icon": "https://cdn/karen.png",
+    }
+    jarvis = {
+        "type": "proactive_message", "agent_name": "J.A.R.V.I.S.", "agent_color": "#5fc8e2",
+        "text": "Sir, 회의 10분 전입니다.",
+    }
+    assert push_body(jarvis)["title"] == "🔵 J.A.R.V.I.S."  # type: ignore[index]
+    assert push_body(jarvis)["body"] == "💭 Sir, 회의 10분 전입니다."  # type: ignore[index]
+    # 이름을 모르면 예전 그대로
     assert push_body({**karen, "agent_name": ""})["title"] == "⏱ 오늘의 LH 공고"  # type: ignore[index]
-    assert push_body({**karen, "label": "", "name": ""})["title"] == "⏱ K.A.R.E.N."  # type: ignore[index]
+
+
+def test_sphere_picks_the_nearest_colour_and_falls_back_to_blue():
+    assert sphere("#97BC62") == "🟢" and sphere("#5fc8e2") == "🔵" and sphere("#e04050") == "🔴"
+    assert sphere("") == "🔵" and sphere("#zzz") == "🔵"
 
 
 def test_gone_and_validation():

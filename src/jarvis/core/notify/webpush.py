@@ -17,6 +17,12 @@ GONE_STATUSES = frozenset({404, 410})
 # 기기가 꺼져 있을 때 푸시 서비스가 들고 있는 시간(초). 하루가 지난 알림은 버린다
 TTL_SEC = 86400
 DEFAULT_TITLE = "JARVIS"
+# iOS 웹앱 푸시는 아이콘을 앱 것 하나로만 보인다. 에이전트 색은 가장 가까운 색 원 이모지로 제목 앞에 둔다
+SPHERES = {
+    "🔴": (221, 46, 68), "🟠": (244, 144, 12), "🟡": (253, 203, 88), "🟢": (120, 177, 89), "🔵": (85, 172, 238),
+    "🟣": (170, 142, 214), "🟤": (193, 105, 79), "⚫": (49, 55, 61), "⚪": (230, 231, 232),
+}
+DEFAULT_SPHERE = "🔵"
 
 Notify = Callable[[dict[str, Any]], Awaitable[None]]
 # (구독, 본문 JSON) -> 푸시 서비스의 HTTP 상태. 기본은 pywebpush. 테스트는 가짜를 넣는다
@@ -36,26 +42,44 @@ class Subscription:
         return {"endpoint": self.endpoint, "keys": {"p256dh": self.p256dh, "auth": self.auth}}
 
 
-def push_title(payload: dict[str, Any], title: str) -> str:
-    """스케줄 알림 제목에 보낸 에이전트를 넣는다. 푸시는 앱 이름(JARVIS) 아래 뜨므로 KAREN 알림도 JARVIS 것처럼 보인다.
+def sphere(color: str) -> str:
+    """#rrggbb 에 가장 가까운 색 원 이모지. 읽을 수 없으면 기본(파랑). 순수 함수."""
+    try:
+        rgb = tuple(int(color.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4))
+    except ValueError:
+        return DEFAULT_SPHERE
+    if len(color.lstrip("#")) != 6:
+        return DEFAULT_SPHERE
+    return min(SPHERES, key=lambda e: sum((a - b) ** 2 for a, b in zip(SPHERES[e], rgb, strict=True)))
 
-    디스코드는 보낸 사람 이름으로 에이전트가 보여 headline 에 넣지 않고 여기서만 붙인다. 순수 함수.
+
+def as_agent(payload: dict[str, Any], title: str, body: str) -> tuple[str, str]:
+    """디스코드처럼 보낸 에이전트를 제목으로(색 원 + 이름), 알림 종류 표시는 본문 앞으로 옮긴다.
+
+    디스코드는 보낸 사람 이름과 아바타로 에이전트가 보여 headline 은 그대로 두고 푸시에서만 바꾼다. 순수 함수.
     """
     name = str(payload.get("agent_name") or "")
-    if payload.get("type") != "reminder" or not name:
-        return title
-    mark, _, label = title.partition(" ")
-    return f"{mark} {name} | {label}" if label else f"{mark} {name}"
+    if not name:
+        return title, body
+    mark, _, rest = title.partition(" ")
+    # 🔔, 🔊 의 제목은 이미 에이전트 이름이다. 스케줄 알림만 제목(작업 이름)이 따로 있다
+    lead = f"{mark} {rest}" if payload.get("type") == "reminder" and rest else mark
+    sep = "\n" if payload.get("type") == "reminder" and rest else " "
+    return f"{sphere(str(payload.get('agent_color') or ''))} {name}", f"{lead}{sep}{body}".strip()
 
 
 def push_body(payload: dict[str, Any]) -> dict[str, str] | None:
-    """service worker 가 받는 {title, body, tag}. 보일 글이 없으면 None(빈 푸시는 iOS 가 구독을 끊는다). 순수 함수."""
+    """service worker 가 받는 {title, body, tag[, icon]}. 보일 글이 없으면 None(빈 푸시는 iOS 가 구독을 끊는다)."""
     title, body = headline(payload)
-    title = push_title(payload, title)
     if not title.strip() and not body.strip():
         return None
+    title, body = as_agent(payload, title, body)
     tag = str(payload.get("id") or payload.get("message_id") or "")
-    return {"title": title.strip() or DEFAULT_TITLE, "body": body[:BODY_MAX], "tag": tag}
+    out = {"title": title.strip() or DEFAULT_TITLE, "body": body[:BODY_MAX], "tag": tag}
+    # 에이전트 아바타. iOS 는 쓰지 않을 수 있고, 데스크톱 브라우저는 알림 아이콘으로 보인다
+    if payload.get("agent_avatar"):
+        out["icon"] = str(payload["agent_avatar"])
+    return out
 
 
 def is_gone(status: int) -> bool:

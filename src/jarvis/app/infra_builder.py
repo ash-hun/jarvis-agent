@@ -531,15 +531,21 @@ class InfraBuilder:
         gateway = DiscordGateway(cfg.discord_bot_token.get_secret_value(), cfg.discord_guild_id)
         return DiscordVoice(gateway, cfg.discord_user_id, synthesize, speech_text)
 
-    def agent_identities(self) -> dict[str, tuple[str, str]]:
-        """에이전트 id → (이름, 아바타 주소). 이름은 브랜드 워드마크, 정의 파일을 읽는 곳은 load_agent_specs 하나다."""
+    def agent_identities(self) -> dict[str, tuple[str, str, str]]:
+        """에이전트 id → (이름, 아바타 주소, 주색). 정의 파일을 읽는 곳은 load_agent_specs 하나다."""
         from jarvis.app.agent_registry import load_agent_specs
         from jarvis.memory.scope import MAIN_AGENT
 
         base = self._settings.notify.avatar_base_url.rstrip("/")
-        names = {MAIN_AGENT: self._settings.brand.name}
-        names.update({agent_id: spec.name for agent_id, spec in load_agent_specs(self._settings.team.dir).items()})
-        return {agent_id: (name, f"{base}/{agent_id}.png" if base else "") for agent_id, name in names.items()}
+        brands = {MAIN_AGENT: (self._settings.brand.name, self._settings.brand.palette.primary)}
+        brands.update({
+            agent_id: (spec.name, spec.palette.primary)
+            for agent_id, spec in load_agent_specs(self._settings.team.dir).items()
+        })
+        return {
+            agent_id: (name, f"{base}/{agent_id}.png" if base else "", color)
+            for agent_id, (name, color) in brands.items()
+        }
 
     def build_subagents(
         self, ctx: AppContext, services: AppServices, agent_defs: list["AgentDefinition"]

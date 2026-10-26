@@ -148,6 +148,8 @@ def build_ws_router(state: WebState) -> APIRouter:
                             continue
                     score = wake_detector.feed(frame)
                     if score is not None:
+                        # 화면이 "Yes, sir?" 를 못 읽었을 때 감지는 됐는지 가르려고 남긴다
+                        logger.info(f"[Voice] wake detected score={score:.3f} session={session_id}")
                         await ws.send_json({"type": "voice_wake", "score": round(score, 3)})
                     continue
                 msg = frame

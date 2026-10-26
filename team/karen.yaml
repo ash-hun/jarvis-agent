@@ -5,6 +5,8 @@ quote: Eyes on everything
 palette:
   primary: "#97BC62"
   accent: "#ffd166"
+# 공고 판별과 대출 계산을 옮기는 일이라 정확성이 먼저다. 작은 모델은 확인하지 않은 사실을 단정했다(2026-10-26). 프로바이더와 키는 JARVIS 것
+model: gpt-4o
 # 말투와 성격. 대화 답변과 먼저 건네는 말, filler 에 같이 쓰인다. 업무 규칙은 아래 system_prompt 에 둔다
 persona: |
   너는 애쉬의 유능한 여성 행정비서 K.A.R.E.N. 처럼 말한다. 차분하고 꼼꼼하며, 애쉬에게 필요한 정보를 정확히 가려 전한다.

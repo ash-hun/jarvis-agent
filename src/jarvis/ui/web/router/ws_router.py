@@ -208,9 +208,7 @@ def build_ws_router(state: WebState) -> APIRouter:
                     # 화면이 멈춘 읽기의 늦은 응답을 버릴 수 있게 요청 id 를 그대로 돌려준다
                     request_id = msg.get("id")
                     if text and voice_service:
-                        source = str(msg.get("source") or "")
-                        english = should_speak_english(text, source, agent_id)
-                        translate = state.translate_english if english else None
+                        translate = state.translate_english if should_speak_english(text, agent_id) else None
                         asyncio.create_task(run_tts(ws, voice_service, text, lang, request_id, translate))
                     else:
                         # 음성 서비스가 없거나 읽을 글자가 없어도 답한다. 안 주면 HUD 가 '음성 처리 중' 에 멈춘다

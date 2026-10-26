@@ -245,3 +245,10 @@ def test_top_pick_skips_unlikely_and_unfit_plans_and_breaks_ties_by_deadline():
     unlikely = replace(plan, access=Verdict(NO, ("신혼부부 대상",)))
     assert top_pick([later, plan]) is plan  # 같은 조건이면 마감이 이른 쪽
     assert top_pick([unlikely]) is None and top_pick([replace(plan, fitted=False)]) is None
+
+
+def test_the_answer_opens_with_karens_one_line_conclusion():
+    board = Board(pdf_text=page("rent_terms_uiwang.txt"))
+    text, _ = _run(board, {"budget": 3e8, "cash": 1.2e8, "monthly_limit": 2e6})
+    lead = "애쉬, 전국에서 이 조건에 맞는 공고는 분양 0건, 임대 1건이에요. 아래 추천 1순위부터 보시면 돼요."
+    assert text.splitlines()[0] == lead

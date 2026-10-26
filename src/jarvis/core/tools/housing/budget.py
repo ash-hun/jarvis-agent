@@ -358,7 +358,12 @@ def render(
 ) -> str:
     cap = f", 월 여유자금 {man(terms.monthly_limit)}" if terms.monthly_limit is not None else ""
     budget = f", 총액 상한 {man(terms.budget)}" if terms.budget is not None else ""
+    fit_sale = sum(p.fitted for p in plans if p.option.sale)
+    fit_rent = sum(p.fitted for p in plans if not p.option.sale)
     lines = [
+        # 이 글은 고치지 않고 그대로 답이 된다. KAREN 의 말로 결론을 먼저 둔다
+        f"애쉬, {', '.join(regions)}에서 이 조건에 맞는 공고는 분양 {fit_sale}건, 임대 {fit_rent}건이에요."
+        + (" 아래 추천 1순위부터 보시면 돼요." if fit_sale or fit_rent else " 가장 가까운 공고를 아래에 정리했어요."),
         f"LH 공고 대출 경우의 수 ({', '.join(regions)} | 현금 {terms.cash:,.0f}원({man(terms.cash)}){cap}{budget})",
         f"프로필: {', '.join(profile.lines(today))} ({profile_note})",
     ]

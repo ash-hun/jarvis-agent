@@ -147,3 +147,10 @@ def test_watch_without_regions_uses_the_home_regions(tmp_path):
     tool = HousingWatchTool(Recording([RENTAL]), SeenStore(str(tmp_path)), lambda: TODAY, Profiles(home))
     assert "(강원)" in _run(tool, {"quiet": True})
     assert set(asked) == {"51"}  # 강원 코드만, 전국("")은 묻지 않았다
+
+
+def test_the_report_opens_with_karens_one_line_conclusion(tmp_path):
+    single = HousingProfile(married=False, income=36_000_000)
+    tool = HousingWatchTool(Board([RENTAL]), SeenStore(str(tmp_path)), lambda: TODAY, Profiles(single))
+    first_line = _run(tool, {"regions": "강원"}).splitlines()[0]
+    assert first_line.startswith("애쉬, 지금 지원해 볼 만한 공고가 1건 있어요(강원).")

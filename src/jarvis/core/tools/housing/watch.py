@@ -112,7 +112,14 @@ def remember(seen: list[str], notices: list[Notice]) -> list[str]:
 
 def render(regions: list[str], picked: list[tuple[Notice, Verdict]], today: date, first: bool = False) -> str:
     what = "지금 공고중인 공고 중 신청 가능성이 있는 것" if first else "새 공고"
-    lines = [f"{what} {len(picked)}건 ({', '.join(regions)}). 마감은 KST {today.isoformat()} 기준"]
+    likely = sum(v.status == OK for _, v in picked)
+    # 알림 첫 줄은 KAREN 이 하는 말이다. 도구 글이 그대로 알림이 되니 결론을 말투로 먼저 둔다
+    lead = "지금 지원해 볼 만한 공고" if first else "새로 올라온 공고"
+    lines = [
+        f"애쉬, {lead}가 {len(picked)}건 있어요({', '.join(regions)})."
+        + (f" 신청 가능성이 높은 건 {likely}건이에요." if likely else " 자격은 공고문으로 확인이 필요해요."),
+        f"{what} {len(picked)}건 ({', '.join(regions)}). 마감은 KST {today.isoformat()} 기준",
+    ]
     for n, verdict in picked[:MAX_LISTED]:
         if is_sh(n.id):
             label, when = "SH", f"등록 {n.posted} | 마감 공고문 확인"

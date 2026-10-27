@@ -3,6 +3,7 @@
 import base64
 
 from jarvis.voice.english import FALLBACK_LINE, clean_english, split_sentences, should_speak_english
+from jarvis.voice.protocol import TTSProvider
 from jarvis.voice.service import VoiceService
 from jarvis.ui.web.ws_tasks import run_tts
 
@@ -31,7 +32,7 @@ class _WS:
         self.sent.append(data)
 
 
-class _TTS:
+class _TTS(TTSProvider):
     def __init__(self, audio):
         self.audio, self.read = audio, []
 
@@ -69,13 +70,21 @@ def test_split_sentences_keeps_short_tails_with_the_sentence_before():
     assert split_sentences("Very good, sir") == ["Very good, sir"]
 
 
-async def test_streamed_reply_is_synthesized_and_sent_one_sentence_at_a_time():
+async def test_streamed_reply_is_sent_sentence_by_sentence_and_closed_with_an_empty_end():
     sent, _korean, english = await _speak("You have a meeting at three today. The weather is clear and mild.", True)
     assert [t for t, _ in english] == ["You have a meeting at three today.", "The weather is clear and mild."]
-    assert [(m["text"], m["more"], m["id"]) for m in sent] == [
-        ("You have a meeting at three today.", True, 7),
-        ("The weather is clear and mild.", False, 7),
+    assert [(m["text"], bool(m["data"]), m["more"], m["id"]) for m in sent] == [
+        ("You have a meeting at three today.", True, True, 7),
+        ("The weather is clear and mild.", True, True, 7),
+        ("", False, False, 7),
     ]
+
+
+async def test_streamed_reply_without_any_sound_lets_the_browser_read_it():
+    ws, english = _WS(), _TTS(b"")
+    svc = VoiceService(stt=_STT(), tts=_TTS(b""), english_tts=english)
+    await run_tts(ws, svc, "Very good, sir.", "en", 7, None, True)
+    assert ws.sent == [{"type": "voice_tts_audio", "data": "", "text": "Very good, sir.", "id": 7, "more": False}]
 
 
 async def test_unstreamed_reply_keeps_the_single_message_shape():

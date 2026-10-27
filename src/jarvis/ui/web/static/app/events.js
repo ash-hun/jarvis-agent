@@ -235,10 +235,12 @@ export function handleMessage(msg) {
 
     case 'voice_tts_audio':
       if (!takeSpeech(msg.id, msg.more)) break;  // Esc 등으로 멈춘 읽기의 늦은 결과
-      if (msg.data) {
-        voice.queueAudioBase64(msg.data, !!msg.more, msg.mime || 'audio/wav');  // 백엔드 TTS WAV. 문장마다 오면 이어 읽는다
-      } else if (msg.more) {
-        // 중간 문장 합성이 비었다. 브라우저로 읽으면 앞 문장을 끊으니 건너뛴다
+      if (msg.more) {
+        if (msg.data) voice.queueChunk(msg.data);  // 나오는 대로 오는 소리 조각. 앞 조각 끝에 이어 붙인다
+      } else if (msg.data) {
+        voice.playWav(Uint8Array.from(atob(msg.data), c => c.charCodeAt(0)).buffer);  // 한 번에 온 소리
+      } else if (msg.more === false && !msg.text) {
+        voice.endStream();  // 조각 읽기의 끝
       } else if (msg.text) {
         voice.speakBrowser(msg.text);  // 브라우저 TTS fallback
       } else {

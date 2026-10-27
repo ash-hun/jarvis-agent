@@ -40,6 +40,10 @@ class VoiceManager {
     this._audioCtx      = null;
     this._source        = null;   // 재생 중인 서버 TTS 오디오. 멈출 때 끊는다
     this._speakGen      = 0;      // stopSpeaking 마다 오른다. 준비 중이던 읽기는 끝나고 보면 낡았다
+    this._chain         = Promise.resolve();  // 조각 디코딩과 예약을 도착 순서대로
+    this._scheduled     = new Set();  // 예약했거나 재생 중인 조각
+    this._streamOpen    = false;  // 조각이 더 온다(끝 표시 전)
+    this._nextAt        = 0;      // 다음 조각을 시작할 AudioContext 시각
 
     // ── 마이크 점유: 인식 중인지, 언제 놓았는지, 계속 잡아 둘 스트림 ─────────────────
     this._micOpen       = false;
@@ -179,6 +183,13 @@ class VoiceManager {
     const done = this._sourceDone;
     this._sourceDone = null;
     if (done) done();
+    for (const source of this._scheduled) {
+      source.onended = null;
+      try { source.stop(); } catch (_) {}
+    }
+    this._scheduled.clear();
+    this._streamOpen = false;
+    this._nextAt = 0;
     if (this._utterance) this._utterance = null;  // 끊긴 문장의 onend 가 상태를 건드리지 않게
     if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
       window.speechSynthesis.cancel();
@@ -187,36 +198,79 @@ class VoiceManager {
   }
 
   /**
-   * 서버가 문장마다 보내는 합성 결과를 앞 문장이 끝난 뒤에 이어 읽는다.
-   * more 면 뒤 문장이 온다. 문장 사이에 idle 로 내려가지 않아야 다 읽기 전에 듣기를 시작하지 않는다.
-   * 멈추면(stopSpeaking) 줄 서 있던 문장도 읽지 않는다.
+   * 서버가 나오는 대로 보내는 소리 조각을 끊김 없이 잇는다. 조각마다 앞 조각이 끝나는 시각(AudioContext 시계)에 예약한다.
+   * onended 에서 다음 조각을 시작하면 경계마다 틈이 생긴다. 끝 표시(endStream)가 오고 마지막 조각이 끝날 때까지 speaking 이다.
+   * 멈추면(stopSpeaking) 예약한 조각과 오는 중인 조각 모두 읽지 않는다.
    */
-  queueAudioBase64(base64Data, more = false, mimeType = 'audio/wav') {
+  queueChunk(base64Data) {
     const gen = this._speakGen;
-    const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-    this._playChain = (this._playChain || Promise.resolve())
-      .then(() => (gen === this._speakGen ? this.playWav(bytes.buffer, { more }) : undefined));
-    return this._playChain;
+    const wav = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0)).buffer;
+    this._chain = this._chain.then(() => this._schedule(wav, gen)).catch((e) => {
+      console.error('[VoiceManager] Audio chunk failed:', e);
+    });
+  }
+
+  /** 조각이 더 오지 않는다. 남은 조각을 다 읽으면 idle. 조각이 하나도 없었으면 바로 idle. */
+  endStream() {
+    const gen = this._speakGen;
+    this._chain = this._chain.then(() => {
+      if (gen !== this._speakGen) return;
+      this._streamOpen = false;
+      if (this._scheduled.size === 0) this._setState('idle');
+    });
+  }
+
+  async _schedule(wav, gen) {
+    if (gen !== this._speakGen) return;
+    const first = !this._streamOpen;
+    if (first) {
+      this._streamOpen = true;
+      this._setState('speaking');
+      await this._afterMicReleased();
+      if (gen !== this._speakGen) return;
+      await this._readyAudioCtx();
+    }
+    const ctx = this._audioCtx;
+    const buffer = await ctx.decodeAudioData(wav);
+    if (gen !== this._speakGen) return;
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    // 조각이 늦게 와 앞 조각이 이미 끝났으면 틈이 생긴다. 잦으면 시작 버퍼를 둔다.
+    // 앞 읽기가 아직 소리 나는 중에 새 읽기가 오면 그 끝에 잇는다(겹치지 않게)
+    if (!first && ctx.currentTime > this._nextAt) {
+      console.warn(`[voice] underrun ${((ctx.currentTime - this._nextAt) * 1000).toFixed(0)}ms`);
+    }
+    const at = Math.max(ctx.currentTime, this._nextAt);
+    this._nextAt = at + buffer.duration;
+    this._scheduled.add(source);
+    source.onended = () => {
+      this._scheduled.delete(source);
+      if (gen === this._speakGen && !this._streamOpen && this._scheduled.size === 0) this._setState('idle');
+    };
+    source.start(at);
+  }
+
+  async _readyAudioCtx() {
+    if (!this._audioCtx || this._audioCtx.state === 'closed') {
+      this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    // Suspended context (autoplay policy) 해제
+    if (this._audioCtx.state === 'suspended') await this._audioCtx.resume();
   }
 
   /**
    * WAV 바이트를 재생한다. 미리 녹음한 문구도 이 길로 읽는다.
    * @param {ArrayBuffer} wav
-   * @param {{more?: boolean}} opts more 면 끝나도 speaking 으로 남는다(이어 읽을 문장이 있다)
    * @returns {Promise<void>} 끝나거나 멈추거나 실패하면 풀린다
    */
-  async playWav(wav, { more = false } = {}) {
+  async playWav(wav) {
     const gen = this._speakGen;
     this._setState('speaking');
     await this._afterMicReleased();
     if (gen !== this._speakGen) return;
     try {
-      if (!this._audioCtx || this._audioCtx.state === 'closed') {
-        this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      // Suspended context (autoplay policy) 해제
-      if (this._audioCtx.state === 'suspended') await this._audioCtx.resume();
-
+      await this._readyAudioCtx();
       const buffer = await this._audioCtx.decodeAudioData(wav.slice(0));
       if (gen !== this._speakGen) return;
       const source = this._audioCtx.createBufferSource();
@@ -228,7 +282,7 @@ class VoiceManager {
           resolve();
           if (this._source !== source) return;
           this._source = null;
-          if (!more) this._setState('idle');
+          this._setState('idle');
         };
         this._source = source;
         source.start(0);

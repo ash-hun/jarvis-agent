@@ -19,7 +19,7 @@ Web HUD 나 TUI 에서 JARVIS 에게 말로 묻고 응답을 소리로 듣는다
 |---|---|---|
 | STT | Web Speech API 가 브라우저에서 인식 | `whisper`: 브라우저가 MediaRecorder 로 녹음해 `voice_stt_submit` 으로 보내고 faster-whisper 가 전사 |
 | TTS | Web Speech API 가 합성 | `supertonic`: ONNX 합성 결과를 WAV 로 돌려준다 |
-| 영어 TTS | `TTS` 와 같은 프로바이더 | `piper`: Piper 음성 모델 하나로 영어 문장만 합성한다 |
+| 영어 TTS | `TTS` 와 같은 프로바이더 | `piper`: Piper 음성 모델 하나로 영어 문장만 합성한다. `qwen`: Mac 호스트의 Qwen3-TTS 합성 서버에 맡긴다 |
 
 whisper 와 supertonic 을 쓰려면 `uv sync --extra voice` 로 설치한다. Docker 의 web 이미지에는 들어 있지 않다. piper 는 `--extra piper` 이고 web 이미지에 들어 있다.
 
@@ -51,6 +51,25 @@ docker compose restart jarvis-backend
 
 모델 파일이 없거나 piper 가 설치되지 않았으면 서버 음성이 통째로 꺼지고 브라우저가 모두 읽는다. 백엔드 로그에 `[Voice] 서버 음성 비활성화` 가 남는다.
 
+## Qwen3-TTS 로 JARVIS 목소리 복제
+
+`JARVIS_VOICE__ENGLISH_TTS_PROVIDER=qwen` 이면 영어 문장을 Qwen3-TTS 1.7B 가 JARVIS 의 녹음 한 클립(`reference.wav`, 4~12초)을 따라 합성한다. Piper 파인튜닝 음성은 기계음이 심했다(UTMOS 2.6~2.9, 사람 녹음 4.1). 같은 48문장에서 Qwen 복제는 UTMOS 4.07, WER 0.017, 화자 유사도 0.965 로 목소리는 그대로이고 소리가 사람에 가깝다(llmclick 레시피 `tts_qwen` 측정).
+
+모델은 MLX 로 Apple GPU(Metal)에서 돈다. Docker 는 Mac 위의 리눅스 VM 이라 GPU 를 못 써서, 합성 서버(`services/qwen_tts`)를 Mac 에서 따로 띄우고 백엔드가 `host.docker.internal:8770` 으로 부른다. Ollama 와 같은 구조다. 서버에 닿지 않거나 실패하면 `PIPER_MODEL` 로 읽어 소리가 끊기지 않는다(로그 `[Voice] qwen 합성 서버에 닿지 않아 Piper 로 읽는다`).
+
+```bash
+services/qwen_tts/setup.sh            # 잠긴 버전(mlx-audio 0.6.2, mlx 0.32.4)으로 환경을 맞춘다. 다시 실행해도 같다
+mkdir -p ~/.jarvis/voices/qwen        # voice.json(모델, 버전, 기준 녹음 대본)과 reference.wav 를 둔다
+services/qwen_tts/run.sh              # 127.0.0.1:8770. GET /health, POST /tts {"text"} -> WAV(24kHz)
+services/qwen_tts/install-launchd.sh  # 로그인할 때 띄우고 죽으면 다시 띄운다(로그 ~/.jarvis/logs/qwen-tts.log)
+```
+
+- 모델(bf16 4.2GB)은 서버가 뜰 때 한 번 읽고 첫 문장으로 데운다. 메모리를 그만큼 계속 쓴다
+- 요청은 한 번에 하나씩 합성한다(MLX 모델은 동시에 두 번 생성하지 못한다). 매 요청 같은 seed 라 같은 문장은 같은 소리다
+- 서버는 127.0.0.1 에만 연다. Docker Desktop 의 `host.docker.internal` 은 호스트의 루프백에 닿는다
+- 기준 녹음은 손대지 않는다. 잡음 제거를 걸면 오히려 나빠졌다(UTMOS 4.07 에서 3.90)
+- Apple silicon Mac 에서만 된다. 리눅스 서버로 옮기면 이 방식은 쓸 수 없다
+
 ## JARVIS 가 하는 말은 모두 JARVIS 목소리로
 
 JARVIS 의 답은 한국어라 그대로 두면 한국어 TTS(supertonic)가 읽는다. `JARVIS_VOICE__SPEAK_ENGLISH=true` 를 두면 JARVIS 가 소리 내는 한국어 글(답, 🔔, filler, 앞으로 생길 종류 모두)을 소리로만 짧은 영어 구어체로 옮겨 Piper(JARVIS 목소리)로 읽는다. 화면에 쓰는 글은 한국어 그대로다.
@@ -79,7 +98,7 @@ JARVIS 전용으로 학습한 모델 세 가지를 레포의 `models/` 폴더에
 
 | 모델 | 파일 | 하는 일 |
 |---|---|---|
-| TTS | `models/tts/voice.onnx`, `voice.onnx.json` | 영어 문장을 JARVIS 목소리로 읽는다. Piper 음성이라 위의 `PIPER_MODEL` 로 지정한다 |
+| TTS | `models/tts/voice.onnx`, `voice.onnx.json` | 영어 문장을 JARVIS 목소리로 읽는다. Piper 음성이라 위의 `PIPER_MODEL` 로 지정한다. `qwen` 을 쓰면 서버에 닿지 않을 때만 읽는다 |
 | 읽기 문구 | `models/tts/phrases/phrases.json`, wav 9개 | 정해진 순간에 합성 대신 녹음한 문구를 읽는다 |
 | 웨이크워드 | `models/wakeword/jarvis.onnx`, `melspectrogram.onnx`, `embedding_model.onnx` | 모드와 상관없이 기다리는 동안 "Jarvis" 를 들으면 듣기를 연다 |
 
@@ -237,6 +256,20 @@ JARVIS_VOICE__TUI_RECORD_SECONDS=5
 </figure>
 
 문장 하나를 통째로 합성한 뒤 보내므로, 듣기 시작까지는 합성 시간만큼 기다린다. 긴 답이면 1초 남짓이다.
+
+### Qwen3-TTS 합성 속도: Mac GPU 와 Docker CPU
+
+같은 모델(1.7B bf16), 같은 기준 녹음, 같은 seed 로 영어 문장 다섯을 합성했다(첫 호출은 빼고 잰다). M4 Pro, Docker 는 14코어 23GB. 재현: `services/qwen_tts/bench.py <voice 디렉터리> <출력 디렉터리>`.
+
+| 문장(소리 길이) | Mac GPU | Docker CPU |
+|---|---|---|
+| 모델 로드 | 3.0초 | 18.8초 |
+| Yes, sir? (0.6초) | 0.48초 | 185.7초 |
+| Sir, I've put it on your screen. (2.3초) | 1.22초 | 재지 않음 |
+| Sir, your meeting with the team starts in ten minutes. (3.4초) | 1.69초 | 재지 않음 |
+| 16단어 문장(5.7초) | 2.65초 | 재지 않음 |
+
+Mac GPU 는 합성 시간이 소리 길이의 0.5배 안팎이라 대화에 쓸 수 있다. Piper(0.2배)보다는 2배쯤 느리다. Docker 안에서는 mlx 의 CPU 빌드가 설치되고 돌지만 두 단어에 3분이 걸렸고, 14코어 중 하나만 썼다. 그래서 합성 서버를 Docker 밖에 두었다.
 
 ### 실제 전사 기록에서 Focus 키워드 해석
 

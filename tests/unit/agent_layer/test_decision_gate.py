@@ -106,3 +106,32 @@ def test_decision_model_uses_its_own_threshold() -> None:
 
     assert ProactiveConfig().effective_threshold() == 0.85
     assert ProactiveConfig(decision_model="tev1").effective_threshold() == 0.6
+
+
+async def test_nothing_to_tell_stays_silent_even_with_high_probability() -> None:
+    frame = ThoughtFrame(decision="silent", confidence=0.1, utterance="")
+    out = await engine(frame, 0.9, utterance="").think(reflection())
+    assert out is not None and (out.decision, out.utterance) == ("silent", "")
+
+
+async def test_utterance_prompt_carries_persona_and_allows_nothing(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    from jarvis.model_layer.types import AssistantMessage
+    from jarvis.agent_layer.thought import decision_gate
+
+    prompts: list[str] = []
+
+    async def fake_stream(model, ctx, options):  # type: ignore[no-untyped-def]
+        prompts.append(ctx.messages[0].content)
+        return AssistantMessage(content=[])
+
+    monkeypatch.setattr(decision_gate, "stream_to_message", fake_stream)
+    gate = DecisionGatedEngine(
+        FakeInner(ThoughtFrame(decision="silent", confidence=0.1)),
+        FakeDecision(0.9),  # type: ignore[arg-type]
+        ModelConfig(provider="faux", model="m"),
+        clock=lambda: NOW,
+        persona="애쉬의 행정비서",
+    )
+    out = await gate.think(reflection())
+    assert "[말투] 애쉬의 행정비서" in prompts[0] and "아무것도 출력하지 않는다" in prompts[0]
+    assert out is not None and out.decision == "silent"

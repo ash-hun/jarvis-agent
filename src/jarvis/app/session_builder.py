@@ -148,7 +148,12 @@ class SessionBuilder:
             from jarvis.model_layer.decision import DecisionModel
 
             decision = DecisionModel(decision_name, self._profile.proactive.decision_base_url)
-            engine = DecisionGatedEngine(engine, decision, utterance_model=self._profile.thought_model())
+            engine = DecisionGatedEngine(
+                engine,
+                decision,
+                utterance_model=self._profile.thought_model(),
+                persona=self._profile.brand.persona,
+            )
         # 설정된 싱크만, 모르는 이름은 무시한다
         sink_factories: dict[str, Callable[[], ThoughtSink]] = {
             "ltm": lambda: LTMThoughtSink(services.memory),

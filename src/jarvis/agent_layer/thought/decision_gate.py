@@ -18,10 +18,14 @@ HISTORY_CHARS = 200
 SPEAK_QUESTION = "지금 사용자에게 먼저 말을 거는 것이 사용자에게 실제로 도움이 되는가"
 SPEAK_NO = "말을 걸지 않는 것이 낫다. 알릴 것이 없거나, 이미 끝났거나, 사용자와 관계없거나, 아직 한참 남은 일이다"
 SPEAK_YES = "지금 먼저 알려야 한다. 기한이 다가오거나 지났거나, 사용자의 일에 직접 영향을 주는 일이 생겼다"
+# 알릴 거리가 없을 때 빈 답을 허락하지 않으면 모델이 인사("안녕하세요! 더 궁금한 점 있으시면…")를 지어 🔔 로 보낸다
 UTTERANCE_PROMPT = """\
 아래 상황에서 사용자에게 먼저 건넬 한두 문장만 써라. 사용자를 분석하는 문장이 아니라 말을 거는 문장으로 쓴다.
 설명이나 따옴표 없이 문장만 출력한다.
+알릴 구체적인 것(다가온 기한, 새 소식, 챙길 일)이 없으면 아무것도 출력하지 않는다. 인사, 안부,
+"더 궁금한 점 있으면 말씀해 주세요" 같은 말만 건네는 문장은 쓰지 않는다.
 
+[말투] {persona}
 [지금] {now}
 [열린 약속] {open_loops}
 [외부 이벤트] {external_events}
@@ -64,8 +68,10 @@ class DecisionGatedEngine(ThoughtEngine):
         utterance_model: ModelConfig,
         clock: Callable[[], datetime] | None = None,
         floor: float = UTTERANCE_FLOOR,
+        persona: str = "",
     ) -> None:
         self._inner = inner
+        self._persona = persona
         self._floor = floor
         self._decision = decision
         self._utterance_model = utterance_model
@@ -97,6 +103,7 @@ class DecisionGatedEngine(ThoughtEngine):
 
     async def _utterance(self, state: dict[str, Any]) -> str:
         prompt = UTTERANCE_PROMPT.format(
+            persona=self._persona or "(없음)",
             now=state["now"],
             open_loops=", ".join(state["open_promises"]) or "(없음)",
             external_events=", ".join(state["external_events"]) or "(없음)",

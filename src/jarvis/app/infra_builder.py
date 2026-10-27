@@ -98,14 +98,14 @@ class InfraBuilder:
             # 말로 "1분 뒤에 알려줘" 해도 /schedule 과 같은 일정이 생기게
             tool_registry.register(ScheduleTool(make_schedule_handler(scheduler, make_llm_classifier(model_config))))
 
+        # open loop 과 사용자 모델 저장소는 앱에 하나(모든 세션과 daemon 이 공유). 청약 도구도 약속을 남겨 먼저 만든다
+        openloop_store = self.build_openloop_store() if settings.thought.enabled else None
         ctx = AppContext(
             session_repo=session_repo,
             tool_registry=tool_registry,
             settings=settings,
-            agent_tools=self.build_agent_tools(memory),
+            agent_tools=self.build_agent_tools(memory, openloop_store),
         )
-        # open loop 과 사용자 모델 저장소는 앱에 하나(모든 세션과 daemon 이 공유)
-        openloop_store = self.build_openloop_store() if settings.thought.enabled else None
         user_model_store = (
             self.build_user_model_store() if settings.thought.enabled and settings.user_model.enabled else None
         )
@@ -178,14 +178,16 @@ class InfraBuilder:
             registry.register(tool)
         return registry
 
-    def build_agent_tools(self, memory: "MemoryService | None" = None) -> "ToolRegistry":
+    def build_agent_tools(
+        self, memory: "MemoryService | None" = None, loops: "OpenLoopStore | None" = None
+    ) -> "ToolRegistry":
         """에이전트 정의가 이름으로 골라야 쓰는 도구. JARVIS(도구 목록 없음)의 레지스트리에는 넣지 않는다."""
         from jarvis.core.tools.housing import ProfileStore, housing_tools
         from jarvis.core.tools.registry import ToolRegistry
 
         registry = ToolRegistry()
         profiles = ProfileStore(memory) if memory is not None else None
-        for tool in housing_tools(profiles=profiles):
+        for tool in housing_tools(profiles=profiles, loops=loops):
             registry.register(tool)
         return registry
 

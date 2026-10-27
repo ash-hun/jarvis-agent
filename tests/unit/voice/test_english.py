@@ -2,7 +2,7 @@
 
 import base64
 
-from jarvis.voice.english import FALLBACK_LINE, clean_english, should_speak_english
+from jarvis.voice.english import FALLBACK_LINE, clean_english, split_sentences, should_speak_english
 from jarvis.voice.service import VoiceService
 from jarvis.ui.web.ws_tasks import run_tts
 
@@ -45,15 +45,42 @@ class _STT:
         return ""
 
 
-async def _speak(translated):
+async def _speak(translated, stream=False):
     ws, korean, english = _WS(), _TTS(b"ko"), _TTS(b"en")
     svc = VoiceService(stt=_STT(), tts=korean, english_tts=english)
 
     async def translate(text):
         return translated
 
-    await run_tts(ws, svc, "내일 오전엔 운동하시면 됩니다.", "ko", 7, translate)
-    return ws.sent[0], korean.read, english.read
+    await run_tts(ws, svc, "내일 오전엔 운동하시면 됩니다.", "ko", 7, translate, stream)
+    return (ws.sent if stream else ws.sent[0]), korean.read, english.read
+
+
+def test_split_sentences_keeps_short_tails_with_the_sentence_before():
+    assert split_sentences("Yes, sir. The meeting starts at three.  The weather is clear today.") == [
+        "Yes, sir.",
+        "The meeting starts at three.",
+        "The weather is clear today.",
+    ]
+    # 짧은 뒤 조각이 따로 읽히면 끊겨 들린다
+    assert split_sentences("You have three notices to review today. Shall I?") == [
+        "You have three notices to review today. Shall I?"
+    ]
+    assert split_sentences("Very good, sir") == ["Very good, sir"]
+
+
+async def test_streamed_reply_is_synthesized_and_sent_one_sentence_at_a_time():
+    sent, _korean, english = await _speak("You have a meeting at three today. The weather is clear and mild.", True)
+    assert [t for t, _ in english] == ["You have a meeting at three today.", "The weather is clear and mild."]
+    assert [(m["text"], m["more"], m["id"]) for m in sent] == [
+        ("You have a meeting at three today.", True, 7),
+        ("The weather is clear and mild.", False, 7),
+    ]
+
+
+async def test_unstreamed_reply_keeps_the_single_message_shape():
+    sent, _korean, _english = await _speak("You have a meeting at three today. The weather is clear and mild.")
+    assert "more" not in sent and sent["text"].endswith("mild.")
 
 
 async def test_translated_reply_is_read_by_the_english_voice_and_reports_what_it_read():

@@ -125,7 +125,8 @@ export function requestSpeech(text, { thenListen = null, source = '' } = {}) {
   voice.setProcessing();
   const id = ++_speechSeq;
   _awaitingSpeech.add(id);
-  send({ type: 'voice_tts_request', text, id, source });
+  // stream: 서버가 문장마다 합성해 보낸다. 첫 문장을 읽는 동안 다음 문장을 합성해 첫 소리가 빨라진다
+  send({ type: 'voice_tts_request', text, id, source, stream: true });
 }
 
 // 먼저 건네는 말을 읽는다. 사용자가 말하거나 듣거나 다른 말을 읽는 중이면 끊지 않고 끝날 때까지 미룬다.
@@ -149,10 +150,11 @@ function listenAgainForApproval() {
   }, LISTEN_AFTER_SPEECH_MS);
 }
 
-// 도착한 합성 결과를 읽을지. 멈춘 뒤에 늦게 온 결과는 버린다. id 없는 결과(옛 서버)는 읽는다
-export function takeSpeech(id) {
+// 도착한 합성 결과를 읽을지. 멈춘 뒤에 늦게 온 결과는 버린다. id 없는 결과(옛 서버)는 읽는다.
+// more 면 같은 읽기의 문장이 더 온다. 마지막 문장에서 기다림을 끝낸다
+export function takeSpeech(id, more = false) {
   if (id === null || id === undefined) return true;
-  return _awaitingSpeech.delete(id);
+  return more ? _awaitingSpeech.has(id) : _awaitingSpeech.delete(id);
 }
 
 export function isSpeechActive() {

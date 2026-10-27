@@ -334,36 +334,36 @@ def proactive() -> Fig:
     f = Fig("proactive", 472, "먼저 말하기 전에 지나는 게이트와 피드백 학습")
     f.panel(16, 12, 728, 270, "(a) 성찰 한 번")
     # 위 줄은 사고 앞뒤의 거르기(session.reflect), 아래 줄은 정책 게이트와 보내기 직전 검사. 코드 순서 그대로다
-    t, g1, g2, th, g3 = spread(f, [
+    t, g1, g2, g3, th = spread(f, [
         ("box", "트리거", "주기, 유휴, 이벤트", False, 104, "io"),
-        ("gate", "답 기다리는 🔔 없음", "", False, None),
-        ("gate", "대화가 있었음", "", False, None),
+        ("gate", "답 기다리는 말 없음", "", False, None),
+        ("gate", "말할 근거 있음", "열린 약속, 새 이벤트", False, None),
+        ("gate", "입력이 바뀜", "15분마다 다시 봄", False, None),
         ("box", "성찰 사고", "+ decision model", False, 118),
-        ("gate", "되풀이 아님", "최근 🔔, 10분 안 답", False, None),
     ], 40, 28, 718)
-    for a, b in ((t, g1), (g1, g2), (g2, th), (th, g3)):
+    for a, b in ((t, g1), (g1, g2), (g2, g3), (g3, th)):
         f.edge([a.right, b.left], "accent")
-    g4, g5, g6, g7, g8 = spread(f, [
-        ("gate", "act 또는 ask", "decision", True, None),
-        ("gate", "확신도 ≥ θ", "기본 0.6", False, None),
-        ("gate", "말할 문장 있음", "utterance", True, None),
-        ("gate", "쿨다운 지남", "세션별 300초", False, None),
-        ("gate", "답하는 중 아님", "busy", True, None),
-    ], 156, 28, 718, reverse=True)
-    f.edge([g3.right, (732, g3.cy), (732, g4.cy), g4.right], "accent")
-    for a, b in ((g4, g5), (g5, g6), (g6, g7), (g7, g8)):
+    g4, g5, g6, g7, g8, g9 = spread(f, [
+        ("gate", "되풀이 아님", "", False, None),
+        ("gate", "act, ask", "", False, None),
+        ("gate", "확신도 ≥ θ", "", False, None),
+        ("gate", "문장 있음", "", False, None),
+        ("gate", "쿨다운 지남", "", False, None),
+        ("gate", "답하는 중 아님", "", False, None),
+    ], 162, 28, 718, reverse=True)
+    f.edge([th.right, (732, th.cy), (732, g4.cy), g4.right], "accent")
+    for a, b in ((g4, g5), (g5, g6), (g6, g7), (g7, g8), (g8, g9)):
         f.edge([a.left, b.right], "accent")
-    out = f.box(28, 222, "🔔 먼저 건네는 말", "저위험 자율 행동 결과 포함", kind="accent", w=170)
-    f.edge([g8.bottom, (g8.cx, out.y)], "accent")
+    out = f.box(28, 222, "에이전트가 먼저 건네는 말", "대화 기록에 남는다", kind="accent", w=190)
+    f.edge([g9.bottom, (g9.cx, out.y)], "accent")
     lane = f.box(40, 116, "침묵. 이유만 로그에 남긴다", w=666, h=26, kind="muted")
     for g in (g1, g2, g3):
         f.edge([g.bottom, (g.cx, lane.y)], "muted", head=True)
-    for g in (g4, g5, g6, g7, g8):
+    for g in (g4, g5, g6, g7, g8, g9):
         f.edge([g.top, (g.cx, lane.y + lane.h)], "muted", head=True)
-    f.text(th.cx, th.y + th.h + 14, "알릴 것이 없으면 문장을 비운다", "pf-s", "middle")
     f.panel(274, 294, 470, 166, "(b) 피드백 학습")
-    react = f.box(340, 348, "🔔 에 대한 반응", "다음 짧은 답", w=118, center=True, kind="io")
-    opts = ["수락, θ − 0.05", "무시, θ + 0.05", "무응답 600초, θ + 0.025"]
+    react = f.box(340, 348, "그 뒤 첫 말", "묻지 않고 읽는다", w=118, center=True, kind="io")
+    opts = ["받아들임, θ − 0.05", "거절, θ + 0.05", "딴 얘기, 무응답, θ + 0.025"]
     ob = [f.box(502, 318 + i * 44, t, w=170, h=34, center=True) for i, t in enumerate(opts)]
     for b in ob:
         f.edge([react.right, (407, react.cy), (407, b.cy), b.left], "", head=True)
@@ -372,8 +372,8 @@ def proactive() -> Fig:
         f.edge([b.right, (608, b.cy), (608, th_box.cy), th_box.left], "", head=False)
     f.edge([(608, th_box.cy), th_box.left], "")
     f.edge(
-        [th_box.top, (th_box.cx, 290), (g5.cx, 290), g5.bottom],
-        "accent", "θ 를 옮긴다", at=(g5.cx + 6, 268), anchor="start", dy=0,
+        [th_box.top, (th_box.cx, 290), (g6.cx, 290), g6.bottom],
+        "accent", "θ 를 옮긴다", at=(g6.cx + 6, 268), anchor="start", dy=0,
     )
     f.panel(16, 294, 246, 166, "(c) Dual channel")
     g = f.gate(139, 324, "오래 걸릴 요청인가", "needs_background", code=True, center=True)

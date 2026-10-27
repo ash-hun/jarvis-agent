@@ -17,6 +17,7 @@ from jarvis.agent_layer.thought.prompt import (
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
 from jarvis.core.external import ExternalEvent, ExternalEventInbox
 from jarvis.agent_layer.thought.engine import InnerThoughtEngine
+from tests.fixtures.grounded_loops import GroundedLoopStore
 from jarvis.agent_layer.types import ProactiveMessageEvent
 
 
@@ -69,6 +70,7 @@ def _build_session(fx, session_id, *, engine=None, inbox=None, detail=False, fac
         proactivity_factory=factory,
         external_inbox=inbox,
         external_detail_in_prompt=detail,
+        openloop_store=GroundedLoopStore(),
     )
     # 성찰 연결 테스트라 사용자가 이미 말한 세션으로 둔다(말한 적 없는 세션은 성찰하지 않는다)
     session._user_spoke = True

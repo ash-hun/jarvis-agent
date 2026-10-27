@@ -2,7 +2,6 @@
 import { sendUserText, setInputEnabled, updateHighlight } from './composer.js';
 import { setStatus, currentStatus, logActivity } from './shell.js';
 import { isFullVoice, onModeChange, setMode } from './mode.js';
-import { tryProactiveFeedback } from './proactive.js';
 import { answerApprovalByVoice, isApprovalOpen } from './approval.js';
 import { escapeHtml } from './markdown.js';
 import { isAgentBusy } from './events.js';
@@ -26,6 +25,7 @@ let _thenListen = null;    // 마지막 읽기 요청이 끝났을 때 다시 �
 let _speechSeq = 0;
 const _awaitingSpeech = new Set();  // 보냈지만 아직 오디오가 오지 않은 읽기 요청 id
 let _approvalListens = 0;  // 음성 승인 답을 기다리며 남은 듣기 횟수
+let _held = null;          // 사용자가 말하거나 듣는 중이라 미뤄 둔 먼저 건네는 말 { text, opts }
 
 export function isVoiceMode() { return _voiceMode; }
 export function clearVoiceMode() { _voiceMode = false; }
@@ -51,8 +51,6 @@ export const voice = new VoiceManager({
       requestSpeech(heard, { source: 'approval_answer' });
       return;
     }
-    // proactive 직후 짧은 음성 답을 수락/무시로 해석 (C3, voice).
-    if (await tryProactiveFeedback(transcript)) { voice.setIdle(); return; }
     _voiceMode = true;
     showUser(transcript);
     // "포커스 모드 <작업>", "포커스 모드 종료" 는 /focus 명령으로 보낸다
@@ -82,6 +80,13 @@ export const voice = new VoiceManager({
           HUD.setState('idle');
         }
         setInputEnabled(true);
+      }
+      // 말을 끊지 않으려고 미뤄 둔 말이 있으면 지금 한다. 그 말의 thenListen 이 다음 듣기를 정한다
+      if (_held && !isAgentBusy()) {
+        const { text, opts } = _held;
+        _held = null;
+        requestSpeech(text, opts);
+        return;
       }
       const thenListen = _thenListen;
       _thenListen = null;
@@ -123,6 +128,13 @@ export function requestSpeech(text, { thenListen = null, source = '' } = {}) {
   send({ type: 'voice_tts_request', text, id, source });
 }
 
+// 먼저 건네는 말을 읽는다. 사용자가 말하거나 듣거나 다른 말을 읽는 중이면 끊지 않고 끝날 때까지 미룬다.
+// 미뤄 둔 말은 하나만 둔다. 더 새 말이 오면 그것으로 바꾼다
+export function speakWhenFree(text, opts = {}) {
+  if (voice.state === 'idle' && !isSpeechActive() && !isAgentBusy()) requestSpeech(text, opts);
+  else _held = { text, opts };
+}
+
 // 음성 승인 답을 기다린다. 질문이나 다른 읽기가 끝날 때, 인식이 말 없이 끝날 때마다 다시 듣는다.
 // 한 번만 들으면 늦게 말하거나 다른 읽기가 끼어든 답을 놓쳐 120초 뒤 거부된다
 export function listenForApproval() { _approvalListens = APPROVAL_LISTEN_MAX; }
@@ -149,6 +161,7 @@ export function isSpeechActive() {
 
 // 읽던 것과 기다리던 읽기를 모두 멈춘다. 멈춘 뒤엔 Full-voice 라도 다시 듣지 않는다
 export function stopSpeech() {
+  _held = null;
   _awaitingSpeech.clear();
   _thenListen = null;
   _approvalListens = 0;

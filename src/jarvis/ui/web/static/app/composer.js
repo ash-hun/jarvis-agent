@@ -3,7 +3,6 @@ import { send } from './ws.js';
 import { escapeHtml } from './markdown.js';
 import { setStatus } from './shell.js';
 import { appendMsg, streamEnd, showAwaitPlaceholder, hideAwaitPlaceholder } from './messages.js';
-import { tryProactiveFeedback } from './proactive.js';
 import { noteFocusCommand } from './focus.js';
 
 const $input          = document.getElementById('chat-input');
@@ -74,9 +73,6 @@ async function submitMessage() {
   appendMsg('USER', 'user', escapeHtml(text));
   $input.value = '';
   updateHighlight();
-  // 🔔 답 분류를 기다리는 동안 다음 입력이 끼어들지 않게 잠근다
-  setInputEnabled(false);
-  if (await tryProactiveFeedback(text)) { setInputEnabled(true); return; }
   sendUserText(text);
 }
 

@@ -4,8 +4,8 @@ import { AGENT_NAME } from './brand.js';
 import { apiFetch } from './api.js';
 import { escapeHtml, renderMarkdown, attachCopyBtns } from './markdown.js';
 import { logActivity, showLive, lastLine, CAPTION_HOLD_MS } from './shell.js';
-import { appendMsg } from './messages.js';
-import { requestSpeech } from './voice-ui.js';
+import { appendMsg, appendAgentMsg } from './messages.js';
+import { speakWhenFree } from './voice-ui.js';
 import { loadAgents, isTeam, agentTag } from './agents.js';
 
 const $scheduleList = document.getElementById('schedule-list');
@@ -168,7 +168,7 @@ async function toggleSchedule(name, enabled) {
 setInterval(fetchAgenda, REFRESH_MS);
 
 // ── 스케줄 알림 ───────────────────────────────────────────────────────────────
-// 서버가 스케줄 실행 결과를 {type:'reminder'} 로 방송한다. 대화 🔔 · 캡션 · Activity ·
+// 서버가 스케줄 실행 결과를 {type:'reminder'} 로 방송한다. 대화(에이전트의 말), 캡션, Activity,
 // 브라우저 시스템 알림(탭이 뒤에 있을 때) · 음성으로 알린다.
 function noticeSuffix(n) {
   if (n.missed) return ' (놓친 알림)';
@@ -185,7 +185,8 @@ export function showNotice(n) {
   const body = result
     ? header + renderMarkdown(text)
     : `${escapeHtml(text)}${suffix ? `<span class="thought-meta">${escapeHtml(suffix)}</span>` : ''}`;
-  const div = appendMsg('🔔', n.error ? 'err' : 'proactive', body);
+  // 알림도 에이전트가 말한 한 턴으로 보인다. 실패만 시스템 줄로 남긴다
+  const div = n.error ? appendMsg('SYS', 'err', body) : appendAgentMsg(body);
   attachCopyBtns(div);
 
   logActivity(`🔔 ${result ? n.title : text}${suffix}`, n.error ? 'err' : 'proactive');
@@ -199,6 +200,6 @@ export function showNotice(n) {
   }
 
   // 놓친 알림은 한꺼번에 몰려올 수 있어 읽지 않는다
-  if (!n.missed && text) requestSpeech(text.slice(0, 400), { source: 'reminder' });
+  if (!n.missed && text) speakWhenFree(text.slice(0, 400), { source: 'reminder' });
   fetchAgenda();  // 한 번 실행 알림은 울린 뒤 목록에서 빠진다
 }

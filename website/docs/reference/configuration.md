@@ -180,6 +180,7 @@ JARVIS_WEB_SEARCH__BRAVE_API_KEY=           # 비우면 web_search 가 DuckDuckG
 
 ```bash
 JARVIS_VOICE__STT_PROVIDER=browser      # browser | whisper
+JARVIS_VOICE__WHISPER_MODEL_SIZE=base   # tiny | base | small | medium. 클수록 정확하고 느리다. 운영은 small
 JARVIS_VOICE__TTS_PROVIDER=browser      # browser | supertonic
 JARVIS_VOICE__TTS_LANG=ko
 JARVIS_VOICE__ENGLISH_TTS_PROVIDER=piper  # 비우면 영어 문장도 TTS_PROVIDER 가 읽는다
@@ -193,7 +194,7 @@ JARVIS_VOICE__TUI_ENABLED=false
 JARVIS_VOICE__TUI_RECORD_SECONDS=5
 ```
 
-영어 TTS 를 따로 두는 법은 [Voice Interface](../concepts/conversation/voice.md#영어-문장은-piper-음성으로) 에 있다. whisper 모델 크기와 STT 언어 키는 설정 클래스에 있지만 현재 프로바이더가 읽지 않는다. whisper 는 한국어로 고정돼 있다.
+영어 TTS 를 따로 두는 법은 [Voice Interface](../concepts/conversation/voice.md#영어-문장은-piper-음성으로) 에 있다. STT 언어 키는 설정 클래스에 있지만 whisper 가 읽지 않는다. whisper 는 한국어로 고정돼 있다. 모델 크기를 바꾸면 처음 인식할 때 모델을 새로 받는다.
 
 ## 화면과 브랜드
 

@@ -51,7 +51,9 @@ flowchart TD
   X --> E[사고 엔진 think mode=reflection]
   E --> F{프레임}
   F -- None --> Q[조용히 끝]
-  F --> G1{decision 이 act 또는 ask?}
+  F --> RP{최근 🔔 나 10분 안의 답을 되풀이하나?}
+  RP -- 예 --> LR[로그: repeats ...]
+  RP -- 아니오 --> G1{decision 이 act 또는 ask?}
   G1 -- 아니오 --> L[로그: proactive silent decision=silent]
   G1 --> G2{confidence ≥ 임계치?}
   G2 -- 아니오 --> L2[로그: confidence x < y]
@@ -60,8 +62,10 @@ flowchart TD
   G3 --> G4{세션 쿨다운 지났나?}
   G4 -- 아니오 --> L4[로그: cooldown]
   G4 --> A[저위험 자율 행동 실행]
-  A --> M[proactive_message kind=proactive 🔔]
-  M --> N[Slack 알림, 화면, 음성]
+  A --> B{세션이 답하는 중인가?}
+  B -- 예 --> LB[로그: suppressed while answering]
+  B -- 아니오 --> M[proactive_message kind=proactive 🔔]
+  M --> N[화면, 음성, Web Push, Slack, Discord]
 ```
 
 - **daemon** (`daemon.py`): 트리거를 먼저 기다린 뒤 tick 한다. 그래서 기동 직후에는 말하지 않는다. Web 은 최근 활동 순으로 모든 세션을 성찰하고, TUI 는 현재 세션만 성찰한다
@@ -70,6 +74,8 @@ flowchart TD
 - **성찰 프롬프트**: 사용자 입력 자리가 없고, 대신 `[외부 이벤트]` 와 `[최근에 먼저 건넨 말]`(세션의 최근 먼저 건넨 말 3개)이 있다. 프롬프트는 "지금 말하면 도움이 되는가" 와 그 확신도만 정직하게 내라고 하고, 말할 때의 기준(기한 임박, 사용자 일에 영향을 주는 이벤트)과 침묵할 때의 기준(한참 남은 일, 끝난 일, 무관한 알림, 이미 한 말)을 준다. 거르기는 정책의 임계치가 한다
 - **게이트** (`policy.py`, `decide_proactive`): 응답 대기, 결정, 확신도, 빈 발화, 쿨다운 순서로 검사한다. 전부 지나야 발화 시각을 기록하고 응답 대기에 들어간다. 침묵 이유는 `[Thought] proactive silent: <이유>` 로그로 남는다
 - **발화 내용**: 먼저 건네는 말은 `utterance` 만 쓴다. 해석문을 대신 내보내지 않는다
+- **되풀이 막기** (`session.py`, `reflect`): 사고는 최근 🔔 나 방금 끝난 답을 말만 바꿔 다시 고르곤 한다. 최근 🔔 3개와 같은 취지(`same_loop`)이거나, 10분(`REPEAT_ANSWER_SEC`) 안에 한 마지막 답과 겹치면(`refers_to`) 보내지 않는다. 10분이 지난 답은 보지 않으므로 며칠 뒤의 마감 알림은 막히지 않는다
+- **답하는 중** (`session.py`, `_emit_proactive`): 세션이 요청을 처리하는 동안 생긴 🔔 는 버린다. 답과 엉뚱한 🔔 가 섞여 나가지 않게 한다. 💬 filler 와 뒤로 넘긴 답(`answer`)은 그대로 나간다
 
 | 게이트 | 설정 | 기본 |
 |---|---|---|
@@ -143,6 +149,8 @@ sequenceDiagram
 
 JARVIS 는 열린 화면이 없어도 먼저 건네는 말과 스케줄 결과를 Slack incoming webhook 이나 Discord 채널 webhook 으로 보낸다. 주소는 `JARVIS_NOTIFY__SLACK_WEBHOOK_URL`, `JARVIS_NOTIFY__DISCORD_WEBHOOK_URL` 이고 둘 다 있으면 둘 다 보낸다. Discord 로 보낼 때는 `@everyone` 같은 멘션이 사람을 부르지 않게 막고, webhook 하나로 보내되 메시지마다 보낸 에이전트의 이름(브랜드 워드마크)과 아바타(`JARVIS_NOTIFY__AVATAR_BASE_URL`/`<에이전트 id>.png`)를 붙여 에이전트마다 다른 봇처럼 보이게 한다. 아바타는 Web HUD 의 에이전트별 구체를 `scripts/capture_avatars.py` 로 찍어 `assets/avatars/` 에 둔다. 보낼 종류는 `JARVIS_NOTIFY__KINDS`(`reminder`, `proactive`, `spoken`)로 정한다. `spoken` 은 Web HUD 가 소리 내어 읽은 말(답변, 대기 안내, 승인 질문과 되읽기, 녹음 문구)을 읽은 그대로 보낸다. 화면이 읽기를 요청할 때 무엇을 읽는지(`source`)를 함께 보내고, 서버가 이미 보낸 🔔 와 ⏰ 는 빼서 두 번 가지 않게 한다. 읽은 말이 없으면(음성 모드가 꺼져 있으면) 보내지 않는다. 먼저 건넨 말의 대기 안내(filler)는 읽혔을 때만 `spoken` 으로 간다. 오래 걸린다고 뒤로 넘긴 작업이 끝나면 그 답을 `💬 <에이전트 이름>` 으로 보낸다(`proactive` 종류에 포함, 음성 모드와 상관없이). 음성 모드에서 화면이 그 답을 읽어도 다시 보내지 않는다. 스케줄 결과의 제목줄은 화면과 같은 아이콘을 쓴다(알림은 ⏰, 할 일을 실행한 작업 결과는 ⏱). 재시도는 하지 않고, 실패는 로그에 남긴다.
 
+모바일 앱에는 Web Push 로 보낸다(`JARVIS_NOTIFY__WEBPUSH_*`, 세션 저장소가 Postgres 일 때만). 푸시 제목은 Discord 처럼 보낸 에이전트를 보인다. 에이전트 메인 색에 가장 가까운 색 원 이모지와 이름(예: `🟢 K.A.R.E.N.`)이 제목이고, 🔔, ⏰ 같은 종류 표시와 스케줄 작업 이름은 본문 앞으로 간다. 아바타가 있으면 알림 아이콘(`icon`)으로 붙인다. 보일 글이 없으면 보내지 않는다. 빈 푸시를 받은 iOS 가 구독을 끊기 때문이다.
+
 ## 성능 실험
 
 ### 게이팅 정책(LLM 없음)
@@ -188,7 +196,7 @@ JARVIS 는 열린 화면이 없어도 먼저 건네는 말과 스케줄 결과�
 
 ### decision model 은 엔진을 감싼다
 
-decision model 은 `DecisionGatedEngine` 으로 사고 엔진을 감싼다. 요청 사고는 그대로 두고, 성찰 사고만 decision model 확률로 결정과 확신도를 바꾼다. 확률이 0.3 보다 낮으면 바로 침묵하고, 그 위에서 말하기로 했는데 사고 프레임에 건넬 말이 비어 있으면 그때만 사고 모델로 한두 문장을 만든다. decision model 호출이 실패하면 원래 프레임을 그대로 쓴다. `JARVIS_PROACTIVE__DECISION_MODEL` 이 비어 있으면 감싸지 않으므로, 이 기능이 없을 때와 동작이 같다.
+decision model 은 `DecisionGatedEngine` 으로 사고 엔진을 감싼다. 요청 사고는 그대로 두고, 성찰 사고만 decision model 확률로 결정과 확신도를 바꾼다. 확률이 0.3 보다 낮으면 바로 침묵하고, 그 위에서 말하기로 했는데 사고 프레임에 건넬 말이 비어 있으면 그때만 사고 모델로 한두 문장을 만든다. 이 보조 프롬프트에는 에이전트의 말투를 넘기고, 알릴 구체적인 것이 없으면 아무것도 쓰지 않게 했다. 빈 답이면 침묵한다. 빈 답을 허락하지 않았을 때는 "안녕하세요! 더 궁금한 점 있으시면 말씀해 주세요." 같은 인사가 🔔 로 나갔다. 성찰 지시문의 침묵 기준에도 "건넬 말이 인사, 안부뿐이다" 를 넣었다. decision model 호출이 실패하면 원래 프레임을 그대로 쓴다. `JARVIS_PROACTIVE__DECISION_MODEL` 이 비어 있으면 감싸지 않으므로, 이 기능이 없을 때와 동작이 같다.
 
 ### 말할 거리가 없으면 해석문을 내보내지 않는다
 
@@ -206,7 +214,7 @@ flowchart TD
   SES --> ENG[사고 엔진 reflection 모드]
   POL --> CORE[DefaultProactivityCore]
   CORE -. proactive_message .-> HUD[🔔 화면]
-  CORE --> NTF[core/notify Slack]
+  CORE --> NTF[core/notify<br/>Web Push, Slack, Discord]
   HUD -->|짧은 답| RC[ReplyClassifier<br/>thought/reply.py]
   HUD -->|키워드 답| FB[FeedbackLearner]
   RC --> FB

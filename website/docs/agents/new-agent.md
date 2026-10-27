@@ -45,7 +45,7 @@ proactive: false
 | `quote` | | 빈 문자열 | HUD 에 뜨는 명언 |
 | `palette` | | JARVIS 기본 색 | `primary` 는 링, 입자 구, 패널, 에이전트 칩, AGENDA 라벨 색 |
 | `persona` | | 개성 없음 | 말투와 성격. 대화 답변(시스템 프롬프트 맨 앞)과 먼저 건네는 말, filler 에 같이 쓰인다. JARVIS 의 개성은 이어받지 않는다 |
-| `system_prompt` | | 비움 | 이 에이전트의 역할과 규칙. 말투는 `persona` 에 둔다 모든 에이전트의 시스템 프롬프트 끝에는 "답은 간결하게" 공통 규칙(`agent_profile.ANSWER_RULE`)이 붙는다 |
+| `system_prompt` | | 비움 | 이 에이전트의 역할과 규칙. 말투는 `persona` 에 둔다. 모든 에이전트의 시스템 프롬프트 끝에는 "답은 간결하게" 공통 규칙(`agent_profile.ANSWER_RULE`)이 붙는다 |
 | `model` | | JARVIS 모델 | 모델 이름만 바꾼다. 프로바이더, 키, 주소는 JARVIS 것을 쓴다 |
 | `tools` | | 앱의 도구 전체 | 쓸 도구 이름 목록 |
 | `proactive` | | JARVIS 설정 | `false` 면 혼자 먼저 말을 걸지 않고 성찰도 건너뛴다 |

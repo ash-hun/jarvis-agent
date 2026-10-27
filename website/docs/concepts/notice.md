@@ -14,7 +14,7 @@ Jarvis-Agent의 기능을 정리하고 어떤 원칙으로 구현되었는지 �
 | [Basic Conversation](./architecture/index.md) | 메시지를 받아 LLM 과 도구를 오가며 답한다. 스트리밍, 중단, 프로바이더 교체 | 입력창, 음성, TUI |
 | [Inner Thought](./architecture/inner-thought.md) | 메인 응답과 분리된 호출로 해석, 결정, 확신도, 약속을 만든다 | 💭 한 줄 |
 | [Dual channel](./architecture/proactive.md#dual-channel) | 오래 걸릴 요청이면 "잠깐만요" 를 먼저 말하고 메인은 뒤에서 돈다 | 💬 filler |
-| [Proactive Dialogue](./architecture/proactive.md#성찰과-먼저-건네는-말) | 요청이 없어도 주기적으로 성찰해 가치가 분명할 때만 먼저 말한다 | 🔔, Slack |
+| [Proactive Dialogue](./architecture/proactive.md#성찰과-먼저-건네는-말) | 요청이 없어도 주기적으로 성찰해 가치가 분명할 때만 먼저 말한다 | 🔔, Web Push, Slack, Discord |
 | [Process Pattern Analysis](./architecture/proactive.md#피드백-학습) | 🔔 에 대한 수락, 무시, 무응답으로 발화 임계치를 움직인다. 키워드가 아닌 답은 사고 모델이 분류한다 | 🔔 아래 질문, `Ctrl+Y`/`Ctrl+G` |
 | [Open loop](./conversation/open-loop.md) | 대화에서 흘린 약속을 기억하고, 끝나거나 취소되거나 기한이 지나면 닫는다 | AGENDA, `/openloop` |
 | [Scheduling](./conversation/scheduling.md) | 한 번, 마감까지 반복, cron 으로 알림이나 작업을 돌린다 | `/schedule`, AGENDA |

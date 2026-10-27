@@ -51,6 +51,28 @@ docker compose restart jarvis-backend
 
 모델 파일이 없거나 piper 가 설치되지 않았으면 서버 음성이 통째로 꺼지고 브라우저가 모두 읽는다. 백엔드 로그에 `[Voice] 서버 음성 비활성화` 가 남는다.
 
+## JARVIS 가 하는 말은 모두 JARVIS 목소리로
+
+JARVIS 의 답은 한국어라 그대로 두면 한국어 TTS(supertonic)가 읽는다. `JARVIS_VOICE__SPEAK_ENGLISH=true` 를 두면 JARVIS 가 소리 내는 한국어 글(답, 🔔, filler, 앞으로 생길 종류 모두)을 소리로만 짧은 영어 구어체로 옮겨 Piper(JARVIS 목소리)로 읽는다. 화면에 쓰는 글은 한국어 그대로다.
+
+- 옮기기는 메인 모델에 한 번 묻는다. 두 문장, 45단어 안으로 줄이고 이름, 숫자, 날짜는 그대로 둔다
+- 8초 안에 못 옮기거나 영어가 아닌 답이 오면 한국어 원문을 다른 목소리로 읽지 않고 "Sir, I've put it on your screen." 을 읽는다
+- KAREN 등 다른 에이전트의 말은 옮기지 않고 원문 그대로 읽는다
+- 영어 TTS(`ENGLISH_TTS_PROVIDER`)가 없으면 켜도 아무 일도 하지 않는다
+
+재시작 직후 첫 번역은 모델 연결을 여느라 8초를 넘길 수 있다. 그때는 위 고정 문장이 나온다.
+
+## 잘 못 알아들으면 다시 묻는다
+
+whisper 로 인식할 때 결과가 비었거나, 말소리가 없다는 확률(`no_speech_prob`)이 0.6 을 넘거나, 평균 로그 확률이 -1.0 보다 낮으면 잘 못 들은 것으로 본다. 이때는 받아 적은 말을 에이전트에 넘기지 않고 `voice_stt_result` 에 `unclear: true` 를 실어 보낸 뒤 되묻는 말을 읽는다.
+
+| 에이전트 | 되묻는 말 | 목소리 |
+|---|---|---|
+| JARVIS | I'm sorry, sir. I didn't catch that. | Piper(JARVIS 목소리) |
+| 그 밖 | 잘 못 들었어요. 한 번 더 말씀해 주세요. | 한국어 TTS |
+
+직전 발화가 JARVIS 목소리였는데 되묻는 말만 다른 목소리로 나오지 않게 하려는 것이다. 판정 값은 `voice/service.py` 의 `NO_SPEECH_MAX`, `AVG_LOGPROB_MIN` 이다. 백엔드 로그의 `[Voice] stt` 줄에 두 값과 판정이 남는다.
+
 ## JARVIS 음성 모델
 
 JARVIS 전용으로 학습한 모델 세 가지를 레포의 `models/` 폴더에 두고 쓴다. 이 폴더는 `.gitignore` 에 있어 GitHub 에 올라가지 않는다. 모델이 비상업 라이선스이기 때문이다.

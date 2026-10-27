@@ -176,7 +176,11 @@ class SchedulerService:
             )
 
         while self._running:
-            self._tick(datetime.now(), croniter)
+            try:
+                self._tick(datetime.now(), croniter)
+            except Exception as exc:
+                # 작업 하나의 잘못으로 다른 작업(새 공고 감시 등)까지 멈추지 않게 한다
+                logger.warning(f"[Scheduler] tick failed: {exc!r}")
             await asyncio.sleep(TICK_SEC)
 
     def _tick(self, now_dt: datetime, croniter: Any) -> list[asyncio.Task[None]]:

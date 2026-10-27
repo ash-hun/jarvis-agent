@@ -648,3 +648,14 @@ class TestToolTask:
         await svc._run_and_deliver(task.model_copy(update={"deliver": "notice"}))
         await svc._run_and_deliver(task)
         assert len(spoken) == 2 and len(sent) == 2
+
+
+def test_aware_run_at_from_yaml_becomes_local_time_and_compares_with_now():
+    """YAML 에 +09:00 을 붙인 시각도 스케줄러의 datetime.now() 와 견줄 수 있다. 섞이면 루프가 멈췄다."""
+    from datetime import datetime, timezone, timedelta
+
+    aware = datetime(2026, 10, 27, 16, 44, tzinfo=timezone(timedelta(hours=9)))
+    task = ScheduledTask(name="x", prompt="p", run_at=aware.isoformat())
+    assert task.run_at is not None and task.run_at.tzinfo is None
+    assert task.run_at == aware.astimezone().replace(tzinfo=None)
+    assert isinstance(datetime.now() >= task.run_at, bool)

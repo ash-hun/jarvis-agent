@@ -3,7 +3,7 @@
 from pathlib import Path
 from datetime import datetime
 from typing import Any, Literal
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 from jarvis.memory.scope import MAIN_AGENT
 
@@ -41,6 +41,15 @@ class ScheduledTask(BaseModel):
     # 이 작업을 읽어 온(또는 저장한) YAML 파일. 토글을 원본 파일에 되쓰는 데 쓴다.
     # 직렬화 대상이 아니다. None 이면 아직 파일이 없는 메모리 전용 작업.
     _source: Path | None = PrivateAttr(default=None)
+
+    @field_validator("run_at", "run_until")
+    @classmethod
+    def _local_naive(cls, value: datetime | None) -> datetime | None:
+        """시간대가 붙은 시각(YAML 의 +09:00)을 로컬 시각으로 바꾼다. 스케줄러는 datetime.now() 와 견주므로,
+        섞이면 비교가 예외를 내 루프 전체가 멈췄다."""
+        if value is None or value.tzinfo is None:
+            return value
+        return value.astimezone().replace(tzinfo=None)
 
 
 def task_label(task: ScheduledTask) -> str:

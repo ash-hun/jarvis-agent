@@ -374,7 +374,8 @@ class AgentSession:
         if not self._user_spoke and not external_events:
             # 앱이나 화면이 새 세션을 열기만 했다. 대화가 없으면 작은 모델은 빈 인사("무엇을 도와드릴까요?")를 건넨다
             return ProactiveDecision(speak=False, reason="no conversation yet")
-        loops = [_loop_line(loop) for loop in await self._load_open_loops()]
+        # 키는 남은 시간이 아니라 약속과 기한으로 만든다. 남은 시간을 넣으면 1분마다 바뀌어 다시 생각한다
+        loops = [f"{loop.description}@{loop.due_ms}" for loop in await self._load_open_loops()]
         if not loops and not external_events:
             # 먼저 말할 근거(챙길 약속, 새 이벤트)가 없다. 사고 모델은 이때 인사나 방금 한 답을 지어 건넸다
             logger.info("[Thought] proactive silent: nothing to tell")
@@ -637,7 +638,9 @@ class AgentSession:
                 session_id=self._session_id,
                 user_id=self.memory_scope.user_id,
                 agent_id=self.memory_scope.agent_id,
-                open_loops=[f"[{i}] {_loop_line(loop)}" for i, loop in enumerate(shown_loops, 1)],
+                open_loops=[
+                    f"[{i}] {_loop_line(loop, int(time.time() * 1000))}" for i, loop in enumerate(shown_loops, 1)
+                ],
                 user_model=await self._load_user_model(),
                 external_events=external_events or [],
                 recent_proactive=list(self._recent_proactive),
@@ -905,9 +908,25 @@ class AgentSession:
         return executor
 
 
-def _loop_line(loop: OpenLoop) -> str:
-    """사고에 보여줄 약속 한 줄. 기한은 [지금]과 같은 로컬 시각으로 붙인다."""
+def _loop_line(loop: OpenLoop, now_ms: int | None = None) -> str:
+    """사고에 보여줄 약속 한 줄. 기한은 [지금]과 같은 로컬 시각으로 붙이고, now_ms 를 주면 남은 시간도 붙인다."""
     if loop.due_ms is None:
         return loop.description
     due = datetime.fromtimestamp(loop.due_ms / 1000).strftime("%Y-%m-%d %H:%M")
-    return f"{loop.description} (기한 {due})"
+    if now_ms is None:
+        return f"{loop.description} (기한 {due})"
+    # 작은 모델은 시각 두 개를 빼다 틀린다(4분 남은 기한을 "14분 남았습니다"). 계산은 코드가 한다
+    return f"{loop.description} (기한 {due}, {_remaining(loop.due_ms - now_ms)})"
+
+
+def _remaining(ms: int) -> str:
+    """남은 시간을 말로. 순수 함수."""
+    if ms <= 0:
+        return "기한 지남"
+    minutes = -(-ms // 60_000)
+    if minutes < 60:
+        return f"{minutes}분 남음"
+    hours, rest = divmod(minutes, 60)
+    if hours < 48:
+        return f"{hours}시간 {rest}분 남음" if rest else f"{hours}시간 남음"
+    return f"{hours // 24}일 남음"

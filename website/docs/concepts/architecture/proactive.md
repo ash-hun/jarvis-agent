@@ -10,7 +10,7 @@ import FigureExpProactive from '@site/src/figures/exp-proactive.svg';
 
 <figure className="paper-fig">
   <FigureProactive />
-  <figcaption><b>Figure 1.</b> (a) 성찰 한 번이 먼저 말하기까지 지나는 다섯 게이트. 하나라도 막히면 침묵하고 이유만 로그에 남긴다. (b) 🔔 에 대한 반응으로 확신도 임계치 θ 를 옮긴다. (c) 오래 걸릴 요청이면 filler 를 먼저 말하고 메인 응답은 뒤에서 돌린다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) 성찰 한 번이 먼저 말하기까지 지나는 여덟 게이트. 위 줄은 사고 모델을 부르기 전후의 거르기(답 대기, 대화 없음, 최근 🔔 나 10분 안 답의 되풀이)이고, 아래 줄은 정책 게이트와 보내기 직전의 답하는 중 검사다. 사고는 알릴 것이 없으면 문장을 비운다. 하나라도 막히면 침묵하고 이유만 로그에 남긴다. (b) 🔔 에 대한 반응으로 확신도 임계치 θ 를 옮긴다. (c) 오래 걸릴 요청이면 filler 를 먼저 말하고 메인 응답은 뒤에서 돌린다.</figcaption>
 </figure>
 
 JARVIS 는 사고 프레임을 바탕으로 사용자가 묻기 전에 움직인다. 요청이 오면 **Dual channel** 로 짧은 말을 먼저 한다. 요청이 없을 때는 **성찰**을 거쳐 먼저 말을 건다(**Proactive Dialogue**). 그 말에 대한 사용자의 반응은 **Process Pattern Analysis** 가 확신도 임계치에 반영한다.

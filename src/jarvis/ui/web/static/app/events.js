@@ -234,9 +234,11 @@ export function handleMessage(msg) {
       break;
 
     case 'voice_tts_audio':
-      if (!takeSpeech(msg.id)) break;  // Esc 등으로 멈춘 읽기의 늦은 결과
+      if (!takeSpeech(msg.id, msg.more)) break;  // Esc 등으로 멈춘 읽기의 늦은 결과
       if (msg.data) {
-        voice.playAudioBase64(msg.data, msg.mime || 'audio/wav');  // 백엔드 TTS (Supertonic-3 WAV)
+        voice.queueAudioBase64(msg.data, !!msg.more, msg.mime || 'audio/wav');  // 백엔드 TTS WAV. 문장마다 오면 이어 읽는다
+      } else if (msg.more) {
+        // 중간 문장 합성이 비었다. 브라우저로 읽으면 앞 문장을 끊으니 건너뛴다
       } else if (msg.text) {
         voice.speakBrowser(msg.text);  // 브라우저 TTS fallback
       } else {

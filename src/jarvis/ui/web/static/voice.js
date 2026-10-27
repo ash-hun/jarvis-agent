@@ -187,22 +187,25 @@ class VoiceManager {
   }
 
   /**
-   * 백엔드에서 받은 base64 WAV 오디오를 재생한다.
-   * @param {string} base64Data  — base64 인코딩 WAV
-   * @param {string} mimeType    — 'audio/wav' 등
-   * @returns {Promise<void>}
+   * 서버가 문장마다 보내는 합성 결과를 앞 문장이 끝난 뒤에 이어 읽는다.
+   * more 면 뒤 문장이 온다. 문장 사이에 idle 로 내려가지 않아야 다 읽기 전에 듣기를 시작하지 않는다.
+   * 멈추면(stopSpeaking) 줄 서 있던 문장도 읽지 않는다.
    */
-  async playAudioBase64(base64Data, mimeType = 'audio/wav') {
+  queueAudioBase64(base64Data, more = false, mimeType = 'audio/wav') {
+    const gen = this._speakGen;
     const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-    return this.playWav(bytes.buffer);
+    this._playChain = (this._playChain || Promise.resolve())
+      .then(() => (gen === this._speakGen ? this.playWav(bytes.buffer, { more }) : undefined));
+    return this._playChain;
   }
 
   /**
    * WAV 바이트를 재생한다. 미리 녹음한 문구도 이 길로 읽는다.
    * @param {ArrayBuffer} wav
+   * @param {{more?: boolean}} opts more 면 끝나도 speaking 으로 남는다(이어 읽을 문장이 있다)
    * @returns {Promise<void>} 끝나거나 멈추거나 실패하면 풀린다
    */
-  async playWav(wav) {
+  async playWav(wav, { more = false } = {}) {
     const gen = this._speakGen;
     this._setState('speaking');
     await this._afterMicReleased();
@@ -225,7 +228,7 @@ class VoiceManager {
           resolve();
           if (this._source !== source) return;
           this._source = null;
-          this._setState('idle');
+          if (!more) this._setState('idle');
         };
         this._source = source;
         source.start(0);

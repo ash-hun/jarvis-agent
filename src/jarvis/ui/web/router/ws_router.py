@@ -211,7 +211,8 @@ def build_ws_router(state: WebState) -> APIRouter:
                     request_id = msg.get("id")
                     if text and voice_service:
                         translate = state.translate_english if should_speak_english(text, agent_id) else None
-                        asyncio.create_task(run_tts(ws, voice_service, text, lang, request_id, translate))
+                        stream = bool(msg.get("stream"))
+                        asyncio.create_task(run_tts(ws, voice_service, text, lang, request_id, translate, stream))
                     else:
                         # 음성 서비스가 없거나 읽을 글자가 없어도 답한다. 안 주면 HUD 가 '음성 처리 중' 에 멈춘다
                         await ws.send_json({"type": "voice_tts_audio", "data": "", "text": text, "id": request_id})

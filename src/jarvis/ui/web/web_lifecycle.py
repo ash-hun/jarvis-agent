@@ -22,6 +22,8 @@ class WebLifecycle:
 
             # 화면 방송 + 외부 채널(있으면). 둘 중 하나가 실패해도 다른 쪽은 받는다
             ctx.scheduler.set_notifier(fan_out(state.broadcast_notice, ctx.notifier))
+            # deliver: conversation 작업(새 공고 등)은 그 에이전트의 대화 세션에 에이전트의 말로 건넨다
+            ctx.scheduler.set_conversation(state.converse)
 
     async def start(self) -> None:
         state, ctx = self._state, self._state.ctx

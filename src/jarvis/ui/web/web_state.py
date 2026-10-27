@@ -167,6 +167,11 @@ class WebState:
             sandbox.set_approval_callback(self.broker(caller_session_id).request)
         return session
 
+    async def converse(self, agent_id: str, text: str) -> bool:
+        """스케줄 결과를 그 에이전트와 최근 대화한 세션에 에이전트의 말로 건넨다. 건넸으면 True."""
+        session = self.registry.latest_of(agent_id)
+        return session is not None and await session.say(text)
+
     async def broadcast_live(self, payload: dict[str, object]) -> None:
         """열린 HUD 에만 보낸다. 지금 상태를 알리는 것이라 아무도 없으면 버린다."""
         for adapter in list(self.live_clients):

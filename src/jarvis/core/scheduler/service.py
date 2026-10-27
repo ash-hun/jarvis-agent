@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 
 # 실행 결과(알림)를 받아 화면에 전달하는 콜백. web 서버가 열린 HUD 로 방송한다.
 Notify = Callable[[dict[str, Any]], Awaitable[None]]
+# (에이전트 id, 말) -> 그 에이전트의 대화 세션에 건넸는가. 못 건넸으면 스케줄 알림으로 보낸다
+Converse = Callable[[str, str], Awaitable[bool]]
 
 # 루프 주기. 한 번 실행(run_at) 알림이 이만큼까지 늦을 수 있다.
 TICK_SEC = 10
@@ -76,6 +78,7 @@ class SchedulerService:
         self._running = False
         self._task_handle: asyncio.Task[None] | None = None
         self._notify: Notify | None = None
+        self._converse: Converse | None = None
         self._agent_resolver: AgentResolver | None = None
         self._last_run: dict[str, datetime] = {}  # cron 작업별 마지막으로 실행한 cron 슬롯
         self._bg: set[asyncio.Task[None]] = set()
@@ -87,6 +90,10 @@ class SchedulerService:
     def set_notifier(self, notify: Notify | None) -> None:
         """실행 결과를 받을 콜백을 단다. web 서버가 기동할 때 연결한다."""
         self._notify = notify
+
+    def set_conversation(self, converse: Converse | None) -> None:
+        """deliver: conversation 작업의 결과를 에이전트의 대화로 건넬 함수. web 서버가 기동할 때 연결한다."""
+        self._converse = converse
 
     @property
     def task_count(self) -> int:
@@ -245,6 +252,13 @@ class SchedulerService:
             # 도구가 알릴 것이 없다고 빈 글을 줬다(새 공고 없음 등)
             logger.info(f"[Scheduler] Tool task '{task.name}' had nothing to report")
             return
+        if task.deliver == "conversation" and text is not None and self._converse is not None:
+            try:
+                if await self._converse(task.agent, text):
+                    return
+            except Exception as exc:
+                logger.info(f"[Scheduler] conversation delivery failed for '{task.name}': {exc!r}")
+            logger.info(f"[Scheduler] '{task.name}' has no conversation to join, sent as a notice")
         payload = {
             "type": "reminder",
             "id": uuid.uuid4().hex,

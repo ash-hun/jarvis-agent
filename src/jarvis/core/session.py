@@ -120,6 +120,8 @@ RECENT_PROACTIVE_MAX = 3
 REPEAT_ANSWER_SEC = 600
 # 대화, 약속, 이벤트가 그대로면 성찰을 다시 하지 않는다. 기한이 다가오는 것은 이 간격마다 다시 본다
 REFLECT_REFRESH_SEC = 900
+# 에이전트가 먼저 꺼낼 말(스케줄 결과)을 답하는 중에 받으면 이만큼 답이 끝나길 기다린다
+SAY_WAIT_SEC = 120.0
 # 기한이 이만큼 안으로 다가온(또는 지난) 약속만 먼저 말할 근거다. 며칠 남은 약속으로는 미리 말을 걸지 않는다
 DUE_SOON_SEC = 1800
 
@@ -416,6 +418,25 @@ class AgentSession:
     def _said(self, frame: ThoughtFrame) -> str:
         # 어느 세션이 무슨 말을 하려다 막혔는지 로그로 가린다
         return f"({self._session_id}: {frame.utterance[:60]})"
+
+    async def say(self, text: str) -> bool:
+        """성찰 없이 에이전트가 먼저 꺼내는 말(새 공고 같은 스케줄 결과).
+
+        먼저 건네는 말과 같은 길로 나가 대화 기록에 남고 그 뒤 첫 말로 학습한다.
+        집중(Focus) 중이거나 답이 끝나지 않으면 False 라 부른 쪽이 알림으로 보낸다.
+        """
+        if not text.strip() or self._turn_hook is not None:
+            return False
+        if self._busy:
+            with contextlib.suppress(TimeoutError):
+                await asyncio.wait_for(self._idle.wait(), SAY_WAIT_SEC)
+        if self._busy:
+            return False
+        await self._emit_proactive(ProactiveMessage(text=text, kind="proactive"))
+        if self._proactivity is not None:
+            # 이 말에 답이 올 때까지 성찰이 다른 말을 얹지 않는다
+            self._proactivity.restore_awaiting(self._session_id)
+        return True
 
     async def _reflect_input_key(self, loops: list[str], external_events: list[str]) -> tuple[Any, ...]:
         """성찰 입력이 같은지 가르는 키. 마지막 메시지, 약속, 이벤트, 그리고 REFLECT_REFRESH_SEC 단위 시각."""

@@ -1,6 +1,7 @@
 """[core] LH, SH 청약 공고를 조회, 감시하고 대출 원리금을 계산하는, 정의에 이름을 적은 에이전트만 쓰는 도구 묶음."""
 
 from datetime import date
+from typing import TYPE_CHECKING
 from collections.abc import Callable
 
 from jarvis.core.tools.housing.watch import SEEN_DIR, HousingWatchTool, SeenStore
@@ -14,6 +15,9 @@ from jarvis.core.tools.housing.profile import ProfileStore
 from jarvis.core.tools.housing.notice_pdf import pdf_text
 from jarvis.core.tools.registry import JarvisTool
 
+if TYPE_CHECKING:
+    from jarvis.agent_layer.openloop.store import OpenLoopStore
+
 
 def housing_tools(
     fetch: Fetch | None = None,
@@ -22,13 +26,15 @@ def housing_tools(
     read_pdf: Callable[[bytes], str] = pdf_text,
     profiles: ProfileStore | None = None,
     seen_dir: str = SEEN_DIR,
+    loops: "OpenLoopStore | None" = None,
 ) -> list[JarvisTool]:
     """청약 도구를 만든다. 테스트는 가짜 게시판(fetch), 가짜 첨부(fetch_file, read_pdf), 오늘을 넣는다.
 
     profiles(사용자 기억)가 있어야 주거 프로필 도구가 생기고 housing_budget 이 프로필로 자격을 가린다.
+    loops(열린 약속)가 있으면 housing_budget 이 추천 1순위의 마감 전 약속을 남긴다.
     """
     lh = LhNoticeTool(fetch, today, profiles)
-    budget = HousingBudgetTool(lh, fetch, today, fetch_file, read_pdf, profiles)
+    budget = HousingBudgetTool(lh, fetch, today, fetch_file, read_pdf, profiles, loops=loops)
     sh = ShNoticeTool(fetch)
     watch = HousingWatchTool(lh, SeenStore(seen_dir), today, profiles, sh=sh)
     tools: list[JarvisTool] = [lh, sh, HousingLoanTool(lh.price_of), budget, watch]

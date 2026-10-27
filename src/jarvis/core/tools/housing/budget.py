@@ -3,8 +3,8 @@
 import re
 import asyncio
 from datetime import date
-from typing import Any, TypeVar
 from dataclasses import dataclass, replace
+from typing import TYPE_CHECKING, Any, TypeVar
 from collections.abc import Awaitable, Callable
 
 from jarvis.core.tools.housing.profile import HousingProfile, ProfileStore, apply_updates, parse_pairs, regions_or_home
@@ -14,6 +14,7 @@ from jarvis.core.tools.housing.notice_pdf import RentTerm, SaleTerm, notice_text
 from jarvis.core.tools.housing.scenario import BASE, CASH_ALL, NO_LOAN, Case, Deposit, deposit_cases, fits
 from jarvis.core.tools.housing.lh_notice import LhNoticeTool, Notice, build_queries, detail_url, is_sale
 from jarvis.core.tools.housing.rental_complex import ComplexUnit, fetch_complexes, match_complex
+from jarvis.core.tools.housing.deadline import LEAD_DAYS, track_deadlines
 from jarvis.core.tools.housing.markup import deadline_label, parse_date
 from jarvis.core.tools.housing.notice_pdf import rent_terms, sale_terms
 from jarvis.model_layer.types import TextContent, ToolResultMessage
@@ -23,6 +24,9 @@ from jarvis.core.tools.housing.scenario import purchase_cases
 from jarvis.core.tools.housing.rules import unit_mismatch
 from jarvis.core.tools.housing.amount import parse_won
 from jarvis.memory.scope import LOCAL_USER
+
+if TYPE_CHECKING:
+    from jarvis.agent_layer.openloop.store import OpenLoopStore
 
 TOOL_NAME = "housing_budget"
 T = TypeVar("T")
@@ -458,8 +462,11 @@ class HousingBudgetTool(JarvisTool):
         read_pdf: Callable[[bytes], str] = pdf_text,
         profiles: ProfileStore | None = None,
         rules: Callable[[], Rules] = load_rules,
+        loops: "OpenLoopStore | None" = None,
     ) -> None:
         self._notices = notices
+        # 추천 1순위의 마감 전 약속을 남길 곳. 없으면 남기지 않는다
+        self._loops = loops
         self._fetch = fetch or fetch_html
         self._fetch_file = fetch_file or fetch_bytes
         self._read_pdf = read_pdf
@@ -481,9 +488,22 @@ class HousingBudgetTool(JarvisTool):
         except (TypeError, ValueError) as exc:
             return _result(tool_call_id, f"조건을 읽을 수 없다: {exc}", True)
         try:
-            return _result(tool_call_id, await self._recommend(terms, regions, limit, profile, note, today), final=True)
+            text, picks = await self._recommend(terms, regions, limit, profile, note, today)
         except (FetchError, ValueError) as exc:
             return _result(tool_call_id, f"LH 조회 실패: {exc}", True)
+        return _result(tool_call_id, text + await self._track(picks, context, today), final=True)
+
+    async def _track(self, picks: list[Notice], context: ToolContext | None, today: date) -> str:
+        """추천 1순위의 마감 전 약속을 남기고, 새로 남겼으면 다시 알리겠다는 한 줄을 돌려준다."""
+        scope = getattr(context, "scope", None)
+        session_id = getattr(context, "session_id", None)
+        if self._loops is None or scope is None or not session_id or not picks:
+            return ""
+        added = await track_deadlines(self._loops, picks, session_id, scope.agent_id, today)
+        if not added:
+            return ""
+        names = ", ".join(n.title for n in added)
+        return f"\n추천 1순위({names})는 마감 {LEAD_DAYS}일 전 아침에 다시 알려 드릴게요."
 
     async def _profile(self, context: ToolContext | None, conditions: str, today: date) -> tuple[HousingProfile, str]:
         """저장된 프로필에 이번 조건을 얹는다. 저장은 하지 않는다."""
@@ -500,7 +520,7 @@ class HousingBudgetTool(JarvisTool):
         return profile, note
 
     async def _recommend(self, terms: Terms, regions: list[str], limit: int, profile: HousingProfile, note: str,
-                         today: date) -> str:
+                         today: date) -> tuple[str, list[Notice]]:
         rules = self._rules()
         notices: dict[str, Notice] = {}
         for region in regions:
@@ -539,7 +559,9 @@ class HousingBudgetTool(JarvisTool):
             else:
                 plans.append(plan)
         skipped = max(0, len(ordered) - MAX_DETAILS)
-        return render(terms, regions, plans, over, unknown, skipped, limit, today, rules, profile, note)
+        picks = [top_pick([p for p in plans if p.option.sale is sale]) for sale in (True, False)]
+        text = render(terms, regions, plans, over, unknown, skipped, limit, today, rules, profile, note)
+        return text, [p.notice for p in picks if p is not None]
 
     async def _pdf_options(self, file_id: str, notice: Notice) -> list[Option]:
         """공고문의 분양가 표나 임대조건 표. 못 받거나 못 읽으면 빈 목록. 한 공고의 실패로 추천 전체를 멈추지 않는다."""

@@ -97,8 +97,11 @@ async def test_deferred_frame_emits_filler_then_backgrounds(fx):
     assert fillers[0].text == "잠깐만요, 확인하고 알려드릴게요"
     assert result is None
 
-    # 백그라운드 메인 루프가 완료될 때까지 잠시 양보.
-    await asyncio.sleep(0.05)
+    # 백그라운드 메인 루프가 답을 남길 때까지 기다린다. 고정 시간만 쉬면 느린 CI 에서 답이 아직 없다
+    for _ in range(200):
+        if any(isinstance(e, ProactiveMessageEvent) and e.kind == "answer" for e in events):
+            break
+        await asyncio.sleep(0.01)
     # 끝난 답은 화면 스트림과 별개로 answer 로 한 번 더 나간다(자리를 뜬 사람에게 닿는 외부 채널용)
     answers = [e for e in events if isinstance(e, ProactiveMessageEvent) and e.kind == "answer"]
     history = await fx["repo"].get_messages("test-session")

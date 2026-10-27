@@ -29,5 +29,10 @@ cat > "$plist" <<PLIST
 </plist>
 PLIST
 launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+# bootout 은 기다리지 않고 돌아온다. 이전 서버가 다 내려가기 전에 bootstrap 하면 "5: Input/output error" 로 실패한다
+for _ in $(seq 1 60); do
+  launchctl print "gui/$(id -u)/$label" >/dev/null 2>&1 || break
+  sleep 0.5
+done
 launchctl bootstrap "gui/$(id -u)" "$plist"
 echo "registered $label from $home_dir (log: $log)"

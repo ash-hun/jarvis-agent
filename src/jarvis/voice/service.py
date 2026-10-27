@@ -1,6 +1,7 @@
 """[voice] STT 와 TTS 프로바이더를 묶어 하나의 음성 파이프라인으로 제공한다."""
 
 import re
+from collections.abc import AsyncIterator
 
 from jarvis.voice.protocol import DEFAULT_LANG, DEFAULT_SAMPLE_RATE, STTProvider, Transcript, TTSProvider
 
@@ -47,6 +48,12 @@ class VoiceService:
             return await self._english_tts.synthesize(text, ENGLISH_LANG)
         return await self._tts.synthesize(text, lang)
 
+    def synthesize_stream(self, text: str, lang: str = DEFAULT_LANG) -> AsyncIterator[bytes]:
+        """synthesize 와 같은 길로 고르고, WAV 조각을 나오는 대로 낸다."""
+        if self._english_tts is not None and is_english(text):
+            return self._english_tts.synthesize_stream(text, ENGLISH_LANG)
+        return self._tts.synthesize_stream(text, lang)
+
     @property
     def has_english_tts(self) -> bool:
         return self._english_tts is not None
@@ -54,11 +61,13 @@ class VoiceService:
     @property
     def tts_is_browser(self) -> bool:
         from jarvis.voice.providers.browser import BrowserTTSProvider
+
         return isinstance(self._tts, BrowserTTSProvider)
 
     @property
     def stt_is_browser(self) -> bool:
         from jarvis.voice.providers.browser import BrowserSTTProvider
+
         return isinstance(self._stt, BrowserSTTProvider)
 
     @classmethod

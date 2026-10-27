@@ -1,6 +1,7 @@
 """[voice] STT/TTS 프로바이더가 상속하는 기본 클래스를 정의하고, 기본 동작은 브라우저 위임이다."""
 
 from dataclasses import dataclass
+from collections.abc import AsyncIterator
 
 DEFAULT_SAMPLE_RATE = 16000
 DEFAULT_LANG = "ko"
@@ -39,3 +40,9 @@ class TTSProvider:
         """텍스트를 WAV 오디오 바이트로 합성한다. browser TTS 위임 시 빈 bytes 반환."""
         # 빈 bytes 를 받으면 클라이언트가 browser TTS fallback 을 실행한다
         return b""
+
+    async def synthesize_stream(self, text: str, lang: str = DEFAULT_LANG) -> AsyncIterator[bytes]:
+        """나오는 대로 WAV 조각을 낸다. 조각으로 못 내는 프로바이더는 한 번에 합성한 한 조각이다. 비면 내지 않는다."""
+        audio = await self.synthesize(text, lang)
+        if audio:
+            yield audio

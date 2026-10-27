@@ -103,32 +103,43 @@ async def run_tts(
     """서버 TTS 결과를 보낸다. 브라우저 TTS 프로바이더면 빈 data 와 원문을 돌려 화면이 직접 읽게 한다.
 
     translate 가 있으면 소리로만 영어로 옮겨 영어 TTS(JARVIS 목소리)로 읽는다. 옮기지 못하면 영어 고정 문장을 읽는다.
-    stream 이면 영어를 문장마다 합성해 `more` 를 붙여 차례로 보낸다. 화면이 앞 문장을 읽는 동안 다음 문장을 합성한다.
+    stream 이면 문장마다 소리를 조각으로 나오는 대로 `more: true` 를 붙여 보내고, 끝에 빈 `more: false` 로 닫는다.
+    화면은 첫 조각부터 읽는다. 소리가 하나도 없으면 끝 메시지에 글을 실어 브라우저가 읽게 한다.
     """
     try:
         started = time.perf_counter()
         if translate is not None:
             text, lang = (await translate(text)) or FALLBACK_LINE, ENGLISH_LANG
         translated = time.perf_counter()
-        parts = split_sentences(text) if stream and is_english(text) else [text]
-        for i, part in enumerate(parts):
-            audio_bytes = await voice_service.synthesize(part, lang)
-            # 어느 단계가 첫 소리를 늦추는지 실제 기록으로 보려고 남긴다
-            if i == 0:
-                logger.info(
-                    f"[Voice] tts translate={translated - started:.2f}s "
-                    f"first_audio={time.perf_counter() - started:.2f}s parts={len(parts)} words={len(text.split())}"
-                )
-            reply: dict[str, object] = {"type": "voice_tts_audio", "data": "", "text": part, "id": request_id}
-            if audio_bytes:
-                # text 는 실제로 읽은 글이다. 영어로 옮겼으면 그 영어다
-                reply.update(data=base64.b64encode(audio_bytes).decode(), mime="audio/wav")
-            if stream:
-                reply["more"] = i < len(parts) - 1
-            await ws.send_json(reply)
+        if not stream:
+            audio_bytes = await voice_service.synthesize(text, lang)
+            await ws.send_json(_tts_audio(text, request_id, audio_bytes))
+            return
+        parts = split_sentences(text) if is_english(text) else [text]
+        chunks = 0
+        for part in parts:
+            async for audio_bytes in voice_service.synthesize_stream(part, lang):
+                if chunks == 0:
+                    # 어느 단계가 첫 소리를 늦추는지 실제 기록으로 보려고 남긴다
+                    logger.info(
+                        f"[Voice] tts translate={translated - started:.2f}s "
+                        f"first_chunk={time.perf_counter() - started:.2f}s parts={len(parts)} words={len(text.split())}"
+                    )
+                chunks += 1
+                await ws.send_json({**_tts_audio(part, request_id, audio_bytes), "more": True})
+        logger.info(f"[Voice] tts done={time.perf_counter() - started:.2f}s chunks={chunks}")
+        await ws.send_json({**_tts_audio("" if chunks else text, request_id, b""), "more": False})
     except Exception as exc:
         with contextlib.suppress(Exception):
             await ws.send_json({"type": "error", "message": f"TTS 오류: {exc}"})
+
+
+def _tts_audio(text: str, request_id: object, audio_bytes: bytes) -> dict[str, object]:
+    """text 는 실제로 읽은 글이다. 영어로 옮겼으면 그 영어다. 소리가 비면 화면이 그 글을 브라우저로 읽는다."""
+    reply: dict[str, object] = {"type": "voice_tts_audio", "data": "", "text": text, "id": request_id}
+    if audio_bytes:
+        reply.update(data=base64.b64encode(audio_bytes).decode(), mime="audio/wav")
+    return reply
 
 
 def first_feedback(seen: set[str], message_id: object) -> bool:

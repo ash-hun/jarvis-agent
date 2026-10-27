@@ -448,14 +448,31 @@ async def test_proactive_repeating_the_last_answer_is_not_sent(fx):
     factory = lambda emit: DefaultProactivityCore(  # noqa: E731
         emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0)
     )
-    repeat = "애쉬, 시흥거모 S-1블록이 가장 추천돼요. 월 부담 최대 139만원이고 마감은 11월 17일이에요."
+    repeat = "애쉬, 시흥거모 S-1블록은 월 부담이 적어 추천드려요. 마감은 11월 17일이에요."
     session = _build_session(fx, engine=StubEngine(ThoughtFrame(decision="act", confidence=0.9, utterance=repeat)),
                              proactivity_factory=factory)
     decision = await session.reflect()
     assert decision.speak is False and decision.reason == "repeat"
 
-    other = "애쉬, 구리갈매 공고 마감이 내일이에요."
+    other = "애쉬, 시흥거모 공고 마감이 이틀 남았어요. 오늘 서류 챙기시면 돼요."
     session = _build_session(fx, engine=StubEngine(ThoughtFrame(decision="act", confidence=0.9, utterance=other)),
+                             proactivity_factory=factory)
+    assert (await session.reflect()).speak is True
+
+
+@pytest.mark.asyncio
+async def test_old_answer_does_not_block_a_later_reminder(fx):
+    """오래전 답과 겹치는 🔔(그 공고의 마감 알림)는 되풀이로 보지 않는다."""
+    from jarvis.model_layer.types import AssistantMessage, TextContent
+
+    await fx["repo"].create(session_id="test-session")
+    answer = "애쉬, 가장 추천하는 공고는 시흥거모 S-1블록이에요. 마감은 11월 17일이에요."
+    old = AssistantMessage(content=[TextContent(text=answer)], timestamp=0)
+    await fx["repo"].append("test-session", old)
+    factory = lambda emit: DefaultProactivityCore(  # noqa: E731
+        emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0)
+    )
+    session = _build_session(fx, engine=StubEngine(ThoughtFrame(decision="act", confidence=0.9, utterance=answer)),
                              proactivity_factory=factory)
     assert (await session.reflect()).speak is True
 

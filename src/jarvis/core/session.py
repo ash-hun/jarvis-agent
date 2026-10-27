@@ -120,6 +120,8 @@ RECENT_PROACTIVE_MAX = 3
 REPEAT_ANSWER_SEC = 600
 # 대화, 약속, 이벤트가 그대로면 성찰을 다시 하지 않는다. 기한이 다가오는 것은 이 간격마다 다시 본다
 REFLECT_REFRESH_SEC = 900
+# 기한이 이만큼 안으로 다가온(또는 지난) 약속만 먼저 말할 근거다. 며칠 남은 약속으로는 미리 말을 걸지 않는다
+DUE_SOON_SEC = 1800
 
 BUSY_MESSAGE = "이전 요청을 아직 처리 중입니다. 끝나길 기다리거나 중단(abort)한 뒤 다시 보내세요."
 # 화면은 agent_end 를 받자마자 다음 말을 보낼 수 있다. 그때 세션은 대화 저장 같은 마무리 중이라(수백 ms)
@@ -375,8 +377,9 @@ class AgentSession:
             # 앱이나 화면이 새 세션을 열기만 했다. 대화가 없으면 작은 모델은 빈 인사("무엇을 도와드릴까요?")를 건넨다
             return ProactiveDecision(speak=False, reason="no conversation yet")
         # 키는 남은 시간이 아니라 약속과 기한으로 만든다. 남은 시간을 넣으면 1분마다 바뀌어 다시 생각한다
-        loops = [f"{loop.description}@{loop.due_ms}" for loop in await self._load_open_loops()]
-        if not loops and not external_events:
+        open_loops = await self._load_open_loops()
+        loops = [f"{loop.description}@{loop.due_ms}" for loop in open_loops]
+        if not any(_due_soon(loop, time.time() * 1000) for loop in open_loops) and not external_events:
             # 먼저 말할 근거(챙길 약속, 새 이벤트)가 없다. 사고 모델은 이때 인사나 방금 한 답을 지어 건넸다
             logger.info("[Thought] proactive silent: nothing to tell")
             return ProactiveDecision(speak=False, reason="nothing to tell")
@@ -921,6 +924,11 @@ def _loop_line(loop: OpenLoop, now_ms: int | None = None) -> str:
         return f"{loop.description} (기한 {due})"
     # 작은 모델은 시각 두 개를 빼다 틀린다(4분 남은 기한을 "14분 남았습니다"). 계산은 코드가 한다
     return f"{loop.description} (기한 {due}, {_remaining(loop.due_ms - now_ms)})"
+
+
+def _due_soon(loop: OpenLoop, now_ms: float) -> bool:
+    """먼저 말할 근거가 되는 약속인가. 기한이 없으면 늘, 있으면 DUE_SOON_SEC 안으로 다가왔거나 지났을 때. 순수 함수."""
+    return loop.due_ms is None or loop.due_ms - now_ms <= DUE_SOON_SEC * 1000
 
 
 def _remaining(ms: int) -> str:

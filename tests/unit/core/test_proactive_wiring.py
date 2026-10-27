@@ -588,3 +588,16 @@ def test_remaining_time_is_computed_not_left_to_the_model(ms, said):
 
     loop = OpenLoop(description="메일 보내기", origin_session="s", due_ms=1_000_000_000_000 + ms)
     assert _loop_line(loop, 1_000_000_000_000).endswith(f", {said})")
+
+
+def test_only_loops_due_soon_or_without_due_are_grounds_to_speak():
+    """며칠 남은 약속(추천 공고의 마감 사흘 전)은 그 시각이 다가올 때까지 먼저 말할 근거가 아니다."""
+    from jarvis.core.session import DUE_SOON_SEC, _due_soon
+    from jarvis.agent_layer.openloop import OpenLoop
+
+    now = 1_000_000_000_000
+    def loop(due):  # noqa: E306
+        return OpenLoop(description="x", origin_session="s", due_ms=due)
+    assert _due_soon(loop(None), now)
+    assert _due_soon(loop(now + DUE_SOON_SEC * 1000), now) and _due_soon(loop(now - 60_000), now)
+    assert not _due_soon(loop(now + 3 * 86_400_000), now)

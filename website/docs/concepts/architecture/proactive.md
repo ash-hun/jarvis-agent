@@ -10,10 +10,10 @@ import FigureExpProactive from '@site/src/figures/exp-proactive.svg';
 
 <figure className="paper-fig">
   <FigureProactive />
-  <figcaption><b>Figure 1.</b> (a) 성찰 한 번이 먼저 말하기까지 지나는 여덟 게이트. 위 줄은 사고 모델을 부르기 전후의 거르기(답 대기, 대화 없음, 최근 🔔 나 10분 안 답의 되풀이)이고, 아래 줄은 정책 게이트와 보내기 직전의 답하는 중 검사다. 사고는 알릴 것이 없으면 문장을 비운다. 하나라도 막히면 침묵하고 이유만 로그에 남긴다. (b) 🔔 에 대한 반응으로 확신도 임계치 θ 를 옮긴다. (c) 오래 걸릴 요청이면 filler 를 먼저 말하고 메인 응답은 뒤에서 돌린다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) 성찰 한 번이 먼저 말하기까지 지나는 게이트. 위 줄은 사고 모델을 부를지 정한다(답을 기다리는 말, 말할 근거, 지난번과 같은 입력). 아래 줄은 사고 결과를 거르고(되풀이, 결정, 확신도, 문장, 쿨다운) 답하는 중이면 보내지 않는다. 건넨 말은 에이전트의 보통 말로 대화 기록에 남는다. 하나라도 막히면 침묵한다. (b) 묻지 않고 그 뒤 첫 말로 확신도 임계치 θ 를 옮긴다. (c) 오래 걸릴 요청이면 filler 를 먼저 말하고 메인 응답은 뒤에서 돌린다.</figcaption>
 </figure>
 
-JARVIS 는 사고 프레임을 바탕으로 사용자가 묻기 전에 움직인다. 요청이 오면 **Dual channel** 로 짧은 말을 먼저 한다. 요청이 없을 때는 **성찰**을 거쳐 먼저 말을 건다(**Proactive Dialogue**). 그 말에 대한 사용자의 반응은 **Process Pattern Analysis** 가 확신도 임계치에 반영한다.
+JARVIS 는 사고 프레임을 바탕으로 사용자가 묻기 전에 움직인다. 먼저 건네는 말은 알림처럼 따로 보이지 않고, 에이전트가 대화 중에 꺼낸 말처럼 보이고 들린다. 대화 기록에도 그 에이전트의 말로 남는다. 요청이 오면 **Dual channel** 로 짧은 말을 먼저 한다. 요청이 없을 때는 **성찰**을 거쳐 먼저 말을 건다(**Proactive Dialogue**). 그 말에 대한 사용자의 반응은 **Process Pattern Analysis** 가 확신도 임계치에 반영한다.
 
 가치가 분명하지 않으면 말하지 않는다. 고위험 행동은 스스로 실행하지 않는다.
 
@@ -48,7 +48,11 @@ flowchart TD
   R --> W{답을 기다리는 🔔 가 있나?}
   W -- 예 --> LW[로그: awaiting reply. 사고 모델을 부르지 않음]
   W -- 아니오 --> X[외부 이벤트 inbox drain]
-  X --> E[사고 엔진 think mode=reflection]
+  X --> GR{열린 약속이나 새 이벤트가 있나?}
+  GR -- 아니오 --> LG[로그: nothing to tell. 사고 모델을 부르지 않음]
+  GR -- 예 --> UC{지난 성찰과 입력이 같은가?<br/>마지막 메시지, 약속, 이벤트, 15분 단위 시각}
+  UC -- 예 --> LU[unchanged. 사고 모델을 부르지 않음]
+  UC -- 아니오 --> E[사고 엔진 think mode=reflection]
   E --> F{프레임}
   F -- None --> Q[조용히 끝]
   F --> RP{최근 🔔 나 10분 안의 답을 되풀이하나?}
@@ -74,6 +78,8 @@ flowchart TD
 - **성찰 프롬프트**: 사용자 입력 자리가 없고, 대신 `[외부 이벤트]` 와 `[최근에 먼저 건넨 말]`(세션의 최근 먼저 건넨 말 3개)이 있다. 프롬프트는 "지금 말하면 도움이 되는가" 와 그 확신도만 정직하게 내라고 하고, 말할 때의 기준(기한 임박, 사용자 일에 영향을 주는 이벤트)과 침묵할 때의 기준(한참 남은 일, 끝난 일, 무관한 알림, 이미 한 말)을 준다. 거르기는 정책의 임계치가 한다
 - **게이트** (`policy.py`, `decide_proactive`): 응답 대기, 결정, 확신도, 빈 발화, 쿨다운 순서로 검사한다. 전부 지나야 발화 시각을 기록하고 응답 대기에 들어간다. 침묵 이유는 `[Thought] proactive silent: <이유>` 로그로 남는다
 - **발화 내용**: 먼저 건네는 말은 `utterance` 만 쓴다. 해석문을 대신 내보내지 않는다
+- **말할 근거** (`session.py`, `reflect`): 열린 약속도 새 외부 이벤트도 없으면 사고 모델을 부르지 않는다. 성찰 지시문의 "먼저 말할 가치" 기준이 모두 약속과 이벤트에 걸려 있는데, 근거 없이 부르면 사고가 인사("안녕하세요! 더 궁금한 점…")나 방금 한 답을 지어 건넸다(2026-10-26 운영의 먼저 건넨 말 18건 대부분)
+- **바뀐 것이 있을 때만** (`session.py`, `_reflect_input_key`): 마지막 메시지, 열린 약속, 외부 이벤트, 15분(`REFLECT_REFRESH_SEC`) 단위 시각이 지난 성찰과 같으면 다시 생각하지 않는다. 같은 대화를 30초마다 다시 판단해 하루 1,200번쯤 사고 모델을 부르고 모두 침묵하던 것을 없앤다. 시각을 넣은 것은 기한이 다가오는 약속을 15분마다 다시 보기 위해서다
 - **되풀이 막기** (`session.py`, `reflect`): 사고는 최근 🔔 나 방금 끝난 답을 말만 바꿔 다시 고르곤 한다. 최근 🔔 3개와 같은 취지(`same_loop`)이거나, 10분(`REPEAT_ANSWER_SEC`) 안에 한 마지막 답과 겹치면(`refers_to`) 보내지 않는다. 10분이 지난 답은 보지 않으므로 며칠 뒤의 마감 알림은 막히지 않는다
 - **답하는 중** (`session.py`, `_emit_proactive`): 세션이 요청을 처리하는 동안 생긴 🔔 는 버린다. 답과 엉뚱한 🔔 가 섞여 나가지 않게 한다. 💬 filler 와 뒤로 넘긴 답(`answer`)은 그대로 나간다
 
@@ -107,29 +113,25 @@ JARVIS 는 성찰이 발화 게이트를 전부 지났을 때만, 프레임의 `
 
 Process Pattern Analysis 는 먼저 건넨 말이 도움이 됐는지에 따라 확신도 임계치를 움직인다(`feedback.py`).
 
+먼저 건넨 말은 따로 표시하거나 "도움이 됐나요?" 라고 묻지 않는다. 사람이 말을 건네고 상대의 반응을 보듯, 그 뒤 사용자의 첫 말로 판단한다.
+
 ```mermaid
 sequenceDiagram
   participant U as 사용자
-  participant H as 화면 (proactive.js)
-  participant S as 서버 /ws
+  participant S as 세션
   participant C as ReplyClassifier
   participant L as FeedbackLearner
-  S->>H: proactive_message 🔔 (+ "도움이 됐나요?")
-  U->>H: 짧은 답
-  alt 완전 일치 키워드 (네, 좋아 / 아니오, 됐어)
-    H->>S: proactive_feedback {id, accepted}
-    S->>L: record (같은 id 는 연결당 한 번)
-  else 40자 이하이고 사고가 켜져 있음
-    H->>S: reply_classify {kind: feedback, id, text, context: 🔔 본문}
-    S->>C: classify (6초 제한)
-    C-->>S: accept / dismiss / other
-    opt accept 또는 dismiss
-      S->>L: record
-    end
-    S-->>H: reply_classified {verdict}
-    H->>H: other 거나 8초 넘으면 보통 메시지로 보냄
-  else 그 밖
-    H->>S: user_message (질문은 닫힘)
+  S->>U: 먼저 건네는 말 (에이전트의 보통 말, 대화 기록에 assistant 로 남음)
+  U->>S: 다음 말 (user_message)
+  S->>S: 바로 답한다 (먼저 건넨 말이 기록에 있어 "응, 해줘" 를 알아듣는다)
+  S->>C: 뒤에서 classify(feedback, 그 말, 먼저 건넨 말)
+  C-->>S: accept / dismiss / other
+  alt accept
+    S->>L: record 수락
+  else dismiss
+    S->>L: record 무시
+  else other (딴 얘기)
+    S->>L: record_ignored 약한 무시
   end
   Note over S,L: 답이 없으면 IGNORE_AFTER_SEC 뒤 성찰 tick 이 약한 무시로 한 번 센다
 ```
@@ -137,7 +139,9 @@ sequenceDiagram
 - 임계치는 수락이면 −0.05, 무시면 +0.05, 무응답이면 +0.025 만큼 움직인다. 범위는 0.3 에서 0.95 다
 - 무응답은 먼저 건넨 말 뒤 `IGNORE_AFTER_SEC` 동안 아무 답이 없을 때 그 발화 하나에 한 번만 센다. 자리를 비웠을 수도 있어 무시의 절반만 반영한다. 판정은 성찰 tick 에서 하므로, `idle` 트리거만 쓰면(다음 활동 전까지 tick 이 없다) 무응답을 세지 않는다
 - 앱에 하나인 `FeedbackLearner` 를 모든 세션의 정책이 공유한다
-- 입력: TUI 는 `Ctrl+Y`(도움됨), `Ctrl+G`(무시)로 받는다. Web 은 먼저 건넨 말 뒤에 "도움이 됐나요?" 를 붙이고 다음 짧은 답을 읽는다. `네`, `좋아`, `고마워` 류는 수락, `아니오`, `됐어`, `무시` 류는 무시로 바로 처리한다. 그 밖의 40자 이하 답("응 그걸로 해줘", "지금은 됐어")은 사고 모델에 한 번 물어(`agent_layer/thought/reply.py`) accept, dismiss, other 로 나누고, other 면 보통 메시지로 흘러간다. gemma4:e2b 로 잰 실측에서는 11문장을 모두 맞혔고 중앙값은 0.3초였다
+- 판단은 먼저 건넨 말 뒤 첫 말 하나만 한다. 분류는 사고 모델에 한 번 묻고(`agent_layer/thought/reply.py`, 6초 제한), 답을 늦추지 않게 뒤에서 돈다. 분류기는 gemma4:e2b 로 잰 실측에서 11문장을 모두 맞혔고 중앙값은 0.3초였다
+- 딴 얘기를 약한 무시로 보는 것은 판단이다. 먼저 건넨 말을 듣고도 다른 것을 물었다면 그 말이 지금 필요하지 않았다고 본다
+- 입력: TUI 는 `Ctrl+Y`(도움됨), `Ctrl+G`(무시)로도 받는다. 옛 화면이 보내는 `proactive_feedback`, `reply_classify` 도 받으며, 받으면 다음 말로 다시 학습하지 않는다
 
 :::warning
 

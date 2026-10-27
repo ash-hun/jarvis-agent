@@ -3,6 +3,7 @@
 import pytest
 
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
+from tests.fixtures.grounded_loops import GroundedLoopStore
 from jarvis.core.proactive import DefaultProactivityCore
 from jarvis.memory.scope import MemoryScope
 
@@ -34,6 +35,7 @@ def _session(fx, session_id: str, engine: ScopeCapturingEngine):
         session_repo=fx["repo"],
         thought_engine=engine,
         proactivity_factory=lambda emit: DefaultProactivityCore(emit_proactive=emit),
+        openloop_store=GroundedLoopStore(),
     )
     # 성찰 연결 테스트라 사용자가 이미 말한 세션으로 둔다(말한 적 없는 세션은 성찰하지 않는다)
     session._user_spoke = True

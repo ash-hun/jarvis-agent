@@ -31,7 +31,6 @@ const SHELL = [
   'app/messages.js',
   'app/mode.js',
   'app/phrases.js',
-  'app/proactive.js',
   'app/reply.js',
   'app/session.js',
   'app/shell.js',

@@ -80,6 +80,7 @@ class SessionBuilder:
             openloop_expiry=self.openloop_expiry(),
             activity_clock=svc.activity_clock,
             feedback_learner=self._profile.feedback_learner,
+            reply_classifier=self._profile.reply_classifier(),
             user_model_store=svc.user_model_store,
             external_inbox=svc.external_inbox,
             external_detail_in_prompt=settings.external.store_detail_in_log,

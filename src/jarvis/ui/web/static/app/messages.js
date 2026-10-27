@@ -64,6 +64,16 @@ function agentShell(extraClass = '') {
   return div;
 }
 
+// 먼저 건네는 말과 대기 안내. 사람이 말하듯 에이전트의 보통 답과 같은 모양으로 보인다
+export function appendAgentMsg(bodyHtml) {
+  const div = agentShell();
+  div.querySelector('.agent-text').innerHTML = bodyHtml;
+  $messages.appendChild(div);
+  scrollToEnd();
+  incMsgCount();
+  return div;
+}
+
 // ── 스트리밍 응답 ─────────────────────────────────────────────────────────────
 export function streamStart() {
   _streamText = '';

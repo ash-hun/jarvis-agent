@@ -5,6 +5,7 @@ import asyncio
 
 from jarvis.core.proactive import DefaultProactivityCore, DefaultProactivityPolicy
 from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
+from tests.fixtures.grounded_loops import GroundedLoopStore
 from jarvis.agent_layer.types import ProactiveMessageEvent
 
 
@@ -31,6 +32,7 @@ def _build_session(fx, engine=None, proactivity_factory=None, feedback_learner=N
         thought_engine=engine,
         proactivity_factory=proactivity_factory,
         feedback_learner=feedback_learner,
+        openloop_store=GroundedLoopStore(),
     )
     # 성찰 연결 테스트라 사용자가 이미 말한 세션으로 둔다(말한 적 없는 세션은 성찰하지 않는다)
     session._user_spoke = True
@@ -371,8 +373,11 @@ async def test_restart_keeps_gate_and_recent_proactive(fx):
     await restarted.prompt("응 잘 되고 있어")
     assert (await restarted.reflect()).speak is True
     assert engine.requests[1].recent_proactive == ["구조화 잘 되고 있나요?"]
-    assert await fx["repo"].get_messages("test-session")  # 🔔 는 대화 기록에 섞이지 않는다
-    assert all(m.role != "assistant" or "구조화" not in m.text() for m in await fx["repo"].get_messages("test-session"))
+    # 먼저 건넨 말은 대화의 한 턴으로 한 번만 남고, 그 뒤에 사용자의 답이 온다
+    history = await fx["repo"].get_messages("test-session")
+    said = [i for i, m in enumerate(history) if m.role == "assistant" and "구조화" in m.text()]
+    reply = next(i for i, m in enumerate(history) if m.role == "user")
+    assert len(said) == 1 and said[0] < reply
 
 
 @pytest.mark.asyncio
@@ -488,3 +493,81 @@ async def test_session_without_conversation_does_not_reflect(fx):
     session._user_spoke = False
     decision = await session.reflect()
     assert decision.speak is False and decision.reason == "no conversation yet" and engine.requests == []
+
+
+class FakeClassifier:
+    def __init__(self, verdict: str) -> None:
+        self.verdict = verdict
+        self.calls: list[tuple[str, str, str]] = []
+
+    async def classify(self, kind, text, context="", has_always=False):  # type: ignore[no-untyped-def]
+        self.calls.append((kind, text, context))
+        return self.verdict
+
+
+def _no_cooldown(emit):
+    return DefaultProactivityCore(
+        emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0)
+    )
+
+
+@pytest.mark.asyncio
+async def test_nothing_to_tell_does_not_call_the_thought_model(fx):
+    """챙길 약속도 새 이벤트도 없으면 사고 모델을 부르지 않는다. 이때 사고는 인사나 방금 한 답을 지어 건넸다."""
+    from jarvis.agent_layer.openloop import InMemoryOpenLoopStore
+    from jarvis.core.session import AgentSession
+
+    await fx["repo"].create(session_id="test-session")
+    engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="안녕하세요!"))
+    session = AgentSession(
+        model=fx["model"], session_id="test-session", security_pipeline=fx["pipeline"],
+        plugin_runner=fx["plugin_runner"], memory=fx["session_memory"], tool_registry=fx["tool_registry"],
+        skill_registry=fx["skill_registry"], session_repo=fx["repo"], thought_engine=engine,
+        proactivity_factory=_no_cooldown, openloop_store=InMemoryOpenLoopStore(),
+    )
+    session._user_spoke = True
+    decision = await session.reflect()
+    assert decision.speak is False and decision.reason == "nothing to tell"
+    assert engine.requests == []
+
+
+@pytest.mark.asyncio
+async def test_unchanged_input_is_not_reflected_twice(fx):
+    """대화, 약속, 이벤트가 그대로면 다시 생각하지 않는다. 새 말이 오면 다시 본다."""
+    await fx["repo"].create(session_id="test-session")
+    engine = CountingEngine(ThoughtFrame(decision="silent", confidence=0.1))
+    session = _build_session(fx, engine=engine, proactivity_factory=_no_cooldown)
+    await session.reflect()
+    again = await session.reflect()
+    assert again.reason == "unchanged" and len(engine.requests) == 1
+    await session.prompt("내일 회의 몇 시였지?")
+    await session.reflect()
+    assert [r.mode for r in engine.requests].count("reflection") == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("verdict", "accepts", "dismisses", "ignores"),
+    [("accept", 1, 0, 0), ("dismiss", 0, 1, 0), ("other", 0, 0, 1)],
+)
+async def test_next_message_after_proactive_is_learned_without_asking(fx, verdict, accepts, dismisses, ignores):
+    """먼저 건넨 말 뒤 첫 말을 그 말에 대한 반응으로 읽는다. 받아들임, 거절, 딴 얘기(약한 무시)."""
+    from jarvis.core.proactive.feedback import FeedbackLearner
+
+    await fx["repo"].create(session_id="test-session")
+    learner = FeedbackLearner(base_threshold=0.6, step=0.05)
+    classifier = FakeClassifier(verdict)
+    engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="회의 자료 지금 보내 드릴까요?"))
+    session = _build_session(fx, engine=engine, proactivity_factory=_no_cooldown, feedback_learner=learner)
+    session._reply_classifier = classifier
+    assert (await session.reflect()).speak is True
+
+    await session.prompt("응 보내줘")
+    await asyncio.gather(*session._feedback_tasks)
+    assert classifier.calls == [("feedback", "응 보내줘", "회의 자료 지금 보내 드릴까요?")]
+    stats = learner.stats()
+    assert (stats["accepts"], stats["dismisses"], stats["ignores"]) == (accepts, dismisses, ignores)
+
+    # 다음 말은 먼저 건넨 말에 대한 반응이 아니다
+    await session.prompt("그리고 내일 날씨는?")
+    assert len(classifier.calls) == 1

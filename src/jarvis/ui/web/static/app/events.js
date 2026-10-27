@@ -2,15 +2,14 @@
 import { escapeHtml, renderMarkdown } from './markdown.js';
 import { setStatus, logActivity, showLive, lastLine, CAPTION_HOLD_MS } from './shell.js';
 import {
-  appendMsg, appendThought, streamStart, streamDelta, streamEnd, lastStreamText,
+  appendMsg, appendAgentMsg, appendThought, streamStart, streamDelta, streamEnd, lastStreamText,
   startToolTrace, endToolTrace,
 } from './messages.js';
 import { updateUsage } from './usage.js';
 import { fetchAgenda, showNotice } from './agenda.js';
 import { fetchTools } from './tools.js';
-import { voice, isVoiceMode, clearVoiceMode, requestSpeech, takeSpeech, listenForApproval, cue } from './voice-ui.js';
+import { voice, isVoiceMode, clearVoiceMode, requestSpeech, speakWhenFree, takeSpeech, listenForApproval, cue } from './voice-ui.js';
 import { showApproval, closeApproval, approvalSpeech } from './approval.js';
-import { askFeedback, isFeedbackPending, QUESTION_SPOKEN } from './proactive.js';
 import { setInputEnabled, endAwaitingReply } from './composer.js';
 import { isFullVoice } from './mode.js';
 import { onReplyClassified } from './reply.js';
@@ -188,30 +187,26 @@ export function handleMessage(msg) {
     }
 
     case 'proactive_message': {
-      // 시스템 비요청 발화 — filler(💬 대기) / proactive·answer(🔔 먼저 건넨 말).
+      // 먼저 건네는 말(proactive)과 대기 안내(filler). 따로 표시하지 않고 에이전트가 말한 한 턴으로 보이고 읽힌다.
+      // 그 말에 대한 반응은 서버가 다음 말로 학습한다(묻지 않는다)
       const ptext = (msg.text || '').trim();
       // 뒤로 넘긴 작업의 답은 스트림으로 이미 보였다. answer 는 외부 채널(디스코드)용이다
       if (!ptext || msg.kind === 'answer') break;
       const isFiller = msg.kind === 'filler';
       // 대기 안내 뒤에 오는 응답은 뒤로 넘긴 작업의 답이다. 서버가 answer 로 이미 밖에 알린다
       if (isFiller) _deferredReply = true;
-      const div = appendMsg(isFiller ? '💬' : '🔔', 'proactive', renderMarkdown(ptext));
+      appendAgentMsg(renderMarkdown(ptext));
       logActivity(`${isFiller ? '💬' : '🔔'} ${ptext}`, 'proactive');
       showLive(lastLine(ptext), CAPTION_HOLD_MS);
-      // filler가 아닌 먼저 건넨 말엔 대화로 피드백을 묻는다 (C3). 다음 짧은 답이 수락/무시가 된다.
-      const asks = !isFiller && !!msg.message_id;
-      if (asks) askFeedback(div, msg.message_id);
-      // voice 모드면 비요청 발화도 즉시 읽어준다. filler는 대기 체감을 줄이는 핵심.
-      // Full-voice 는 피드백 질문까지 읽고 답을 듣는다.
       if (isFiller && (isFullVoice() || isVoiceMode()) && hasPhrase('horizontal_task')) {
         cue('horizontal_task');  // 오래 걸리는 일을 뒤로 넘겼다. 대기 문장 대신 녹음한 문구를 읽는다
+      } else if (isFiller) {
+        if (isFullVoice() || isVoiceMode() || msg.speak) requestSpeech(ptext, { source: 'filler' });
       } else if (isFullVoice()) {
-        requestSpeech(asks ? `${ptext} ${QUESTION_SPOKEN}` : ptext, {
-          thenListen: () => asks && isFullVoice() && isFeedbackPending(),
-          source: isFiller ? 'filler' : 'proactive',
-        });
+        // 말을 건넸으면 사람처럼 답을 기다린다. 말하거나 듣는 중이면 끊지 않고 끝난 뒤에 말한다
+        speakWhenFree(ptext, { thenListen: isFullVoice, source: 'proactive' });
       } else if (isVoiceMode() || msg.speak) {
-        requestSpeech(ptext, { source: isFiller ? 'filler' : 'proactive' });
+        speakWhenFree(ptext, { source: 'proactive' });
       }
       break;
     }

@@ -46,13 +46,14 @@ from jarvis.agent_layer.thought import (
     ThoughtLog,
     ThoughtRequest,
 )
-from jarvis.model_layer.types import AssistantMessage, ModelConfig, ToolResultMessage, UserMessage
+from jarvis.model_layer.types import AssistantMessage, ModelConfig, TextContent, ToolResultMessage, UserMessage
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
 from jarvis.agent_layer.session.protocol import PROACTIVE_ACK_ENTRY, SessionRepo
 from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
 from jarvis.agent_layer.thought.router import RouteVerdict, ThoughtRouter
 from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope
 from jarvis.core.tools.registry import JarvisTool, ToolRegistry
+from jarvis.agent_layer.thought.reply import ReplyClassifier
 from jarvis.agent_layer.openloop.judge import OpenLoopJudge
 from jarvis.agent_layer.openloop.types import same_loop
 from jarvis.agent_layer.usermodel import UserModelStore
@@ -117,6 +118,8 @@ THOUGHT_WAIT_SEC = 3.0
 RECENT_PROACTIVE_MAX = 3
 # 이 시간 안에 한 답을 되풀이하는 🔔 는 보내지 않는다
 REPEAT_ANSWER_SEC = 600
+# 대화, 약속, 이벤트가 그대로면 성찰을 다시 하지 않는다. 기한이 다가오는 것은 이 간격마다 다시 본다
+REFLECT_REFRESH_SEC = 900
 
 BUSY_MESSAGE = "이전 요청을 아직 처리 중입니다. 끝나길 기다리거나 중단(abort)한 뒤 다시 보내세요."
 # 화면은 agent_end 를 받자마자 다음 말을 보낼 수 있다. 그때 세션은 대화 저장 같은 마무리 중이라(수백 ms)
@@ -163,6 +166,7 @@ class AgentSession:
         memory: MemoryService | None = None,
         thought_router: ThoughtRouter | None = None,
         loop_judge: OpenLoopJudge | None = None,
+        reply_classifier: ReplyClassifier | None = None,
     ) -> None:
         self._security = security_pipeline
         # 서브 에이전트: 사용자는 인증이 아니라 부른 쪽 범위(prompt 의 caller_scope)에서 받는다.
@@ -197,6 +201,12 @@ class AgentSession:
         # 사용자가 이 세션에서 말한 적이 있는가. 없으면 성찰할 대화가 없어 먼저 말하지 않는다
         self._user_spoke = False
         self._last_proactive_id: str | None = None  # 피드백이 어느 🔔 에 대한 답인지
+        # 먼저 건넨 말 뒤 사용자의 첫 말로 학습한다. 묻지 않는다. 기다리는 말이 없으면 None
+        self._reply_classifier = reply_classifier
+        self._awaiting_text: str | None = None
+        self._feedback_tasks: set[asyncio.Task[Any]] = set()
+        # 지난 성찰의 입력. 같으면 사고 모델을 부르지 않는다
+        self._reflect_key: tuple[Any, ...] | None = None
         # 코어는 세션별 emit에 바인딩되어야 하므로 팩토리로 주입받아 여기서 생성.
         self._proactivity: ProactivityCore | None = (
             proactivity_factory(self._emit_proactive) if proactivity_factory else None
@@ -259,9 +269,14 @@ class AgentSession:
         # 사용자 활동 기록. idle 트리거가 "조용해진 시점"을 알도록 리셋한다.
         if self._activity_clock is not None:
             self._activity_clock.touch()
-        # 사용자가 말했으니 먼저 건넨 말에 대한 대기는 끝났다
+        # 사용자가 말했으니 먼저 건넨 말에 대한 대기는 끝났다. 그 말이 먼저 건넨 말에 대한 반응이면 학습한다
         if self._proactivity is not None:
             await self._restore_proactive()
+            said, self._awaiting_text = self._awaiting_text, None
+            if said is not None:
+                task = asyncio.create_task(self._learn_from_reply(said, raw_input))
+                self._feedback_tasks.add(task)
+                task.add_done_callback(self._feedback_tasks.discard)
             self._proactivity.note_user_activity(self._session_id)
         self._user_spoke = True
 
@@ -359,6 +374,16 @@ class AgentSession:
         if not self._user_spoke and not external_events:
             # 앱이나 화면이 새 세션을 열기만 했다. 대화가 없으면 작은 모델은 빈 인사("무엇을 도와드릴까요?")를 건넨다
             return ProactiveDecision(speak=False, reason="no conversation yet")
+        loops = [_loop_line(loop) for loop in await self._load_open_loops()]
+        if not loops and not external_events:
+            # 먼저 말할 근거(챙길 약속, 새 이벤트)가 없다. 사고 모델은 이때 인사나 방금 한 답을 지어 건넸다
+            logger.info("[Thought] proactive silent: nothing to tell")
+            return ProactiveDecision(speak=False, reason="nothing to tell")
+        key = await self._reflect_input_key(loops, external_events)
+        if key == self._reflect_key:
+            return ProactiveDecision(speak=False, reason="unchanged")
+        # 사고 전에 남긴다. 사고가 실패해도 같은 입력으로 30초마다 다시 부르지 않는다
+        self._reflect_key = key
         # 사고 기록과 자율 행동은 이 세션의 범위(memory_scope)를 인자로 받는다
         frame = await self._run_inner_thought(
             REFLECTION_SEED,
@@ -383,6 +408,23 @@ class AgentSession:
             # 🔔 가 안 뜨는 이유(임계치 미달, 쿨다운, utterance 비움)를 로그에서 볼 수 있게.
             logger.info(f"[Thought] proactive silent: {decision.reason}")
         return decision
+
+    async def _reflect_input_key(self, loops: list[str], external_events: list[str]) -> tuple[Any, ...]:
+        """성찰 입력이 같은지 가르는 키. 마지막 메시지, 약속, 이벤트, 그리고 REFLECT_REFRESH_SEC 단위 시각."""
+        messages = await self._session_repo.get_messages(self._session_id)
+        last = messages[-1].timestamp if messages else 0
+        return (last, tuple(loops), tuple(external_events), int(time.time() // REFLECT_REFRESH_SEC))
+
+    async def _learn_from_reply(self, said: str, reply: str) -> None:
+        """먼저 건넨 말 뒤 첫 말로 학습한다. 받아들이면 수락, 거절하거나 미루면 무시, 딴 얘기면 약한 무시."""
+        if self._reply_classifier is None:
+            return
+        verdict = await self._reply_classifier.classify("feedback", reply, said)
+        if verdict in ("accept", "dismiss"):
+            await self.record_feedback(verdict == "accept")
+        elif self._feedback_learner is not None:
+            self._feedback_learner.record_ignored()
+        logger.info(f"[Proactive] reply to proactive: {verdict}")
 
     async def _recent_answer(self, now_ms: float) -> str:
         """REPEAT_ANSWER_SEC 안에 한 마지막 답. 그보다 오래된 답의 기한을 다시 알리는 🔔 는 막지 않는다."""
@@ -632,9 +674,14 @@ class AgentSession:
         if message.kind == "proactive":
             self._recent_proactive.append(message.text)
             self._last_proactive_id = message.id
+            self._awaiting_text = message.text
             # 내보내기 전에 남긴다. 남긴 뒤 죽으면 재시작 뒤 게이트가 닫혀 있어 같은 말을 다시 하지 않는다
             try:
                 await self._session_repo.append_proactive(self._session_id, message.id, message.text)
+                # 먼저 건넨 말도 대화의 한 턴이다. 기록에 있어야 뒤이은 "응, 해줘" 를 메인 모델이 알아듣는다
+                await self._session_repo.append(
+                    self._session_id, AssistantMessage(content=[TextContent(text=message.text)])
+                )
             except Exception as exc:
                 logger.warning(f"[Proactive] not saved, a restart may repeat it: {exc!r}")
         await self._harness.emit_event(
@@ -669,6 +716,7 @@ class AgentSession:
         released = max(last_user, max((a.timestamp for a in acks), default=0))
         if last.timestamp > released:
             self._proactivity.restore_awaiting(self._session_id)
+            self._awaiting_text = last.content.get("text") or None
         self._proactivity.restore_last_spoke(self._session_id, (time.time() * 1000 - last.timestamp) / 1000)
 
     async def record_feedback(self, accepted: bool) -> None:
@@ -678,6 +726,8 @@ class AgentSession:
         """
         if self._feedback_learner is not None:
             self._feedback_learner.record(accepted)
+        # 화면이 따로 피드백을 보냈으면 다음 말로 다시 학습하지 않는다
+        self._awaiting_text = None
         if self._proactivity is not None:
             await self._restore_proactive()
             self._proactivity.note_user_activity(self._session_id)

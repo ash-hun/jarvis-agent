@@ -61,7 +61,7 @@ docker compose restart jarvis-backend
 services/qwen_tts/setup.sh            # 잠긴 버전(mlx-audio 0.6.2, mlx 0.32.4)으로 환경을 맞춘다. 다시 실행해도 같다
 mkdir -p ~/.jarvis/voices/qwen        # voice.json(모델, 버전, 기준 녹음 대본)과 reference.wav 를 둔다
 services/qwen_tts/run.sh              # 127.0.0.1:8770. GET /health, POST /tts {"text"} -> WAV(24kHz)
-services/qwen_tts/install-launchd.sh  # 로그인할 때 띄우고 죽으면 다시 띄운다(로그 ~/.jarvis/logs/qwen-tts.log)
+services/qwen_tts/install-launchd.sh  # ~/.jarvis/qwen-tts 로 복사해 로그인할 때 띄우고 죽으면 다시 띄운다(로그 ~/.jarvis/logs/qwen-tts.log)
 ```
 
 - 모델(bf16 4.2GB)은 서버가 뜰 때 한 번 읽고 첫 문장으로 데운다. 메모리를 그만큼 계속 쓴다
@@ -69,6 +69,7 @@ services/qwen_tts/install-launchd.sh  # 로그인할 때 띄우고 죽으면 다
 - 서버는 127.0.0.1 에만 연다. Docker Desktop 의 `host.docker.internal` 은 호스트의 루프백에 닿는다
 - 기준 녹음은 손대지 않는다. 잡음 제거를 걸면 오히려 나빠졌다(UTMOS 4.07 에서 3.90)
 - Apple silicon Mac 에서만 된다. 리눅스 서버로 옮기면 이 방식은 쓸 수 없다
+- launchd 로 띄운 프로그램은 macOS 개인정보 보호 때문에 Desktop, Documents 아래 파일을 열지 못한다(`Operation not permitted`, 종료 코드 126). 그래서 등록 스크립트는 서버를 `~/.jarvis/qwen-tts` 로 복사해 그 자리에서 띄운다. 서버를 고치면 등록 스크립트를 다시 실행한다
 
 ## JARVIS 가 하는 말은 모두 JARVIS 목소리로
 

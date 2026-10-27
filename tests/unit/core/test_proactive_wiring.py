@@ -438,6 +438,29 @@ async def test_same_proactive_line_is_not_repeated(fx):
 
 
 @pytest.mark.asyncio
+async def test_proactive_repeating_the_last_answer_is_not_sent(fx):
+    """사고가 방금 끝난 답을 알릴 거리로 다시 고르면 보내지 않는다. 다른 일을 알리는 말은 보낸다."""
+    from jarvis.model_layer.types import AssistantMessage, TextContent
+
+    await fx["repo"].create(session_id="test-session")
+    answer = "애쉬, 가장 추천하는 공고는 시흥거모 S-1블록이에요. 월 부담 최대 139만원이고 마감은 11월 17일이에요."
+    await fx["repo"].append("test-session", AssistantMessage(content=[TextContent(text=answer)]))
+    factory = lambda emit: DefaultProactivityCore(  # noqa: E731
+        emit_proactive=emit, policy=DefaultProactivityPolicy(confidence_threshold=0.5, cooldown_sec=0)
+    )
+    repeat = "애쉬, 시흥거모 S-1블록이 가장 추천돼요. 월 부담 최대 139만원이고 마감은 11월 17일이에요."
+    session = _build_session(fx, engine=StubEngine(ThoughtFrame(decision="act", confidence=0.9, utterance=repeat)),
+                             proactivity_factory=factory)
+    decision = await session.reflect()
+    assert decision.speak is False and decision.reason == "repeat"
+
+    other = "애쉬, 구리갈매 공고 마감이 내일이에요."
+    session = _build_session(fx, engine=StubEngine(ThoughtFrame(decision="act", confidence=0.9, utterance=other)),
+                             proactivity_factory=factory)
+    assert (await session.reflect()).speak is True
+
+
+@pytest.mark.asyncio
 async def test_session_without_conversation_does_not_reflect(fx):
     """앱이나 화면이 세션을 열기만 했으면 사고 모델을 부르지 않는다."""
     await fx["repo"].create(session_id="test-session")

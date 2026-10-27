@@ -232,7 +232,9 @@ async def test_due_suffix_saved_and_shown_back(fx):
     [loop] = await store.list_open()
     assert loop.description == "배포 결과 공유 회의 준비"
     assert loop.due_ms == int(datetime(2099, 10, 12, 10, 0).timestamp() * 1000)
-    assert engine.requests[1].open_loops == ["[1] 배포 결과 공유 회의 준비 (기한 2099-10-12 10:00)"]
+    # 남은 시간은 오늘 날짜에 따라 달라 앞부분만 본다
+    [line] = engine.requests[1].open_loops
+    assert line.startswith("[1] 배포 결과 공유 회의 준비 (기한 2099-10-12 10:00, ") and line.endswith("일 남음)")
 
 
 @pytest.mark.asyncio

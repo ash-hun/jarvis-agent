@@ -571,3 +571,17 @@ async def test_next_message_after_proactive_is_learned_without_asking(fx, verdic
     # 다음 말은 먼저 건넨 말에 대한 반응이 아니다
     await session.prompt("그리고 내일 날씨는?")
     assert len(classifier.calls) == 1
+
+
+@pytest.mark.parametrize(
+    ("ms", "said"),
+    [(240_000, "4분 남음"), (1, "1분 남음"), (0, "기한 지남"), (90 * 60_000, "1시간 30분 남음"),
+     (120 * 60_000, "2시간 남음"), (3 * 86_400_000, "3일 남음")],
+)
+def test_remaining_time_is_computed_not_left_to_the_model(ms, said):
+    """사고 모델은 기한 시각과 지금을 빼다 틀렸다. 남은 시간은 코드가 말로 붙인다."""
+    from jarvis.agent_layer.openloop import OpenLoop
+    from jarvis.core.session import _loop_line
+
+    loop = OpenLoop(description="메일 보내기", origin_session="s", due_ms=1_000_000_000_000 + ms)
+    assert _loop_line(loop, 1_000_000_000_000).endswith(f", {said})")

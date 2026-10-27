@@ -601,3 +601,30 @@ def test_only_loops_due_soon_or_without_due_are_grounds_to_speak():
     assert _due_soon(loop(None), now)
     assert _due_soon(loop(now + DUE_SOON_SEC * 1000), now) and _due_soon(loop(now - 60_000), now)
     assert not _due_soon(loop(now + 3 * 86_400_000), now)
+
+
+@pytest.mark.asyncio
+async def test_say_speaks_as_the_agent_and_is_kept_in_history(fx):
+    """스케줄 결과(새 공고)를 성찰 없이 에이전트의 말로 건넨다. 대화 기록에 남고 다음 말을 그 말의 반응으로 읽는다."""
+    await fx["repo"].create(session_id="test-session")
+    engine = CountingEngine(ThoughtFrame(decision="silent"))
+    session = _build_session(fx, engine=engine, proactivity_factory=_no_cooldown)
+    events: list = []
+    session.subscribe(lambda e: events.append(e) or _noop())
+
+    assert await session.say("애쉬, 새로 올라온 공고가 1건 있어요.") is True
+    said = [e for e in events if isinstance(e, ProactiveMessageEvent) and e.kind == "proactive"]
+    assert [e.text for e in said] == ["애쉬, 새로 올라온 공고가 1건 있어요."]
+    history = await fx["repo"].get_messages("test-session")
+    assert history[-1].role == "assistant" and history[-1].text() == "애쉬, 새로 올라온 공고가 1건 있어요."
+    assert session._awaiting_text == "애쉬, 새로 올라온 공고가 1건 있어요."
+    # 답을 기다리는 동안 성찰은 다른 말을 얹지 않는다
+    assert (await session.reflect()).reason == "awaiting reply"
+
+
+@pytest.mark.asyncio
+async def test_say_is_refused_during_focus_so_the_caller_sends_a_notice(fx):
+    await fx["repo"].create(session_id="test-session")
+    session = _build_session(fx, engine=None, proactivity_factory=_no_cooldown)
+    session._turn_hook = object()  # type: ignore[assignment]
+    assert await session.say("애쉬, 새 공고예요.") is False

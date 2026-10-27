@@ -141,6 +141,13 @@ class SessionRegistry:
         """사용자 메시지를 받은 시점. 세션 recency 를 갱신한다."""
         self._last_activity[session_id] = time.monotonic()
 
+    def latest_of(self, agent_id: str) -> "AgentSession | None":
+        """사용자가 그 에이전트와 가장 최근에 대화한 세션. 사용자가 말한 적 없는 세션(위임 등)은 빼고, 없으면 None."""
+        talked = [sid for sid in self._last_activity if self._session_agents.get(sid) == agent_id]
+        if not talked:
+            return None
+        return self._sessions[max(talked, key=lambda sid: self._last_activity[sid])]
+
     def sessions_by_recency(self) -> "list[AgentSession]":
         """최근 활동순. 한 번도 touch 되지 않았으면 삽입 순서.
 

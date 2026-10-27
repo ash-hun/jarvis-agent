@@ -135,3 +135,18 @@ async def test_shutdown_consolidates_facts_from_the_session_summary(faux_model_w
 
     facts = await ltm.recent(scope=MemoryScope(user_id="jh", agent_id="researcher"))  # shared 라 서브 에이전트도 본다
     assert [f.content for f in facts] == ["거주지: 부산"]
+
+
+def test_latest_of_picks_the_session_the_user_talked_to_most_recently():
+    """스케줄 결과를 건넬 세션. 사용자가 말한 적 없는 세션(위임받은 세션)은 고르지 않는다."""
+    registry = _make_manager({"k1": _mock_session("k1"), "k2": _mock_session("k2"), "peer": _mock_session("peer"),
+                              "j": _mock_session("j")})
+    registry._session_agents = {"k1": "karen", "k2": "karen", "peer": "karen", "j": "main"}
+    registry._last_activity = {}
+    assert registry.latest_of("karen") is None
+    # touch 는 monotonic 시각이라 연달아 부르면 같을 수 있다. 시각을 직접 둔다
+    registry._last_activity.update({"k2": 1.0, "j": 2.0, "k1": 3.0})
+    assert registry.latest_of("karen") is registry._sessions["k1"]
+    registry._last_activity["k2"] = 4.0
+    assert registry.latest_of("karen") is registry._sessions["k2"]
+    assert registry.latest_of("main") is registry._sessions["j"]

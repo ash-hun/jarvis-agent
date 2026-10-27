@@ -626,3 +626,25 @@ class TestToolTask:
         await svc._run_and_deliver(ScheduledTask(name="w", prompt="", kind="tool", tool="housing_watch", agent="karen"))
         await svc._run_and_deliver(ScheduledTask(name="g", prompt="", kind="tool", tool="ghost", agent="karen"))
         assert [p["error"] for p in sent] == [True, True]
+
+    async def test_conversation_delivery_goes_to_the_agent_and_falls_back_to_a_notice(self):
+        """deliver: conversation 이면 에이전트의 대화로 건네고, 건넬 대화가 없으면 스케줄 알림으로 보낸다."""
+        svc, sent = self._service(self._tool(["애쉬, 새로 올라온 공고가 1건 있어요", "애쉬, 새 공고 2건", "실패", ""]))
+        spoken: list[tuple[str, str]] = []
+        joined = [True, False]
+
+        async def converse(agent, text):
+            spoken.append((agent, text))
+            return joined.pop(0)
+
+        svc.set_conversation(converse)
+        task = ScheduledTask(name="rt", prompt="", kind="tool", tool="housing_watch", agent="karen",
+                             deliver="conversation")
+        await svc._run_and_deliver(task)
+        assert spoken == [("karen", "애쉬, 새로 올라온 공고가 1건 있어요")] and sent == []
+        await svc._run_and_deliver(task)
+        assert [p["text"] for p in sent] == ["애쉬, 새 공고 2건"]
+        # 새 공고가 없으면(빈 글) 어디에도 보내지 않는다
+        await svc._run_and_deliver(task.model_copy(update={"deliver": "notice"}))
+        await svc._run_and_deliver(task)
+        assert len(spoken) == 2 and len(sent) == 2

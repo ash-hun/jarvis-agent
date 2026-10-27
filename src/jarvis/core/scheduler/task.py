@@ -34,6 +34,9 @@ class ScheduledTask(BaseModel):
     args: dict[str, Any] = Field(default_factory=dict)
     # 작업을 실행할 최상위 에이전트 id. 그 에이전트의 모델과 시스템 프롬프트, 기억 범위로 돈다
     agent: str = MAIN_AGENT
+    # notice: 스케줄 알림(reminder 이벤트)으로 보낸다. conversation: 그 에이전트와 최근 대화한 세션에 에이전트의 말로
+    # 건넨다(대화 기록에 남아 이어 물을 수 있다). 그런 세션이 없거나 건넬 수 없으면 notice 로 보낸다
+    deliver: Literal["notice", "conversation"] = "notice"
 
     # 이 작업을 읽어 온(또는 저장한) YAML 파일. 토글을 원본 파일에 되쓰는 데 쓴다.
     # 직렬화 대상이 아니다. None 이면 아직 파일이 없는 메모리 전용 작업.

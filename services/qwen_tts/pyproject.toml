@@ -1,0 +1,14 @@
+# Mac 호스트에서 도는 Qwen3-TTS 합성 서버. MLX 가 Metal(Apple GPU)을 써야 해 Docker 밖에서 돌고, 그래서 앱과 따로
+# 의존성을 잠근다(transformers, numpy 버전이 앱과 만나지 않는다). 버전은 llmclick 이 검증한 조합 그대로다
+[project]
+name = "jarvis-qwen-tts"
+version = "0.1.0"
+requires-python = "==3.12.*"
+dependencies = [
+  "mlx-audio==0.6.2",
+  "mlx==0.32.4",
+  "soundfile==0.14.0",
+]
+
+[tool.uv]
+package = false

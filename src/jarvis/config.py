@@ -349,11 +349,13 @@ class VoiceConfig(BaseModel):
     whisper_model_size: str = "base"
     supertonic_model: str = "supertonic-3"  # supertonic 패키지가 받는 모델 이름(HuggingFace 경로가 아니다)
     tts_lang: str = "ko"
-    english_tts_provider: str = ""   # 비우면 영어 문장도 tts_provider 가 읽는다. piper
+    english_tts_provider: str = ""   # 비우면 영어 문장도 tts_provider 가 읽는다. piper | qwen
     # JARVIS 가 소리 내는 한국어 글을 소리로만 영어로 옮겨 english_tts(JARVIS 목소리)로 읽는다. 화면 글은 한국어
     speak_english: bool = False
     piper_model: str = "~/.jarvis/voices/en-voice.onnx"  # 같은 자리에 .onnx.json 이 있어야 한다
     piper_noise_scale: float = 0.4   # 낮을수록 음정 떨림이 줄고 말투가 단조로워진다. Piper 기본은 0.667
+    # qwen: Mac 호스트에서 도는 합성 서버(services/qwen_tts). 닿지 않으면 위 piper_model 로 읽는다
+    qwen_url: str = "http://host.docker.internal:8770"
     # 미리 녹음한 읽기 문구(phrases.json 과 wav). 비우면 문구를 재생하지 않는다
     phrases_dir: str = ""
     # "Jarvis" 웨이크워드 모델(jarvis.onnx 와 openWakeWord 특징 모델 둘). 비우면 끈다
@@ -373,6 +375,8 @@ class VoiceConfig(BaseModel):
 
     def english_tts_options(self) -> dict[str, object]:
         """english_tts_provider 팩토리에 넘길 생성 옵션."""
+        if self.english_tts_provider == "qwen":
+            return {"url": self.qwen_url, "piper_model": self.piper_model, "noise_scale": self.piper_noise_scale}
         if self.english_tts_provider != "piper":
             return {}
         return {"model_path": self.piper_model, "noise_scale": self.piper_noise_scale}

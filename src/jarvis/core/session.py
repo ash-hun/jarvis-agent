@@ -369,6 +369,10 @@ class AgentSession:
             # 최근에 건넨 말을 사고 프롬프트에 보여 줘도 같은 말을 다시 고른다. 같은 🔔 와 피드백 질문이 반복된다
             logger.info("[Thought] proactive silent: repeats a recent proactive message")
             return ProactiveDecision(speak=False, reason="repeat")
+        if frame.utterance.strip() and same_loop(frame.utterance, await self._last_answer()):
+            # 사고는 방금 끝난 답("가장 추천하는 공고는…")을 알릴 거리로 다시 고르곤 한다
+            logger.info("[Thought] proactive silent: repeats the last answer")
+            return ProactiveDecision(speak=False, reason="repeat")
         decision = await self._proactivity.reflect(
             frame, session_id=self._session_id, execute=self._execute_autonomous
         )
@@ -377,6 +381,12 @@ class AgentSession:
             # 🔔 가 안 뜨는 이유(임계치 미달, 쿨다운, utterance 비움)를 로그에서 볼 수 있게.
             logger.info(f"[Thought] proactive silent: {decision.reason}")
         return decision
+
+    async def _last_answer(self) -> str:
+        # ponytail: 마지막 답 하나만 본다, 🔔 가 그 앞 답을 되풀이하는 일이 보이면 최근 몇 개로 넓힌다
+        messages = await self._session_repo.get_messages(self._session_id)
+        answer = next((m for m in reversed(messages) if isinstance(m, AssistantMessage) and m.text().strip()), None)
+        return answer.text() if answer is not None else ""
 
     def _learn_ignored(self, decision: ProactiveDecision) -> None:
         # 게이트는 발화 하나당 한 번만 ignored 를 세우므로 여기서 중복 기록되지 않는다

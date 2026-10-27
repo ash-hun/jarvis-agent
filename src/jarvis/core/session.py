@@ -395,11 +395,11 @@ class AgentSession:
             return None
         if frame.utterance.strip() and any(same_loop(frame.utterance, said) for said in self._recent_proactive):
             # 최근에 건넨 말을 사고 프롬프트에 보여 줘도 같은 말을 다시 고른다. 같은 🔔 와 피드백 질문이 반복된다
-            logger.info("[Thought] proactive silent: repeats a recent proactive message")
+            logger.info(f"[Thought] proactive silent: repeats a recent proactive message {self._said(frame)}")
             return ProactiveDecision(speak=False, reason="repeat")
         if frame.utterance.strip() and refers_to(frame.utterance, await self._recent_answer(time.time() * 1000)):
             # 사고는 방금 끝난 답("가장 추천하는 공고는…")을 말만 바꿔 알릴 거리로 다시 고르곤 한다
-            logger.info("[Thought] proactive silent: repeats the last answer")
+            logger.info(f"[Thought] proactive silent: repeats the last answer {self._said(frame)}")
             return ProactiveDecision(speak=False, reason="repeat")
         decision = await self._proactivity.reflect(
             frame, session_id=self._session_id, execute=self._execute_autonomous
@@ -409,6 +409,10 @@ class AgentSession:
             # 🔔 가 안 뜨는 이유(임계치 미달, 쿨다운, utterance 비움)를 로그에서 볼 수 있게.
             logger.info(f"[Thought] proactive silent: {decision.reason}")
         return decision
+
+    def _said(self, frame: ThoughtFrame) -> str:
+        # 어느 세션이 무슨 말을 하려다 막혔는지 로그로 가린다
+        return f"({self._session_id}: {frame.utterance[:60]})"
 
     async def _reflect_input_key(self, loops: list[str], external_events: list[str]) -> tuple[Any, ...]:
         """성찰 입력이 같은지 가르는 키. 마지막 메시지, 약속, 이벤트, 그리고 REFLECT_REFRESH_SEC 단위 시각."""

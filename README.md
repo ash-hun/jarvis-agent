@@ -131,7 +131,7 @@ jarvis --list-sessions      # 세션 목록
 | **Proactivity Daemon** | 요청 없이 주기(기본 120초)/idle 시점에 성찰해, 게이팅을 통과하면 **먼저 말 검**. 건네는 말은 사고 프레임의 `utterance` 이고 비어 있으면 침묵한다(해석문을 대신 내보내지 않는다). 저위험 읽기 작업은 자율로 미리 처리(이중 안전 게이트) |
 | **Thought Router** | router decision model 이 요청마다 사고가 필요한지(think) 아닌지(direct) 정한다. 어느 쪽이든 바로 답하고, think 일 때만 사고를 응답과 함께 돌려 그 결과를 다음 턴에 넣는다. 끄면(기본) 아래 `REQUEST_TIMING` 대로 매 요청 사고한다 |
 | **Open-loop 추적** | 대화에서 흘린 약속·미완 작업을 매 요청마다 사고와 따로 도는 AGENDA 판단이 감지·저장 → 이후 성찰 시 상기/처리 (`/openloop`). 성찰은 기존 약속을 볼 뿐 새로 저장하지 않는다. 대화에서 끝나거나 취소되면 AGENDA 판단이 닫고(done), 기한이 지나면 expired 로 닫힌다. 바꿔 말한 같은 약속은 기한만 갱신한다 |
-| **피드백 학습** | Proactive Dialogue의 수락/무시를 학습해 발화 임계치를 자동 조정. Web 은 🔔 뒤에 "도움이 됐나요?" 를 묻고 다음 짧은 답(네/아니오)을 읽는다 |
+| **피드백 학습** | Proactive Dialogue의 수락/무시를 학습해 발화 임계치를 자동 조정. 묻지 않고, 먼저 건넨 말 뒤 사용자의 첫 말을 받아들임, 거절, 딴 얘기로 분류해 배운다 |
 | **User Model · 저널** | 누적 기억을 증류한 사용자 모델(`/usermodel`)을 사고에 주입, 자기 성찰 저널(`/journal`)을 남겨 회상에 반영 |
 
 ```bash
@@ -158,7 +158,7 @@ JARVIS_THOUGHT__ROUTER_BASE_URL=http://host.docker.internal:11435   # Docker 밖
 
 호스트 Ollama 하나로 메인과 사고를 같이 돌리면 성찰 중 사용자 요청이 줄을 선다. brew 서비스면 `launchctl setenv OLLAMA_NUM_PARALLEL 2 && brew services restart ollama` 로 동시 처리 수를 늘린다(재부팅하면 다시 설정).
 
-🔔 가 안 뜨는 이유는 백엔드 로그 `[Thought] proactive silent: <이유>` 에 남는다. `awaiting reply`(🔔 뒤 사용자가 아직 아무 답도 하지 않음), `cooldown`(300초), `confidence … < 임계치`, `empty utterance`(모델이 건넬 말을 안 채움) 중 하나다. 답을 기다리는 동안은 성찰도 건너뛴다.
+먼저 건네는 말이 나오지 않는 이유는 백엔드 로그 `[Thought] proactive silent: <이유>` 에 남는다. `awaiting reply`(먼저 건넨 말 뒤 사용자가 아직 아무 답도 하지 않음), `cooldown`(300초), `confidence … < 임계치`, `empty utterance`(모델이 건넬 말을 안 채움) 중 하나다. 답을 기다리는 동안은 성찰도 건너뛴다.
 
 | 피드백 | 동작 |
 |--------|------|
@@ -244,7 +244,7 @@ JARVIS_NOTIFY__WEBPUSH_SUBJECT=mailto:me@example.com
 | 가운데 | 리액터. 상태(대기, 생각, 실행, 듣기, 말하기)가 구체와 링에 보인다. 클릭하면 음성 모드, 읽는 중이면 읽기 멈춤 |
 | 오른쪽 열 | SESSIONS, CONVERSATION. 헤더를 클릭하면 접히고 아래 카드가 자리를 채운다 |
 
-대화에는 네 종류가 섞인다. 💭 는 접힌 한 줄(decision, 확신도)이고 클릭하면 해석 전문. 🔔 는 먼저 건넨 말이고 아래에 "도움이 됐나요?" 가 붙는다. 전송 직후 첫 이벤트까지는 THINKING 자리표시가 뜬다. 응답과 세션 복원 메시지는 마크다운으로 렌더된다. 승인이 필요한 도구는 모달(ALLOW, ALWAYS, DENY)로 묻고, 120초 동안 답이 없으면 시간 초과로 거부한다. 음성으로 시작한 요청이면 모달 대신 아래쪽 띠를 띄우고 음성으로 묻는다.
+대화에는 네 종류가 섞인다. 💭 는 접힌 한 줄(decision, 확신도)이고 클릭하면 해석 전문. 먼저 건넨 말과 대기 안내는 따로 표시하지 않고 에이전트의 보통 답처럼 보이고 읽힌다. 전송 직후 첫 이벤트까지는 THINKING 자리표시가 뜬다. 응답과 세션 복원 메시지는 마크다운으로 렌더된다. 승인이 필요한 도구는 모달(ALLOW, ALWAYS, DENY)로 묻고, 120초 동안 답이 없으면 시간 초과로 거부한다. 음성으로 시작한 요청이면 모달 대신 아래쪽 띠를 띄우고 음성으로 묻는다.
 
 헤더의 `DEFAULT` / `FULL-VOICE` 는 음성 모드를, `/focus <작업>` 은 Focus 모드를 켠다. Focus 는 양옆 카드를 띠로 접고 구체 둘레에 레퍼런스 조사, 작업 기록, 지시 분석, 진행 현황 네 영역을 펼친다. 각 영역은 작업 동안 살아 있는 sub-agent 가 채운다. 세션을 다른 에이전트로 바꾸면 화면 색이 약 0.9초에 걸쳐 섞인다.
 
@@ -267,7 +267,7 @@ JARVIS_VOICE__TTS_PROVIDER=supertonic    # browser | supertonic
 uv sync --extra voice
 ```
 
-읽기 전에 서버가 마크다운 기호를 지운다. 읽는 중에 `Esc` 를 누르거나 구체를 클릭하면 멈춘다. 영어로만 된 문장은 `JARVIS_VOICE__ENGLISH_TTS_PROVIDER=piper` 로 Piper 음성 모델이 따로 읽게 할 수 있다.
+읽기 전에 서버가 마크다운 기호를 지운다. 읽는 중에 `Esc` 를 누르거나 구체를 클릭하면 멈춘다. 영어로만 된 문장은 `JARVIS_VOICE__ENGLISH_TTS_PROVIDER` 로 따로 읽게 할 수 있다. `piper` 는 Piper 음성 모델, `qwen` 은 Mac 의 Qwen3-TTS 합성 서버(`services/qwen_tts`)가 읽고, Web HUD 는 소리를 조각으로 나오는 대로 받아 첫 조각부터 읽는다.
 
 JARVIS 전용 음성 모델(TTS, 읽기 문구 9개, "Jarvis" 웨이크워드)은 레포의 `models/` 에 두고 쓴다. 비상업 라이선스라 `.gitignore` 에 있어 올라가지 않는다. Docker 는 `./models` 를 `/app/models` 로 마운트하고 `JARVIS_VOICE__PIPER_MODEL`, `JARVIS_VOICE__PHRASES_DIR`, `JARVIS_VOICE__WAKE_MODEL_DIR` 로 켠다. 채우는 법은 문서의 Voice Interface 에 있다.
 
@@ -664,7 +664,7 @@ JARVIS_PROACTIVE__CONFIDENCE_THRESHOLD=0.85
 # JARVIS_PROACTIVE__DECISION_MODEL=tev1   # Ollama decision model 로 "먼저 말할까" 를 정한다
 # JARVIS_PROACTIVE__DECISION_THRESHOLD=0.6 # decision model 을 쓸 때의 임계치
 JARVIS_PROACTIVE__COOLDOWN_SEC=300
-JARVIS_PROACTIVE__IGNORE_AFTER_SEC=600  # 🔔 뒤 답이 없으면 이만큼 지나 약한 무시로 학습
+JARVIS_PROACTIVE__IGNORE_AFTER_SEC=600  # 먼저 건넨 말 뒤 답이 없으면 이만큼 지나 약한 무시로 학습
 JARVIS_PROACTIVE__DAEMON_ENABLED=true     # 자율 성찰 루프 (기본 on)
 JARVIS_PROACTIVE__DAEMON_TRIGGER=interval # interval | idle | both
 JARVIS_PROACTIVE__DAEMON_INTERVAL_SEC=120

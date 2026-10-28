@@ -74,7 +74,7 @@ services/qwen_tts/install-launchd.sh  # ~/.jarvis/qwen-tts 로 복사해 로그�
 
 ## JARVIS 가 하는 말은 모두 JARVIS 목소리로
 
-JARVIS 의 답은 한국어라 그대로 두면 한국어 TTS(supertonic)가 읽는다. `JARVIS_VOICE__SPEAK_ENGLISH=true` 를 두면 JARVIS 가 소리 내는 한국어 글(답, 🔔, filler, 앞으로 생길 종류 모두)을 소리로만 짧은 영어 구어체로 옮겨 Piper(JARVIS 목소리)로 읽는다. 화면에 쓰는 글은 한국어 그대로다.
+JARVIS 의 답은 한국어라 그대로 두면 한국어 TTS(supertonic)가 읽는다. `JARVIS_VOICE__SPEAK_ENGLISH=true` 를 두면 JARVIS 가 소리 내는 한국어 글(답, 🔔, filler, 앞으로 생길 종류 모두)을 소리로만 짧은 영어 구어체로 옮겨 영어 TTS(JARVIS 목소리, `piper` 또는 `qwen`)로 읽는다. 화면에 쓰는 글은 한국어 그대로다.
 
 - 옮기기는 메인 모델에 한 번 묻는다. 두 문장, 45단어 안으로 줄이고 이름, 숫자, 날짜는 그대로 둔다
 - Web HUD 는 소리를 나오는 대로 0.32초 조각으로 받아(`stream`) 첫 조각부터 읽는다. 조각은 앞 조각이 끝나는 시각(Web Audio 시계)에 예약해 잇는다. 끝나는 때(`onended`)에 다음을 시작하면 경계마다 틈이 생긴다
@@ -90,7 +90,7 @@ whisper 로 인식할 때 결과가 비었거나, 말소리가 없다는 확률(
 
 | 에이전트 | 되묻는 말 | 목소리 |
 |---|---|---|
-| JARVIS | I'm sorry, sir. I didn't catch that. | Piper(JARVIS 목소리) |
+| JARVIS | I'm sorry, sir. I didn't catch that. | 영어 TTS(JARVIS 목소리) |
 | 그 밖 | 잘 못 들었어요. 한 번 더 말씀해 주세요. | 한국어 TTS |
 
 직전 발화가 JARVIS 목소리였는데 되묻는 말만 다른 목소리로 나오지 않게 하려는 것이다. 판정 값은 `voice/service.py` 의 `NO_SPEECH_MAX`, `AVG_LOGPROB_MIN` 이다. 백엔드 로그의 `[Voice] stt` 줄에 두 값과 판정이 남는다.
@@ -320,7 +320,7 @@ Chrome 음성 인식(ko-KR)으로 Focus 를 켜고 끄려 한 실제 시도 다�
 
 ## 구현 위치
 
-- 구현: `voice/`(서버 프로바이더, `service.py` 의 영어 판정, `speech_text.py` 의 기호 지우기, `wake.py` 의 웨이크워드 감지, `phrases.py` 의 읽기 문구), `ui/web/router/voice_router.py`(문구 wav), `ui/web/static/voice.js`(브라우저 상태 기계), `app/wake.js` 와 `wake-worklet.js`(마이크 캡처), `app/phrases.js`(문구 받기), `ui/tui/`(터미널)
+- 구현: `services/qwen_tts/`(Mac 의 Qwen3-TTS 합성 서버와 launchd 등록), `ui/web/ws_tasks.py` 의 `run_tts`(옮기기, 문장 나누기, 조각 중계), `voice/`(서버 프로바이더, `service.py` 의 영어 판정, `speech_text.py` 의 기호 지우기, `wake.py` 의 웨이크워드 감지, `phrases.py` 의 읽기 문구), `ui/web/router/voice_router.py`(문구 wav), `ui/web/static/voice.js`(브라우저 상태 기계, 조각 예약 재생), `app/wake.js` 와 `wake-worklet.js`(마이크 캡처), `app/phrases.js`(문구 받기), `ui/tui/`(터미널)
 
 왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
 
@@ -331,16 +331,15 @@ flowchart LR
   VM --> SR[Web Speech 인식<br/>또는 MediaRecorder]
   VM --> TTS[speechSynthesis<br/>또는 voice_tts_audio]
   SR -->|server STT| STT[voice/ whisper]
-  TTS -->|server TTS| SUP[voice/ supertonic<br/>영어는 piper]
+  TTS -->|server TTS| SUP[voice/ supertonic<br/>영어는 piper 또는 qwen]
+  SUP -->|qwen| QS[services/qwen_tts<br/>Mac GPU 합성 서버]
   VUI --> APR[app/approval.js<br/>음성 승인 답]
-  VUI --> PRO[app/proactive.js<br/>🔔 피드백 답]
   VUI --> PHR[app/phrases.js<br/>읽기 문구] --> PAPI[GET /api/voice/phrases]
   WAKE[app/wake.js<br/>wake-worklet.js] -->|PCM 바이너리 프레임| WD[voice/wake.py<br/>openWakeWord]
   WD -->|voice_wake| VUI
   PAPI --> MD[(models/)]
   WD --> MD
   APR --> RPL[app/reply.js<br/>reply_classify]
-  PRO --> RPL
 ```
 
 - 핵심 모듈: `ui/web/static/voice.js`, `voice/`

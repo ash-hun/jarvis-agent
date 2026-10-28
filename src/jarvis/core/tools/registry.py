@@ -39,6 +39,9 @@ class JarvisTool:
     description: str
     parameters: dict[str, Any]
     execution_mode: str = "parallel"  # "parallel" | "sequential"
+    # 사용자만 정할 수 있는 값(돈, 조건 등)을 받는 인자. 사람이 없는 차례(목표, 스케줄 작업)에서는 모델이 지어낼 수
+    # 있어 버리고 저장된 값으로 돈다
+    user_only_params: tuple[str, ...] = ()
 
     async def execute(
         self,
@@ -121,12 +124,18 @@ class PickedToolRegistry(ToolRegistry):
     """
 
     def __init__(
-        self, sources: tuple["ToolRegistry | None", ...], names: tuple[str, ...], prefixes: tuple[str, ...] = ()
+        self,
+        sources: tuple["ToolRegistry | None", ...],
+        names: tuple[str, ...],
+        prefixes: tuple[str, ...] = (),
+        exclude: tuple[str, ...] = (),
     ) -> None:
         super().__init__()
         self._sources = [s for s in sources if s is not None]
         self._names = names
         self._prefixes = prefixes
+        # 에이전트가 어디서도 쓰지 않는 도구(경계의 never). 고른 이름이나 접두어에 걸려도 보이지 않는다
+        self._exclude = frozenset(exclude)
 
     def _picked(self) -> dict[str, JarvisTool]:
         found: dict[str, JarvisTool] = {}
@@ -141,7 +150,7 @@ class PickedToolRegistry(ToolRegistry):
                         found.setdefault(tool.name, tool)
         for name, tool in self._tools.items():
             found.setdefault(name, tool)
-        return found
+        return {name: tool for name, tool in found.items() if name not in self._exclude}
 
     def get(self, name: str) -> JarvisTool | None:
         return self._picked().get(name)

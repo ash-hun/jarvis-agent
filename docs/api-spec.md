@@ -1123,7 +1123,7 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `proactive_message` | `session_id`, `text`, `kind`(`filler`/`proactive`/`answer`), `speak`, `message_id` | 먼저 건네는 말. `proactive` 는 세션 대화 기록에도 assistant 메시지로 남아(히스토리에 보이고 다음 턴 모델이 안다) 사람이 건넨 말처럼 이어진다. 그 뒤 첫 `user_message` 를 서버가 이 말에 대한 반응(accept, dismiss, 딴 얘기는 약한 무시)으로 분류해 학습한다. 화면은 피드백을 묻지 않는다. `answer` 는 대기 안내(`filler`) 뒤 뒤로 넘긴 작업이 끝났을 때의 답이고, 답은 스트림으로 이미 왔으므로 화면은 그리지 않는다(외부 알림 채널용). Focus 작업 중인 세션은 `proactive` 를 보내지 않는다(`filler`, `answer` 는 보낸다) |
 | `approval_request` | `id`, `command`, `reason`, `always_pattern` | 도구 실행 승인 요청. 같은 세션의 열린 연결 전부에 보내고, 기다리는 중에 새로 붙은 연결에도 보낸다. 120초 안에 답이 없으면 거부로 처리 |
 | `approval_resolved` | `id`, `timeout?` | 그 요청이 끝났다(어느 연결의 답, 또는 시간 초과). 아직 모달을 띄운 연결은 닫는다. 시간 초과면 `timeout: true` 이고, 에이전트 응답도 `승인 요청에 시간 안에 답이 없어 …` 로 거부(`승인이 거부되어 …`)와 구분된다 |
-| `reminder` | `id`, `name`, `label`, `kind`, `agent`, `once`, `title`, `text`, `error`, `delayed_sec`, `fired_at`, `missed?` | 스케줄 실행 결과. 열린 연결 전부에 방송하고, 없으면 최근 20건을 쌓아 다음 접속 때 `missed: true` 로 보낸다. `label` 은 사람에게 보일 제목이다(사람이 붙인 이름, `/schedule` 이 붙인 이름이면 알림은 `알림`, 작업은 할 일 첫 줄). `kind: tool` 작업은 도구가 빈 글을 주면 보내지 않는다(새 공고가 없는 날 등). `deliver: conversation` 작업은 사용자가 그 에이전트와 최근 대화한 세션에 `proactive_message`(`kind: proactive`)로 건네고, 그런 세션이 없거나 건넬 수 없을 때만 이 이벤트로 보낸다 |
+| `reminder` | `id`, `name`, `label`, `kind`, `agent`, `once`, `title`, `text`, `error`, `delayed_sec`, `fired_at`, `missed?` | 스케줄 실행 결과. 열린 연결 전부에 방송하고, 없으면 최근 20건을 쌓아 다음 접속 때 `missed: true` 로 보낸다. `label` 은 사람에게 보일 제목이다(사람이 붙인 이름, `/schedule` 이 붙인 이름이면 알림은 `알림`, 작업은 할 일 첫 줄). `kind: tool` 작업은 도구가 빈 글을 주면 보내지 않는다(새 공고가 없는 날 등). `kind: goal` 작업은 이미 알린 것만 있거나 알릴 것이 없으면 보내지 않고, `label` 은 `목표: <목표 문장 앞 60자>` 다. `deliver: conversation` 작업은 사용자가 그 에이전트와 최근 대화한 세션에 `proactive_message`(`kind: proactive`)로 건네고, 그런 세션이 없거나 건넬 수 없을 때만 이 이벤트로 보낸다 |
 | `voice_tts_audio` | `data`(base64), `mime`, `text`, `id`, `more?` | 합성 결과. `text` 는 실제로 읽은 글이다. `data` 가 비면 브라우저 TTS 로(`text` 는 기호를 지운 문장). `JARVIS_VOICE__SPEAK_ENGLISH=true` 면 JARVIS 세션의 한국어 글은 `source` 와 상관없이 LLM 이 짧은 영어로 옮겨 영어 TTS(JARVIS 목소리)로 읽고 `text` 에 그 영어를 준다. 옮기지 못하면(실패, 8초 초과) "Sir, I've put it on your screen." 을 읽는다. 다른 에이전트 세션은 원문 그대로다. 화면 글과 대화 기록은 한국어 그대로다. `id` 는 요청의 `id`(없었으면 null). 화면은 멈춘 읽기의 결과를 이 값으로 버린다. 요청이 `stream: true` 였으면 소리 조각마다 `more: true` 로 오고(`text` 는 그 조각이 속한 문장), 끝에 `data:""`, `text:""`, `more: false` 가 한 번 온다. 화면은 조각을 앞 조각이 끝나는 시각에 예약해 잇는다. 소리가 하나도 없었으면 끝 메시지의 `text` 에 읽을 글을 실어 브라우저가 읽게 한다. Qwen 서버가 첫 조각 전에 닿지 않으면 그 문장을 Piper 로 통째로 읽고, 조각을 보내다 끊기면 그 문장의 나머지는 읽지 않는다 |
 | `voice_stt_result` | `text`, `error?`, `unclear?`, `heard?` | 전사 결과. 받아 적은 글이 비었거나 확신도가 낮으면(말소리 없을 확률 > 0.6 또는 평균 로그 확률 < -1.0) `text` 를 비우고 `unclear: true` 와 받아 적은 글 `heard` 를 준다. 이때 서버가 이어서 되묻는 말을 `id` 없는 `voice_tts_audio` 로 보낸다(JARVIS 는 영어 "I'm sorry, sir. I didn't catch that.", 다른 에이전트는 한국어) |
 | `voice_wake` | `score` | 바이너리 프레임의 오디오에서 "Jarvis" 를 들었다. 점수가 `JARVIS_VOICE__WAKE_THRESHOLD`(0.5) 이상인 첫 프레임에서 한 번 보내고, 그 뒤 1초(13프레임)는 다시 보내지 않는다 |
@@ -1182,11 +1182,11 @@ Focus 동안 매 턴 앞에서 분석 sub-agent 가, 뒤에서 기록과 진행 
 
 | 필드 | 타입 | 널 허용 | 설명 |
 |---|---|---|---|
-| `name` | string | 아니오 | 작업 이름. `slash-`, `once-` 로 시작하면 `/schedule` 로 만든 것 |
+| `name` | string | 아니오 | 작업 이름. `slash-`, `once-` 로 시작하면 `/schedule` 로, `goal-<목표 id>` 면 `/goal` 이나 `goal` 도구로 만든 것 |
 | `description` | string | 아니오 | 설명. 자동 생성일 수 있다 |
 | `prompt` | string | 아니오 | 실행 프롬프트 앞 160자 |
 | `schedule` | string | 아니오 | cron 식 |
-| `kind` | `"reminder" \| "task" \| "tool"` | 아니오 | 알림, 에이전트가 도는 작업, 도구를 바로 부르는 작업 |
+| `kind` | `"reminder" \| "task" \| "tool" \| "goal"` | 아니오 | 알림, 에이전트가 도는 작업, 도구를 바로 부르는 작업, 목표 한 차례(새로 알릴 것이 있을 때만 알린다) |
 | `agent` | string | 아니오 | 작업을 실행하는 에이전트 id |
 | `once` | boolean | 아니오 | 한 번만 도는 작업 |
 | `enabled` | boolean | 아니오 | 켜짐 여부 |

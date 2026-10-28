@@ -25,6 +25,15 @@ SPEC_SUFFIX = ".yaml"
 logger = get_logger(__name__)
 
 
+class Boundaries(BaseModel):
+    """에이전트가 스스로 할 때의 경계. 적지 않은 도구는 혼자 해도 된다."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ask: list[str] = Field(default_factory=list)
+    never: list[str] = Field(default_factory=list)
+
+
 class AgentSpec(BaseModel):
     """정의 파일 한 장. 비운 항목은 main 의 설정을 이어받는다."""
 
@@ -43,6 +52,7 @@ class AgentSpec(BaseModel):
     tools: list[str] = Field(default_factory=list)
     # 비우면 main 의 proactive 설정 그대로
     proactive: bool | None = None
+    boundaries: Boundaries = Field(default_factory=Boundaries)
 
 
 def load_agent_specs(team_dir: str) -> dict[str, AgentSpec]:
@@ -82,6 +92,8 @@ def profile_from_spec(agent_id: str, spec: AgentSpec, main: AgentProfile) -> Age
         description=spec.description,
         system_prompt=compose_system_prompt(spec.persona, spec.system_prompt),
         tools=tuple(spec.tools),
+        ask_tools=tuple(spec.boundaries.ask),
+        never_tools=tuple(spec.boundaries.never),
     )
 
 
@@ -157,6 +169,7 @@ class AgentRegistry:
         return TaskAgent(
             model=profile.model, system_prompt=profile.system_prompt, agent_name=profile.agent_id,
             tools=builder.tool_registry(),
+            ask_tools=profile.ask_tools,
         )
 
     def builder(self, agent_id: str) -> SessionBuilder:

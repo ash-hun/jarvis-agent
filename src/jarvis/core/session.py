@@ -171,6 +171,7 @@ class AgentSession:
         thought_router: ThoughtRouter | None = None,
         loop_judge: OpenLoopJudge | None = None,
         reply_classifier: ReplyClassifier | None = None,
+        ask_tools: frozenset[str] = frozenset(),
     ) -> None:
         self._security = security_pipeline
         # 서브 에이전트: 사용자는 인증이 아니라 부른 쪽 범위(prompt 의 caller_scope)에서 받는다.
@@ -207,6 +208,8 @@ class AgentSession:
         self._last_proactive_id: str | None = None  # 피드백이 어느 🔔 에 대한 답인지
         # 먼저 건넨 말 뒤 사용자의 첫 말로 학습한다. 묻지 않는다. 기다리는 말이 없으면 None
         self._reply_classifier = reply_classifier
+        # 에이전트 정의의 "먼저 물어야 하는 일". 스스로 하는 행동(먼저 해 두기)에서는 하지 않는다
+        self._ask_tools = ask_tools
         self._awaiting_text: str | None = None
         self._feedback_tasks: set[asyncio.Task[Any]] = set()
         # 지난 성찰의 입력. 같으면 사고 모델을 부르지 않는다
@@ -485,7 +488,7 @@ class AgentSession:
                 continue
             if action.tool_name not in AUTONOMOUS_SAFE_TOOLS:
                 continue
-            if self._security.sandbox.is_approval_required(action.tool_name):
+            if self._security.sandbox.is_approval_required(action.tool_name) or action.tool_name in self._ask_tools:
                 continue
 
             call_id = uuid.uuid4().hex[:12]

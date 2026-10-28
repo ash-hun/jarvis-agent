@@ -10,7 +10,9 @@ from jarvis.memory.scope import MAIN_AGENT
 # /schedule 이 사람 대신 붙이는 이름의 머리. 이런 이름은 알림 제목으로 보이지 않는다
 ONCE_PREFIX = "once-"
 SLASH_PREFIX = "slash-"
-AUTO_NAME_PREFIXES = (ONCE_PREFIX, SLASH_PREFIX)
+# 목표 작업 이름(goal-<목표 id>). core/goals 가 붙인다
+GOAL_PREFIX = "goal-"
+AUTO_NAME_PREFIXES = (ONCE_PREFIX, SLASH_PREFIX, GOAL_PREFIX)
 REMINDER_LABEL = "알림"
 
 
@@ -29,7 +31,8 @@ class ScheduledTask(BaseModel):
     # reminder: 정한 시각에 prompt 문구를 그대로 알린다(LLM 호출 없음)
     # task: prompt 를 에이전트가 실행하고 그 답을 알린다
     # tool: tool 을 args 로 바로 부르고 그 글을 알린다(LLM 호출 없음). 글이 비면 알리지 않는다
-    kind: Literal["reminder", "task", "tool"] = "task"
+    # goal: args.goal 의 목표를 한 차례 진행하고 알릴 말이 있을 때만 알린다(core/goals)
+    kind: Literal["reminder", "task", "tool", "goal"] = "task"
     tool: str = ""
     args: dict[str, Any] = Field(default_factory=dict)
     # 작업을 실행할 최상위 에이전트 id. 그 에이전트의 모델과 시스템 프롬프트, 기억 범위로 돈다
@@ -60,4 +63,6 @@ def task_label(task: ScheduledTask) -> str:
         return REMINDER_LABEL
     if task.kind == "tool":
         return task.description or task.tool
+    if task.kind == "goal":
+        return task.description or task.prompt[:80]
     return task.prompt.strip().splitlines()[0][:80] if task.prompt.strip() else REMINDER_LABEL

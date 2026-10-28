@@ -81,6 +81,7 @@ class SessionBuilder:
             activity_clock=svc.activity_clock,
             feedback_learner=self._profile.feedback_learner,
             reply_classifier=self._profile.reply_classifier(),
+            ask_tools=frozenset(self._profile.ask_tools),
             user_model_store=svc.user_model_store,
             external_inbox=svc.external_inbox,
             external_detail_in_prompt=settings.external.store_detail_in_log,
@@ -98,7 +99,8 @@ class SessionBuilder:
     def tool_registry(self) -> "ToolRegistry":
         """정의에 도구 목록이 있으면 그 도구만 담은 레지스트리, 없으면 앱 레지스트리 그대로."""
         registry = self._ctx.tool_registry
-        if not self._profile.tools:
+        never = self._profile.never_tools
+        if not self._profile.tools and not never:
             return registry
         from jarvis.core.tools.task_pattern import TASK_PATTERN_TOOL
         from jarvis.core.tools.registry import PickedToolRegistry
@@ -107,10 +109,14 @@ class SessionBuilder:
 
         # 팀 대화와 작업 패턴 저장은 정의에 적지 않아도 늘 쓴다. 팀이 한 명이면 팀 대화는 등록돼 있지 않다.
         # 승인된 절차도 보인다. 절차의 단계는 이 창을 거쳐 실행되므로 정의에 없는 도구는 그 단계에서 멈춘다
+        if not self._profile.tools:
+            # 도구 전체에서 쓰지 않을 것만 뺀다. 빈 접두어는 앱 레지스트리의 모든 도구와 맞는다
+            return PickedToolRegistry((registry,), (), prefixes=("",), exclude=never)
         return PickedToolRegistry(
             (registry, self._ctx.agent_tools),
             (*self._profile.tools, ASK_AGENT_TOOL, TASK_PATTERN_TOOL),
             prefixes=(TOOL_PREFIX,),
+            exclude=never,
         )
 
     def thought_parts(self, services: "AppServices") -> ThoughtParts:

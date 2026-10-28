@@ -28,12 +28,15 @@ ALIASES = {
     "welfare": "welfare", "수급자": "welfare", "기초수급": "welfare", "기초생활수급": "welfare",
     "student": "student", "대학생": "student",
     "regions": "regions", "관심지역": "regions", "지역": "regions", "희망지역": "regions",
+    "cash": "cash", "현금": "cash", "보유현금": "cash",
+    "monthly_limit": "monthly_limit", "월여유자금": "monthly_limit", "월부담": "monthly_limit",
+    "월부담상한": "monthly_limit",
 }
 _YES = {"true", "yes", "y", "1", "예", "네", "응", "어", "o", "맞음", "있음", "가능", "미사용", "무주택", "기혼",
         "결혼", "수급", "재학", "휴학"}
 _NO = {"false", "no", "n", "0", "아니오", "아니", "x", "없음", "불가", "사용", "유주택", "미혼", "비수급", "졸업"}
 _UNSET = {"", "none", "null", "모름", "삭제", "비움"}
-KNOWN = "무주택, 생애최초, 혼인, 연소득, 순자산, 생년월일, 나이, 가구원수, 수급자, 대학생, 관심지역"
+KNOWN = "무주택, 생애최초, 혼인, 연소득, 순자산, 생년월일, 나이, 가구원수, 수급자, 대학생, 관심지역, 현금, 월여유자금"
 FLAGS = ("homeless", "first_home", "married", "welfare", "student")
 NATIONWIDE = "전국"
 
@@ -55,6 +58,9 @@ class HousingProfile:
     student: bool | None = None  # 대학생(재학, 휴학 포함). 행복주택 대학생 계층
     # 관심 지역. 공고 도구가 지역을 따로 받지 않으면 전국 대신 이 지역들로 찾는다
     regions: tuple[str, ...] | None = None
+    # 돈 조건. housing_budget 이 금액을 따로 받지 않으면 이것으로 계산한다(목표 차례처럼 사람이 없을 때)
+    cash: int | None = None  # 보유 현금(원)
+    monthly_limit: int | None = None  # 월 여유자금(대출 상환 + 월임대료 상한, 원)
 
     def is_empty(self) -> bool:
         return all(getattr(self, f.name) is None for f in fields(self))
@@ -90,6 +96,8 @@ class HousingProfile:
             f"수급자: {yn(self.welfare, '예', '아니오')}",
             f"대학생: {yn(self.student, '예', '아니오')}",
             f"관심 지역: {', '.join(self.regions) if self.regions else '없음(전국)'}",
+            f"보유 현금: {'모름' if self.cash is None else f'{self.cash:,}원'}",
+            f"월 여유자금: {'모름' if self.monthly_limit is None else f'{self.monthly_limit:,}원'}",
         ]
 
 
@@ -173,7 +181,7 @@ def apply_updates(profile: HousingProfile, updates: dict[str, Any], today: date)
             changes[name] = raw if isinstance(raw, bool) else _flag(text)
         elif name == "household":
             changes[name] = raw if isinstance(raw, int) else _count(text)
-        elif name in ("income", "assets"):
+        elif name in ("income", "assets", "cash", "monthly_limit"):
             changes[name] = parse_won(raw)
         elif name == "birth_date":
             changes[name] = _birth(text)

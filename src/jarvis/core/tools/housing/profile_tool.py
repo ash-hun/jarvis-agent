@@ -13,11 +13,11 @@ from jarvis.memory.scope import LOCAL_USER
 
 TOOL_NAME = "housing_profile"
 FIELDS = ("homeless", "first_home", "married", "income", "assets", "birth_date", "age", "household", "welfare",
-          "student", "regions")
+          "student", "regions", "cash", "monthly_limit")
 
 TOOL_DESCRIPTION = (
     "대출과 공공주택 신청 자격을 가르는 사용자의 주거 프로필(무주택, 생애최초, 혼인, 연소득, 순자산,"
-    " 생년월일이나 나이, 가구원수, 기초생활 수급자, 대학생, 관심 지역)을"
+    " 생년월일이나 나이, 가구원수, 기초생활 수급자, 대학생, 관심 지역, 보유 현금, 월 여유자금)을"
     " 보거나 고친다. 사용자가 자기 조건을 말하거나 바뀌었다고 하면('연소득이 7천으로 올랐어', '결혼했어')"
     " action=set 으로 그 항목만 넣는다."
     " 준 항목만 바뀌고 나머지는 그대로다. housing_budget 은 저장된 프로필로 자격을 가린다."
@@ -39,6 +39,8 @@ TOOL_PARAMETERS: dict[str, Any] = {
         "welfare": {"type": "boolean", "description": "기초생활 수급자(생계, 의료, 주거급여)인가"},
         "student": {"type": "boolean", "description": "대학생(재학, 휴학)인가"},
         "regions": {"type": "string", "description": "관심 지역(시도). 쉼표로 여럿. 예: 서울,경기. 지우려면 비움"},
+        "cash": {"type": "string", "description": "보유 현금. 예: 1억 5천"},
+        "monthly_limit": {"type": "string", "description": "월 여유자금(대출 상환 + 월임대료 상한). 예: 200만원"},
     },
     "required": ["action"],
 }

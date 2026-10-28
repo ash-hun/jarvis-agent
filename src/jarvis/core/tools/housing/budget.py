@@ -45,6 +45,9 @@ INCREASE, DECREASE = "보증금 증액 전환", "보증금 감액 전환"
 # 신청 가능성이 높은 공고부터 보인다. 가능성이 낮아도 빼지 않고 뒤로 보낸다
 ACCESS_ORDER = {OK: 0, UNKNOWN: 1, NO: 2}
 ACCESS_LABEL = {OK: "높음", UNKNOWN: "확인 필요", NO: "낮음"}
+# 추천 1순위를 고르는 묶음. 분양과 임대는 월 부담의 뜻이 달라 따로 고른다
+PICK_GROUPS = (("분양", True), ("임대", False))
+UNSURE_NOTE = "자격은 공고문 확인이 필요해요"
 
 TOOL_DESCRIPTION = (
     "보유 현금과 월 여유자금(월 부담 상한)으로 지금 공고중인 LH 공고마다 대출 경우의 수를 계산해 추천한다."
@@ -61,8 +64,11 @@ _AMOUNT = "원 단위 숫자나 사용자가 말한 그대로의 금액 글. 예
 TOOL_PARAMETERS: dict[str, Any] = {
     "type": "object",
     "properties": {
-        "cash": {"type": "string", "description": f"보유 현금. {_AMOUNT}"},
-        "monthly_limit": {"type": "string", "description": f"월 여유자금(대출 상환 + 월임대료 상한). {_AMOUNT}"},
+        "cash": {"type": "string", "description": f"보유 현금. 비우면 주거 프로필의 현금. {_AMOUNT}"},
+        "monthly_limit": {
+            "type": "string",
+            "description": f"월 여유자금(대출 상환 + 월임대료 상한). 비우면 주거 프로필의 값. {_AMOUNT}",
+        },
         "budget": {"type": "string", "description": f"총액 상한(분양가나 보증금). 사용자가 말했을 때만. {_AMOUNT}"},
         "regions": {"type": "string", "description": "지역. 쉼표로 여럿. 예: 서울,경기. 비우면 관심 지역(없으면 전국)"},
         "annual_rate_percent": {"type": "number", "description": "사용자가 금리를 정했을 때만. 비우면 상품별 범위"},
@@ -72,8 +78,11 @@ TOOL_PARAMETERS: dict[str, Any] = {
             "description": "이번 계산에만 쓸 프로필 조건. 예: '연소득=7000만, 혼인=기혼'. 저장하려면 housing_profile",
         },
         "limit": {"type": "integer", "description": f"분양, 임대 각각 추천 수(기본 {DEFAULT_LIMIT}, 최대 {MAX_LIMIT})"},
+        "picks_only": {
+            "type": "boolean",
+            "description": "추천 1순위 줄만 받는다(목표 차례처럼 1순위만 볼 때). 전체 글은 1만 토큰이 넘는다",
+        },
     },
-    "required": ["cash"],
 }
 
 
@@ -243,6 +252,8 @@ def pick_line(title: str, plan: Plan | None, terms: Terms) -> str:
     return (
         f"추천 1순위({title}): {n.title} | 신청 가능성 {ACCESS_LABEL[plan.access.status]}"
         f" | {plan.option.unit} 월 부담 최대 {man(case.monthly)}{room} | 마감 {n.closes or '미상'}"
+        # 링크의 공고 id 는 다음에도 바뀌지 않는다. 목표 차례가 이미 알린 공고인지 이것으로 가린다
+        f" | {detail_url(n.id)}"
     )
 
 
@@ -395,7 +406,7 @@ def render(
     stale = " 오래됐으니 금리와 규제를 은행, 기금 사이트에서 다시 확인한다." if rules.stale(today) else ""
     lines.append(f"대출 규칙 기준일 {rules.checked.isoformat()}(loan_rules.yaml).{stale}")
     # 하나를 물으면 이 줄로 답한다. 목록 위에 둬야 모델이 옮기며 떨어뜨리지 않는다
-    for title, sale in (("분양", True), ("임대", False)):
+    for title, sale in PICK_GROUPS:
         lines.append(pick_line(title, top_pick([p for p in plans if p.option.sale is sale]), terms))
     for title, sale in (("분양(구입 대출)", True), ("임대(보증금 대출)", False)):
         group = sorted((p for p in plans if p.option.sale is sale), key=_rank)
@@ -452,6 +463,8 @@ class HousingBudgetTool(JarvisTool):
     description = TOOL_DESCRIPTION
     parameters = TOOL_PARAMETERS
     execution_mode = "parallel"
+    # 사람이 없을 때는 주거 프로필의 현금, 월 여유자금으로만 계산한다. 목표 차례에서 모델이 현금을 지어낸 적이 있다
+    user_only_params = ("cash", "monthly_limit", "budget", "conditions", "annual_rate_percent", "years")
 
     def __init__(
         self,
@@ -491,7 +504,10 @@ class HousingBudgetTool(JarvisTool):
             text, picks = await self._recommend(terms, regions, limit, profile, note, today)
         except (FetchError, ValueError) as exc:
             return _result(tool_call_id, f"LH 조회 실패: {exc}", True)
-        return _result(tool_call_id, text + await self._track(picks, context, today), final=True)
+        if params.get("picks_only"):
+            text = picks_text(text, picks)
+        notices = [p.notice for p in picks.values() if p is not None]
+        return _result(tool_call_id, text + await self._track(notices, context, today), final=True)
 
     async def _track(self, picks: list[Notice], context: ToolContext | None, today: date) -> str:
         """추천 1순위의 마감 전 약속을 남기고, 새로 남겼으면 다시 알리겠다는 한 줄을 돌려준다."""
@@ -520,7 +536,7 @@ class HousingBudgetTool(JarvisTool):
         return profile, note
 
     async def _recommend(self, terms: Terms, regions: list[str], limit: int, profile: HousingProfile, note: str,
-                         today: date) -> tuple[str, list[Notice]]:
+                         today: date) -> tuple[str, dict[str, Plan | None]]:
         rules = self._rules()
         notices: dict[str, Notice] = {}
         for region in regions:
@@ -559,9 +575,9 @@ class HousingBudgetTool(JarvisTool):
             else:
                 plans.append(plan)
         skipped = max(0, len(ordered) - MAX_DETAILS)
-        picks = [top_pick([p for p in plans if p.option.sale is sale]) for sale in (True, False)]
+        picks = {title: top_pick([p for p in plans if p.option.sale is sale]) for title, sale in PICK_GROUPS}
         text = render(terms, regions, plans, over, unknown, skipped, limit, today, rules, profile, note)
-        return text, [p.notice for p in picks if p is not None]
+        return text, picks
 
     async def _pdf_options(self, file_id: str, notice: Notice) -> list[Option]:
         """공고문의 분양가 표나 임대조건 표. 못 받거나 못 읽으면 빈 목록. 한 공고의 실패로 추천 전체를 멈추지 않는다."""
@@ -588,6 +604,26 @@ async def _bounded(gate: asyncio.Semaphore, work: Awaitable[T]) -> T:
         return await work
 
 
+def pick_item(title: str, plan: Plan | None) -> str:
+    """목표 차례가 그대로 옮길 1순위 한 줄. 키(공고 id), 공고명, 주택형 월 부담, 마감, 링크. 순수 함수.
+
+    모델에게 이 줄을 짓게 하면 링크를 줄이고 '확인 필요' 말을 빠뜨렸다(실측). 코드가 짓고 모델은 옮긴다.
+    """
+    if plan is None:
+        return f"추천 1순위({title}): 없음"
+    n = plan.notice
+    unsure = f" {UNSURE_NOTE}" if plan.access.status == UNKNOWN else ""
+    return (
+        f"추천 1순위({title}) 항목: [{n.id}] {n.title}, {plan.option.unit} 월 부담 최대 {man(plan.best.monthly)},"
+        f" 마감 {n.closes or '미상'}, {detail_url(n.id)}{unsure}"
+    )
+
+
+def picks_text(text: str, picks: dict[str, Plan | None]) -> str:
+    """전체 추천 글 대신 첫 줄(결론), 계산 조건 줄, 1순위 항목 줄만. 목표 차례의 입력 토큰이 18k 에서 10k 로 준다."""
+    return "\n".join([*text.splitlines()[:2], *(pick_item(title, plan) for title, plan in picks.items())])
+
+
 def _amount(params: dict[str, Any], key: str) -> float | None:
     value = params.get(key)
     if value in (None, "", 0, "0"):
@@ -597,8 +633,17 @@ def _amount(params: dict[str, Any], key: str) -> float | None:
 
 def parse_terms(params: dict[str, Any], profile: HousingProfile | None = None) -> tuple[Terms, list[str], int]:
     """인자를 검사한 계산 조건, 지역 목록(비우면 프로필의 관심 지역), 추천 수. 틀리면 ValueError."""
-    cash = _amount(params, "cash") or 0.0
+    saved = profile or HousingProfile()
+    # 현금 0 은 "현금 없음"이라는 값이다. 비운 것만 프로필에서 읽는다
+    raw_cash = params.get("cash")
+    cash = float(parse_won(raw_cash)) if raw_cash not in (None, "") else None
+    if cash is None:
+        if saved.cash is None:
+            raise ValueError("보유 현금(cash)을 모른다. 사용자에게 묻거나 housing_profile 에 저장된 값이 있어야 한다")
+        cash = float(saved.cash)
     monthly_limit = _amount(params, "monthly_limit")
+    if monthly_limit is None and saved.monthly_limit is not None:
+        monthly_limit = float(saved.monthly_limit)
     budget = _amount(params, "budget")
     if cash < 0 or (budget is not None and budget <= 0):
         raise ValueError("cash 는 0 이상, budget 은 0 보다 크다")

@@ -9,6 +9,8 @@ from collections.abc import Awaitable, Callable, Coroutine
 
 from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope
 from jarvis.core.scheduler.task import ScheduledTask, task_label
+from jarvis.core.scheduler.tool import SCHEDULE_TOOL
+from jarvis.core.goals.tool import GOAL_TOOL
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
@@ -17,6 +19,7 @@ if TYPE_CHECKING:
     from jarvis.core.plugins.runner import PluginRunner
     from jarvis.core.tools.registry import ToolRegistry
     from jarvis.model_layer.types import ModelConfig
+    from jarvis.core.goals.runner import GoalRunner
 
 
 # 실행 결과(알림)를 받아 화면에 전달하는 콜백. web 서버가 열린 HUD 로 방송한다.
@@ -24,6 +27,8 @@ Notify = Callable[[dict[str, Any]], Awaitable[None]]
 # (에이전트 id, 말) -> 그 에이전트의 대화 세션에 건넸는가. 못 건넸으면 스케줄 알림으로 보낸다
 Converse = Callable[[str, str], Awaitable[bool]]
 
+# 목표 차례가 하지 않는 일: 새 목표와 새 일정 만들기. 목표가 스스로 일을 불리지 않게 한다
+GOAL_TURN_EXCLUDED = (GOAL_TOOL, SCHEDULE_TOOL)
 # 루프 주기. 한 번 실행(run_at) 알림이 이만큼까지 늦을 수 있다.
 TICK_SEC = 10
 
@@ -37,6 +42,8 @@ class TaskAgent:
     agent_name: str
     # 그 에이전트 정의가 고른 도구. None 이면 스케줄러의 레지스트리(main 의 도구)를 쓴다
     tools: "ToolRegistry | None" = None
+    # 경계의 "먼저 물어야 하는 일". 사람이 없는 작업과 목표 차례에서는 쓰지 않는다
+    ask_tools: tuple[str, ...] = ()
 
 
 # 에이전트 id → TaskAgent. 모르는 id 면 None
@@ -80,12 +87,29 @@ class SchedulerService:
         self._notify: Notify | None = None
         self._converse: Converse | None = None
         self._agent_resolver: AgentResolver | None = None
+        self._goals: GoalRunner | None = None
         self._last_run: dict[str, datetime] = {}  # cron 작업별 마지막으로 실행한 cron 슬롯
         self._bg: set[asyncio.Task[None]] = set()
 
     def set_agent_resolver(self, resolver: AgentResolver | None) -> None:
         """main 이 아닌 작업의 에이전트를 찾는 함수. 에이전트 레지스트리를 만든 뒤 조립 층이 단다."""
         self._agent_resolver = resolver
+
+    def set_goal_runner(self, runner: "GoalRunner | None") -> None:
+        """kind: goal 작업을 진행할 러너. 조립 층이 단다."""
+        self._goals = runner
+
+    def ensure_task(self, task: ScheduledTask) -> None:
+        """같은 이름의 작업이 있으면 바꿔 끼우고 없으면 더한다. 두 번 불러도 작업은 하나다."""
+        existing = self.get_task(task.name)
+        if existing is not None:
+            self._tasks.remove(existing)
+            task._source = existing._source
+        self.add_task(task)
+
+    def run_soon(self, task: ScheduledTask) -> None:
+        """다음 때를 기다리지 않고 지금 한 번 돌린다(목표를 맡긴 직후 첫 차례)."""
+        self._spawn(self._run_and_deliver(task))
 
     def set_notifier(self, notify: Notify | None) -> None:
         """실행 결과를 받을 콜백을 단다. web 서버가 기동할 때 연결한다."""
@@ -246,14 +270,14 @@ class SchedulerService:
             return task.prompt
         if task.kind == "tool":
             return await self._execute_tool(task)
+        if task.kind == "goal":
+            return await self._execute_goal(task)
         return await self._execute_task(task)
 
     async def _deliver(self, task: ScheduledTask, text: str | None, delay_sec: int) -> None:
-        """결과를 notify 로 보낸다. text 가 None 이면 실행 실패."""
-        if self._notify is None:
-            return
-        if task.kind == "tool" and text is not None and not text.strip():
-            # 도구가 알릴 것이 없다고 빈 글을 줬다(새 공고 없음 등)
+        """결과를 대화(deliver: conversation)나 notify 로 보낸다. text 가 None 이면 실행 실패."""
+        if task.kind in ("tool", "goal") and text is not None and not text.strip():
+            # 도구나 목표 차례가 알릴 것이 없다고 빈 글을 줬다(새 공고 없음, 이미 알림 등)
             logger.info(f"[Scheduler] Tool task '{task.name}' had nothing to report")
             return
         if task.deliver == "conversation" and text is not None and self._converse is not None:
@@ -263,6 +287,9 @@ class SchedulerService:
             except Exception as exc:
                 logger.info(f"[Scheduler] conversation delivery failed for '{task.name}': {exc!r}")
             logger.info(f"[Scheduler] '{task.name}' has no conversation to join, sent as a notice")
+        # 대화로 건네는 데는 알림 채널이 필요 없다. 알림으로 보낼 때만 본다
+        if self._notify is None:
+            return
         payload = {
             "type": "reminder",
             "id": uuid.uuid4().hex,
@@ -287,8 +314,24 @@ class SchedulerService:
         if not future.cancelled() and (exc := future.exception()):
             logger.info(f"[Scheduler] Unhandled exception in background task: {exc!r}")
 
-    async def _execute_task(self, task: ScheduledTask) -> str | None:
-        """작업 프롬프트를 새 세션에서 실행하고 최종 답을 돌려준다. 실패하면 None."""
+    async def _execute_goal(self, task: ScheduledTask) -> str | None:
+        """목표 한 차례. 알릴 말(없으면 빈 글). 러너가 없으면 실패(None)."""
+        if self._goals is None:
+            logger.info(f"[Scheduler] Goal task '{task.name}' failed: no goal runner")
+            return None
+        resolved = self._resolve(task)
+        ask = sorted({*(resolved.ask_tools if resolved is not None else ()), *GOAL_TURN_EXCLUDED})
+        auto = sorted(t.name for t in self._registry_for(task, resolved).list_all() if t.name not in ask)
+
+        async def run(prompt: str, pick: Callable[["ToolRegistry"], "ToolRegistry"]) -> str | None:
+            return await self._execute_task(task.model_copy(update={"prompt": prompt}), pick)
+
+        return await self._goals.step(str(task.args.get("goal", "")), auto, ask, run)
+
+    async def _execute_task(
+        self, task: ScheduledTask, pick: "Callable[[ToolRegistry], ToolRegistry] | None" = None
+    ) -> str | None:
+        """작업 프롬프트를 새 세션에서 실행하고 최종 답을 돌려준다. 실패하면 None. pick 은 쓸 도구를 다시 고른다."""
         from jarvis.core.policy.authenticator import NoAuthAuthenticator
         from jarvis.core.policy.pipeline import SecurityPipeline
         from jarvis.core.policy.sandbox import PermissiveSandbox
@@ -302,6 +345,14 @@ class SchedulerService:
             logger.info(f"[Scheduler] Task '{task.name}' failed: unknown agent '{task.agent}'")
             return None
         filtered = self._registry_for(task, resolved)
+        if pick is not None:
+            filtered = pick(filtered)
+        else:
+            # 사람이 없는 작업이라 물을 수 없다. 먼저 물어야 하는 도구는 빼고 돈다
+            from jarvis.core.goals.runner import step_registry
+
+            ask = resolved.ask_tools if resolved is not None else ()
+            filtered = step_registry(filtered, ask, goal_turn=False)
 
         # PermissiveSandbox: auto-approve all (no HITL)
         from jarvis.core.policy.validator import DefaultInputValidator
@@ -334,11 +385,26 @@ class SchedulerService:
 
         try:
             result = await session.prompt(task.prompt)
-            logger.info(f"[Scheduler] Task '{task.name}' completed → session {session_id}")
+            tokens_in, tokens_out = await self._turn_tokens(session_id)
+            # 작업 한 번의 비용을 실제 기록으로 보려고 남긴다(모델 호출 전부의 합)
+            logger.info(
+                f"[Scheduler] Task '{task.name}' completed → session {session_id}"
+                f" tokens in={tokens_in} out={tokens_out}"
+            )
             return result.text() if result is not None else ""
         except Exception as exc:
             logger.info(f"[Scheduler] Task '{task.name}' failed: {exc}")
             return None
+
+    async def _turn_tokens(self, session_id: str) -> tuple[int, int]:
+        from jarvis.model_layer.types import AssistantMessage
+
+        try:
+            messages = await self._session_repo.get_messages(session_id)
+        except Exception:  # 비용 기록이 실패해도 작업 결과는 돌려준다
+            return 0, 0
+        replies = [m for m in messages if isinstance(m, AssistantMessage)]
+        return sum(m.usage.input for m in replies), sum(m.usage.output for m in replies)
 
     def _resolve(self, task: ScheduledTask) -> TaskAgent | None:
         if task.agent == MAIN_AGENT or self._agent_resolver is None:

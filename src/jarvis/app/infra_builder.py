@@ -97,6 +97,14 @@ class InfraBuilder:
 
             # 말로 "1분 뒤에 알려줘" 해도 /schedule 과 같은 일정이 생기게
             tool_registry.register(ScheduleTool(make_schedule_handler(scheduler, make_llm_classifier(model_config))))
+            from jarvis.core.goals.runner import GoalRunner
+            from jarvis.core.goals.store import GoalStore
+            from jarvis.core.goals.tool import GoalTool
+
+            # 맡긴 목표는 스케줄러가 차례를 돌린다. 도구와 러너가 같은 저장소를 본다
+            goals = GoalStore()
+            scheduler.set_goal_runner(GoalRunner(goals))
+            tool_registry.register(GoalTool(goals, scheduler))
 
         # open loop 과 사용자 모델 저장소는 앱에 하나(모든 세션과 daemon 이 공유). 청약 도구도 약속을 남겨 먼저 만든다
         openloop_store = self.build_openloop_store() if settings.thought.enabled else None
@@ -625,6 +633,15 @@ class InfraBuilder:
         dispatcher.register_scoped(
             "housing", make_housing_handler(ProfileStore(memory)), "대출 자격용 주거 프로필 (set 항목=값 | clear)"
         )
+        from jarvis.core.goals.tool import GOAL_TOOL, GoalTool
+
+        goal_tool = tool_registry.get(GOAL_TOOL)
+        if isinstance(goal_tool, GoalTool):
+            from jarvis.core.slash.goal_cmd import make_goal_handler
+
+            dispatcher.register_scoped(
+                "goal", make_goal_handler(goal_tool), "지금 에이전트에게 계속 맡기는 목표 (<문장> | stop <문장>)"
+            )
         if services.openloop_store is not None:
             from jarvis.core.slash.openloop_cmd import make_openloop_handler
 

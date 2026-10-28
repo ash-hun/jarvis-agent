@@ -128,7 +128,7 @@
 | AGENDA 의 ✓ / ✕ | open loop 를 done / dismissed 로. 항목이 사라지고 ACTIVITY 에 한 줄. 다른 에이전트의 약속도 닫을 수 있다 |
 | AGENDA 의 Closed 펼치기 | 최근 닫힌 약속 10개(닫힌 순)를 상태(완료, 무시, 만료)와 닫힌 시각으로 보인다. 닫힌 약속이 없으면 Closed 줄 자체가 없다 |
 | AGENDA Closed 의 ↺ | 그 약속을 다시 open 으로. Open loops 로 돌아가고 ACTIVITY 에 `↺ 되살림` 한 줄. 기한이나 수명이 지나 열자마자 만료될 약속은 서버가 거절하고(409) ACTIVITY 에 `기한이 지나 되살리지 않음` |
-| AGENDA 의 스위치 | 스케줄 켜기/끄기 |
+| AGENDA 의 스위치 | 스케줄 켜기/끄기. 목표 작업(`/goal`)은 `목표: <목표 문장>` 으로 보이고, 끄면 그 목표의 차례가 멈춘다 |
 | TOOLS ▾ | 도구 목록 펼침. 🔒 는 승인 필요 도구 |
 | 승인 모달의 `ALLOW` / `ALWAYS · 패턴` / `DENY`, Enter | `approval_response`. ALWAYS 는 서버가 패턴을 제안했을 때만 보인다. Enter 는 ALLOW. 같은 세션의 다른 창이 먼저 답하면 `approval_resolved` 로 모달이 닫히고 ACTIVITY 에 `다른 창에서 처리됨`, 120초가 지나 닫히면 `시간 초과로 거부` |
 | 구체 클릭 | 음성 모드 토글. 읽는 중(합성 대기 포함)이면 읽기를 멈춘다. 미지원 브라우저면 SYS 에러 한 줄 |

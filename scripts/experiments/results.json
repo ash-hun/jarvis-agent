@@ -920,5 +920,148 @@
     "correct": 24,
     "total": 24,
     "misses": []
+  },
+  "goal_karen": {
+    "with_money": true,
+    "assumed": {
+      "cash": 150000000,
+      "monthly_limit": 2000000,
+      "regions": [
+        "서울",
+        "경기"
+      ]
+    },
+    "date": "2026-10-28",
+    "model": "gpt-4o",
+    "truth_lines": [
+      "추천 1순위(분양) 항목: [0000061195-02-05-05] [정정공고]시흥거모 S-1블록 공공분양주택 입주자모집공고, 59.8000B 월 부담 최대 139만원, 마감 2026.11.17, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061195&ccrCnntSysDsCd=02&uppAisTpCd=05&aisTpCd=05&mi=1027 자격은 공고문 확인이 필요해요",
+      "추천 1순위(임대) 항목: [2015122300020958-03-06-10] 화성시 동탄지역 행복주택 입주자 모집 공고[입주자격완화/선계약후검증]('26.10.27.), 20B (원)계 16A형 대학생, 청년(소득無) 월 부담 최대 7만원, 마감 2026.11.12, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020958&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026"
+    ],
+    "truth_ids": [
+      "0000061195",
+      "2015122300020958"
+    ],
+    "truth_keys": [
+      "0000061195-02-05-05",
+      "2015122300020958-03-06-10"
+    ],
+    "links_exact": true,
+    "truth_tool_sec": 20.8,
+    "runs": 3,
+    "parsed": 3,
+    "reports": 1,
+    "recall": true,
+    "only_top": true,
+    "seed_first": false,
+    "repeated_seeded": null,
+    "repeat_reports": 0,
+    "took_sec": [
+      25.8,
+      25.8,
+      26.0
+    ],
+    "tokens_in": [
+      10458,
+      10458,
+      10468
+    ],
+    "tokens_out": [
+      323,
+      343,
+      343
+    ],
+    "reported_keys": [
+      "0000061195-02-05-05",
+      "2015122300020958-03-06-10"
+    ]
+  },
+  "goal_karen_no_money": {
+    "with_money": false,
+    "assumed": {
+      "cash": 150000000,
+      "monthly_limit": 2000000,
+      "regions": [
+        "서울",
+        "경기"
+      ]
+    },
+    "date": "2026-10-28",
+    "model": "gpt-4o",
+    "truth_lines": [],
+    "truth_ids": [],
+    "truth_keys": [],
+    "links_exact": true,
+    "truth_tool_sec": 0.0,
+    "runs": 2,
+    "parsed": 1,
+    "reports": 1,
+    "recall": null,
+    "only_top": true,
+    "seed_first": false,
+    "repeated_seeded": null,
+    "repeat_reports": 0,
+    "took_sec": [
+      2.6,
+      2.1
+    ],
+    "tokens_in": [
+      10098,
+      10098
+    ],
+    "tokens_out": [
+      56,
+      98
+    ],
+    "reported_keys": [
+      "ask-money"
+    ]
+  },
+  "goal_karen_seed_first": {
+    "with_money": true,
+    "assumed": {
+      "cash": 150000000,
+      "monthly_limit": 2000000,
+      "regions": [
+        "서울",
+        "경기"
+      ]
+    },
+    "date": "2026-10-28",
+    "model": "gpt-4o",
+    "truth_lines": [
+      "추천 1순위(분양) 항목: [0000061195-02-05-05] [정정공고]시흥거모 S-1블록 공공분양주택 입주자모집공고, 59.8000B 월 부담 최대 139만원, 마감 2026.11.17, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061195&ccrCnntSysDsCd=02&uppAisTpCd=05&aisTpCd=05&mi=1027 자격은 공고문 확인이 필요해요",
+      "추천 1순위(임대) 항목: [2015122300020958-03-06-10] 화성시 동탄지역 행복주택 입주자 모집 공고[입주자격완화/선계약후검증]('26.10.27.), 20B (원)계 16A형 대학생, 청년(소득無) 월 부담 최대 7만원, 마감 2026.11.12, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020958&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026"
+    ],
+    "truth_ids": [
+      "0000061195",
+      "2015122300020958"
+    ],
+    "truth_keys": [
+      "0000061195-02-05-05",
+      "2015122300020958-03-06-10"
+    ],
+    "links_exact": true,
+    "truth_tool_sec": 24.0,
+    "runs": 1,
+    "parsed": 1,
+    "reports": 1,
+    "recall": true,
+    "only_top": true,
+    "seed_first": true,
+    "repeated_seeded": false,
+    "repeat_reports": 0,
+    "took_sec": [
+      27.0
+    ],
+    "tokens_in": [
+      10458
+    ],
+    "tokens_out": [
+      346
+    ],
+    "reported_keys": [
+      "0000061195-02-05-05",
+      "2015122300020958-03-06-10"
+    ]
   }
 }

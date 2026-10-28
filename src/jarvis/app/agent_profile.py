@@ -42,6 +42,10 @@ class AgentProfile:
     description: str = ""
     system_prompt: str | None = None
     tools: tuple[str, ...] = ()
+    # 경계. ask 는 스스로 할 때(목표 차례, 스케줄 작업, 먼저 해 두기) 하지 않고 물어야 하는 도구,
+    # never 는 어디서도 쓰지 않는 도구. 사용자가 대화로 직접 시킨 일은 이미 물은 것으로 본다
+    ask_tools: tuple[str, ...] = ()
+    never_tools: tuple[str, ...] = ()
 
     @property
     def is_main(self) -> bool:

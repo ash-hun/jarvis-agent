@@ -252,3 +252,16 @@ def test_the_answer_opens_with_karens_one_line_conclusion():
     text, _ = _run(board, {"budget": 3e8, "cash": 1.2e8, "monthly_limit": 2e6})
     lead = "애쉬, 전국에서 이 조건에 맞는 공고는 분양 0건, 임대 1건이에요. 아래 추천 1순위부터 보시면 돼요."
     assert text.splitlines()[0] == lead
+
+
+
+def test_picks_only_gives_copyable_keyed_items_with_full_links():
+    """목표 차례용: 결론과 조건 줄, 1순위마다 키와 전체 링크가 붙은 한 줄. 모델이 링크를 줄이던 것을 막는다."""
+    board = Board(pdf_text=page("rent_terms_uiwang.txt"))
+    text, is_error = _run(board, {"budget": 3e8, "cash": 1.2e8, "monthly_limit": 2e6, "picks_only": True})
+    lines = text.splitlines()
+    assert not is_error and lines[0].startswith("애쉬,") and lines[1].startswith("LH 공고 대출 경우의 수")
+    assert "추천 1순위(분양): 없음" in lines
+    rent = next(line for line in lines if line.startswith("추천 1순위(임대) 항목: ["))
+    assert "의왕청계2 A1블록" in rent and "월 부담 최대" in rent and "panId=" in rent and "&mi=" in rent
+    assert "[분양(구입 대출)]" not in text

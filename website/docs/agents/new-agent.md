@@ -49,6 +49,7 @@ proactive: false
 | `model` | | JARVIS 모델 | 모델 이름만 바꾼다. 프로바이더, 키, 주소는 JARVIS 것을 쓴다 |
 | `tools` | | 앱의 도구 전체 | 쓸 도구 이름 목록 |
 | `proactive` | | JARVIS 설정 | `false` 면 혼자 먼저 말을 걸지 않고 성찰도 건너뛴다 |
+| `boundaries` | | 경계 없음 | 스스로 할 때의 경계. `ask` 는 목표 차례, 스케줄 작업, 먼저 해 두기에서 하지 않는 도구, `never` 는 어디서도 쓰지 않는 도구다([Goals](../concepts/conversation/goals.md#경계)) |
 
 목록에 없는 항목을 넣으면 그 파일은 잘못된 파일로 처리된다.
 

@@ -166,7 +166,14 @@ def parse_attachments(page: str) -> list[dict[str, str]]:
             f"{SH_BASE}/app/com/util/htmlConverter.do?brd_id={item.get('brdId', '')}&seq={item.get('seq', '')}"
             f"&data_tp={item.get('fileTp', 'A')}&file_seq={item.get('fileSeq', '')}"
         )
-        attachments.append({"name": str(item.get("oriFileNm", "")), "size": f"{size / 1024:.0f}KB", "preview": preview})
+        download = (
+            f"brdId={item.get('brdId', '')}&seq={item.get('seq', '')}&fileTp={item.get('fileTp', 'A')}"
+            f"&fileSeq={item.get('fileSeq', '')}"
+        )
+        attachments.append({
+            "name": str(item.get("oriFileNm", "")), "size": f"{size / 1024:.0f}KB", "preview": preview,
+            "download": download,
+        })
     return attachments
 
 

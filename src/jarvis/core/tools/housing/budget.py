@@ -1,4 +1,4 @@
-"""[core] 현금, 월 여유자금, 주거 프로필로 열린 LH 공고마다 대출 경우의 수와 월 부담을 계산하는 housing_budget 도구."""
+"""[core] 현금, 월 여유자금, 주거 프로필로 열린 LH, SH 공고마다 대출 경우의 수와 월 부담을 계산하는 도구."""
 
 import re
 import asyncio
@@ -14,6 +14,7 @@ from jarvis.core.tools.housing.notice_pdf import RentTerm, SaleTerm, notice_text
 from jarvis.core.tools.housing.scenario import BASE, CASH_ALL, NO_LOAN, Case, Deposit, deposit_cases, fits
 from jarvis.core.tools.housing.lh_notice import LhNoticeTool, Notice, build_queries, detail_url, is_sale
 from jarvis.core.tools.housing.rental_complex import ComplexUnit, fetch_complexes, match_complex
+from jarvis.core.tools.housing.sh_terms import ShUnit, collect, is_sh, sh_pdf_text, sh_url
 from jarvis.core.tools.housing.deadline import LEAD_DAYS, track_deadlines
 from jarvis.core.tools.housing.markup import deadline_label, parse_date
 from jarvis.core.tools.housing.notice_pdf import rent_terms, sale_terms
@@ -54,7 +55,8 @@ ASK_MONEY_ITEM = (
 )
 
 TOOL_DESCRIPTION = (
-    "보유 현금과 월 여유자금(월 부담 상한)으로 지금 공고중인 LH 공고마다 대출 경우의 수를 계산해 추천한다."
+    "보유 현금과 월 여유자금(월 부담 상한)으로 지금 공고중인 LH 공고(지역에 서울이 있으면 SH 모집 공고도)마다"
+    " 대출 경우의 수를 계산해 추천한다."
     " 분양은 구입 대출(디딤돌, 보금자리론, 시중 주담대)을, 임대는 보증금 대출(버팀목, 청년 버팀목, 시중 전세대출)과"
     " 공고문의 보증금 증액, 감액 전환을 펼친다. 대출 한도는 상품 한도, LTV, 규제 한도, DSR/DTI 중 가장 작은 값이고,"
     " 금리는 조사한 범위(하단~상단)로 월 이자와 원금 상환을 계산한다."
@@ -207,6 +209,9 @@ def plan_for(notice: Notice, options: list[Option], terms: Terms, rules: Rules, 
         if option.sale:
             cases = purchase_cases(option.price, area, products, rules, profile, today, terms.cash, terms.years,
                                    terms.rate)
+            if option.rent:
+                # 토지임대부 분양은 대출 상환과 함께 월 토지임대료를 낸다
+                cases = [replace(c, rent=option.rent) for c in cases]
         else:
             cases = deposit_cases(option.deposits(), area, products, rules, profile, today, terms.cash, terms.rate)
         good = [c for c in cases if fits(c, terms.monthly_limit)]
@@ -246,6 +251,28 @@ def top_pick(plans: list[Plan]) -> Plan | None:
     return min(live, key=lambda p: (_rank(p), p.notice.closes or "9999")) if live else None
 
 
+def notice_url(notice: Notice) -> str:
+    return sh_url(notice) if is_sh(notice.id) else detail_url(notice.id)
+
+
+def options_from_sh(units: list[ShUnit], notice: Notice, rules: Rules) -> list[Option]:
+    """SH 공고문에서 읽은 금액. 제목의 공급대상 말(신혼, 청년, 대학생)을 주택형에 붙여 프로필과 어긋나면 빼게 한다."""
+    words = [t["word"] for t in rules.notice_kinds.get("unit_targets", ()) if t["word"] in notice.title]
+    options = []
+    for u in units:
+        unit = " ".join([u.unit, *words])
+        if u.sale:
+            source = "SH 공고문 PDF 분양가"
+            if u.low < u.price:
+                source += f", 동호별 {man(u.low)}~{man(u.price)} 중 최고가"
+            if u.rent:
+                source += f", 토지임대부라 월 토지임대료 {u.rent:,}원을 월 부담에 더했다"
+        else:
+            source = "SH 공고문 PDF 임대조건(소득 구간이 나뉘면 높은 구간)"
+        options.append(Option(unit, u.price, u.rent, u.sale, source))
+    return options
+
+
 def pick_line(title: str, plan: Plan | None, terms: Terms) -> str:
     if plan is None:
         return f"추천 1순위({title}): 없음. 맞는 경우가 있으면서 신청 가능성이 낮지 않은 공고가 없다"
@@ -257,7 +284,7 @@ def pick_line(title: str, plan: Plan | None, terms: Terms) -> str:
         f"추천 1순위({title}): {n.title} | 신청 가능성 {ACCESS_LABEL[plan.access.status]}"
         f" | {plan.option.unit} 월 부담 최대 {man(case.monthly)}{room} | 마감 {n.closes or '미상'}"
         # 링크의 공고 id 는 다음에도 바뀌지 않는다. 목표 차례가 이미 알린 공고인지 이것으로 가린다
-        f" | {detail_url(n.id)}"
+        f" | {notice_url(n)}"
     )
 
 
@@ -309,6 +336,7 @@ def _case_line(case: Case, terms: Terms) -> str:
             + (f"({man(kept)} 남김)" if case.cash_case != CASH_ALL and kept > 0 else "")
             + f" → 월 {_span(*case.pay)} = 이자 {round(case.first_interest):,}원 + 원금 {round(principal):,}원"
             "(금리 상단, 첫 달)"
+            + (f" + 월 토지임대료 {case.rent:,}원 = {_span(case.monthly_low, case.monthly)}" if case.rent else "")
         )
     problems = []
     if case.shortfall > 0:
@@ -333,7 +361,7 @@ def render_plan(index: int, plan: Plan, terms: Terms, today: date) -> list[str]:
     n, o = plan.notice, plan.option
     label = deadline_label(parse_date(n.closes), today)
     kind = "분양가" if o.sale else "보증금"
-    rent = f", 월임대료 {o.rent:,}원" if o.rent else ""
+    rent = f", {'월 토지임대료' if o.sale else '월임대료'} {o.rent:,}원" if o.rent else ""
     expanded = len({c.area.regulated for c in plan.cases}) > 1
     region_note = "수도권" if plan.best.area.capital else "비수도권"
     if expanded:
@@ -367,23 +395,26 @@ def render_plan(index: int, plan: Plan, terms: Terms, today: date) -> list[str]:
         limit = f" ({_limit_text(first)})" if first.limit is not None and first.verdict.status != NO else ""
         cases_text = " / ".join(_case_line(c, terms) for c in cases)
         lines.append(f"   · {' '.join(head) or '기본 조건'}: {cases_text}{limit}")
-    lines.append(f"   {detail_url(n.id)}")
+    lines.append(f"   {notice_url(n)}")
     return lines
 
 
 def render(
     terms: Terms, regions: list[str], plans: list[Plan], over: list[Notice], unknown: list[Notice],
     skipped: int, limit: int, today: date, rules: Rules, profile: HousingProfile, profile_note: str,
+    sh_note: str = "",
 ) -> str:
     cap = f", 월 여유자금 {man(terms.monthly_limit)}" if terms.monthly_limit is not None else ""
     budget = f", 총액 상한 {man(terms.budget)}" if terms.budget is not None else ""
     fit_sale = sum(p.fitted for p in plans if p.option.sale)
     fit_rent = sum(p.fitted for p in plans if not p.option.sale)
+    with_sh = any(is_sh(n.id) for n in [*(p.notice for p in plans), *over, *unknown])
     lines = [
         # 이 글은 고치지 않고 그대로 답이 된다. KAREN 의 말로 결론을 먼저 둔다
         f"애쉬, {', '.join(regions)}에서 이 조건에 맞는 공고는 분양 {fit_sale}건, 임대 {fit_rent}건이에요."
         + (" 아래 추천 1순위부터 보시면 돼요." if fit_sale or fit_rent else " 가장 가까운 공고를 아래에 정리했어요."),
-        f"LH 공고 대출 경우의 수 ({', '.join(regions)} | 현금 {terms.cash:,.0f}원({man(terms.cash)}){cap}{budget})",
+        f"{'LH, SH' if with_sh else 'LH'} 공고 대출 경우의 수"
+        f" ({', '.join(regions)} | 현금 {terms.cash:,.0f}원({man(terms.cash)}){cap}{budget})",
         f"프로필: {', '.join(profile.lines(today))} ({profile_note})",
     ]
     blocked = []
@@ -409,6 +440,8 @@ def render(
     )
     stale = " 오래됐으니 금리와 규제를 은행, 기금 사이트에서 다시 확인한다." if rules.stale(today) else ""
     lines.append(f"대출 규칙 기준일 {rules.checked.isoformat()}(loan_rules.yaml).{stale}")
+    if sh_note:
+        lines.append(sh_note)
     # 하나를 물으면 이 줄로 답한다. 목록 위에 둬야 모델이 옮기며 떨어뜨리지 않는다
     for title, sale in PICK_GROUPS:
         lines.append(pick_line(title, top_pick([p for p in plans if p.option.sale is sale]), terms))
@@ -439,7 +472,7 @@ def render(
     if unknown:
         lines.append(f"\n금액을 찾지 못한 공고 {len(unknown)}건(상세, 공고문 PDF, 임대주택검색에 금액 없음. 첨부 확인)")
         lines += [
-            f"- [{deadline_label(parse_date(n.closes), today)}] {n.title} | {detail_url(n.id)}"
+            f"- [{deadline_label(parse_date(n.closes), today)}] {n.title} | {notice_url(n)}"
             for n in unknown[:MAX_UNKNOWN_LISTED]
         ]
         if len(unknown) > MAX_UNKNOWN_LISTED:
@@ -455,7 +488,8 @@ def render(
         "\n이 계산은 정해진 답이 아니라 고를 수 있는 경우의 수다."
         " 신청 가능성은 프로필, 1인 가구 소득 기준, 공고 제목과 주택형 이름으로 본 가늠이라"
         " 공고문의 소득, 자산 기준과 공급대상을 신청 전에 확인한다."
-        " 매입임대와 전세임대는 집마다 금액이 달라 공고문 확인 목록에 남고, SH 공고는 금액이 첨부에만 있어 빠진다."
+        " 매입임대와 전세임대는 집마다 금액이 달라 공고문 확인 목록에 남는다."
+        " SH 공고는 단지마다 표가 달라 공고문 PDF 에서 줄 단위로 읽은 금액이니 공고문으로 확인한다."
     )
     return "\n".join(lines)
 
@@ -480,8 +514,13 @@ class HousingBudgetTool(JarvisTool):
         profiles: ProfileStore | None = None,
         rules: Callable[[], Rules] = load_rules,
         loops: "OpenLoopStore | None" = None,
+        sh_fetch: Fetch | None = None,
+        read_sh_pdf: Callable[[bytes], str] = sh_pdf_text,
     ) -> None:
         self._notices = notices
+        # SH 게시판. 없으면 SH 공고를 보지 않는다
+        self._sh_fetch = sh_fetch
+        self._read_sh_pdf = read_sh_pdf
         # 추천 1순위의 마감 전 약속을 남길 곳. 없으면 남기지 않는다
         self._loops = loops
         self._fetch = fetch or fetch_html
@@ -546,6 +585,25 @@ class HousingBudgetTool(JarvisTool):
     async def _recommend(self, terms: Terms, regions: list[str], limit: int, profile: HousingProfile, note: str,
                          today: date) -> tuple[str, dict[str, Plan | None]]:
         rules = self._rules()
+        # SH 는 서울 공고뿐이다. LH 를 찾는 동안 함께 받는다
+        seoul = any(r.startswith("서울") or r == "전국" for r in regions)
+        sh_job = (
+            asyncio.create_task(collect(self._sh_fetch, self._fetch_file, self._read_sh_pdf, today))
+            if self._sh_fetch is not None and seoul else None
+        )
+        try:
+            return await self._recommend_with(terms, regions, limit, profile, note, today, rules, sh_job)
+        finally:
+            # LH 조회가 실패해 SH 결과를 쓰지 않을 때도 일을 남기지 않는다(끝난 일의 예외도 거둔다)
+            if sh_job is not None and not sh_job.done():
+                sh_job.cancel()
+            elif sh_job is not None and not sh_job.cancelled():
+                sh_job.exception()
+
+    async def _recommend_with(
+        self, terms: Terms, regions: list[str], limit: int, profile: HousingProfile, note: str, today: date,
+        rules: Rules, sh_job: "asyncio.Task[list[tuple[Notice, list[ShUnit]]]] | None",
+    ) -> tuple[str, dict[str, Plan | None]]:
         notices: dict[str, Notice] = {}
         for region in regions:
             queries, reason = build_queries({"region": region, "status": OPEN_STATUS})
@@ -582,15 +640,36 @@ class HousingBudgetTool(JarvisTool):
                 over.append(notice)
             else:
                 plans.append(plan)
+        sh_note = ""
+        if sh_job is not None:
+            try:
+                sh_found = await sh_job
+            except (FetchError, ValueError) as exc:
+                sh_found, sh_note = [], f"SH 공고는 보지 못했다: {exc}"
+            opened = [(n, units) for n, units in sh_found if (parse_date(n.closes) or today) >= today]
+            for notice, units in opened:
+                options = options_from_sh(units, notice, rules)
+                plan = plan_for(notice, options, terms, rules, profile, today) if options else None
+                if not options:
+                    unknown.append(notice)
+                elif plan is None:
+                    over.append(notice)
+                else:
+                    plans.append(plan)
+            if sh_found:
+                sh_note = (
+                    f"SH(서울) 모집 공고 {len(opened)}건 중 공고문 PDF 에서 금액을 읽은 공고"
+                    f" {sum(bool(u) for _, u in opened)}건. SH 마감은 게시글의 접수 기간으로 짐작했다"
+                )
         skipped = max(0, len(ordered) - MAX_DETAILS)
         picks = {title: top_pick([p for p in plans if p.option.sale is sale]) for title, sale in PICK_GROUPS}
-        text = render(terms, regions, plans, over, unknown, skipped, limit, today, rules, profile, note)
+        text = render(terms, regions, plans, over, unknown, skipped, limit, today, rules, profile, note, sh_note)
         return text, picks
 
     async def _pdf_options(self, file_id: str, notice: Notice) -> list[Option]:
         """공고문의 분양가 표나 임대조건 표. 못 받거나 못 읽으면 빈 목록. 한 공고의 실패로 추천 전체를 멈추지 않는다."""
         try:
-            text = await notice_text(self._fetch_file, file_id, detail_url(notice.id), self._read_pdf)
+            text = await notice_text(self._fetch_file, file_id, notice_url(notice), self._read_pdf)
         except Exception:  # FetchError, 깨진 PDF(pypdf 의 여러 예외)
             return []
         if is_sale(notice.id):
@@ -626,7 +705,7 @@ def pick_item(title: str, plan: Plan | None) -> str:
             else f"대출 없이 현금 {man(case.price)}")
     return (
         f"추천 1순위({title}) 항목: [{n.id}] {n.title}, {plan.option.unit} {loan}, 월 부담 최대 {man(case.monthly)},"
-        f" 마감 {n.closes or '미상'}, {detail_url(n.id)}{unsure}"
+        f" 마감 {n.closes or '미상'}, {notice_url(n)}{unsure}"
     )
 
 

@@ -16,7 +16,8 @@ title: 공용 커맨드
 | `/schedule` | | `<시각>에 <내용>` 한 번, `<날짜 시각>까지 <내용>` 마감까지 반복, cron 식 |
 | `/remember` | | `<text>` 로 사실 저장. `list`, `search <키워드>`, `forget <id>`, `conflicts`, `reembed` |
 | `/patterns` | | 지금 에이전트의 작업 패턴(사용자가 알려 준 방식) 목록. `forget <이름>` 으로 지운다 |
-| `/housing` | | 대출 자격용 주거 프로필(무주택, 생애최초, 혼인, 연소득, 순자산, 생년월일이나 나이) 보기. `set 연소득=6000만 혼인=미혼` 으로 준 항목만 고치고, `clear` 로 지운다 |
+| `/housing` | | 대출 자격용 주거 프로필(무주택, 생애최초, 혼인, 연소득, 순자산, 생년월일이나 나이, 관심 지역, 보유 현금, 월 여유자금) 보기. `set 연소득=6000만 현금=7000만 월여유자금=150만` 으로 준 항목만 고치고, `clear` 로 지운다 |
+| `/goal` | | 지금 세션의 에이전트에게 [목표](../concepts/conversation/goals.md)를 맡긴다(`<문장>`). 인자 없으면 맡은 목표 목록, `stop <문장 일부>` 로 멈춘다. 같은 문장을 다시 맡겨도 하나다 |
 | `/sessions` | | 저장된 세션 목록 |
 | `/branch` | | `[session_id]` 세션을 특정 시점에서 분기 |
 | `/tools` | | 현재 사용 가능한 도구 목록 |
@@ -40,6 +41,7 @@ title: 공용 커맨드
 /schedule 30분 뒤에 배포 로그 확인
 /schedule 2026.10.20 오후 6시까지 보고서 초안 작성
 /schedule 0 9 * * * date && uptime
+/goal 조건 및 가장 좋은 원리금 납부액을 추천하는 공고만 알려줘
 /test -k "test_policy"
 /orchestrate hierarchical 분기 보고서 작성
 /orchestrate blackboard --agents a,b --promote 시장 분석

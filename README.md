@@ -86,7 +86,7 @@ JARVIS_LLM__MODEL=gemma4:e4b
 
 ### 최상위 에이전트 팀과 청약 도구
 
-JARVIS 와 같은 층에 에이전트를 더 둔다(`team/<id>.yaml`). 정보 수집 담당 KAREN 은 LH, SH 청약 공고를 조회해 KST 기준 마감(D-n)을 붙이고, 공고의 분양가나 보증금으로 월, 연간 원리금 상환액과 이자를 계산한다(`lh_notice`, `sh_notice`, `housing_loan`). JARVIS 에게 물으면 `ask_agent` 로 KAREN 에게 맡기고, 둘이 함께 일하는 동안 HUD 구체가 두 에이전트의 색으로 섞인다. 자세한 건 문서 사이트의 "최상위 에이전트 팀", "청약 공고와 대출 계산".
+JARVIS 와 같은 층에 에이전트를 더 둔다(`team/<id>.yaml`). 정보 수집 담당 KAREN 은 LH, SH 청약 공고를 조회해 KST 기준 마감(D-n)을 붙이고, 공고의 분양가나 보증금으로 월, 연간 원리금 상환액과 이자를 계산한다(`lh_notice`, `sh_notice`, `housing_loan`). 보유 현금과 월 여유자금으로 공고마다 대출 경우의 수를 펼쳐 추천 1순위를 고르고(`housing_budget`), "조건에 맞는 추천 공고만 알려줘" 같은 목표를 맡기면 매시 진행해 1순위가 바뀔 때만 알린다(`/goal`). JARVIS 에게 물으면 `ask_agent` 로 KAREN 에게 맡기고, 둘이 함께 일하는 동안 HUD 구체가 두 에이전트의 색으로 섞인다. 자세한 건 문서 사이트의 "최상위 에이전트 팀", "청약 공고와 대출 계산".
 
 ### 메모리 시스템
 
@@ -118,6 +118,14 @@ jarvis --list-sessions      # 세션 목록
 ```
 /schedule 매일 오전 9시에 날씨 알려줘
 /schedule 0 9 * * * date && uptime
+```
+
+정한 시각에 정한 일을 하는 일정과 달리, 목표는 에이전트가 차례마다 다음 한 단계를 스스로 정하고 새로 알릴 것만 대화로 건넨다. 에이전트 정의의 `boundaries`(`ask`, `never`)가 혼자 할 때 쓸 수 없는 도구를 정한다.
+
+```
+/goal 조건 및 가장 좋은 원리금 납부액을 추천하는 공고만 알려줘
+/goal                 # 맡은 목표 목록
+/goal stop 원리금      # 문장 일부로 멈춘다
 ```
 
 ### Proactive Agent (Inner Thought 기반)
@@ -332,6 +340,8 @@ JARVIS_SECURITY__API_KEYS='{"<long-random-key>": {"name": "jh", "roles": ["admin
 |--------|------|------|
 | `/test` | `/t`, `/pytest` | 유닛 테스트 실행 및 결과 리포트 |
 | `/schedule` | — | 작업 예약 |
+| `/goal` | — | 목표 맡기기 (`<문장>` \| 목록 \| `stop <문장 일부>`) |
+| `/housing` | — | 주거 프로필 보기와 고치기 (`set 현금=7000만 월여유자금=150만` \| `clear`) |
 | `/remember` | — | 장기 기억 저장/검색/삭제 (`list` \| `search <키워드>` \| `forget <id>`) |
 | `/sessions` | — | 저장된 세션 목록 표시 |
 | `/branch` | — | `[session_id]` 세션을 특정 시점에서 분기 |

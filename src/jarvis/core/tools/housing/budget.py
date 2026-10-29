@@ -611,10 +611,13 @@ def pick_item(title: str, plan: Plan | None) -> str:
     """
     if plan is None:
         return f"추천 1순위({title}): 없음"
-    n = plan.notice
+    n, case = plan.notice, plan.best
     unsure = f" {UNSURE_NOTE}" if plan.access.status == UNKNOWN else ""
+    # 사용자는 대출을 받는 방향으로 본다. 어떤 대출을 얼마나 쓰는지 없으면 월 부담만으로는 고를 수 없다
+    loan = (f"{case.product.name} {man(case.loan)} + 현금 {man(case.cash_used)}" if case.product is not None
+            else f"대출 없이 현금 {man(case.price)}")
     return (
-        f"추천 1순위({title}) 항목: [{n.id}] {n.title}, {plan.option.unit} 월 부담 최대 {man(plan.best.monthly)},"
+        f"추천 1순위({title}) 항목: [{n.id}] {n.title}, {plan.option.unit} {loan}, 월 부담 최대 {man(case.monthly)},"
         f" 마감 {n.closes or '미상'}, {detail_url(n.id)}{unsure}"
     )
 

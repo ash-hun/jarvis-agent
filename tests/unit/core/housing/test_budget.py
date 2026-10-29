@@ -264,4 +264,5 @@ def test_picks_only_gives_copyable_keyed_items_with_full_links():
     assert "추천 1순위(분양): 없음" in lines
     rent = next(line for line in lines if line.startswith("추천 1순위(임대) 항목: ["))
     assert "의왕청계2 A1블록" in rent and "월 부담 최대" in rent and "panId=" in rent and "&mi=" in rent
+    assert "현금 " in rent and ("+ 현금" in rent or "대출 없이" in rent)
     assert "[분양(구입 대출)]" not in text

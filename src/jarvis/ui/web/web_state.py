@@ -168,9 +168,13 @@ class WebState:
         return session
 
     async def converse(self, agent_id: str, text: str) -> bool:
-        """스케줄 결과를 그 에이전트와 최근 대화한 세션에 에이전트의 말로 건넨다. 건넸으면 True."""
-        session = self.registry.latest_of(agent_id)
-        return session is not None and await session.say(text)
+        """스케줄 결과를 그 에이전트와 최근 대화한 세션에 에이전트의 말로 건넨다. 건넸으면 True.
+
+        열린 대화가 없어도(재시작 뒤, 한동안 말이 없을 때) 저장된 마지막 대화에 건넨다.
+        알림 제목 대신 에이전트의 말로 온다.
+        """
+        session = await self.registry.conversation_of(agent_id)
+        return await session.say(text)
 
     async def broadcast_live(self, payload: dict[str, object]) -> None:
         """열린 HUD 에만 보낸다. 지금 상태를 알리는 것이라 아무도 없으면 버린다."""

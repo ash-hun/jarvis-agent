@@ -62,6 +62,7 @@ from jarvis.core.skills.registry import SkillRegistry
 from jarvis.agent_layer.harness import AgentHarness
 from jarvis.core.external import ExternalEventInbox
 from jarvis.core.plugins.runner import PluginRunner
+from jarvis.core.goals.tool import standing_rule
 from jarvis.common.logger import get_logger
 
 # daemon 자율 성찰 시 user_input 대신 넣는 seed. 요청 없는 시점임을 모델에 알린다.
@@ -311,6 +312,10 @@ class AgentSession:
         self._spawn_loop_judge(expanded, history)
         shown = frame if frame is not None else self._take_pending_frame()
         inner_thought_prompt = self._thought_composer.compose(shown) or None if shown is not None else None
+        goal_rule = standing_rule(expanded, {t.name for t in self._tool_registry.list_all()})
+        if goal_rule:
+            # 속생각 뒤에 붙인다. 속생각의 선택지보다 나중에 읽혀야 바로 찾기로 기울지 않는다
+            inner_thought_prompt = "\n\n".join(p for p in (inner_thought_prompt, goal_rule) if p)
         approval_tools = self._security.sandbox.approval_tools()
         if approval_tools:
             rule = APPROVAL_RULE.format(tools=", ".join(approval_tools))

@@ -706,7 +706,7 @@ class InfraBuilder:
         dispatcher.register(
             "cleanup",
             make_cleanup_handler(session_repo, memory, keep_agent_sessions=per_agent_sessions),
-            "옛 데이터 현황과 삭제 (agents | stm, confirm 필요)",
+            "옛 데이터와 시험 흔적 현황과 삭제 (agents | stm | tests, confirm 필요)",
         )
         if orchestration is not None:
             from jarvis.core.slash.orchestrate_cmd import make_orchestrate_handler

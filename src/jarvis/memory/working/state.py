@@ -46,6 +46,14 @@ class WorkingStore:
     async def clear(self, scope: MemoryScope) -> None:
         self._states.pop(scope, None)
 
+    async def delete_sessions(self, prefixes: tuple[str, ...], dry_run: bool = False) -> int:
+        """세션 id 가 이 접두어로 시작하는 작업 기억을 지우고 수를 돌려준다. dry_run 이면 세기만 한다."""
+        doomed = [s for s in self._states if prefixes and (s.session_id or "").startswith(prefixes)]
+        if not dry_run:
+            for scope in doomed:
+                del self._states[scope]
+        return len(doomed)
+
     async def legacy_stm_rows(self) -> int | None:
         """범위 도입 전 STM 메시지 테이블의 행 수. 그런 테이블을 모르는 저장소는 None."""
         return None

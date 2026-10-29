@@ -4,6 +4,8 @@ import re
 from typing import TYPE_CHECKING, Any
 from collections.abc import Awaitable, Callable
 
+from jarvis.agent_layer.session.protocol import TEST_SESSION_PREFIXES
+
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.protocol import SessionRepo
 
@@ -17,7 +19,8 @@ _USAGE = (
     "[Cleanup] 사용법:\n"
     "  /cleanup                 지울 수 있는 옛 데이터 현황\n"
     "  /cleanup agents confirm  범위 도입 전 서브 에이전트 세션(agent_<name>) 삭제\n"
-    "  /cleanup stm confirm     옛 STM 메시지 테이블(jarvis_stm_messages) 삭제 (Postgres)"
+    "  /cleanup stm confirm     옛 STM 메시지 테이블(jarvis_stm_messages) 삭제 (Postgres)\n"
+    "  /cleanup tests confirm   시험 세션(live-, probe-, test- 등)과 그 세션이 남긴 기억 삭제"
 )
 
 
@@ -35,6 +38,22 @@ def make_cleanup_handler(
             m.session_id for m in metas if LEGACY_AGENT_SESSION.match(m.session_id) and m.session_id not in keep
         )
 
+    async def test_sessions() -> list[str]:
+        metas = await session_repo.list("")
+        return sorted(m.session_id for m in metas if m.session_id.startswith(TEST_SESSION_PREFIXES))
+
+    async def tests(confirmed: bool) -> str:
+        sessions = await test_sessions()
+        items, working = (await memory.forget_sessions(TEST_SESSION_PREFIXES, dry_run=not confirmed)
+                          if memory is not None else (0, 0))
+        found = f"세션 {len(sessions)}개, 장기 기억 {items}개, 작업 기억 {working}개"
+        if not confirmed:
+            return f"[Cleanup] 시험 흔적 {found}. 지우려면 '/cleanup tests confirm'"
+        # 기억을 먼저 지웠다. 세션을 지우다 죽어도 다시 실행하면 남은 것만 지운다
+        for sid in sessions:
+            await session_repo.delete(sid)
+        return f"[Cleanup] 시험 흔적 {found}를 지웠습니다."
+
     async def handle(args: str) -> str:
         parts = args.split()
         if not parts:
@@ -47,7 +66,8 @@ def make_cleanup_handler(
                 lines.append("  옛 STM 테이블: 없음 또는 Postgres 아님")
             else:
                 lines.append(f"  옛 STM 테이블 jarvis_stm_messages: {stm_rows}행")
-            lines.append("삭제는 '/cleanup agents confirm' 또는 '/cleanup stm confirm'")
+            lines.append("  " + (await tests(False)).removeprefix("[Cleanup] "))
+            lines.append("삭제는 '/cleanup agents confirm', '/cleanup stm confirm', '/cleanup tests confirm'")
             return "\n".join(lines)
 
         target = parts[0].lower()
@@ -61,6 +81,8 @@ def make_cleanup_handler(
             for sid in sessions:
                 await session_repo.delete(sid)
             return f"[Cleanup] 서브 에이전트 세션 {len(sessions)}개를 지웠습니다."
+        if target == "tests":
+            return await tests(confirmed)
         if target == "stm":
             if memory is None:
                 return "[Cleanup] 메모리 매니저가 없습니다."

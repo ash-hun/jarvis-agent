@@ -7,12 +7,12 @@ from unittest.mock import MagicMock
 
 from jarvis.core.goals.runner import GoalRunner, build_prompt, step_registry
 from jarvis.core.tools.registry import JarvisTool, ToolContext, ToolRegistry
+from jarvis.core.goals.tool import GOAL_RULE, GoalTool, standing_rule
 from jarvis.model_layer.types import TextContent, ToolResultMessage
 from jarvis.core.scheduler.service import SchedulerService
 from jarvis.core.scheduler.task import ScheduledTask
 from jarvis.core.goals.types import Goal, goal_key
 from jarvis.core.goals.store import GoalStore
-from jarvis.core.goals.tool import GoalTool
 from jarvis.memory.scope import MemoryScope
 
 NOW = datetime(2026, 10, 28, 10, 0)
@@ -111,7 +111,9 @@ async def test_report_is_returned_once_and_the_same_report_is_not_repeated(tmp_p
     store, runner, goal = setup(tmp_path)
     run, seen = replying(REPLY, REPLY)
     first = await runner.step(goal.id, ["housing_budget"], ["housing_profile"], run)
+    runner.settle(goal.id, delivered=True)
     again = await runner.step(goal.id, ["housing_budget"], ["housing_profile"], run)
+    runner.settle(goal.id, delivered=True)
     assert (first, again) == (SAID, "")
     saved = store.get(goal.id)
     assert saved is not None and saved.reported == ["2026:55A"] and saved.runs == 2
@@ -285,3 +287,50 @@ def test_goal_task_shows_its_goal_not_its_id_in_the_agenda():
 
     task = goal_task(Goal(id=goal_key("karen", TEXT), agent="karen", text=TEXT))
     assert task_label(task) == f"목표: {TEXT[:60]}"
+
+
+async def test_items_that_could_not_be_delivered_come_again_next_turn(tmp_path):
+    """대화도 알림도 못 건넨 항목은 알린 것으로 적지 않는다. 다음 차례에 다시 건넨다."""
+    store, runner, goal = setup(tmp_path)
+    svc = _scheduler()
+    svc.set_goal_runner(runner)
+    spoken: list[str] = []
+    up = False
+
+    async def converse(agent: str, text: str) -> bool:
+        if up:
+            spoken.append(text)
+        return up
+
+    svc.set_conversation(converse)
+    replies = [REPLY, REPLY, REPLY]
+
+    async def execute(task, pick=None):  # type: ignore[no-untyped-def]
+        await pick(registry("housing_budget")).execute("c", "housing_budget", {}, None, None)
+        return replies.pop(0)
+
+    svc._execute_task = execute  # type: ignore[method-assign]
+    task = ScheduledTask(name=goal.task_name, prompt=TEXT, kind="goal", args={"goal": goal.id}, agent="karen",
+                         deliver="conversation")
+    await svc._run_and_deliver(task)  # 대화도 알림 채널도 없다
+    saved = store.get(goal.id)
+    assert saved is not None and saved.reported == [] and saved.runs == 1
+    up = True
+    await svc._run_and_deliver(task)
+    await svc._run_and_deliver(task)
+    assert spoken == [SAID]
+    saved = store.get(goal.id)
+    assert saved is not None and saved.reported == ["2026:55A"]
+
+
+def test_standing_requests_get_the_goal_rule_only_when_the_agent_can_set_goals():
+    """계속 챙길 일일 수 있는 말에만 목표 규칙을 붙인다. goal 도구가 없는 에이전트에는 붙이지 않는다.
+    속생각이 '바로 찾기' 를 선택지로 내면 규칙 없이는 라이브 5번 중 0번 맡았다."""
+    tools = {"goal", "housing_budget"}
+    standing = (TEXT, "서울에 새 행복주택 공고 나오면 알려줘", "앞으로 추천 1순위 바뀌면 알려줘", "새 공고 계속 챙겨줘")
+    for text in standing:
+        assert standing_rule(text, tools) == GOAL_RULE, text
+    for text in ("현금 1억, 월 150으로 맞는 공고 찾아줘", "가장 추천하는 게 뭐야?"):
+        assert standing_rule(text, tools) is None, text
+    assert standing_rule(TEXT, {"housing_budget"}) is None
+

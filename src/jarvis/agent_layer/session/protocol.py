@@ -16,6 +16,15 @@ PROACTIVE_ENTRY = "proactive"
 PROACTIVE_ACK_ENTRY = "proactive_ack"
 
 
+# 실험, 라이브 점검, 스모크 테스트가 만든 세션 id 접두어. 새로 만드는 시험 세션은 test- 로 시작한다.
+# 사용자 세션(8자리 hex), 스케줄 실행(sched-), 위임(peer-), 집중(focus_) 세션은 여기 걸리지 않는다
+TEST_SESSION_PREFIXES = (
+    "test-", "live-", "probe-", "exp-", "smoke", "karen-", "split-", "usage-probe", "voice", "stt-check",
+    "tts-check", "speak-en-check", "unclear-check", "schedule-check", "regions-setup", "refactor-smoke",
+    "approval-retry-probe", "focus-ui-probe",
+)
+
+
 class SessionEntry(BaseModel):
     id: str
     parent_id: str | None = None

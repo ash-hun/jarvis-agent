@@ -3,8 +3,9 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+from jarvis.ui.web.session_registry import SessionRegistry, last_conversation
+from jarvis.agent_layer.session.protocol import SessionMetadata
 from jarvis.memory.stores.in_memory import InMemoryItemStore
-from jarvis.ui.web.session_registry import SessionRegistry
 from jarvis.memory.memory_service import MemoryService
 from jarvis.model_layer.types import UserMessage
 from jarvis.memory import MemoryScope
@@ -150,3 +151,46 @@ def test_latest_of_picks_the_session_the_user_talked_to_most_recently():
     registry._last_activity["k2"] = 4.0
     assert registry.latest_of("karen") is registry._sessions["k2"]
     assert registry.latest_of("main") is registry._sessions["j"]
+
+
+def _meta(sid: str, agent: str, updated: int, count: int = 4) -> SessionMetadata:
+    return SessionMetadata(session_id=sid, cwd=".", created_at=0, updated_at=updated, message_count=count,
+                           agent_id=agent)
+
+
+def test_last_conversation_is_the_latest_saved_talk_not_a_run_or_test():
+    """재시작 뒤 건넬 세션: 그 에이전트와 사용자가 나눈 마지막 대화. 스케줄 실행, 위임, 시험, 빈 세션은 뺀다."""
+    metas = [
+        _meta("a1b2c3d4", "karen", 10), _meta("e5f6a7b8", "karen", 20), _meta("e0e0e0e0", "karen", 90, count=0),
+        _meta("sched-goal-x-1", "karen", 99), _meta("peer-main-karen", "karen", 98),
+        _meta("live-goal-nl-1", "karen", 97),
+        _meta("test-x", "karen", 96), _meta("j1j1j1j1", "main", 95),
+    ]
+    assert last_conversation(metas, "karen") == "e5f6a7b8"
+    assert last_conversation(metas, "main") == "j1j1j1j1"
+    assert last_conversation(metas, "ghost") is None
+
+
+async def test_conversation_of_reopens_the_saved_talk_and_creates_one_only_when_none():
+    """열린 대화가 없으면 저장된 마지막 대화를 열고, 그것도 없으면 새로 만든다. 다시 불러도 같은 세션이다."""
+    registry = _make_manager({})
+    registry._session_agents, registry._last_activity = {}, {}
+    registry._ctx.session_repo.list = AsyncMock(return_value=[_meta("a1b2c3d4", "karen", 10)])
+    opened: list[str] = []
+
+    async def get_or_create(session_id, agent_id=None, peer=False):  # type: ignore[no-untyped-def]
+        opened.append(session_id)
+        registry._sessions.setdefault(session_id, _mock_session(session_id))
+        registry._session_agents[session_id] = "karen"
+        return registry._sessions[session_id], None
+
+    registry.get_or_create = get_or_create  # type: ignore[method-assign]
+    registry.create_new = AsyncMock(return_value="newone00")  # type: ignore[method-assign]
+    first = await registry.conversation_of("karen")
+    again = await registry.conversation_of("karen")
+    assert first is again and opened == ["a1b2c3d4"] and registry.create_new.await_count == 0
+    registry._ctx.session_repo.list = AsyncMock(return_value=[])
+    registry._sessions, registry._session_agents, registry._last_activity = {}, {}, {}
+    await registry.conversation_of("karen")
+    assert registry.create_new.await_count == 1 and opened[-1] == "newone00"
+

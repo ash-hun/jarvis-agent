@@ -8,7 +8,7 @@ from dataclasses import replace
 from collections.abc import Awaitable, Callable
 
 from jarvis.core.goals.types import (
-    ASK_PREFIX, Goal, Step, advance, compose, new_items, parse_step, with_tool_items, worth_noting,
+    ASK_PREFIX, Goal, Step, advance, compose, mark_reported, new_items, parse_step, with_tool_items, worth_noting,
 )
 from jarvis.core.tools.registry import JarvisTool, ToolContext, ToolRegistry
 from jarvis.model_layer.types import TextContent, ToolResultMessage
@@ -107,13 +107,18 @@ def step_registry(
 
 
 class GoalRunner:
-    """# ponytail: 돌려준 보고는 알린 것으로 적는다(스케줄러는 대화가 없으면 알림으로 보낸다),
-    알림 채널까지 실패해 놓치는 일이 보이면 전달 결과를 받아 적도록 바꾼다
+    """목표 차례를 돌린다. 알릴 항목은 건넨 뒤(settle)에야 알린 것으로 적는다.
+    대화도 알림도 실패하면 다음 차례에 다시 온다.
+
+    # idempotent: 건넨 직후 settle 전에 죽으면 다음 차례에 같은 항목을 한 번 더 건넨다(놓치는 것보다 낫다),
+    중복이 거슬리면 건네기 전에 키를 '보내는 중' 으로 적고 전달 결과로 확정한다
     """
 
     def __init__(self, store: GoalStore, now: Callable[[], datetime] = datetime.now) -> None:
         self._store = store
         self._now = now
+        # 목표 id -> 이번 차례에 건넬 항목 키. settle 이 꺼내 적는다
+        self._pending: dict[str, list[str]] = {}
 
     @property
     def store(self) -> GoalStore:
@@ -143,7 +148,8 @@ class GoalRunner:
         # 알렸는지는 모델이 아니라 키로 가린다. 모델은 이미 알린 것을 거르다 새 것까지 빼거나 엉뚱한 것을 물었다(실측)
         fresh = new_items(goal, step)
         report = compose(step, fresh)
-        self._store.save(advance(goal, step, [k for k, _ in fresh], int(now.timestamp() * 1000)))
+        self._store.save(advance(goal, step, [], int(now.timestamp() * 1000)))
+        self._pending[goal.id] = [k for k, _ in fresh] if report else []
         # 평가 지표: 꼴을 지켰는지, 항목 수, 새로 알린 수, 키 없이 와 버린 수, 걸린 시간
         logger.info(
             f"[Goal] {goal.agent}/{goal.id} run={goal.runs + 1} parsed={step.parsed} items={len(step.items)}"
@@ -151,3 +157,10 @@ class GoalRunner:
             f" took={time.perf_counter() - started:.1f}s"
         )
         return report
+
+    def settle(self, goal_id: str, delivered: bool) -> None:
+        """이번 차례의 항목을 건넸으면 알린 것으로 적고, 못 건넸으면 버려 다음 차례에 다시 알리게 한다."""
+        keys = self._pending.pop(goal_id, [])
+        goal = self._store.get(goal_id)
+        if delivered and keys and goal is not None:
+            self._store.save(mark_reported(goal, keys, int(self._now().timestamp() * 1000)))

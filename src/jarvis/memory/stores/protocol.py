@@ -98,6 +98,14 @@ class ItemStore:
     async def delete(self, item_id: str) -> None:
         self._items.pop(item_id, None)
 
+    async def delete_sessions(self, prefixes: tuple[str, ...], dry_run: bool = False) -> int:
+        """세션 id 가 이 접두어로 시작하는 항목을 지우고 수를 돌려준다. dry_run 이면 세기만 한다."""
+        doomed = [k for k, i in self._items.items() if prefixes and (i.scope.session_id or "").startswith(prefixes)]
+        if not dry_run:
+            for key in doomed:
+                del self._items[key]
+        return len(doomed)
+
     async def clear(self, scope: MemoryScope | None = None) -> None:
         """scope 가 있으면 그 (user, agent) 의 항목만, 없으면 전부 지운다."""
         if scope is None:

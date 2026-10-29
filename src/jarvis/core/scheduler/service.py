@@ -259,10 +259,17 @@ class SchedulerService:
         remove_task_file(task, self._schedules_dir)
 
     async def _fire_once(self, task: ScheduledTask, delay_sec: int) -> None:
-        await self._deliver(task, await self._produce(task), delay_sec)
+        await self._run(task, delay_sec)
 
     async def _run_and_deliver(self, task: ScheduledTask) -> None:
-        await self._deliver(task, await self._produce(task), 0)
+        await self._run(task, 0)
+
+    async def _run(self, task: ScheduledTask, delay_sec: int) -> None:
+        text = await self._produce(task)
+        delivered = await self._deliver(task, text, delay_sec)
+        if task.kind == "goal" and self._goals is not None:
+            # 목표 항목은 건넨 뒤에야 알린 것으로 적는다. 못 건넸으면 다음 차례에 다시 온다
+            self._goals.settle(str(task.args.get("goal", "")), delivered)
 
     async def _produce(self, task: ScheduledTask) -> str | None:
         """알릴 글. 실패하면 None."""
@@ -274,22 +281,22 @@ class SchedulerService:
             return await self._execute_goal(task)
         return await self._execute_task(task)
 
-    async def _deliver(self, task: ScheduledTask, text: str | None, delay_sec: int) -> None:
-        """결과를 대화(deliver: conversation)나 notify 로 보낸다. text 가 None 이면 실행 실패."""
+    async def _deliver(self, task: ScheduledTask, text: str | None, delay_sec: int) -> bool:
+        """결과를 대화(deliver: conversation)나 notify 로 보낸다. text 가 None 이면 실행 실패. 건넸으면 True."""
         if task.kind in ("tool", "goal") and text is not None and not text.strip():
             # 도구나 목표 차례가 알릴 것이 없다고 빈 글을 줬다(새 공고 없음, 이미 알림 등)
             logger.info(f"[Scheduler] Tool task '{task.name}' had nothing to report")
-            return
+            return False
         if task.deliver == "conversation" and text is not None and self._converse is not None:
             try:
                 if await self._converse(task.agent, text):
-                    return
+                    return True
             except Exception as exc:
                 logger.info(f"[Scheduler] conversation delivery failed for '{task.name}': {exc!r}")
             logger.info(f"[Scheduler] '{task.name}' has no conversation to join, sent as a notice")
         # 대화로 건네는 데는 알림 채널이 필요 없다. 알림으로 보낼 때만 본다
         if self._notify is None:
-            return
+            return False
         payload = {
             "type": "reminder",
             "id": uuid.uuid4().hex,
@@ -308,6 +315,8 @@ class SchedulerService:
             await self._notify(payload)
         except Exception as exc:
             logger.info(f"[Scheduler] notify failed for '{task.name}': {exc!r}")
+            return False
+        return text is not None
 
     def _on_task_done(self, future: asyncio.Task[None]) -> None:
         """fire-and-forget task의 예외가 소실되지 않도록 로깅."""

@@ -50,10 +50,45 @@ def replying(*replies: str | None):  # type: ignore[no-untyped-def]
     seen: list[tuple[str, ToolRegistry]] = []
 
     async def run(prompt, pick):  # type: ignore[no-untyped-def]
-        seen.append((prompt, pick(registry("housing_budget", "housing_profile"))))
+        tools = pick(registry("housing_budget", "housing_profile"))
+        seen.append((prompt, tools))
+        if tools.get("housing_budget") is not None:
+            await tools.execute("c", "housing_budget", {}, None, None)
         return queue.pop(0)
 
     return run, seen
+
+
+async def test_turn_that_answers_from_notes_without_a_tool_is_run_again_once(tmp_path):
+    """기록만 보고 도구 없이 답하면(현금을 몰라 하던 기록) 한 번 더 돌려 도구로 지금 상태를 보게 한다."""
+    store, runner, goal = setup(tmp_path)
+    store.save(goal.model_copy(update={"notes": ["현금 모름"]}))
+    prompts: list[str] = []
+
+    async def lazy_then_checks(prompt, pick):  # type: ignore[no-untyped-def]
+        prompts.append(prompt)
+        tools = pick(registry("housing_budget"))
+        if len(prompts) == 1:
+            return "머리: 현금을 알려 주세요\n항목: [ask-money] 현금을 알려 주세요\n기록: 현금 모름\n완료: 아니오"
+        await tools.execute("c", "housing_budget", {}, None, None)
+        return REPLY
+
+    assert await runner.step(goal.id, ["housing_budget"], [], lazy_then_checks) == SAID
+    assert "- 현금 모름" in prompts[0]
+    assert len(prompts) == 2 and "[다시]" in prompts[1] and "[다시]" not in prompts[0]
+    # 다시 돌릴 때는 그때 기록을 보이지 않는다
+    assert "- 현금 모름" not in prompts[1]
+    # 도구를 부른 차례는 다시 돌리지 않는다. 혼자 쓸 도구가 없으면 다시 돌려도 소용없어 돌리지 않는다
+    run, seen = replying(REPLY)
+    await runner.step(goal.id, ["housing_budget"], [], run)
+    toolless: list[str] = []
+
+    async def no_tools(prompt, pick):  # type: ignore[no-untyped-def]
+        toolless.append(prompt)
+        return "애쉬"
+
+    await runner.step(goal.id, [], [], no_tools)
+    assert len(seen) == 1 and len(toolless) == 1
 
 
 def test_prompt_shows_goal_progress_and_boundary_but_not_what_was_reported():
@@ -125,6 +160,7 @@ async def test_scheduler_goal_turn_reports_through_the_conversation_and_stays_si
 
     async def execute(task, pick=None):  # type: ignore[no-untyped-def]
         assert task.prompt.startswith(f"[목표] {TEXT}") and pick is not None
+        await pick(registry("housing_budget")).execute("c", "housing_budget", {}, None, None)
         return replies.pop(0)
 
     svc._execute_task = execute  # type: ignore[method-assign]

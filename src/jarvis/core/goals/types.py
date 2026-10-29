@@ -3,8 +3,8 @@
 import re
 import hashlib
 from typing import Literal
-from dataclasses import dataclass
 from pydantic import BaseModel, Field
+from dataclasses import dataclass, replace
 
 from jarvis.agent_layer.openloop.types import normalize_description
 from jarvis.core.scheduler.task import GOAL_PREFIX
@@ -17,10 +17,14 @@ MAX_REPORTED = 200
 # 매일 9~21시 매시 정각. 사람이 깨어 있을 때만 진행하고 알린다
 DEFAULT_SCHEDULE = "0 9-21 * * *"
 TASK_PREFIX = GOAL_PREFIX
+# 사용자에게 허락이나 값을 구하는 항목의 키 머리. 프롬프트가 이 머리를 쓰라고 시킨다
+ASK_PREFIX = "ask-"
 # 에이전트 답의 줄 머리. 이 꼴로 답하라고 프롬프트가 시킨다
 _FIELD = re.compile(r"^\s*(머리|항목|기록|완료)\s*[:：]\s*(.*)$")
 # 항목: [키] 한 줄. 키가 없는 항목은 무엇을 알리는지 몰라 버린다
 _ITEM = re.compile(r"^\[([^\]]+)\]\s*(.+)$")
+# 도구 결과 안의 '항목: [키] 줄'. 도구가 지은 줄은 모델을 거치지 않고 그대로 알린다
+_TOOL_ITEM = re.compile(r"항목\s*[:：]\s*\[([^\]]+)\]\s*(.+)$")
 _DONE_WORDS = ("예", "네", "yes", "true", "완료")
 _BLANKS = ("", "없음", "비움", "none")
 
@@ -130,9 +134,32 @@ def compose(step: Step, items: list[tuple[str, str]]) -> str:
     if not items:
         return ""
     lines = [line for _, line in items]
-    # 머리가 항목 말을 그대로 되풀이하면(묻는 항목 하나일 때 잦다) 머리를 뺀다
-    head = step.head if step.head and not any(line in step.head for line in lines) else ""
+    # 머리가 항목 말을 그대로 되풀이하거나(묻는 항목 하나일 때 잦다), 묻기만 하는데 추천 머리를 붙이면 뺀다
+    asking = all(key.startswith(ASK_PREFIX) for key, _ in items)
+    head = step.head if step.head and not asking and not any(line in step.head for line in lines) else ""
     return "\n".join([head, *lines] if head else lines)
+
+
+def with_tool_items(step: Step, results: list[str]) -> Step:
+    """도구가 지은 항목 줄을 답의 항목에 더한다. 같은 키면 도구 줄이 이긴다. 순수 함수.
+
+    모델에게 옮기게 하면 키를 빼고 말만 쓰거나 링크를 줄여, 알릴 것이 있어도 알리지 못했다(실측).
+    """
+    found = [
+        (m.group(1).strip(), m.group(2).strip())
+        for text in results for line in text.splitlines() if (m := _TOOL_ITEM.search(line))
+    ]
+    if not found:
+        return step
+    keys = {key for key, _ in found}
+    return replace(step, items=(*found, *(item for item in step.items if item[0] not in keys)))
+
+
+def worth_noting(step: Step, used_tool: bool) -> bool:
+    """이 차례의 기록을 남길지. 도구 없이 답한 차례는 새로 안 것이 없고, 묻기만 한 차례의 기록("현금을 몰라")은
+    사용자가 답한 뒤에도 남아 다음 차례가 그 기록대로 다시 묻게 했다(실측). 순수 함수."""
+    asked_only = bool(step.items) and all(k.startswith(ASK_PREFIX) for k, _ in step.items)
+    return used_tool and not asked_only
 
 
 def advance(goal: Goal, step: Step, delivered: list[str], now_ms: int) -> Goal:

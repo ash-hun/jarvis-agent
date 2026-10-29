@@ -71,7 +71,15 @@ Web 의 `DELETE /api/sessions/{id}` 는 메모리 세션, 샌드박스, 승인 �
 - `/export md|json`: 지금 세션을 `~/.jarvis/exports/` 로 내보낸다
 - `/cost`: 토큰 사용량과 모델별 추정 비용을 보여준다
 - `/compact`: 지금까지의 대화를 요약해 장기 기억에 저장한다
-- `/cleanup`: 옛 서브 에이전트 세션과 옛 STM 테이블을 보여주고, `agents confirm`, `stm confirm` 으로 지운다
+- `/cleanup`: 옛 서브 에이전트 세션, 옛 STM 테이블, 시험 흔적을 보여주고, `agents confirm`, `stm confirm`, `tests confirm` 으로 지운다
+
+## 시험 세션
+
+실험, 라이브 점검, 스모크 테스트가 여는 세션은 `test-` 로 시작한다(예전 것은 `live-`, `probe-`, `exp-` 등. 목록은 `agent_layer/session/protocol.py` 의 `TEST_SESSION_PREFIXES`). 시험 세션은 이렇게 다르다.
+
+- 먼저 건네는 말이 밖(푸시, Discord)으로 가지 않는다. 라이브 점검이 사용자 폰에 실제 알림을 보낸 일이 있어서다
+- 목표와 스케줄 결과를 건넬 대화를 고를 때 빠진다
+- `/cleanup tests confirm` 이 세션과 그 세션이 남긴 장기 기억, 작업 기억을 함께 지운다. 기억을 먼저 지워 중간에 죽어도 다시 실행하면 남은 것만 지운다
 
 ## 설계 노트
 

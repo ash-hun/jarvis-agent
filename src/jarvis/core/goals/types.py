@@ -165,11 +165,14 @@ def worth_noting(step: Step, used_tool: bool) -> bool:
 def advance(goal: Goal, step: Step, delivered: list[str], now_ms: int) -> Goal:
     """한 차례의 결과를 목표에 적는다. 같은 키를 두 번 적어도 한 번만 남는다. 순수 함수."""
     notes = [*goal.notes, step.note][-MAX_NOTES:] if step.note else goal.notes
-    reported = [*goal.reported, *(k for k in delivered if k not in goal.reported)][-MAX_REPORTED:]
-    return goal.model_copy(update={
+    return mark_reported(goal, delivered, now_ms).model_copy(update={
         "notes": notes,
-        "reported": reported,
         "status": "done" if step.done else goal.status,
         "runs": goal.runs + 1,
-        "updated_at": now_ms,
     })
+
+
+def mark_reported(goal: Goal, keys: list[str], now_ms: int) -> Goal:
+    """사용자에게 건넨 항목의 키를 적는다. 같은 키를 두 번 적어도 한 번만 남는다. 순수 함수."""
+    reported = [*goal.reported, *(k for k in keys if k not in goal.reported)][-MAX_REPORTED:]
+    return goal.model_copy(update={"reported": reported, "updated_at": now_ms})

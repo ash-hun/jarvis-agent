@@ -5,11 +5,13 @@ import uuid
 from typing import TYPE_CHECKING
 from collections.abc import Callable
 
+from jarvis.agent_layer.session.protocol import TEST_SESSION_PREFIXES
+from jarvis.app.agent_conversation import PEER_SESSION_PREFIX
 from jarvis.ui.web.web_auth import auth_enabled
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.protocol import SessionRepo
+    from jarvis.agent_layer.session.protocol import SessionMetadata, SessionRepo
     from jarvis.memory.memory_service import MemoryService
     from jarvis.core.policy.sandbox import DefaultSandbox
     from jarvis.app.agent_registry import AgentRegistry
@@ -21,8 +23,18 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# 사용자와 나눈 대화가 아닌 세션: 스케줄 실행, 에이전트끼리 위임, 서브 에이전트, 집중 작업, 시험
+NOT_CONVERSATION = ("sched-", f"{PEER_SESSION_PREFIX}-", "agent_", "focus_", *TEST_SESSION_PREFIXES)
+
 # 세션을 처음 열 때 부르는 훅(세션 id, 에이전트 id, 세션). 활동 표시가 이벤트를 구독한다
 SessionOpened = Callable[[str, str, "AgentSession"], None]
+
+
+def last_conversation(metas: "list[SessionMetadata]", agent_id: str) -> str | None:
+    """저장된 세션 중 그 에이전트와 사용자가 가장 최근에 나눈 대화. 없으면 None. 순수 함수."""
+    talked = [m for m in metas if m.agent_id == agent_id and m.message_count > 0
+              and not m.session_id.startswith(NOT_CONVERSATION)]
+    return max(talked, key=lambda m: m.updated_at).session_id if talked else None
 
 
 class UnknownAgent(ValueError):
@@ -147,6 +159,18 @@ class SessionRegistry:
         if not talked:
             return None
         return self._sessions[max(talked, key=lambda sid: self._last_activity[sid])]
+
+    async def conversation_of(self, agent_id: str) -> "AgentSession":
+        """그 에이전트에게 먼저 말을 건넬 세션. 지금 열린 대화가 없으면(재시작 뒤) 저장된 마지막 대화를 다시 열고,
+        그것도 없으면 새 대화를 만든다. 대화 기록에 남아야 사용자가 이어 묻는다."""
+        session = self.latest_of(agent_id)
+        if session is not None:
+            return session
+        saved = last_conversation(await self._ctx.session_repo.list(""), agent_id)
+        session_id = saved or await self.create_new(agent_id)
+        session, _ = await self.get_or_create(session_id, agent_id)
+        self.touch(session_id)
+        return session
 
     def sessions_by_recency(self) -> "list[AgentSession]":
         """최근 활동순. 한 번도 touch 되지 않았으면 삽입 순서.

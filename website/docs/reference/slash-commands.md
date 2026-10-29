@@ -30,7 +30,7 @@ title: 공용 커맨드
 | `/journal` | | 자기 성찰 저널 표시, `write` 로 작성 |
 | `/orchestrate` | | 멀티 에이전트 호출 (`<pattern> <task>`, `list`) |
 | `/focus` | | `<작업>` 으로 [Focus 모드](../concepts/mode/focus-mode.md) 시작, `stop` 으로 종료, 인자 없으면 현황. Web HUD 전용이고 디스패처보다 먼저 처리된다 |
-| `/cleanup` | | 옛 서브 에이전트 세션과 옛 STM 테이블 보기. `agents confirm`, `stm confirm` 으로 삭제 |
+| `/cleanup` | | 옛 서브 에이전트 세션, 옛 STM 테이블, 시험 흔적(시험 세션과 그 세션이 남긴 장기, 작업 기억) 보기. `agents confirm`, `stm confirm`, `tests confirm` 으로 삭제 |
 | `/exit` | | TUI 종료 |
 | `/<절차 이름>` | | 승인된 절차마다 스킬 명령이 하나씩 생긴다 |
 

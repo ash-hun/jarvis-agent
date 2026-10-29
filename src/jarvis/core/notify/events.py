@@ -4,6 +4,7 @@ from typing import Any
 from collections.abc import Awaitable, Callable
 
 from jarvis.agent_layer.types import AgentEvent, ProactiveMessageEvent
+from jarvis.agent_layer.session.protocol import TEST_SESSION_PREFIXES
 from jarvis.common.logger import get_logger
 from jarvis.memory.scope import MAIN_AGENT
 
@@ -18,6 +19,9 @@ logger = get_logger(__name__)
 
 def proactive_payload(event: AgentEvent, agent_id: str = MAIN_AGENT) -> dict[str, Any] | None:
     if not isinstance(event, ProactiveMessageEvent) or event.kind not in FORWARD_KINDS or not event.text.strip():
+        return None
+    if event.session_id.startswith(TEST_SESSION_PREFIXES):
+        # 시험 세션의 말은 사용자 폰과 Discord 로 보내지 않는다(라이브 점검이 실제 푸시를 보냈다)
         return None
     return {
         "type": "proactive_message",

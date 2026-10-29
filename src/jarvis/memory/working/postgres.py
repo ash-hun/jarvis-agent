@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 
 from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.scope import LOCAL_USER, MemoryScope
+from jarvis.memory.stores.postgres import like_prefix
 
 TABLE = "jarvis_working_memory"
 
@@ -93,6 +94,17 @@ class PostgresWorkingStore(WorkingStore):
             await conn.execute(
                 f"DELETE FROM {TABLE} WHERE user_id = $1 AND agent_id = $2 AND session_id = $3", *_key(scope)
             )
+
+    async def delete_sessions(self, prefixes: tuple[str, ...], dry_run: bool = False) -> int:
+        if not prefixes:
+            return 0
+        patterns = [like_prefix(p) for p in prefixes]
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
+            if dry_run:
+                return int(await conn.fetchval(f"SELECT count(*) FROM {TABLE} WHERE session_id LIKE ANY($1)", patterns))
+            status = await conn.execute(f"DELETE FROM {TABLE} WHERE session_id LIKE ANY($1)", patterns)
+        return int(status.split()[-1])
 
     async def legacy_stm_rows(self) -> int | None:
         """범위 도입 전 STM 메시지 테이블의 행 수. 테이블이 없으면 None."""

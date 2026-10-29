@@ -100,6 +100,8 @@ def test_proactive_payload_filters_fillers_and_other_events():
     assert proactive_payload(ProactiveMessageEvent(session_id="s", text="잠깐만요", kind="filler")) is None
     assert proactive_payload(ProactiveMessageEvent(session_id="s", text="   ", kind="proactive")) is None
     assert proactive_payload(MessageUpdateEvent(text_delta="x")) is None
+    # 시험 세션의 말은 밖으로 보내지 않는다
+    assert proactive_payload(ProactiveMessageEvent(session_id="test-goal-nl-1", text="공고", kind="proactive")) is None
 
 
 async def test_proactive_forwarder_swallows_channel_errors(capsys):

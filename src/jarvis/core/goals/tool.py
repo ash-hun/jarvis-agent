@@ -1,5 +1,6 @@
 """[core] 대화 중에 맡긴 목표를 기록하고 스케줄러에 차례를 거는 goal 도구(맡기기, 목록, 멈추기)."""
 
+import re
 import asyncio
 from datetime import datetime
 from collections.abc import Callable
@@ -31,6 +32,25 @@ TOOL_PARAMETERS: dict[str, Any] = {
     },
     "required": ["action"],
 }
+
+
+# 계속 챙길 일일 수 있는 말. 걸리면 goal 을 먼저 보라는 규칙을 그 턴에 붙인다(판단은 모델이 한다)
+STANDING_RE = re.compile(
+    r"앞으로|계속|매번|(?:만|나오면|생기면|올라오면|바뀌면|뜨면|있으면)\s*(?:알려|말해|챙겨)|챙겨\s*(?:줘|주세요|줄래)"
+)
+GOAL_RULE = (
+    "[목표 맡기기] 이 말이 지금 한 번 찾아 달라는 것이 아니라 앞으로 계속 챙겨 알려 달라는 것('~만 알려줘',"
+    " '~ 나오면 알려줘')이면, 도구로 바로 찾기 전에 goal(action=set, text=사용자가 말한 그대로)로 맡고 짧게 답한다."
+    " 속생각의 선택지가 바로 찾기여도 이 규칙이 먼저다. 지금 한 번 묻는 말이면 goal 을 쓰지 않는다."
+)
+
+
+def standing_rule(text: str, tool_names: set[str]) -> str | None:
+    """이 턴에 붙일 목표 규칙. goal 도구가 있고 계속 챙길 일일 수 있는 말일 때만. 순수 함수.
+
+    속생각이 '바로 찾아 전달' 을 선택지로 내면 KAREN 이 goal 대신 바로 찾았다(라이브 10번 중 0번 맡음).
+    """
+    return GOAL_RULE if GOAL_TOOL in tool_names and STANDING_RE.search(text) else None
 
 
 def goal_task(goal: Goal) -> ScheduledTask:

@@ -287,6 +287,11 @@ class MemoryService:
     async def clear_working(self, scope: MemoryScope) -> None:
         await self._working.clear(scope)
 
+    async def forget_sessions(self, prefixes: tuple[str, ...], dry_run: bool = False) -> tuple[int, int]:
+        """세션 id 접두어로 고른 세션의 장기 기억 항목과 작업 기억을 지운다. (항목 수, 작업 기억 수)."""
+        return (await self._store.delete_sessions(prefixes, dry_run),
+                await self._working.delete_sessions(prefixes, dry_run))
+
     # ── 장기 기억 ───────────────────────────────────────────────────────────
 
     async def remember(

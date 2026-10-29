@@ -1137,5 +1137,39 @@
       "0000061195-02-05-05",
       "2015122300020958-03-06-10"
     ]
+  },
+  "goal_nl_live": {
+    "mode": "live",
+    "model": "gpt-4o",
+    "repeat": 3,
+    "keep_goal": "12/12",
+    "once_not_goal": "12/12"
+  },
+  "goal_nl_clean": {
+    "mode": "clean",
+    "model": "gpt-4o",
+    "repeat": 3,
+    "keep_goal": "12/12",
+    "once_not_goal": "12/12"
+  },
+  "goal_nl_none": {
+    "mode": "none",
+    "model": "gpt-4o",
+    "repeat": 3,
+    "keep_goal": "12/12",
+    "once_not_goal": "12/12"
+  },
+  "goal_nl_live_ws": {
+    "date": "2026-10-29",
+    "model": "gpt-4o",
+    "via": "live WS, test- sessions, real memory and inner thought",
+    "with_rule": {
+      "keep_goal": "8/8",
+      "once_not_goal": "8/8"
+    },
+    "without_rule": {
+      "keep_goal": "0/5",
+      "phrase": "조건 및 가장 좋은 원리금 납부액을 추천하는 공고만 알려줘"
+    }
   }
 }

@@ -286,6 +286,17 @@ class PostgresItemStore(ItemStore):
         async with pool.acquire() as conn:
             await conn.execute(f"DELETE FROM {TABLE} WHERE id = $1", item_id)
 
+    async def delete_sessions(self, prefixes: tuple[str, ...], dry_run: bool = False) -> int:
+        if not prefixes:
+            return 0
+        patterns = [like_prefix(p) for p in prefixes]
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
+            if dry_run:
+                return int(await conn.fetchval(f"SELECT count(*) FROM {TABLE} WHERE session_id LIKE ANY($1)", patterns))
+            status = await conn.execute(f"DELETE FROM {TABLE} WHERE session_id LIKE ANY($1)", patterns)
+        return int(status.split()[-1])
+
     async def clear(self, scope: MemoryScope | None = None) -> None:
         pool = await self._get_pool()
         async with pool.acquire() as conn:
@@ -345,3 +356,8 @@ def _row_to_item(row: Any) -> MemoryItem:
         embedding=_parse_vec(row["embedding"]),
         embedding_model=row["embedding_model"],
     )
+
+
+def like_prefix(prefix: str) -> str:
+    """LIKE 접두어 패턴. 세션 id 의 '_' 와 '%' 는 글자 그대로 본다."""
+    return prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"

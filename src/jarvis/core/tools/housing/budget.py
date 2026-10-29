@@ -48,6 +48,10 @@ ACCESS_LABEL = {OK: "높음", UNKNOWN: "확인 필요", NO: "낮음"}
 # 추천 1순위를 고르는 묶음. 분양과 임대는 월 부담의 뜻이 달라 따로 고른다
 PICK_GROUPS = (("분양", True), ("임대", False))
 UNSURE_NOTE = "자격은 공고문 확인이 필요해요"
+# 1순위만 볼 때 현금을 모르면 이 항목 줄을 준다. 모델에게 짓게 하면 키 없이 말만 써 아무것도 알리지 못했다(실측)
+ASK_MONEY_ITEM = (
+    "항목: [ask-money] 추천 공고를 찾으려면 보유 현금과 월 여유자금이 필요해요. 알려 주시면 그때부터 챙길게요."
+)
 
 TOOL_DESCRIPTION = (
     "보유 현금과 월 여유자금(월 부담 상한)으로 지금 공고중인 LH 공고마다 대출 경우의 수를 계산해 추천한다."
@@ -498,6 +502,10 @@ class HousingBudgetTool(JarvisTool):
         try:
             profile, note = await self._profile(context, str(params.get("conditions") or ""), today)
             terms, regions, limit = parse_terms(params, profile)
+        except MissingCash as exc:
+            if params.get("picks_only"):
+                return _result(tool_call_id, f"{exc}\n{ASK_MONEY_ITEM}")
+            return _result(tool_call_id, f"조건을 읽을 수 없다: {exc}", True)
         except (TypeError, ValueError) as exc:
             return _result(tool_call_id, f"조건을 읽을 수 없다: {exc}", True)
         try:
@@ -634,6 +642,10 @@ def _amount(params: dict[str, Any], key: str) -> float | None:
     return float(parse_won(value))
 
 
+class MissingCash(ValueError):
+    """보유 현금이 인자에도 프로필에도 없다. 사용자에게 물어야 하는 경우라 다른 입력 오류와 가른다."""
+
+
 def parse_terms(params: dict[str, Any], profile: HousingProfile | None = None) -> tuple[Terms, list[str], int]:
     """인자를 검사한 계산 조건, 지역 목록(비우면 프로필의 관심 지역), 추천 수. 틀리면 ValueError."""
     saved = profile or HousingProfile()
@@ -642,7 +654,7 @@ def parse_terms(params: dict[str, Any], profile: HousingProfile | None = None) -
     cash = float(parse_won(raw_cash)) if raw_cash not in (None, "") else None
     if cash is None:
         if saved.cash is None:
-            raise ValueError("보유 현금(cash)을 모른다. 사용자에게 묻거나 housing_profile 에 저장된 값이 있어야 한다")
+            raise MissingCash("보유 현금(cash)을 모른다. 사용자에게 묻거나 housing_profile 에 저장된 값이 있어야 한다")
         cash = float(saved.cash)
     monthly_limit = _amount(params, "monthly_limit")
     if monthly_limit is None and saved.monthly_limit is not None:

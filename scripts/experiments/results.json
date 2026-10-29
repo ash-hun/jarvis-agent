@@ -931,11 +931,11 @@
         "경기"
       ]
     },
-    "date": "2026-10-28",
+    "date": "2026-10-29",
     "model": "gpt-4o",
     "truth_lines": [
-      "추천 1순위(분양) 항목: [0000061195-02-05-05] [정정공고]시흥거모 S-1블록 공공분양주택 입주자모집공고, 59.8000B 월 부담 최대 139만원, 마감 2026.11.17, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061195&ccrCnntSysDsCd=02&uppAisTpCd=05&aisTpCd=05&mi=1027 자격은 공고문 확인이 필요해요",
-      "추천 1순위(임대) 항목: [2015122300020958-03-06-10] 화성시 동탄지역 행복주택 입주자 모집 공고[입주자격완화/선계약후검증]('26.10.27.), 20B (원)계 16A형 대학생, 청년(소득無) 월 부담 최대 7만원, 마감 2026.11.12, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020958&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026"
+      "추천 1순위(분양) 항목: [0000061195-02-05-05] [정정공고]시흥거모 S-1블록 공공분양주택 입주자모집공고, 59.8000B 보금자리론 2억 5,687만원 + 현금 1억 5,000만원, 월 부담 최대 139만원, 마감 2026.11.17, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061195&ccrCnntSysDsCd=02&uppAisTpCd=05&aisTpCd=05&mi=1027 자격은 공고문 확인이 필요해요",
+      "추천 1순위(임대) 항목: [2015122300020958-03-06-10] 화성시 동탄지역 행복주택 입주자 모집 공고[입주자격완화/선계약후검증]('26.10.27.), 20B (원)계 16A형 대학생, 청년(소득無) 대출 없이 현금 1,632만원, 월 부담 최대 7만원, 마감 2026.11.12, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020958&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026"
     ],
     "truth_ids": [
       "0000061195",
@@ -946,29 +946,36 @@
       "2015122300020958-03-06-10"
     ],
     "links_exact": true,
-    "truth_tool_sec": 20.8,
+    "truth_tool_sec": 17.9,
     "runs": 3,
     "parsed": 3,
     "reports": 1,
     "recall": true,
     "only_top": true,
     "seed_first": false,
+    "answer_after": 0,
+    "asks": 0,
+    "notes": [
+      "조건에 맞는 공고 추천 완료",
+      "공고 추천 진행 완료",
+      "목표에 맞는 공고 추천 완료"
+    ],
     "repeated_seeded": null,
     "repeat_reports": 0,
     "took_sec": [
-      25.8,
-      25.8,
-      26.0
+      25.9,
+      24.9,
+      26.9
     ],
     "tokens_in": [
-      10458,
-      10458,
-      10468
+      10861,
+      10875,
+      10889
     ],
     "tokens_out": [
-      323,
-      343,
-      343
+      383,
+      379,
+      382
     ],
     "reported_keys": [
       "0000061195-02-05-05",
@@ -985,7 +992,7 @@
         "경기"
       ]
     },
-    "date": "2026-10-28",
+    "date": "2026-10-29",
     "model": "gpt-4o",
     "truth_lines": [],
     "truth_ids": [],
@@ -998,19 +1005,22 @@
     "recall": null,
     "only_top": true,
     "seed_first": false,
+    "answer_after": 0,
+    "asks": 0,
+    "notes": [],
     "repeated_seeded": null,
     "repeat_reports": 0,
     "took_sec": [
-      2.6,
-      2.1
+      2.5,
+      2.0
     ],
     "tokens_in": [
-      10098,
-      10098
+      10502,
+      10502
     ],
     "tokens_out": [
-      56,
-      98
+      53,
+      77
     ],
     "reported_keys": [
       "ask-money"
@@ -1060,6 +1070,70 @@
       346
     ],
     "reported_keys": [
+      "0000061195-02-05-05",
+      "2015122300020958-03-06-10"
+    ]
+  },
+  "goal_karen_answer_after": {
+    "with_money": true,
+    "assumed": {
+      "cash": 150000000,
+      "monthly_limit": 2000000,
+      "regions": [
+        "서울",
+        "경기"
+      ]
+    },
+    "date": "2026-10-29",
+    "model": "gpt-4o",
+    "truth_lines": [
+      "추천 1순위(분양) 항목: [0000061195-02-05-05] [정정공고]시흥거모 S-1블록 공공분양주택 입주자모집공고, 59.8000B 보금자리론 2억 5,687만원 + 현금 1억 5,000만원, 월 부담 최대 139만원, 마감 2026.11.17, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061195&ccrCnntSysDsCd=02&uppAisTpCd=05&aisTpCd=05&mi=1027 자격은 공고문 확인이 필요해요",
+      "추천 1순위(임대) 항목: [2015122300020958-03-06-10] 화성시 동탄지역 행복주택 입주자 모집 공고[입주자격완화/선계약후검증]('26.10.27.), 20B (원)계 16A형 대학생, 청년(소득無) 대출 없이 현금 1,632만원, 월 부담 최대 7만원, 마감 2026.11.12, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020958&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026"
+    ],
+    "truth_ids": [
+      "0000061195",
+      "2015122300020958"
+    ],
+    "truth_keys": [
+      "0000061195-02-05-05",
+      "2015122300020958-03-06-10"
+    ],
+    "links_exact": true,
+    "truth_tool_sec": 19.7,
+    "runs": 4,
+    "parsed": 3,
+    "reports": 1,
+    "recall": true,
+    "only_top": true,
+    "seed_first": false,
+    "answer_after": 2,
+    "asks": 1,
+    "notes": [
+      "조건에 맞는 공고를 추천했습니다.",
+      "조건 및 원리금 납부액에 따른 추천 공고 전달"
+    ],
+    "repeated_seeded": null,
+    "repeat_reports": 0,
+    "took_sec": [
+      2.7,
+      2.1,
+      22.8,
+      22.7
+    ],
+    "tokens_in": [
+      10502,
+      10502,
+      10861,
+      10877
+    ],
+    "tokens_out": [
+      53,
+      101,
+      377,
+      389
+    ],
+    "reported_keys": [
+      "ask-money",
       "0000061195-02-05-05",
       "2015122300020958-03-06-10"
     ]

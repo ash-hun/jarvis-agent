@@ -266,3 +266,13 @@ def test_picks_only_gives_copyable_keyed_items_with_full_links():
     assert "의왕청계2 A1블록" in rent and "월 부담 최대" in rent and "panId=" in rent and "&mi=" in rent
     assert "현금 " in rent and ("+ 현금" in rent or "대출 없이" in rent)
     assert "[분양(구입 대출)]" not in text
+
+
+def test_picks_only_without_cash_gives_the_ask_item_to_copy():
+    """목표 차례에서 현금을 모르면 물을 항목 줄을 도구가 준다. 모델이 지으면 키 없이 말만 써 알리지 못했다."""
+    board = Board(pdf_text=page("rent_terms_uiwang.txt"))
+    text, is_error = _run(board, {"picks_only": True})
+    assert not is_error and "항목: [ask-money] " in text
+    text, is_error = _run(board, {})
+    assert is_error and "ask-money" not in text
+

@@ -1,6 +1,8 @@
 """목표 규칙: 자연 키, 답 해석, 새로 알릴 항목 고르기, 진행 기록이 두 번 적어도 한 번만 남는지."""
 
-from jarvis.core.goals.types import MAX_NOTES, Goal, Step, advance, compose, goal_key, new_items, parse_step
+from jarvis.core.goals.types import (
+    MAX_NOTES, Goal, Step, advance, compose, goal_key, new_items, parse_step, with_tool_items, worth_noting,
+)
 
 REPLY = (
     "머리: 애쉬, 조건에 맞고 월 부담이 가장 적은 공고예요.\n"
@@ -85,3 +87,25 @@ def test_head_repeating_the_only_item_is_dropped():
     line = "추천 공고를 찾으려면 보유 현금과 월 여유자금이 필요해요."
     step = Step(head=f"애쉬, {line}", items=(("ask-money", line),), parsed=True)
     assert compose(step, list(step.items)) == line
+
+
+def test_only_turns_that_used_a_tool_and_did_more_than_ask_leave_a_note():
+    """도구 없이 답한 차례와 묻기만 한 차례의 기록은 남기지 않는다. 그 기록이 사용자가 답한 뒤에도 다시 묻게 했다."""
+    asked = Step(items=(("ask-money", "현금을 알려 주세요"),), note="현금 모름", parsed=True)
+    picked = Step(items=(("ask-money", "현금"), ("2026:55A", "서울 행복주택")), note="1순위 알림", parsed=True)
+    quiet = Step(note="새 공고 없음", parsed=True)
+    assert not worth_noting(asked, used_tool=True) and not worth_noting(picked, used_tool=False)
+    assert worth_noting(picked, used_tool=True) and worth_noting(quiet, used_tool=True)
+
+
+def test_items_the_tool_wrote_are_taken_from_its_result_not_from_the_model():
+    """도구가 지은 '항목: [키] 줄' 은 모델이 옮기지 않거나 키를 빼도 그대로 알린다. 같은 키면 도구 줄이 이긴다."""
+    result = "보유 현금을 모른다\n항목: [ask-money] 현금을 알려 주세요\n추천 1순위(임대) 항목: [n1] 행복주택, 링크"
+    model = Step(items=(("n1", "행복주택(줄인 링크)"), ("n2", "다른 것")), parsed=True)
+    merged = with_tool_items(model, [result])
+    assert merged.items == (("ask-money", "현금을 알려 주세요"), ("n1", "행복주택, 링크"), ("n2", "다른 것"))
+    assert with_tool_items(model, ["항목 없는 결과"]) is model
+    # 묻기만 할 때는 추천 머리를 붙이지 않는다
+    asking = Step(head="애쉬, 조건에 맞는 공고예요.", parsed=True)
+    assert compose(asking, [("ask-money", "현금을 알려 주세요")]) == "현금을 알려 주세요"
+

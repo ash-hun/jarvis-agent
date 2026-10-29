@@ -4,16 +4,21 @@ import time
 import asyncio
 from typing import Any
 from datetime import datetime
+from dataclasses import replace
 from collections.abc import Awaitable, Callable
 
-from jarvis.core.goals.types import Goal, Step, advance, compose, new_items, parse_step
+from jarvis.core.goals.types import (
+    ASK_PREFIX, Goal, Step, advance, compose, new_items, parse_step, with_tool_items, worth_noting,
+)
 from jarvis.core.tools.registry import JarvisTool, ToolContext, ToolRegistry
-from jarvis.model_layer.types import ToolResultMessage
+from jarvis.model_layer.types import TextContent, ToolResultMessage
 from jarvis.core.goals.store import GoalStore
 from jarvis.common.logger import get_logger
 
 # 프롬프트에 보이는 최근 진행 기록 수
 SHOWN_NOTES = 5
+# 도구 없이 답한 차례를 한 번 더 돌릴 때 붙이는 말
+RECHECK = "\n[다시] 지난 차례 기록 없이, 도구로 지금 상태를 확인한 뒤 같은 꼴로 답합니다."
 
 # (프롬프트, 고른 도구 레지스트리) -> 에이전트의 마지막 답. 실패면 None. 스케줄러가 세션을 만들어 돌린다
 RunAgent = Callable[[str, Callable[[ToolRegistry], ToolRegistry]], Awaitable[str | None]]
@@ -25,7 +30,8 @@ PROMPT = """\
 {notes}
 [경계]
 - 혼자 해도 되는 도구: {auto}
-- 먼저 물어야 하는 일: {ask}. 이번 차례에는 하지 않습니다. 꼭 필요하면 허락을 구하는 말을 항목으로 씁니다
+- 먼저 물어야 하는 일: {ask}. 이번 차례에는 하지 않습니다. 꼭 필요하면 허락을 구하는 말을
+  항목으로 씁니다(키는 {ask_prefix} 로 시작)
 할 일:
 - 목표를 위해 지금 할 다음 한 단계를 정해 도구로 합니다. 도구 결과로 확인한 사실만 씁니다.
 - 목표가 알리라고 한 것을 지금 기준으로 모두 항목으로 씁니다. 전에 알렸는지는 따지지 않습니다.
@@ -41,14 +47,15 @@ PROMPT = """\
 logger = get_logger(__name__)
 
 
-def build_prompt(goal: Goal, auto: list[str], ask: list[str], now: datetime) -> str:
+def build_prompt(goal: Goal, auto: list[str], ask: list[str], now: datetime, notes: bool = True) -> str:
     """한 차례 프롬프트. 같은 목표, 같은 도구, 같은 시각이면 같은 글이다. 순수 함수."""
     return PROMPT.format(
         text=goal.text,
         now=now.strftime("%Y-%m-%d %H:%M"),
-        notes="\n".join(f"- {n}" for n in goal.notes[-SHOWN_NOTES:]) or "- 없음(첫 차례)",
+        notes="\n".join(f"- {n}" for n in goal.notes[-SHOWN_NOTES:] if notes) or "- 없음",
         auto=", ".join(auto) or "없음",
         ask=", ".join(ask) or "없음",
+        ask_prefix=ASK_PREFIX,
     )
 
 
@@ -56,9 +63,10 @@ class _StepTool(JarvisTool):
     """사람이 없는 차례의 도구. 목표 차례면 사용자만 정할 인자를 버리고, 결과로 답을 끝내지(final) 않게 한다.
     목표 차례는 결과를 받아 정해진 꼴로 답해야 한다."""
 
-    def __init__(self, tool: JarvisTool, goal_turn: bool) -> None:
+    def __init__(self, tool: JarvisTool, goal_turn: bool, calls: list[str] | None = None) -> None:
         self._tool = tool
         self._goal_turn = goal_turn
+        self._calls = calls
         self.name = tool.name
         self.description = tool.description
         self.parameters = tool.parameters
@@ -80,16 +88,21 @@ class _StepTool(JarvisTool):
         registry = ToolRegistry()
         registry.register(self._tool)
         result = await registry.execute(tool_call_id, self.name, params, signal, context)
+        if self._calls is not None:
+            self._calls.append("\n".join(c.text for c in result.content if isinstance(c, TextContent)))
         return result.model_copy(update={"final": False}) if self._goal_turn else result
 
 
-def step_registry(base: ToolRegistry, exclude: tuple[str, ...], goal_turn: bool = True) -> ToolRegistry:
+def step_registry(
+    base: ToolRegistry, exclude: tuple[str, ...], goal_turn: bool = True, calls: list[str] | None = None
+) -> ToolRegistry:
     """사람이 없는 차례에 쓸 도구: 먼저 물어야 하는 도구를 뺀다.
-    목표 차례면 사용자만 정할 인자를 버리고 final 도 끈다. 스케줄 작업(goal_turn=False)은 둘 다 그대로다."""
+    목표 차례면 사용자만 정할 인자를 버리고 final 도 끈다. 스케줄 작업(goal_turn=False)은 둘 다 그대로다.
+    calls 를 주면 불린 도구의 결과 글을 거기 적는다."""
     registry = ToolRegistry()
     for tool in base.list_all():
         if tool.name not in exclude:
-            registry.register(_StepTool(tool, goal_turn))
+            registry.register(_StepTool(tool, goal_turn, calls))
     return registry
 
 
@@ -114,8 +127,19 @@ class GoalRunner:
         now = self._now()
         started = time.perf_counter()
         exclude = tuple(ask)
-        reply = await run(build_prompt(goal, auto, ask, now), lambda base: step_registry(base, exclude))
-        step = parse_step(reply) if reply is not None else Step()
+        calls: list[str] = []
+        prompt = build_prompt(goal, auto, ask, now)
+        reply = await run(prompt, lambda base: step_registry(base, exclude, calls=calls))
+        rechecked = reply is not None and bool(auto) and not calls
+        if rechecked:
+            # 도구 없이 기록만 보고 답하면 그사이 바뀐 조건을 못 본다. "현금을 몰라" 기록이 쌓인 뒤 현금을 저장해도
+            # 5번 중 5번 다시 현금을 물었다(실측)
+            # 다시 돌릴 때는 기록을 빼고 보인다. 기록을 남긴 채로는 도구를 불러 놓고도 기록대로 다시 물었다(실측)
+            retry = build_prompt(goal, auto, ask, now, notes=False) + RECHECK
+            reply = await run(retry, lambda base: step_registry(base, exclude, calls=calls))
+        step = with_tool_items(parse_step(reply) if reply is not None else Step(), calls)
+        if not worth_noting(step, bool(calls)):
+            step = replace(step, note="")
         # 알렸는지는 모델이 아니라 키로 가린다. 모델은 이미 알린 것을 거르다 새 것까지 빼거나 엉뚱한 것을 물었다(실측)
         fresh = new_items(goal, step)
         report = compose(step, fresh)
@@ -123,6 +147,7 @@ class GoalRunner:
         # 평가 지표: 꼴을 지켰는지, 항목 수, 새로 알린 수, 키 없이 와 버린 수, 걸린 시간
         logger.info(
             f"[Goal] {goal.agent}/{goal.id} run={goal.runs + 1} parsed={step.parsed} items={len(step.items)}"
-            f" new={len(fresh)} keyless={step.keyless} done={step.done} took={time.perf_counter() - started:.1f}s"
+            f" new={len(fresh)} keyless={step.keyless} done={step.done} rechecked={rechecked}"
+            f" took={time.perf_counter() - started:.1f}s"
         )
         return report

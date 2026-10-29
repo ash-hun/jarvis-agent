@@ -56,7 +56,7 @@ async def ground_truth(tools: ToolRegistry, scope: MemoryScope) -> tuple[list[st
     return lines, ids, keys, took
 
 
-async def run(runs: int, with_money: bool, seed_first: bool = False) -> dict[str, object]:
+async def run(runs: int, with_money: bool, seed_first: bool = False, answer_after: int = 0) -> dict[str, object]:
     settings = get_settings()
     spec = load_agent_specs(str(ROOT / "team"))["karen"]
     key = settings.llm.api_key.get_secret_value() if settings.llm.api_key else None
@@ -67,14 +67,16 @@ async def run(runs: int, with_money: bool, seed_first: bool = False) -> dict[str
     memory = MemoryService(InMemoryItemStore())
     profiles = ProfileStore(memory)
     scope = MemoryScope(user_id="local", agent_id="karen")
-    profile = HousingProfile(**ASSUMED) if with_money else HousingProfile(regions=ASSUMED["regions"])
+    # answer_after 면 처음 그 차례 수만큼은 현금을 모르고, 그 뒤 사용자가 답해 저장한 것으로 둔다
+    known = with_money and not answer_after
+    profile = HousingProfile(**ASSUMED) if known else HousingProfile(regions=ASSUMED["regions"])
     await profiles.save(profile, scope, date.today())
     tools = ToolRegistry()
     for tool in housing_tools(profiles=profiles):
         if tool.name in spec.tools:
             tools.register(tool)
     truth: tuple[list[str], list[str], list[str], float] = ([], [], [], 0.0)
-    if with_money:
+    if known:
         truth = await ground_truth(tools, scope)
     truth_lines, truth_ids, truth_keys, truth_sec = truth
 
@@ -118,6 +120,9 @@ async def run(runs: int, with_money: bool, seed_first: bool = False) -> dict[str
         task: ScheduledTask = goal_task(goal)
         rows = []
         for i in range(runs):
+            if answer_after and i == answer_after:
+                await profiles.save(HousingProfile(**ASSUMED), scope, date.today())
+                truth_lines, truth_ids, truth_keys, truth_sec = await ground_truth(tools, scope)
             before = len(spoken)
             started = time.perf_counter()
             await svc._run_and_deliver(task)
@@ -149,7 +154,8 @@ async def run(runs: int, with_money: bool, seed_first: bool = False) -> dict[str
             })
             print(json.dumps(rows[-1], ensure_ascii=False))
         saved_goal = store.get(goal.id)
-    first_reported = [r for r in rows if r["reported"]]
+    # 현금을 저장한 뒤의 보고만 추천으로 센다. 그 앞은 묻기다
+    first_reported = [r for r in rows[answer_after:] if r["reported"]]
     return {
         "with_money": with_money,
         "assumed": {k: list(v) if isinstance(v, tuple) else v for k, v in ASSUMED.items()},
@@ -172,6 +178,9 @@ async def run(runs: int, with_money: bool, seed_first: bool = False) -> dict[str
         if first_reported and truth_ids else None,
         "only_top": all(bool(r["only_top"]) for r in rows),
         "seed_first": seed_first,
+        "answer_after": answer_after,
+        "asks": sum(bool(r["reported"]) for r in rows[:answer_after]),
+        "notes": saved_goal.notes if saved_goal else [],
         # 이미 알렸다고 둔 공고를 다시 알렸는가
         "repeated_seeded": any(truth_ids[0] in r["mentioned_ids"] for r in rows) if seed_first and truth_ids else None,
         "repeat_reports": max(0, len(first_reported) - 1),
@@ -188,10 +197,12 @@ def main() -> None:
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--no-money", action="store_true", help="현금을 모르는 경우(묻기만 해야 한다)")
     parser.add_argument("--seed-first", action="store_true", help="1순위 하나는 이미 알렸다고 두고 시작")
+    parser.add_argument("--answer-after", type=int, default=0, help="이 차례 수만큼 현금을 모르다가 그 뒤 저장")
     args = parser.parse_args()
-    result = asyncio.run(run(args.runs, not args.no_money, args.seed_first))
+    result = asyncio.run(run(args.runs, not args.no_money, args.seed_first, args.answer_after))
     saved = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else {}
     name = RESULT_KEY + ("_no_money" if args.no_money else "") + ("_seed_first" if args.seed_first else "")
+    name += "_answer_after" if args.answer_after else ""
     saved[name] = {k: v for k, v in result.items() if k != "rows"}
     OUT.write_text(json.dumps(saved, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 

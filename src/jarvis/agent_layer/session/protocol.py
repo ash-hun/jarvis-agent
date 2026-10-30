@@ -23,6 +23,10 @@ TEST_SESSION_PREFIXES = (
     "tts-check", "speak-en-check", "unclear-check", "schedule-check", "regions-setup", "refactor-smoke",
     "approval-retry-probe", "focus-ui-probe",
 )
+# 에이전트끼리 위임한 대화의 세션 id 머리(peer-<부른 쪽>-<받는 쪽>)
+PEER_SESSION_PREFIX = "peer"
+# 사용자와 나눈 대화가 아닌 세션: 스케줄 실행, 에이전트끼리 위임, 서브 에이전트, 집중 작업, 시험
+NOT_CONVERSATION = ("sched-", f"{PEER_SESSION_PREFIX}-", "agent_", "focus_", *TEST_SESSION_PREFIXES)
 
 
 class SessionEntry(BaseModel):

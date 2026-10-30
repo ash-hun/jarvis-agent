@@ -19,6 +19,7 @@ from jarvis.core.tools.housing.deadline import LEAD_DAYS, track_deadlines
 from jarvis.core.tools.housing.markup import deadline_label, parse_date
 from jarvis.core.tools.housing.notice_pdf import rent_terms, sale_terms
 from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.agent_layer.session.protocol import NOT_CONVERSATION
 from jarvis.core.tools.housing.lh_notice import resolve_region
 from jarvis.core.tools.registry import JarvisTool, ToolContext
 from jarvis.core.tools.housing.scenario import purchase_cases
@@ -560,7 +561,11 @@ class HousingBudgetTool(JarvisTool):
         """추천 1순위의 마감 전 약속을 남기고, 새로 남겼으면 다시 알리겠다는 한 줄을 돌려준다."""
         scope = getattr(context, "scope", None)
         session_id = getattr(context, "session_id", None)
+        # 약속은 그 세션의 대화에서 꺼낸다. 끝난 스케줄, 시험 세션에 남기면 알리지도 못하고 AGENDA 에만 쌓인다.
+        # 목표 차례가 매시 새 세션에 약속과 안내 줄을 남겨 같은 공고에 44개가 쌓였고, 결과 글도 매번 달랐다(실측)
         if self._loops is None or scope is None or not session_id or not picks:
+            return ""
+        if session_id.startswith(NOT_CONVERSATION):
             return ""
         added = await track_deadlines(self._loops, picks, session_id, scope.agent_id, today)
         if not added:

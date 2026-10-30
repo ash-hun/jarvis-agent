@@ -5,8 +5,7 @@ import uuid
 from typing import TYPE_CHECKING
 from collections.abc import Callable
 
-from jarvis.agent_layer.session.protocol import TEST_SESSION_PREFIXES
-from jarvis.app.agent_conversation import PEER_SESSION_PREFIX
+from jarvis.agent_layer.session.protocol import NOT_CONVERSATION
 from jarvis.ui.web.web_auth import auth_enabled
 from jarvis.common.logger import get_logger
 
@@ -23,8 +22,6 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-# 사용자와 나눈 대화가 아닌 세션: 스케줄 실행, 에이전트끼리 위임, 서브 에이전트, 집중 작업, 시험
-NOT_CONVERSATION = ("sched-", f"{PEER_SESSION_PREFIX}-", "agent_", "focus_", *TEST_SESSION_PREFIXES)
 
 # 세션을 처음 열 때 부르는 훅(세션 id, 에이전트 id, 세션). 활동 표시가 이벤트를 구독한다
 SessionOpened = Callable[[str, str, "AgentSession"], None]

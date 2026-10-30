@@ -55,3 +55,16 @@ def test_budget_leaves_a_deadline_loop_for_the_top_pick_and_says_so():
     # 같은 추천을 다시 받아도 약속은 하나이고, 다시 알리겠다는 말도 되풀이하지 않는다
     again = asyncio.run(tool.execute("t2", params, context=context)).content[0].text
     assert len(asyncio.run(store.all())) == 1 and "다시 알려 드릴게요" not in again
+
+
+def test_scheduled_and_test_sessions_leave_no_deadline_loop():
+    """목표 차례(sched-)와 시험 세션은 끝나면 아무도 약속을 꺼내지 않는다. 남기지 않고, 결과 글도 매번 같다."""
+    store = InMemoryOpenLoopStore()
+    tool = _tool(Board(pdf_text=page("rent_terms_uiwang.txt")))
+    tool._loops = store
+    params = {"budget": 3e8, "cash": 1.2e8, "monthly_limit": 2e6}
+    texts = []
+    for sid in ("sched-goal-abc-1", "sched-goal-abc-2", "test-goal-1"):
+        context = ToolContext(scope=MemoryScope(user_id="u", agent_id="karen", session_id=sid), session_id=sid)
+        texts.append(asyncio.run(tool.execute("t", params, context=context)).content[0].text)
+    assert asyncio.run(store.all()) == [] and len(set(texts)) == 1 and "다시 알려 드릴게요" not in texts[0]

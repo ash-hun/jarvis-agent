@@ -108,7 +108,8 @@ async def ingest_raw(memory: MemoryService, question: BenchmarkQuestion) -> None
             )
 
 
-Summarize = Callable[[str, list[Message], MemoryScope], Awaitable[str | None]]
+# 세션 종료 요약. 질문에 쓰는 메모리를 받아야 요약이 회상 대상에 남는다
+Summarize = Callable[[MemoryService, str, list[Message], MemoryScope], Awaitable[str | None]]
 
 
 async def ingest_full(memory: MemoryService, question: BenchmarkQuestion, save_session: Summarize) -> None:
@@ -123,7 +124,7 @@ async def ingest_full(memory: MemoryService, question: BenchmarkQuestion, save_s
                 await memory.observe(history, context)
             else:
                 history.append(AssistantMessage(content=[TextContent(text=turn.text)]))
-        await save_session(session.session_id, history, scope)
+        await save_session(memory, session.session_id, history, scope)
         await memory.consolidate(scope)
 
 

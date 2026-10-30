@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 from collections.abc import Awaitable, Callable
 
 from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage
+from jarvis.agent_layer.session.protocol import PEER_SESSION_PREFIX
 from jarvis.core.tools.registry import JarvisTool, ToolContext
 from jarvis.agent_layer.openloop.types import same_loop
 from jarvis.memory.scope import MAIN_AGENT, MemoryScope
@@ -17,7 +18,6 @@ if TYPE_CHECKING:
     from jarvis.core.session import AgentSession
 
 ASK_AGENT_TOOL = "ask_agent"
-PEER_SESSION_PREFIX = "peer"
 # A 가 B 에게, B 가 다시 A 에게 묻는 데까지. 더 깊으면 서로 미루는 고리가 되기 쉬워 끊는다
 MAX_PEER_HOPS = 3
 # 받는 쪽이 도구를 여러 번 쓰는 정보 수집을 기다린다

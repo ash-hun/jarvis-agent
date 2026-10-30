@@ -81,7 +81,10 @@ HUD 에서 KAREN 칩을 눌러 KAREN 세션에서 묻거나, JARVIS 에게 "카�
 
 ```mermaid
 flowchart TD
-  A[지역마다 공고중 목록 전부<br/>임대, 분양] --> B[마감 지난 것 빼고 마감순<br/>상세는 100건까지, 4건씩 동시에]
+  A[지역마다 LH 공고중 목록 전부<br/>임대, 분양] --> B[마감 지난 것 빼고 마감순<br/>상세는 100건까지, 4건씩 동시에]
+  A -->|지역이 서울이나 전국| SH[SH 모집 공고<br/>sh_terms.collect]
+  SH --> SHP[공고문 PDF 에서 보증금, 월임대료,<br/>분양가, 토지임대료]
+  SHP --> P
   B --> C{상세 주택형 표에<br/>숫자 금액?}
   C -->|예| P[주택형별 금액]
   C -->|아니오| D{공고문 PDF<br/>분양가 표나 임대조건 표?}
@@ -92,7 +95,8 @@ flowchart TD
   P --> G[주거 프로필로 상품 자격 가르기<br/>loan_rules.yaml]
   G --> F["경우 펼치기<br/>상품 × 규제지역 여부 × 보증금 전환 × 현금 투입"]
   F --> H["한도 = 최소(상품 한도, LTV, 규제 한도, DSR/DTI)<br/>금리 하단~상단으로 월 이자와 원금"]
-  H --> R[분양, 임대 따로<br/>맞는 공고는 월 부담 작은 순<br/>모자라면 가장 가까운 공고]
+  H --> R[분양, 임대 따로<br/>신청 가능성 높은 공고 먼저, 그 안에서<br/>맞는 공고는 월 부담 작은 순, 안 맞으면 모자람 작은 순]
+  R --> T[묶음마다 추천 1순위 하나<br/>맞고 신청 가능성이 낮지 않은 공고 중<br/>가능성, 월 부담, 마감 순]
 ```
 
 - **금액은 세 출처를 차례로 찾는다**:
@@ -297,6 +301,13 @@ flowchart LR
   K --> BUD[housing_budget<br/>housing/budget.py]
   K --> PROF[housing_profile<br/>housing/profile_tool.py]
   BUD --> LH
+  BUD -->|서울, 전국| SHT[sh_terms.py<br/>SH 공고와 공고문 PDF 금액]
+  SHT --> FETCH
+  BUD --> DL[deadline.py<br/>1순위 마감 전 약속]
+  DL --> LOOPS[(열린 약속<br/>open loop)]
+  K --> WATCH[housing_watch<br/>housing/watch.py]
+  WATCH --> LH
+  WATCH --> SH
   BUD --> PDF[notice_pdf.py<br/>분양가, 임대조건 표]
   BUD --> SCN["scenario.py, rules.py<br/>경우 펼치기, 자격, 한도"]
   SCN --> RULES[("loan_rules.yaml")]

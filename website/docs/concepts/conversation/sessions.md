@@ -9,7 +9,7 @@ import FigureSessions from '@site/src/figures/sessions.svg';
 
 <figure className="paper-fig">
   <FigureSessions />
-  <figcaption><b>Figure 1.</b> (a) 세션은 에이전트 하나의 대화 한 줄기다. 분기는 부모의 메시지(U 사용자, A 어시스턴트, T 도구)를 복사한 새 세션을 만들고, 종료 때 세션 요약이 일화 기억이 된다. (b) 사용자 메시지는 턴 시작 때, 나머지는 루프가 끝난 뒤 한꺼번에 저장된다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) 세션은 에이전트 하나의 대화 한 줄기다. 분기는 부모의 메시지(U 사용자, A 어시스턴트, T 도구)를 복사한 새 세션을 만든다. Web 의 ⑂ 는 jsonl 저장소에서만 복사하고, 다른 저장소면 parent_id 없는 빈 새 세션을 연다. 종료 때 세션 요약이 일화 기억이 된다. (b) 사용자 메시지는 턴 시작 때, 나머지는 루프가 끝난 뒤 한꺼번에 저장된다.</figcaption>
 </figure>
 
 세션은 JARVIS 가 대화 한 줄기를 묶어 저장하는 단위다. 세션은 만들 때 에이전트가 정해지고, 그 뒤로 바뀌지 않는다.
@@ -33,7 +33,7 @@ import FigureSessions from '@site/src/figures/sessions.svg';
 
 ## 분기
 
-분기는 `/branch [session_id]`, TUI 의 `Ctrl+F`, Web 의 ⑂ 로 만든다. 분기는 부모의 메시지를 전부 복사한 새 세션을 만들고 `parent_id` 를 남긴다. 포인터가 아니라 복사이므로 이후 변경은 서로 전파되지 않는다.
+분기는 `/branch [session_id]`, TUI 의 `Ctrl+F`, Web 의 ⑂ 로 만든다. 분기는 부모의 메시지를 전부 복사한 새 세션을 만들고 `parent_id` 를 남긴다. 포인터가 아니라 복사이므로 이후 변경은 서로 전파되지 않는다. `/branch` 는 jsonl 과 Postgres 모두에서 복사한다. Web 의 ⑂(`POST /api/sessions/{id}/branch`)는 jsonl 에서만 복사하고, 다른 저장소면 같은 에이전트의 빈 새 세션을 열고 `parent_id` 를 null 로 돌려준다.
 
 Web 의 SESSIONS 카드는 지금 프로세스가 띄운 세션만 보여준다. 다른 세션은 `/sessions` 나 `jarvis --list-sessions` 로 본다.
 

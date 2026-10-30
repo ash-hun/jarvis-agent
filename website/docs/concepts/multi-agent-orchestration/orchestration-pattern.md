@@ -9,7 +9,7 @@ import FigureOrchestrationPattern from '@site/src/figures/orchestration-pattern.
 
 <figure className="paper-fig">
   <FigureOrchestrationPattern />
-  <figcaption><b>Figure 1.</b> 서브 에이전트에게 일을 나누는 네 패턴. (a) 감독자 LLM 이 도구 호출로 맡길 에이전트를 고른다. (b) 레벨 순서대로 돌고 같은 레벨은 병렬이다. (c) capabilities 점수가 가장 높은 하나가 맡는다. (d) 전원이 공유 보드를 보고 병렬로 돌며 결과를 모은다.</figcaption>
+  <figcaption><b>Figure 1.</b> 서브 에이전트에게 일을 나누는 네 패턴. (a) 감독자 LLM 이 도구 호출로 맡길 에이전트를 고른다. (b) 레벨 순서대로 돌고 같은 레벨은 병렬이다. (c) 작업 낱말과 이름, capabilities 가 겹친 수가 점수이고, 가장 높은 하나가 맡는다. 0 이면 입찰하지 않고, capabilities 가 없는 에이전트는 늘 입찰한다. (d) 에이전트들은 공유 보드의 스냅샷을 맥락으로 받아 병렬로 돌고, 오케스트레이터가 결과를 보드에 쓴다. 패턴을 쉼표로 이으면(`hierarchical,blackboard`) 앞 단계 결과가 다음 단계의 입력이 된다.</figcaption>
 </figure>
 
 Orchestration Pattern 은 JARVIS 가 한 작업을 여러 서브 에이전트에게 나눠 맡기고 결과를 모으는 기능이다. 서브 에이전트는 부모 턴 안에서 잠깐 도는 도구이고, 사용자와 직접 대화하는 에이전트가 아니다. 자기 세션, 약속, 승인 규칙, 브랜드를 가진 에이전트가 필요하면 [Multi agent Orchestration](./index.md)을 쓴다.
@@ -38,11 +38,12 @@ flowchart TB
     L0[level 0 전원 병렬] --> L1[level 1, 앞 결과 전달] --> L2[level 2]
   end
   subgraph market
-    TK[task] -->|capabilities 점수 입찰| W[가장 높은 하나]
+    TK[task] -->|겹친 낱말 수로 입찰, 0 이면 빠짐| W[가장 높은 하나]
   end
   subgraph blackboard
-    BB[(공유 보드)] --> B1[agent a] & B2[agent b] & B3[agent c]
-    B1 & B2 & B3 --> BB
+    BB[(공유 보드)] -->|스냅샷| B1[agent a] & B2[agent b] & B3[agent c]
+    B1 & B2 & B3 -->|결과| ORC[오케스트레이터]
+    ORC -->|기록| BB
   end
 ```
 
@@ -92,10 +93,13 @@ flowchart TB
 ```mermaid
 flowchart LR
   CMD["/orchestrate 명령"] --> SVC[OrchestrationService]
-  TOOL[OrchestrateTool, AgentNodeTool] --> SVC
+  TOOL[OrchestrateTool] --> SVC
+  NT[AgentNodeTool<br/>agent_name 도구] --> FAC
   DEF[(에이전트 정의 파일)] --> LOAD[loader.py]
   LOAD --> FAC[AgentFactory]
   SVC --> TOP[패턴<br/>supervisor, hierarchical, market, blackboard]
+  SVC -->|쉼표로 이은 패턴| PIPE[OrchestratorPipeline<br/>앞 결과를 다음 입력으로]
+  PIPE --> TOP
   TOP --> NODE[AgentNode<br/>서브 에이전트 세션]
   FAC --> NODE
   NODE --> BB[SharedBlackboard]

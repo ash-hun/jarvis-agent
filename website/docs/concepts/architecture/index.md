@@ -9,7 +9,7 @@ import FigureArchitecture from '@site/src/figures/architecture.svg';
 
 <figure className="paper-fig">
   <FigureArchitecture />
-  <figcaption><b>Figure 1.</b> 계층 구조. 화살표는 의존 방향이다. 아래층은 위층을 모르고, TUI 와 Web 은 app 이 조립한 같은 결과를 받아 화면만 다르게 그린다. memory 는 core 와 agent_layer 가 쓰고, common 의 로거는 어느 층이든 쓴다.</figcaption>
+  <figcaption><b>Figure 1.</b> 계층 구조. 화살표는 의존 방향이다. 아래층은 위층을 모르고, TUI 와 Web 은 app 이 조립한 같은 결과를 받아 화면만 다르게 그린다. memory 는 core 와 agent_layer 가 쓰고, voice 는 ui 와 app 이 쓰며, common 의 로거는 어느 층이든 쓴다.</figcaption>
 </figure>
 
 JARVIS 는 LLM 추상화, 기억, 에이전트 런타임, 오케스트레이션, 조립, 화면을 층으로 쌓고, 아래층이 위층을 모르게 만든다. TUI 와 Web 두 화면은 같은 조립 결과를 받아 쓰고 화면만 다르다.
@@ -38,25 +38,30 @@ flowchart TB
     PROC["procedures/  절차 학습"]
     MULTI["multi_agent/  토폴로지, 오케스트레이터"]
     SCHED["scheduler/  external/  notify/"]
+    GOALS["goals/  focus/  skills/  plugins/"]
   end
   subgraph AGENT["agent_layer/  에이전트 런타임"]
     HARNESS["harness.py  loop.py  이벤트"]
     THOUGHT["thought/  InnerThoughtEngine, ThoughtFrame"]
-    MEMCHAIN["memory/  MemoryMiddlewareChain"]
     OPENLOOP["openloop/  usermodel/  journal/  session/"]
   end
   subgraph MODEL["model_layer/  LLM 추상화"]
     PROVIDERS["providers/  anthropic, openai, gemini, ollama, vllm"]
-    STREAM["stream.py  types.py  embeddings.py"]
+    STREAM["stream.py  types.py  embeddings.py  decision.py"]
   end
-  MEMORY["memory/  작업 기억, 장기 기억, 회상, 통합"]
+  MEMORY["memory/  MemoryService, 작업 기억, 장기 기억, 회상, 통합"]
+  VOICE["voice/  STT, TTS, 웨이크 워드"]
   UI --> APP --> CORE --> AGENT --> MODEL
   AGENT --> MEMORY
   CORE --> MEMORY
+  UI --> VOICE
+  APP --> VOICE
+  VOICE --> MODEL
+  VOICE --> MEMORY
 ```
 
 - **model_layer**: 프로바이더마다 `stream()` 하나를 둔다. 텍스트 델타, 도구 호출 델타, 정지 이벤트를 같은 모양으로 낸다. 임베딩도 이 층에 있다
-- **agent_layer**: 에이전트 루프(`run_agent_loop`), 세션 저장소, 내적 사고 엔진, 메모리 미들웨어를 가진다. 벤더를 모른다
+- **agent_layer**: 에이전트 루프(`run_agent_loop`), 세션 저장소, 내적 사고 엔진, 열린 약속(AGENDA 판단)을 가진다. 메모리는 별도 패키지 `memory/` 의 `MemoryService` 이고 하네스가 턴 앞뒤에 부른다. 벤더를 모른다
 - **core**: `AgentSession` 이 한 턴을 지휘한다. 보안, 도구, 승인, proactive 정책, 슬래시, 절차 학습, 멀티 에이전트, 스케줄러가 이 층에 있다
 - **app**: 조립 층. `InfraBuilder` 가 설정 하나로 도구, 메모리, 저장소, 보안, 스케줄러, proactive, 슬래시 명령을 만들고, `AgentProfile`(에이전트 한 명분 설정과 피드백 학습기)과 `SessionBuilder` 가 세션을 만든다
 - **ui**: TUI 와 Web 이 있다. 둘 다 `app` 의 조립 결과(`AppAssembly`)를 받아 화면만 담당한다
@@ -76,8 +81,8 @@ sequenceDiagram
 
   U->>S: 입력 (슬래시 명령은 화면 쪽 디스패처가 먼저 처리)
   S->>S: 검증, 인증, 정책, 스킬 펼치기
-  S->>T: think(요청). 시점은 before / race / after
-  T-->>S: ThoughtFrame (💭 이벤트, open loop 저장)
+  S->>T: think(요청). 시점은 before / race / after, router 가 있으면 router 가 정한다
+  T-->>S: ThoughtFrame (💭 이벤트). 약속은 AGENDA 판단이 따로 남긴다
   S->>H: run(입력, 사고 블록)
   H->>H: 창, 요약, 회상 주입
   loop 최대 20턴

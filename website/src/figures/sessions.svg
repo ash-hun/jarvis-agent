@@ -40,7 +40,8 @@
 <text class="pf-chip" x="312.0" y="146.0" text-anchor="middle">A</text>
 <path class="pf-edge pf-edge--accent" d="M244.0,74.0 L244.0,100.0 L244.0,100.0 L244.0,130.0" marker-end="url(#sessions-h-accent)"/>
 <text class="pf-elabel pf-elabel--accent" x="254.0" y="104.0" text-anchor="start">/branch, ⑂</text>
-<text class="pf-s" x="400" y="146" text-anchor="start">메시지를 통째로 복사한다. 이후 변경은 서로 전파되지 않는다</text>
+<text class="pf-s" x="400" y="138" text-anchor="start">메시지를 복사한다. 이후 변경은 서로 전파되지 않는다</text>
+<text class="pf-s" x="400" y="156" text-anchor="start">Web ⑂ 는 jsonl 에서만 복사한다. 다른 저장소면 빈 새 세션</text>
 <rect class="pf-panel" x="16" y="200" width="728" height="118" rx="8"/>
 <text class="pf-plabel" x="28" y="220">(b) 한 턴이 저장되는 때</text>
 <rect class="pf-box pf-box--io" x="25.0" y="238" width="150" height="50" rx="6"/>

@@ -1,12 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 262" class="pf-svg" role="img" aria-label="MCP 도구로 외부 이벤트를 성찰에 넣는 흐름">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" class="pf-svg" role="img" aria-label="MCP 도구로 외부 이벤트를 성찰에 넣는 흐름">
 <defs><marker id="mcp-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="mcp-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="mcp-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="mcp-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
-<rect class="pf-panel" x="16" y="12" width="728" height="238" rx="8"/>
+<rect class="pf-panel" x="16" y="12" width="728" height="276" rx="8"/>
 <path class="pf-store" d="M25.0,41 a75.0,5 0 0,0 150,0 a75.0,5 0 0,0 -150,0 v48 a75.0,5 0 0,0 150,0 v-48"/>
 <text class="pf-t" x="100.0" y="64.0" text-anchor="middle">소스 정의</text>
 <text class="pf-code" x="100.0" y="81.0" text-anchor="middle">external_sources/</text>
 <rect class="pf-box" x="192.0" y="40" width="140" height="50" rx="6"/>
 <text class="pf-t" x="262.0" y="61.0" text-anchor="middle">Poller</text>
-<text class="pf-s" x="262.0" y="78.0" text-anchor="middle">소스별 interval 300초</text>
+<text class="pf-s" x="262.0" y="78.0" text-anchor="middle">소스별 300초, 틱당 20건</text>
 <rect class="pf-box pf-box--io" x="355.0" y="40" width="150" height="50" rx="6"/>
 <text class="pf-t pf-t--io" x="430.0" y="61.0" text-anchor="middle">MCP 도구 호출</text>
 <text class="pf-s" x="430.0" y="78.0" text-anchor="middle">캘린더, 메일 같은 서버</text>
@@ -22,15 +22,18 @@
 <path class="pf-edge pf-edge--accent" d="M616.0,90.0 L616.0,140.0" marker-end="url(#mcp-h-accent)"/>
 <path class="pf-store" d="M355.0,141 a75.0,5 0 0,0 150,0 a75.0,5 0 0,0 -150,0 v48 a75.0,5 0 0,0 150,0 v-48"/>
 <text class="pf-t" x="430.0" y="164.0" text-anchor="middle">inbox</text>
-<text class="pf-s" x="430.0" y="181.0" text-anchor="middle">최대 200건, 틱당 20건</text>
+<text class="pf-s" x="430.0" y="181.0" text-anchor="middle">최대 200건</text>
 <path class="pf-edge pf-edge--accent" d="M554.0,165.0 L505.0,165.0" marker-end="url(#mcp-h-accent)"/>
-<rect class="pf-box" x="192.0" y="140" width="140" height="50" rx="6"/>
+<rect class="pf-box" x="190.0" y="140" width="144" height="50" rx="6"/>
 <text class="pf-t" x="262.0" y="161.0" text-anchor="middle">성찰 트리거</text>
-<text class="pf-s" x="262.0" y="178.0" text-anchor="middle">새 이벤트가 깨운다</text>
-<path class="pf-edge pf-edge--accent" d="M355.0,165.0 L332.0,165.0" marker-end="url(#mcp-h-accent)"/>
-<rect class="pf-box pf-box--accent" x="21.0" y="140" width="150" height="50" rx="6"/>
-<text class="pf-t pf-t--accent" x="96.0" y="161.0" text-anchor="middle">다음 성찰</text>
-<text class="pf-s" x="96.0" y="178.0" text-anchor="middle">inbox 를 한 번 비운다</text>
-<path class="pf-edge pf-edge--accent" d="M192.0,165.0 L171.0,165.0" marker-end="url(#mcp-h-accent)"/>
-<text class="pf-note" x="380" y="232" text-anchor="middle">이벤트는 말하라는 명령이 아니라 사실이다. 시급하고 사용자와 관련이 분명할 때만 🔔 로 말한다</text>
+<text class="pf-s" x="262.0" y="178.0" text-anchor="middle">넣은 뒤 Poller 가 깨운다</text>
+<path class="pf-edge" d="M262.0,90.0 L262.0,140.0" marker-end="url(#mcp-h)"/>
+<rect class="pf-box pf-box--accent" x="22.0" y="140" width="144" height="50" rx="6"/>
+<text class="pf-t pf-t--accent" x="94.0" y="161.0" text-anchor="middle">다음 성찰</text>
+<text class="pf-s" x="94.0" y="178.0" text-anchor="middle">inbox 를 한 번에 비운다</text>
+<path class="pf-edge" d="M190.0,165.0 L166.0,165.0" marker-end="url(#mcp-h)"/>
+<path class="pf-edge pf-edge--accent" d="M430.0,194.0 L430.0,222.0 L94.0,222.0 L94.0,190.0" marker-end="url(#mcp-h-accent)"/>
+<text class="pf-elabel pf-elabel--accent" x="424.0" y="216.0" text-anchor="end">drain</text>
+<text class="pf-note" x="380" y="252" text-anchor="middle">답을 기다리는 🔔 가 있으면 그 성찰은 inbox 를 건드리지 않는다</text>
+<text class="pf-note" x="380" y="272" text-anchor="middle">이벤트는 말하라는 명령이 아니라 사실이다. 시급하고 사용자와 관련이 분명할 때만 🔔 로 말한다</text>
 </svg>

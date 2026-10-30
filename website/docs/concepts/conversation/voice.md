@@ -10,7 +10,7 @@ import FigureExpVoice from '@site/src/figures/exp-voice.svg';
 
 <figure className="paper-fig">
   <FigureVoice />
-  <figcaption><b>Figure 1.</b> (a) STT 와 TTS 는 브라우저가 기본이고 서버(faster-whisper, supertonic)로 바꿀 수 있다. 영어 문장만 Piper 음성 모델로 따로 읽게 할 수 있다. (b) Full-voice 는 듣기, 처리, 생각, 말하기를 돈다. (c) 음성 승인 답은 번호 순서로 해석하고, 애매하면 거부한다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) STT 와 TTS 는 브라우저가 기본이고 서버(faster-whisper, supertonic)로 바꿀 수 있다. 읽기 전에 서버가 마크다운 기호를 지우고 금액 숫자를 한글로 바꾼다. 영어 문장은 Piper 나 qwen 합성 서버로 따로 읽게 할 수 있고, `speak_english` 를 켜면 JARVIS 가 내는 한국어 글을 소리로만 영어로 옮겨 문장마다 읽는다. (b) Full-voice 는 듣기, 처리, 생각, 말하기를 돈다. (c) 음성 승인 답은 번호 순서로 해석하고, 애매하면 거부한다.</figcaption>
 </figure>
 
 Web HUD 나 TUI 에서 JARVIS 에게 말로 묻고 응답을 소리로 듣는다. 음성 인식(STT)과 음성 합성(TTS)을 브라우저에서 할지 서버에서 할지는 설정으로 정한다.
@@ -331,10 +331,12 @@ flowchart LR
   VM --> SR[Web Speech 인식<br/>또는 MediaRecorder]
   VM --> TTS[speechSynthesis<br/>또는 voice_tts_audio]
   SR -->|server STT| STT[voice/ whisper]
-  TTS -->|server TTS| SUP[voice/ supertonic<br/>영어는 piper 또는 qwen]
+  TTS -->|server TTS| SPT[voice/speech_text.py<br/>기호 지우기, 금액은 한글]
+  SPT --> ENG[voice/english.py<br/>speak_english 면 영어로 옮김]
+  ENG --> SUP[voice/ supertonic<br/>영어는 piper 또는 qwen]
   SUP -->|qwen| QS[services/qwen_tts<br/>Mac GPU 합성 서버]
   VUI --> APR[app/approval.js<br/>음성 승인 답]
-  VUI --> PHR[app/phrases.js<br/>읽기 문구] --> PAPI[GET /api/voice/phrases]
+  VUI --> PHR[app/phrases.js<br/>읽기 문구] --> PAPI["GET /api/voice/phrases/{name}"]
   WAKE[app/wake.js<br/>wake-worklet.js] -->|PCM 바이너리 프레임| WD[voice/wake.py<br/>openWakeWord]
   WD -->|voice_wake| VUI
   PAPI --> MD[(models/)]

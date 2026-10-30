@@ -10,7 +10,7 @@ import FigureExpOpenLoop from '@site/src/figures/exp-open-loop.svg';
 
 <figure className="paper-fig">
   <FigureOpenLoop />
-  <figcaption><b>Figure 1.</b> (a) AGENDA 판단이 적은 약속은 입력 근거 검사와 같은 약속 검사를 지나야 새로 저장된다. 같은 약속 판정의 임베딩은 저장소가 Ollama bge-m3 로 계산한다. (b) 열린 약속은 AGENDA 판단의 closed_loops 나 ✓ 로 done, 거두는 말이나 ✕ 로 dismissed, 기한이 지나면 expired 로 닫힌다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) AGENDA 판단이 적은 약속은 입력 근거 검사, 같은 판단이 닫으라고 한 약속인지 검사, 같은 약속 검사를 지나야 새로 저장된다. KAREN 의 `housing_budget` 은 추천 1순위 공고의 마감 약속을 이 검사 없이 바로 남기고, 사용자와 나눈 대화 세션에서만 남긴다. 같은 약속 판정의 임베딩은 저장소가 Ollama bge-m3 로 계산한다. (b) 열린 약속은 AGENDA 판단의 closed_loops 나 ✓ 로 done, 거두는 말이나 ✕ 로 dismissed, 기한이 지나면 expired 로 닫힌다. 닫힌 약속은 ↺ 로 다시 open 으로 되살린다.</figcaption>
 </figure>
 
 JARVIS 는 대화에서 흘린 약속(open loop)과 미완 작업을 기억했다가 성찰 때 다시 보고, Web HUD 의 AGENDA 카드에 보여 준다. 정한 시각에 도는 일은 [Scheduling](./scheduling.md), MCP 도구로 가져오는 외부 이벤트는 [MCP Events](./mcp.md) 에서 다룬다.
@@ -19,16 +19,20 @@ JARVIS 는 대화에서 흘린 약속(open loop)과 미완 작업을 기억했�
 flowchart LR
   T[AGENDA 판단.open_loops] --> GR{입력에서<br/>나온 약속인가?}
   GR -- 아님 --> X
-  GR -- 맞음 --> U{같은 세션에<br/>같은 약속 있나?}
+  GR -- 맞음 --> CL{같은 판단이<br/>닫으라고 한 약속인가?}
+  CL -- 예 --> X
+  CL -- 아니오 --> U{같은 세션에<br/>같은 약속 있나?}
   U -- 있음, 기한이 새로 생김 --> G[기존 항목의 기한만 갱신]
   U -- 있음 --> X[버림]
   U -- 없음 --> S[(저장)]
+  HB[housing_budget<br/>마감 약속, 대화 세션만] --> S
   S --> R[다음 사고의 열린 약속 블록]
   S --> A[AGENDA 카드, /openloop]
   A -->|✓ done, ✕ dismiss| C[닫힘]
   K[AGENDA 판단.closed_loops] -->|done| C
   Q[사용자의 거두는 말] -->|dismissed| C
   E[기한 지남] -->|expired| C
+  C -->|↺ 되살리기| S
 ```
 
 - 약속은 요청마다 내적 사고와 따로 도는 AGENDA 판단(`agent_layer/openloop/judge.py`)이 잡고 닫는다. 응답과 함께 돌아 응답을 늦추지 않고, [Thought Router](../architecture/inner-thought.md#thought-router) 가 사고를 건너뛴 요청에서도 돈다. 응답보다 늦게 끝나 약속이 바뀌면 화면에 `agenda_changed` 를 보낸다. 성찰은 약속을 보기만 하고, 만들지도 닫지도 않는다

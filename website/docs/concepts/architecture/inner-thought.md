@@ -10,7 +10,7 @@ import FigureExpInnerThought from '@site/src/figures/exp-inner-thought.svg';
 
 <figure className="paper-fig">
   <FigureInnerThought />
-  <figcaption><b>Figure 1.</b> (a) 사고 한 번. 다섯 가지 맥락을 템플릿에 채워 도구 없이 사고 모델을 한 번 부르고, JSON 으로 강제한 ThoughtFrame 을 나눠 쓴다(약속 저장과 닫기는 지금은 AGENDA 판단이 맡는다). (b) 사고와 메인 응답의 순서. before 는 해석이 이번 응답에 섞이고, race(기본)는 3초까지만 기다리며, after 는 같은 GPU 를 나눠 쓰는 로컬에서 가장 빠르다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) 사고 한 번. 다섯 가지 맥락을 템플릿에 채워 도구 없이 사고 모델을 한 번 부르고, JSON 스키마로 받은 ThoughtFrame 을 나눠 쓴다. 스키마를 강제하는 것은 Ollama 뿐이고 다른 프로바이더는 파싱만 한다. 약속 저장과 닫기는 ThoughtFrame 이 아니라 AGENDA 판단이 맡는다. router 가 think 로 판정한 턴의 사고는 응답과 함께 돌고, 결과는 다음 턴에 한 번 들어간다. (b) 사고와 메인 응답의 순서. `router_model` 을 정하면 이 설정 대신 router 가 턴마다 정한다. before 는 해석이 이번 응답에 섞이고, race(기본)는 3초까지만 기다리며, after 는 같은 GPU 를 나눠 쓰는 로컬에서 가장 빠르다.</figcaption>
 </figure>
 
 JARVIS 는 답하기 전에 따로 한 번 생각한다. 사용자 입력마다 메인 응답과 별개로 LLM 을 한 번 더 불러, 무엇이 들어왔는지와 먼저 말할지, 뒤에서 처리할지를 **사고 프레임**이라는 구조화된 판단으로 남긴다.
@@ -47,7 +47,7 @@ flowchart LR
   UM[(사용자 모델)] --> R
   MEM[(회상 5건)] --> R
   HIS[최근 8턴 x 240자] --> R
-  R --> LLM[사고 모델 호출<br/>JSON 스키마 강제]
+  R --> LLM[사고 모델 호출<br/>JSON 스키마, Ollama 는 강제]
   LLM --> P{파싱}
   P -- 유효 --> F[ThoughtFrame]
   P -- 행동 후보만 틀림 --> F2[후보 버리고 프레임 유지]
@@ -178,12 +178,11 @@ router 는 Ollama 로 띄울 수 없다(판정 head 를 읽지 못한다). LLMCl
 flowchart LR
   SES[AgentSession] --> ENG[InnerThoughtEngine<br/>thought/engine.py]
   ENG --> TPL[ThoughtPromptTemplate<br/>prompt.py]
-  ENG --> REC[memory_chain.retrieve]
+  ENG --> REC[recall 콜백<br/>MemoryService.recall_messages]
   ENG --> TM[사고 모델<br/>메인과 따로 둘 수 있음]
   ENG --> FR[ThoughtFrame]
   FR --> CMP[ThoughtComposer<br/>시스템 프롬프트 블록]
   FR --> LOG[ThoughtLog<br/>ltm, stm 싱크]
-  FR --> OL[open loop 저장과 닫기]
   FR --> PRO[ProactivityCore]
   FR -. inner_thought .-> HUD[💭]
   USERTPL[(~/.jarvis/inner_thought.md)] --> TPL

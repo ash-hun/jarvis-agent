@@ -10,7 +10,7 @@ import FigureExpTeam from '@site/src/figures/exp-team.svg';
 
 <figure className="paper-fig">
   <FigureMultiAgentOrchestration />
-  <figcaption><b>Figure 1.</b> 최상위 에이전트는 세션, 일화 기억과 작업 패턴, 승인 규칙, 모델과 도구, 메인 색을 따로 갖고, 사용자 모델, 사용자에 대한 사실, 공용 승인 규칙, AGENDA 를 함께 쓴다. 서로 일을 맡길 때는 ask_agent 를 쓰고, 되묻기는 A → B → A 까지만 허용한다.</figcaption>
+  <figcaption><b>Figure 1.</b> 최상위 에이전트는 세션, 일화 기억과 작업 패턴, 목표와 약속(open loop), 승인 규칙, 경계(boundaries 의 ask, never 도구), 모델과 도구, 메인 색을 따로 갖고, 사용자 모델, 사용자에 대한 사실, 공용 승인 규칙, AGENDA 를 함께 쓴다. 서로 일을 맡길 때는 ask_agent 를 쓰고, 되묻기는 A → B → A 까지만 허용한다. 받은 일을 그 일을 보낸 에이전트에게 되돌리는 요청은 거절한다.</figcaption>
 </figure>
 
 Multi agent Orchestration 은 JARVIS 와 같은 층에 목적이 다른 최상위 에이전트를 더 두는 기능이다. 전체를 총괄하는 첫 에이전트가 JARVIS(id `main`)이고, 정보 수집을 맡는 KAREN(id `karen`)처럼 에이전트를 정의 파일 하나로 늘린다.

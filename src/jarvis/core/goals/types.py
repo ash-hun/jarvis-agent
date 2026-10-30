@@ -2,7 +2,7 @@
 
 import re
 import hashlib
-from typing import Literal
+from typing import Any, Literal
 from pydantic import BaseModel, Field
 from dataclasses import dataclass, replace
 
@@ -40,6 +40,9 @@ class Goal(BaseModel):
     notes: list[str] = Field(default_factory=list)
     reported: list[str] = Field(default_factory=list)
     runs: int = 0
+    # 지난 차례에 모델이 부른 도구(name, params)와 그 결과 글의 지문. 다시 불러 같으면 모델을 건너뛴다
+    last_calls: list[dict[str, Any]] = Field(default_factory=list)
+    seen: str = ""
     created_at: int = 0
     updated_at: int = 0
 
@@ -160,6 +163,11 @@ def worth_noting(step: Step, used_tool: bool) -> bool:
     사용자가 답한 뒤에도 남아 다음 차례가 그 기록대로 다시 묻게 했다(실측). 순수 함수."""
     asked_only = bool(step.items) and all(k.startswith(ASK_PREFIX) for k, _ in step.items)
     return used_tool and not asked_only
+
+
+def fingerprint(results: list[str]) -> str:
+    """도구 결과 글들의 지문. 같은 글이면 같은 값이다. 순수 함수."""
+    return hashlib.sha1("\x00".join(results).encode()).hexdigest()
 
 
 def advance(goal: Goal, step: Step, delivered: list[str], now_ms: int) -> Goal:

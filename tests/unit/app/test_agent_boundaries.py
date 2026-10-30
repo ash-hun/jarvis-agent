@@ -101,7 +101,7 @@ async def test_goal_turn_lists_ask_tools_and_never_makes_goals_or_schedules():
     runner.step = AsyncMock(return_value="")
     svc.set_goal_runner(runner)
     await svc._execute_goal(ScheduledTask(name="goal-x", prompt="g", kind="goal", args={"goal": "x"}, agent="karen"))
-    _, auto, ask, _ = runner.step.call_args.args
+    _, auto, ask, _, _ = runner.step.call_args.args
     assert auto == ["lh_notice"] and ask == ["goal", "housing_profile", "schedule"]
 
 

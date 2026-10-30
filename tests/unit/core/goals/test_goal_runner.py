@@ -171,6 +171,8 @@ async def test_scheduler_goal_turn_reports_through_the_conversation_and_stays_si
     await svc._run_and_deliver(task)
     await svc._run_and_deliver(task)
     assert spoken == [("karen", SAID)] and notices == []
+    # 둘째 차례는 도구 결과가 그대로라 스케줄러가 도구만 다시 부르고 모델을 돌리지 않았다
+    assert replies == [REPLY]
 
 
 async def test_goal_tool_sets_one_goal_and_one_task_and_runs_the_first_turn_once(tmp_path):
@@ -334,3 +336,81 @@ def test_standing_requests_get_the_goal_rule_only_when_the_agent_can_set_goals()
         assert standing_rule(text, tools) is None, text
     assert standing_rule(TEXT, {"housing_budget"}) is None
 
+
+
+def counting(*replies: str | None, result: str = "결과"):  # type: ignore[no-untyped-def]
+    """모델 차례 수를 세는 run 과, 도구를 모델 없이 부른 횟수를 세는 replay."""
+    models: list[str] = []
+    replays: list[tuple[str, dict]] = []
+    state = {"result": result}
+    queue = list(replies)
+
+    class Budget(JarvisTool):
+        name, description, parameters = "housing_budget", "", {"type": "object"}
+
+        async def execute(self, tool_call_id, params, signal=None, context=None):  # type: ignore[no-untyped-def]
+            return ToolResultMessage(tool_call_id=tool_call_id, tool_name=self.name,
+                                     content=[TextContent(text=state["result"])])
+
+    async def run(prompt, pick):  # type: ignore[no-untyped-def]
+        models.append(prompt)
+        base = ToolRegistry()
+        base.register(Budget())
+        await pick(base).execute("c", "housing_budget", {"regions": ["서울"]}, None, None)
+        return queue.pop(0)
+
+    async def replay(name, params):  # type: ignore[no-untyped-def]
+        replays.append((name, params))
+        return state["result"]
+
+    return run, replay, models, replays, state
+
+
+async def test_turn_whose_tool_result_did_not_change_skips_the_model(tmp_path):
+    """지난 차례 도구를 같은 인자로 다시 불러 결과가 같으면 모델을 부르지 않는다. 바뀌면 모델이 다시 판단한다."""
+    store, runner, goal = setup(tmp_path)
+    run, replay, models, replays, state = counting(REPLY, REPLY)
+    auto = ["housing_budget"]
+    assert await runner.step(goal.id, auto, [], run, replay) == SAID
+    runner.settle(goal.id, True)
+    assert replays == [] and len(models) == 1
+    saved = store.get(goal.id)
+    assert saved is not None and saved.last_calls == [{"name": "housing_budget", "params": {"regions": ["서울"]}}]
+
+    assert await runner.step(goal.id, auto, [], run, replay) == ""
+    assert replays == [("housing_budget", {"regions": ["서울"]})] and len(models) == 1
+    after = store.get(goal.id)
+    assert after is not None and after.runs == 2 and after.notes == saved.notes
+
+    state["result"] = "새 공고가 올라온 결과"
+    assert await runner.step(goal.id, auto, [], run, replay) == ""
+    assert len(models) == 2
+
+
+async def test_undelivered_items_are_not_skipped_next_turn(tmp_path):
+    """건네지 못한 차례 뒤에는 결과가 같아도 모델을 다시 돌려 같은 항목을 다시 알린다."""
+    store, runner, goal = setup(tmp_path)
+    run, replay, models, _, _ = counting(REPLY, REPLY)
+    assert await runner.step(goal.id, ["housing_budget"], [], run, replay) == SAID
+    runner.settle(goal.id, False)
+    assert await runner.step(goal.id, ["housing_budget"], [], run, replay) == SAID
+    assert len(models) == 2
+
+
+async def test_failed_or_unavailable_replay_runs_the_model(tmp_path):
+    """다시 부른 도구가 오류이거나 지금 쓸 수 없는 도구면 건너뛰지 않는다. 답이 없던 차례는 지문을 남기지 않는다."""
+    store, runner, goal = setup(tmp_path)
+    run, _, models, _, _ = counting(REPLY, REPLY, REPLY, None)
+
+    async def broken(name, params):  # type: ignore[no-untyped-def]
+        return None
+
+    await runner.step(goal.id, ["housing_budget"], [], run, broken)
+    runner.settle(goal.id, True)
+    await runner.step(goal.id, ["housing_budget"], [], run, broken)
+    assert len(models) == 2
+    await runner.step(goal.id, [], [], run, broken)
+    assert len(models) == 3
+    await runner.step(goal.id, ["housing_budget"], [], run, broken)
+    saved = store.get(goal.id)
+    assert saved is not None and saved.seen == "" and saved.last_calls == []

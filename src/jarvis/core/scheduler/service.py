@@ -335,7 +335,14 @@ class SchedulerService:
         async def run(prompt: str, pick: Callable[["ToolRegistry"], "ToolRegistry"]) -> str | None:
             return await self._execute_task(task.model_copy(update={"prompt": prompt}), pick)
 
-        return await self._goals.step(str(task.args.get("goal", "")), auto, ask, run)
+        async def replay(name: str, params: dict[str, Any]) -> str | None:
+            from jarvis.core.goals.runner import step_registry
+
+            # 모델이 부를 때와 같은 도구 포장(사용자만 정할 값 버리기)을 거친다
+            registry = step_registry(self._registry_for(task, resolved), tuple(ask))
+            return await self._call_tool(task, registry, name, params)
+
+        return await self._goals.step(str(task.args.get("goal", "")), auto, ask, run, replay)
 
     async def _execute_task(
         self, task: ScheduledTask, pick: "Callable[[ToolRegistry], ToolRegistry] | None" = None
@@ -436,9 +443,6 @@ class SchedulerService:
 
     async def _execute_tool(self, task: ScheduledTask) -> str | None:
         """task.tool 을 task.args 로 바로 부른 글. 도구가 없거나 오류면 None."""
-        from jarvis.core.tools.registry import ToolContext
-        from jarvis.model_layer.types import TextContent
-
         resolved = self._resolve(task)
         if task.agent != MAIN_AGENT and resolved is None:
             logger.info(f"[Scheduler] Tool task '{task.name}' failed: unknown agent '{task.agent}'")
@@ -447,11 +451,20 @@ class SchedulerService:
         if registry.get(task.tool) is None:
             logger.info(f"[Scheduler] Tool task '{task.name}' failed: unknown tool '{task.tool}'")
             return None
+        return await self._call_tool(task, registry, task.tool, dict(task.args))
+
+    async def _call_tool(
+        self, task: ScheduledTask, registry: "ToolRegistry", name: str, params: dict[str, Any]
+    ) -> str | None:
+        """도구 하나를 사람 없이 부른 글. 오류면 None."""
+        from jarvis.core.tools.registry import ToolContext
+        from jarvis.model_layer.types import TextContent
+
         call_id = f"sched-{task.name}"
         # 스케줄은 사람이 없는 실행이라 로컬 사용자의 범위로 부른다(대화 세션의 memory_scope 와 같은 기본값)
         context = ToolContext(scope=MemoryScope(user_id=LOCAL_USER, agent_id=task.agent), session_id=call_id)
         # 도구의 예외는 레지스트리가 오류 결과로 바꿔 준다
-        result = await registry.execute(call_id, task.tool, dict(task.args), None, context)
+        result = await registry.execute(call_id, name, params, None, context)
         text = "\n".join(c.text for c in result.content if isinstance(c, TextContent))
         if result.is_error:
             logger.info(f"[Scheduler] Tool task '{task.name}' failed: {text[:200]}")

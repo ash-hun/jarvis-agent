@@ -4,11 +4,12 @@ import time
 import asyncio
 from typing import Any
 from datetime import datetime
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from collections.abc import Awaitable, Callable
 
 from jarvis.core.goals.types import (
-    ASK_PREFIX, Goal, Step, advance, compose, mark_reported, new_items, parse_step, with_tool_items, worth_noting,
+    ASK_PREFIX, Goal, Step, advance, compose, fingerprint, mark_reported, new_items, parse_step, with_tool_items,
+    worth_noting,
 )
 from jarvis.core.tools.registry import JarvisTool, ToolContext, ToolRegistry
 from jarvis.model_layer.types import TextContent, ToolResultMessage
@@ -22,6 +23,8 @@ RECHECK = "\n[다시] 지난 차례 기록 없이, 도구로 지금 상태를 �
 
 # (프롬프트, 고른 도구 레지스트리) -> 에이전트의 마지막 답. 실패면 None. 스케줄러가 세션을 만들어 돌린다
 RunAgent = Callable[[str, Callable[[ToolRegistry], ToolRegistry]], Awaitable[str | None]]
+# (도구 이름, 인자) -> 모델 없이 부른 결과 글. 도구가 없거나 오류면 None
+Replay = Callable[[str, dict[str, Any]], Awaitable[str | None]]
 
 PROMPT = """\
 [목표] {text}
@@ -47,6 +50,16 @@ PROMPT = """\
 logger = get_logger(__name__)
 
 
+@dataclass(frozen=True)
+class ToolRun:
+    """차례 안에서 불린 도구 하나. params 는 사용자만 정할 값을 버린 뒤 실제로 넘긴 인자다."""
+
+    name: str
+    params: dict[str, Any]
+    text: str
+    error: bool = False
+
+
 def build_prompt(goal: Goal, auto: list[str], ask: list[str], now: datetime, notes: bool = True) -> str:
     """한 차례 프롬프트. 같은 목표, 같은 도구, 같은 시각이면 같은 글이다. 순수 함수."""
     return PROMPT.format(
@@ -63,7 +76,7 @@ class _StepTool(JarvisTool):
     """사람이 없는 차례의 도구. 목표 차례면 사용자만 정할 인자를 버리고, 결과로 답을 끝내지(final) 않게 한다.
     목표 차례는 결과를 받아 정해진 꼴로 답해야 한다."""
 
-    def __init__(self, tool: JarvisTool, goal_turn: bool, calls: list[str] | None = None) -> None:
+    def __init__(self, tool: JarvisTool, goal_turn: bool, calls: list[ToolRun] | None = None) -> None:
         self._tool = tool
         self._goal_turn = goal_turn
         self._calls = calls
@@ -89,16 +102,17 @@ class _StepTool(JarvisTool):
         registry.register(self._tool)
         result = await registry.execute(tool_call_id, self.name, params, signal, context)
         if self._calls is not None:
-            self._calls.append("\n".join(c.text for c in result.content if isinstance(c, TextContent)))
+            text = "\n".join(c.text for c in result.content if isinstance(c, TextContent))
+            self._calls.append(ToolRun(self.name, params, text, result.is_error))
         return result.model_copy(update={"final": False}) if self._goal_turn else result
 
 
 def step_registry(
-    base: ToolRegistry, exclude: tuple[str, ...], goal_turn: bool = True, calls: list[str] | None = None
+    base: ToolRegistry, exclude: tuple[str, ...], goal_turn: bool = True, calls: list[ToolRun] | None = None
 ) -> ToolRegistry:
     """사람이 없는 차례에 쓸 도구: 먼저 물어야 하는 도구를 뺀다.
     목표 차례면 사용자만 정할 인자를 버리고 final 도 끈다. 스케줄 작업(goal_turn=False)은 둘 다 그대로다.
-    calls 를 주면 불린 도구의 결과 글을 거기 적는다."""
+    calls 를 주면 불린 도구와 결과 글을 거기 적는다."""
     registry = ToolRegistry()
     for tool in base.list_all():
         if tool.name not in exclude:
@@ -124,15 +138,29 @@ class GoalRunner:
     def store(self) -> GoalStore:
         return self._store
 
-    async def step(self, goal_id: str, auto: list[str], ask: list[str], run: RunAgent) -> str:
-        """한 차례 진행하고 알릴 말을 돌려준다. 알릴 것이 없거나, 이미 알렸거나, 실패하면 빈 글."""
+    async def step(
+        self, goal_id: str, auto: list[str], ask: list[str], run: RunAgent, replay: Replay | None = None
+    ) -> str:
+        """한 차례 진행하고 알릴 말을 돌려준다. 알릴 것이 없거나, 이미 알렸거나, 실패하면 빈 글.
+        replay 를 주면 지난 차례의 도구를 먼저 다시 불러, 결과가 글자 그대로 같으면 모델을 부르지 않는다."""
         goal = self._store.get(goal_id)
         if goal is None or goal.status != "active":
             return ""
         now = self._now()
         started = time.perf_counter()
+        # ponytail: 결과가 바뀐 차례는 도구를 두 번 부른다(다시 부르기, 모델),
+        # 도구가 비싸지면 다시 부른 결과를 모델에 넘긴다
+        if replay is not None and await self._unchanged(goal, auto, replay):
+            # 같은 결과면 모델의 판단도 같다. 매시 차례가 새로 알릴 것 없이 13,000 토큰, 32초씩 썼다(실측)
+            self._store.save(advance(goal, Step(), [], int(now.timestamp() * 1000)))
+            self._pending[goal.id] = []
+            logger.info(
+                f"[Goal] {goal.agent}/{goal.id} run={goal.runs + 1} skipped=unchanged"
+                f" took={time.perf_counter() - started:.1f}s"
+            )
+            return ""
         exclude = tuple(ask)
-        calls: list[str] = []
+        calls: list[ToolRun] = []
         prompt = build_prompt(goal, auto, ask, now)
         reply = await run(prompt, lambda base: step_registry(base, exclude, calls=calls))
         rechecked = reply is not None and bool(auto) and not calls
@@ -142,13 +170,20 @@ class GoalRunner:
             # 다시 돌릴 때는 기록을 빼고 보인다. 기록을 남긴 채로는 도구를 불러 놓고도 기록대로 다시 물었다(실측)
             retry = build_prompt(goal, auto, ask, now, notes=False) + RECHECK
             reply = await run(retry, lambda base: step_registry(base, exclude, calls=calls))
-        step = with_tool_items(parse_step(reply) if reply is not None else Step(), calls)
+        texts = [c.text for c in calls]
+        step = with_tool_items(parse_step(reply) if reply is not None else Step(), texts)
         if not worth_noting(step, bool(calls)):
             step = replace(step, note="")
         # 알렸는지는 모델이 아니라 키로 가린다. 모델은 이미 알린 것을 거르다 새 것까지 빼거나 엉뚱한 것을 물었다(실측)
         fresh = new_items(goal, step)
         report = compose(step, fresh)
-        self._store.save(advance(goal, step, [], int(now.timestamp() * 1000)))
+        # 실패한 차례(답 없음, 도구 오류)는 지문을 남기지 않는다. 남기면 다음 차례가 그 실패를 그대로 건너뛴다
+        clean = reply is not None and bool(calls) and not any(c.error for c in calls)
+        remembered = {
+            "last_calls": [{"name": c.name, "params": c.params} for c in calls] if clean else [],
+            "seen": fingerprint(texts) if clean else "",
+        }
+        self._store.save(advance(goal, step, [], int(now.timestamp() * 1000)).model_copy(update=remembered))
         self._pending[goal.id] = [k for k, _ in fresh] if report else []
         # 평가 지표: 꼴을 지켰는지, 항목 수, 새로 알린 수, 키 없이 와 버린 수, 걸린 시간
         logger.info(
@@ -162,5 +197,19 @@ class GoalRunner:
         """이번 차례의 항목을 건넸으면 알린 것으로 적고, 못 건넸으면 버려 다음 차례에 다시 알리게 한다."""
         keys = self._pending.pop(goal_id, [])
         goal = self._store.get(goal_id)
-        if delivered and keys and goal is not None:
+        if not keys or goal is None:
+            return
+        if delivered:
             self._store.save(mark_reported(goal, keys, int(self._now().timestamp() * 1000)))
+        else:
+            # 결과가 그대로여도 다음 차례에 모델이 다시 돌아 못 건넨 항목을 다시 알리게 지문을 지운다
+            self._store.save(goal.model_copy(update={"seen": ""}))
+
+    async def _unchanged(self, goal: Goal, auto: list[str], replay: Replay) -> bool:
+        """지난 차례의 도구를 같은 인자로 다시 불러 결과 지문이 같은지. 지금 쓸 수 없는 도구가 있거나 오류면 False."""
+        if not goal.seen or not goal.last_calls or any(c["name"] not in auto for c in goal.last_calls):
+            return False
+        results = [await replay(c["name"], dict(c["params"])) for c in goal.last_calls]
+        if any(r is None for r in results):
+            return False
+        return fingerprint([r for r in results if r is not None]) == goal.seen

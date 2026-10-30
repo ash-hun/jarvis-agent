@@ -2,57 +2,66 @@
 <defs><marker id="proactive-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="proactive-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="proactive-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="proactive-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
 <rect class="pf-panel" x="16" y="12" width="728" height="270" rx="8"/>
 <text class="pf-plabel" x="28" y="32">(a) 성찰 한 번</text>
-<rect class="pf-box pf-box--io" x="28.0" y="40" width="104" height="50" rx="6"/>
-<text class="pf-t pf-t--io" x="80.0" y="61.0" text-anchor="middle">트리거</text>
-<text class="pf-s" x="80.0" y="78.0" text-anchor="middle">주기, 유휴, 이벤트</text>
-<rect class="pf-gate" x="145.8" y="40" width="151" height="40" rx="20.0"/>
-<text class="pf-t" x="221.25" y="64.5" text-anchor="middle">답 기다리는 말 없음</text>
-<rect class="pf-gate" x="310.5" y="40" width="138" height="50" rx="25.0"/>
-<text class="pf-t" x="379.5" y="61.0" text-anchor="middle">말할 근거 있음</text>
-<text class="pf-s" x="379.5" y="78.0" text-anchor="middle">열린 약속, 새 이벤트</text>
-<rect class="pf-gate" x="462.2" y="40" width="124" height="50" rx="25.0"/>
-<text class="pf-t" x="524.25" y="61.0" text-anchor="middle">입력이 바뀜</text>
-<text class="pf-s" x="524.25" y="78.0" text-anchor="middle">15분마다 다시 봄</text>
-<rect class="pf-box" x="600.0" y="40" width="118" height="50" rx="6"/>
-<text class="pf-t" x="659.0" y="61.0" text-anchor="middle">성찰 사고</text>
-<text class="pf-s" x="659.0" y="78.0" text-anchor="middle">+ decision model</text>
-<path class="pf-edge pf-edge--accent" d="M132.0,65.0 L145.8,60.0" marker-end="url(#proactive-h-accent)"/>
-<path class="pf-edge pf-edge--accent" d="M296.8,60.0 L310.5,65.0" marker-end="url(#proactive-h-accent)"/>
-<path class="pf-edge pf-edge--accent" d="M448.5,65.0 L462.2,65.0" marker-end="url(#proactive-h-accent)"/>
-<path class="pf-edge pf-edge--accent" d="M586.2,65.0 L600.0,65.0" marker-end="url(#proactive-h-accent)"/>
+<rect class="pf-box pf-box--io" x="28.0" y="40" width="76" height="50" rx="6"/>
+<text class="pf-t pf-t--io" x="66.0" y="61.0" text-anchor="middle">트리거</text>
+<text class="pf-s" x="66.0" y="78.0" text-anchor="middle">주기, 이벤트</text>
+<rect class="pf-gate" x="115.0" y="40" width="111" height="40" rx="20.0"/>
+<text class="pf-t" x="170.5" y="64.5" text-anchor="middle">답 대기 없음</text>
+<rect class="pf-gate" x="237.0" y="40" width="96" height="40" rx="20.0"/>
+<text class="pf-t" x="285.0" y="64.5" text-anchor="middle">대화 있음</text>
+<rect class="pf-gate" x="344.0" y="40" width="140" height="50" rx="25.0"/>
+<text class="pf-t" x="414.0" y="61.0" text-anchor="middle">말할 근거</text>
+<text class="pf-s" x="414.0" y="78.0" text-anchor="middle">기한 30분 안, 이벤트</text>
+<rect class="pf-gate" x="495.0" y="40" width="108" height="50" rx="25.0"/>
+<text class="pf-t" x="549.0" y="61.0" text-anchor="middle">입력이 바뀜</text>
+<text class="pf-s" x="549.0" y="78.0" text-anchor="middle">15분마다</text>
+<rect class="pf-box" x="614.0" y="40" width="104" height="50" rx="6"/>
+<text class="pf-t" x="666.0" y="61.0" text-anchor="middle">성찰 사고</text>
+<text class="pf-s" x="666.0" y="78.0" text-anchor="middle">+ decision model</text>
+<path class="pf-edge pf-edge--accent" d="M104.0,65.0 L115.0,60.0" marker-end="url(#proactive-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M226.0,60.0 L237.0,60.0" marker-end="url(#proactive-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M333.0,60.0 L344.0,65.0" marker-end="url(#proactive-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M484.0,65.0 L495.0,65.0" marker-end="url(#proactive-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M603.0,65.0 L614.0,65.0" marker-end="url(#proactive-h-accent)"/>
 <rect class="pf-gate" x="610.0" y="162" width="108" height="40" rx="20.0"/>
 <text class="pf-t" x="664.0" y="186.5" text-anchor="middle">되풀이 아님</text>
-<rect class="pf-gate" x="504.8" y="162" width="95" height="40" rx="20.0"/>
-<text class="pf-t" x="552.3" y="186.5" text-anchor="middle">act, ask</text>
-<rect class="pf-gate" x="386.6" y="162" width="108" height="40" rx="20.0"/>
-<text class="pf-t" x="440.59999999999997" y="186.5" text-anchor="middle">확신도 ≥ θ</text>
-<rect class="pf-gate" x="280.4" y="162" width="96" height="40" rx="20.0"/>
-<text class="pf-t" x="328.4" y="186.5" text-anchor="middle">문장 있음</text>
-<rect class="pf-gate" x="162.2" y="162" width="108" height="40" rx="20.0"/>
-<text class="pf-t" x="216.2" y="186.5" text-anchor="middle">쿨다운 지남</text>
-<rect class="pf-gate" x="28.0" y="162" width="124" height="40" rx="20.0"/>
-<text class="pf-t" x="90.0" y="186.5" text-anchor="middle">답하는 중 아님</text>
+<rect class="pf-gate" x="513.6" y="162" width="95" height="40" rx="20.0"/>
+<text class="pf-t" x="561.1" y="186.5" text-anchor="middle">act, ask</text>
+<rect class="pf-gate" x="404.2" y="162" width="108" height="40" rx="20.0"/>
+<text class="pf-t" x="458.20000000000005" y="186.5" text-anchor="middle">확신도 ≥ θ</text>
+<rect class="pf-gate" x="306.8" y="162" width="96" height="40" rx="20.0"/>
+<text class="pf-t" x="354.8" y="186.5" text-anchor="middle">문장 있음</text>
+<rect class="pf-gate" x="197.4" y="162" width="108" height="40" rx="20.0"/>
+<text class="pf-t" x="251.4" y="186.5" text-anchor="middle">쿨다운 지남</text>
+<rect class="pf-gate" x="28.0" y="162" width="168" height="40" rx="20.0"/>
+<text class="pf-t" x="112.0" y="186.5" text-anchor="middle">답하는 중, Focus 아님</text>
 <path class="pf-edge pf-edge--accent" d="M718.0,65.0 L732.0,65.0 L732.0,182.0 L718.0,182.0" marker-end="url(#proactive-h-accent)"/>
-<path class="pf-edge pf-edge--accent" d="M610.0,182.0 L599.8,182.0" marker-end="url(#proactive-h-accent)"/>
-<path class="pf-edge pf-edge--accent" d="M504.8,182.0 L494.6,182.0" marker-end="url(#proactive-h-accent)"/>
-<path class="pf-edge pf-edge--accent" d="M386.6,182.0 L376.4,182.0" marker-end="url(#proactive-h-accent)"/>
-<path class="pf-edge pf-edge--accent" d="M280.4,182.0 L270.2,182.0" marker-end="url(#proactive-h-accent)"/>
-<path class="pf-edge pf-edge--accent" d="M162.2,182.0 L152.0,182.0" marker-end="url(#proactive-h-accent)"/>
-<rect class="pf-box pf-box--accent" x="28.0" y="222" width="190" height="50" rx="6"/>
-<text class="pf-t pf-t--accent" x="123.0" y="243.0" text-anchor="middle">에이전트가 먼저 건네는 말</text>
-<text class="pf-s" x="123.0" y="260.0" text-anchor="middle">대화 기록에 남는다</text>
-<path class="pf-edge pf-edge--accent" d="M90.0,202.0 L90.0,222.0" marker-end="url(#proactive-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M610.0,182.0 L608.6,182.0" marker-end="url(#proactive-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M513.6,182.0 L512.2,182.0" marker-end="url(#proactive-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M404.2,182.0 L402.8,182.0" marker-end="url(#proactive-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M306.8,182.0 L305.4,182.0" marker-end="url(#proactive-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M197.4,182.0 L196.0,182.0" marker-end="url(#proactive-h-accent)"/>
+<rect class="pf-box pf-box--accent" x="28.0" y="222" width="184" height="50" rx="6"/>
+<text class="pf-t pf-t--accent" x="120.0" y="243.0" text-anchor="middle">에이전트가 먼저 건네는 말</text>
+<text class="pf-s" x="120.0" y="260.0" text-anchor="middle">대화 기록에 남는다</text>
+<path class="pf-edge pf-edge--accent" d="M112.0,202.0 L112.0,222.0" marker-end="url(#proactive-h-accent)"/>
+<rect class="pf-box" x="222.0" y="222" width="136" height="50" rx="6"/>
+<text class="pf-t" x="290.0" y="243.0" text-anchor="middle">저위험 자율 행동</text>
+<text class="pf-code" x="290.0" y="260.0" text-anchor="middle">proactive_actions</text>
+<path class="pf-edge" d="M251.4,202.0 L251.4,222.0" marker-end="url(#proactive-h)"/>
+<text class="pf-elabel" x="255.4" y="214.0" text-anchor="start">쿨다운 뒤</text>
 <rect class="pf-box pf-box--muted" x="40.0" y="116" width="666" height="26" rx="6"/>
 <text class="pf-t pf-t--muted" x="373.0" y="133.5" text-anchor="middle">침묵. 이유만 로그에 남긴다</text>
-<path class="pf-edge pf-edge--muted" d="M221.2,80.0 L221.2,116.0" marker-end="url(#proactive-h-muted)"/>
-<path class="pf-edge pf-edge--muted" d="M379.5,90.0 L379.5,116.0" marker-end="url(#proactive-h-muted)"/>
-<path class="pf-edge pf-edge--muted" d="M524.2,90.0 L524.2,116.0" marker-end="url(#proactive-h-muted)"/>
+<path class="pf-edge pf-edge--muted" d="M170.5,80.0 L170.5,116.0" marker-end="url(#proactive-h-muted)"/>
+<path class="pf-edge pf-edge--muted" d="M285.0,80.0 L285.0,116.0" marker-end="url(#proactive-h-muted)"/>
+<path class="pf-edge pf-edge--muted" d="M414.0,90.0 L414.0,116.0" marker-end="url(#proactive-h-muted)"/>
+<path class="pf-edge pf-edge--muted" d="M549.0,90.0 L549.0,116.0" marker-end="url(#proactive-h-muted)"/>
 <path class="pf-edge pf-edge--muted" d="M664.0,162.0 L664.0,142.0" marker-end="url(#proactive-h-muted)"/>
-<path class="pf-edge pf-edge--muted" d="M552.3,162.0 L552.3,142.0" marker-end="url(#proactive-h-muted)"/>
-<path class="pf-edge pf-edge--muted" d="M440.6,162.0 L440.6,142.0" marker-end="url(#proactive-h-muted)"/>
-<path class="pf-edge pf-edge--muted" d="M328.4,162.0 L328.4,142.0" marker-end="url(#proactive-h-muted)"/>
-<path class="pf-edge pf-edge--muted" d="M216.2,162.0 L216.2,142.0" marker-end="url(#proactive-h-muted)"/>
-<path class="pf-edge pf-edge--muted" d="M90.0,162.0 L90.0,142.0" marker-end="url(#proactive-h-muted)"/>
+<path class="pf-edge pf-edge--muted" d="M561.1,162.0 L561.1,142.0" marker-end="url(#proactive-h-muted)"/>
+<path class="pf-edge pf-edge--muted" d="M458.2,162.0 L458.2,142.0" marker-end="url(#proactive-h-muted)"/>
+<path class="pf-edge pf-edge--muted" d="M354.8,162.0 L354.8,142.0" marker-end="url(#proactive-h-muted)"/>
+<path class="pf-edge pf-edge--muted" d="M251.4,162.0 L251.4,142.0" marker-end="url(#proactive-h-muted)"/>
+<path class="pf-edge pf-edge--muted" d="M112.0,162.0 L112.0,142.0" marker-end="url(#proactive-h-muted)"/>
 <rect class="pf-panel" x="274" y="294" width="470" height="166" rx="8"/>
 <text class="pf-plabel" x="286" y="314">(b) 피드백 학습</text>
 <rect class="pf-box pf-box--io" x="281.0" y="348" width="118" height="50" rx="6"/>
@@ -74,8 +83,8 @@
 <path class="pf-edge" d="M587.0,379.0 L608.0,379.0 L608.0,373.0 L615.0,373.0"/>
 <path class="pf-edge" d="M587.0,423.0 L608.0,423.0 L608.0,373.0 L615.0,373.0"/>
 <path class="pf-edge" d="M608.0,373.0 L615.0,373.0" marker-end="url(#proactive-h)"/>
-<path class="pf-edge pf-edge--accent" d="M670.0,348.0 L670.0,290.0 L440.6,290.0 L440.6,202.0" marker-end="url(#proactive-h-accent)"/>
-<text class="pf-elabel pf-elabel--accent" x="446.6" y="268.0" text-anchor="start">θ 를 옮긴다</text>
+<path class="pf-edge pf-edge--accent" d="M670.0,348.0 L670.0,290.0 L458.2,290.0 L458.2,202.0" marker-end="url(#proactive-h-accent)"/>
+<text class="pf-elabel pf-elabel--accent" x="464.2" y="268.0" text-anchor="start">θ 를 옮긴다</text>
 <rect class="pf-panel" x="16" y="294" width="246" height="166" rx="8"/>
 <text class="pf-plabel" x="28" y="314">(c) Dual channel</text>
 <rect class="pf-gate" x="65.0" y="324" width="148" height="50" rx="25.0"/>

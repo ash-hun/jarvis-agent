@@ -10,7 +10,7 @@ import FigureExpProactive from '@site/src/figures/exp-proactive.svg';
 
 <figure className="paper-fig">
   <FigureProactive />
-  <figcaption><b>Figure 1.</b> (a) 성찰 한 번이 먼저 말하기까지 지나는 게이트. 위 줄은 사고 모델을 부를지 정한다(답을 기다리는 말, 말할 근거, 지난번과 같은 입력). 아래 줄은 사고 결과를 거르고(되풀이, 결정, 확신도, 문장, 쿨다운) 답하는 중이면 보내지 않는다. 건넨 말은 에이전트의 보통 말로 대화 기록에 남는다. 하나라도 막히면 침묵한다. (b) 묻지 않고 그 뒤 첫 말로 확신도 임계치 θ 를 옮긴다. (c) 오래 걸릴 요청이면 filler 를 먼저 말하고 메인 응답은 뒤에서 돌린다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) 성찰 한 번이 먼저 말하기까지 지나는 게이트. 위 줄은 사고 모델을 부를지 정한다(답을 기다리는 말, 사용자와 나눈 대화가 있는지, 말할 근거, 지난번과 같은 입력). 말할 근거는 기한이 없거나 30분 안으로 다가왔거나 지난 약속, 그리고 새 외부 이벤트다. 아래 줄은 사고 결과를 거르고(되풀이, 결정, 확신도, 문장, 쿨다운) 답하는 중이거나 Focus 중이면 보내지 않는다. 쿨다운을 지나면 저위험 자율 행동을 실행한다. 스케줄 결과와 목표 알림은 이 게이트를 거치지 않고 `say()` 로 대화에 건넨다. 건넨 말은 에이전트의 보통 말로 대화 기록에 남는다. 하나라도 막히면 침묵한다. (b) 묻지 않고 그 뒤 첫 말로 확신도 임계치 θ 를 옮긴다. (c) 오래 걸릴 요청이면 filler 를 먼저 말하고 메인 응답은 뒤에서 돌린다.</figcaption>
 </figure>
 
 JARVIS 는 사고 프레임을 바탕으로 사용자가 묻기 전에 움직인다. 먼저 건네는 말은 알림처럼 따로 보이지 않고, 에이전트가 대화 중에 꺼낸 말처럼 보이고 들린다. 대화 기록에도 그 에이전트의 말로 남는다. 요청이 오면 **Dual channel** 로 짧은 말을 먼저 한다. 요청이 없을 때는 **성찰**을 거쳐 먼저 말을 건다(**Proactive Dialogue**). 그 말에 대한 사용자의 반응은 **Process Pattern Analysis** 가 확신도 임계치에 반영한다.
@@ -43,12 +43,14 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-  D[ProactivityDaemon] -->|interval 120초 / idle 180초 / 외부 이벤트| T[tick]
+  D[ProactivityDaemon] -->|interval 120초 기본, idle 180초 설정 시, 외부 이벤트| T[tick]
   T --> R[session.reflect]
   R --> W{답을 기다리는 🔔 가 있나?}
   W -- 예 --> LW[로그: awaiting reply. 사고 모델을 부르지 않음]
   W -- 아니오 --> X[외부 이벤트 inbox drain]
-  X --> GR{열린 약속이나 새 이벤트가 있나?}
+  X --> CV{사용자와 나눈 대화나 새 이벤트가 있나?}
+  CV -- 아니오 --> LC[로그: no conversation yet]
+  CV -- 예 --> GR{30분 안 기한이나 기한 없는 약속,<br/>지난 약속, 새 이벤트가 있나?}
   GR -- 아니오 --> LG[로그: nothing to tell. 사고 모델을 부르지 않음]
   GR -- 예 --> UC{지난 성찰과 입력이 같은가?<br/>마지막 메시지, 약속, 이벤트, 15분 단위 시각}
   UC -- 예 --> LU[unchanged. 사고 모델을 부르지 않음]
@@ -66,9 +68,12 @@ flowchart TD
   G3 --> G4{세션 쿨다운 지났나?}
   G4 -- 아니오 --> L4[로그: cooldown]
   G4 --> A[저위험 자율 행동 실행]
-  A --> B{세션이 답하는 중인가?}
+  A --> FH{Focus 턴 훅이 붙어 있나?}
+  FH -- 예 --> LF[로그: suppressed during turn hook]
+  FH -- 아니오 --> B{세션이 답하는 중인가?}
   B -- 예 --> LB[로그: suppressed while answering]
   B -- 아니오 --> M[proactive_message kind=proactive 🔔]
+  SAY[스케줄 결과, 목표 알림<br/>say, 게이트 없음] --> M
   M --> N[화면, 음성, Web Push, Slack, Discord]
 ```
 

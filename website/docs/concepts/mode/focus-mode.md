@@ -10,7 +10,7 @@ import FigureExpFocus from '@site/src/figures/exp-focus.svg';
 
 <figure className="paper-fig">
   <FigureFocusMode />
-  <figcaption><b>Figure 1.</b> (a) 지시가 오면 분석 sub-agent 가 메인 응답과 같이 시작하고, 응답 뒤에 기록과 진행 sub-agent 가 돈다. 분석과 조사 결과는 JARVIS 의 시스템 프롬프트에 Focus 맥락으로 붙는다. (b) Web HUD 는 좌우 카드를 띠로 접고, 줄어든 구체 둘레에 네 영역을 펼친다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) 지시가 오면 분석 sub-agent 가 메인 응답과 같이 시작하고, 응답 뒤에 기록과 진행 sub-agent 가 돈다. 분석과 조사 결과는 JARVIS 의 시스템 프롬프트에 Focus 맥락으로 붙는다. 이번 지시의 분석은 다음 응답에 들어가고, 첫 지시만 `/focus` 시작 때 분석을 기다려 첫 응답에 넣는다. Focus 동안은 먼저 거는 말을 내지 않는다. (b) Web HUD 는 좌우 카드를 띠로 접고, 줄어든 구체 둘레에 네 영역을 펼친다.</figcaption>
 </figure>
 
 Focus 모드는 작업 하나를 끝까지, 가장 높은 수준으로 해내기 위한 모드다. 켜져 있는 동안 sub-agent 넷이 붙는다. 하나는 외부 레퍼런스를 조사하고, 하나는 작업 기록을 남기고, 하나는 매 지시를 분석하고, 하나는 진행 현황을 매긴다. 각자 한 가지 일만 하며, 오케스트레이션은 Focus 를 켠 세션의 메인 에이전트(JARVIS 나 K.A.R.E.N.)가 맡는다.

@@ -9,19 +9,22 @@
 <text class="pf-s" x="305.0" y="134.0" text-anchor="middle">InfraBuilder 가 설정 하나로 도구, 메모리, 저장소, 보안을 만든다</text>
 <rect class="pf-box pf-box--accent" x="70.0" y="162" width="470" height="50" rx="6"/>
 <text class="pf-t pf-t--accent" x="305.0" y="183.0" text-anchor="middle">core/  오케스트레이션과 정책</text>
-<text class="pf-s" x="305.0" y="200.0" text-anchor="middle">AgentSession, 보안 파이프라인, 도구, 승인, proactive, 스케줄러</text>
+<text class="pf-s" x="305.0" y="200.0" text-anchor="middle">AgentSession, 보안, 도구, 승인, proactive, 스케줄러, 목표, Focus</text>
 <rect class="pf-box" x="70.0" y="228" width="470" height="50" rx="6"/>
 <text class="pf-t" x="305.0" y="249.0" text-anchor="middle">agent_layer/  에이전트 런타임</text>
-<text class="pf-s" x="305.0" y="266.0" text-anchor="middle">에이전트 루프, 내적 사고 엔진, 메모리 미들웨어, 세션 저장소</text>
+<text class="pf-s" x="305.0" y="266.0" text-anchor="middle">에이전트 루프, 내적 사고 엔진, 열린 약속, 세션 저장소</text>
 <rect class="pf-box" x="70.0" y="294" width="470" height="50" rx="6"/>
 <text class="pf-t" x="305.0" y="315.0" text-anchor="middle">model_layer/  LLM 추상화</text>
-<text class="pf-s" x="305.0" y="332.0" text-anchor="middle">프로바이더마다 stream() 하나, 임베딩</text>
+<text class="pf-s" x="305.0" y="332.0" text-anchor="middle">프로바이더마다 stream() 하나, 임베딩, decision model</text>
 <path class="pf-edge" d="M305.0,80.0 L305.0,96.0" marker-end="url(#architecture-h)"/>
 <path class="pf-edge" d="M305.0,146.0 L305.0,162.0" marker-end="url(#architecture-h)"/>
 <path class="pf-edge" d="M305.0,212.0 L305.0,228.0" marker-end="url(#architecture-h)"/>
 <path class="pf-edge" d="M305.0,278.0 L305.0,294.0" marker-end="url(#architecture-h)"/>
 <path class="pf-edge pf-edge--accent" d="M40.0,40.0 L40.0,340.0" marker-end="url(#architecture-h-accent)"/>
 <text class="pf-elabel" x="32" y="190" text-anchor="middle" transform="rotate(-90 32 190)">의존 방향. 아래층은 위층을 모른다</text>
+<rect class="pf-box" x="560.0" y="96" width="168" height="50" rx="6"/>
+<text class="pf-t" x="644.0" y="117.0" text-anchor="middle">voice/</text>
+<text class="pf-s" x="644.0" y="134.0" text-anchor="middle">STT, TTS. ui 와 app 이 쓴다</text>
 <rect class="pf-box" x="560.0" y="162" width="168" height="118" rx="6"/>
 <text class="pf-t" x="644.0" y="217.0" text-anchor="middle">memory/</text>
 <text class="pf-s" x="644.0" y="234.0" text-anchor="middle">작업 기억, 장기 기억</text>

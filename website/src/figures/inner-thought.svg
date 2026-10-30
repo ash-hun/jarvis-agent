@@ -23,7 +23,7 @@
 <path class="pf-edge" d="M172.0,157.0 L187.0,157.0" marker-end="url(#inner-thought-h)"/>
 <rect class="pf-box pf-box--accent" x="319.0" y="132" width="118" height="50" rx="6"/>
 <text class="pf-t pf-t--accent" x="378.0" y="153.0" text-anchor="middle">사고 모델 호출</text>
-<text class="pf-s" x="378.0" y="170.0" text-anchor="middle">도구 없음, JSON 강제</text>
+<text class="pf-s" x="378.0" y="170.0" text-anchor="middle">도구 없음, JSON 응답</text>
 <path class="pf-edge pf-edge--accent" d="M305.0,157.0 L319.0,157.0" marker-end="url(#inner-thought-h-accent)"/>
 <rect class="pf-box" x="452" y="74" width="120" height="130" rx="6"/>
 <text class="pf-t" x="512.0" y="95" text-anchor="middle">ThoughtFrame</text>
@@ -31,8 +31,8 @@
 <text class="pf-code" x="512.0" y="130" text-anchor="middle">confidence</text>
 <text class="pf-code" x="512.0" y="146" text-anchor="middle">utterance</text>
 <text class="pf-code" x="512.0" y="162" text-anchor="middle">needs_background</text>
-<text class="pf-code" x="512.0" y="178" text-anchor="middle">open_loops</text>
-<text class="pf-code" x="512.0" y="194" text-anchor="middle">closed_loops</text>
+<text class="pf-code" x="512.0" y="178" text-anchor="middle">filler</text>
+<text class="pf-code" x="512.0" y="194" text-anchor="middle">proactive_actions</text>
 <path class="pf-edge pf-edge--accent" d="M437.0,157.0 L452.0,157.0" marker-end="url(#inner-thought-h-accent)"/>
 <rect class="pf-box" x="592.0" y="40" width="140" height="46" rx="6"/>
 <text class="pf-t" x="662.0" y="59.0" text-anchor="middle">💭 한 줄</text>
@@ -44,14 +44,14 @@
 <text class="pf-t" x="662.0" y="175.0" text-anchor="middle">Dual channel</text>
 <text class="pf-s" x="662.0" y="192.0" text-anchor="middle">filler 먼저</text>
 <rect class="pf-box" x="592.0" y="214" width="140" height="46" rx="6"/>
-<text class="pf-t" x="662.0" y="233.0" text-anchor="middle">약속 저장과 닫기</text>
-<text class="pf-s" x="662.0" y="250.0" text-anchor="middle">요청 모드만</text>
+<text class="pf-t" x="662.0" y="233.0" text-anchor="middle">다음 턴에 한 번</text>
+<text class="pf-s" x="662.0" y="250.0" text-anchor="middle">router 가 think 일 때</text>
 <path class="pf-edge" d="M572.0,139.0 L586.0,139.0 L586.0,63.0 L592.0,63.0" marker-end="url(#inner-thought-h)"/>
 <path class="pf-edge" d="M572.0,139.0 L586.0,139.0 L586.0,121.0 L592.0,121.0" marker-end="url(#inner-thought-h)"/>
 <path class="pf-edge" d="M572.0,139.0 L586.0,139.0 L586.0,179.0 L592.0,179.0" marker-end="url(#inner-thought-h)"/>
 <path class="pf-edge" d="M572.0,139.0 L586.0,139.0 L586.0,237.0 L592.0,237.0" marker-end="url(#inner-thought-h)"/>
 <rect class="pf-panel" x="16" y="294" width="728" height="134" rx="8"/>
-<text class="pf-plabel" x="28" y="314">(b) 사고와 메인 응답의 순서 (JARVIS_THOUGHT__REQUEST_TIMING)</text>
+<text class="pf-plabel" x="28" y="314">(b) 사고와 메인 응답의 순서 (REQUEST_TIMING, router_model 이 있으면 router 가 정한다)</text>
 <text class="pf-code" x="150" y="340" text-anchor="end">before</text>
 <rect class="pf-bar pf-bar--accent" x="170.0" y="322" width="198.00000000000003" height="15" rx="3"/>
 <text class="pf-bar-t pf-bar-t--accent" x="269.0" y="333.5" text-anchor="middle">사고</text>

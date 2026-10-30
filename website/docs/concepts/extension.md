@@ -9,7 +9,7 @@ import FigureExtension from '@site/src/figures/extension.svg';
 
 <figure className="paper-fig">
   <FigureExtension />
-  <figcaption><b>Figure 1.</b> (a) ~/.jarvis 아래에 놓는 파일과 설정. (b) 기동 때 읽혀 도구 레지스트리, 슬래시 커맨드, 서브 에이전트 도구가 되고, 플러그인은 에이전트 루프의 네 훅에 걸린다. 파일을 더했으면 재시작한다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) ~/.jarvis 아래에 놓는 파일과 설정. (b) 기동 때 읽혀 도구 레지스트리, 슬래시 커맨드, 서브 에이전트 도구, 최상위 에이전트, 외부 이벤트 소스가 된다. 승인된 절차는 procedure_name 도구와 /name 스킬이 되고, 플러그인은 에이전트 루프의 네 훅에 걸린다. 파일을 더했으면 재시작한다.</figcaption>
 </figure>
 
 `~/.jarvis/` 아래 폴더에 파일을 놓아 JARVIS 에 도구, 스킬, 플러그인, 에이전트를 더한다.
@@ -75,7 +75,7 @@ aliases: [sum, tldr]
 {{args}}
 ```
 
-같은 이름의 `.py` 파일을 두면 `run(args, context)` 가 먼저 돌고, 그 반환 문자열이 프롬프트가 된다.
+스킬 파일은 `*.md` 와 `*.yaml` 만 읽는다. 스킬은 본문을 펼칠 뿐이고, 같은 이름의 `.py` 를 두어도 실행하지 않는다.
 
 ## 플러그인
 

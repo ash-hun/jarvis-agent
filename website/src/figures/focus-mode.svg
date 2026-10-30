@@ -4,7 +4,7 @@
 <text class="pf-plabel" x="28" y="32">(a) Focus 동안의 한 턴</text>
 <rect class="pf-box" x="185.0" y="46" width="130" height="44" rx="6"/>
 <text class="pf-t" x="250.0" y="64.0" text-anchor="middle">분석</text>
-<text class="pf-s" x="250.0" y="81.0" text-anchor="middle">턴 앞, 다섯 항목</text>
+<text class="pf-s" x="250.0" y="81.0" text-anchor="middle">응답과 같이, 다섯 항목</text>
 <rect class="pf-box" x="345.0" y="46" width="130" height="44" rx="6"/>
 <text class="pf-t" x="410.0" y="64.0" text-anchor="middle">조사</text>
 <text class="pf-s" x="410.0" y="81.0" text-anchor="middle">시작, 검색어가 나올 때</text>
@@ -23,14 +23,14 @@
 <path class="pf-edge" d="M84.0,150.0 L84.0,68.0 L185.0,68.0" marker-end="url(#focus-mode-h)"/>
 <text class="pf-elabel" x="90.0" y="62.0" text-anchor="start">같이 시작</text>
 <path class="pf-edge" d="M315.0,68.0 L345.0,68.0" marker-end="url(#focus-mode-h)"/>
-<text class="pf-elabel" x="330.0" y="63.0" text-anchor="middle">검색어</text>
 <path class="pf-edge pf-edge--accent" d="M250.0,90.0 L250.0,150.0" marker-end="url(#focus-mode-h-accent)"/>
-<text class="pf-elabel pf-elabel--accent" x="256.0" y="124.0" text-anchor="start">Focus 맥락</text>
+<text class="pf-elabel pf-elabel--accent" x="256.0" y="124.0" text-anchor="start">다음 턴의 Focus 맥락</text>
 <path class="pf-edge pf-edge--accent" d="M410.0,90.0 L410.0,162.0 L315.0,162.0" marker-end="url(#focus-mode-h-accent)"/>
 <text class="pf-elabel pf-elabel--accent" x="404.0" y="156.0" text-anchor="end">조사 요약</text>
 <path class="pf-edge" d="M250.0,194.0 L250.0,254.0" marker-end="url(#focus-mode-h)"/>
 <text class="pf-elabel" x="256.0" y="230.0" text-anchor="start">응답 뒤</text>
 <path class="pf-edge" d="M315.0,182.0 L410.0,182.0 L410.0,254.0" marker-end="url(#focus-mode-h)"/>
+<text class="pf-note" x="250" y="352" text-anchor="middle">Focus 동안은 먼저 거는 말을 내지 않는다</text>
 <text class="pf-note" x="250" y="334" text-anchor="middle">sub-agent 넷은 작업 동안 각자의 세션을 유지하고, 결과는 ~/.jarvis/focus/&lt;task_id&gt;/ 에 남는다</text>
 <rect class="pf-panel" x="500" y="12" width="244" height="356" rx="8"/>
 <text class="pf-plabel" x="512" y="32">(b) 화면</text>

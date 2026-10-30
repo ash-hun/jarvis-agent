@@ -10,7 +10,7 @@ import FigureExpApproval from '@site/src/figures/exp-approval.svg';
 
 <figure className="paper-fig">
   <FigureToolsAndApproval />
-  <figcaption><b>Figure 1.</b> 도구 호출 한 번은 허용 목록, 플러그인, 승인 순으로 검사한다. 승인이 필요하면 공용 또는 에이전트별 규칙을 먼저 보고, 맞는 규칙이 없을 때만 사람에게 묻는다. ALWAYS 는 지금 에이전트의 규칙 파일에 패턴을 남기고, 거부는 예외 대신 is_error 결과로 LLM 에 돌아간다.</figcaption>
+  <figcaption><b>Figure 1.</b> 도구 호출 한 번은 허용 목록, 플러그인, 승인 순으로 검사한다. 승인이 필요하면 공용 또는 에이전트별 규칙을 먼저 보고, 맞는 규칙이 없을 때만 사람에게 묻는다. ALWAYS 는 지금 에이전트의 규칙 파일에 패턴을 남긴다. 허용 목록과 플러그인의 거부는 is_error 결과로 LLM 에 돌아가고 루프가 이어진다. 사람이 거부했거나 시간이 지나 한 번에 부른 도구가 모두 거부되면 LLM 을 다시 부르지 않고 정해진 한 줄로 턴을 끝낸다. 결과가 모두 오류 없는 final 이면 그 글을 그대로 답으로 쓴다.</figcaption>
 </figure>
 
 에이전트는 도구로만 파일, 셸, 웹에 접근한다. 도구는 `core/tools/` 의 레지스트리에 모이고, 위험할 수 있는 도구는 실행 전에 `core/policy/sandbox.py` 가 사람에게 승인을 묻는다.
@@ -50,9 +50,16 @@ flowchart TD
   D -- 아니오 --> U[사용자에게 묻기<br/>ALLOW / ALWAYS / DENY, 120초]
   U -- ALLOW --> X
   U -- ALWAYS --> W[규칙 저장] --> X
-  U -- DENY 또는 120초 시간 초과 --> E3[is_error 결과: denied]
+  U -- DENY 또는 120초 시간 초과 --> E3[denied 결과]
+  E3 --> Q{한 번에 부른 도구가 모두 거부?}
+  Q -- 예 --> Z[LLM 없이 정해진 한 줄로 턴 종료]
+  Q -- 아니오 --> R
   X --> P[플러그인 after_tool_call]
-  P --> R[결과를 LLM 에]
+  P --> F{결과가 모두 오류 없는 final?}
+  F -- 예 --> FA[결과 글을 그대로 답으로]
+  F -- 아니오 --> R[결과를 LLM 에]
+  E1 --> R
+  E2 --> R
 ```
 
 거부는 예외로 처리하지 않는다. 한 번의 호출에서 요청한 도구가 모두 승인을 받지 못하면, 루프는 LLM 에 다시 묻지 않고 정해진 한 줄로 턴을 끝낸다. 다시 물으면 모델이 "터미널에서 직접 이렇게 하세요" 처럼 방법 안내로 빠지기 때문이다. 일부만 거부됐으면 LLM 이 나머지 결과로 답을 이어 간다.

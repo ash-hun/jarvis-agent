@@ -9,15 +9,14 @@ import FigureScheduling from '@site/src/figures/scheduling.svg';
 
 <figure className="paper-fig">
   <FigureScheduling />
-  <figcaption><b>Figure 1.</b> /schedule 문장은 한 번, 마감까지 반복, cron 셋 중 하나로 해석되어 작업 파일로 남는다. SchedulerService 가 10초마다 깨어나 시각이 된 작업을 처리한다. reminder 는 문장을 그대로 알리고, task 는 승인 없는 새 세션에서 실행한 뒤 결과를 세 곳으로 보낸다.</figcaption>
+  <figcaption><b>Figure 1.</b> /schedule 문장(대화 중이면 schedule 도구)은 한 번(…에) 또는 마감까지 반복(…까지)으로 해석되어 작업 파일로 남는다. cron 과 tool 작업은 파일에 직접 쓰고, goal 작업은 /goal 이 만든다. SchedulerService 가 10초마다 깨어나 시각이 된 작업을 종류대로 처리한다. reminder 는 문장을 그대로, task 는 승인 없는 새 세션에서 실행한 답을, tool 은 도구 글을, goal 은 목표 한 차례의 결과를 낸다. `deliver: conversation` 이면 그 에이전트의 대화에 에이전트의 말로 건네고, 건네지 못하면 알림으로 보낸다. 알림은 열린 Web 연결 전부로 가고, 열린 연결이 없으면 놓친 알림으로 쌓이며, Web Push, Slack, Discord 가 설정돼 있으면 거기로도 간다.</figcaption>
 </figure>
 
-JARVIS 는 정한 시각에 알림이나 작업을 돌린다. 한 번, 마감까지 반복, cron 세 가지로 등록하고 AGENDA 카드에서 켜고 끈다.
+JARVIS 는 정한 시각에 알림이나 작업을 돌린다. `/schedule` 로는 한 번과 마감까지 반복 두 가지를 등록하고, cron 주기는 작업 파일에 직접 쓴다. AGENDA 카드에서 켜고 끈다.
 
 ```text
 /schedule 내일 오전 9시에 배포 로그 확인해줘      # 한 번
 /schedule 2026.10.20 오후 6시까지 보고서 초안 작성   # 마감까지 반복
-/schedule 0 9 * * * date && uptime                  # cron
 ```
 
 ```mermaid
@@ -27,6 +26,7 @@ sequenceDiagram
   participant F as schedules/*.yaml
   participant S as SchedulerService
   participant R as 실행 세션
+  participant C as 에이전트의 대화
   participant H as 열린 Web 연결
   U->>D: /schedule 내일 오전 9시에 배포 로그 확인해줘
   D->>D: 시각과 종류 해석 (한 번이면 LLM 이 reminder / task 분류)
@@ -34,9 +34,17 @@ sequenceDiagram
   loop 10초마다
     S->>F: 다음 실행 시각 확인
   end
-  S->>R: 시각이 되면 새 세션에서 프롬프트 (task) 또는 문장 그대로 (reminder)
-  R-->>S: 결과
-  S->>H: reminder 이벤트 (없으면 놓친 알림 20건에 쌓음)
+  alt reminder
+    S->>S: 문장을 그대로 결과로
+  else task
+    S->>R: 새 세션에서 프롬프트 실행 (승인 없음)
+    R-->>S: 답
+  end
+  opt deliver: conversation
+    S->>C: 에이전트의 말로 건넴 (열린 대화가 없으면 마지막 대화를 다시 연다)
+    C-->>S: Focus 중이거나 답하는 중이면 못 건넴
+  end
+  S->>H: 못 건넸거나 notice 면 reminder 이벤트 (열린 연결이 없으면 놓친 알림 20건에 쌓음)
   S->>S: Web Push, Slack, Discord 가 있으면 거기도
 ```
 
@@ -92,7 +100,7 @@ deliver: conversation
 prompt: ""
 ```
 
-`deliver: conversation` 이면 결과를 스케줄 알림이 아니라 KAREN 의 말로 건넨다. 사용자가 KAREN 과 가장 최근에 대화한 세션에 먼저 건네는 말로 들어가 대화 기록에 남으므로, 이어서 "그거 자세히 알려줘" 라고 물을 수 있다. 화면에는 KAREN 의 말로 보이고, 음성이면 하던 말이 끝난 뒤 읽고, Web Push 로도 간다. 사용자가 그 에이전트와 대화한 세션이 아직 없거나(재시작 직후 포함), Focus 중이거나, 답하는 중이 2분 넘게 이어지면 지금처럼 스케줄 알림(`reminder`)으로 보낸다.
+`deliver: conversation` 이면 결과를 스케줄 알림이 아니라 KAREN 의 말로 건넨다. 사용자가 KAREN 과 가장 최근에 대화한 세션에 먼저 건네는 말로 들어가 대화 기록에 남으므로, 이어서 "그거 자세히 알려줘" 라고 물을 수 있다. 화면에는 KAREN 의 말로 보이고, 음성이면 하던 말이 끝난 뒤 읽고, Web Push 로도 간다. 지금 열린 대화가 없으면(재시작 직후 포함) 저장된 마지막 대화를 다시 열어 건네고, 그것도 없으면 새 대화를 만든다. Focus 중이거나 답하는 중이 2분 넘게 이어지면 스케줄 알림(`reminder`)으로 보낸다.
 
 :::danger
 
@@ -126,13 +134,16 @@ prompt: ""
 
 ```mermaid
 flowchart LR
+  TOOL[schedule 도구<br/>core/scheduler/tool.py] --> CMD
   CMD["/schedule 명령"] --> CLS[make_llm_classifier<br/>reminder 또는 task]
   CMD --> FILE[(~/.jarvis/schedules/*.yaml)]
   SVC[SchedulerService<br/>10초마다] --> FILE
-  SVC --> RUN[새 세션에서 프롬프트 실행<br/>승인 없음, 사고 없음]
-  RUN -. reminder .-> HUD[열린 Web 연결 전부]
-  RUN --> PEND[(놓친 알림 20건<br/>메모리)]
-  RUN --> NTF[Web Push, Slack, Discord]
+  SVC -->|task| RUN[새 세션에서 프롬프트 실행<br/>승인 없음, 사고 없음]
+  SVC -->|tool, goal| TG[도구 바로 호출, GoalRunner]
+  SVC -->|deliver: conversation| CONV[에이전트의 대화<br/>WebState.converse]
+  SVC -->|notice, 못 건넸을 때| HUD[열린 Web 연결 전부]
+  HUD -.->|열린 연결 없음| PEND[(놓친 알림 20건<br/>메모리)]
+  SVC -->|notice 와 함께| NTF[Web Push, Slack, Discord]
   AG[AGENDA 스위치] -->|enabled| FILE
 ```
 

@@ -11,7 +11,7 @@ import FigureExpMemoryRecall from '@site/src/figures/exp-memory-recall.svg';
 
 <figure className="paper-fig">
   <FigureMemory />
-  <figcaption><b>Figure 1.</b> (a) 매 턴 히스토리를 요약, 압축, 창으로 줄이고, 장기 기억에서 회상한 블록을 앞에 붙여 LLM 에 넣는다. (b) 장기 기억에는 네 가지 순간에만 쓴다. 매 턴 대화를 자동으로 저장하지는 않는다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) 매 턴 히스토리를 요약, 압축, 창으로 줄이고, 장기 기억에서 회상한 블록을 앞에 붙여 LLM 에 넣는다. [절차 기억] 은 장기 기억이 아니라 스킬 레지스트리에서 읽는다. (b) 장기 기억에는 다섯 가지 경로로만 쓴다. 매 턴 대화를 자동으로 저장하지는 않는다.</figcaption>
 </figure>
 
 Memory Management 는 JARVIS 가 지난 대화와 사용자에 대한 사실을 기억해 매 턴의 프롬프트에 넣는 기능이다. 작업 기억과 장기 기억 두 층으로 나뉜다. 장기 기억에는 정해진 순간에만 쓰고, 매 턴의 대화를 자동으로 저장하지는 않는다.
@@ -63,10 +63,10 @@ sequenceDiagram
 |---|---|---|---|
 | `explicit` | 의미 | shared | `/remember <text>`. 중요도 0.8 로 저장한다. 내용에 상대 지칭("그거 기억해")이 있으면 직전 주고받음을 `metadata.referent` 로 같이 남긴다 |
 | `extracted` | 의미 | shared | 통합(consolidation)이 일화에서 뽑은 사실 |
-| `usermodel` | 의미 | shared | 사용자 모델 |
+| `housing_profile` | 의미 | shared | KAREN 의 `housing_profile(action=set)`. 사용자마다 고정 id 하나로 덮어쓴다 |
 | `auto_summary`, `manual_compact`, `session_end` | 일화 | private | 압축, `/compact`, 세션 종료 |
 | `thought`, `journal` | 일화 | private | 사고 로그, 저널 |
-| `delegation` | 일화 | private | 멀티 에이전트 위임 기록 |
+| `delegation` | 일화 | private | 멀티 에이전트 위임 기록과 오케스트레이션 결과. 위임한 쪽 범위에 남는다 |
 | `task_pattern` | 절차 | private | 에이전트가 `remember_task_pattern` 도구로 사용자가 알려 준 방식을 저장할 때 |
 
 가시성 규칙: 같은 사용자의 항목 중 같은 에이전트가 쓴 것이나 shared 인 것만 읽는다. 그래서 서브 에이전트는 사용자의 `/remember` 사실은 보지만 부모의 private 요약은 보지 못한다.
@@ -224,8 +224,8 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  SES[AgentSession] --> CHAIN[MemoryMiddlewareChain]
-  CHAIN --> MGR[MemoryService<br/>memory/memory_service.py]
+  SES[AgentSession] --> H[AgentHarness<br/>agent_layer/harness.py]
+  H --> MGR[MemoryService<br/>memory/memory_service.py]
   MGR --> WM[작업 메모리<br/>working/]
   MGR --> LT[장기 기억<br/>episodic, semantic, procedural]
   MGR --> RET[회상<br/>retrieval/scoring.py]
@@ -235,6 +235,6 @@ flowchart LR
   LT --> S2[(jarvis_ltm_entries)]
 ```
 
-- 구현: `memory/memory_service.py`, `agent_layer/memory/chain.py`
+- 구현: `memory/memory_service.py`. 하네스가 턴 앞에서 `observe`, 답 뒤에서 `reinforce` 를 부른다
 - 핵심 모듈: `memory/`
 - 저장: 메모리 또는 Postgres

@@ -3,6 +3,10 @@
 from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
 from jarvis.memory.eval.benchmark import BenchmarkQuestion, Judge
 
+ABSTAIN = "모름"
+# 정답이 "근거 없음" 인 질문 유형. LongMemEval 은 _abs 질문, LoCoMo 는 adversarial(정답 칸이 비어 있다)
+ABSTAIN_TYPES = frozenset({"abstention", "adversarial"})
+
 ANSWER_PROMPT = """\
 아래는 과거 대화에서 떠올린 기억이다. 이것만 근거로 질문에 짧게 답하라. 근거가 없으면 "모름" 이라고 답하라.
 
@@ -15,7 +19,6 @@ ANSWER_PROMPT = """\
 
 JUDGE_PROMPT = """\
 질문과 정답, 그리고 모델의 답이 있다. 모델의 답이 정답과 같은 뜻이면 yes, 아니면 no 로만 답하라.
-정답이 비어 있거나 "모름" 류이고 모델도 모른다고 했으면 yes 다.
 
 질문: {question}
 정답: {answer}
@@ -33,6 +36,9 @@ def llm_judge(model: ModelConfig) -> Judge:
             tools=None,
         )
         predicted = (await stream_to_message(model, answer_ctx, StreamOptions())).text().strip()
+        if abstained(predicted):
+            # 판정 LLM 은 "모름" 을 정답이 있는 질문에도 맞다고 했다(raw 100문항 중 50여 건). 기권은 코드가 판정한다
+            return predicted, expects_abstention(question)
         judge_ctx = LLMContext(
             messages=[UserMessage(content=JUDGE_PROMPT.format(
                 question=question.question, answer=question.answer or "(없음)", predicted=predicted
@@ -43,6 +49,14 @@ def llm_judge(model: ModelConfig) -> Judge:
         return predicted, verdict.startswith("y")
 
     return judge
+
+
+def abstained(predicted: str) -> bool:
+    return predicted.strip().startswith(ABSTAIN)
+
+
+def expects_abstention(question: BenchmarkQuestion) -> bool:
+    return question.question_type in ABSTAIN_TYPES or not question.answer.strip()
 
 
 def contains_judge() -> Judge:

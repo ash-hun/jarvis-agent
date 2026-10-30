@@ -2,12 +2,12 @@
 
 from pathlib import Path
 
+from jarvis.memory.eval.judge import abstained, contains_judge, expects_abstention
 from jarvis.memory.eval.benchmark import format_benchmark, run_benchmark, sample
 from jarvis.memory.eval.adapters import LOADERS, load_locomo, load_longmemeval
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.eval.fake_embedder import FakeEmbedder
 from jarvis.memory.memory_service import MemoryService
-from jarvis.memory.eval.judge import contains_judge
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "benchmarks"
 
@@ -59,3 +59,21 @@ def test_sample_is_deterministic():
     qs = load_longmemeval(FIXTURES / "longmemeval_sample.json")
     assert sample(qs, 1, seed=7) == sample(qs, 1, seed=7)
     assert sample(qs, None) == qs
+
+
+async def test_full_mode_session_summary_lands_in_the_questioned_memory():
+    qs = load_longmemeval(FIXTURES / "longmemeval_sample.json")[:1]
+
+    async def save_session(memory, session_id, history, scope):
+        text = " ".join(m.content for m in history if isinstance(m.content, str))
+        return await memory.remember(text, source="session_end", scope=scope.with_session(session_id))
+
+    report = await run_benchmark("longmemeval", qs, _factory, k=3, mode="full", save_session=save_session)
+    assert report.results[0].retrieved and report.results[0].session_hit
+
+
+def test_abstention_is_judged_by_code_not_by_the_judge_model():
+    qs = load_longmemeval(FIXTURES / "longmemeval_sample.json")
+    answerable, unanswerable = qs[0], qs[1]
+    assert abstained("모름") and abstained(" 모름.") and not abstained("Business Administration")
+    assert not expects_abstention(answerable) and expects_abstention(unanswerable)

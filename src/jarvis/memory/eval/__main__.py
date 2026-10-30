@@ -110,8 +110,10 @@ async def _run_benchmark(args: argparse.Namespace) -> int:
         return MemoryService(InMemoryItemStore(), summarizer=summarizer, extractor=extractor, embedder=embedder)
 
     if args.mode == "full":
-        async def full_save_session(session_id: str, history: "list[Message]", scope: "MemoryScope") -> str | None:
-            return await EpisodicSummarizer(full_model, memory_factory()).save_session(session_id, history, scope)
+        async def full_save_session(
+            memory: MemoryService, session_id: str, history: "list[Message]", scope: "MemoryScope"
+        ) -> str | None:
+            return await EpisodicSummarizer(full_model, memory).save_session(session_id, history, scope)
 
         save_session = full_save_session
 

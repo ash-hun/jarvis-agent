@@ -101,8 +101,10 @@ class ItemStore:
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
         readable: Readable | None = None,
+        where: ItemFilter | None = None,
     ) -> list[MemoryItem]:
-        return _latest(self._visible(scope, kinds, readable), limit)
+        visible = self._visible(scope, kinds, readable)
+        return _latest([i for i in visible if where is None or where.allows(i)], limit)
 
     async def important(
         self,

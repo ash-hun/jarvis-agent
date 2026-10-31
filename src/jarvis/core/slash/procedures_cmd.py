@@ -38,7 +38,7 @@ def make_procedures_handler(
             if not procedures:
                 return (
                     "[Procedures] 학습된 절차가 없습니다. "
-                    "도구를 여러 번 쓴 작업이 성공으로 끝나면 세션 종료 때 초안이 생깁니다."
+                    "같은 종류의 작업이 3번 성공하면 통합(세션 종료, 유휴) 때 초안이 생깁니다."
                 )
             lines = ["[Procedures] 학습된 절차:"]
             for proc in procedures:

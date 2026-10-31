@@ -31,8 +31,9 @@ class SpyMemory:
             return messages
         return [UserMessage(content=self._prefix), *messages]
 
-    async def reinforce(self, answer: str, context: dict, *, tools=(), failed: bool = False) -> list[str]:
+    async def reinforce(self, answer: str, context: dict, *, tools=(), failed: bool = False, steps=()) -> list[str]:
         self.reinforced = (answer, list(tools), failed)
+        self.steps = list(steps)
         return []
 
 
@@ -329,6 +330,7 @@ async def test_reinforce_gets_called_tools_and_failure(faux_model_with_response,
     await _harness(model, repo, memory, loop_config=AgentLoopConfig(max_turns=2)).run("파일 읽어", executor)
     _, tools, failed = memory.reinforced
     assert tools[0] == "read_file" and failed is True
+    assert memory.steps == []  # 실패한 호출은 절차 재료(성공한 단계)에 넣지 않는다
 
 
 async def test_plain_answer_is_a_successful_turn_without_tools(faux_model_with_response, repo):
@@ -336,3 +338,14 @@ async def test_plain_answer_is_a_successful_turn_without_tools(faux_model_with_r
     await _harness(faux_model_with_response("안녕하세요"), repo, memory).run("안녕")
     answer, tools, failed = memory.reinforced
     assert answer.strip() == "안녕하세요" and tools == [] and failed is False
+
+
+async def test_successful_tool_calls_become_steps(faux_model_with_response, repo):
+    model = faux_model_with_response("", tool_calls=[{"id": "c1", "name": "read_file", "arguments": {"path": "a"}}])
+
+    async def executor(tool_call_id, tool_name, params):
+        return ToolResultMessage(tool_call_id=tool_call_id, tool_name=tool_name, content=[TextContent(text="ok")])
+
+    memory = SpyMemory()
+    await _harness(model, repo, memory, loop_config=AgentLoopConfig(max_turns=2)).run("파일 읽어", executor)
+    assert memory.steps[0] == ("read_file", {"path": "a"})

@@ -87,7 +87,7 @@ class InfraBuilder:
         from jarvis.core.plugins.runner import PluginRunner
 
         plugin_runner = PluginRunner()
-        procedure_store, procedure_learner = self.build_procedures(model_config)
+        procedure_store, procedure_learner = self.build_procedures(model_config, memory)
         agent_defs = asyncio.run(
             self.load_extensions(session_repo, tool_registry, skill_registry, plugin_runner, procedure_store)
         )
@@ -283,16 +283,21 @@ class InfraBuilder:
 
         return JsonlSessionRepo(sessions_root=scfg.sessions_dir)
 
-    def build_procedures(self, model_config: "ModelConfig") -> tuple["ProcedureStore", "ProcedureLearner | None"]:
+    def build_procedures(
+        self, model_config: "ModelConfig", memory: "MemoryService | None" = None
+    ) -> tuple["ProcedureStore", "ProcedureLearner | None"]:
         from jarvis.core.procedures import ProcedureLearner, ProcedureStore, llm_distiller
 
         pcfg = self._settings.procedures
         store = ProcedureStore(pcfg.dir)
         learner = (
-            ProcedureLearner(store, llm_distiller(model_config), min_tool_calls=pcfg.min_tool_calls)
+            ProcedureLearner(store, llm_distiller(model_config), min_tool_calls=pcfg.min_tool_calls, memory=memory)
             if pcfg.enabled
             else None
         )
+        if learner is not None and memory is not None and not memory.summarizes_sessions:
+            # 턴 모드는 consolidate(세션 종료, 유휴 틱) 끝에 EDM 에서 절차를 정제한다
+            memory.attach_refiner(learner.refine)
         return store, learner
 
     async def load_extensions(

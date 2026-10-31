@@ -329,6 +329,14 @@ class TestItemStoreMigration:
             )
             assert [i.metadata["turn"] for i in dated] == [1]
             assert await memory.recall_episodes("대출 계산", scope, task_type="weather") == []
+
+            # 정제 후보: 같은 종류 성공이 셋이어야 한다. 실패한 턴 2 와 사고 로그는 세지 않는다
+            await memory.record_turn(3, "대출 계산 3", "답", scope, task_type="housing_loan")
+            assert await memory.refinement_candidates(scope) == []
+            await memory.record_turn(4, "대출 계산 4", "답", scope, task_type="housing_loan")
+            [candidate] = await memory.refinement_candidates(scope)
+            assert candidate.task_type == "housing_loan"
+            assert sorted(i.metadata["turn"] for i in candidate.evidence) == [1, 3, 4]
         finally:
             await store.close()
 

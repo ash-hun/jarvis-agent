@@ -7,6 +7,7 @@ from datetime import datetime
 from collections.abc import Mapping
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
+from collections.abc import Awaitable, Callable
 
 from jarvis.memory.long_term.task_pattern import (
     SAVE_HINT,
@@ -32,6 +33,7 @@ from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank,
 from jarvis.memory.scope import MemoryScope, current_task, scope_from_context, task_scope
 from jarvis.memory.stores.protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore
 from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind, Visibility
+from jarvis.memory.long_term.refine import CHAT_TASK, Candidate, candidates
 from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
 from jarvis.memory.consolidation.semantic_extract import FactExtractor
 from jarvis.memory.working.state import WorkingState, WorkingStore
@@ -90,7 +92,14 @@ PATTERN_SCAN_LIMIT = 100
 RECALL_KINDS = (MemoryKind.EPISODIC, MemoryKind.SEMANTIC)
 # 사고 로그는 매 턴 사용자 말을 다시 적어 같은 낱말로 턴 일화보다 많이, 더 최근에 걸린다. 회상 자리를 빼앗지 않게 뺀다
 RECALL_FILTER = ItemFilter(exclude_sources=frozenset({"thought"}))
-CHAT_TASK = "chat"  # 도구를 부르지 않은 턴의 task_type
+TURN_STEPS = "steps"  # 턴 일화 metadata: 성공한 도구 호출 [{name, args}]. 절차 정제의 재료
+MAX_TURN_STEPS = 10
+MAX_STEP_ARG_CHARS = 200  # 파일 본문 같은 긴 인자는 잘라도 절차는 읽힌다
+# 절차 정제가 훑는 최근 일화 수. 사고 로그와 저널은 따라 할 작업이 아니라 뺀다
+REFINE_SCAN_LIMIT = 500
+REFINE_FILTER = ItemFilter(exclude_sources=frozenset({"thought", "journal"}))
+# consolidate 끝에 부르는 절차 정제. 새로 쓴 절차 초안 이름을 돌려준다(core/procedures 가 꽂는다)
+Refiner = Callable[[MemoryScope], Awaitable[list[str]]]
 # 떠올린 항목의 낱말이 답에 이만큼 나오면 답에 쓰였다고 보고 되뇌기로 센다
 USED_OVERLAP = 0.5
 # 규칙에 없는 경로는 에이전트가 겪은 일로 둔다. 의미 기억은 사용자에 대한 사실(사용자 프로필)이라 위 규칙으로만 쓴다
@@ -140,6 +149,7 @@ class MemoryService:
         self._stm_turns = stm_turns
         # 이번 턴의 (턴 번호, 사용자 발화). reinforce 가 답과 묶어 EDM 에 쓴다
         self._pending_turn: dict[MemoryScope, tuple[int, str]] = {}
+        self._refiner: Refiner | None = None
         # 이번 턴에 떠올린 항목. 답이 나오면 reinforce 가 꺼내 쓰였는지 본다. 턴 하나 동안만 산다
         self._pending_recall: dict[MemoryScope, list[MemoryItem]] = {}
 
@@ -150,6 +160,10 @@ class MemoryService:
     @property
     def working(self) -> WorkingStore:
         return self._working
+
+    def attach_refiner(self, refiner: Refiner) -> None:
+        """절차 저장소와 증류기는 메모리보다 늦게 만들어져 생성자로 받지 못한다. 다시 꽂으면 바꾼다."""
+        self._refiner = refiner
 
     @property
     def summarizes_sessions(self) -> bool:
@@ -254,11 +268,18 @@ class MemoryService:
         return blocks + out
 
     async def reinforce(
-        self, answer: str, context: dict[str, Any], *, tools: Sequence[str] = (), failed: bool = False
+        self,
+        answer: str,
+        context: dict[str, Any],
+        *,
+        tools: Sequence[str] = (),
+        failed: bool = False,
+        steps: Sequence[tuple[str, dict[str, Any]]] = (),
     ) -> list[str]:
         """이번 턴에 떠올린 항목 중 답에 쓰인 것만 되뇌기로 센다. 두 번 불러도 한 번만 센다.
 
-        턴 모드면 이번 턴을 EDM 에 쓴다. tools 는 이번 턴에 부른 도구 순서, failed 는 도구나 모델 실패.
+        턴 모드면 이번 턴을 EDM 에 쓴다. tools 는 이번 턴에 부른 도구 순서, failed 는 도구나 모델 실패,
+        steps 는 성공한 도구 호출(이름, 인자)이다.
 
         # ponytail: 항목 낱말이 답에 절반 넘게 나와야 쓰였다고 본다(긴 일화는 덜 잡힌다), 누락이 보이면 임베딩 유사도로
         """
@@ -266,7 +287,8 @@ class MemoryService:
         turn = self._pending_turn.pop(scope, None)
         if turn is not None:
             await self.record_turn(
-                turn[0], turn[1], answer, scope, task_type=tools[0] if tools else CHAT_TASK, failed=failed, tools=tools
+                turn[0], turn[1], answer, scope, task_type=tools[0] if tools else CHAT_TASK, failed=failed,
+                tools=tools, steps=steps,
             )
         cued = self._pending_recall.pop(scope, [])
         used = [item.id for item in cued if answer and relevance(item.content, answer) >= USED_OVERLAP]
@@ -287,6 +309,7 @@ class MemoryService:
         task_type: str = CHAT_TASK,
         failed: bool = False,
         tools: Sequence[str] = (),
+        steps: Sequence[tuple[str, dict[str, Any]]] = (),
     ) -> str:
         """턴 하나를 EDM 일화로 쓴다. 같은 세션의 같은 턴 번호면 같은 항목을 덮어 두 번 불러도 하나다.
 
@@ -298,7 +321,8 @@ class MemoryService:
         return await self.remember(
             content, source=TURN_SOURCE, scope=scope,
             metadata={TURN_INDEX: index, TASK_TYPE: task_type, OUTCOME: "failure" if failed else "success",
-                      "tools": list(dict.fromkeys(tools)), TURN_USER_CHARS: len(said)},
+                      "tools": list(dict.fromkeys(tools)), TURN_USER_CHARS: len(said),
+                      TURN_STEPS: [{"name": n, "args": _short_args(a)} for n, a in steps[:MAX_TURN_STEPS]]},
             item_id="turn_" + hashlib.sha1(key.encode()).hexdigest()[:27],
         )
 
@@ -472,6 +496,15 @@ class MemoryService:
         where = replace(RECALL_FILTER, task_type=task_type, outcome=outcome, since=since, until=until)
         return await self.recall(query, scope, kinds=[MemoryKind.EPISODIC], limit=limit, where=where)
 
+    async def refinement_candidates(self, scope: MemoryScope) -> list[Candidate]:
+        """이 에이전트의 같은 작업 종류 성공이 쌓여 절차로 정제할 만한 것. 자기 일화만 본다."""
+        resolved = scope.with_session(None)
+        items = await self._store.recent(
+            resolved, kinds=[MemoryKind.EPISODIC], limit=REFINE_SCAN_LIMIT,
+            readable=Readable.own(resolved.agent_id), where=REFINE_FILTER,
+        )
+        return candidates(items, resolved)
+
     async def recall_messages(self, query: str, context: dict[str, Any], limit: int = 10) -> list[Message]:
         """inner thought 의 회상 콜백(RecallFn) 모양. 범위는 턴 컨텍스트에서 정하고 항목은 사용자 메시지로 감싼다."""
         items = await self.recall(query, scope_from_context(context), limit=limit)
@@ -578,6 +611,8 @@ class MemoryService:
                     await self._store.store(episode)
 
         await mark_interference(self._store, resolved.with_session(None), self._interference_threshold)
+        if self._refiner is not None:
+            await self._refiner(resolved)
 
         state = await self._working.load(resolved)
         if state.rehearsal:
@@ -610,10 +645,21 @@ def _extraction_text(episode: MemoryItem) -> str:
     """사용자 프로필은 사용자에 대한 사실이다. 턴 일화는 사용자 발화만 넘긴다. 답의 추천이 사용자 사실로 뽑혔다."""
     if episode.source != TURN_SOURCE:
         return episode.content
+    return USER_PREFIX + turn_parts(episode)[0]
+
+
+def turn_parts(episode: MemoryItem) -> tuple[str, str]:
+    """턴 일화의 (사용자 발화, 답)."""
     n = episode.metadata.get(TURN_USER_CHARS)
+    body = episode.content.removeprefix(USER_PREFIX)
     if n is None:  # 이 키를 남기기 전에 쓴 턴 일화
-        return episode.content.partition("\n답: ")[0]
-    return episode.content[: len(USER_PREFIX) + int(n)]
+        user, _, answer = body.partition("\n답: ")
+        return user, answer
+    return body[: int(n)], body[int(n):].removeprefix("\n답: ")
+
+
+def _short_args(args: dict[str, Any]) -> dict[str, Any]:
+    return {k: v[:MAX_STEP_ARG_CHARS] if isinstance(v, str) else v for k, v in args.items()}
 
 
 def _text_of(message: Message) -> str:

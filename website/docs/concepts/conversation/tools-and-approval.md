@@ -115,19 +115,25 @@ rules:
 
 ## 절차 학습
 
-절차 학습은 여러 도구를 써서 성공으로 끝난 작업을 다시 쓸 수 있는 절차로 증류한다. 구현은 `core/procedures/` 에 있다.
+절차 학습은 여러 번 성공한 작업을 다시 쓸 수 있는 절차로 증류한다. 구현은 `core/procedures/` 에 있다. 기본(턴 모드, `JARVIS_MEMORY__STM_TURNS` 가 0 이 아님)에서는 장기 기억의 턴 일화(EDM)에서 정제한다.
 
 ```mermaid
 flowchart TD
-  S[세션 종료 또는 procedures learn] --> F[구간 찾기: 사용자 메시지 사이, 도구 3회 이상, 회복하지 못한 오류 0]
-  F --> K{이미 배운 구간인가}
+  C[통합: 세션 종료, 유휴 틱] --> E[EDM: 같은 task_type 의 성공 턴 3회 이상, 자기 일화만]
+  E --> K{이 세대를 이미 정제했나}
   K -- 예 --> N[건너뜀]
-  K -- 아니오 --> D[LLM 증류: name, description, parameters, steps, inputs, plan]
+  K -- 아니오 --> D[LLM 증류: 가장 최근 성공 턴의 요청, 도구 단계, 답]
+  L[procedures learn] --> F[세션 구간: 도구 3회 이상, 회복하지 못한 오류 0]
+  F --> D
   D --> W[procedures 폴더에 draft 로 저장]
   W --> A[procedures approve]
   A --> T[도구 procedure_name 과 스킬 등록]
 ```
 
+- **EDM 정제**: 턴 일화는 그 턴에서 성공한 도구 호출(이름과 인자, 인자 값은 200자까지)을 남긴다. 같은 에이전트의 같은 작업 종류(처음 부른 도구)가 3번 성공하면 후보가 된다. 실패한 턴, 도구를 쓰지 않은 대화(`chat`), 다른 에이전트의 일화는 세지 않는다
+- **세대**: 성공 3회마다 한 세대이고 출처가 `edm:<에이전트>:<작업 종류>:<세대>` 다. 같은 세대는 다시 증류하지 않으므로 통합을 몇 번 돌려도 초안은 하나다. 성공이 6회가 되면 새 세대의 초안이 따로 생기고, 옛 초안은 그대로 남는다
+- **승인**: 초안의 frontmatter 에 정제한 에이전트(`agent`)가 남는다. 승인하면 모든 에이전트의 도구가 된다(PDM 읽기 정책 밖)
+- **세션 구간 학습**: 한 세션에서 도구를 3회 이상 쓴 구간을 바로 배우는 옛 방식은 `/procedures learn` 과 옛 창 모드(`STM_TURNS=0`)의 세션 종료에서만 돈다. 한 번의 성공으로 절차를 만들지 않기 위해서다
 - 실패한 도구 호출 뒤에 같은 도구가 성공했으면 회복으로 보고 배운다. 실패한 호출은 절차에서 빼고 성공한 경로만 남긴다. 회복하지 못한 오류가 있는 구간은 배우지 않는다
 - 같은 구간은 두 번 배우지 않는다. 세션 종료 훅을 다시 돌려도 파일이 늘지 않는다
 - 이름이 겹치면 해시 접미사가 붙는다
@@ -231,7 +237,8 @@ flowchart LR
   BRK -. approval_request .-> MODAL[승인 모달, 음성 답]
   MODAL -->|approval_response| BRK
   EXE --> TOOLS[ToolRegistry<br/>내장, 사용자, MCP, 절차]
-  HIST[(세션 기록)] -->|세션 종료,<br/>/procedures learn| LRN[ProcedureLearner]
+  HIST[(세션 기록)] -->|/procedures learn| LRN[ProcedureLearner]
+  EDM[(턴 일화 EDM)] -->|통합: 세션 종료, 유휴| LRN
   LRN --> PS[(~/.jarvis/procedures/)]
   PS --> TOOLS
 ```

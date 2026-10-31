@@ -121,6 +121,8 @@ class LayeredTarget(EvalTarget):
         if policy:
             policies = {agent: MemoryPolicy(read=MemoryReadPolicy(**layers)) for agent, layers in policy.items()}
             self._memory = self._build(self._memory.store, policies)
+        if kind == "candidates":
+            return [c.task_type for c in await self._memory.refinement_candidates(scope)]
         if kind == "episodes" and episode_filter is not None:
             f = episode_filter
             items = await self._memory.recall_episodes(

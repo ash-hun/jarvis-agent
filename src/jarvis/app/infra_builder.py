@@ -57,9 +57,11 @@ class InfraBuilder:
         skill_registry = SkillRegistry()
         memory = self.build_memory(model_config, skill_registry)
         from jarvis.core.tools.task_pattern import TaskPatternTool
+        from jarvis.core.tools.episodes import RecallEpisodesTool
 
-        # 작업 패턴 저장은 메모리가 있어야 해서 메모리 다음에 등록한다. 모든 에이전트가 쓴다
+        # 작업 패턴 저장과 일화 회상은 메모리가 있어야 해서 메모리 다음에 등록한다. 모든 에이전트가 쓴다
         tool_registry.register(TaskPatternTool(memory))
+        tool_registry.register(RecallEpisodesTool(memory))
         session_repo = self.build_session_repo()
 
         from jarvis.core.policy.authenticator import NoAuthAuthenticator

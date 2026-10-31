@@ -31,7 +31,7 @@ import FigureExpApproval from '@site/src/figures/exp-approval.svg';
 
 `lh_notice`, `sh_notice`, `housing_loan`, `housing_budget` 은 에이전트만 쓰는 도구다. 앱 레지스트리에 넣지 않고, 에이전트 정의의 `tools` 에 이름을 적은 에이전트만 받는다([청약 공고와 대출 계산](../../agents/karen/housing.md)).
 
-`remember_task_pattern` 은 모든 에이전트가 쓰는 메모리 도구다. 사용자가 알려 준 작업 방식을 도구를 부른 에이전트의 작업 패턴으로 저장한다([Memory Management → 작업 패턴](../memory.md#작업-패턴)).
+`remember_task_pattern` 과 `recall_episodes` 는 모든 에이전트가 쓰는 메모리 도구다. 앞의 것은 사용자가 알려 준 작업 방식을 도구를 부른 에이전트의 작업 패턴으로 저장하고([Memory Management → 작업 패턴](../memory.md#작업-패턴)), 뒤의 것은 그 에이전트의 지난 턴 일화를 조건으로 골라 읽는다.
 
 실행 중에 동적으로 더해지는 도구도 있다. `orchestrate` 와 `agent_<name>`(에이전트 정의가 있을 때), `procedure_<name>`(승인된 절차), MCP 서버의 도구, `~/.jarvis/tools/` 의 사용자 도구가 그렇다. 사용자 도구와 MCP 도구는 같은 이름의 내장 도구를 덮어쓴다. 도구 목록은 턴마다 레지스트리에서 다시 읽으므로, 실행 중에 등록된 도구(승인된 절차 등)는 재시작 없이 보인다. `~/.jarvis/tools/` 에 파일을 더한 경우는 기동 때만 읽으므로 재시작한다.
 

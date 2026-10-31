@@ -1,15 +1,15 @@
 """[memory] 평가 대상 어댑터로, 실행기는 EvalTarget 만 알고 어느 저장소를 재는지는 주입으로 정한다."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from jarvis.memory.eval.schema import EpisodeFilter, RetentionCase, SetupStep, WorkingCase
 from jarvis.model_layer.types import AssistantMessage, Message, TextContent, UserMessage
 from jarvis.memory.long_term.procedural import InMemoryProcedures, Procedure
+from jarvis.memory.stores.protocol import OUTCOME, TASK_TYPE, ItemStore
 from jarvis.memory.access import MemoryPolicy, MemoryReadPolicy
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.scope import MAIN_AGENT, MemoryScope
 from jarvis.memory.memory_service import MemoryService
-from jarvis.memory.stores.protocol import ItemStore
 from jarvis.memory.types import MemoryKind
 
 RETENTION_CONTEXT = {"session_id": "eval", "user_id": "u1", "agent_id": MAIN_AGENT}
@@ -45,6 +45,7 @@ class EvalTarget:
             visibility=step.visibility,
             importance=step.importance,
             created_at=datetime.fromisoformat(step.at) if step.at else None,
+            metadata=self._episode_metadata(step),
         )
         if step.rehearsal_count:
             item = await self._memory.get(item_id)
@@ -96,6 +97,9 @@ class EvalTarget:
     def _stm_turns(self, case: RetentionCase) -> int | None:
         return None
 
+    def _episode_metadata(self, step: SetupStep) -> dict[str, str]:
+        return {}  # 기존 저장소는 일화 메타데이터가 없다
+
 
 class StoreTarget(EvalTarget):
     """jarvis.memory 의 서비스 + in-memory 저장소 + in-memory 절차 소스. 기본 평가 대상."""
@@ -117,7 +121,18 @@ class LayeredTarget(EvalTarget):
         if policy:
             policies = {agent: MemoryPolicy(read=MemoryReadPolicy(**layers)) for agent, layers in policy.items()}
             self._memory = self._build(self._memory.store, policies)
+        if kind == "episodes" and episode_filter is not None:
+            f = episode_filter
+            items = await self._memory.recall_episodes(
+                query, scope, task_type=f.task_type, outcome=f.outcome,
+                since=datetime.fromisoformat(f.since) if f.since else None,
+                until=datetime.fromisoformat(f.until) + timedelta(days=1) if f.until else None, limit=top_k,
+            )
+            return [i.content for i in items]
         return await super().probe(query, scope, top_k, kind, episode_filter, policy)
+
+    def _episode_metadata(self, step: SetupStep) -> dict[str, str]:
+        return {k: v for k, v in ((TASK_TYPE, step.task_type), (OUTCOME, step.outcome)) if v is not None}
 
 
     def _stm_turns(self, case: RetentionCase) -> int | None:

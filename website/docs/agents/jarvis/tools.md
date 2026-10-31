@@ -44,6 +44,7 @@ JARVIS 는 정의 파일이 없어서 도구 목록(`tools`)도 비어 있다. �
 |---|---|
 | `ask_agent` | 다른 최상위 에이전트에게 일을 맡긴다. 에이전트가 둘 이상일 때만 있다([Multi agent Orchestration](../../concepts/multi-agent-orchestration/index.md#에이전트끼리-대화)) |
 | `remember_task_pattern` | 사용자가 알려 준 작업 방식을 JARVIS 의 작업 패턴으로 저장한다([Memory Management → 작업 패턴](../../concepts/memory.md#작업-패턴)) |
+| `recall_episodes` | 최근 3턴보다 앞의 지난 턴을 작업 종류, 성패, 기간으로 골라 읽는다([Memory Management](../../concepts/memory.md#턴마다-일어나는-일)) |
 
 ## 갖지 않는 도구
 

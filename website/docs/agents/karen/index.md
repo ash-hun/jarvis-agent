@@ -47,7 +47,7 @@ title: KAREN
 | `web_search`, `web_fetch` | 웹 검색과 페이지 읽기 |
 | `read_file`, `list_dir`, `glob`, `grep` | 로컬 파일 읽기 |
 
-`ask_agent` 와 `remember_task_pattern` 은 `tools` 에 적지 않아도 모든 에이전트에게 붙는다. KAREN 이 배운 [작업 패턴](../../concepts/memory.md#작업-패턴)은 KAREN 에게만 남는다.
+`ask_agent`, `remember_task_pattern`, `recall_episodes` 는 `tools` 에 적지 않아도 모든 에이전트에게 붙는다. KAREN 이 배운 [작업 패턴](../../concepts/memory.md#작업-패턴)은 KAREN 에게만 남는다.
 
 ## 정의 파일
 

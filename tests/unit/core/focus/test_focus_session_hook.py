@@ -7,6 +7,7 @@ from collections.abc import AsyncIterator
 from jarvis.model_layer.model_types import LLMContext, ModelConfig, StreamEvent, StreamOptions
 from jarvis.model_layer.model_registry import get_default_registry
 from tests.fixtures.faux_provider import FauxProvider
+from jarvis.core.session import TurnHook
 
 
 class _Recording(FauxProvider):
@@ -22,7 +23,7 @@ class _Recording(FauxProvider):
             yield event
 
 
-class _Hook:
+class _Hook(TurnHook):
     def __init__(self) -> None:
         self.before: list[str] = []
         self.after: list[tuple[str, str]] = []
@@ -142,3 +143,10 @@ async def test_no_proactive_message_while_the_agent_is_answering(
 
     # 답하는 중에는 🔔 를 내지 않고, filler 와 답이 끝난 뒤의 🔔 는 낸다
     assert seen == [("filler", "잠깐만요"), ("proactive", "공고 마감이 내일이에요")]
+
+
+def test_base_turn_hook_adds_nothing_and_does_nothing():
+    hook = TurnHook()
+    asyncio.run(hook.before_turn("x"))
+    asyncio.run(hook.after_turn("x", "y"))
+    assert hook.system_addendum() is None

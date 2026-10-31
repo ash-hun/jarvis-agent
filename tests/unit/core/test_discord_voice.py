@@ -2,11 +2,18 @@
 
 import asyncio
 
-from jarvis.core.notify.discord_voice import CUT_NOTE, SPEAK_MAX_CHARS, DiscordVoice, speech_of, voice_first
+from jarvis.core.notify.discord_voice import (
+    CUT_NOTE,
+    SPEAK_MAX_CHARS,
+    DiscordVoice,
+    VoiceGateway,
+    speech_of,
+    voice_first,
+)
 from jarvis.voice.speech_text import speech_text
 
 
-class Gateway:
+class Gateway(VoiceGateway):
     def __init__(self, channel=None, fail: bool = False) -> None:
         self.channel = channel
         self.fail = fail
@@ -21,7 +28,7 @@ class Gateway:
         self.played.append((channel, wav))
 
 
-def _run(gateway: Gateway, payload: dict) -> tuple[list, list]:
+def _run(gateway: VoiceGateway, payload: dict) -> tuple[list, list]:
     texts: list[dict] = []
     spoken: list[str] = []
 
@@ -69,3 +76,7 @@ def test_long_alert_is_cut_and_also_sent_as_text():
 def test_speech_does_not_repeat_the_agent_name():
     text, cut = speech_of({"type": "proactive_message", "agent_name": "K.A.R.E.N.", "text": "확인할까요?"}, speech_text)
     assert text.count("K.A.R.E.N.") == 1 and not cut
+
+
+def test_base_gateway_treats_user_as_not_in_voice_and_sends_text():
+    assert _run(VoiceGateway(), REMINDER) == ([], [REMINDER])

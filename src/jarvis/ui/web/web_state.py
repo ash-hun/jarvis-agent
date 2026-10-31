@@ -15,8 +15,8 @@ from jarvis.ui.web.approvals import SessionApprovals
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from jarvis.core.focus.focus_service import FocusService, SubAgent
     from jarvis.agent_layer.thought.reply import ReplyClassifier
+    from jarvis.core.focus.focus_service import FocusService
     from jarvis.ui.web.adapter import PerConnectionAdapter
     from jarvis.voice.voice_service import VoiceService
     from jarvis.app.app_assembly import AppAssembly
@@ -99,7 +99,7 @@ class WebState:
         ctx, services = self.assembly.ctx, self.assembly.services
         builder = SubagentBuilder(ctx, services, ctx.tool_registry)
 
-        async def make_agent(role: str, session_id: str) -> "SubAgent":
+        async def make_agent(role: str, session_id: str) -> "AgentSession":
             definition = AgentDefinition(
                 name=f"focus-{role}",
                 description=f"Focus 모드 {role} 담당",

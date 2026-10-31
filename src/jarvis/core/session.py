@@ -5,8 +5,8 @@ import asyncio
 import contextlib
 from collections import deque
 from datetime import datetime
+from typing import Any, Literal, cast
 from collections.abc import Awaitable, Callable
-from typing import Any, Literal, Protocol, cast
 
 from jarvis.agent_layer.agent_types import (
     AgendaChangedEvent,
@@ -104,14 +104,17 @@ class SessionBusy(Exception):
     """같은 세션에 이전 요청이 아직 돌고 있을 때 새 prompt 를 거부한다."""
 
 
-class TurnHook(Protocol):
-    """턴마다 끼어드는 확장(Focus 모드). 시스템 프롬프트에 맥락을 더하고, 턴 앞뒤에 뒤에서 일을 돌린다."""
+class TurnHook:
+    """턴마다 끼어드는 확장(Focus 모드). 턴 앞뒤에 일을 더한다. 기본은 아무것도 하지 않는다."""
 
-    def system_addendum(self) -> str | None: ...
+    def system_addendum(self) -> str | None:
+        return None
 
-    async def before_turn(self, user_input: str) -> None: ...
+    async def before_turn(self, user_input: str) -> None:
+        return None
 
-    async def after_turn(self, user_input: str, reply: str) -> None: ...
+    async def after_turn(self, user_input: str, reply: str) -> None:
+        return None
 
 
 THOUGHT_WAIT_SEC = 3.0

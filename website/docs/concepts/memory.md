@@ -138,7 +138,7 @@ sequenceDiagram
 
 통합은 일화에서 오래 가는 사실을 뽑아 의미 기억으로 올리는 일이다. 여러 번 돌려도 결과가 같다(멱등하다).
 
-1. `turn`, `manual_compact`, `session_end`, `auto_summary` 일화 중 아직 통합되지 않은 것을 최근 50건까지 본다. 턴 일화는 세션별로 턴 순서대로 묶어 LLM 을 한 번만 부른다
+1. `turn`, `manual_compact`, `session_end`, `auto_summary` 일화 중 아직 통합되지 않은 것을 최근 50건까지 본다. 턴 일화는 세션별로 턴 순서대로 묶어 LLM 을 한 번만 부른다. 턴 일화는 사용자 발화만 넘긴다. 답까지 넘기면 JARVIS 가 추천한 메뉴("저녁 메뉴: 볶음밥")가 사용자 사실로 뽑혔다
 2. LLM 이 `{key, value, importance}` 목록을 낸다. 중요도 0.5 미만은 버린다
 3. `extracted` 사실로 저장하고, 원래 일화에 통합됨 표시를 남긴다
 4. 작업 기억의 되뇌기 횟수를 항목으로 옮긴다

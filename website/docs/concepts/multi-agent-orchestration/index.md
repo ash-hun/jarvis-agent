@@ -47,7 +47,7 @@ memory:                       # 비우면 자기 기억만 읽는다
 
 - id 는 `^[a-z][a-z0-9_-]{0,31}$` 를 따라야 한다. `main.yaml` 은 무시한다. JARVIS 의 정본은 env(`JARVIS_BRAND__*`, `JARVIS_LLM__*`)다
 - 잘못된 파일은 로그만 남기고 그 파일만 건너뛴다
-- `tools` 에는 에이전트만 쓰는 도구(`lh_notice`, `sh_notice`, `housing_loan`, `housing_budget`)도 적을 수 있다. 이 도구는 `tools` 가 빈 JARVIS 에게는 보이지 않는다
+- `tools` 에는 에이전트만 쓰는 도구(`lh_notice`, `sh_notice`, `housing_loan`, `housing_budget`, `housing_profile`, `housing_watch`)도 적을 수 있다. 이 도구는 `tools` 가 빈 JARVIS 에게는 보이지 않는다
 - `ask_agent`, `remember_task_pattern`, `recall_episodes` 는 `tools` 에 적지 않아도 모든 에이전트에게 붙는다. 작업 패턴은 에이전트마다 따로 기억한다([Memory Management → 작업 패턴](../memory.md#작업-패턴))
 - `memory.read` 는 층별로 더 읽을 에이전트를 적는다([Memory Management → 읽기 권한](../memory.md#읽기-권한)). 모르는 키가 있으면 그 파일을 건너뛴다
 - 사고 설정은 JARVIS 것을 같이 쓰고, proactive 피드백 학습기는 에이전트마다 따로 둔다
@@ -72,7 +72,7 @@ memory:                       # 비우면 자기 기억만 읽는다
 - TUI: `jarvis --agent karen` 은 `default-karen` 세션으로 시작한다. `--session ID` 는 그 세션을 만든 에이전트로 연다
 - 분기한 세션은 부모와 같은 에이전트를 쓴다
 - 스케줄: 작업 YAML 의 `agent: karen` 이면 그 에이전트의 모델, 시스템 프롬프트, 기억 범위로 돈다. `/schedule` 로 만든 작업은 명령을 친 세션의 에이전트가 들어간다
-- 성찰 daemon 은 열린 세션 전부를 돈다. proactive 가 꺼진 에이전트(KAREN 기본값)의 세션은 성찰을 건너뛴다
+- 성찰 daemon 은 열린 세션 전부를 돈다. 정의 파일에 `proactive: false` 를 적은 에이전트의 세션은 성찰을 건너뛴다. KAREN 은 `proactive: true` 라 성찰한다
 
 ## 승인 규칙은 두 겹
 
@@ -109,7 +109,7 @@ sequenceDiagram
 - 요청 끝에 규칙 한 줄(`PEER_REQUEST_RULE`)이 붙는다. 받은 일이니 필요하면 가진 도구를 먼저 부르고, 도구 결과에 있는 것만 답하라는 내용이다
 - 받는 쪽 도구의 승인 요청은 부른 세션의 화면에 뜬다
 - 깊이는 A → B → A 까지만 허용한다. 그보다 깊으면 도구가 거절하고 지금 아는 것으로 답하게 한다
-- 받은 일을 보낸 쪽에 되돌리지 못한다. 받은 요청과 글자가 거의 같은(bigram Jaccard 0.4 이상) 일을 그 요청을 보낸 에이전트에게 다시 맡기면 도구가 거절한다. 되묻기("관심 분야가 뭐야?")처럼 다른 질문은 맡길 수 있다
+- 받은 일을 보낸 쪽에 되돌리지 못한다. 받은 요청과 같거나, 한쪽이 다른 쪽에 통째로 들어 있거나, 글자가 거의 같은(bigram Jaccard 0.4 이상) 일을 그 요청을 보낸 에이전트에게 다시 맡기면 도구가 거절한다. 되묻기("관심 분야가 뭐야?")처럼 다른 질문은 맡길 수 있다
 - 받는 쪽이 같은 쌍의 다른 질문에 답하는 중이면 "다른 일을 하고 있다" 는 오류 결과를 돌려준다. 300초 안에 답이 없으면 시간 초과가 된다
 - 받는 쪽이 Dual channel 로 백그라운드 답을 하면 끝날 때까지 기다렸다가 저장된 마지막 답을 돌려준다
 

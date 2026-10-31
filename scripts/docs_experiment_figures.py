@@ -16,9 +16,18 @@ SERIES = {"e2b": ("gemma4:e2b", "pf-s1"), "e4b": ("gemma4:e4b", "pf-s2"), "gpt":
 def legend(fig: Fig, x: float, y: float, keys: list[str], names: dict[str, tuple[str, str]] = SERIES) -> None:
     for key in keys:
         name, cls = names[key]
-        fig.parts.append(f'<rect class="{cls}" x="{x}" y="{y - 8}" width="10" height="10" rx="2"/>')
+        fig.parts.append(marker(cls, x + 5, y - 3))
         fig.text(x + 15, y + 1, name, "pf-s")
         x += 15 + text_width(name, 11) + 18
+
+
+def marker(cls: str, x: float, y: float) -> str:
+    """범례 칸. 점 그림의 계열은 그림과 같은 모양(● 같은 약속, ◆ 다른 약속), 나머지는 막대 색 칸이다."""
+    if cls == "pf-dot-same":
+        return f'<circle class="{cls}" cx="{x}" cy="{y}" r="4"/>'
+    if cls == "pf-dot-diff":
+        return f'<rect class="{cls}" x="{x - 3.5}" y="{y - 3.5}" width="7" height="7" transform="rotate(45 {x} {y})"/>'
+    return f'<rect class="{cls}" x="{x - 5}" y="{y - 5}" width="10" height="10" rx="2"/>'
 
 
 def axis(fig: Fig, x0: float, y0: float, y1: float, w: float, vmax: float, ticks: list[float], fmt: str) -> None:
@@ -191,7 +200,7 @@ def exp_open_loop(r: dict) -> Fig:
 
 def exp_memory(r: dict) -> Fig:
     lang = r["summary_language"]
-    fig = Fig("exp-memory", 0, "컴팩션 요약의 언어와 사실 보존")
+    fig = Fig("exp-memory", 0, "/compact 요약의 언어와 사실 보존")
 
     def ratio(text: str) -> float:
         a, b = (int(n) for n in text.split("/"))
@@ -257,7 +266,7 @@ def _line_panel(  # type: ignore[no-untyped-def]
         mx = px(xs.index(at))
         fig.parts.append(f'<line class="pf-mark" x1="{mx:.1f}" y1="{top - 6}" x2="{mx:.1f}" y2="{bottom}"/>')
         # 오른쪽 위아래로 두 선이 지나가지 않는 띠(50% 근처)에 적는다
-        fig.text(mx + 6, top + (bottom - top) / 2 + 3, text, "pf-mark-t")
+        fig.text(mx + 6, top + (bottom - top) / 2 - 6, text, "pf-mark-t")
     for side, name in (("before", "이전 코드"), ("after", "지금")):
         values = [curves[side][n] for n in xs]
         d = "M" + " L".join(f"{px(i):.1f},{py(v):.1f}" for i, v in enumerate(values))
@@ -433,7 +442,7 @@ def exp_focus(r: dict) -> Fig:
     names = {"local": ("gemma4:e4b", "pf-s2"), "cloud": ("gpt-4o-mini", "pf-s3")}
     fig = Fig("exp-focus", 0, "Focus 시작 시간과 조사 형식 준수")
     rows = [(t["task"], {"local": t["local"], "cloud": t["cloud"]}) for t in f["first_reply"]]
-    draw = bars_with_legend(fig, list(names), rows, 45, [0, 15, 30, 45], "{:.0f}", "{:.1f}s", names)
+    draw = bars_with_legend(fig, list(names), rows, 25, [0, 5, 10, 15, 20, 25], "{:.0f}", "{:.1f}s", names)
     y = section(fig, 10, "(a) /focus 부터 첫 응답 글자까지(초), 작업 2개", draw)
     cols = ["gemma4:e4b", "gpt-4o-mini"]
     y = section(

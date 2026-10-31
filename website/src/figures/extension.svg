@@ -30,7 +30,7 @@
 <text class="pf-plabel" x="278" y="32">(b) 붙는 자리. 파일을 더했으면 재시작한다</text>
 <rect class="pf-box" x="290.0" y="66" width="200" height="44" rx="6"/>
 <text class="pf-t" x="390.0" y="84.0" text-anchor="middle">도구 레지스트리</text>
-<text class="pf-s" x="390.0" y="101.0" text-anchor="middle">턴마다 다시 읽는다</text>
+<text class="pf-s" x="390.0" y="101.0" text-anchor="middle">승인한 절차는 다음 턴부터</text>
 <rect class="pf-box" x="290.0" y="180" width="200" height="44" rx="6"/>
 <text class="pf-t" x="390.0" y="198.0" text-anchor="middle">슬래시 커맨드</text>
 <text class="pf-s" x="390.0" y="215.0" text-anchor="middle">/name 이 프롬프트로 펼쳐짐</text>

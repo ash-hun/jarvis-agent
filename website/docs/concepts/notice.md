@@ -12,14 +12,14 @@ Jarvis-Agent의 기능을 정리하고 어떤 원칙으로 구현되었는지 �
 | 기능 | 무엇을 하나 | 쓰는 곳 |
 |---|---|---|
 | [Basic Conversation](./architecture/index.md) | 메시지를 받아 LLM 과 도구를 오가며 답한다. 스트리밍, 중단, 프로바이더 교체 | 입력창, 음성, TUI |
-| [Inner Thought](./architecture/inner-thought.md) | 메인 응답과 분리된 호출로 해석, 결정, 확신도, 약속을 만든다 | 💭 한 줄 |
+| [Inner Thought](./architecture/inner-thought.md) | 메인 응답과 분리된 호출로 해석, 결정, 확신도, 먼저 건넬 말을 만든다. router 를 쓰면 필요한 요청에만 돈다 | 💭 한 줄 |
 | [Dual channel](./architecture/proactive.md#dual-channel) | 오래 걸릴 요청이면 "잠깐만요" 를 먼저 말하고 메인은 뒤에서 돈다 | 💬 filler |
 | [Proactive Dialogue](./architecture/proactive.md#성찰과-먼저-건네는-말) | 요청이 없어도 주기적으로 성찰해 가치가 분명할 때만 먼저 말한다 | 🔔, Web Push, Slack, Discord |
-| [Process Pattern Analysis](./architecture/proactive.md#피드백-학습) | 🔔 에 대한 수락, 무시, 무응답으로 발화 임계치를 움직인다. 키워드가 아닌 답은 사고 모델이 분류한다 | 🔔 아래 질문, `Ctrl+Y`/`Ctrl+G` |
+| [Process Pattern Analysis](./architecture/proactive.md#피드백-학습) | 🔔 에 대한 수락, 무시, 무응답으로 발화 임계치를 움직인다. 묻지 않고 그 뒤 첫 말을 사고 모델이 분류한다 | 🔔 뒤 첫 말, `Ctrl+Y`/`Ctrl+G` |
 | [Open loop](./conversation/open-loop.md) | 대화에서 흘린 약속을 기억하고, 끝나거나 취소되거나 기한이 지나면 닫는다 | AGENDA, `/openloop` |
 | [Scheduling](./conversation/scheduling.md) | 한 번, 마감까지 반복, cron 으로 알림이나 작업을 돌린다 | `/schedule`, AGENDA |
 | [MCP Events](./conversation/mcp.md) | MCP 도구를 주기적으로 불러 새 항목을 성찰에 먹인다 | 🔔 |
-| [Memory Management](./memory.md) | 작업 메모리, 일화, 의미, 절차 기억, 에이전트별 작업 패턴(사용자가 알려 준 방식). 회상, 통합, 임베딩 | 사고와 응답의 맥락 |
+| [Memory Management](./memory.md) | 최근 3턴과 작업 기억, 턴마다 쓰는 일화, 의미, 절차 기억, 에이전트별 작업 패턴(사용자가 알려 준 방식). 회상, `recall_episodes`, 통합, 임베딩 | 사고와 응답의 맥락 |
 | [Tool & Approve System](./conversation/tools-and-approval.md) | 내장 도구와 MCP, 실행 전 승인과 승인 기억, 반복 작업을 절차 도구로 | 승인 모달, `/procedures` |
 | [Sessions](./conversation/sessions.md) | 대화 단위. 만들기, 전환, 분기, 이어 붙이기 | SESSIONS 카드, TUI 사이드바 |
 | [Multi agent Orchestration](./multi-agent-orchestration/index.md) | JARVIS 와 같은 층의 에이전트(KAREN 등)를 파일 하나로 늘린다. 세션, 기억, 승인 규칙, 색을 따로 갖고 `ask_agent` 로 서로 일을 맡긴다 | 에이전트 칩, AGENDA 라벨, 구체 색 섞임 |
@@ -35,7 +35,7 @@ Jarvis-Agent는 구현 및 운영부문에 아래 원칙을 지킨다.
 
 사용자가 답을 기다리는 시간을 줄이는 것이 목표다. 물었을 때는 오래 걸리는 일이라도 바로 반응하고, 알아야 할 일은 묻기 전에 먼저 알린다.
 
-- **사고와 응답을 나눈다**: 입력 하나마다 LLM 을 두 번 부른다. 메인 응답은 도구를 쓰고 답을 만든다. 내적 사고는 같은 입력을 보고 의도, 먼저 말할지, 뒤에서 할지, 약속이 생겼는지를 사고 프레임(`ThoughtFrame`)으로 낸다. 사고 모델은 메인보다 작고 싸게 둘 수 있고, 사고가 응답을 막지 않도록 시점을 고른다(`before`, `race`, `after`). 기본값 `race` 는 사고를 3초까지만 기다린다
+- **사고와 응답을 나눈다**: 입력 하나마다 LLM 을 두 번 부른다. 메인 응답은 도구를 쓰고 답을 만든다. 내적 사고는 같은 입력을 보고 의도, 먼저 말할지, 뒤에서 할지를 사고 프레임(`ThoughtFrame`)으로 낸다. 약속이 생겼는지는 따로 도는 AGENDA 판단이 본다. 사고 모델은 메인보다 작고 싸게 둘 수 있고, 사고가 응답을 막지 않도록 시점을 고른다(`before`, `race`, `after`). 기본값 `race` 는 사고를 3초까지만 기다린다. router 모델을 정하면 router 가 요청마다 사고가 필요한지 정하고, 사고 결과는 다음 턴에 넣는다
 - **오래 걸릴 일은 먼저 답한다**: 사고가 오래 걸릴 요청으로 판단하면 "잠깐만요" 같은 짧은 답(💬 filler)을 먼저 보내고 메인은 뒤에서 돈다. 사용자는 빈 화면을 보며 기다리지 않는다
 - **묻기 전에 먼저 말한다**: 요청이 없어도 주기적으로(기본 120초) 또는 대화가 조용해지면 성찰해서, 다가오는 기한이나 사용자의 일에 영향을 주는 외부 이벤트를 먼저 알린다(🔔)
 - **먼저 말하기 전에 게이트를 지난다**: 필요 없는 말은 오히려 사용자를 방해한다. 먼저 건네는 말은 사고 프레임의 `utterance` 만 쓴다. 해석문은 사용자를 3인칭으로 분석한 문장이라 그대로 내보내지 않는다. 발화는 확신도 임계치, 쿨다운, 빈 발화 검사를 전부 지나야 하고, 침묵한 이유는 로그에 남는다. 임계치는 🔔 에 대한 수락, 무시, 무응답으로 사용자에 맞게 움직인다

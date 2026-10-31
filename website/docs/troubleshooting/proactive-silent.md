@@ -24,8 +24,8 @@ JARVIS 는 먼저 말하지 않을 때마다 그 이유를 백엔드 로그에 �
 - `cooldown`: 마지막 발화 뒤 300초가 지나지 않았다
 - `confidence`: 사고 프레임의 확신도가 임계치보다 낮다. Process Pattern Analysis 로 임계치가 올라갔을 수도 있다
 - `empty utterance`: 모델이 건넬 말을 채우지 않았다. 사고 템플릿에 `utterance` 키가 있는지 확인한다
-- `nothing to tell`: 열린 약속도 새 외부 이벤트도 없어 사고 모델을 부르지 않았다. 먼저 말할 근거가 없는 것으로, 정상 동작이다. 대화나 약속, 이벤트가 그대로면 로그 없이 건너뛴다(`unchanged`)
-- `repeats a recent proactive message`, `repeats the last answer`: 사고가 최근 🔔 나 10분 안에 한 답과 같은 내용을 다시 골랐다. 정상 동작이다
+- `nothing to tell`: 챙길 약속(기한이 없거나 기한이 30분 안으로 다가왔거나 지난 약속)도 새 외부 이벤트도 없어 사고 모델을 부르지 않았다. 먼저 말할 근거가 없는 것으로, 정상 동작이다. 대화나 약속, 이벤트가 그대로면 로그 없이 건너뛴다(`unchanged`). 새로 연 세션에 아직 대화가 없을 때도 로그 없이 건너뛴다
+- `repeats a recent proactive message`, `repeats the last answer`: 사고가 최근 🔔 세 개 중 하나나 10분 안에 한 마지막 답과 같은 내용을 다시 골랐다. 정상 동작이다
 - `[Proactive] suppressed while answering`: 세션이 답하는 중에 🔔 가 생겼다. 답과 섞이지 않게 버린 것으로, 정상 동작이다
 - `[Proactive] suppressed during turn hook`: 그 세션이 Focus 작업 중이다. Focus 동안에는 🔔 를 보내지 않는다(💬 filler 와 맡긴 일의 답은 보낸다). `/focus stop` 으로 끝내면 다시 나온다
 - 로그가 아예 없으면 daemon 이 꺼져 있거나(`JARVIS_PROACTIVE__DAEMON_ENABLED`) 성찰 프레임이 깨지고 있는 것이다

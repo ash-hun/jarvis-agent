@@ -50,6 +50,7 @@ proactive: false
 | `tools` | | 앱의 도구 전체 | 쓸 도구 이름 목록 |
 | `proactive` | | JARVIS 설정 | `false` 면 혼자 먼저 말을 걸지 않고 성찰도 건너뛴다 |
 | `boundaries` | | 경계 없음 | 스스로 할 때의 경계. `ask` 는 목표 차례, 스케줄 작업, 먼저 해 두기에서 하지 않는 도구, `never` 는 어디서도 쓰지 않는 도구다([Goals](../concepts/conversation/goals.md#경계)) |
+| `memory` | | 자기 기억만 | `read.edm`, `read.pdm` 에 이 에이전트가 더 읽을 에이전트 id 를 적는다. 사용자 프로필은 적지 않아도 모두 읽는다([Memory Management → 읽기 권한](../concepts/memory.md#읽기-권한)) |
 
 목록에 없는 항목을 넣으면 그 파일은 잘못된 파일로 처리된다.
 
@@ -57,7 +58,9 @@ proactive: false
 
 - `tools` 를 비우면 앱에 등록된 도구 전체를 쓴다. 역할이 좁은 에이전트는 필요한 도구만 적는다
 - `ask_agent`(다른 에이전트에게 맡기기), `remember_task_pattern`(작업 패턴 저장), `recall_episodes`(지난 일화 골라 읽기)는 적지 않아도 붙는다
-- KAREN 의 `lh_notice`, `sh_notice`, `housing_budget`, `housing_loan` 처럼 에이전트 전용 도구도 이름을 적으면 쓸 수 있다
+- 승인된 절차 도구(`procedure_<name>`)도 적지 않아도 보인다. 다만 절차의 단계는 이 에이전트의 도구로 돌므로 `tools` 에 없는 도구를 쓰는 단계에서 멈춘다
+- KAREN 의 `lh_notice`, `sh_notice`, `housing_budget`, `housing_loan`, `housing_profile`, `housing_watch` 처럼 에이전트 전용 도구도 이름을 적으면 쓸 수 있다
+- `tools` 를 비우고 `boundaries.never` 만 적으면 앱의 도구 전체에서 그 도구만 뺀다
 - 새 전용 도구를 만들려면 코드가 필요하다. 도구를 구현해 `app/infra_builder.py` 의 `build_agent_tools` 에 등록한 뒤 정의 파일의 `tools` 에 이름을 적는다. 이 도구는 `tools` 가 빈 JARVIS 에게는 보이지 않는다
 
 ## 반영하고 확인하기
@@ -70,6 +73,6 @@ proactive: false
 :::note[Notes]
 
 - 칩이 보이지 않으면 로그에서 `[Team] skip '<파일명>'` 줄을 찾는다. id 규칙 위반이나 YAML 형식 오류가 그 줄에 적힌다. 잘못된 파일 하나만 건너뛰고 나머지 에이전트는 그대로 뜬다
-- 새 에이전트도 사용자 모델과 사용자에 대한 사실은 JARVIS 와 공유한다. 대화 요약 같은 일화 기억과 **항상 허용** 승인 규칙은 그 에이전트에게만 쌓인다
+- 새 에이전트도 사용자 모델과 사용자 프로필(사용자에 대한 사실)은 JARVIS 와 공유한다. 턴마다 남는 일화 기억, 작업 패턴, **항상 허용** 승인 규칙은 그 에이전트에게만 쌓인다. 다른 에이전트의 일화와 절차는 `memory.read` 에 적은 것만 읽는다
 
 :::

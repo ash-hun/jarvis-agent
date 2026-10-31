@@ -37,7 +37,7 @@ sequenceDiagram
   end
 ```
 
-사고 프레임의 filler 가 비어 있으면 내장 문구 셋을 돌아가며 쓴다. 사고가 늦게 끝났거나(`race` 초과) 시점이 `after` 면 frame 이 없으므로 항상 즉시 모드로 답한다.
+사고 프레임의 filler 가 비어 있으면 내장 문구 셋을 돌아가며 쓴다. 사고가 늦게 끝났거나(`race` 초과) 시점이 `after` 거나 router 를 쓰면(사고 결과는 다음 턴에 들어간다) 이번 요청에는 frame 이 없으므로 항상 즉시 모드로 답한다.
 
 ## 성찰과 먼저 건네는 말
 
@@ -105,6 +105,7 @@ JARVIS 는 성찰이 발화 게이트를 전부 지났을 때만, 프레임의 `
 1. `risk == "low"`, `kind == "tool"`, `tool_name` 있음
 2. 화이트리스트: `read_file`, `glob`, `grep`, `list_dir`, `web_search`, `web_fetch`
 3. 샌드박스가 승인을 요구하지 않는 도구
+4. 에이전트 정의(`team/<id>.yaml`)의 `boundaries.ask` 에 적히지 않은 도구
 
 결과는 `(미리 해둠) 결과1 / 결과2` 꼴로 먼저 건네는 말 뒤에 붙는다. 요청 시점에는 자율 행동을 하지 않는다.
 
@@ -157,6 +158,8 @@ sequenceDiagram
 ## 외부 알림
 
 JARVIS 는 열린 화면이 없어도 먼저 건네는 말과 스케줄 결과를 Slack incoming webhook 이나 Discord 채널 webhook 으로 보낸다. 주소는 `JARVIS_NOTIFY__SLACK_WEBHOOK_URL`, `JARVIS_NOTIFY__DISCORD_WEBHOOK_URL` 이고 둘 다 있으면 둘 다 보낸다. Discord 로 보낼 때는 `@everyone` 같은 멘션이 사람을 부르지 않게 막고, webhook 하나로 보내되 메시지마다 보낸 에이전트의 이름(브랜드 워드마크)과 아바타(`JARVIS_NOTIFY__AVATAR_BASE_URL`/`<에이전트 id>.png`)를 붙여 에이전트마다 다른 봇처럼 보이게 한다. 아바타는 Web HUD 의 에이전트별 구체를 `scripts/capture_avatars.py` 로 찍어 `assets/avatars/` 에 둔다. 보낼 종류는 `JARVIS_NOTIFY__KINDS`(`reminder`, `proactive`, `spoken`)로 정한다. `spoken` 은 Web HUD 가 소리 내어 읽은 말(답변, 대기 안내, 승인 질문과 되읽기, 녹음 문구)을 읽은 그대로 보낸다. 화면이 읽기를 요청할 때 무엇을 읽는지(`source`)를 함께 보내고, 서버가 이미 보낸 🔔 와 ⏰ 는 빼서 두 번 가지 않게 한다. 읽은 말이 없으면(음성 모드가 꺼져 있으면) 보내지 않는다. 먼저 건넨 말의 대기 안내(filler)는 읽혔을 때만 `spoken` 으로 간다. 오래 걸린다고 뒤로 넘긴 작업이 끝나면 그 답을 `💬 <에이전트 이름>` 으로 보낸다(`proactive` 종류에 포함, 음성 모드와 상관없이). 음성 모드에서 화면이 그 답을 읽어도 다시 보내지 않는다. 스케줄 결과의 제목줄은 화면과 같은 아이콘을 쓴다(알림은 ⏰, 할 일을 실행한 작업 결과는 ⏱). 재시도는 하지 않고, 실패는 로그에 남긴다.
+
+Discord 봇 설정(`JARVIS_NOTIFY__DISCORD_BOT_TOKEN`, `__DISCORD_GUILD_ID`, `__DISCORD_USER_ID`)이 셋 다 있으면, `JARVIS_NOTIFY__DISCORD_VOICE_KINDS`(기본 `reminder`, `proactive`)에 든 알림은 사용자가 들어가 있는 음성 채널에서 봇이 먼저 읽는다. 사용자가 음성 채널에 없거나 읽기에 실패하면 webhook 글로 보낸다. 300자보다 길면 앞부분만 읽고 전문은 글로도 남긴다. 읽는 목소리는 `JARVIS_NOTIFY__DISCORD_TTS_PROVIDER`(기본 `supertonic`)다.
 
 모바일 앱에는 Web Push 로 보낸다(`JARVIS_NOTIFY__WEBPUSH_*`, 세션 저장소가 Postgres 일 때만). 푸시 제목은 Discord 처럼 보낸 에이전트를 보인다. 에이전트 메인 색에 가장 가까운 색 원 이모지와 이름(예: `🟢 K.A.R.E.N.`)이 제목이고, 🔔, ⏰ 같은 종류 표시와 스케줄 작업 이름은 본문 앞으로 간다. 아바타가 있으면 알림 아이콘(`icon`)으로 붙인다. 보일 글이 없으면 보내지 않는다. 빈 푸시를 받은 iOS 가 구독을 끊기 때문이다.
 
@@ -232,4 +235,4 @@ flowchart TD
 
 - 구현: `core/proactive/`
 - 핵심 모듈: `core/proactive/daemon.py`, `core/proactive/policy.py`, `core/proactive/feedback.py`, `agent_layer/thought/reply.py`, `core/proactive/proactive_core.py`
-- 저장: 먼저 건넨 말과 그 피드백은 세션 저장소(`type: proactive`, `proactive_ack` 엔트리, 대화 기록에는 섞이지 않음), 임계치는 프로세스 메모리. 재시작하면 임계치만 기본값으로 돌아간다
+- 저장: 먼저 건넨 말과 그 피드백은 세션 저장소의 `type: proactive`, `proactive_ack` 엔트리에 남는다. 먼저 건넨 말은 대화 기록에도 assistant 메시지로 한 번 더 남는다. 임계치는 프로세스 메모리에만 있다. 재시작하면 임계치만 기본값으로 돌아간다

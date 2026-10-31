@@ -95,7 +95,7 @@ flowchart LR
   CMD["/orchestrate 명령"] --> SVC[OrchestrationService]
   TOOL[OrchestrateTool] --> SVC
   NT[AgentNodeTool<br/>agent_name 도구] --> FAC
-  DEF[(에이전트 정의 파일)] --> LOAD[loader.py]
+  DEF[(에이전트 정의 파일)] --> LOAD[multi_agent_loader.py]
   LOAD --> FAC[AgentFactory]
   SVC --> TOP[패턴<br/>supervisor, hierarchical, market, blackboard]
   SVC -->|쉼표로 이은 패턴| PIPE[OrchestratorPipeline<br/>앞 결과를 다음 입력으로]

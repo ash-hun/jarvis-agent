@@ -14,11 +14,11 @@ import FigureExtension from '@site/src/figures/extension.svg';
 
 `~/.jarvis/` 아래 폴더에 파일을 놓아 JARVIS 에 도구, 스킬, 플러그인, 에이전트를 더한다.
 
-도구, 스킬, 플러그인, 에이전트 정의는 기동할 때 읽는다. 그래서 파일을 더했으면 재시작한다. 설정의 `WATCH_FILES` 는 아직 아무것도 감시하지 않는다.
+도구, 스킬, 플러그인, 에이전트 정의는 기동할 때 읽는다. 그래서 파일을 더했으면 재시작한다. 설정의 `WATCH_FILES` 는 아직 아무것도 감시하지 않는다(`ToolLoader.watch` 가 있지만 부르는 곳이 없다).
 
 ## 도구
 
-`~/.jarvis/tools/` 에 파이썬 파일 또는 YAML 선언을 둔다.
+`~/.jarvis/tools/` 에 파이썬 파일 또는 YAML 선언을 둔다. 파이썬 파일은 `TOOL_NAME`(없으면 파일 이름의 `_` 를 `-` 로 바꾼 값), `TOOL_DESCRIPTION`, `TOOL_PARAMETERS` 와 `execute` 함수를 읽는다. `execute` 가 dict 를 돌려주면 `content` 키를, 아니면 값을 글자로 바꿔 결과로 쓴다. 예외는 `is_error` 결과가 된다.
 
 ```python
 # ~/.jarvis/tools/my_tool.py
@@ -33,6 +33,8 @@ TOOL_PARAMETERS = {
 async def execute(tool_call_id: str, params: dict, **kwargs) -> dict:
     return {"content": f"결과: {params['query']}"}
 ```
+
+YAML 선언은 메타데이터만 담고, 실행할 `execute` 는 같은 이름의 `.py` 파일에서 읽는다. `.py` 가 없으면 그 도구는 등록하지 않는다. YAML 이 있으면 같은 이름의 `.py` 를 따로 도구로 읽지 않는다.
 
 ```yaml
 # ~/.jarvis/tools/my_tool.yaml
@@ -62,7 +64,7 @@ parameters:
 
 ## 스킬(슬래시 커맨드)
 
-`~/.jarvis/skills/` 에 Markdown 파일을 둔다. frontmatter 의 `name` 이 `/name` 커맨드가 된다. 사용자가 커맨드 뒤에 쓴 글이 `{{args}}` 자리에 들어가고, 펼쳐진 본문이 LLM 프롬프트가 된다.
+`~/.jarvis/skills/` 에 Markdown 파일을 둔다. frontmatter 의 `name` 이 `/name` 커맨드가 된다. 사용자가 커맨드 뒤에 쓴 글이 `{{args}}`(또는 `{{input}}`) 자리에 들어가고, 펼쳐진 본문이 LLM 프롬프트가 된다.
 
 ```markdown
 ---
@@ -79,7 +81,7 @@ aliases: [sum, tldr]
 
 ## 플러그인
 
-플러그인은 에이전트 실행 흐름에 거는 훅이다. `~/.jarvis/plugins/` 에 클래스를 둔다.
+플러그인은 에이전트 실행 흐름에 거는 훅이다. `~/.jarvis/plugins/` 의 `.py` 파일에 클래스를 둔다. 로더는 `name` 과 `version` 을 가진 첫 클래스를 인자 없이 만들어 등록한다.
 
 ```python
 class MyPlugin:
@@ -96,11 +98,11 @@ class MyPlugin:
         return messages
 ```
 
-실제로 불리는 훅은 `before_agent_start`, `before_tool_call`, `after_tool_call`, `on_message_end` 네 개다. `transform_context` 는 프로토콜에만 있고 호출되지 않는다. 플러그인 하나에서 난 오류는 격리된다.
+실제로 불리는 훅은 `before_agent_start`, `before_tool_call`, `after_tool_call`, `on_message_end` 네 개다. `after_tool_call` 의 `result` 에는 `is_error` 하나만 들어 있다. `transform_context` 는 기반 클래스에만 있고 호출되지 않는다. 플러그인 하나에서 난 오류는 격리된다.
 
 :::note
 
-정의하지 않은 훅이 있으면 그 훅을 부를 때마다 오류 로그가 남는다. 그래서 다섯 개를 모두 정의해 둔다.
+상속하지 않은 클래스에 정의하지 않은 훅이 있으면 그 훅을 부를 때마다 오류 로그가 남는다. `jarvis.core.plugins.plugins_protocol.JarvisPlugin` 을 상속하면 덮어쓰지 않은 훅은 아무것도 하지 않는다. 상속하지 않으면 다섯 개를 모두 정의해 둔다.
 
 :::
 
@@ -142,9 +144,9 @@ async def stream(model: ModelConfig, ctx: LLMContext, options) -> AsyncIterator[
     yield StopEvent(reason="stop", usage=Usage())
 ```
 
-## 메모리 미들웨어
+## 메모리 저장소
 
-`MemoryMiddleware` 프로토콜(`transform`, `store`, `retrieve`, `clear`)을 구현해 `MemoryMiddlewareChain` 에 끼운다. 체인은 턴마다 순서대로 돈다. 체인이 기억을 프롬프트에 넣는 흐름은 [Memory Management](./memory.md) 에 있다.
+메모리 미들웨어 체인은 없어졌다. 기억은 `MemoryService` 하나가 맡고, 바꿀 수 있는 곳은 저장소다. 장기 기억 저장소는 `memory/stores/store_protocol.py` 의 `ItemStore`, 작업 기억 저장소는 `memory/working/state.py` 의 `WorkingStore`, 임베딩은 `model_layer/embeddings.py` 의 `Embedder` 를 상속해 만들고 `MemoryService` 에 넘긴다. 기본 구현은 메모리와 Postgres 다. 기억을 프롬프트에 넣는 흐름은 [Memory Management](./memory.md) 에 있다.
 
 ## 사고 프롬프트
 

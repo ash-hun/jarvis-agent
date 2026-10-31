@@ -5,18 +5,21 @@ from datetime import datetime
 
 from jarvis.memory.eval.runner import (
     DATASETS_DIR,
+    REDESIGN_SUITES,
     STORE_SUITES,
     SUITES,
     format_report,
+    load_retention_suites,
     load_suites,
     load_working_suites,
     run,
+    run_retention,
     run_working,
 )
-from jarvis.memory.eval.schema import EvalCase, Expect, ScopeSpec, SetupStep, load_cases
+from jarvis.memory.eval.schema import EpisodeFilter, EvalCase, Expect, ScopeSpec, SetupStep, load_cases
+from jarvis.memory.eval.target import LayeredTarget, StoreTarget
 from jarvis.memory.eval.probe import count_llm_calls
 from jarvis.memory import MemoryKind, MemoryScope
-from jarvis.memory.eval.target import StoreTarget
 from jarvis.memory.eval.metrics import judge
 
 # ── MemoryScope ───────────────────────────────────────────────────────────────
@@ -52,11 +55,15 @@ def test_working_set_requires_exact_match():
 
 
 def test_shipped_datasets_parse():
-    for suite in STORE_SUITES:
+    for suite in STORE_SUITES + REDESIGN_SUITES:
         cases = load_cases(DATASETS_DIR / f"{suite}.jsonl")
         assert cases and all(c.suite == suite for c in cases)
     assert load_working_suites(["working"])
-    assert set(SUITES) == {"isolation", "semantic", "episodic", "procedural", "paraphrase", "working", "faithfulness"}
+    assert load_retention_suites(["retention"])
+    assert set(SUITES) == {
+        "isolation", "semantic", "episodic", "procedural", "paraphrase", "access", "episode_filter",
+        "consolidation", "working", "retention", "faithfulness",
+    }
 
 
 def _case(**expect) -> EvalCase:
@@ -89,7 +96,7 @@ class ScopedTarget:
         at = datetime.fromisoformat(step.at) if step.at else datetime.now()
         self._items.append((scope, step.visibility, step.remember, at))
 
-    async def probe(self, query: str, scope: MemoryScope, top_k: int, kind: str = "recall") -> list[str]:
+    async def probe(self, query: str, scope: MemoryScope, top_k: int, kind: str = "recall", *_: object) -> list[str]:
         tokens = query.split()
         hits = [
             (at, text)
@@ -115,6 +122,93 @@ async def test_isolation_suite_is_satisfiable_by_scope_aware_reference():
     report = await run(load_suites(["isolation"]), ScopedTarget())
     assert report.all_passed, format_report(report, verbose=True)
     assert report.suites["isolation"].leak_rate == 0.0
+
+
+class LayeredReference:
+    """재설계 규칙(층별 허락, 일화 메타데이터, 성공 3회 정제)를 지키는 참조 구현. 풀 수 있는 데이터셋임을 보인다."""
+
+    def __init__(self) -> None:
+        self._items: list[tuple[MemoryScope, SetupStep]] = []
+
+    async def reset(self) -> None:
+        self._items.clear()
+
+    async def setup(self, step: SetupStep, scope: MemoryScope) -> None:
+        self._items.append((scope, step))
+
+    async def probe(
+        self,
+        query: str,
+        scope: MemoryScope,
+        top_k: int,
+        kind: str = "recall",
+        episode_filter: EpisodeFilter | None = None,
+        policy: dict[str, dict[str, list[str]]] | None = None,
+    ) -> list[str]:
+        if kind == "candidates":
+            successes: dict[str, int] = {}
+            for s, step in self._items:
+                if s == scope and step.task_type not in (None, "chat") and step.outcome == "success":
+                    successes[step.task_type] = successes.get(step.task_type, 0) + 1
+            return [t for t, n in successes.items() if n >= 3]
+        hits = [
+            step.remember or ""
+            for s, step in self._items
+            if self._readable(s, step, scope, policy or {}) and query in (step.remember or "")
+            and (kind != "episodes" or step.kind is MemoryKind.EPISODIC and _matches(step, episode_filter))
+        ]
+        return hits[:top_k]
+
+    @staticmethod
+    def _readable(owner: MemoryScope, step: SetupStep, reader: MemoryScope, policy: dict) -> bool:
+        layer = "pdm" if step.kind is MemoryKind.PROCEDURAL else "edm"
+        allowed = policy.get(reader.agent_id, {}).get(layer, ["self"])
+        agents = {reader.agent_id if a == "self" else a for a in allowed}
+        return owner.user_id == reader.user_id and owner.agent_id in agents
+
+
+def _matches(step: SetupStep, f: EpisodeFilter | None) -> bool:
+    if f is None:
+        return True
+    at = step.at or ""
+    return (
+        (f.task_type is None or step.task_type == f.task_type)
+        and (f.outcome is None or step.outcome == f.outcome)
+        and (f.since is None or at >= f.since)
+        and (f.until is None or at <= f.until)
+    )
+
+
+@pytest.mark.memory_eval
+async def test_redesign_suites_are_satisfiable_by_layered_reference():
+    report = await run(load_suites(list(REDESIGN_SUITES)), LayeredReference())
+    assert report.all_passed, format_report(report, verbose=True)
+
+
+@pytest.mark.memory_eval
+async def test_store_baseline_fails_redesign_suites_where_old_structure_cannot_express_them():
+    """기존 구조는 층별 권한, 일화 메타데이터, 정제가 없다. 이 실패가 재설계 비교의 기준선이다."""
+    report = await run(load_suites(list(REDESIGN_SUITES)), StoreTarget())
+    assert report.suites["access"].leak_rate > 0
+    assert report.suites["episode_filter"].passed == 0
+    assert report.suites["consolidation"].recall == 0.0
+
+
+@pytest.mark.memory_eval
+async def test_retention_baseline_loses_facts_past_the_message_window():
+    """창 50 메시지 안이면 이력에, 컴팩션이 돌면 요약에 남는다. 창을 넘고 컴팩션 임계에 못 미치면 사라진다."""
+    report = await run_retention(load_retention_suites(["retention"]), StoreTarget())
+    passed = {c.case: c.passed for c in report.cases}
+    assert passed == {
+        "distance_2": True, "distance_5": True, "distance_20": True,
+        "distance_60": False, "distance_60_long_turns": True,
+    }
+
+
+async def test_layered_target_is_registered_and_runs_every_suite_kind():
+    target = LayeredTarget()
+    assert (await run(load_suites(["access"]), target)).suites["access"].total == 8
+    assert (await run_retention(load_retention_suites(["retention"])[:1], target)).all_passed
 
 
 # ── 실제 저장소: 격리(1단계), 지식 갱신과 일화와 절차(3단계) ───────────────

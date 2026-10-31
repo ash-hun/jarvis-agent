@@ -120,6 +120,19 @@ async def test_loop_disables_task_past_run_until(left, enabled):
     assert task.enabled is enabled
 
 
+async def test_expired_task_stays_disabled_after_reload(tmp_path):
+    svc = _service(schedules_dir=str(tmp_path))
+    svc.add_task(ScheduledTask(name="slash-1", schedule="0 * * * *", prompt="collect",
+                               run_until=datetime.now().replace(microsecond=0) - timedelta(hours=1)))
+
+    await svc.start()
+    for _ in range(3):
+        await asyncio.sleep(0)
+    await svc.stop()
+
+    assert load_tasks(str(tmp_path))[0].enabled is False
+
+
 def test_set_enabled_unknown_name_returns_false():
     assert _service().set_enabled("nope", False) is False
 

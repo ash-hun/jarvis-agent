@@ -211,6 +211,21 @@ async def test_is_running_toggles_around_the_run(faux_model_with_response, repo)
     assert harness.is_running is False
 
 
+class _Crashing(ScriptedProvider):
+    async def stream(self, model, context, options=None):
+        raise RuntimeError("provider crashed")
+        yield
+
+
+async def test_is_running_is_released_when_the_provider_raises(repo):
+    harness = _harness(register(_Crashing([])), repo)
+
+    with pytest.raises(RuntimeError, match="provider crashed"):
+        await harness.run("안녕")
+
+    assert harness.is_running is False
+
+
 async def test_abort_signal_is_cleared_for_the_next_run(faux_model_with_response, repo):
     model = faux_model_with_response("ok")
     harness = _harness(model, repo)

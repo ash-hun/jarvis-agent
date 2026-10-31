@@ -224,7 +224,8 @@ class SchedulerService:
 
             # 마감 시각이 지난 슬래시 명령 작업은 자동 만료
             if task.run_until is not None and now_dt >= task.run_until:
-                task.enabled = False
+                # 저장 파일에도 꺼 둔다. 메모리에서만 끄면 재시작 때 다시 켜진다
+                self.set_enabled(task.name, False)
                 logger.info(f"[Scheduler] Task '{task.name}' expired (run_until={task.run_until})")
                 continue
             if croniter is None or not task.schedule:

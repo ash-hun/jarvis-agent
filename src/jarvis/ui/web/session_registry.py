@@ -181,7 +181,7 @@ class SessionRegistry:
     async def save_all_sessions(
         self, session_repo: "SessionRepo", memory: "MemoryService", model: "ModelConfig"
     ) -> None:
-        """서버 종료 때 활성 세션마다 일화 요약, 사실 공고화, 절차 학습. 한 세션의 실패가 다른 세션을 막지 않는다."""
+        """서버 종료 때 세션마다 요약(옛 창 모드만), 공고화, 절차 학습. 한 세션 실패가 다른 세션을 막지 않는다."""
         from jarvis.memory.consolidation.episodic import EpisodicSummarizer
         from jarvis.app.session_builder import learn_procedures
 
@@ -194,7 +194,9 @@ class SessionRegistry:
                 if not msgs:
                     continue
                 scope = session.memory_scope
-                entry_id = await summarizer.save_session(session._session_id, msgs, scope=scope)
+                entry_id = None
+                if memory.summarizes_sessions:
+                    entry_id = await summarizer.save_session(session._session_id, msgs, scope=scope)
                 if entry_id:
                     logger.info(f"[Episodic] Session {session_id[:8]} summary saved (id: {entry_id[:8]})")
                 facts = await memory.consolidate(scope)

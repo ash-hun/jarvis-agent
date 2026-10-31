@@ -92,9 +92,9 @@ JARVIS 와 같은 층에 에이전트를 더 둔다(`team/<id>.yaml`). 정보 �
 
 | 계층 | 설명 |
 |------|------|
-| **작업 기억 (STM)** | 세션 범위. 컨텍스트 창, 임계 초과 시 LLM 요약(요약은 저장되어 재요약 없음), 회상 항목 되뇌기 |
+| **작업 기억 (STM)** | 세션 범위. 최근 3턴만 모델에 넣고, 회상 항목 되뇌기를 센다 |
 | **장기 기억 (LTM)** | PostgreSQL 영속화. 사용자 프로필은 사용자의 모든 에이전트가, 일화와 절차는 쓴 에이전트와 정책에 적힌 에이전트만 읽는다 |
-| **Episodic** | 세션 종료 시 자동 요약 → 그 세션 범위의 일화로 저장 |
+| **Episodic** | 턴이 끝날 때마다 그 턴(발화와 답)을 일화로 저장. 3턴 밖의 대화는 여기서 회상 |
 
 ```bash
 JARVIS_MEMORY__BACKEND=postgres    # in_memory | postgres
@@ -609,9 +609,10 @@ JARVIS_LLM__TEMPERATURE=0.7
 
 # ── 메모리 ───────────────────────────────────────────────────────────────────
 JARVIS_MEMORY__BACKEND=postgres       # in_memory | postgres
-JARVIS_MEMORY__WINDOW_SIZE=50
-JARVIS_MEMORY__COMPACTION_THRESHOLD=100000   # 글자 수
-JARVIS_MEMORY__CONSOLIDATE_ON_IDLE=true  # 조용할 때 요약에서 사실 추출 (daemon_idle_sec 넘게 입력이 없을 때, 트리거 종류 무관)
+JARVIS_MEMORY__STM_TURNS=3               # 모델에 넣는 최근 턴 수. 그 밖은 턴마다 쓴 일화에서 회상. 0 이면 아래 옛 창과 컴팩션
+JARVIS_MEMORY__WINDOW_SIZE=50             # STM_TURNS=0 일 때만
+JARVIS_MEMORY__COMPACTION_THRESHOLD=100000   # STM_TURNS=0 일 때만, 글자 수
+JARVIS_MEMORY__CONSOLIDATE_ON_IDLE=true  # 조용할 때 일화에서 사실 추출 (daemon_idle_sec 넘게 입력이 없을 때, 트리거 종류 무관)
 JARVIS_MEMORY__EMBEDDING_PROVIDER=       # 의미 유사도 검색과 약속 중복 판정: openai | ollama | vllm (비우면 키워드만, Postgres 는 pgvector 필요)
 JARVIS_MEMORY__EMBEDDING_MODEL=          # 비우면 provider 기본값. 한국어는 ollama 의 bge-m3 (DIMENSIONS=1024)
 

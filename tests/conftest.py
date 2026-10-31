@@ -2,6 +2,7 @@
 import os
 import sys
 import pytest
+import socket
 from pathlib import Path
 
 # src/ 를 import 경로에 추가 (Docker 외 로컬 실행 대비)
@@ -19,6 +20,35 @@ os.environ.setdefault("JARVIS_TEAM__DIR", str(Path(__file__).parent / "fixtures"
 from jarvis.jarvis_config import JarvisSettings  # noqa: E402
 
 JarvisSettings.model_config["env_file"] = None
+
+
+# ── 외부 네트워크 차단 ─────────────────────────────────────────────────────────
+
+LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
+_real_connect = socket.socket.connect
+_real_connect_ex = socket.socket.connect_ex
+
+
+def _guard(address: object) -> None:
+    # 유닉스 소켓(asyncio 내부 socketpair)과 로컬 테스트 DB 는 허용한다. 그 밖은 외부 API 라 mock 이어야 한다
+    if isinstance(address, tuple) and address and str(address[0]) not in LOOPBACK_HOSTS:
+        raise RuntimeError(f"테스트가 외부 네트워크로 나가려 했다: {address!r}")
+
+
+def _guarded_connect(self: socket.socket, address: object) -> None:
+    _guard(address)
+    _real_connect(self, address)
+
+
+def _guarded_connect_ex(self: socket.socket, address: object) -> int:
+    _guard(address)
+    return _real_connect_ex(self, address)
+
+
+@pytest.fixture(autouse=True)
+def block_external_network(monkeypatch):
+    monkeypatch.setattr(socket.socket, "connect", _guarded_connect)
+    monkeypatch.setattr(socket.socket, "connect_ex", _guarded_connect_ex)
 
 
 # ── FauxProvider를 ProviderRegistry에 등록 ─────────────────────────────────────
@@ -143,3 +173,17 @@ async def agent_session(
         skill_registry=skill_registry,
         session_repo=jsonl_repo,
     )
+
+
+# ── 청약 게시판 fixture ────────────────────────────────────────────────────────
+
+@pytest.fixture
+def lh_board():
+    from tests.fixtures.housing_board import FakeBoard, page
+    return FakeBoard({"selectWrtancList.do": page("lh_list.html"), "selectWrtancInfo.do": page("lh_detail_sale.html")})
+
+
+@pytest.fixture
+def sh_board():
+    from tests.fixtures.housing_board import FakeBoard, page
+    return FakeBoard({"list.do": page("sh_list.html"), "view.do": page("sh_detail.html")})

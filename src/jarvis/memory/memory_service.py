@@ -352,6 +352,13 @@ class MemoryService:
         return (await self._store.delete_sessions(prefixes, dry_run),
                 await self._working.delete_sessions(prefixes, dry_run))
 
+    async def forget_session(self, session_id: str) -> tuple[int, int]:
+        """그 세션의 턴 일화, 사고 로그 같은 장기 기억 항목과 작업 기억을 지운다. (항목 수, 작업 기억 수).
+
+        사용자 프로필 사실과 절차는 세션에 묶이지 않아 남는다. 두 번 불러도 같은 상태다.
+        """
+        return await self._store.delete_session(session_id), await self._working.delete_session(session_id)
+
     # ── 장기 기억 ───────────────────────────────────────────────────────────
 
     async def remember(

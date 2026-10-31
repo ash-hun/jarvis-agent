@@ -119,11 +119,13 @@ class SessionRegistry:
         return sid
 
     async def remove(self, session_id: str) -> None:
-        """메모리와 저장소에서 지운다. 없는 세션도 같은 결과(저장소 delete 는 no-op)."""
+        """열린 세션, 세션 저장소, 그 세션의 장기 기억과 작업 기억을 지운다. 없는 세션도 같은 결과(전부 no-op)."""
         self._sessions.pop(session_id, None)
         self._sandboxes.pop(session_id, None)
         self._session_agents.pop(session_id, None)
         self._last_activity.pop(session_id, None)
+        # 기억을 먼저 지운다. 중간에 죽어도 이력이 남아 목록에 보이고, 다시 지우면 끝난다
+        await self._services.memory.forget_session(session_id)
         await self._ctx.session_repo.delete(session_id)
 
     def agent_of(self, session_id: str) -> str:

@@ -74,6 +74,17 @@ async def test_one_failing_session_does_not_stop_the_others():
     ok.settle.assert_awaited_once()
 
 
+async def test_remove_forgets_the_sessions_memory_before_its_history():
+    mgr = _make_manager({"s": _mock_session("s")})
+    mgr._session_agents, mgr._last_activity = {"s": "main"}, {}
+    order: list[str] = []
+    mgr._services.memory.forget_session = AsyncMock(side_effect=lambda sid: order.append(f"memory:{sid}"))
+    mgr._ctx.session_repo.delete = AsyncMock(side_effect=lambda sid: order.append(f"repo:{sid}"))
+    await mgr.remove("s")
+    await mgr.remove("s")
+    assert order == ["memory:s", "repo:s", "memory:s", "repo:s"] and "s" not in mgr._sessions
+
+
 def test_latest_of_picks_the_session_the_user_talked_to_most_recently():
     """스케줄 결과를 건넬 세션. 사용자가 말한 적 없는 세션(위임받은 세션)은 고르지 않는다."""
     registry = _make_manager({"k1": _mock_session("k1"), "k2": _mock_session("k2"), "peer": _mock_session("peer"),

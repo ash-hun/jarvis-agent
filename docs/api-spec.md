@@ -678,7 +678,7 @@ $ curl -s http://localhost:7777/api/sessions/nope/messages
 
 ### DELETE /api/sessions/{session_id}
 
-세션과 그 대화를 지운다. 메모리의 세션 객체와 저장소(jsonl 파일 또는 Postgres 행, 메시지는 cascade)가 함께 사라진다.
+세션과 그 대화를 지운다. 메모리의 세션 객체, 저장소(jsonl 파일 또는 Postgres 행, 메시지는 cascade), 그 세션의 장기 기억(턴 일화, 사고 로그 등 `session_id` 가 같은 행)과 작업 기억이 함께 사라진다. 세션에 묶이지 않은 사용자 프로필 사실과 절차는 남는다. 기억을 먼저 지우고 이력을 나중에 지우므로, 중간에 실패해도 다시 호출하면 끝난다.
 
 #### Endpoint
 

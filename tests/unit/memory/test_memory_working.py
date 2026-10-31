@@ -231,3 +231,20 @@ async def test_turn_episode_keeps_first_tool_as_task_type_and_outcome():
     assert meta[1]["task_type"] == "lh_notice" and meta[1]["outcome"] == "failure"
     assert meta[1]["tools"] == ["lh_notice", "housing_loan"]
     assert meta[2]["task_type"] == "chat" and meta[2]["outcome"] == "success"
+
+
+async def test_forget_session_removes_only_that_sessions_memory():
+    """세션 삭제: 그 세션의 턴 일화, 사고 로그, 작업 기억만. 이름이 겹치는 세션과 사용자 프로필은 남는다."""
+    memory = MemoryService(InMemoryItemStore())
+    await _turns(memory, [("자전거 비밀번호는 4719", "네")])
+    await memory.remember("사고: 비밀번호", source="thought", scope=SCOPE)
+    await memory.add_note("메모", scope=SCOPE)
+    other = {**CTX, "session_id": "s10"}
+    await _turns(memory, [("다른 세션", "네")], other)
+    await memory.remember("거주지: 부산", source="explicit", scope=SCOPE.with_session(None))
+
+    assert await memory.forget_session("s1") == (2, 1)
+    assert await memory.forget_session("s1") == (0, 0)
+    left = {i.content for i in await memory.store.recent(SCOPE, limit=20)}
+    assert left == {"사용자: 다른 세션\n답: 네", "거주지: 부산"}
+    assert (await memory.working_state(SCOPE)).notes == []

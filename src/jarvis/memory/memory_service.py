@@ -51,6 +51,8 @@ CONSOLIDATED = "consolidated"  # 의미 추출을 마친 일화에 남기는 met
 TURN_SOURCE = "turn"  # 턴 끝에 남기는 EDM 일화
 TURN_INDEX = "turn"  # 턴 일화 metadata 의 세션 안 턴 번호(1부터)
 TURN_CHARS = 1000  # 턴 일화에 남기는 발화와 답의 최대 글자 수. 도구 결과는 남기지 않는다
+USER_PREFIX = "사용자: "
+TURN_USER_CHARS = "user_chars"  # 턴 일화 content 에서 사용자 발화가 차지하는 글자 수(접두어 뒤)
 # session_end, auto_summary 는 더 쓰지 않지만 운영 DB 에 아직 추출하지 않은 행이 남아 있다
 CONSOLIDATABLE_SOURCES = frozenset({TURN_SOURCE, "session_end", "auto_summary", "manual_compact"})
 
@@ -291,11 +293,12 @@ class MemoryService:
         # ponytail: 이력이 줄어 턴 번호를 1부터 다시 세면 옛 턴 일화를 덮는다, 세션 초기화가 잦아지면 세대 번호를 키에
         """
         key = f"{scope.user_id}|{scope.agent_id}|{scope.session_id}|{index}"
-        content = f"사용자: {user[:TURN_CHARS]}\n답: {answer[:TURN_CHARS]}"
+        said = user[:TURN_CHARS]
+        content = f"{USER_PREFIX}{said}\n답: {answer[:TURN_CHARS]}"
         return await self.remember(
             content, source=TURN_SOURCE, scope=scope,
             metadata={TURN_INDEX: index, TASK_TYPE: task_type, OUTCOME: "failure" if failed else "success",
-                      "tools": list(dict.fromkeys(tools))},
+                      "tools": list(dict.fromkeys(tools)), TURN_USER_CHARS: len(said)},
             item_id="turn_" + hashlib.sha1(key.encode()).hexdigest()[:27],
         )
 
@@ -557,7 +560,7 @@ class MemoryService:
                 and e.scope.agent_id == resolved.agent_id
             ]
             for group in _extraction_groups(pending):
-                facts = await self._extractor("\n\n".join(e.content for e in group))
+                facts = await self._extractor("\n\n".join(_extraction_text(e) for e in group))
                 for fact in facts:
                     if fact.importance < self._importance_threshold:
                         continue
@@ -601,6 +604,16 @@ def _extraction_groups(episodes: list[MemoryItem]) -> list[list[MemoryItem]]:
         group.sort(key=lambda e: int(e.metadata.get(TURN_INDEX, 0)))
         groups.append(group)
     return groups
+
+
+def _extraction_text(episode: MemoryItem) -> str:
+    """사용자 프로필은 사용자에 대한 사실이다. 턴 일화는 사용자 발화만 넘긴다. 답의 추천이 사용자 사실로 뽑혔다."""
+    if episode.source != TURN_SOURCE:
+        return episode.content
+    n = episode.metadata.get(TURN_USER_CHARS)
+    if n is None:  # 이 키를 남기기 전에 쓴 턴 일화
+        return episode.content.partition("\n답: ")[0]
+    return episode.content[: len(USER_PREFIX) + int(n)]
 
 
 def _text_of(message: Message) -> str:

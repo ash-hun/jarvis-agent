@@ -280,6 +280,8 @@ async def test_consolidate_extracts_once_per_session_from_turns():
     assert await memory.consolidate(SCOPE) == 2
     first = next(c for c in calls if "12가3456" in c)
     assert len(calls) == 2 and first.index("12가3456") < first.index("날씨")
+    # 답("맑음")의 추천이 사용자 사실로 뽑히지 않게 사용자 발화만 넘긴다
+    assert "맑음" not in first and "알겠습니다" not in first
     assert await memory.consolidate(SCOPE) == 0 and len(calls) == 2
 
 

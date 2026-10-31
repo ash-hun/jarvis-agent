@@ -218,6 +218,47 @@ class TestItemStoreMigration:
             assert "legacy1" in other and "legacy2" not in other
             await store.close()
 
+    async def test_old_columns_are_dropped_and_session_delete_is_exact(self, postgres_dsn):
+        """옛 visibility, summary 컬럼은 저장소를 열 때 지운다(두 번 열어도 같다). 세션 삭제는 id 가 같은 행만."""
+        import asyncpg
+
+        from jarvis.memory.working.postgres import PostgresWorkingStore
+        from jarvis.memory.stores.postgres import PostgresItemStore
+        from jarvis.memory.memory_service import MemoryService
+        from jarvis.memory import MemoryScope
+
+        conn = await asyncpg.connect(postgres_dsn)
+        try:
+            await conn.execute("ALTER TABLE jarvis_ltm_entries ADD COLUMN IF NOT EXISTS visibility TEXT")
+            await conn.execute("ALTER TABLE jarvis_working_memory ADD COLUMN IF NOT EXISTS summary TEXT")
+            await conn.execute(
+                "ALTER TABLE jarvis_working_memory ADD COLUMN IF NOT EXISTS summary_covers INTEGER NOT NULL DEFAULT 0"
+            )
+        finally:
+            await conn.close()
+        for _ in range(2):
+            store, working = PostgresItemStore(dsn=postgres_dsn), PostgresWorkingStore(dsn=postgres_dsn)
+            memory = MemoryService(store, working)
+            await memory.clear()
+            a, b = MemoryScope("u1", "main", "del-s1"), MemoryScope("u1", "main", "del-s10")
+            await memory.record_turn(1, "지울 턴", "답", a)
+            await memory.record_turn(1, "남을 턴", "답", b)
+            await memory.add_note("메모", a)
+            await memory.remember("거주지: 부산", source="explicit", scope=a.with_session(None))
+            assert await memory.forget_session("del-s1") == (1, 1)
+            assert {i.content for i in await memory.recent(scope=a)} == {"사용자: 남을 턴\n답: 답", "거주지: 부산"}
+            await store.close()
+            await working.close()
+        conn = await asyncpg.connect(postgres_dsn)
+        try:
+            cols = {r["column_name"] for r in await conn.fetch(
+                "SELECT column_name FROM information_schema.columns"
+                " WHERE table_name IN ('jarvis_ltm_entries', 'jarvis_working_memory')"
+            )}
+        finally:
+            await conn.close()
+        assert not cols & {"visibility", "summary", "summary_covers"}
+
     async def test_scope_filter_in_sql(self, ltm):
         from jarvis.memory import MemoryScope
 

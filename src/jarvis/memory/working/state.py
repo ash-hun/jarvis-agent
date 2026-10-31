@@ -52,6 +52,13 @@ class WorkingStore:
                 del self._states[scope]
         return len(doomed)
 
+    async def delete_session(self, session_id: str) -> int:
+        """세션 id 가 정확히 같은 작업 기억만 지운다(에이전트가 여럿이면 여러 행)."""
+        doomed = [s for s in self._states if s.session_id == session_id]
+        for scope in doomed:
+            del self._states[scope]
+        return len(doomed)
+
     async def legacy_stm_rows(self) -> int | None:
         """범위 도입 전 STM 메시지 테이블의 행 수. 그런 테이블을 모르는 저장소는 None."""
         return None

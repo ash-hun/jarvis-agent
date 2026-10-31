@@ -102,7 +102,6 @@ class PostgresItemStore(ItemStore):
             ):
                 await conn.execute(f"ALTER TABLE {TABLE} ADD COLUMN IF NOT EXISTS {ddl}")
             # backfill: 범위 도입 전 행은 전역(user_id NULL), 메인 에이전트로 둔다. kind 가 채워진 행은 건드리지 않는다.
-            # 옛 visibility 컬럼은 읽기에 쓰지 않는다(층별 정책이 대신한다). 있는 DB 에서는 값이 그대로 남는다
             await conn.execute(f"""
                 UPDATE {TABLE} SET
                     kind            = {_LEGACY_KIND_SQL},
@@ -112,6 +111,8 @@ class PostgresItemStore(ItemStore):
                     rehearsal_count = COALESCE(rehearsal_count, 0)
                 WHERE kind IS NULL
             """)
+            # 옛 공개 여부(private/shared). 읽기는 층별 정책이 정한다. 없는 DB 에서도 같은 결과다
+            await conn.execute(f"ALTER TABLE {TABLE} DROP COLUMN IF EXISTS visibility")
             await conn.execute(
                 f"CREATE INDEX IF NOT EXISTS idx_ltm_scope ON {TABLE}(user_id, agent_id, kind)"
             )
@@ -305,6 +306,12 @@ class PostgresItemStore(ItemStore):
             if dry_run:
                 return int(await conn.fetchval(f"SELECT count(*) FROM {TABLE} WHERE session_id LIKE ANY($1)", patterns))
             status = await conn.execute(f"DELETE FROM {TABLE} WHERE session_id LIKE ANY($1)", patterns)
+        return int(status.split()[-1])
+
+    async def delete_session(self, session_id: str) -> int:
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
+            status = await conn.execute(f"DELETE FROM {TABLE} WHERE session_id = $1", session_id)
         return int(status.split()[-1])
 
     async def clear(self, scope: MemoryScope | None = None) -> None:

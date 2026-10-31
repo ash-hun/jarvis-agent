@@ -140,6 +140,13 @@ class ItemStore:
                 del self._items[key]
         return len(doomed)
 
+    async def delete_session(self, session_id: str) -> int:
+        """세션 id 가 정확히 같은 항목만 지우고 수를 돌려준다. 세션에 묶이지 않은 항목(사용자 프로필)은 남는다."""
+        doomed = [k for k, i in self._items.items() if i.scope.session_id == session_id]
+        for key in doomed:
+            del self._items[key]
+        return len(doomed)
+
     async def clear(self, scope: MemoryScope | None = None) -> None:
         """scope 가 있으면 그 (user, agent) 의 항목만, 없으면 전부 지운다."""
         if scope is None:

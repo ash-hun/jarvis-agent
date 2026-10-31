@@ -41,6 +41,10 @@ class PostgresWorkingStore(WorkingStore):
                         PRIMARY KEY (user_id, agent_id, session_id)
                     )
                 """)
+                # 컴팩션 요약과 그 요약이 덮던 메시지 수. STM 이 최근 3턴이 되며 쓰지 않는다
+                await conn.execute(
+                    f"ALTER TABLE {TABLE} DROP COLUMN IF EXISTS summary, DROP COLUMN IF EXISTS summary_covers"
+                )
         return self._pool
 
     async def load(self, scope: MemoryScope) -> WorkingState:
@@ -97,6 +101,12 @@ class PostgresWorkingStore(WorkingStore):
             if dry_run:
                 return int(await conn.fetchval(f"SELECT count(*) FROM {TABLE} WHERE session_id LIKE ANY($1)", patterns))
             status = await conn.execute(f"DELETE FROM {TABLE} WHERE session_id LIKE ANY($1)", patterns)
+        return int(status.split()[-1])
+
+    async def delete_session(self, session_id: str) -> int:
+        pool = await self._get_pool()
+        async with pool.acquire() as conn:
+            status = await conn.execute(f"DELETE FROM {TABLE} WHERE session_id = $1", session_id)
         return int(status.split()[-1])
 
     async def legacy_stm_rows(self) -> int | None:

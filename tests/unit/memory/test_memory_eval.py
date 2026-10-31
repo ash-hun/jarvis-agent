@@ -193,6 +193,16 @@ async def test_retention_baseline_loses_facts_past_the_message_window():
     }
 
 
+@pytest.mark.memory_eval
+async def test_layered_retention_keeps_every_distance_with_a_fraction_of_the_context():
+    """STM 3턴 밖의 사실은 턴마다 쓴 EDM 에서 회상된다. 50 메시지 창보다 컨텍스트가 훨씬 작다."""
+    cases = load_retention_suites(["retention"])
+    layered = await run_retention(cases, LayeredTarget())
+    store = await run_retention(cases, StoreTarget())
+    assert layered.all_passed, format_report(layered, verbose=True)
+    assert layered.injected_chars * 5 < store.injected_chars
+
+
 async def test_layered_target_is_registered_and_runs_every_suite_kind():
     target = LayeredTarget()
     assert (await run(load_suites(["access"]), target)).all_passed  # 3단계(접근 정책)부터

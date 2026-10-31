@@ -256,6 +256,7 @@ class InfraBuilder:
             policies={agent_id: spec.memory for agent_id, spec in load_agent_specs(settings.team.dir).items()},
             threshold_chars=mcfg.compaction_threshold,
             window_size=mcfg.window_size,
+            stm_turns=mcfg.stm_turns or None,
             inject_limit=mcfg.recall_limit,
             fixed_facts=mcfg.fixed_facts,
             importance_threshold=mcfg.importance_threshold,

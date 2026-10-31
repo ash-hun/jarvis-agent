@@ -9,7 +9,7 @@ import FigureSessions from '@site/src/figures/sessions.svg';
 
 <figure className="paper-fig">
   <FigureSessions />
-  <figcaption><b>Figure 1.</b> (a) 세션은 에이전트 하나의 대화 한 줄기다. 분기는 부모의 메시지(U 사용자, A 어시스턴트, T 도구)를 복사한 새 세션을 만든다. Web 의 ⑂ 는 jsonl 저장소에서만 복사하고, 다른 저장소면 parent_id 없는 빈 새 세션을 연다. 종료 때 세션 요약이 일화 기억이 된다. (b) 사용자 메시지는 턴 시작 때, 나머지는 루프가 끝난 뒤 한꺼번에 저장된다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) 세션은 에이전트 하나의 대화 한 줄기다. 분기는 부모의 메시지(U 사용자, A 어시스턴트, T 도구)를 복사한 새 세션을 만든다. Web 의 ⑂ 는 jsonl 저장소에서만 복사하고, 다른 저장소면 parent_id 없는 빈 새 세션을 연다. 턴마다 그 턴이 일화 기억이 되고, 종료 때 통합이 일화에서 사실을 뽑는다. (b) 사용자 메시지는 턴 시작 때, 나머지는 루프가 끝난 뒤 한꺼번에 저장된다.</figcaption>
 </figure>
 
 세션은 JARVIS 가 대화 한 줄기를 묶어 저장하는 단위다. 세션은 만들 때 에이전트가 정해지고, 그 뒤로 바뀌지 않는다.
@@ -43,8 +43,8 @@ Web 의 SESSIONS 카드는 지금 프로세스가 띄운 세션만 보여준다.
 flowchart LR
   C[생성: 접속, +, /branch] --> A[대화]
   A --> E[종료: TUI 종료, Web 셧다운]
-  E --> S1[세션 요약을 일화 기억으로]
-  S1 --> S2[통합: 일화에서 사실 추출]
+  A --> T[턴마다 그 턴을 일화 기억으로]
+  E --> S2[통합: 일화에서 사실 추출]
   S2 --> S3[절차 학습]
   A --> D[삭제: ✕, DELETE /api/sessions/id, /cleanup]
 ```

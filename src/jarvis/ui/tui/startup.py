@@ -133,7 +133,7 @@ def build_tui_voice(settings: "JarvisSettings") -> "TuiVoiceController | None":
 
 
 async def save_session_end(assembly: "AppAssembly", session: "AgentSession") -> None:
-    """TUI 종료 후 세션 요약, 사실 공고화, 절차 학습. 이력은 session_repo 가 정본이다. 실패해도 종료를 막지 않는다."""
+    """TUI 종료 후 세션 요약(옛 창 모드만), 사실 공고화, 절차 학습. 이력의 정본은 session_repo, 실패해도 종료한다."""
     from jarvis.app.session_builder import learn_procedures
 
     ctx, services = assembly.ctx, assembly.services
@@ -146,7 +146,9 @@ async def save_session_end(assembly: "AppAssembly", session: "AgentSession") -> 
         from jarvis.memory.consolidation.episodic import EpisodicSummarizer
 
         summarizer = EpisodicSummarizer(model=services.model_config, memory=services.memory)
-        entry_id = await summarizer.save_session(session._session_id, msgs, scope=session.memory_scope)
+        entry_id = None
+        if services.memory.summarizes_sessions:
+            entry_id = await summarizer.save_session(session._session_id, msgs, scope=session.memory_scope)
         if entry_id:
             logger.info(f"[Episodic] Session summary saved (id: {entry_id[:8]})")
         facts = await services.memory.consolidate(session.memory_scope)

@@ -127,7 +127,8 @@ def load_working_cases(path: Path) -> list[WorkingCase]:
 class RetentionConfig(BaseModel):
     """기본값은 운영 설정(config.MemorySettings)과 같다."""
 
-    threshold_chars: int = 100_000
+    stm_turns: int = 3  # layered 대상만 쓴다
+    threshold_chars: int = 100_000  # 아래 둘은 store 대상(옛 창)만
     keep_recent: int = 10
     window_size: int = 50
 

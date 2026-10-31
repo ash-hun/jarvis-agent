@@ -21,8 +21,8 @@
 <text class="pf-t" x="497.0" y="63.0" text-anchor="middle">종료</text>
 <text class="pf-s" x="497.0" y="80.0" text-anchor="middle">TUI 종료, Web 셧다운</text>
 <rect class="pf-box" x="590.0" y="42" width="140" height="50" rx="6"/>
-<text class="pf-t" x="660.0" y="63.0" text-anchor="middle">세션 요약</text>
-<text class="pf-s" x="660.0" y="80.0" text-anchor="middle">일화 기억, 통합, 절차 학습</text>
+<text class="pf-t" x="660.0" y="63.0" text-anchor="middle">통합</text>
+<text class="pf-s" x="660.0" y="80.0" text-anchor="middle">턴 일화에서 사실, 절차 학습</text>
 <path class="pf-edge" d="M564.0,67.0 L590.0,67.0" marker-end="url(#sessions-h)"/>
 <text class="pf-t" x="32" y="142" text-anchor="start">세션 B</text>
 <text class="pf-code" x="32" y="157" text-anchor="start">parent_id = A</text>

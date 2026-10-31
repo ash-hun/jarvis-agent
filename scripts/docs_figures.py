@@ -401,8 +401,8 @@ def memory() -> Fig:
     f = Fig("memory", 392, "턴마다 기억을 읽는 길과 장기 기억에 쓰는 순간")
     f.panel(16, 12, 728, 236, "(a) 매 턴 읽기")
     h = f.box(84, 48, "세션 히스토리", w=116, h=50, center=True, kind="io")
-    c = f.box(222, 48, "요약과 압축", "10만 자 넘으면 요약", w=128, center=True)
-    w = f.box(364, 48, "창", "최근 50 메시지", w=112, center=True)
+    c = f.box(222, 48, "턴 창", "최근 3턴, 도구 짝 유지", w=128, center=True)
+    w = f.box(364, 48, "회상 거르기", "창 안의 턴은 빼기", w=112, center=True)
     pr = f.box_lines(
         452,
         36,
@@ -414,7 +414,7 @@ def memory() -> Fig:
             "[절차 기억] 스킬",
             "[작업 패턴] 2건까지",
             "[작업 공유 메모리] 위임 중",
-            "요약 + 최근 메시지",
+            "최근 3턴",
         ],
     )
     llm = f.box(684, 92, "LLM", w=72, center=True, kind="accent")
@@ -433,10 +433,10 @@ def memory() -> Fig:
     )
     skills = f.store(560, 184, "스킬 레지스트리", "읽기만, 스킬 파일이 정본", w=160)
     f.edge([(600, skills.y), (600, pr.y + pr.h)], "")
-    f.panel(16, 260, 728, 120, "(b) 정해진 순간에만 쓴다. 매 턴 대화는 자동으로 쓰지 않는다", bottom=True)
+    f.panel(16, 260, 728, 120, "(b) 턴마다 그 턴을 일화로 쓰고, 나머지는 정해진 순간에만 쓴다", bottom=True)
     writes = [
         ("/remember", "사용자 프로필, 주거도", 150),
-        ("압축, 세션 종료", "일화(EDM)", 118),
+        ("턴 끝", "그 턴을 일화(EDM)로", 118),
         ("통합", "일화에서 사실 뽑기", 110),
         ("사고, 저널, 위임", "일화(EDM)", 118),
         ("remember_task_pattern", "절차(PDM), 에이전트별", 172),
@@ -463,7 +463,7 @@ def sessions() -> Fig:
         f.chip(x, 52, k, "accent" if k == "U" else "")
     f.edge([(xa[-1] + 30, 62), (430, 62)], "muted", head=False)
     end = f.box(430, 42, "종료", "TUI 종료, Web 셧다운", w=134)
-    hooks = f.box(590, 42, "세션 요약", "일화 기억, 통합, 절차 학습", w=140)
+    hooks = f.box(590, 42, "통합", "턴 일화에서 사실, 절차 학습", w=140)
     f.edge([end.right, hooks.left], "")
     f.text(32, 142, "세션 B", "pf-t")
     f.text(32, 157, "parent_id = A", "pf-code")

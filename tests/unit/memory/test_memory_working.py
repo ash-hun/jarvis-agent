@@ -1,14 +1,17 @@
-"""작업 기억: 창 자르기, 컴팩션 persist(재요약 없음), 되뇌기, 메모, 미들웨어 어댑터."""
+"""작업 기억: 창과 턴 창, 컴팩션 persist(재요약 없음), 턴 기록, 되뇌기, 메모, 미들웨어 어댑터."""
 
 import pytest
 
 from jarvis.memory.working import InMemoryWorkingStore, WorkingState, WorkingStore, apply_window, cut_at_user_boundary
 from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage, UserMessage
+from jarvis.memory.working.window import SUMMARY_HEADER, last_turns
+from jarvis.memory.memory_service import LTM_HEADER, TURN_SOURCE
+from jarvis.memory.consolidation.semantic_extract import Fact
 from jarvis.memory.stores.in_memory import InMemoryItemStore
-from jarvis.memory.working.window import SUMMARY_HEADER
 from jarvis.memory.consolidation import llm_summarizer
 from jarvis.memory import MemoryScope, MemoryService
 from jarvis.memory.eval.probe import count_llm_calls
+from jarvis.memory.types import MemoryKind
 
 CTX = {"session_id": "s1", "user_id": "u1", "agent_id": "main"}
 SCOPE = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
@@ -203,3 +206,78 @@ async def test_observe_without_user_in_context_uses_local_scope(ctx):
     await memory.remember("로컬 기억", source="explicit", scope=MemoryScope(user_id="local"))
     out = await memory.observe([_u("로컬 기억 찾기")], ctx)
     assert "로컬 기억" in out[0].content
+
+
+# ── STM 턴 창과 턴 기록(EDM) ──────────────────────────────────────────────────
+
+
+def test_last_turns_keeps_whole_turns_with_tool_pairs():
+    msgs = [_u("1"), _a("r1"), _u("2"), _a("call"), _t("out"), _a("r2"), _u("3"), _a("r3"), _u("4")]
+    assert last_turns(msgs, 3) == msgs[2:]
+    assert last_turns(msgs, 10) == msgs
+    assert last_turns([_t("orphan"), _u("1")], 3) == [_u("1")]
+
+
+async def _turns(memory: MemoryService, pairs: list[tuple[str, str]], ctx: dict = CTX) -> list:
+    history: list = []
+    out: list = []
+    for user, answer in pairs:
+        history.append(_u(user))
+        out = await memory.observe(history, ctx)
+        await memory.reinforce(answer, ctx)
+        history.append(_a(answer))
+    return out
+
+
+async def test_turn_mode_keeps_three_turns_and_records_each_turn_once():
+    store = InMemoryItemStore()
+    memory = MemoryService(store, stm_turns=3)
+    out = await _turns(memory, [(f"질문 {i}", f"답 {i}") for i in range(5)])
+    window = [m.content for m in out if m.role == "user" and not m.content.startswith("[")]
+    assert window == ["질문 2", "질문 3", "질문 4"]
+    turns = [i for i in await store.recent(SCOPE, limit=50) if i.source == TURN_SOURCE]
+    assert sorted(i.metadata["turn"] for i in turns) == [1, 2, 3, 4, 5]
+    assert "사용자: 질문 0\n답: 답 0" in {i.content for i in turns}
+    assert all(i.kind is MemoryKind.EPISODIC and i.scope.agent_id == "main" for i in turns)
+
+    # 같은 턴을 다시 돌려도(재시도) 같은 항목을 덮는다
+    history = [m for p in [(f"질문 {i}", f"답 {i}") for i in range(4)] for m in (_u(p[0]), _a(p[1]))] + [_u("질문 4")]
+    await memory.observe(history, CTX)
+    await memory.reinforce("답 4", CTX)
+    assert len([i for i in await store.recent(SCOPE, limit=50) if i.source == TURN_SOURCE]) == 5
+    assert not memory.summarizes_sessions and MemoryService(store).summarizes_sessions
+
+
+async def test_turn_past_the_window_comes_back_through_recall_but_window_turns_do_not_repeat():
+    memory = MemoryService(InMemoryItemStore(), stm_turns=3)
+    pairs = [
+        ("내 차 번호는 12가3456이야", "알겠습니다"), ("날씨 어때", "맑음"), ("점심 추천", "국수"), ("저녁 추천", "밥"),
+    ]
+    await _turns(memory, pairs)
+    out = await _turns(memory, [])  # 빈 호출은 아무것도 하지 않는다
+    assert out == []
+    history = [m for u, a in pairs for m in (_u(u), _a(a))] + [_u("내 차 번호 뭐였지?")]
+    blocks = await memory.observe(history, CTX)
+    recall = [m.content for m in blocks if isinstance(m.content, str) and m.content.startswith(LTM_HEADER)]
+    assert recall and "12가3456" in recall[0]
+
+    history = [m for u, a in pairs[:2] for m in (_u(u), _a(a))] + [_u("내 차 번호 뭐였지?")]
+    blocks = await memory.observe(history, CTX)
+    assert not any(isinstance(m.content, str) and m.content.startswith(LTM_HEADER) for m in blocks)
+
+
+async def test_consolidate_extracts_once_per_session_from_turns():
+    calls: list[str] = []
+
+    async def extractor(text: str) -> list[Fact]:
+        calls.append(text)
+        return [Fact(key="차 번호", value="12가3456", importance=0.9)]
+
+    store = InMemoryItemStore()
+    memory = MemoryService(store, extractor=extractor, stm_turns=3)
+    await _turns(memory, [("내 차 번호는 12가3456이야", "알겠습니다"), ("날씨 어때", "맑음")])
+    await _turns(memory, [("다른 세션", "응")], {**CTX, "session_id": "s2"})
+    assert await memory.consolidate(SCOPE) == 2
+    first = next(c for c in calls if "12가3456" in c)
+    assert len(calls) == 2 and first.index("12가3456") < first.index("날씨")
+    assert await memory.consolidate(SCOPE) == 0 and len(calls) == 2

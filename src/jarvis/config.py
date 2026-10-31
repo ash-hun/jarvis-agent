@@ -67,8 +67,9 @@ class MemoryConfig(BaseModel):
 
     backend: Literal["in_memory", "postgres"] = "postgres"
     postgres_dsn: str | None = None  # None이면 session.postgres_dsn fallback
-    window_size: int = 50
-    compaction_threshold: int = 100_000
+    stm_turns: int = 3  # 모델에 넣는 최근 턴 수. 그 밖은 턴마다 쓴 EDM 에서 회상한다. 0 이면 아래 옛 창과 컴팩션
+    window_size: int = 50  # stm_turns=0 일 때만
+    compaction_threshold: int = 100_000  # stm_turns=0 일 때만
     fixed_facts: int = 3  # 매 턴 항상 넣는 상위 의미 사실 수(고정 블록)
     recall_limit: int = 3  # 질의로 회상해 넣는 항목 수(회상 블록)
     importance_threshold: float = 0.5  # 의미 추출 결과 중 이 값 미만은 버린다

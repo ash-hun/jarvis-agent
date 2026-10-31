@@ -81,6 +81,7 @@ class EvalTarget:
         memory = MemoryService(
             InMemoryItemStore(), summarizer=extractive_summarizer(), embedder=FakeEmbedder(),
             threshold_chars=c.threshold_chars, keep_recent=c.keep_recent, window_size=c.window_size,
+            stm_turns=self._stm_turns(case),
         )
         history: list[Message] = []
         for user, reply in retention_turns(case):
@@ -90,6 +91,10 @@ class EvalTarget:
             history.append(AssistantMessage(content=[TextContent(text=reply)], timestamp=len(history)))
         history.append(UserMessage(content=case.question, timestamp=len(history)))
         return await memory.observe(history, RETENTION_CONTEXT)
+
+
+    def _stm_turns(self, case: RetentionCase) -> int | None:
+        return None
 
 
 class StoreTarget(EvalTarget):
@@ -113,6 +118,10 @@ class LayeredTarget(EvalTarget):
             policies = {agent: MemoryPolicy(read=MemoryReadPolicy(**layers)) for agent, layers in policy.items()}
             self._memory = self._build(self._memory.store, policies)
         return await super().probe(query, scope, top_k, kind, episode_filter, policy)
+
+
+    def _stm_turns(self, case: RetentionCase) -> int | None:
+        return case.config.stm_turns
 
 
 TARGETS: dict[str, type[EvalTarget]] = {"store": StoreTarget, "layered": LayeredTarget}

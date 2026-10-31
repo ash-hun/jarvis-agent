@@ -2,12 +2,15 @@
 
 from datetime import datetime
 
+from jarvis.memory.eval.schema import EpisodeFilter, RetentionCase, SetupStep, WorkingCase
+from jarvis.model_layer.types import AssistantMessage, Message, TextContent, UserMessage
 from jarvis.memory.long_term.procedural import InMemoryProcedures, Procedure
-from jarvis.memory.eval.schema import SetupStep, WorkingCase
 from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.memory.scope import MAIN_AGENT, MemoryScope
 from jarvis.memory.memory_service import MemoryService
-from jarvis.model_layer.types import Message
-from jarvis.memory.scope import MemoryScope
+from jarvis.memory.types import MemoryKind
+
+RETENTION_CONTEXT = {"session_id": "eval", "user_id": "u1", "agent_id": MAIN_AGENT}
 
 
 class EvalTarget:
@@ -45,18 +48,63 @@ class EvalTarget:
                 item.rehearsal_count = step.rehearsal_count
                 await self._memory.store.store(item)
 
-    async def probe(self, query: str, scope: MemoryScope, top_k: int, kind: str = "recall") -> list[str]:
-        """scope 에서 query 로 회상한 내용을 점수 순으로 돌려준다. kind=procedures 면 스킬 이름 목록."""
+    async def probe(
+        self,
+        query: str,
+        scope: MemoryScope,
+        top_k: int,
+        kind: str = "recall",
+        episode_filter: EpisodeFilter | None = None,
+        policy: dict[str, dict[str, list[str]]] | None = None,
+    ) -> list[str]:
+        """scope 에서 query 로 회상한 내용을 점수 순으로 돌려준다. kind=procedures 면 스킬 이름 목록.
+
+        기존 저장소는 일화 메타데이터와 층별 권한이 없어 episode_filter 와 policy 를 무시한다. 재설계 비교의 기준선이다.
+        """
         if kind == "procedures":
             return [p.name for p in self._memory.procedures(query)][:top_k]
-        return [i.content for i in await self._memory.recall(query, scope, limit=top_k)]
+        if kind == "candidates":
+            return []  # 기존 구조에는 일화에서 절차를 정제하는 경로가 없다
+        kinds = [MemoryKind.EPISODIC] if kind == "episodes" else None
+        return [i.content for i in await self._memory.recall(query, scope, kinds=kinds, limit=top_k)]
+
+    async def converse(self, case: RetentionCase) -> list[Message]:
+        """사실 턴, 채움 턴, 질문 턴을 차례로 observe 하고 질문 턴에 모델이 받는 컨텍스트를 돌려준다."""
+        from jarvis.memory.eval.faithfulness import extractive_summarizer
+        from jarvis.memory.eval.fake_embedder import FakeEmbedder
+
+        c = case.config
+        memory = MemoryService(
+            InMemoryItemStore(), summarizer=extractive_summarizer(), embedder=FakeEmbedder(),
+            threshold_chars=c.threshold_chars, keep_recent=c.keep_recent, window_size=c.window_size,
+        )
+        history: list[Message] = []
+        for user, reply in retention_turns(case):
+            history.append(UserMessage(content=user, timestamp=len(history)))
+            await memory.observe(history, RETENTION_CONTEXT)
+            await memory.reinforce(reply, RETENTION_CONTEXT)
+            history.append(AssistantMessage(content=[TextContent(text=reply)], timestamp=len(history)))
+        history.append(UserMessage(content=case.question, timestamp=len(history)))
+        return await memory.observe(history, RETENTION_CONTEXT)
 
 
 class StoreTarget(EvalTarget):
     """jarvis.memory 의 서비스 + in-memory 저장소 + in-memory 절차 소스. 기본 평가 대상."""
 
 
-TARGETS: dict[str, type[EvalTarget]] = {"store": StoreTarget}
+class LayeredTarget(EvalTarget):
+    """재설계(STM 3턴, EDM, PDM, 층별 권한) 대상. PR 마다 해당 메서드를 덮어쓰고, 덮기 전에는 기존과 같다."""
+
+
+TARGETS: dict[str, type[EvalTarget]] = {"store": StoreTarget, "layered": LayeredTarget}
+
+
+def retention_turns(case: RetentionCase) -> list[tuple[str, str]]:
+    """(사용자, 답) 쌍. 첫 턴이 사실이고 이어서 distance 개의 채움 턴이다."""
+    turns = [(case.fact, "알겠습니다. 기억해 둘게요.")]
+    for i in range(case.distance):
+        turns.append((f"잡담 {i}: " + "가" * case.user_chars, f"답 {i}: " + "나" * case.assistant_chars))
+    return turns
 
 
 class WorkingTarget:
@@ -103,8 +151,6 @@ class WorkingTarget:
 
 
 def _turn_messages(offset: int, count: int, chars: int) -> list[Message]:
-    from jarvis.model_layer.types import AssistantMessage, TextContent, UserMessage
-
     out: list[Message] = []
     for i in range(offset, offset + count):
         text = f"m{i} " + "x" * chars

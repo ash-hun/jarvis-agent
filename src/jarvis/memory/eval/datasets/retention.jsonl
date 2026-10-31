@@ -1,0 +1,5 @@
+{"suite": "retention", "case": "distance_2", "distance": 2, "fact": "내 차 번호는 12가3456이야", "question": "내 차 번호 뭐였지?", "answer": "12가3456"}
+{"suite": "retention", "case": "distance_5", "distance": 5, "fact": "내 차 번호는 12가3456이야", "question": "내 차 번호 뭐였지?", "answer": "12가3456"}
+{"suite": "retention", "case": "distance_20", "distance": 20, "fact": "내 차 번호는 12가3456이야", "question": "내 차 번호 뭐였지?", "answer": "12가3456"}
+{"suite": "retention", "case": "distance_60", "distance": 60, "fact": "내 차 번호는 12가3456이야", "question": "내 차 번호 뭐였지?", "answer": "12가3456"}
+{"suite": "retention", "case": "distance_60_long_turns", "distance": 60, "assistant_chars": 2000, "fact": "내 차 번호는 12가3456이야", "question": "내 차 번호 뭐였지?", "answer": "12가3456"}

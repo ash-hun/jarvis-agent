@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 from jarvis.memory.scope import MAIN_AGENT, MemoryScope
 from jarvis.memory.types import MemoryKind, Visibility
 
+Outcome = Literal["success", "failure"]
+
 
 class ScopeSpec(BaseModel):
     user_id: str
@@ -31,6 +33,18 @@ class SetupStep(BaseModel):
     skill: str | None = None  # 절차 기억: 스킬 이름
     aliases: list[str] = Field(default_factory=list)
     description: str = ""
+    # 일화 메타데이터. 재설계의 EDM 이 저장하는 값이고, 기존 저장소는 본문만 남긴다
+    task_type: str | None = None
+    outcome: Outcome | None = None
+
+
+class EpisodeFilter(BaseModel):
+    """cherry-pick 조건. 비운 칸은 조건이 아니다."""
+
+    task_type: str | None = None
+    outcome: Outcome | None = None
+    since: str | None = None  # ISO 날짜, 포함
+    until: str | None = None  # ISO 날짜, 포함
 
 
 class Expect(BaseModel):
@@ -38,6 +52,7 @@ class Expect(BaseModel):
     not_contains: list[str] = Field(default_factory=list)  # 하나라도 나오면 누수
     empty: bool = False  # 아무것도 나오지 않아야 한다(기권)
     top_k: int = 3
+    distinct: bool = False  # 같은 결과가 두 번 나오면 실패. 두 번 돌린 정제가 항목을 늘리지 않는지 본다
 
 
 class EvalCase(BaseModel):
@@ -46,7 +61,11 @@ class EvalCase(BaseModel):
     setup: list[SetupStep]
     scope: ScopeSpec
     probe: str
-    probe_kind: Literal["recall", "procedures"] = "recall"  # procedures 면 스킬 이름 목록을 결과로 본다
+    # procedures 는 스킬 이름, episodes 는 filter 로 고른 일화, candidates 는 정제를 두 번 돌린 뒤의 절차 후보 task_type
+    probe_kind: Literal["recall", "procedures", "episodes", "candidates"] = "recall"
+    filter: EpisodeFilter | None = None
+    # 읽는 에이전트별 층별 허락 목록. {"main": {"edm": ["self", "karen"], "pdm": ["self"]}}. 없으면 [self]
+    policy: dict[str, dict[str, list[str]]] = Field(default_factory=dict)
     expect: Expect
 
     def step_scope(self, step: SetupStep) -> MemoryScope:
@@ -98,4 +117,36 @@ def load_working_cases(path: Path) -> list[WorkingCase]:
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.strip():
             cases.append(WorkingCase.model_validate(json.loads(line)))
+    return cases
+
+
+# ── 턴 거리별 보존 스위트 ────────────────────────────────────────────────────────
+# 사실을 말하고 distance 턴 뒤에 묻는다. 답이 모델 컨텍스트(이력 창, 요약, 주입 블록)에 있어야 한다.
+
+
+class RetentionConfig(BaseModel):
+    """기본값은 운영 설정(config.MemorySettings)과 같다."""
+
+    threshold_chars: int = 100_000
+    keep_recent: int = 10
+    window_size: int = 50
+
+
+class RetentionCase(BaseModel):
+    suite: str
+    case: str
+    fact: str  # 첫 턴의 사용자 발화
+    question: str
+    answer: str  # 마지막 컨텍스트에 이 글자가 있어야 한다
+    distance: int  # 사실과 질문 사이의 채움 턴 수
+    user_chars: int = 200
+    assistant_chars: int = 800
+    config: RetentionConfig = Field(default_factory=RetentionConfig)
+
+
+def load_retention_cases(path: Path) -> list[RetentionCase]:
+    cases: list[RetentionCase] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            cases.append(RetentionCase.model_validate(json.loads(line)))
     return cases

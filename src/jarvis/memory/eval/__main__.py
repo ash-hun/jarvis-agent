@@ -11,11 +11,13 @@ from jarvis.memory.eval.runner import (
     SUITES,
     EvalReport,
     format_report,
+    load_retention_suites,
     load_suites,
     load_working_suites,
     merge,
     run,
     run_faithfulness_suite,
+    run_retention,
     run_working,
 )
 from jarvis.memory.eval.target import TARGETS
@@ -34,9 +36,13 @@ async def _run_all(
     names: list[str], target_name: str, summarizer: str = "extractive", judge: str | None = None
 ) -> EvalReport:
     reports: list[EvalReport] = []
+    target = TARGETS[target_name]()
     store_cases = load_suites(names)
     if store_cases:
-        reports.append(await run(store_cases, TARGETS[target_name]()))
+        reports.append(await run(store_cases, target))
+    retention_cases = load_retention_suites(names)
+    if retention_cases:
+        reports.append(await run_retention(retention_cases, target))
     working_cases = load_working_suites(names)
     if working_cases:
         reports.append(await run_working(working_cases))

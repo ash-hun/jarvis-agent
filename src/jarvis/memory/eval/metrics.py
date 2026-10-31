@@ -28,10 +28,11 @@ def judge(case: EvalCase, results: list[str]) -> CaseResult:
     missing = [s for s in case.expect.contains if s not in joined]
     leaked = [s for s in case.expect.not_contains if s in joined]
     broke_abstain = case.expect.empty and bool(top)
+    duplicated = case.expect.distinct and len(set(top)) < len(top)
     return CaseResult(
         suite=case.suite,
         case=case.case,
-        passed=not missing and not leaked and not broke_abstain,
+        passed=not missing and not leaked and not broke_abstain and not duplicated,
         results=top,
         missing=missing,
         leaked=leaked,
@@ -39,6 +40,7 @@ def judge(case: EvalCase, results: list[str]) -> CaseResult:
         checks_recall=bool(case.expect.contains),
         checks_leak=bool(case.expect.not_contains),
         checks_abstain=case.expect.empty,
+        detail="duplicated results" if duplicated else "",
     )
 
 

@@ -4,7 +4,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from dataclasses import asdict, dataclass
 
-from jarvis.memory.eval.schema import EvalCase, WorkingCase, load_cases, load_working_cases
+from jarvis.memory.eval.schema import (
+    EvalCase,
+    RetentionCase,
+    WorkingCase,
+    load_cases,
+    load_retention_cases,
+    load_working_cases,
+)
 from jarvis.memory.eval.metrics import CaseResult, SuiteReport, judge, summarize
 from jarvis.memory.eval.target import EvalTarget, WorkingTarget
 from jarvis.memory.working.window import SUMMARY_HEADER
@@ -16,9 +23,12 @@ if TYPE_CHECKING:
 
 DATASETS_DIR = Path(__file__).parent / "datasets"
 STORE_SUITES = ("isolation", "semantic", "episodic", "procedural", "paraphrase")
+# 계층 재설계 비교용. 기존 대상의 실패가 기준선이다(docs/memory-architecture-plan.md "기존 구조와의 성능 비교")
+REDESIGN_SUITES = ("access", "episode_filter", "consolidation")
 WORKING_SUITES = ("working",)
+RETENTION_SUITES = ("retention",)
 FAITHFULNESS_SUITES = ("faithfulness",)
-SUITES = STORE_SUITES + WORKING_SUITES + FAITHFULNESS_SUITES
+SUITES = STORE_SUITES + REDESIGN_SUITES + WORKING_SUITES + RETENTION_SUITES + FAITHFULNESS_SUITES
 
 
 @dataclass
@@ -44,7 +54,7 @@ class EvalReport:
 def load_suites(names: list[str]) -> list[EvalCase]:
     cases: list[EvalCase] = []
     for name in names:
-        if name in STORE_SUITES:
+        if name in STORE_SUITES + REDESIGN_SUITES:
             cases.extend(load_cases(DATASETS_DIR / f"{name}.jsonl"))
     return cases
 
@@ -64,10 +74,46 @@ async def run(cases: list[EvalCase], target: EvalTarget) -> EvalReport:
         await target.reset()
         for step in case.setup:
             await target.setup(step, case.step_scope(step))
-        found = await target.probe(case.probe, case.scope.to_scope(), case.expect.top_k, case.probe_kind)
+        found = await target.probe(
+            case.probe, case.scope.to_scope(), case.expect.top_k, case.probe_kind, case.filter, case.policy
+        )
         injected += sum(len(s) for s in found)
         results.append(judge(case, found))
     return EvalReport(cases=results, suites=summarize(results), injected_chars=injected)
+
+
+def load_retention_suites(names: list[str]) -> list[RetentionCase]:
+    cases: list[RetentionCase] = []
+    for name in names:
+        if name in RETENTION_SUITES:
+            cases.extend(load_retention_cases(DATASETS_DIR / f"{name}.jsonl"))
+    return cases
+
+
+async def run_retention(cases: list[RetentionCase], target: EvalTarget) -> EvalReport:
+    """질문 턴 컨텍스트에 답이 있으면 통과. injected_chars 는 그 컨텍스트의 총 글자 수다."""
+    results: list[CaseResult] = []
+    total = 0
+    for case in cases:
+        context = await target.converse(case)
+        chars = sum(len(_text(m)) for m in context)
+        total += chars
+        found = any(case.answer in _text(m) for m in context)
+        results.append(CaseResult(
+            suite=case.suite,
+            case=case.case,
+            passed=found,
+            results=[f"distance={case.distance}", f"messages={len(context)}", f"context_chars={chars}"],
+            missing=[] if found else [case.answer],
+            checks_recall=True,
+        ))
+    return EvalReport(cases=results, suites=summarize(results), injected_chars=total)
+
+
+def _text(message: Message) -> str:
+    if isinstance(message.content, str):
+        return message.content
+    return message.text() if hasattr(message, "text") else ""
 
 
 async def run_working(cases: list[WorkingCase], target: WorkingTarget | None = None) -> EvalReport:

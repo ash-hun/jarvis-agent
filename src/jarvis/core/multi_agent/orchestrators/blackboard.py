@@ -89,7 +89,6 @@ class BlackboardOrchestrator(BaseOrchestrator):
                 entry.value,
                 source="promoted",
                 scope=scope,
-                visibility="shared",
                 author=entry.author,
                 tags=[f"blackboard:{key}"],
             )

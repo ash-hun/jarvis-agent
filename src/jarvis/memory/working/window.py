@@ -1,8 +1,6 @@
-"""[memory] 이력을 메시지 수나 턴 수로 자르되 tool_use/tool_result 짝은 가르지 않는 컨텍스트 창."""
+"""[memory] 이력을 최근 턴 수로 자르되 tool_use/tool_result 짝은 가르지 않는 컨텍스트 창."""
 
-from jarvis.model_layer.types import Message, UserMessage
-
-SUMMARY_HEADER = "[Compacted context summary]"
+from jarvis.model_layer.types import Message
 
 
 def cut_at_user_boundary(messages: list[Message]) -> list[Message]:
@@ -11,12 +9,6 @@ def cut_at_user_boundary(messages: list[Message]) -> list[Message]:
         if m.role == "user":
             return messages[i:]
     return messages
-
-
-def apply_window(messages: list[Message], window_size: int) -> list[Message]:
-    if window_size <= 0 or len(messages) <= window_size:
-        return messages
-    return cut_at_user_boundary(messages[-window_size:])
 
 
 def turn_starts(messages: list[Message]) -> list[int]:
@@ -29,11 +21,3 @@ def last_turns(messages: list[Message], turns: int) -> list[Message]:
     if turns <= 0 or len(starts) <= turns:
         return cut_at_user_boundary(messages)
     return messages[starts[-turns]:]
-
-
-def summary_message(summary: str) -> UserMessage:
-    return UserMessage(content=f"{SUMMARY_HEADER}\n{summary}")
-
-
-def chars_of(messages: list[Message], summary: str | None = None) -> int:
-    return sum(len(m.model_dump_json()) for m in messages) + (len(summary) if summary else 0)

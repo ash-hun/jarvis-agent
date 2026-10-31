@@ -61,15 +61,14 @@ def test_sample_is_deterministic():
     assert sample(qs, None) == qs
 
 
-async def test_full_mode_session_summary_lands_in_the_questioned_memory():
+async def test_turns_mode_stores_a_turn_episode_per_exchange_and_keeps_turn_evidence():
+    """발화와 답이 턴 일화 하나가 되고, 두 턴 id 가 태그로 남아 턴 재현율을 계산할 수 있다."""
     qs = load_longmemeval(FIXTURES / "longmemeval_sample.json")[:1]
-
-    async def save_session(memory, session_id, history, scope):
-        text = " ".join(m.content for m in history if isinstance(m.content, str))
-        return await memory.remember(text, source="session_end", scope=scope.with_session(session_id))
-
-    report = await run_benchmark("longmemeval", qs, _factory, k=3, mode="full", save_session=save_session)
-    assert report.results[0].retrieved and report.results[0].session_hit
+    report = await run_benchmark("longmemeval", qs, _factory, k=3, mode="turns")
+    result = report.results[0]
+    assert result.retrieved and result.session_hit
+    assert all(r.startswith("사용자: ") for r in result.retrieved)
+    assert result.turn_hit is not None
 
 
 def test_abstention_is_judged_by_code_not_by_the_judge_model():

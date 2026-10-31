@@ -105,18 +105,3 @@ async def test_turn_steps_keep_short_args_only():
     [step] = item.metadata[TURN_STEPS]
     assert step["name"] == "write_file" and len(step["args"]["content"]) == 200
 
-
-async def test_session_end_span_learning_runs_only_in_legacy_window_mode():
-    from types import SimpleNamespace
-
-    from jarvis.app.session_builder import learn_procedures
-
-    class Learner:
-        async def learn(self, session_id, messages):
-            return ["span"]
-
-    msgs = [object()]
-    turn_mode = SimpleNamespace(procedure_learner=Learner(), memory=MemoryService(InMemoryItemStore(), stm_turns=3))
-    legacy = SimpleNamespace(procedure_learner=Learner(), memory=MemoryService(InMemoryItemStore()))
-    assert await learn_procedures(turn_mode, "s1", msgs) == []
-    assert await learn_procedures(legacy, "s1", msgs) == ["span"]

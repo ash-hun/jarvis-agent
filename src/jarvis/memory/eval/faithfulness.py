@@ -1,4 +1,4 @@
-"""[memory] 대화에 심은 사실이 컴팩션 요약을 거친 뒤에도 남아 있는 비율(retention)을 잰다."""
+"""[memory] 대화에 심은 사실이 요약(/compact)을 거친 뒤에도 남아 있는 비율(retention)을 잰다."""
 
 import json
 from pathlib import Path
@@ -15,10 +15,7 @@ from jarvis.model_layer.types import (
     UserMessage,
 )
 from jarvis.memory.consolidation.compaction import Summarizer
-from jarvis.memory.stores.in_memory import InMemoryItemStore
-from jarvis.memory.memory_service import MemoryService
 from jarvis.memory.eval.metrics import CaseResult
-from jarvis.memory.scope import MemoryScope
 
 # 요약기와 판정기는 주입한다. 오프라인 기본은 추출 요약기 + 문자열 포함 판정, 실제 측정은 --summarizer llm --judge llm
 FactJudge = Callable[[str, str], Awaitable[bool]]  # (summary, fact) -> 보존됐는가
@@ -35,8 +32,6 @@ class FaithfulnessCase(BaseModel):
     case: str
     turns: list[FaithfulnessTurn]
     facts: list[str]  # 요약 뒤에도 남아야 하는 사실(판정기가 요약과 대조)
-    threshold_chars: int = 300  # 작게 둬서 반드시 압축이 일어나게
-    keep_recent: int = 1
     min_retention: float = Field(default=0.8, ge=0.0, le=1.0)
 
 
@@ -113,22 +108,18 @@ def _messages(case: FaithfulnessCase) -> list[Message]:
 
 
 async def run_faithfulness_case(case: FaithfulnessCase, summarizer: Summarizer, judge: FactJudge) -> CaseResult:
-    memory = MemoryService(
-        InMemoryItemStore(), summarizer=summarizer, threshold_chars=case.threshold_chars, keep_recent=case.keep_recent
-    )
-    context = {"user_id": "eval", "agent_id": "main", "session_id": case.case}
-    await memory.observe(_messages(case), context)
-    state = await memory.working_state(MemoryScope(user_id="eval", agent_id="main", session_id=case.case))
-    if not state.summary:
-        return CaseResult(suite=case.suite, case=case.case, passed=False, results=[], detail="no compaction happened")
-    kept = [fact for fact in case.facts if await judge(state.summary, fact)]
+    """대화 전체를 요약해(/compact 와 같은 입력) 심어 둔 사실이 요약에 남는지 본다."""
+    summary = await summarizer(_messages(case), None)
+    if not summary:
+        return CaseResult(suite=case.suite, case=case.case, passed=False, results=[], detail="no summary")
+    kept = [fact for fact in case.facts if await judge(summary, fact)]
     missing = [fact for fact in case.facts if fact not in kept]
     retention = len(kept) / len(case.facts) if case.facts else 1.0
     return CaseResult(
         suite=case.suite,
         case=case.case,
         passed=retention >= case.min_retention,
-        results=[state.summary[:300]],
+        results=[summary[:300]],
         missing=missing,
         detail=f"retention={retention:.2f}",
         score=retention,

@@ -96,7 +96,7 @@ def jsonl_repo(tmp_session_dir):
 def session_memory():
     from jarvis.memory.stores.in_memory import InMemoryItemStore
     from jarvis.memory.memory_service import MemoryService
-    return MemoryService(InMemoryItemStore(), window_size=20)
+    return MemoryService(InMemoryItemStore())
 
 
 @pytest.fixture

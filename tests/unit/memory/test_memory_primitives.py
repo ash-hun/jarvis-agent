@@ -37,7 +37,7 @@ def test_memory_item_defaults_and_session_property():
     a = MemoryItem(content="x", kind=MemoryKind.EPISODIC, scope=SCOPE)
     b = MemoryItem(content="x", kind=MemoryKind.EPISODIC, scope=SCOPE)
     assert a.id != b.id and len(a.id) == 32
-    assert (a.visibility, a.author, a.importance, a.rehearsal_count) == ("private", "agent", 0.5, 0)
+    assert (a.author, a.importance, a.rehearsal_count) == ("agent", 0.5, 0)
     assert a.session_id == "s1"
     a.tags.append("t")
     a.metadata["k"] = 1

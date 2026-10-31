@@ -67,7 +67,7 @@ def test_plain_request_is_not_teaching():
 async def test_saved_as_agent_private_procedural(memory):
     item_id = await memory.remember_pattern(BUDGET, KAREN)
     item = await memory.get(item_id)
-    assert (item.kind, item.visibility, item.author) == (MemoryKind.PROCEDURAL, "private", "user")
+    assert (item.kind, item.author) == (MemoryKind.PROCEDURAL, "user")
     assert item.scope.agent_id == "karen" and item.scope.session_id is None
 
 

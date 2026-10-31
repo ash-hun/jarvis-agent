@@ -609,9 +609,7 @@ JARVIS_LLM__TEMPERATURE=0.7
 
 # ── 메모리 ───────────────────────────────────────────────────────────────────
 JARVIS_MEMORY__BACKEND=postgres       # in_memory | postgres
-JARVIS_MEMORY__STM_TURNS=3               # 모델에 넣는 최근 턴 수. 그 밖은 턴마다 쓴 일화에서 회상. 0 이면 아래 옛 창과 컴팩션
-JARVIS_MEMORY__WINDOW_SIZE=50             # STM_TURNS=0 일 때만
-JARVIS_MEMORY__COMPACTION_THRESHOLD=100000   # STM_TURNS=0 일 때만, 글자 수
+JARVIS_MEMORY__STM_TURNS=3               # 모델에 넣는 최근 턴 수. 그 밖은 턴마다 쓴 일화에서 회상
 JARVIS_MEMORY__CONSOLIDATE_ON_IDLE=true  # 조용할 때 일화에서 사실 추출 (daemon_idle_sec 넘게 입력이 없을 때, 트리거 종류 무관)
 JARVIS_MEMORY__EMBEDDING_PROVIDER=       # 의미 유사도 검색과 약속 중복 판정: openai | ollama | vllm (비우면 키워드만, Postgres 는 pgvector 필요)
 JARVIS_MEMORY__EMBEDDING_MODEL=          # 비우면 provider 기본값. 한국어는 ollama 의 bge-m3 (DIMENSIONS=1024)

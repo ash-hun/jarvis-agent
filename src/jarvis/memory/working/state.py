@@ -11,8 +11,6 @@ MAX_NOTES = 50
 @dataclass
 class WorkingState:
     scope: MemoryScope
-    summary: str | None = None  # 컴팩션 결과. 다음 턴은 이 요약 + 덮이지 않은 꼬리만 본다
-    summary_covers: int = 0  # session_repo 이력에서 요약이 대체한 앞부분 메시지 수
     rehearsal: dict[str, int] = field(default_factory=dict)  # 회상된 장기 기억 id → 참조 횟수
     notes: list[str] = field(default_factory=list)  # 세션 범위 메모(사고 흐름 등)
     updated_at: datetime = field(default_factory=datetime.now)

@@ -219,7 +219,6 @@ class InfraBuilder:
         from jarvis.memory.consolidation.semantic_extract import llm_fact_extractor
         from jarvis.memory.long_term.procedural import SkillRegistryProcedures
         from jarvis.app.agent_registry import load_agent_specs
-        from jarvis.memory.consolidation import llm_summarizer
         from jarvis.memory.memory_service import MemoryService
         from jarvis.memory.retrieval import ScoringParams
 
@@ -250,15 +249,12 @@ class InfraBuilder:
         return MemoryService(
             item_store,
             working_store,
-            summarizer=llm_summarizer(model_config),
             extractor=llm_fact_extractor(model_config),
             procedures=SkillRegistryProcedures(skill_registry),
             # 정본은 team/<id>.yaml 이다. 에이전트 레지스트리도 같은 파일을 읽는다
             # ponytail: main 은 정의 파일이 없어 기본 정책(자기 것만)이다, 열어야 하면 설정에 memory 를 둔다
             policies={agent_id: spec.memory for agent_id, spec in load_agent_specs(settings.team.dir).items()},
-            threshold_chars=mcfg.compaction_threshold,
-            window_size=mcfg.window_size,
-            stm_turns=mcfg.stm_turns or None,
+            stm_turns=mcfg.stm_turns,
             inject_limit=mcfg.recall_limit,
             fixed_facts=mcfg.fixed_facts,
             importance_threshold=mcfg.importance_threshold,
@@ -295,8 +291,8 @@ class InfraBuilder:
             if pcfg.enabled
             else None
         )
-        if learner is not None and memory is not None and not memory.summarizes_sessions:
-            # 턴 모드는 consolidate(세션 종료, 유휴 틱) 끝에 EDM 에서 절차를 정제한다
+        if learner is not None and memory is not None:
+            # consolidate(세션 종료, 유휴 틱) 끝에 EDM 에서 절차를 정제한다
             memory.attach_refiner(learner.refine)
         return store, learner
 

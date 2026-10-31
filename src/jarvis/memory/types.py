@@ -1,14 +1,13 @@
 """[memory] 심리학의 장기 기억 분류(일화, 의미, 절차)를 그대로 쓴 메모리 항목의 종류와 데이터 모델."""
 
 import uuid
+from typing import Any
 from enum import StrEnum
 from datetime import datetime
-from typing import Any, Literal
 from dataclasses import dataclass, field
 
 from jarvis.memory.scope import MemoryScope
 
-Visibility = Literal["private", "shared"]
 # 상대 지칭("그거", "아까 그 방법")으로 쓴 항목이 가리킨 대화. 검색과 임베딩, 회상 표시에 같이 쓴다
 REFERENT = "referent"
 
@@ -24,9 +23,8 @@ class MemoryItem:
     content: str
     kind: MemoryKind
     scope: MemoryScope
-    visibility: Visibility = "private"
     author: str = "agent"  # "user" | agent_id | "orchestrator"
-    source: str = ""  # 쓰기 경로 이름 (explicit, auto_summary, session_end, ...)
+    source: str = ""  # 쓰기 경로 이름 (explicit, turn, thought, ...)
     importance: float = 0.5  # 0..1. 공고화 후보 선정과 검색 가중치
     tags: list[str] = field(default_factory=list)
     occurred_at: datetime | None = None  # 일화: 사건 시각

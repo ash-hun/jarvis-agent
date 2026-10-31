@@ -8,8 +8,8 @@ from datetime import UTC, datetime
 from collections.abc import Sequence
 
 from jarvis.memory.stores.protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore, tokens_of
-from jarvis.memory.scope import MAIN_AGENT, PRIVATE, SHARED, MemoryScope
 from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind
+from jarvis.memory.scope import MAIN_AGENT, MemoryScope
 from jarvis.common.logger import get_logger
 from jarvis.memory.access import Readable
 
@@ -28,7 +28,7 @@ _LEGACY_KIND_SQL = """
 
 _BASE_COLUMNS = (
     "id, content, source, session_id, tags, metadata, created_at, "
-    "kind, visibility, author, user_id, agent_id, importance, occurred_at, valid_from, "
+    "kind, author, user_id, agent_id, importance, occurred_at, valid_from, "
     "superseded_by, rehearsal_count, last_accessed"
 )
 # pgvector 의 vector 타입은 asyncpg 코덱 없이 문자열로 주고받는다: '[0.1,0.2]'
@@ -90,7 +90,6 @@ class PostgresItemStore(ItemStore):
             """)
             for ddl in (
                 "kind TEXT",
-                "visibility TEXT",
                 "author TEXT",
                 "user_id TEXT",
                 "agent_id TEXT",
@@ -102,24 +101,17 @@ class PostgresItemStore(ItemStore):
                 "last_accessed TIMESTAMPTZ",
             ):
                 await conn.execute(f"ALTER TABLE {TABLE} ADD COLUMN IF NOT EXISTS {ddl}")
-            # backfill: 범위 도입 전 행은 전역(user_id NULL), 메인 에이전트로 둔다. 사용자에 대한 사실만 shared 이고
-            # 일화는 main 전용이다. 메인 관점에서는 전부 그대로 보인다. kind 가 채워진 행은 건드리지 않는다.
+            # backfill: 범위 도입 전 행은 전역(user_id NULL), 메인 에이전트로 둔다. kind 가 채워진 행은 건드리지 않는다.
+            # 옛 visibility 컬럼은 읽기에 쓰지 않는다(층별 정책이 대신한다). 있는 DB 에서는 값이 그대로 남는다
             await conn.execute(f"""
                 UPDATE {TABLE} SET
                     kind            = {_LEGACY_KIND_SQL},
-                    visibility      = COALESCE(visibility, CASE WHEN {_LEGACY_KIND_SQL} = 'semantic'
-                                                                THEN '{SHARED}' ELSE '{PRIVATE}' END),
                     agent_id        = COALESCE(agent_id, '{MAIN_AGENT}'),
                     author          = COALESCE(author, CASE WHEN source = 'explicit' THEN 'user' ELSE 'agent' END),
                     importance      = COALESCE(importance, 0.5),
                     rehearsal_count = COALESCE(rehearsal_count, 0)
                 WHERE kind IS NULL
             """)
-            # 예전 backfill 은 일화까지 shared 로 두어 다른 최상위 에이전트에 대화가 보였다. 지금 쓰기 경로는
-            # 일화를 shared 로 쓰지 않으므로(WRITE_RULES) shared 일화는 그 backfill 행뿐이다. 두 번 돌려도 같다
-            await conn.execute(
-                f"UPDATE {TABLE} SET visibility = '{PRIVATE}' WHERE kind = 'episodic' AND visibility = '{SHARED}'"
-            )
             await conn.execute(
                 f"CREATE INDEX IF NOT EXISTS idx_ltm_scope ON {TABLE}(user_id, agent_id, kind)"
             )
@@ -147,7 +139,7 @@ class PostgresItemStore(ItemStore):
     async def store(self, item: MemoryItem) -> str:
         pool = await self._get_pool()
         vector_cols = ", embedding, embedding_model" if self._vector else ", embedding_model"
-        vector_vals = ", $19::vector, $20" if self._vector else ", $19"
+        vector_vals = ", $18::vector, $19" if self._vector else ", $18"
         vector_set = (
             ", embedding = EXCLUDED.embedding, embedding_model = EXCLUDED.embedding_model"
             if self._vector else ", embedding_model = EXCLUDED.embedding_model"
@@ -156,7 +148,7 @@ class PostgresItemStore(ItemStore):
             item.id, item.content, item.source, item.scope.session_id,
             json.dumps(item.tags, ensure_ascii=False), json.dumps(item.metadata, ensure_ascii=False),
             item.created_at,
-            str(item.kind), item.visibility, item.author, item.scope.user_id, item.scope.agent_id,
+            str(item.kind), item.author, item.scope.user_id, item.scope.agent_id,
             item.importance, item.occurred_at, item.valid_from, item.superseded_by,
             item.rehearsal_count, item.last_accessed,
         ]
@@ -168,11 +160,11 @@ class PostgresItemStore(ItemStore):
                 f"""
                 INSERT INTO {TABLE} ({_BASE_COLUMNS}{vector_cols})
                 VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7,
-                        $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18{vector_vals})
+                        $8, $9, $10, $11, $12, $13, $14, $15, $16, $17{vector_vals})
                 ON CONFLICT (id) DO UPDATE SET
                     content = EXCLUDED.content, source = EXCLUDED.source, session_id = EXCLUDED.session_id,
                     tags = EXCLUDED.tags, metadata = EXCLUDED.metadata, created_at = EXCLUDED.created_at,
-                    kind = EXCLUDED.kind, visibility = EXCLUDED.visibility, author = EXCLUDED.author,
+                    kind = EXCLUDED.kind, author = EXCLUDED.author,
                     user_id = EXCLUDED.user_id, agent_id = EXCLUDED.agent_id, importance = EXCLUDED.importance,
                     occurred_at = EXCLUDED.occurred_at, valid_from = EXCLUDED.valid_from,
                     superseded_by = EXCLUDED.superseded_by, rehearsal_count = EXCLUDED.rehearsal_count,
@@ -384,7 +376,6 @@ def _row_to_item(row: Any) -> MemoryItem:
         source=row["source"],
         kind=MemoryKind(row["kind"]),
         scope=MemoryScope(user_id=row["user_id"], agent_id=row["agent_id"], session_id=row["session_id"]),
-        visibility=row["visibility"],
         author=row["author"],
         importance=row["importance"],
         tags=json.loads(tags_raw) if isinstance(tags_raw, str) else (tags_raw or []),

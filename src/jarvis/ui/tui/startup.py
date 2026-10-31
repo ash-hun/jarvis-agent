@@ -133,32 +133,15 @@ def build_tui_voice(settings: "JarvisSettings") -> "TuiVoiceController | None":
 
 
 async def save_session_end(assembly: "AppAssembly", session: "AgentSession") -> None:
-    """TUI 종료 후 세션 요약(옛 창 모드만), 사실 공고화, 절차 학습. 이력의 정본은 session_repo, 실패해도 종료한다."""
-    from jarvis.app.session_builder import learn_procedures
-
-    ctx, services = assembly.ctx, assembly.services
+    """TUI 종료 후 공고화(사실 추출, 절차 정제). 대화는 턴마다 EDM 에 이미 남았다. 실패해도 종료한다."""
     try:
         # 응답과 함께 띄운 사고와 AGENDA 판단을 끊지 않고 마무리한다
         await session.settle()
-        msgs = await ctx.session_repo.get_messages(session._session_id)
-        if not msgs:
-            return
-        from jarvis.memory.consolidation.episodic import EpisodicSummarizer
-
-        summarizer = EpisodicSummarizer(model=services.model_config, memory=services.memory)
-        entry_id = None
-        if services.memory.summarizes_sessions:
-            entry_id = await summarizer.save_session(session._session_id, msgs, scope=session.memory_scope)
-        if entry_id:
-            logger.info(f"[Episodic] Session summary saved (id: {entry_id[:8]})")
-        facts = await services.memory.consolidate(session.memory_scope)
+        facts = await assembly.services.memory.consolidate(session.memory_scope)
         if facts:
             logger.info(f"[Memory] {facts} fact(s) consolidated from this session")
-        learned = await learn_procedures(ctx, session._session_id, msgs)
-        if learned:
-            logger.info(f"[Procedures] draft(s) saved: {', '.join(learned)} (approve: /procedures approve <name>)")
     except Exception as exc:
-        logger.info(f"[Episodic] Session summary failed (non-fatal): {exc}")
+        logger.info(f"[Memory] Consolidation failed (non-fatal): {exc}")
 
 
 async def resolve_tui_session(

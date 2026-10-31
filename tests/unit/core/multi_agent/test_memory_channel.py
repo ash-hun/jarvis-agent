@@ -123,8 +123,8 @@ async def test_blackboard_shares_and_promotes(make_node, memory, captured, faux_
         assert "[orchestrator] 작업: 시장 분석" in _injected(seen[sid], TASK_HEADER)[0]
 
     await orch.promote([])
-    promoted = await memory.recent(scope=MemoryScope(user_id="jh", agent_id="researcher"), kinds=[MemoryKind.EPISODIC])
-    assert len(promoted) == 2 and all(p.source == "promoted" and p.visibility == "shared" for p in promoted)
+    promoted = [e for e in await memory.recent(scope=PARENT, kinds=[MemoryKind.EPISODIC]) if e.source == "promoted"]
+    assert len(promoted) == 2
     assert {p.author for p in promoted} == {"analyst", "critic"}
 
 

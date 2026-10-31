@@ -3,6 +3,7 @@
 import time
 from typing import Any
 from datetime import datetime
+from collections.abc import Mapping
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
@@ -25,6 +26,7 @@ from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind, Visibility
 from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
 from jarvis.memory.consolidation.semantic_extract import FactExtractor
 from jarvis.memory.working.state import WorkingState, WorkingStore
+from jarvis.memory.access import MemoryPolicy, Readable, resolve
 from jarvis.memory.working.in_memory import InMemoryWorkingStore
 from jarvis.memory.consolidation.compaction import Summarizer
 from jarvis.memory.long_term.episodic import prepare_episode
@@ -96,6 +98,7 @@ class MemoryService:
         interference_threshold: float = 0.6,
         embedder: Embedder | None = None,
         min_similarity: float = 0.3,
+        policies: Mapping[str, MemoryPolicy] | None = None,
     ) -> None:
         self._store = store
         self._working: WorkingStore = working or InMemoryWorkingStore()
@@ -112,6 +115,8 @@ class MemoryService:
         self._interference_threshold = interference_threshold
         self._embedder = embedder
         self._min_similarity = min_similarity
+        # 에이전트 id 별 읽기 정책(team/<id>.yaml). 없는 에이전트는 자기 것만 읽는다
+        self._policies: Mapping[str, MemoryPolicy] = policies or {}
         # 이번 턴에 떠올린 항목. 답이 나오면 reinforce 가 꺼내 쓰였는지 본다. 턴 하나 동안만 산다
         self._pending_recall: dict[MemoryScope, list[MemoryItem]] = {}
 
@@ -223,8 +228,9 @@ class MemoryService:
         resolved = scope
         pool = self._fixed_facts * 4
         # 최신순으로만 고르면 의미 사실이 pool 개를 넘는 순간 오래된 핵심 사실(이름, 알레르기)이 후보에서 빠진다
-        recent = await self._store.recent(resolved, kinds=[MemoryKind.SEMANTIC], limit=pool)
-        important = await self._store.important(resolved, kinds=[MemoryKind.SEMANTIC], limit=pool)
+        readable = self.readable(resolved)
+        recent = await self._store.recent(resolved, kinds=[MemoryKind.SEMANTIC], limit=pool, readable=readable)
+        important = await self._store.important(resolved, kinds=[MemoryKind.SEMANTIC], limit=pool, readable=readable)
         candidates = list({i.id: i for i in recent + important}.values())
         # 고정 블록은 감쇠 없는 원값으로 고른다. 오래됐다고 핵심 사실이 밀리면 안 된다
         no_decay = replace(self._scoring, importance_half_life_hours=0.0)
@@ -241,11 +247,11 @@ class MemoryService:
         )
 
     async def task_patterns(self, scope: MemoryScope) -> list[TaskPattern]:
-        """이 에이전트가 받은 작업 패턴. 다른 에이전트의 패턴은 private 이라 보이지 않는다."""
-        resolved = scope
-        items = await self._store.recent(resolved, kinds=[MemoryKind.PROCEDURAL], limit=PATTERN_SCAN_LIMIT)
-        mine = [i for i in items if i.scope.agent_id == resolved.agent_id]
-        return [p for p in (from_item(i) for i in mine) if p is not None]
+        """이 에이전트가 받은 작업 패턴과, 정책의 pdm 이 허락한 에이전트의 패턴."""
+        items = await self._store.recent(
+            scope, kinds=[MemoryKind.PROCEDURAL], limit=PATTERN_SCAN_LIMIT, readable=self.readable(scope)
+        )
+        return [p for p in (from_item(i) for i in items) if p is not None]
 
     async def forget_pattern(self, name: str, scope: MemoryScope) -> bool:
         resolved = scope.with_session(None)
@@ -362,7 +368,8 @@ class MemoryService:
         resolved = scope
         query_embedding = await self._embed_query(query)
         candidates = await self._store.search(
-            query, resolved, kinds, limit * 4, query_embedding=query_embedding, min_similarity=self._min_similarity
+            query, resolved, kinds, limit * 4, query_embedding=query_embedding, min_similarity=self._min_similarity,
+            readable=self.readable(resolved),
         )
         if exclude:
             candidates = [c for c in candidates if c.id not in exclude]
@@ -415,7 +422,11 @@ class MemoryService:
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
     ) -> list[MemoryItem]:
-        return await self._store.recent(scope, kinds, limit)
+        return await self._store.recent(scope, kinds, limit, readable=self.readable(scope))
+
+    def readable(self, scope: MemoryScope) -> Readable:
+        """이 범위의 에이전트가 층별로 읽을 수 있는 소유 에이전트. 저장소 조회는 전부 이 값으로 거른다."""
+        return resolve(self._policies, scope.agent_id)
 
     async def get(self, item_id: str) -> MemoryItem | None:
         return await self._store.get(item_id)

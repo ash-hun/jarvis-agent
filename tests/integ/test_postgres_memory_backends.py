@@ -267,6 +267,36 @@ class TestItemStoreMigration:
         assert [i.content for i in await ltm.recall("논문", scope=u1)] == []
         assert [i.content for i in await ltm.recall("논문", scope=sub)] == ["작업 메모: 논문"]
 
+    async def test_layer_policy_in_sql(self, postgres_dsn):
+        """SQL 이 정책을 강제한다: 허락받은 에이전트만 남의 EDM, PDM 을 읽고, shared 표시는 열쇠가 아니다."""
+        from jarvis.memory.access import MemoryPolicy, MemoryReadPolicy
+        from jarvis.memory.stores.postgres import PostgresItemStore
+        from jarvis.memory.memory_service import MemoryService
+        from jarvis.memory import MemoryKind, MemoryScope
+
+        store = PostgresItemStore(dsn=postgres_dsn)
+        policies = {"karen": MemoryPolicy(read=MemoryReadPolicy(edm=["main"]))}
+        memory = MemoryService(store, policies=policies)
+        try:
+            await memory.clear()
+            main, karen = MemoryScope(user_id="u1", agent_id="main"), MemoryScope(user_id="u1", agent_id="karen")
+            await memory.remember("공고 작업: 분양가 표", source="session_end", scope=main)
+            await memory.remember("공고 작업 절차", source="eval", scope=main, kind=MemoryKind.PROCEDURAL)
+            await memory.remember("공고 작업: 공유 결과", source="promoted", scope=karen)
+            await memory.remember("관심 지역: 서울", source="explicit", scope=karen)
+
+            assert {i.content for i in await memory.recent(scope=karen)} == {
+                "공고 작업: 분양가 표", "공고 작업: 공유 결과", "관심 지역: 서울"
+            }
+            assert {i.content for i in await memory.recent(scope=main)} == {
+                "공고 작업: 분양가 표", "공고 작업 절차", "관심 지역: 서울"
+            }
+            assert {i.content for i in await memory.recall("공고 작업", karen)} == {
+                "공고 작업: 분양가 표", "공고 작업: 공유 결과"
+            }
+        finally:
+            await store.close()
+
     async def test_supersede_hides_old_fact(self, ltm):
         from jarvis.memory import MemoryScope
 

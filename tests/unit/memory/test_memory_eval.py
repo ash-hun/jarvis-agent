@@ -21,6 +21,7 @@ from jarvis.memory.eval.target import LayeredTarget, StoreTarget
 from jarvis.memory.eval.probe import count_llm_calls
 from jarvis.memory import MemoryKind, MemoryScope
 from jarvis.memory.eval.metrics import judge
+from jarvis.memory.access import Readable
 
 # ── MemoryScope ───────────────────────────────────────────────────────────────
 
@@ -29,20 +30,6 @@ def test_child_scope_inherits_user_and_replaces_agent_and_session():
     parent = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
     child = parent.child(agent_id="researcher", session_id="agent_researcher__s1")
     assert child == MemoryScope("u1", "researcher", "agent_researcher__s1")
-
-
-@pytest.mark.parametrize(
-    ("reader", "item", "visibility", "visible"),
-    [
-        (MemoryScope("u1", "main"), MemoryScope("u1", "main", "s1"), "private", True),
-        (MemoryScope("u1", "researcher"), MemoryScope("u1", "main"), "shared", True),
-        (MemoryScope("u1", "researcher"), MemoryScope("u1", "main"), "private", False),
-        (MemoryScope("u2", "main"), MemoryScope("u1", "main"), "shared", False),
-        (MemoryScope("u1", "researcher"), MemoryScope("u1", "planner"), "private", False),
-    ],
-)
-def test_read_inheritance_rules(reader, item, visibility, visible):
-    assert reader.can_read(item, visibility) is visible
 
 
 def test_working_set_requires_exact_match():
@@ -84,24 +71,25 @@ def test_judge_contains_not_contains_and_empty():
 
 
 class ScopedTarget:
-    """읽기 상속 규칙을 지키는 참조 구현. 데이터셋이 만족 가능한지 증명한다."""
+    """사용자 경계와 기본 읽기 정책을 지키는 참조 구현. 데이터셋이 만족 가능한지 증명한다."""
 
     def __init__(self) -> None:
-        self._items: list[tuple[MemoryScope, str, str, datetime]] = []
+        self._items: list[tuple[MemoryScope, MemoryKind, str, datetime]] = []
 
     async def reset(self) -> None:
         self._items.clear()
 
     async def setup(self, step: SetupStep, scope: MemoryScope) -> None:
         at = datetime.fromisoformat(step.at) if step.at else datetime.now()
-        self._items.append((scope, step.visibility, step.remember, at))
+        self._items.append((scope, step.kind, step.remember or "", at))
 
     async def probe(self, query: str, scope: MemoryScope, top_k: int, kind: str = "recall", *_: object) -> list[str]:
         tokens = query.split()
         hits = [
             (at, text)
-            for s, vis, text, at in self._items
-            if scope.can_read(s, vis) and any(t in text for t in tokens)
+            for s, kind, text, at in self._items
+            if s.user_id == scope.user_id and Readable.own(scope.agent_id).allows(s.agent_id, kind)
+            and any(t in text for t in tokens)
         ]
         hits.sort(reverse=True)
         # 지식 갱신: 같은 "주제:" 접두사는 최신 하나만
@@ -118,7 +106,7 @@ class ScopedTarget:
 
 @pytest.mark.memory_eval
 async def test_isolation_suite_is_satisfiable_by_scope_aware_reference():
-    """읽기 상속 규칙만 지키는 참조 구현으로 격리 스위트가 전부 통과한다(데이터셋 만족 가능성 증명)."""
+    """사용자 경계와 기본 읽기 정책만 지키는 참조 구현으로 격리 스위트가 전부 통과한다(데이터셋 만족 가능성 증명)."""
     report = await run(load_suites(["isolation"]), ScopedTarget())
     assert report.all_passed, format_report(report, verbose=True)
     assert report.suites["isolation"].leak_rate == 0.0
@@ -186,10 +174,10 @@ async def test_redesign_suites_are_satisfiable_by_layered_reference():
 
 
 @pytest.mark.memory_eval
-async def test_store_baseline_fails_redesign_suites_where_old_structure_cannot_express_them():
-    """기존 구조는 층별 권한, 일화 메타데이터, 정제가 없다. 이 실패가 재설계 비교의 기준선이다."""
+async def test_store_baseline_without_case_policy_fails_redesign_suites():
+    """store 는 사례의 정책을 넘기지 않아(기본 정책만) 허락된 항목을 못 읽는다. 메타데이터와 정제는 아직 없다."""
     report = await run(load_suites(list(REDESIGN_SUITES)), StoreTarget())
-    assert report.suites["access"].leak_rate > 0
+    assert report.suites["access"].leak_rate == 0.0 and report.suites["access"].recall < 1.0
     assert report.suites["episode_filter"].passed == 0
     assert report.suites["consolidation"].recall == 0.0
 
@@ -207,7 +195,7 @@ async def test_retention_baseline_loses_facts_past_the_message_window():
 
 async def test_layered_target_is_registered_and_runs_every_suite_kind():
     target = LayeredTarget()
-    assert (await run(load_suites(["access"]), target)).suites["access"].total == 8
+    assert (await run(load_suites(["access"]), target)).all_passed  # 3단계(접근 정책)부터
     assert (await run_retention(load_retention_suites(["retention"])[:1], target)).all_passed
 
 

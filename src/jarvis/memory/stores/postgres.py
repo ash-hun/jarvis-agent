@@ -11,6 +11,7 @@ from jarvis.memory.scope import MAIN_AGENT, PRIVATE, SHARED, MemoryScope
 from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind
 from jarvis.memory.stores.protocol import ItemStore, tokens_of
 from jarvis.common.logger import get_logger
+from jarvis.memory.access import Readable
 
 logger = get_logger(__name__)
 
@@ -34,9 +35,11 @@ _BASE_COLUMNS = (
 _COLUMNS = _BASE_COLUMNS + ", embedding::text AS embedding, embedding_model"
 _COLUMNS_NO_VECTOR = _BASE_COLUMNS + ", NULL::text AS embedding, NULL::text AS embedding_model"
 
-# 읽기 상속 규칙. 전역(user_id NULL) 항목은 모두에게, 그 외는 같은 사용자의 내 에이전트 항목 또는 shared.
+# 읽기 규칙. 사용자 경계(전역 user_id NULL 은 모두에게)가 먼저고, 그 안에서 사용자 프로필(의미)은 모든 에이전트,
+# EDM(일화)과 PDM(절차)은 정책이 허락한 소유 에이전트($2, $3)만. $1~$3 은 _visible_params 가 채운다
 _VISIBLE = (
-    "(user_id IS NULL OR user_id = $1) AND (agent_id = $2 OR visibility = $3) AND superseded_by IS NULL"
+    "(user_id IS NULL OR user_id = $1) AND superseded_by IS NULL AND ("
+    "kind = 'semantic' OR (kind = 'episodic' AND agent_id = ANY($2)) OR (kind = 'procedural' AND agent_id = ANY($3)))"
 )
 
 
@@ -197,13 +200,14 @@ class PostgresItemStore(ItemStore):
         limit: int = 10,
         query_embedding: list[float] | None = None,
         min_similarity: float = 0.3,
+        readable: Readable | None = None,
     ) -> list[MemoryItem]:
         pool = await self._get_pool()  # 마이그레이션이 끝나야 _vector 가 정해진다
         tokens = tokens_of(query)
         use_vector = self._vector and query_embedding is not None
         if not tokens and not use_vector:
             return []
-        params: list[Any] = [scope.user_id, scope.agent_id, SHARED]
+        params = _visible_params(scope, readable)
         where = [_VISIBLE]
         if kinds:
             params.append([str(k) for k in kinds])
@@ -240,22 +244,29 @@ class PostgresItemStore(ItemStore):
         scope: MemoryScope,
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
+        readable: Readable | None = None,
     ) -> list[MemoryItem]:
-        return await self._select(scope, kinds, "created_at DESC", limit)
+        return await self._select(scope, kinds, "created_at DESC", limit, readable)
 
     async def important(
         self,
         scope: MemoryScope,
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
+        readable: Readable | None = None,
     ) -> list[MemoryItem]:
-        return await self._select(scope, kinds, "importance DESC, created_at DESC", limit)
+        return await self._select(scope, kinds, "importance DESC, created_at DESC", limit, readable)
 
     async def _select(
-        self, scope: MemoryScope, kinds: Sequence[MemoryKind] | None, order: str, limit: int
+        self,
+        scope: MemoryScope,
+        kinds: Sequence[MemoryKind] | None,
+        order: str,
+        limit: int,
+        readable: Readable | None,
     ) -> list[MemoryItem]:
         pool = await self._get_pool()
-        params: list[Any] = [scope.user_id, scope.agent_id, SHARED]
+        params = _visible_params(scope, readable)
         where = [_VISIBLE]
         if kinds:
             params.append([str(k) for k in kinds])
@@ -313,6 +324,11 @@ class PostgresItemStore(ItemStore):
             await self._pool.close()
             self._pool = None
             self._loop = None
+
+
+def _visible_params(scope: MemoryScope, readable: Readable | None) -> list[Any]:
+    policy = readable or Readable.own(scope.agent_id)
+    return [scope.user_id, sorted(policy.edm), sorted(policy.pdm)]
 
 
 def _vec(embedding: list[float] | None) -> str | None:

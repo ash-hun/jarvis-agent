@@ -5,9 +5,11 @@ from datetime import datetime
 from jarvis.memory.eval.schema import EpisodeFilter, RetentionCase, SetupStep, WorkingCase
 from jarvis.model_layer.types import AssistantMessage, Message, TextContent, UserMessage
 from jarvis.memory.long_term.procedural import InMemoryProcedures, Procedure
+from jarvis.memory.access import MemoryPolicy, MemoryReadPolicy
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.scope import MAIN_AGENT, MemoryScope
 from jarvis.memory.memory_service import MemoryService
+from jarvis.memory.stores.protocol import ItemStore
 from jarvis.memory.types import MemoryKind
 
 RETENTION_CONTEXT = {"session_id": "eval", "user_id": "u1", "agent_id": MAIN_AGENT}
@@ -20,10 +22,12 @@ class EvalTarget:
         self._procedures = InMemoryProcedures()
         self._memory = self._build()
 
-    def _build(self) -> MemoryService:
+    def _build(self, store: ItemStore | None = None, policies: dict[str, MemoryPolicy] | None = None) -> MemoryService:
         from jarvis.memory.eval.fake_embedder import FakeEmbedder
 
-        return MemoryService(InMemoryItemStore(), procedures=self._procedures, embedder=FakeEmbedder())
+        return MemoryService(
+            store or InMemoryItemStore(), procedures=self._procedures, embedder=FakeEmbedder(), policies=policies
+        )
 
     async def reset(self) -> None:
         self._procedures = InMemoryProcedures()
@@ -94,6 +98,21 @@ class StoreTarget(EvalTarget):
 
 class LayeredTarget(EvalTarget):
     """재설계(STM 3턴, EDM, PDM, 층별 권한) 대상. PR 마다 해당 메서드를 덮어쓰고, 덮기 전에는 기존과 같다."""
+
+    async def probe(
+        self,
+        query: str,
+        scope: MemoryScope,
+        top_k: int,
+        kind: str = "recall",
+        episode_filter: EpisodeFilter | None = None,
+        policy: dict[str, dict[str, list[str]]] | None = None,
+    ) -> list[str]:
+        """사례의 정책을 team/<id>.yaml 의 memory.read 로 읽어 같은 저장소 위에 서비스를 다시 연다."""
+        if policy:
+            policies = {agent: MemoryPolicy(read=MemoryReadPolicy(**layers)) for agent, layers in policy.items()}
+            self._memory = self._build(self._memory.store, policies)
+        return await super().probe(query, scope, top_k, kind, episode_filter, policy)
 
 
 TARGETS: dict[str, type[EvalTarget]] = {"store": StoreTarget, "layered": LayeredTarget}

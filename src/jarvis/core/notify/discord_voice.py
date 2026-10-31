@@ -3,7 +3,7 @@
 import os
 import asyncio
 import tempfile
-from typing import Any, Protocol
+from typing import Any
 from collections.abc import Awaitable, Callable
 
 from jarvis.core.notify.webhook import headline
@@ -23,12 +23,14 @@ Notify = Callable[[dict[str, Any]], Awaitable[None]]
 logger = get_logger(__name__)
 
 
-class VoiceGateway(Protocol):
-    """디스코드에 닿는 부분. 테스트는 가짜를 넣는다."""
+class VoiceGateway:
+    """디스코드에 닿는 부분. 테스트는 가짜를 넣는다. 기본은 사용자가 음성 채널에 없는 것으로 본다(글로만 보낸다)."""
 
-    async def channel_of(self, user_id: int) -> Any | None: ...
+    async def channel_of(self, user_id: int) -> Any | None:
+        return None
 
-    async def play(self, channel: Any, wav: bytes) -> None: ...
+    async def play(self, channel: Any, wav: bytes) -> None:
+        return None
 
 
 def speech_of(payload: dict[str, Any], clean: Callable[[str], str]) -> tuple[str, bool]:
@@ -96,7 +98,7 @@ def voice_first(voice: DiscordVoice, types: set[str], text: Notify) -> Notify:
     return notify
 
 
-class DiscordGateway:
+class DiscordGateway(VoiceGateway):
     """discord.py 봇 하나. 처음 알림 때 접속하고 프로세스가 끝날 때까지 둔다. 읽을 때만 채널에 들어갔다 나온다."""
 
     def __init__(self, token: str, guild_id: int) -> None:

@@ -51,7 +51,7 @@ flowchart LR
 
 ## 약속 판정
 
-AGENDA 판단이 적어 낸 약속 하나는 두 번 판정을 거친다. 판정 규칙은 모두 `agent_layer/openloop/types.py` 의 순수 함수이고, 임베딩 호출만 저장소(`OpenLoopStore`)가 경계에서 한다.
+AGENDA 판단이 적어 낸 약속 하나는 두 번 판정을 거친다. 판정 규칙은 모두 `agent_layer/openloop/openloop_types.py` 의 순수 함수이고, 임베딩 호출만 저장소(`OpenLoopStore`)가 경계에서 한다.
 
 AGENDA 판단은 약속마다 기한과 근거를 붙여 낸다.
 
@@ -149,7 +149,7 @@ ollama 기본값인 nomic-embed-text 는 한국어 문장끼리 코사인이 0.6
 
 ### 판정은 순수 함수 하나, 저장소는 셋
 
-같은 약속인지, 저장할 만한 약속인지는 `openloop/types.py` 의 순수 함수(`same_loop`, `merge_loop`)가 정한다. 메모리, JSONL, Postgres 세 저장소가 이 함수를 그대로 쓴다. 저장소마다 판정을 따로 두면 같은 대화가 저장소에 따라 다른 AGENDA 를 만든다. 임베딩은 판정 함수 안에서 부르지 않고 저장소가 경계에서 계산해 넘긴다. 그래서 판정은 테스트에서 네트워크 없이 돌고, 임베딩 호출이 실패해도 글자 규칙으로 계속 판정한다.
+같은 약속인지, 저장할 만한 약속인지는 `openloop/openloop_types.py` 의 순수 함수(`same_loop`, `merge_loop`)가 정한다. 메모리, JSONL, Postgres 세 저장소가 이 함수를 그대로 쓴다. 저장소마다 판정을 따로 두면 같은 대화가 저장소에 따라 다른 AGENDA 를 만든다. 임베딩은 판정 함수 안에서 부르지 않고 저장소가 경계에서 계산해 넘긴다. 그래서 판정은 테스트에서 네트워크 없이 돌고, 임베딩 호출이 실패해도 글자 규칙으로 계속 판정한다.
 
 ### 작은 사고 모델의 실수를 규칙으로 받친다
 
@@ -167,7 +167,7 @@ ollama 기본값인 nomic-embed-text 는 한국어 문장끼리 코사인이 0.6
 flowchart LR
   ENG[AGENDA 판단 openloop/judge.py<br/>open_loops, closed_loops] --> SES[AgentSession]
   IN[사용자 입력<br/>거두는 말] --> SES
-  SES --> T[openloop/types.py<br/>split_evidence, grounded, merge_loop,<br/>matching_ids, cancelled_ids, expired_ids]
+  SES --> T[openloop/openloop_types.py<br/>split_evidence, grounded, merge_loop,<br/>matching_ids, cancelled_ids, expired_ids]
   SES --> ST[OpenLoopStore<br/>memory, jsonl, Postgres]
   ST -->|새 약속과 열린 약속| EMB[Embedder<br/>Ollama bge-m3]
   EMB -->|코사인| T

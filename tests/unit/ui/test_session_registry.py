@@ -3,10 +3,10 @@
 from unittest.mock import AsyncMock, MagicMock
 
 from jarvis.ui.web.session_registry import SessionRegistry, last_conversation
-from jarvis.agent_layer.session.protocol import SessionMetadata
+from jarvis.agent_layer.session.session_protocol import SessionMetadata
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.memory_service import MemoryService
-from jarvis.model_layer.types import UserMessage
+from jarvis.model_layer.model_types import UserMessage
 from jarvis.memory import MemoryScope
 
 LOCAL = MemoryScope(user_id="local")

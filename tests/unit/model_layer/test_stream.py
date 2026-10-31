@@ -1,7 +1,7 @@
 """model_layer/stream.py: FauxProvider 기반 스트리밍 테스트."""
 import pytest
 
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     LLMContext,
     ModelConfig,
     StopEvent,
@@ -88,7 +88,7 @@ async def test_unknown_provider_raises():
 
 async def test_stream_to_message_surfaces_provider_error(faux_model, simple_context):
     """ErrorEvent 가 오면 error_message 에 담긴다. 호출자가 빈 응답과 실패를 구분할 수 있어야 한다."""
-    from jarvis.model_layer.registry import get_default_registry
+    from jarvis.model_layer.model_registry import get_default_registry
     from tests.fixtures.faux_provider import FauxProviderFactory
 
     get_default_registry()._providers["faux"] = FauxProviderFactory.error()

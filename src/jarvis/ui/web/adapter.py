@@ -3,9 +3,9 @@
 import contextlib
 from typing import TYPE_CHECKING
 
-from jarvis.agent_layer.types import AgentEvent
+from jarvis.agent_layer.agent_types import AgentEvent
 from jarvis.ui.web.approvals import Connection
-from jarvis.ui.protocol import UIAdapter
+from jarvis.ui.ui_protocol import UIAdapter
 
 if TYPE_CHECKING:
     from fastapi import WebSocket

@@ -8,7 +8,7 @@ import wave
 import asyncio
 
 from jarvis.voice.providers.piper import PiperTTSProvider
-from jarvis.config import get_settings
+from jarvis.jarvis_config import get_settings
 
 SENTENCES = [
     "Good evening.",

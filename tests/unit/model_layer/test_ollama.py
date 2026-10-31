@@ -4,7 +4,7 @@ import json
 import httpx
 import pytest
 
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     AssistantMessage,
     LLMContext,
     ModelConfig,

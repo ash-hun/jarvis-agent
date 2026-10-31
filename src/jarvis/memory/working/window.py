@@ -1,6 +1,6 @@
 """[memory] 이력을 최근 턴 수로 자르되 tool_use/tool_result 짝은 가르지 않는 컨텍스트 창."""
 
-from jarvis.model_layer.types import Message
+from jarvis.model_layer.model_types import Message
 
 
 def cut_at_user_boundary(messages: list[Message]) -> list[Message]:

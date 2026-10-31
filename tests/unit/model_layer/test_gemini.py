@@ -1,5 +1,5 @@
 """GeminiProvider 메시지 변환 및 기본 동작 테스트 (실 API 미사용)."""
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     AssistantMessage,
     ImageContent,
     TextContent,
@@ -13,7 +13,7 @@ from jarvis.model_layer.providers.gemini import _convert_messages
 # ── LLMContext 헬퍼 ──────────────────────────────────────────────────────────
 
 def _ctx(messages, system_prompt=None, tools=None):
-    from jarvis.model_layer.types import LLMContext
+    from jarvis.model_layer.model_types import LLMContext
     return LLMContext(messages=messages, system_prompt=system_prompt, tools=tools)
 
 
@@ -128,7 +128,7 @@ class TestGeminiProviderMetadata:
         import sys
         from unittest.mock import patch
 
-        from jarvis.model_layer.types import ErrorEvent, LLMContext, ModelConfig
+        from jarvis.model_layer.model_types import ErrorEvent, LLMContext, ModelConfig
         from jarvis.model_layer.providers.gemini import GeminiProvider
 
         provider = GeminiProvider()
@@ -147,6 +147,6 @@ class TestGeminiProviderMetadata:
 
 class TestGeminiInRegistry:
     def test_gemini_registered_in_default_registry(self):
-        from jarvis.model_layer.registry import build_default_registry
+        from jarvis.model_layer.model_registry import build_default_registry
         registry = build_default_registry()
         assert "gemini" in registry.list_names()

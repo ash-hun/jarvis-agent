@@ -4,18 +4,18 @@ from typing import TYPE_CHECKING
 from dataclasses import dataclass, replace
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.usermodel.store import UserModelStore
-    from jarvis.agent_layer.openloop.store import OpenLoopStore
+    from jarvis.agent_layer.usermodel.usermodel_store import UserModelStore
+    from jarvis.agent_layer.openloop.openloop_store import OpenLoopStore
+    from jarvis.core.skills.skills_registry import SkillRegistry
     from jarvis.core.policy.approval_rules import ApprovalRules
     from jarvis.core.procedures.learner import ProcedureLearner
     from jarvis.core.external.inbox import ExternalEventInbox
     from jarvis.core.policy.pipeline import SecurityPipeline
     from jarvis.core.proactive.triggers import ActivityClock
     from jarvis.memory.memory_service import MemoryService
+    from jarvis.model_layer.model_types import ModelConfig
     from jarvis.core.policy.sandbox import DefaultSandbox
-    from jarvis.core.skills.registry import SkillRegistry
     from jarvis.core.plugins.runner import PluginRunner
-    from jarvis.model_layer.types import ModelConfig
 
 
 @dataclass(frozen=True)

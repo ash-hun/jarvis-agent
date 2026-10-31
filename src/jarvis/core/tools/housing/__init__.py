@@ -14,10 +14,10 @@ from jarvis.core.tools.housing.loan import HousingLoanTool
 from jarvis.core.tools.housing.profile import ProfileStore
 from jarvis.core.tools.housing.sh_terms import sh_pdf_text
 from jarvis.core.tools.housing.notice_pdf import pdf_text
-from jarvis.core.tools.registry import JarvisTool
+from jarvis.core.tools.tools_registry import JarvisTool
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.openloop.store import OpenLoopStore
+    from jarvis.agent_layer.openloop.openloop_store import OpenLoopStore
 
 
 def housing_tools(

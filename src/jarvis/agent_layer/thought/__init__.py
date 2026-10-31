@@ -12,7 +12,7 @@ from jarvis.agent_layer.thought.composer import (
     InterpretationOnlyComposer,
     ThoughtComposer,
 )
-from jarvis.agent_layer.thought.types import (
+from jarvis.agent_layer.thought.thought_types import (
     ProactiveAction,
     ThoughtFrame,
     ThoughtRequest,
@@ -21,7 +21,7 @@ from jarvis.agent_layer.thought.prompt import (
     DEFAULT_TEMPLATE,
     ThoughtPromptTemplate,
 )
-from jarvis.agent_layer.thought.protocol import RecallFn, ThoughtEngine
+from jarvis.agent_layer.thought.thought_protocol import RecallFn, ThoughtEngine
 from jarvis.agent_layer.thought.engine import InnerThoughtEngine
 
 __all__ = [

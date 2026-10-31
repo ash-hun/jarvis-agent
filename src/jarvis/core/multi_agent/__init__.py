@@ -14,11 +14,11 @@ from .topologies import (
     P2PTopology,
     SupervisorTopology,
 )
-from .protocol import AgentNodeProtocol, OrchestratorProtocol, TopologyProtocol
+from .multi_agent_protocol import AgentNodeProtocol, OrchestratorProtocol, TopologyProtocol
 from .factory import AgentDefinition, AgentFactory, AgentMemoryPolicy
-from .service import PATTERNS, OrchestrationService
+from .multi_agent_service import PATTERNS, OrchestrationService
+from .multi_agent_loader import load_agent_definitions
 from .orchestrate_tool import OrchestrateTool
-from .loader import load_agent_definitions
 from .node import AgentNode, LazyAgentNode
 from .blackboard import SharedBlackboard
 from .task import AgentResult, AgentTask

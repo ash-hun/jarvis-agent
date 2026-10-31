@@ -16,10 +16,10 @@ from jarvis.memory.working.postgres import PostgresWorkingStore
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.stores.postgres import PostgresItemStore
 from jarvis.memory.eval.fake_embedder import FakeEmbedder
-from jarvis.memory.stores.protocol import ItemStore
+from jarvis.memory.stores.store_protocol import ItemStore
+from jarvis.memory.eval.eval_schema import SetupStep
 from jarvis.model_layer.embeddings import Embedder
 from jarvis.memory.eval.target import EvalTarget
-from jarvis.memory.eval.schema import SetupStep
 
 SCOPE = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
 

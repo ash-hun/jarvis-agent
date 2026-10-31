@@ -5,7 +5,7 @@ from jarvis.ui.tui.bridge import (
     InnerThoughtAction,
     ProactiveMessageAction,
 )
-from jarvis.agent_layer.types import InnerThoughtEvent, ProactiveMessageEvent
+from jarvis.agent_layer.agent_types import InnerThoughtEvent, ProactiveMessageEvent
 
 
 def test_inner_thought_event_translates_to_action():

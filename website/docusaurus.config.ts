@@ -70,8 +70,8 @@ const config: Config = {
           title: '레포',
           items: [
             {label: 'GitHub', href: 'https://github.com/ash-hun/jarvis-agent'},
-            {label: 'API 명세', href: 'https://github.com/ash-hun/jarvis-agent/blob/main/docs/api-spec.md'},
-            {label: '화면 명세', href: 'https://github.com/ash-hun/jarvis-agent/blob/main/docs/screen-spec.md'},
+            {label: 'API 명세', href: 'https://github.com/ash-hun/jarvis-agent/blob/main/docs/api_spec.md'},
+            {label: '화면 명세', href: 'https://github.com/ash-hun/jarvis-agent/blob/main/docs/view_spec.md'},
           ],
         },
       ],

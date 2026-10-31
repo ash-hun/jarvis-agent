@@ -2,7 +2,7 @@
 
 from collections.abc import AsyncIterator
 
-from jarvis.model_layer.types import ErrorEvent, LLMContext, ModelConfig, StreamEvent, StreamOptions
+from jarvis.model_layer.model_types import ErrorEvent, LLMContext, ModelConfig, StreamEvent, StreamOptions
 
 NOT_IMPLEMENTED_CODE = "not_implemented"
 

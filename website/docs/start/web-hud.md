@@ -11,7 +11,7 @@ nginx 가 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/`)을 서빙하고
 
 :::note
 
-화면 명세의 정본은 레포의 `docs/screen-spec.md` 다.
+화면 명세의 정본은 레포의 `docs/view_spec.md` 다.
 
 :::
 

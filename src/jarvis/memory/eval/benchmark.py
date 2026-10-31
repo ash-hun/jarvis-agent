@@ -7,8 +7,8 @@ from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass, field
 
 from jarvis.memory.memory_service import MemoryService
+from jarvis.memory.memory_types import MemoryItem
 from jarvis.memory.scope import MemoryScope
-from jarvis.memory.types import MemoryItem
 
 USER = "benchmark"
 

@@ -10,8 +10,8 @@ from pathlib import Path
 from types import ModuleType
 from collections.abc import Awaitable, Callable
 
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.tools.registry import JarvisTool, ToolRegistry
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+from jarvis.core.tools.tools_registry import JarvisTool, ToolRegistry
 from jarvis.common.logger import get_logger
 
 # 사용자 도구는 JarvisTool 을 상속하지 않아도 된다. 예전 runtime_checkable Protocol 검사와 같은 멤버로 모양만 본다

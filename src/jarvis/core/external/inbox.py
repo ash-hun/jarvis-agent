@@ -2,7 +2,7 @@
 
 from collections import deque
 
-from jarvis.core.external.types import ExternalEvent
+from jarvis.core.external.external_types import ExternalEvent
 from jarvis.common.logger import get_logger
 
 logger = get_logger(__name__)

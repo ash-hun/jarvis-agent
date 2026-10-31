@@ -6,8 +6,8 @@ import asyncio
 import argparse
 from scripts.experiments.models import model_config
 
+from jarvis.model_layer.model_types import AssistantMessage, Message, TextContent, UserMessage
 from jarvis.memory.consolidation.compaction import conversation_language, summarize_messages
-from jarvis.model_layer.types import AssistantMessage, Message, TextContent, UserMessage
 
 HANGUL = re.compile(r"[가-힣]")
 LATIN = re.compile(r"[A-Za-z]")

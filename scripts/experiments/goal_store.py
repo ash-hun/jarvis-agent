@@ -5,8 +5,8 @@ import time
 import tempfile
 import statistics
 
-from jarvis.core.goals.types import Goal, goal_key
-from jarvis.core.goals.store import GoalStore
+from jarvis.core.goals.goals_types import Goal, goal_key
+from jarvis.core.goals.goals_store import GoalStore
 
 COUNTS = (10, 100, 1000)
 

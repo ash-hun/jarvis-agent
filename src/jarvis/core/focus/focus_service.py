@@ -1,12 +1,12 @@
 """[core] FocusService: 세션마다 Focus 작업 하나를 열고 닫으며, 턴마다 sub-agent 넷을 돌려 화면에 밀어 보낸다."""
 
 import asyncio
+from typing import Any
 from datetime import datetime
 from dataclasses import replace
-from typing import Any, Protocol
 from collections.abc import Awaitable, Callable
 
-from jarvis.core.focus.types import (
+from jarvis.core.focus.focus_types import (
     FocusCommand,
     FocusState,
     apply_plan,
@@ -25,8 +25,9 @@ from jarvis.core.focus.prompts import (
     progress_request,
     reference_request,
 )
-from jarvis.agent_layer.types import AgentEvent, FocusPanelEvent, FocusStateEvent
-from jarvis.core.focus.store import FocusStore
+from jarvis.agent_layer.agent_types import AgentEvent, FocusPanelEvent, FocusStateEvent
+from jarvis.core.session import AgentSession, TurnHook
+from jarvis.core.focus.focus_store import FocusStore
 from jarvis.common.logger import get_logger
 
 PANEL_TAIL_CHARS = 8000
@@ -37,25 +38,7 @@ FIRST_REPLY = "(아직 응답 없음. 작업을 막 시작했다)"
 logger = get_logger(__name__)
 
 
-class SubAgent(Protocol):
-    async def prompt(self, raw_input: str) -> Any: ...
-
-
-class FocusSession(Protocol):
-    """FocusService 가 메인 세션에서 쓰는 것만. AgentSession 이 만족한다."""
-
-    @property
-    def session_id(self) -> str: ...
-
-    @property
-    def turn_hook(self) -> Any: ...
-
-    def set_turn_hook(self, hook: Any) -> None: ...
-
-    async def emit(self, event: AgentEvent) -> None: ...
-
-
-AgentMaker = Callable[[str, str], Awaitable[SubAgent]]
+AgentMaker = Callable[[str, str], Awaitable[AgentSession]]
 
 
 def _reply_text(message: Any) -> str:
@@ -63,19 +46,18 @@ def _reply_text(message: Any) -> str:
     return str(text() if callable(text) else text or "")
 
 
-class FocusRun:
+class FocusRun(TurnHook):
     """활성 Focus 작업 하나. 메인 세션의 턴 훅이 되어 턴 앞에서 분석을, 뒤에서 기록과 진행을 돌린다."""
 
-    def __init__(self, service: "FocusService", session: FocusSession, state: FocusState) -> None:
+    def __init__(self, service: "FocusService", session: AgentSession, state: FocusState) -> None:
         self._service = service
         self._session = session
         self.state = state
-        self._agents: dict[str, SubAgent] = {}
+        self._agents: dict[str, AgentSession] = {}
         self._locks: dict[str, asyncio.Lock] = {}
         # start 가 첫 지시를 미리 분석했으면 그 턴의 before_turn 은 다시 분석하지 않는다
         self._pre_analyzed: str | None = None
 
-    # ── TurnHook ──────────────────────────────────────────────────────────────
     def system_addendum(self) -> str | None:
         store = self._service.store
         task_id = self.state.task_id
@@ -192,7 +174,7 @@ class FocusService:
     def run_of(self, session_id: str) -> FocusRun | None:
         return self._runs.get(session_id)
 
-    async def handle(self, command: FocusCommand, session: FocusSession) -> tuple[str, str | None]:
+    async def handle(self, command: FocusCommand, session: AgentSession) -> tuple[str, str | None]:
         """(사용자에게 보일 안내, 이어서 메인 에이전트에 보낼 지시) 를 돌려준다."""
         if command.action == "start":
             return await self.start(session, command.task)
@@ -200,7 +182,7 @@ class FocusService:
             return await self.stop(session), None
         return self.status(session.session_id), None
 
-    async def start(self, session: FocusSession, task: str) -> tuple[str, str | None]:
+    async def start(self, session: AgentSession, task: str) -> tuple[str, str | None]:
         sid = session.session_id
         current = self._runs.get(sid) or await self.restore(session)
         if current is not None:
@@ -228,7 +210,7 @@ class FocusService:
             logger.info(f"[Focus] start analysis late (>{self._ready_timeout}s): main turn starts without it")
         return f"[Focus] 작업을 시작합니다: {task}", task
 
-    async def stop(self, session: FocusSession) -> str:
+    async def stop(self, session: AgentSession) -> str:
         sid = session.session_id
         run = self._runs.pop(sid, None) or await self._load(session)
         self._runs.pop(sid, None)
@@ -255,7 +237,7 @@ class FocusService:
             lines.append(f"예상 남은 시간 {round(eta / 60)}분")
         return "\n".join(lines)
 
-    async def restore(self, session: FocusSession) -> FocusRun | None:
+    async def restore(self, session: AgentSession) -> FocusRun | None:
         """store 에 활성 작업이 있는데 메모리에 없으면(재시작) 되살려 턴 훅을 다시 끼운다. 두 번 불러도 하나다."""
         sid = session.session_id
         if sid in self._runs:
@@ -266,7 +248,7 @@ class FocusService:
             session.set_turn_hook(run)
         return run
 
-    async def _load(self, session: FocusSession) -> FocusRun | None:
+    async def _load(self, session: AgentSession) -> FocusRun | None:
         task_id = self.store.active_task(session.session_id)
         state = self.store.load_state(task_id) if task_id else None
         if state is None:

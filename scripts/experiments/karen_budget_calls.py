@@ -10,13 +10,13 @@ import argparse
 from pathlib import Path
 from scripts.experiments.models import model_config
 
+from jarvis.model_layer.model_types import LLMContext, UserMessage
 from jarvis.core.tools.housing import ProfileStore, housing_tools
 from jarvis.memory.stores.in_memory import InMemoryItemStore
-from jarvis.model_layer.types import LLMContext, UserMessage
 from jarvis.model_layer.stream import stream_to_message
 from jarvis.core.tools.housing.amount import parse_won
 from jarvis.memory.memory_service import MemoryService
-from jarvis.model_layer.types import Tool
+from jarvis.model_layer.model_types import Tool
 
 ROOT = Path(__file__).resolve().parents[2]
 DATASET = ROOT / "scripts" / "experiments" / "datasets" / "karen_budget.jsonl"

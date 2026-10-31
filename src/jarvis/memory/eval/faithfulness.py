@@ -5,7 +5,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from collections.abc import Awaitable, Callable
 
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     AssistantMessage,
     LLMContext,
     Message,

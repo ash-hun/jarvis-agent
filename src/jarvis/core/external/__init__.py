@@ -8,12 +8,12 @@ from jarvis.core.external.dedup import (
     SeenStore,
     derive_events,
 )
-from jarvis.core.external.loader import ExternalSourceSpec, load_source_specs
+from jarvis.core.external.external_loader import ExternalSourceSpec, load_source_specs
 from jarvis.core.external.mcp_source import McpToolSource, build_mcp_sources
+from jarvis.core.external.external_protocol import ExternalSource
+from jarvis.core.external.external_types import ExternalEvent
 from jarvis.core.external.poller import ExternalEventPoller
 from jarvis.core.external.inbox import ExternalEventInbox
-from jarvis.core.external.protocol import ExternalSource
-from jarvis.core.external.types import ExternalEvent
 
 __all__ = [
     "ExternalEvent",

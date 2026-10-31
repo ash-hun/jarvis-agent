@@ -11,7 +11,7 @@ from collections.abc import Awaitable, Callable
 from jarvis.voice.speech_text import speech_text
 
 if TYPE_CHECKING:
-    from jarvis.voice.service import VoiceService
+    from jarvis.voice.voice_service import VoiceService
 
 Player = Callable[[bytes], Awaitable[None]]
 Recorder = Callable[[float], Awaitable[bytes]]

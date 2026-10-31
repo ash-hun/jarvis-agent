@@ -6,9 +6,9 @@ pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from jarvis.jarvis_config import JarvisSettings  # noqa: E402
 from jarvis.app.infra_builder import build_app  # noqa: E402
 from jarvis.ui.web.server import create_app  # noqa: E402
-from jarvis.config import JarvisSettings  # noqa: E402
 
 
 @pytest.fixture
@@ -238,7 +238,7 @@ def agenda(monkeypatch, tmp_path):
     """open loop 저장소는 메모리, 스케줄러는 루프 없이 tmp 디렉토리를 쓰는 서비스로 띄운다."""
     from unittest.mock import AsyncMock, MagicMock
 
-    from jarvis.core.scheduler.service import SchedulerService
+    from jarvis.core.scheduler.scheduler_service import SchedulerService
     from jarvis.core.scheduler.task import ScheduledTask
 
     monkeypatch.setenv("JARVIS_PROACTIVE__DAEMON_ENABLED", "false")
@@ -273,7 +273,7 @@ def agenda(monkeypatch, tmp_path):
 def test_agenda_lists_open_loops_and_schedules(agenda):
     import asyncio
 
-    from jarvis.agent_layer.openloop.types import OpenLoop
+    from jarvis.agent_layer.openloop.openloop_types import OpenLoop
 
     client, store, _ = agenda
     loop_id = asyncio.run(store.add(OpenLoop(description="리뷰 자료 보내기", origin_session="default")))
@@ -292,7 +292,7 @@ def test_agenda_lists_open_loops_and_schedules(agenda):
 def test_openloop_done_removes_it_from_agenda(agenda):
     import asyncio
 
-    from jarvis.agent_layer.openloop.types import OpenLoop
+    from jarvis.agent_layer.openloop.openloop_types import OpenLoop
 
     client, store, _ = agenda
     loop_id = asyncio.run(store.add(OpenLoop(description="x")))
@@ -306,7 +306,7 @@ def test_wrongly_closed_loop_comes_back_but_an_overdue_one_does_not(agenda):
     import time
     import asyncio
 
-    from jarvis.agent_layer.openloop.types import OpenLoop
+    from jarvis.agent_layer.openloop.openloop_types import OpenLoop
 
     client, store, _ = agenda
     now_ms = int(time.time() * 1000)
@@ -336,7 +336,7 @@ def test_agenda_drops_long_overdue_loops(agenda):
     import time
     import asyncio
 
-    from jarvis.agent_layer.openloop.types import OpenLoop
+    from jarvis.agent_layer.openloop.openloop_types import OpenLoop
 
     client, store, _ = agenda
     now_ms = int(time.time() * 1000)
@@ -401,7 +401,7 @@ def test_agenda_marks_once_reminders(agenda):
 
 def test_tts_request_without_voice_service_falls_back_to_browser(monkeypatch, tmp_path):
     """음성 서비스가 없어도 응답을 돌려줘야 HUD 가 '음성 처리 중'에 멈추지 않는다."""
-    import jarvis.voice.service as vs
+    import jarvis.voice.voice_service as vs
 
     def no_voice(*_args, **_kwargs):
         raise RuntimeError("voice unavailable")
@@ -517,7 +517,7 @@ def test_branch_copies_history_and_messages_are_text_only(monkeypatch, tmp_path)
     """jsonl 저장소: 분기는 부모 이력을 복사하고 열린 세션 목록에 들어간다. 이력 조회는 도구 결과를 뺀다."""
     import asyncio
 
-    from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage, UserMessage
+    from jarvis.model_layer.model_types import AssistantMessage, TextContent, ToolResultMessage, UserMessage
 
     monkeypatch.setenv("JARVIS_PROACTIVE__DAEMON_ENABLED", "false")
     monkeypatch.setenv("JARVIS_SCHEDULER__ENABLED", "false")
@@ -551,9 +551,9 @@ def test_push_api_upserts_by_endpoint_and_is_off_without_a_store(monkeypatch, tm
     """구독은 endpoint 가 자연 키다. 같은 본문을 두 번 보내도 하나, 없는 endpoint 해제도 200."""
     from fastapi.testclient import TestClient
 
+    from jarvis.jarvis_config import JarvisSettings
     from jarvis.app.infra_builder import build_app
     from jarvis.ui.web.server import create_app
-    from jarvis.config import JarvisSettings
 
     monkeypatch.setenv("JARVIS_PROACTIVE__DAEMON_ENABLED", "false")
     monkeypatch.setenv("JARVIS_SCHEDULER__ENABLED", "false")

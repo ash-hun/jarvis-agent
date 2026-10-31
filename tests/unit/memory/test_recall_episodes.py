@@ -4,8 +4,8 @@ from datetime import datetime
 
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.core.tools.episodes import RecallEpisodesTool
+from jarvis.core.tools.tools_registry import ToolContext
 from jarvis.memory.memory_service import MemoryService
-from jarvis.core.tools.registry import ToolContext
 from jarvis.memory import MemoryScope
 
 SCOPE = MemoryScope(user_id="u1", agent_id="karen", session_id="s1")

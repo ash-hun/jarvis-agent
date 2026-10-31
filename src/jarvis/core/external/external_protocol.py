@@ -1,6 +1,6 @@
 """[core] 외부 소스의 기본 클래스. 주기마다 외부 세계를 한 번 훑어 이벤트 목록을 돌려준다."""
 
-from jarvis.core.external.types import ExternalEvent
+from jarvis.core.external.external_types import ExternalEvent
 
 DEFAULT_INTERVAL_SEC = 300.0
 

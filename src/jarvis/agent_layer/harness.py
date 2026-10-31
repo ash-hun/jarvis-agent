@@ -4,10 +4,10 @@ import asyncio
 from typing import Any
 from collections.abc import Awaitable, Callable
 
-from jarvis.model_layer.types import AssistantMessage, ModelConfig, Tool, ToolResultMessage
-from jarvis.agent_layer.types import AgentContext, AgentEvent, AgentLoopConfig
+from jarvis.model_layer.model_types import AssistantMessage, ModelConfig, Tool, ToolResultMessage
+from jarvis.agent_layer.agent_types import AgentContext, AgentEvent, AgentLoopConfig
+from jarvis.agent_layer.session.session_protocol import SessionRepo
 from jarvis.agent_layer.loop import AgentEventSink, run_agent_loop
-from jarvis.agent_layer.session.protocol import SessionRepo
 from jarvis.memory.memory_service import MemoryService
 
 
@@ -60,7 +60,7 @@ class AgentHarness:
         tool_executor: Callable[[str, str, dict[str, Any]], Awaitable[ToolResultMessage]] | None = None,
         extra_context: dict[str, Any] | None = None,
     ) -> AssistantMessage | None:
-        from jarvis.model_layer.types import UserMessage
+        from jarvis.model_layer.model_types import UserMessage
 
         self._running = True
         self._signal.clear()

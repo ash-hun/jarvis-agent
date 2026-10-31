@@ -7,14 +7,14 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from jarvis.app.agent_profile import MAIN_AGENT_ID, AgentProfile, compose_system_prompt
+from jarvis.jarvis_config import BrandConfig, BrandPalette
 from jarvis.app.session_builder import SessionBuilder
-from jarvis.config import BrandConfig, BrandPalette
 from jarvis.memory.access import MemoryPolicy
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
+    from jarvis.core.scheduler.scheduler_service import TaskAgent
     from jarvis.core.policy.approval_rules import ApprovalRules
-    from jarvis.core.scheduler.service import TaskAgent
     from jarvis.app.app_services import AppServices
     from jarvis.app.app_context import AppContext
     from jarvis.core.session import AgentSession
@@ -163,7 +163,7 @@ class AgentRegistry:
 
     def task_agent(self, agent_id: str) -> "TaskAgent | None":
         """스케줄 작업을 이 에이전트로 돌릴 때 쓰는 모델, 프롬프트, 이름, 도구. 모르는 id 면 None."""
-        from jarvis.core.scheduler.service import TaskAgent
+        from jarvis.core.scheduler.scheduler_service import TaskAgent
 
         builder = self._builders.get(agent_id)
         if builder is None:

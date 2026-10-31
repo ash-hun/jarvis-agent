@@ -5,7 +5,7 @@ from datetime import datetime
 from dataclasses import dataclass
 from collections.abc import Sequence
 
-from jarvis.memory.types import MemoryItem, MemoryKind
+from jarvis.memory.memory_types import MemoryItem, MemoryKind
 from jarvis.model_layer.embeddings import cosine
 from jarvis.memory.scope import MemoryScope
 from jarvis.memory.access import Readable

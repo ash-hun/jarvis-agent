@@ -6,8 +6,8 @@ from dataclasses import dataclass, field
 from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
-    from jarvis.core.scheduler.service import SchedulerService
-    from jarvis.core.skills.registry import SkillRegistry
+    from jarvis.core.scheduler.scheduler_service import SchedulerService
+    from jarvis.core.skills.skills_registry import SkillRegistry
     from jarvis.core.slash.schedule_cmd import Classifier
     from jarvis.memory.scope import MemoryScope
 

@@ -6,9 +6,9 @@ from datetime import date, datetime
 from jarvis.core.tools.housing.deadline import deadline_loop, loop_id, remind_date, track_deadlines
 from jarvis.agent_layer.openloop import InMemoryOpenLoopStore
 from tests.unit.core.housing.test_budget import Board, _tool
+from jarvis.core.tools.tools_registry import ToolContext
 from tests.unit.core.housing.conftest import TODAY, page
 from jarvis.core.tools.housing.lh_notice import Notice
-from jarvis.core.tools.registry import ToolContext
 from jarvis.memory.scope import MemoryScope
 
 NOTICE = Notice("1-03-06-10", "행복주택", "테스트 공고", "경기도", "2026.10.01", "2026.10.20", "공고중")

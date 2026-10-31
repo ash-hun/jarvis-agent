@@ -1,6 +1,6 @@
 """[core] 모든 토폴로지 구현체가 공유하는 노드 관리(강제 교체, 삭제, 크기, 포함 여부)를 제공한다."""
 
-from jarvis.core.multi_agent.protocol import AgentNodeProtocol, TopologyProtocol
+from jarvis.core.multi_agent.multi_agent_protocol import AgentNodeProtocol, TopologyProtocol
 
 
 class BaseTopology(TopologyProtocol):

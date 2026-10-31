@@ -15,12 +15,12 @@ from jarvis.core.procedures import (
     parse_draft,
     register_approved,
 )
-from jarvis.model_layer.types import AssistantMessage, TextContent, ToolCall, ToolResultMessage, UserMessage
+from jarvis.model_layer.model_types import AssistantMessage, TextContent, ToolCall, ToolResultMessage, UserMessage
 from jarvis.core.slash.procedures_cmd import make_procedures_handler
 from jarvis.core.procedures.distill import render_prompt, slugify
+from jarvis.core.skills.skills_registry import SkillRegistry
+from jarvis.core.tools.tools_registry import ToolRegistry
 from jarvis.core.procedures.learner import unique_name
-from jarvis.core.skills.registry import SkillRegistry
-from jarvis.core.tools.registry import ToolRegistry
 
 # ── 픽스처: 도구 3번 쓰고 성공으로 끝난 대화 ──────────────────────────────────
 
@@ -328,7 +328,7 @@ class _Session:
 
 
 async def test_procedure_with_plan_runs_each_step_through_the_session_executor():
-    from jarvis.core.tools.registry import ToolContext
+    from jarvis.core.tools.tools_registry import ToolContext
 
     draft = parse_draft(PLAN_JSON)
     proc = Procedure(name="run-tests", description="d", body="b", inputs=draft.inputs, plan=draft.plan)

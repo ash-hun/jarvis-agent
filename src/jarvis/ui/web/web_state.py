@@ -16,14 +16,14 @@ from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.thought.reply import ReplyClassifier
-    from jarvis.core.focus.service import FocusService, SubAgent
+    from jarvis.core.focus.focus_service import FocusService
     from jarvis.ui.web.adapter import PerConnectionAdapter
+    from jarvis.voice.voice_service import VoiceService
     from jarvis.app.app_assembly import AppAssembly
+    from jarvis.jarvis_config import JarvisSettings
     from jarvis.app.app_context import AppContext
-    from jarvis.voice.service import VoiceService
     from jarvis.core.session import AgentSession
     from jarvis.voice.wake import WakeDetector
-    from jarvis.config import JarvisSettings
 
 logger = get_logger(__name__)
 
@@ -92,14 +92,14 @@ class WebState:
 
         from jarvis.core.focus.prompts import REFERENCE_TOOLS, SYSTEM_PROMPTS
         from jarvis.core.multi_agent.factory import AgentDefinition
+        from jarvis.core.focus.focus_service import FocusService
         from jarvis.app.subagent_builder import SubagentBuilder
-        from jarvis.core.focus.service import FocusService
-        from jarvis.core.focus.store import FocusStore
+        from jarvis.core.focus.focus_store import FocusStore
 
         ctx, services = self.assembly.ctx, self.assembly.services
         builder = SubagentBuilder(ctx, services, ctx.tool_registry)
 
-        async def make_agent(role: str, session_id: str) -> "SubAgent":
+        async def make_agent(role: str, session_id: str) -> "AgentSession":
             definition = AgentDefinition(
                 name=f"focus-{role}",
                 description=f"Focus 모드 {role} 담당",
@@ -122,7 +122,7 @@ class WebState:
     def _build_voice_service(self) -> "VoiceService | None":
         """음성 프로바이더를 설정대로 만든다. 선택 의존성이 없으면 None(브라우저 음성만)."""
         try:
-            from jarvis.voice.service import VoiceService
+            from jarvis.voice.voice_service import VoiceService
 
             v = self.settings.voice
             return VoiceService.from_config(

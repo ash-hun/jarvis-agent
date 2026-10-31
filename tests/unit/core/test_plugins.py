@@ -1,8 +1,8 @@
 """JarvisPlugin 기반 클래스, PluginRunner, PluginLoader 테스트."""
 
-from jarvis.model_layer.types import TextContent, UserMessage
-from jarvis.core.plugins.protocol import JarvisPlugin
-from jarvis.core.plugins.loader import PluginLoader
+from jarvis.model_layer.model_types import TextContent, UserMessage
+from jarvis.core.plugins.plugins_protocol import JarvisPlugin
+from jarvis.core.plugins.plugins_loader import PluginLoader
 from jarvis.core.plugins.runner import PluginRunner
 from jarvis.core.policy.pipeline import AuthContext
 
@@ -81,7 +81,7 @@ class TestPluginLoader:
             "class Duck:\n    name = 'duck'\n    version = '0.1'\n"
         )
         (tmp_path / "sub.py").write_text(
-            "from jarvis.core.plugins.protocol import JarvisPlugin\n\n"
+            "from jarvis.core.plugins.plugins_protocol import JarvisPlugin\n\n"
             "class Sub(JarvisPlugin):\n    name = 'sub'\n    version = '0.1'\n"
         )
         runner = PluginRunner()

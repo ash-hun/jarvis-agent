@@ -15,7 +15,7 @@ from jarvis.core.multi_agent.factory import AgentDefinition, AgentFactory
 from jarvis.core.multi_agent.node import LazyAgentNode, capability_score
 from jarvis.core.multi_agent.blackboard import SharedBlackboard
 from jarvis.memory.stores.in_memory import InMemoryItemStore
-from jarvis.agent_layer.types import AgentLoopConfig
+from jarvis.agent_layer.agent_types import AgentLoopConfig
 from jarvis.memory.memory_service import TASK_HEADER
 from jarvis.core.multi_agent.task import AgentTask
 from jarvis.core.session import AgentSession

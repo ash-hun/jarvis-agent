@@ -3,7 +3,7 @@
 import asyncio
 import contextlib
 
-from jarvis.agent_layer.thought.types import ThoughtFrame
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame
 from jarvis.memory.memory_service import MemoryService
 from jarvis.memory.scope import MemoryScope
 

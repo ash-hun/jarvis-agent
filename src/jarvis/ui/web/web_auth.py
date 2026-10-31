@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from jarvis.config import ApiUser, JarvisSettings
+    from jarvis.jarvis_config import ApiUser, JarvisSettings
 
 
 def auth_enabled(settings: "JarvisSettings") -> bool:

@@ -1,5 +1,5 @@
-"""model_layer/types.py: 핵심 타입 직렬화/역직렬화 테스트."""
-from jarvis.model_layer.types import (
+"""model_layer/model_types.py: 핵심 타입 직렬화/역직렬화 테스트."""
+from jarvis.model_layer.model_types import (
     AssistantMessage,
     TextContent,
     TextDeltaEvent,

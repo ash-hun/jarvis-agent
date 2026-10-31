@@ -16,7 +16,7 @@ os.environ.setdefault("JARVIS_SECURITY__REQUIRE_AUTH", "false")
 os.environ.setdefault("JARVIS_TEAM__DIR", str(Path(__file__).parent / "fixtures" / "no-team"))
 
 # 개발자의 로컬 .env 가 테스트 기본값을 덮지 않게. 테스트는 환경변수와 monkeypatch 로만 설정을 바꾼다
-from jarvis.config import JarvisSettings  # noqa: E402
+from jarvis.jarvis_config import JarvisSettings  # noqa: E402
 
 JarvisSettings.model_config["env_file"] = None
 
@@ -26,7 +26,7 @@ JarvisSettings.model_config["env_file"] = None
 @pytest.fixture(autouse=True)
 def register_faux_provider():
     """모든 테스트에 자동 적용 — FauxProvider를 레지스트리에 등록."""
-    from jarvis.model_layer.registry import get_default_registry
+    from jarvis.model_layer.model_registry import get_default_registry
     from tests.fixtures.faux_provider import FauxProvider
 
     registry = get_default_registry()
@@ -34,7 +34,7 @@ def register_faux_provider():
         registry.register(FauxProvider())
     yield
     # teardown: config 싱글톤 초기화
-    from jarvis.config import reset_settings
+    from jarvis.jarvis_config import reset_settings
     reset_settings()
 
 
@@ -42,7 +42,7 @@ def register_faux_provider():
 
 @pytest.fixture
 def faux_model():
-    from jarvis.model_layer.types import ModelConfig
+    from jarvis.model_layer.model_types import ModelConfig
     return ModelConfig(provider="faux", model="faux-model")
 
 
@@ -50,9 +50,9 @@ def faux_model():
 def faux_model_with_response():
     """특정 응답을 반환하는 faux model — registry를 교체."""
     def _factory(response: str = "Hello!", tool_calls: list | None = None):
-        from jarvis.model_layer.registry import get_default_registry
+        from jarvis.model_layer.model_registry import get_default_registry
+        from jarvis.model_layer.model_types import ModelConfig
         from tests.fixtures.faux_provider import FauxProvider
-        from jarvis.model_layer.types import ModelConfig
 
         registry = get_default_registry()
         registry._providers["faux"] = FauxProvider(response=response, tool_calls=tool_calls)
@@ -101,13 +101,13 @@ def session_memory():
 
 @pytest.fixture
 def tool_registry():
-    from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.core.tools.tools_registry import ToolRegistry
     return ToolRegistry()
 
 
 @pytest.fixture
 def skill_registry():
-    from jarvis.core.skills.registry import SkillRegistry
+    from jarvis.core.skills.skills_registry import SkillRegistry
     return SkillRegistry()
 
 

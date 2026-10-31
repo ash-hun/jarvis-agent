@@ -8,12 +8,12 @@ from jarvis.agent_layer.thought import (
     ThoughtLog,
     ThoughtRequest,
 )
-from jarvis.agent_layer.types import AgentContext, InnerThoughtEvent
+from jarvis.agent_layer.agent_types import AgentContext, InnerThoughtEvent
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.agent_layer.loop import _augment_system_prompt
 from jarvis.agent_layer.thought.log import THOUGHT_SOURCE
 from jarvis.memory.memory_service import MemoryService
-from jarvis.model_layer.types import ModelConfig
+from jarvis.model_layer.model_types import ModelConfig
 
 
 class StubEngine:

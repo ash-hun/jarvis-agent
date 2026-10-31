@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 
-from jarvis.memory.eval.schema import EvalCase
+from jarvis.memory.eval.eval_schema import EvalCase
 
 
 @dataclass

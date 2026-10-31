@@ -7,9 +7,9 @@ from typing import Any
 from dataclasses import dataclass
 
 from jarvis.core.tools.housing.fetch import Fetch, FetchError, fetch_html
-from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
 from jarvis.core.tools.housing.markup import lines_of, text_of
-from jarvis.core.tools.registry import JarvisTool
+from jarvis.core.tools.tools_registry import JarvisTool
 
 TOOL_NAME = "sh_notice"
 SH_BASE = "https://www.i-sh.co.kr"

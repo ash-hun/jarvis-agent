@@ -315,8 +315,8 @@ class TestSchedulerRunUntilExpiry:
 
 async def test_known_skill_is_passed_through_to_llm_path():
     """스킬 이름은 디스패처가 삼키지 않는다. 세션의 expand 가 프롬프트로 바꿔야 하므로 원문 그대로 남긴다."""
+    from jarvis.core.skills.skills_registry import Skill, SkillRegistry
     from jarvis.core.slash.dispatcher import SlashCommandDispatcher
-    from jarvis.core.skills.registry import Skill, SkillRegistry
 
     skills = SkillRegistry()
     skills.register(Skill(name="deploy", description="d", aliases=["dep"], content="배포해: {{args}}", metadata={}))

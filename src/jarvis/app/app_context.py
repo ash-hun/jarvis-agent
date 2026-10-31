@@ -7,16 +7,16 @@ from collections.abc import Awaitable, Callable
 if TYPE_CHECKING:
     from jarvis.core.proactive.triggers import ActivityClock, ReflectionTrigger
     from jarvis.core.external import ExternalEventInbox, ExternalEventPoller
+    from jarvis.core.scheduler.scheduler_service import SchedulerService
+    from jarvis.agent_layer.session.session_protocol import SessionRepo
     from jarvis.core.slash.dispatcher import SlashCommandDispatcher
-    from jarvis.agent_layer.session.protocol import SessionRepo
     from jarvis.core.procedures.learner import ProcedureLearner
     from jarvis.core.proactive.feedback import FeedbackLearner
-    from jarvis.core.scheduler.service import SchedulerService
+    from jarvis.core.tools.tools_registry import ToolRegistry
     from jarvis.memory.memory_service import MemoryService
-    from jarvis.core.tools.registry import ToolRegistry
     from jarvis.core.notify.webpush import PushStore
+    from jarvis.jarvis_config import JarvisSettings
     from jarvis.core.session import AgentSession
-    from jarvis.config import JarvisSettings
     from jarvis.core.notify import Notify
 
 

@@ -1,7 +1,7 @@
 """운영 슬래시 커맨드 핸들러 테스트 — /sessions, /branch, /tools, /compact."""
 import pytest
 
-from jarvis.model_layer.types import UserMessage
+from jarvis.model_layer.model_types import UserMessage
 from jarvis.memory.scope import MemoryScope
 
 SCOPE = MemoryScope(user_id="local", session_id="default")
@@ -88,7 +88,7 @@ class TestCompactHandler:
 
     @pytest.fixture
     def model_config(self):
-        from jarvis.model_layer.types import ModelConfig
+        from jarvis.model_layer.model_types import ModelConfig
         return ModelConfig(provider="faux", model="faux-model")
 
     async def test_too_short(self, jsonl_repo, model_config, ltm):

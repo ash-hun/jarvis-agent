@@ -4,14 +4,14 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 from collections.abc import Awaitable, Callable
 
-from jarvis.core.external.loader import ExternalSourceSpec
-from jarvis.core.external.protocol import ExternalSource
+from jarvis.core.external.external_loader import ExternalSourceSpec
+from jarvis.core.external.external_protocol import ExternalSource
+from jarvis.core.external.external_types import ExternalEvent
 from jarvis.core.external.dedup import derive_events
-from jarvis.core.external.types import ExternalEvent
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from jarvis.config import MCPServerConfig
+    from jarvis.jarvis_config import MCPServerConfig
 
 # (server, tool_name, params) -> 원문 텍스트. 기본은 mcp_loader.call_mcp_tool.
 CallMcpTool = Callable[["MCPServerConfig", str, dict[str, Any]], Awaitable[str]]

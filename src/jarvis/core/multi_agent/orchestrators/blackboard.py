@@ -6,7 +6,7 @@ from typing import Any
 from jarvis.core.multi_agent.topologies.blackboard import BlackboardTopology
 from jarvis.core.multi_agent.blackboard import SharedBlackboard
 from jarvis.core.multi_agent.task import AgentResult, AgentTask
-from .base import BaseOrchestrator
+from .orchestrator_base import BaseOrchestrator
 
 
 class BlackboardOrchestrator(BaseOrchestrator):

@@ -46,12 +46,12 @@ async def ltm(postgres_dsn: str):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _user_msg(text: str):
-    from jarvis.model_layer.types import UserMessage
+    from jarvis.model_layer.model_types import UserMessage
     return UserMessage(content=text)
 
 
 def _asst_msg(text: str):
-    from jarvis.model_layer.types import AssistantMessage, TextContent, Usage
+    from jarvis.model_layer.model_types import AssistantMessage, TextContent, Usage
     return AssistantMessage(
         content=[TextContent(text=text)],
         provider="faux",

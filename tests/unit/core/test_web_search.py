@@ -39,7 +39,7 @@ class TestWebSearchTool:
         assert "Search results for:" in result.content[0].text
 
     async def test_brave_used_when_key_configured(self, tool, monkeypatch):
-        from jarvis.config import get_settings
+        from jarvis.jarvis_config import get_settings
 
         settings = get_settings()
         # Brave 키 설정 시뮬레이션

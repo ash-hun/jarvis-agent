@@ -7,13 +7,13 @@ from datetime import datetime
 from dataclasses import dataclass, replace
 from collections.abc import Awaitable, Callable
 
-from jarvis.core.goals.types import (
+from jarvis.core.goals.goals_types import (
     ASK_PREFIX, Goal, Step, advance, compose, fingerprint, mark_reported, new_items, parse_step, with_tool_items,
     worth_noting,
 )
-from jarvis.core.tools.registry import JarvisTool, ToolContext, ToolRegistry
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.goals.store import GoalStore
+from jarvis.core.tools.tools_registry import JarvisTool, ToolContext, ToolRegistry
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+from jarvis.core.goals.goals_store import GoalStore
 from jarvis.common.logger import get_logger
 
 # 프롬프트에 보이는 최근 진행 기록 수

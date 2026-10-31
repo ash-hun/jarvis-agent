@@ -6,7 +6,7 @@ import asyncio
 from typing import Any
 from functools import partial
 
-from jarvis.voice.protocol import DEFAULT_LANG, TTSProvider
+from jarvis.voice.voice_protocol import DEFAULT_LANG, TTSProvider
 
 DEFAULT_MODEL = "supertonic-3"
 # supertonic-3 기본 음성 10개(M1~M5, F1~F5) 중 하나

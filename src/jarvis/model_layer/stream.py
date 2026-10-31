@@ -2,7 +2,7 @@
 
 from collections.abc import AsyncIterator
 
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     AssistantMessage,
     LLMContext,
     ModelConfig,
@@ -13,7 +13,7 @@ from jarvis.model_layer.types import (
     ThinkingContent,
     ToolCall,
 )
-from jarvis.model_layer.registry import get_default_registry
+from jarvis.model_layer.model_registry import get_default_registry
 
 
 async def stream(
@@ -34,7 +34,7 @@ async def stream_to_message(
     options: StreamOptions | None = None,
 ) -> AssistantMessage:
     """스트림을 소비하여 완성된 AssistantMessage로 반환."""
-    from jarvis.model_layer.types import (
+    from jarvis.model_layer.model_types import (
         ErrorEvent,
         StopEvent,
         TextDeltaEvent,

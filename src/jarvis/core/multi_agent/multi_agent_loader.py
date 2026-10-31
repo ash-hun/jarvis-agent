@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 
 def load_agent_definitions(agents_dir: str) -> list[AgentDefinition]:
-    """지정 디렉토리의 모든 *.yaml 파일에서 AgentDefinition 목록을 로딩한다. scheduler/loader.py 패턴과 동일.
+    """지정 디렉토리의 모든 *.yaml 파일에서 AgentDefinition 목록을 로딩한다. scheduler/scheduler_loader.py 패턴과 동일.
 
     YAML 포맷 (단일):
         name: researcher

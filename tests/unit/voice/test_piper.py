@@ -7,10 +7,10 @@ import pytest
 from pathlib import Path
 from types import ModuleType
 
-from jarvis.voice.protocol import STTProvider, TTSProvider
+from jarvis.voice.voice_protocol import STTProvider, TTSProvider
+from jarvis.voice.voice_service import VoiceService, is_english
 from jarvis.voice.providers.piper import PiperTTSProvider
-from jarvis.voice.service import VoiceService, is_english
-from jarvis.config import VoiceConfig
+from jarvis.jarvis_config import VoiceConfig
 
 
 class _FakeConfig:

@@ -5,7 +5,7 @@ import json
 import asyncio
 from collections.abc import AsyncIterator
 
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     LLMContext,
     ModelConfig,
     StopEvent,

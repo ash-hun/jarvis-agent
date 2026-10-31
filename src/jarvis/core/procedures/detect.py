@@ -3,7 +3,7 @@
 from typing import Any
 from dataclasses import dataclass
 
-from jarvis.model_layer.types import AssistantMessage, Message, ToolResultMessage
+from jarvis.model_layer.model_types import AssistantMessage, Message, ToolResultMessage
 
 DEFAULT_MIN_TOOL_CALLS = 3
 

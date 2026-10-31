@@ -15,24 +15,24 @@ from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
     from jarvis.core.proactive.triggers import ActivityClock, ExternalTrigger, ReflectionTrigger
+    from jarvis.core.multi_agent.multi_agent_service import OrchestrationService
     from jarvis.core.external import ExternalEventInbox, ExternalEventPoller
-    from jarvis.core.multi_agent.service import OrchestrationService
-    from jarvis.agent_layer.usermodel.store import UserModelStore
-    from jarvis.agent_layer.openloop.store import OpenLoopStore
-    from jarvis.agent_layer.session.protocol import SessionRepo
+    from jarvis.agent_layer.usermodel.usermodel_store import UserModelStore
+    from jarvis.agent_layer.openloop.openloop_store import OpenLoopStore
+    from jarvis.core.scheduler.scheduler_service import SchedulerService
+    from jarvis.agent_layer.session.session_protocol import SessionRepo
+    from jarvis.core.procedures.procedures_store import ProcedureStore
+    from jarvis.core.skills.skills_registry import SkillRegistry
     from jarvis.core.multi_agent.factory import AgentDefinition
     from jarvis.core.procedures.learner import ProcedureLearner
-    from jarvis.core.scheduler.service import SchedulerService
     from jarvis.core.notify.discord_voice import DiscordVoice
-    from jarvis.core.procedures.store import ProcedureStore
+    from jarvis.core.tools.tools_registry import ToolRegistry
     from jarvis.memory.memory_service import MemoryService
-    from jarvis.core.skills.registry import SkillRegistry
+    from jarvis.model_layer.model_types import ModelConfig
     from jarvis.core.plugins.runner import PluginRunner
-    from jarvis.core.tools.registry import ToolRegistry
     from jarvis.model_layer.embeddings import Embedder
     from jarvis.core.notify.webpush import PushStore
-    from jarvis.model_layer.types import ModelConfig
-    from jarvis.config import JarvisSettings
+    from jarvis.jarvis_config import JarvisSettings
     from jarvis.core.notify import Notify
 
 logger = get_logger(__name__)
@@ -51,7 +51,7 @@ class InfraBuilder:
         settings = self._settings
         tool_registry = self.build_tool_registry()
         model_config = self.build_model_config()
-        from jarvis.core.skills.registry import SkillRegistry
+        from jarvis.core.skills.skills_registry import SkillRegistry
 
         # 스킬 레지스트리는 절차 기억(읽기 전용)으로 노출되므로 메모리보다 먼저 만든다
         skill_registry = SkillRegistry()
@@ -99,8 +99,8 @@ class InfraBuilder:
 
             # 말로 "1분 뒤에 알려줘" 해도 /schedule 과 같은 일정이 생기게
             tool_registry.register(ScheduleTool(make_schedule_handler(scheduler, make_llm_classifier(model_config))))
+            from jarvis.core.goals.goals_store import GoalStore
             from jarvis.core.goals.runner import GoalRunner
-            from jarvis.core.goals.store import GoalStore
             from jarvis.core.goals.tool import GoalTool
 
             # 맡긴 목표는 스케줄러가 차례를 돌린다. 도구와 러너가 같은 저장소를 본다
@@ -175,10 +175,10 @@ class InfraBuilder:
         from jarvis.core.tools.builtin.read_file import ReadFileTool
         from jarvis.core.tools.builtin.web_fetch import WebFetchTool
         from jarvis.core.tools.builtin.list_dir import ListDirTool
+        from jarvis.core.tools.tools_registry import ToolRegistry
         from jarvis.core.tools.builtin.bash import BashTool
         from jarvis.core.tools.builtin.glob import GlobTool
         from jarvis.core.tools.builtin.grep import GrepTool
-        from jarvis.core.tools.registry import ToolRegistry
 
         registry = ToolRegistry()
         for tool in (
@@ -193,7 +193,7 @@ class InfraBuilder:
     ) -> "ToolRegistry":
         """에이전트 정의가 이름으로 골라야 쓰는 도구. JARVIS(도구 목록 없음)의 레지스트리에는 넣지 않는다."""
         from jarvis.core.tools.housing import ProfileStore, housing_tools
-        from jarvis.core.tools.registry import ToolRegistry
+        from jarvis.core.tools.tools_registry import ToolRegistry
 
         registry = ToolRegistry()
         profiles = ProfileStore(memory) if memory is not None else None
@@ -202,7 +202,7 @@ class InfraBuilder:
         return registry
 
     def build_model_config(self) -> "ModelConfig":
-        from jarvis.model_layer.types import ModelConfig
+        from jarvis.model_layer.model_types import ModelConfig
 
         llm = self._settings.llm
         return ModelConfig(
@@ -225,8 +225,8 @@ class InfraBuilder:
         settings = self._settings
         mcfg = settings.memory
         embedder = self.build_embedder()
+        from jarvis.memory.stores.store_protocol import ItemStore
         from jarvis.memory.working.state import WorkingStore
-        from jarvis.memory.stores.protocol import ItemStore
 
         item_store: ItemStore
         working_store: WorkingStore
@@ -311,7 +311,7 @@ class InfraBuilder:
 
         tools_dir = Path(settings.plugin.tools_dir).expanduser()
         if tools_dir.exists():
-            from jarvis.core.tools.loader import ToolLoader
+            from jarvis.core.tools.tools_loader import ToolLoader
 
             await ToolLoader(tool_registry).load_directory(str(tools_dir))
 
@@ -329,7 +329,7 @@ class InfraBuilder:
 
         plugins_dir = Path(settings.plugin.plugins_dir).expanduser()
         if plugins_dir.exists():
-            from jarvis.core.plugins.loader import PluginLoader
+            from jarvis.core.plugins.plugins_loader import PluginLoader
 
             await PluginLoader(plugin_runner).load_directory(str(plugins_dir))
 
@@ -340,7 +340,7 @@ class InfraBuilder:
 
         # 서브 세션은 첫 위임 때 부모 세션 기준으로 만든다(AgentFactory.node_for)
         if settings.agents.enabled:
-            from jarvis.core.multi_agent.loader import load_agent_definitions
+            from jarvis.core.multi_agent.multi_agent_loader import load_agent_definitions
 
             return load_agent_definitions(settings.agents.agents_dir)
         return []
@@ -357,8 +357,8 @@ class InfraBuilder:
         scfg = self._settings.scheduler
         if not scfg.enabled:
             return None
-        from jarvis.core.scheduler.service import SchedulerService
-        from jarvis.core.scheduler.loader import load_tasks
+        from jarvis.core.scheduler.scheduler_service import SchedulerService
+        from jarvis.core.scheduler.scheduler_loader import load_tasks
 
         return SchedulerService(
             tasks=load_tasks(scfg.schedules_dir),
@@ -528,8 +528,8 @@ class InfraBuilder:
             return None
         try:
             from jarvis.core.notify.discord_voice import DiscordGateway, DiscordVoice
+            from jarvis.voice.voice_service import VoiceService
             from jarvis.voice.speech_text import speech_text
-            from jarvis.voice.service import VoiceService
 
             v = self._settings.voice
             tts = VoiceService.from_config(
@@ -572,7 +572,7 @@ class InfraBuilder:
         settings = self._settings
         if not settings.agents.enabled or not agent_defs:
             return None
-        from jarvis.core.multi_agent.service import OrchestrationService, load_supervisor_prompt
+        from jarvis.core.multi_agent.multi_agent_service import OrchestrationService, load_supervisor_prompt
         from jarvis.core.multi_agent.orchestrate_tool import OrchestrateTool
         from jarvis.core.multi_agent.factory import AgentFactory
 

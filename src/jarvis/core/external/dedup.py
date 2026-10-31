@@ -9,7 +9,7 @@ from typing import Any
 from pathlib import Path
 from collections.abc import Callable
 
-from jarvis.core.external.types import ExternalEvent
+from jarvis.core.external.external_types import ExternalEvent
 
 Clock = Callable[[], float]
 

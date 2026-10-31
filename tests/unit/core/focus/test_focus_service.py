@@ -6,10 +6,10 @@ import asyncio
 from typing import Any
 from pathlib import Path
 
-from jarvis.agent_layer.types import AgentEvent, FocusPanelEvent, FocusStateEvent
-from jarvis.core.focus.service import FocusService
-from jarvis.core.focus.types import FocusCommand
-from jarvis.core.focus.store import FocusStore
+from jarvis.agent_layer.agent_types import AgentEvent, FocusPanelEvent, FocusStateEvent
+from jarvis.core.focus.focus_service import FocusService
+from jarvis.core.focus.focus_types import FocusCommand
+from jarvis.core.focus.focus_store import FocusStore
 
 ANALYSIS = {
     "purpose": ["발표 자료 완성"],

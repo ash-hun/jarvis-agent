@@ -3,7 +3,7 @@
 import re
 from collections.abc import Awaitable, Callable
 
-from jarvis.model_layer.types import LLMContext, Message, ModelConfig, StreamOptions, UserMessage
+from jarvis.model_layer.model_types import LLMContext, Message, ModelConfig, StreamOptions, UserMessage
 
 # (요약할 메시지, 이전 요약) → 새 요약. None 이면 호출자가 압축을 건너뛴다.
 Summarizer = Callable[[list[Message], str | None], Awaitable[str | None]]

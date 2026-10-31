@@ -75,7 +75,7 @@ Web 의 `DELETE /api/sessions/{id}` 는 메모리 세션, 샌드박스, 승인 �
 
 ## 시험 세션
 
-실험, 라이브 점검, 스모크 테스트가 여는 세션은 `test-` 로 시작한다(예전 것은 `live-`, `probe-`, `exp-` 등. 목록은 `agent_layer/session/protocol.py` 의 `TEST_SESSION_PREFIXES`). 시험 세션은 이렇게 다르다.
+실험, 라이브 점검, 스모크 테스트가 여는 세션은 `test-` 로 시작한다(예전 것은 `live-`, `probe-`, `exp-` 등. 목록은 `agent_layer/session/session_protocol.py` 의 `TEST_SESSION_PREFIXES`). 시험 세션은 이렇게 다르다.
 
 - 먼저 건네는 말이 밖(푸시, Discord)으로 가지 않는다. 라이브 점검이 사용자 폰에 실제 알림을 보낸 일이 있어서다
 - 목표와 스케줄 결과를 건넬 대화를 고를 때 빠진다

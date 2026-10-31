@@ -9,7 +9,7 @@ from jarvis.core.proactive import (
     ProactivityCore,
     ProactivityPolicy,
 )
-from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
+from jarvis.agent_layer.thought.thought_types import ProactiveAction, ThoughtFrame
 
 
 class _Clock:
@@ -225,7 +225,7 @@ async def test_reflect_silent_does_not_push():
 
 @pytest.mark.asyncio
 async def test_reflect_executes_autonomous_and_augments_message():
-    from jarvis.agent_layer.thought.types import ProactiveAction
+    from jarvis.agent_layer.thought.thought_types import ProactiveAction
 
     emitted: list[ProactiveMessage] = []
     seen: dict = {}

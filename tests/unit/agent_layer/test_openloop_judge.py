@@ -3,7 +3,7 @@
 from datetime import datetime
 
 from jarvis.agent_layer.openloop.judge import LoopVerdict, OpenLoopJudge, parse_verdict, render_prompt
-from jarvis.model_layer.types import AssistantMessage, TextContent, UserMessage
+from jarvis.model_layer.model_types import AssistantMessage, TextContent, UserMessage
 
 NOW = datetime(2026, 10, 19, 9, 0)
 
@@ -37,7 +37,7 @@ async def test_judge_reads_model_output(faux_model_with_response):
 
 
 async def test_judge_failure_is_none(monkeypatch, faux_model):
-    from jarvis.model_layer.registry import get_default_registry
+    from jarvis.model_layer.model_registry import get_default_registry
     from tests.fixtures.faux_provider import FauxProviderFactory
 
     monkeypatch.setitem(get_default_registry()._providers, "faux", FauxProviderFactory.error())

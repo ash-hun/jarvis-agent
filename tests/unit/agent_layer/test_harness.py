@@ -2,14 +2,14 @@
 
 import pytest
 
-from jarvis.agent_layer.types import (
+from jarvis.agent_layer.agent_types import (
     AgentEndEvent,
     AgentEvent,
     AgentLoopConfig,
     AgentStartEvent,
     InnerThoughtEvent,
 )
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     Message,
     TextContent,
     ToolResultMessage,
@@ -303,7 +303,7 @@ async def test_tool_turn_persists_tool_use_and_tool_result(faux_model_with_respo
 
 @pytest.mark.asyncio
 async def test_provider_error_persists_only_the_user_message(faux_model, repo):
-    from jarvis.model_layer.registry import get_default_registry
+    from jarvis.model_layer.model_registry import get_default_registry
     from tests.fixtures.faux_provider import FauxProviderFactory
 
     get_default_registry()._providers["faux"] = FauxProviderFactory.error()

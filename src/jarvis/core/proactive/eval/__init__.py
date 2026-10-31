@@ -10,7 +10,7 @@ from jarvis.core.proactive.eval.runner import (
     load_suites,
     run_cases,
 )
-from jarvis.core.proactive.eval.schema import PolicySpec, ProactiveCase, ProactiveExpect, Situation, load_cases
+from jarvis.core.proactive.eval.eval_schema import PolicySpec, ProactiveCase, ProactiveExpect, Situation, load_cases
 
 __all__ = [
     "DATASETS_DIR",

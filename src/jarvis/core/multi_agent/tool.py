@@ -3,11 +3,11 @@
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.tools.registry import JarvisTool, ToolContext
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+from jarvis.core.tools.tools_registry import JarvisTool, ToolContext
 from jarvis.memory.scope import LOCAL_USER, MemoryScope
+from .multi_agent_protocol import AgentNodeProtocol
 from .node import LazyAgentNode, record_delegation
-from .protocol import AgentNodeProtocol
 from .task import AgentTask
 
 if TYPE_CHECKING:

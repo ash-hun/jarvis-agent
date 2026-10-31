@@ -5,7 +5,7 @@ import asyncio
 from typing import Any, cast
 from collections.abc import Awaitable, Callable
 
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     AssistantMessage,
     ErrorEvent,
     LLMContext,
@@ -21,7 +21,7 @@ from jarvis.model_layer.types import (
     Usage,
     UserMessage,
 )
-from jarvis.agent_layer.types import (
+from jarvis.agent_layer.agent_types import (
     AgentContext,
     AgentEndEvent,
     AgentErrorEvent,

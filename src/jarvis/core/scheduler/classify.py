@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Literal
 from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
-    from jarvis.model_layer.types import ModelConfig
+    from jarvis.model_layer.model_types import ModelConfig
 
 Kind = Literal["reminder", "task"]
 DEFAULT_TIMEOUT_SEC = 15.0
@@ -32,7 +32,7 @@ def make_llm_classifier(model: "ModelConfig", timeout: float = DEFAULT_TIMEOUT_S
     """등록 때 한 번 LLM 으로 알림/작업을 가르는 분류기. 실패·시간 초과·애매한 답은 reminder."""
 
     async def classify(text: str) -> Kind:
-        from jarvis.model_layer.types import LLMContext, StreamOptions, UserMessage
+        from jarvis.model_layer.model_types import LLMContext, StreamOptions, UserMessage
         from jarvis.model_layer.stream import stream_to_message
 
         ctx = LLMContext(messages=[UserMessage(content=_PROMPT.format(text=text))], tools=None)

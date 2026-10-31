@@ -17,10 +17,10 @@ from jarvis.ui.web.ws_tasks import (
 from jarvis.core.notify import spoken_notice_text, spoken_payload
 from jarvis.ui.web.web_auth import auth_enabled, lookup_api_user
 from jarvis.ui.web.router.agent_router import agent_summary
+from jarvis.core.focus.focus_types import parse_command
 from jarvis.memory.scope import LOCAL_USER, MemoryScope
 from jarvis.ui.web.session_registry import UnknownAgent
 from jarvis.voice.english import should_speak_english
-from jarvis.core.focus.types import parse_command
 from jarvis.voice.speech_text import speech_text
 from jarvis.ui.web.web_state import WebState
 from jarvis.common.logger import get_logger
@@ -62,7 +62,7 @@ def build_ws_router(state: WebState) -> APIRouter:
         ),
     ) -> None:
         from jarvis.ui.web.adapter import PerConnectionAdapter
-        from jarvis.config import ApiUser
+        from jarvis.jarvis_config import ApiUser
 
         # accept 뒤에 닫아야 브라우저가 close code(4401)를 읽을 수 있다. accept 전에 닫으면 403 으로만 보인다
         await ws.accept()

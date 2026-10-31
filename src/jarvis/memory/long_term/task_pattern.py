@@ -4,8 +4,8 @@ import re
 import hashlib
 from dataclasses import dataclass, field
 
+from jarvis.memory.memory_types import MemoryItem
 from jarvis.memory.scope import MemoryScope
-from jarvis.memory.types import MemoryItem
 
 TASK_PATTERN_SOURCE = "task_pattern"
 PATTERN_HEADER = "[작업 패턴]"  # 사용자가 알려 준 방식. 같은 종류의 요청이면 이대로 한다

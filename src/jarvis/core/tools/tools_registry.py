@@ -6,7 +6,7 @@ from typing import Any
 from dataclasses import dataclass
 from collections.abc import Awaitable, Callable
 
-from jarvis.model_layer.types import TextContent, Tool, ToolResultMessage
+from jarvis.model_layer.model_types import TextContent, Tool, ToolResultMessage
 
 
 @dataclass(frozen=True)

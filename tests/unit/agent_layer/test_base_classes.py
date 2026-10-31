@@ -23,9 +23,9 @@ from jarvis.agent_layer.openloop import (
 from jarvis.agent_layer.usermodel import InMemoryUserModelStore, JsonlUserModelStore, UserModel, UserModelStore
 from jarvis.agent_layer.openloop.postgres_store import _row_to_loop
 from jarvis.agent_layer.session.postgres import PostgresSessionRepo
+from jarvis.agent_layer.session.session_protocol import SessionRepo
 from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
-from jarvis.agent_layer.session.protocol import SessionRepo
-from jarvis.model_layer.types import UserMessage
+from jarvis.model_layer.model_types import UserMessage
 
 DSN = "postgresql://unused@localhost/none"  # 연결하지 않는 테스트만 쓴다
 

@@ -30,10 +30,10 @@ from jarvis.ui.tui.components.chat_history import ChatHistory
 from jarvis.ui.tui.components.slash_picker import SlashPicker
 from jarvis.ui.tui.components.status_bar import StatusBar
 from jarvis.ui.tui.components.sidebar import SidebarPane
-from jarvis.agent_layer.types import AgentEvent
+from jarvis.agent_layer.agent_types import AgentEvent
 from jarvis.core.session import AgentSession
+from jarvis.ui.ui_protocol import UIAdapter
 from jarvis.ui.tui.state import ActiveTool
-from jarvis.ui.protocol import UIAdapter
 
 if TYPE_CHECKING:
     from jarvis.core.proactive import ProactivityDaemon

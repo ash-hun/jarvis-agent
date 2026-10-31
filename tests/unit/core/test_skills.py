@@ -1,7 +1,7 @@
 """core/skills/ — SkillRegistry + /command 확장 테스트."""
 import pytest
 
-from jarvis.core.skills.registry import Skill, SkillRegistry
+from jarvis.core.skills.skills_registry import Skill, SkillRegistry
 
 
 @pytest.fixture

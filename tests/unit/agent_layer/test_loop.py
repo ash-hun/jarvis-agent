@@ -4,7 +4,7 @@ import json
 import pytest
 import asyncio
 
-from jarvis.agent_layer.types import (
+from jarvis.agent_layer.agent_types import (
     AgentContext,
     AgentEndEvent,
     AgentErrorEvent,
@@ -16,7 +16,7 @@ from jarvis.agent_layer.types import (
     ToolExecutionStartEvent,
     TurnStartEvent,
 )
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     ErrorEvent,
     ModelConfig,
     StopEvent,
@@ -58,7 +58,7 @@ class ScriptedProvider:
 
 
 def _register(provider: ScriptedProvider) -> ModelConfig:
-    from jarvis.model_layer.registry import get_default_registry
+    from jarvis.model_layer.model_registry import get_default_registry
 
     get_default_registry()._providers["scripted"] = provider
     return ModelConfig(provider="scripted", model="scripted-model")

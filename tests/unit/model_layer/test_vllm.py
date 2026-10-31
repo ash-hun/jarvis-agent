@@ -5,7 +5,7 @@ import httpx
 import pytest
 from typing import Any
 
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     AssistantMessage,
     ErrorEvent,
     LLMContext,

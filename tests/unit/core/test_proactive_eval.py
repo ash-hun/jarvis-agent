@@ -15,8 +15,8 @@ from jarvis.core.proactive.eval import (
     run_cases,
 )
 from jarvis.core.proactive.eval.runner import build_policy, to_request
-from jarvis.agent_layer.thought.types import ThoughtFrame
-from jarvis.core.proactive.types import ProactiveDecision
+from jarvis.core.proactive.proactive_types import ProactiveDecision
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame
 from jarvis.core.proactive.eval.__main__ import main
 
 

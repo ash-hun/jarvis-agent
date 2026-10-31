@@ -11,7 +11,7 @@ from jarvis.agent_layer.thought.reply import (
     parse_verdict,
     verdict_schema,
 )
-from jarvis.model_layer.types import ModelConfig
+from jarvis.model_layer.model_types import ModelConfig
 
 
 class FakeClassifier(ReplyClassifier):

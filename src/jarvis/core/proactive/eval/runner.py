@@ -6,12 +6,12 @@ from typing import Any
 from pathlib import Path
 from dataclasses import asdict, dataclass, field
 
-from jarvis.model_layer.types import AssistantMessage, Message, TextContent, UserMessage
-from jarvis.core.proactive.eval.schema import ProactiveCase, Situation, load_cases
-from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
+from jarvis.model_layer.model_types import AssistantMessage, Message, TextContent, UserMessage
+from jarvis.core.proactive.eval.eval_schema import ProactiveCase, Situation, load_cases
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.thought.thought_protocol import ThoughtEngine
+from jarvis.core.proactive.proactive_types import ProactiveDecision
 from jarvis.core.proactive.policy import DefaultProactivityPolicy
-from jarvis.agent_layer.thought.protocol import ThoughtEngine
-from jarvis.core.proactive.types import ProactiveDecision
 
 DATASETS_DIR = Path(__file__).parent / "datasets"
 SUITES = ("policy", "situation")

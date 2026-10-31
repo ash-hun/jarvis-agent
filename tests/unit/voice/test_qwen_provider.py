@@ -7,8 +7,8 @@ import pytest
 import struct
 
 from jarvis.voice.providers.qwen import QwenTTSProvider
-from jarvis.voice.protocol import TTSProvider
-from jarvis.config import VoiceConfig
+from jarvis.voice.voice_protocol import TTSProvider
+from jarvis.jarvis_config import VoiceConfig
 
 
 class Piper(TTSProvider):

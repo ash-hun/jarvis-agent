@@ -6,7 +6,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 from dataclasses import dataclass, replace
 
-from jarvis.agent_layer.openloop.types import normalize_description
+from jarvis.agent_layer.openloop.openloop_types import normalize_description
 from jarvis.core.scheduler.task import GOAL_PREFIX
 
 GoalStatus = Literal["active", "done", "paused"]

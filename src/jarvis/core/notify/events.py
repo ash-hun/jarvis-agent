@@ -3,8 +3,8 @@
 from typing import Any
 from collections.abc import Awaitable, Callable
 
-from jarvis.agent_layer.types import AgentEvent, ProactiveMessageEvent
-from jarvis.agent_layer.session.protocol import TEST_SESSION_PREFIXES
+from jarvis.agent_layer.session.session_protocol import TEST_SESSION_PREFIXES
+from jarvis.agent_layer.agent_types import AgentEvent, ProactiveMessageEvent
 from jarvis.common.logger import get_logger
 from jarvis.memory.scope import MAIN_AGENT
 

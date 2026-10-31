@@ -227,10 +227,11 @@ develop_plan.md
 .claude/
 # 설계, 조사 문서는 로컬에서만 관리한다
 
-# docs/ 는 개인 메모가 섞여 있어 통째로 뺀다. 명세 두 개만 레포에 둔다 (CLAUDE.md)
+# docs/ 는 개인 메모가 섞여 있어 통째로 뺀다. 명세 세 개만 레포에 둔다 (CLAUDE.md)
 docs/*
-!docs/api-spec.md
-!docs/screen-spec.md
+!docs/features.md
+!docs/api_spec.md
+!docs/view_spec.md
 
 # 학습한 음성 모델(TTS, 문구, 웨이크워드). 비상업 라이선스라 저장소에 올리지 않는다. 받는 법은 website/docs/concepts/conversation/voice.md
 /models/

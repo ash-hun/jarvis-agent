@@ -10,10 +10,10 @@ from jarvis.core.procedures import (
     llm_distiller,
     unregister_procedure,
 )
+from jarvis.model_layer.model_types import AssistantMessage, ModelConfig, TextContent
 from jarvis.core.procedures.tool import INSTRUCTION, register_procedure, to_skill
-from jarvis.model_layer.types import AssistantMessage, ModelConfig, TextContent
-from jarvis.core.tools.registry import JarvisTool, ToolRegistry
-from jarvis.core.skills.registry import SkillRegistry
+from jarvis.core.tools.tools_registry import JarvisTool, ToolRegistry
+from jarvis.core.skills.skills_registry import SkillRegistry
 
 MODEL = ModelConfig(provider="faux", model="faux-model")
 SPAN = TaskSpan(

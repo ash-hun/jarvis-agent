@@ -4,7 +4,7 @@ import sys
 import importlib.util
 from pathlib import Path
 
-from jarvis.core.plugins.protocol import JarvisPlugin
+from jarvis.core.plugins.plugins_protocol import JarvisPlugin
 from jarvis.core.plugins.runner import PluginRunner
 from jarvis.common.logger import get_logger
 

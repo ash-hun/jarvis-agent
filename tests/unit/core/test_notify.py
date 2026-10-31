@@ -12,7 +12,7 @@ from jarvis.core.notify import (
     slack_notifier,
     spoken_payload,
 )
-from jarvis.agent_layer.types import MessageUpdateEvent, ProactiveMessageEvent
+from jarvis.agent_layer.agent_types import MessageUpdateEvent, ProactiveMessageEvent
 
 
 def test_format_slack_reminder_and_proactive():
@@ -148,7 +148,7 @@ async def test_spoken_is_a_default_kind_and_reads_as_the_agent():
     async def sink(payload):
         sent.append(format_discord(payload))
 
-    from jarvis.config import NotifyConfig
+    from jarvis.jarvis_config import NotifyConfig
 
     notify = only_kinds(NotifyConfig().kinds, with_agents({"karen": ("K.A.R.E.N.", "")}, sink))
     await notify(spoken_payload("공고 세 건 찾았어요", "karen", "reply"))

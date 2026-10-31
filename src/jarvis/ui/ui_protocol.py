@@ -1,6 +1,6 @@
 """[ui] UIAdapter: 화면(TUI, Web)이 에이전트 이벤트, 스트림, 승인, 오류를 받는 기본 어댑터."""
 
-from jarvis.agent_layer.types import AgentEvent
+from jarvis.agent_layer.agent_types import AgentEvent
 
 
 class UIAdapter:

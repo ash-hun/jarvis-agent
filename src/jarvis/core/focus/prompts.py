@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from jarvis.core.focus.types import FocusState, progress, render_analysis
+from jarvis.core.focus.focus_types import FocusState, progress, render_analysis
 
 REFERENCE_TOOLS = ["web_search", "web_fetch", "glob", "grep", "read_file", "list_dir"]
 REFERENCE_PROMPT_MAX = 1500

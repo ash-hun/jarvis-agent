@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from jarvis.core.multi_agent.factory import AgentDefinition, AgentFactory
+    from jarvis.core.tools.tools_registry import ToolRegistry
     from jarvis.core.multi_agent.tool import AgentNodeTool
-    from jarvis.core.tools.registry import ToolRegistry
     from jarvis.app.app_services import AppServices
     from jarvis.app.app_context import AppContext
     from jarvis.core.session import AgentSession
@@ -22,8 +22,8 @@ class SubagentBuilder:
     def build_session(self, definition: "AgentDefinition", session_id: str) -> "AgentSession":
         """메모리는 부모의 사용자를 이어받고 에이전트 id 는 자기 이름(inherit_scope). 도구는 정의에 적힌 것만
         (비어 있으면 메인 전체). 호출 시점에 고르므로 나중에 등록된 도구(다른 에이전트, orchestrate)도 보인다."""
-        from jarvis.core.tools.registry import ToolRegistry
-        from jarvis.model_layer.types import ModelConfig
+        from jarvis.core.tools.tools_registry import ToolRegistry
+        from jarvis.model_layer.model_types import ModelConfig
         from jarvis.core.session import AgentSession
 
         settings = self._ctx.settings

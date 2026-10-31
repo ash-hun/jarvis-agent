@@ -5,10 +5,10 @@ import asyncio
 import contextlib
 from collections import deque
 from datetime import datetime
+from typing import Any, Literal, cast
 from collections.abc import Awaitable, Callable
-from typing import Any, Literal, Protocol, cast
 
-from jarvis.agent_layer.types import (
+from jarvis.agent_layer.agent_types import (
     AgendaChangedEvent,
     AgentEvent,
     AgentLoopConfig,
@@ -46,19 +46,19 @@ from jarvis.agent_layer.thought import (
     ThoughtLog,
     ThoughtRequest,
 )
-from jarvis.model_layer.types import AssistantMessage, ModelConfig, TextContent, ToolResultMessage, UserMessage
+from jarvis.model_layer.model_types import AssistantMessage, ModelConfig, TextContent, ToolResultMessage, UserMessage
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
-from jarvis.agent_layer.session.protocol import PROACTIVE_ACK_ENTRY, SessionRepo
-from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
+from jarvis.agent_layer.session.session_protocol import PROACTIVE_ACK_ENTRY, SessionRepo
+from jarvis.agent_layer.thought.thought_types import ProactiveAction, ThoughtFrame
 from jarvis.agent_layer.thought.router import RouteVerdict, ThoughtRouter
+from jarvis.core.tools.tools_registry import JarvisTool, ToolRegistry
 from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope
-from jarvis.core.tools.registry import JarvisTool, ToolRegistry
+from jarvis.agent_layer.openloop.openloop_types import same_loop
 from jarvis.agent_layer.thought.reply import ReplyClassifier
+from jarvis.core.skills.skills_registry import SkillRegistry
 from jarvis.agent_layer.openloop.judge import OpenLoopJudge
-from jarvis.agent_layer.openloop.types import same_loop
 from jarvis.agent_layer.usermodel import UserModelStore
 from jarvis.memory.memory_service import MemoryService
-from jarvis.core.skills.registry import SkillRegistry
 from jarvis.agent_layer.harness import AgentHarness
 from jarvis.core.external import ExternalEventInbox
 from jarvis.core.plugins.runner import PluginRunner
@@ -104,14 +104,17 @@ class SessionBusy(Exception):
     """같은 세션에 이전 요청이 아직 돌고 있을 때 새 prompt 를 거부한다."""
 
 
-class TurnHook(Protocol):
-    """턴마다 끼어드는 확장(Focus 모드). 시스템 프롬프트에 맥락을 더하고, 턴 앞뒤에 뒤에서 일을 돌린다."""
+class TurnHook:
+    """턴마다 끼어드는 확장(Focus 모드). 턴 앞뒤에 일을 더한다. 기본은 아무것도 하지 않는다."""
 
-    def system_addendum(self) -> str | None: ...
+    def system_addendum(self) -> str | None:
+        return None
 
-    async def before_turn(self, user_input: str) -> None: ...
+    async def before_turn(self, user_input: str) -> None:
+        return None
 
-    async def after_turn(self, user_input: str, reply: str) -> None: ...
+    async def after_turn(self, user_input: str, reply: str) -> None:
+        return None
 
 
 THOUGHT_WAIT_SEC = 3.0
@@ -504,7 +507,7 @@ class AgentSession:
             )
             is_error = True
             try:
-                from jarvis.core.tools.registry import ToolContext
+                from jarvis.core.tools.tools_registry import ToolContext
 
                 context = ToolContext(scope=self.memory_scope, session_id=self._session_id, user_id=self._last_user_id)
                 result = await self._tool_registry.execute(call_id, action.tool_name, action.args, context=context)
@@ -899,7 +902,7 @@ class AgentSession:
 
         async def executor(tool_call_id: str, tool_name: str, params: dict[str, Any]) -> ToolResultMessage:
             if "*" not in allowed and tool_name not in allowed:
-                from jarvis.model_layer.types import TextContent
+                from jarvis.model_layer.model_types import TextContent
 
                 return ToolResultMessage(
                     tool_call_id=tool_call_id,
@@ -910,7 +913,7 @@ class AgentSession:
 
             hook_result = await self._plugins.emit_before_tool_call(tool_name, params, auth_ctx)
             if hook_result and hook_result.get("block"):
-                from jarvis.model_layer.types import TextContent
+                from jarvis.model_layer.model_types import TextContent
 
                 return ToolResultMessage(
                     tool_call_id=tool_call_id,
@@ -921,7 +924,7 @@ class AgentSession:
 
             decision = await self._security.sandbox.decide(tool_name, params)
             if decision != "allow":
-                from jarvis.model_layer.types import TextContent
+                from jarvis.model_layer.model_types import TextContent
 
                 return ToolResultMessage(
                     tool_call_id=tool_call_id,
@@ -932,7 +935,7 @@ class AgentSession:
                     timed_out=decision == "timeout",
                 )
 
-            from jarvis.core.tools.registry import ToolContext
+            from jarvis.core.tools.tools_registry import ToolContext
 
             context = ToolContext(
                 scope=self.memory_scope, session_id=self._session_id, user_id=self._last_user_id, call=executor

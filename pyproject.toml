@@ -27,6 +27,8 @@ dependencies = [
     "python-frontmatter>=1.1.0",
     "pyyaml>=6.0",
     "pypdf>=6.20.0",
+    # Logging (common/logger.py). 콘솔 렌더는 textual 이 이미 가져오는 rich 를 쓴다
+    "structlog>=24.1",
 ]
 
 [project.optional-dependencies]

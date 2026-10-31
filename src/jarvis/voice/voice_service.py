@@ -3,7 +3,7 @@
 import re
 from collections.abc import AsyncIterator
 
-from jarvis.voice.protocol import DEFAULT_LANG, DEFAULT_SAMPLE_RATE, STTProvider, Transcript, TTSProvider
+from jarvis.voice.voice_protocol import DEFAULT_LANG, DEFAULT_SAMPLE_RATE, STTProvider, Transcript, TTSProvider
 
 ENGLISH_LANG = "en"
 # faster-whisper 가 구간을 버리는 기본 기준과 같다. 실제 기록(로그의 [Voice] stt 줄)을 보며 맞춘다
@@ -81,7 +81,7 @@ class VoiceService:
         english_tts_options: dict[str, object] | None = None,
     ) -> "VoiceService":
         """프로바이더 이름과 각자의 생성 옵션으로 만든다. 옵션은 그 프로바이더 팩토리에만 넘긴다."""
-        from jarvis.voice.registry import make_stt, make_tts
+        from jarvis.voice.voice_registry import make_stt, make_tts
 
         english_tts = make_tts(english_tts_provider, **(english_tts_options or {})) if english_tts_provider else None
         return cls(

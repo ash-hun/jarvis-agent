@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from jarvis.agent_layer.thought import ThoughtComposer, ThoughtEngine, ThoughtLog, ThoughtSink
     from jarvis.agent_layer.openloop.judge import OpenLoopJudge
     from jarvis.agent_layer.thought.router import ThoughtRouter
-    from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.core.tools.tools_registry import ToolRegistry
     from jarvis.agent_layer.openloop import LoopExpiry
     from jarvis.app.agent_profile import AgentProfile
     from jarvis.app.app_services import AppServices
@@ -101,9 +101,9 @@ class SessionBuilder:
         never = self._profile.never_tools
         if not self._profile.tools and not never:
             return registry
+        from jarvis.core.tools.tools_registry import PickedToolRegistry
         from jarvis.core.tools.task_pattern import TASK_PATTERN_TOOL
         from jarvis.core.tools.episodes import RECALL_EPISODES_TOOL
-        from jarvis.core.tools.registry import PickedToolRegistry
         from jarvis.app.agent_conversation import ASK_AGENT_TOOL
         from jarvis.core.procedures import TOOL_PREFIX
 

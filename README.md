@@ -375,7 +375,7 @@ JARVIS_SECURITY__API_KEYS='{"<long-random-key>": {"name": "jh", "roles": ["admin
 ```python
 # src/jarvis/model_layer/providers/my_provider.py
 from collections.abc import AsyncIterator
-from jarvis.model_layer.types import LLMContext, ModelConfig, StreamEvent
+from jarvis.model_layer.model_types import LLMContext, ModelConfig, StreamEvent
 
 async def stream(model: ModelConfig, ctx: LLMContext, options) -> AsyncIterator[StreamEvent]:
     # SDK 호출 → StreamEvent yield
@@ -384,7 +384,7 @@ async def stream(model: ModelConfig, ctx: LLMContext, options) -> AsyncIterator[
 ```
 
 ```python
-# src/jarvis/model_layer/registry.py
+# src/jarvis/model_layer/model_registry.py
 registry.register("my-provider", my_provider.stream)
 ```
 

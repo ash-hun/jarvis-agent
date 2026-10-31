@@ -3,7 +3,7 @@
 from typing import Any
 from dataclasses import dataclass, field
 
-from jarvis.memory.stores.protocol import tokens_of
+from jarvis.memory.stores.store_protocol import tokens_of
 
 
 @dataclass(frozen=True)

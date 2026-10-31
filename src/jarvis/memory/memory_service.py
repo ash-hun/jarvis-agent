@@ -23,17 +23,17 @@ from jarvis.memory.long_term.task_pattern import (
 from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
 from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank, relevance
 from jarvis.memory.scope import MemoryScope, current_task, scope_from_context, task_scope
-from jarvis.memory.stores.protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore
+from jarvis.memory.stores.store_protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore
 from jarvis.memory.long_term.refine import CHAT_TASK, Candidate, candidates
 from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
+from jarvis.memory.memory_types import REFERENT, MemoryItem, MemoryKind
 from jarvis.memory.consolidation.semantic_extract import FactExtractor
 from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.access import MemoryPolicy, Readable, resolve
-from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind
 from jarvis.memory.working.in_memory import InMemoryWorkingStore
 from jarvis.memory.working.window import last_turns, turn_starts
+from jarvis.model_layer.model_types import Message, UserMessage
 from jarvis.memory.long_term.episodic import prepare_episode
-from jarvis.model_layer.types import Message, UserMessage
 from jarvis.memory.working.deixis import retrieval_query
 from jarvis.model_layer.embeddings import Embedder
 

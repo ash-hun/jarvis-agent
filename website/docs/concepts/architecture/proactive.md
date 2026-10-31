@@ -231,5 +231,5 @@ flowchart TD
 ```
 
 - 구현: `core/proactive/`
-- 핵심 모듈: `core/proactive/daemon.py`, `core/proactive/policy.py`, `core/proactive/feedback.py`, `agent_layer/thought/reply.py`, `core/proactive/core.py`
+- 핵심 모듈: `core/proactive/daemon.py`, `core/proactive/policy.py`, `core/proactive/feedback.py`, `agent_layer/thought/reply.py`, `core/proactive/proactive_core.py`
 - 저장: 먼저 건넨 말과 그 피드백은 세션 저장소(`type: proactive`, `proactive_ack` 엔트리, 대화 기록에는 섞이지 않음), 임계치는 프로세스 메모리. 재시작하면 임계치만 기본값으로 돌아간다

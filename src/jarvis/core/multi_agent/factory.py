@@ -9,7 +9,7 @@ from .node import AgentNode
 from .task import AgentTask
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.types import AgentEvent
+    from jarvis.agent_layer.agent_types import AgentEvent
 
 StmPolicy = Literal["per_parent_session", "per_task", "per_agent"]
 STM_POLICIES: tuple[StmPolicy, ...] = ("per_parent_session", "per_task", "per_agent")

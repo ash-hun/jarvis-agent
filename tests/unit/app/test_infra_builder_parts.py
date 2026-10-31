@@ -6,7 +6,7 @@ from jarvis.core.proactive import ActivityClock, AnyTrigger, ExternalTrigger, Id
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.memory_service import MemoryService
 from jarvis.app.infra_builder import InfraBuilder
-from jarvis.config import JarvisSettings
+from jarvis.jarvis_config import JarvisSettings
 
 
 def _builder(**proactive: object) -> InfraBuilder:

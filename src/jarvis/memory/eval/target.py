@@ -2,15 +2,15 @@
 
 from datetime import datetime, timedelta
 
-from jarvis.model_layer.types import AssistantMessage, Message, TextContent, UserMessage
-from jarvis.memory.eval.schema import EpisodeFilter, RetentionCase, SetupStep
+from jarvis.model_layer.model_types import AssistantMessage, Message, TextContent, UserMessage
+from jarvis.memory.eval.eval_schema import EpisodeFilter, RetentionCase, SetupStep
+from jarvis.memory.stores.store_protocol import OUTCOME, TASK_TYPE, ItemStore
 from jarvis.memory.long_term.procedural import InMemoryProcedures, Procedure
-from jarvis.memory.stores.protocol import OUTCOME, TASK_TYPE, ItemStore
 from jarvis.memory.access import MemoryPolicy, MemoryReadPolicy
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.scope import MAIN_AGENT, MemoryScope
 from jarvis.memory.memory_service import MemoryService
-from jarvis.memory.types import MemoryKind
+from jarvis.memory.memory_types import MemoryKind
 
 RETENTION_CONTEXT = {"session_id": "eval", "user_id": "u1", "agent_id": MAIN_AGENT}
 

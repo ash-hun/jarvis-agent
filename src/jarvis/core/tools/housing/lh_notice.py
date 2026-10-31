@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Any
 
 from jarvis.core.tools.housing.markup import deadline_label, lines_of, parse_date, table_rows, text_of
 from jarvis.core.tools.housing.fetch import Fetch, FetchError, fetch_html, kst_today
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.tools.registry import JarvisTool, ToolContext
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+from jarvis.core.tools.tools_registry import JarvisTool, ToolContext
 from jarvis.memory.scope import LOCAL_USER
 
 if TYPE_CHECKING:

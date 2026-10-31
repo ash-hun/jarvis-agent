@@ -3,7 +3,7 @@
 import asyncio
 from dataclasses import dataclass
 
-from jarvis.model_layer.types import AssistantMessage, Message, UserMessage
+from jarvis.model_layer.model_types import AssistantMessage, Message, UserMessage
 from jarvis.model_layer.decision import DecisionModel
 
 # router 가 학습한 질문 문구 그대로. 한 글자라도 바꾸면 학습 분포 밖이다

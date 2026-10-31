@@ -23,8 +23,8 @@ from jarvis.core.external import (
     McpToolSource,
     SeenStore,
 )
-from jarvis.agent_layer.thought.types import ThoughtFrame
-from jarvis.config import MCPServerConfig
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame
+from jarvis.jarvis_config import MCPServerConfig
 
 SPEAKING_FRAME = ThoughtFrame(decision="act", confidence=1.0, utterance="먼저 말할 거리")
 

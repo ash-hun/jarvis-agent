@@ -4,14 +4,14 @@ import asyncio
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from jarvis.core.tools.registry import JarvisTool, ToolContext, ToolRegistry, PickedToolRegistry
+from jarvis.core.tools.tools_registry import JarvisTool, ToolContext, ToolRegistry, PickedToolRegistry
 from jarvis.app.agent_registry import AgentRegistry, load_agent_specs, profile_from_spec
-from jarvis.core.scheduler.service import SchedulerService, TaskAgent
-from jarvis.model_layer.types import ModelConfig, ToolResultMessage
+from jarvis.core.scheduler.scheduler_service import SchedulerService, TaskAgent
+from jarvis.model_layer.model_types import ModelConfig, ToolResultMessage
 from jarvis.core.scheduler.task import ScheduledTask
 from jarvis.app.agent_profile import AgentProfile
+from jarvis.jarvis_config import JarvisSettings
 from jarvis.app.app_context import AppContext
-from jarvis.config import JarvisSettings
 
 SPEC = """
 name: K.A.R.E.N.
@@ -107,7 +107,7 @@ async def test_goal_turn_lists_ask_tools_and_never_makes_goals_or_schedules():
 
 async def test_autonomous_actions_skip_ask_tools():
     from jarvis.core.session import AUTONOMOUS_SAFE_TOOLS, AgentSession
-    from jarvis.core.proactive.types import ProactiveAction
+    from jarvis.core.proactive.proactive_types import ProactiveAction
 
     tool = sorted(AUTONOMOUS_SAFE_TOOLS)[0]
     session = AgentSession.__new__(AgentSession)

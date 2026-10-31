@@ -8,14 +8,14 @@ from pathlib import Path
 from scripts.experiments.models import OLLAMA_URL, model_config
 
 from jarvis.agent_layer.thought import InnerThoughtEngine, ThoughtEngine, ThoughtPromptTemplate
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame, ThoughtRequest
 from jarvis.agent_layer.thought.prompt import DEFAULT_REFLECTION_TEMPLATE
-from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
 from jarvis.agent_layer.thought.decision_gate import DecisionGatedEngine
 from jarvis.core.proactive.eval.runner import load_suites, run_cases
+from jarvis.core.proactive.eval.eval_schema import load_cases
 from jarvis.core.proactive.eval.__main__ import FIXED_CLOCK
-from jarvis.core.proactive.eval.schema import load_cases
 from jarvis.model_layer.decision import DecisionModel
-from jarvis.config import get_settings
+from jarvis.jarvis_config import get_settings
 
 SWEEP = (0.3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9)
 

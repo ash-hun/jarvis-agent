@@ -14,7 +14,7 @@ class CallCounter:
 @contextmanager
 def count_llm_calls(provider_name: str) -> Iterator[CallCounter]:
     """레지스트리에 등록된 provider 의 stream 호출 수를 센다. 빠져나오면 원래대로 되돌린다."""
-    from jarvis.model_layer.registry import get_default_registry
+    from jarvis.model_layer.model_registry import get_default_registry
 
     provider = get_default_registry().get(provider_name)
     counter = CallCounter()

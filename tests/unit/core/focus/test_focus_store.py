@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from jarvis.core.focus.types import FocusState, FocusStep
-from jarvis.core.focus.store import FocusStore
+from jarvis.core.focus.focus_types import FocusState, FocusStep
+from jarvis.core.focus.focus_store import FocusStore
 
 
 def test_claim_is_exclusive_per_session(tmp_path: Path) -> None:

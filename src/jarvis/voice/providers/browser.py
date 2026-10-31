@@ -1,6 +1,6 @@
 """[voice] STT/TTS 를 브라우저 Web Speech API 에 맡기는 프로바이더(서버 측 처리 없음)."""
 
-from jarvis.voice.protocol import STTProvider, TTSProvider
+from jarvis.voice.voice_protocol import STTProvider, TTSProvider
 
 
 class BrowserSTTProvider(STTProvider):

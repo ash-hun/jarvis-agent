@@ -4,10 +4,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from dataclasses import asdict, dataclass
 
-from jarvis.memory.eval.schema import EvalCase, RetentionCase, load_cases, load_retention_cases
+from jarvis.memory.eval.eval_schema import EvalCase, RetentionCase, load_cases, load_retention_cases
 from jarvis.memory.eval.metrics import CaseResult, SuiteReport, judge, summarize
+from jarvis.model_layer.model_types import Message
 from jarvis.memory.eval.target import EvalTarget
-from jarvis.model_layer.types import Message
 
 if TYPE_CHECKING:
     from jarvis.memory.consolidation.compaction import Summarizer

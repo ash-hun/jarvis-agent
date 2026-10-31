@@ -2,7 +2,7 @@
 
 import time
 
-from jarvis.agent_layer.openloop.types import (
+from jarvis.agent_layer.openloop.openloop_types import (
     LOOP_STATUSES,
     OpenLoop,
     expired_ids,

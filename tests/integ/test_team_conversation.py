@@ -8,9 +8,9 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from jarvis.app.agent_conversation import PEER_REQUEST_RULE  # noqa: E402
 from tests.fixtures.team_provider import TeamProvider  # noqa: E402
+from jarvis.jarvis_config import JarvisSettings  # noqa: E402
 from jarvis.app.infra_builder import build_app  # noqa: E402
 from jarvis.ui.web.server import create_app  # noqa: E402
-from jarvis.config import JarvisSettings  # noqa: E402
 
 KAREN = (
     "name: K.A.R.E.N.\ndescription: 정보 수집\nsystem_prompt: 당신은 카렌입니다.\n"
@@ -20,7 +20,7 @@ KAREN = (
 
 @pytest.fixture
 def provider():
-    from jarvis.model_layer.registry import get_default_registry
+    from jarvis.model_layer.model_registry import get_default_registry
 
     team = TeamProvider()
     registry = get_default_registry()

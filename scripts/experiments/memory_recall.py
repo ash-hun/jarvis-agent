@@ -10,7 +10,7 @@ import statistics
 from pathlib import Path
 from datetime import datetime, timedelta
 
-from jarvis.model_layer.types import AssistantMessage, TextContent, UserMessage
+from jarvis.model_layer.model_types import AssistantMessage, TextContent, UserMessage
 from jarvis.core.slash.remember_cmd import make_remember_handler
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.eval.fake_embedder import FakeEmbedder

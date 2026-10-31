@@ -2,7 +2,7 @@
 import pytest
 
 from jarvis.core.proactive import DefaultProactivityPolicy, FeedbackLearner
-from jarvis.agent_layer.thought.types import ThoughtFrame
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame
 
 
 def test_accept_lowers_threshold():

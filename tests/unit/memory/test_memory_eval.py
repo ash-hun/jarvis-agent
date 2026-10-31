@@ -14,7 +14,7 @@ from jarvis.memory.eval.runner import (
     run,
     run_retention,
 )
-from jarvis.memory.eval.schema import EpisodeFilter, EvalCase, Expect, ScopeSpec, SetupStep, load_cases
+from jarvis.memory.eval.eval_schema import EpisodeFilter, EvalCase, Expect, ScopeSpec, SetupStep, load_cases
 from jarvis.memory.eval.probe import count_llm_calls
 from jarvis.memory import MemoryKind, MemoryScope
 from jarvis.memory.eval.target import EvalTarget
@@ -215,7 +215,7 @@ async def test_store_episodic_and_procedural_suites_pass():
 
 
 async def test_count_llm_calls_wraps_provider(faux_model_with_response):
-    from jarvis.model_layer.types import LLMContext, UserMessage
+    from jarvis.model_layer.model_types import LLMContext, UserMessage
     from jarvis.model_layer.stream import stream_to_message
 
     model = faux_model_with_response("ok")

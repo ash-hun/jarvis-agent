@@ -14,10 +14,10 @@ from jarvis.core.tools.housing.lh_notice import LhNoticeTool, Notice, build_quer
 from jarvis.core.tools.housing.rules import NO, OK, UNKNOWN, Rules, Verdict, load_rules, notice_access
 from jarvis.core.tools.housing.profile import HousingProfile, ProfileStore, regions_or_home
 from jarvis.core.tools.housing.sh_notice import BOARDS, ShNoticeTool, view_url
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
 from jarvis.core.tools.housing.markup import deadline_label, parse_date
-from jarvis.model_layer.types import TextContent, ToolResultMessage
+from jarvis.core.tools.tools_registry import JarvisTool, ToolContext
 from jarvis.core.tools.housing.fetch import FetchError, kst_today
-from jarvis.core.tools.registry import JarvisTool, ToolContext
 from jarvis.memory.scope import LOCAL_USER
 
 TOOL_NAME = "housing_watch"

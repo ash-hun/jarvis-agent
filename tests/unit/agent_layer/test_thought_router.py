@@ -11,7 +11,7 @@ from jarvis.agent_layer.thought.router import (
     recent_turns,
     route_state,
 )
-from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage, UserMessage
+from jarvis.model_layer.model_types import AssistantMessage, TextContent, ToolResultMessage, UserMessage
 
 OFFER = ("일본 여행 일정 짜줄래?", "4박 5일로 짜 드릴까요?")
 

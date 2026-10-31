@@ -3,10 +3,10 @@
 import asyncio
 from typing import Any
 
-from jarvis.core.tools.registry import JarvisTool, ToolContext, ToolRegistry
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.procedures.store import Procedure, ProcedureStore
-from jarvis.core.skills.registry import Skill, SkillRegistry
+from jarvis.core.tools.tools_registry import JarvisTool, ToolContext, ToolRegistry
+from jarvis.core.procedures.procedures_store import Procedure, ProcedureStore
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+from jarvis.core.skills.skills_registry import Skill, SkillRegistry
 from jarvis.core.procedures.plan import fill
 
 TOOL_PREFIX = "procedure_"

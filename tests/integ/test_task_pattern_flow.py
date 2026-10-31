@@ -11,9 +11,9 @@ from tests.fixtures.pattern_provider import ASK_BACK, PatternProvider  # noqa: E
 from tests.unit.core.housing.conftest import TODAY, page  # noqa: E402
 from tests.unit.core.housing.test_budget import Board  # noqa: E402
 from jarvis.core.tools.housing import housing_tools  # noqa: E402
+from jarvis.jarvis_config import JarvisSettings  # noqa: E402
 from jarvis.app.infra_builder import build_app  # noqa: E402
 from jarvis.ui.web.server import create_app  # noqa: E402
-from jarvis.config import JarvisSettings  # noqa: E402
 
 TEAM_DIR = Path(__file__).resolve().parents[2] / "team"
 TEACH = "앞으로 예산이랑 현금 얘기하면 대출은 공고 금액에서 현금을 뺀 걸로, 금리는 4%로 계산해. 기억해."
@@ -22,7 +22,7 @@ ASK = "예산 3억, 현금 1억 2천으로 월 200 이하인 공고 추천해줘
 
 @pytest.fixture
 def provider():
-    from jarvis.model_layer.registry import get_default_registry
+    from jarvis.model_layer.model_registry import get_default_registry
 
     scripted = PatternProvider()
     registry = get_default_registry()

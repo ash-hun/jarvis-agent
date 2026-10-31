@@ -14,11 +14,11 @@ from jarvis.agent_layer.thought.prompt import (
     DEFAULT_REFLECTION_TEMPLATE,
     ThoughtPromptTemplate,
 )
-from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame, ThoughtRequest
 from jarvis.core.external import ExternalEvent, ExternalEventInbox
+from jarvis.agent_layer.agent_types import ProactiveMessageEvent
 from jarvis.agent_layer.thought.engine import InnerThoughtEngine
 from tests.fixtures.grounded_loops import GroundedLoopStore
-from jarvis.agent_layer.types import ProactiveMessageEvent
 
 
 class StubEngine:
@@ -259,7 +259,7 @@ async def test_session_without_inbox_behaves_as_before(fx):
 
 def test_external_trigger_is_composed_regardless_of_daemon_mode():
     from jarvis.app.infra_builder import InfraBuilder
-    from jarvis.config import JarvisSettings
+    from jarvis.jarvis_config import JarvisSettings
 
     settings = JarvisSettings()
     settings.proactive.daemon_trigger = "interval"
@@ -275,7 +275,7 @@ def test_external_trigger_is_composed_regardless_of_daemon_mode():
 
 def test_build_external_is_noop_without_sources(tmp_path):
     from jarvis.app.infra_builder import InfraBuilder
-    from jarvis.config import JarvisSettings
+    from jarvis.jarvis_config import JarvisSettings
 
     settings = JarvisSettings()
     settings.external.sources_dir = str(tmp_path / "missing")
@@ -283,7 +283,7 @@ def test_build_external_is_noop_without_sources(tmp_path):
 
 
 def test_build_external_builds_poller_from_yaml(tmp_path):
-    from jarvis.config import JarvisSettings, MCPServerConfig
+    from jarvis.jarvis_config import JarvisSettings, MCPServerConfig
     from jarvis.app.infra_builder import InfraBuilder
 
     sources_dir = tmp_path / "external_sources"
@@ -309,7 +309,7 @@ def test_build_external_builds_poller_from_yaml(tmp_path):
 
 def test_build_external_skips_when_disabled():
     from jarvis.app.infra_builder import InfraBuilder
-    from jarvis.config import JarvisSettings
+    from jarvis.jarvis_config import JarvisSettings
 
     settings = JarvisSettings()
     settings.external.enabled = False
@@ -324,8 +324,8 @@ async def test_poller_to_proactive_message_end_to_end(fx):
         InMemorySeenStore,
         McpToolSource,
     )
-    from jarvis.core.external.loader import ExternalSourceSpec
-    from jarvis.config import MCPServerConfig
+    from jarvis.core.external.external_loader import ExternalSourceSpec
+    from jarvis.jarvis_config import MCPServerConfig
 
     await fx["repo"].create(session_id="s1")
 

@@ -120,3 +120,16 @@ async def test_format_is_sent_only_with_schema(monkeypatch, schema):
     await _stream_with(monkeypatch, _ndjson(DONE), StreamOptions(json_schema=schema), sent)
 
     assert sent[0].get("format") == schema
+
+
+async def test_same_tool_twice_without_ids_gets_distinct_call_ids(monkeypatch):
+    twice = {"message": {"role": "assistant", "content": "", "tool_calls": [
+        {"function": {"name": "bash", "arguments": {"command": "ls"}}},
+        {"function": {"name": "bash", "arguments": {"command": "pwd"}}},
+    ]}, "done": False}
+
+    events = await _stream_with(monkeypatch, _ndjson(twice, DONE))
+
+    calls = [e for e in events if isinstance(e, ToolCallDeltaEvent)]
+    assert len({c.id for c in calls}) == 2
+    assert [json.loads(c.arguments_delta) for c in calls] == [{"command": "ls"}, {"command": "pwd"}]

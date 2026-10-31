@@ -63,56 +63,59 @@ class AgentHarness:
         from jarvis.model_layer.model_types import UserMessage
 
         self._running = True
-        self._signal.clear()
+        # 프로바이더나 저장소가 던져도 실행 중 표시는 풀린다. 남으면 is_running 이 영원히 True 다
+        try:
+            self._signal.clear()
 
-        history = await self._session_repo.get_messages(self._session_id)
-        new_user_msg = UserMessage(content=user_input)
-        history.append(new_user_msg)
-        await self._session_repo.append(self._session_id, new_user_msg)
+            history = await self._session_repo.get_messages(self._session_id)
+            new_user_msg = UserMessage(content=user_input)
+            history.append(new_user_msg)
+            await self._session_repo.append(self._session_id, new_user_msg)
 
-        mem_context: dict[str, Any] = {
-            "session_id": self._session_id,
-            "agent_id": self._agent_name or "main",  # 메모리 범위: 어느 에이전트가 읽고 쓰는가
-            **(extra_context or {}),
-        }
-        messages = await self._memory.observe(history, mem_context) if self._memory else history
+            mem_context: dict[str, Any] = {
+                "session_id": self._session_id,
+                "agent_id": self._agent_name or "main",  # 메모리 범위: 어느 에이전트가 읽고 쓰는가
+                **(extra_context or {}),
+            }
+            messages = await self._memory.observe(history, mem_context) if self._memory else history
 
-        agent_context = AgentContext(
-            session_id=self._session_id,
-            messages=messages,
-            tools=self._tools,
-            model=self._model,
-            system_prompt=self._system_prompt,
-            metadata=extra_context or {},
-        )
-
-        n_before = len(agent_context.messages)
-        result = await run_agent_loop(
-            context=agent_context,
-            config=self._loop_config,
-            emit=self._emit,
-            tool_executor=tool_executor,
-            signal=self._signal,
-            agent_name=self._agent_name,
-        )
-
-        # 루프가 쌓은 메시지(assistant tool_use → tool_result → ... → 최종 assistant)를 전부 남긴다.
-        # 최종 메시지만 남기면 세션 재개 시 provider가 tool_use/tool_result 짝 불일치로 거부한다.
-        produced = agent_context.messages[n_before:]
-        for msg in produced:
-            await self._session_repo.append(self._session_id, msg)
-        if self._memory is not None:
-            # 떠올린 기억 중 답에 쓰인 것만 강해진다. 턴 일화의 작업 종류와 성패도 여기서 정한다
-            calls = [c for m in produced if isinstance(m, AssistantMessage) for c in m.tool_calls()]
-            errors = {m.tool_call_id for m in produced if isinstance(m, ToolResultMessage) and m.is_error}
-            failed = result is None or result.error_message is not None or bool(errors)
-            await self._memory.reinforce(
-                result.text() if result is not None else "", mem_context, tools=[c.name for c in calls],
-                failed=failed, steps=[(c.name, dict(c.arguments)) for c in calls if c.id not in errors],
+            agent_context = AgentContext(
+                session_id=self._session_id,
+                messages=messages,
+                tools=self._tools,
+                model=self._model,
+                system_prompt=self._system_prompt,
+                metadata=extra_context or {},
             )
 
-        self._running = False
-        return result
+            n_before = len(agent_context.messages)
+            result = await run_agent_loop(
+                context=agent_context,
+                config=self._loop_config,
+                emit=self._emit,
+                tool_executor=tool_executor,
+                signal=self._signal,
+                agent_name=self._agent_name,
+            )
+
+            # 루프가 쌓은 메시지(assistant tool_use → tool_result → ... → 최종 assistant)를 전부 남긴다.
+            # 최종 메시지만 남기면 세션 재개 시 provider가 tool_use/tool_result 짝 불일치로 거부한다.
+            produced = agent_context.messages[n_before:]
+            for msg in produced:
+                await self._session_repo.append(self._session_id, msg)
+            if self._memory is not None:
+                # 떠올린 기억 중 답에 쓰인 것만 강해진다. 턴 일화의 작업 종류와 성패도 여기서 정한다
+                calls = [c for m in produced if isinstance(m, AssistantMessage) for c in m.tool_calls()]
+                errors = {m.tool_call_id for m in produced if isinstance(m, ToolResultMessage) and m.is_error}
+                failed = result is None or result.error_message is not None or bool(errors)
+                await self._memory.reinforce(
+                    result.text() if result is not None else "", mem_context, tools=[c.name for c in calls],
+                    failed=failed, steps=[(c.name, dict(c.arguments)) for c in calls if c.id not in errors],
+                )
+
+            return result
+        finally:
+            self._running = False
 
     def abort(self) -> None:
         self._signal.set()

@@ -86,7 +86,8 @@ class OllamaProvider(Provider):
                                 fn = tc.get("function", {})
                                 name = fn.get("name", "")
                                 args = json.dumps(fn.get("arguments", {}))
-                                tc_id = tc.get("id", name)
+                                # id 가 없을 때 이름만 쓰면 같은 도구 두 번이 한 호출로 합쳐진다
+                                tc_id = tc.get("id") or f"{name}_{len(tool_buffers)}"
                                 tool_buffers[tc_id] = {"id": tc_id, "name": name}
                                 yield ToolCallDeltaEvent(
                                     id=tc_id,

@@ -4,51 +4,18 @@ import pytest
 import asyncio
 
 from jarvis.core.tools.housing.budget import CONCURRENCY, Option, Terms, options_from_units
+from tests.fixtures.housing_board import TODAY, Board, budget_tool, page
 from jarvis.core.tools.housing.budget import parse_terms, plan_for
 from jarvis.core.tools.housing.profile import HousingProfile
-from tests.unit.core.housing.conftest import TODAY, page
-from jarvis.core.tools.housing.fetch import FetchError
 from jarvis.core.tools.housing.lh_notice import Notice
 from jarvis.core.tools.housing.rules import load_rules
-from jarvis.core.tools.housing import housing_tools
 
 NOTICE = Notice("1-03-06-10", "행복주택", "테스트 공고", "경기도", "2026.10.01", "2026.10.20", "공고중")
 
 
-class Board:
-    """목록은 신혼희망타운 픽스처, 상세는 공고 id 로 고른다. 첨부와 단지 검색도 흉내 낸다."""
-
-    def __init__(self, pdf_text: str | None = None) -> None:
-        self.pdf_text = pdf_text
-        self.calls: list[str] = []
-
-    async def fetch(self, url: str, query: dict[str, str]) -> str:
-        self.calls.append(url.rsplit("/", 1)[-1])
-        if url.endswith("selectWrtancList.do"):
-            return page("lh_list.html")
-        if url.endswith("selectWrtancInfo.do"):
-            if query["panId"] == "0000061179":
-                return page("lh_detail_sale.html")
-            if query["panId"] == "2015122300020803":
-                return page("lh_detail_rental.html")
-            return page("lh_detail_rental.html").replace("fileDownLoad", "noFile")
-        if url.endswith("ajax.do"):
-            return page("complex_gyeonggi.json")
-        raise FetchError(url)
-
-    async def fetch_file(self, url: str, query: dict[str, str], referer: str) -> bytes:
-        self.calls.append("lhFile.do")
-        if self.pdf_text is None:
-            raise FetchError("첨부 없음")
-        return self.pdf_text.encode()
-
-
-def _tool(board: Board):
-    return housing_tools(board.fetch, lambda: TODAY, board.fetch_file, lambda data: data.decode())[3]
-
 
 def _run(board: Board, params: dict) -> tuple[str, bool]:
-    result = asyncio.run(_tool(board).execute("t1", params))
+    result = asyncio.run(budget_tool(board).execute("t1", params))
     return result.content[0].text, result.is_error
 
 
@@ -206,8 +173,8 @@ def test_case_lines_stand_alone_and_show_access():
 def test_result_is_the_answer_but_errors_are_not():
     """계산 결과는 모델이 옮기지 않고 그대로 답이 된다. 오류는 모델이 받아 다시 부르거나 설명한다."""
     board = Board(pdf_text=page("rent_terms_uiwang.txt"))
-    ok = asyncio.run(_tool(board).execute("t1", {"cash": "1억 5천"}))
-    bad = asyncio.run(_tool(board).execute("t2", {"cash": "많이"}))
+    ok = asyncio.run(budget_tool(board).execute("t1", {"cash": "1억 5천"}))
+    bad = asyncio.run(budget_tool(board).execute("t2", {"cash": "많이"}))
     assert ok.final and not ok.is_error
     assert bad.is_error and not bad.final
     assert "답할 때" not in ok.content[0].text and "알려 주면 자격을 가려 다시 계산한다" in ok.content[0].text

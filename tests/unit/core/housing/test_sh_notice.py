@@ -12,7 +12,7 @@ from jarvis.core.tools.housing.sh_notice import (
     title_status,
     view_url,
 )
-from tests.unit.core.housing.conftest import FakeBoard, page
+from tests.fixtures.housing_board import FakeBoard, page
 
 
 def _run(tool: ShNoticeTool, params: dict) -> tuple[str, bool]:

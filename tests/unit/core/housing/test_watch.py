@@ -5,7 +5,7 @@ import asyncio
 from jarvis.core.tools.housing.watch import HousingWatchTool, SeenStore, watch_key
 from jarvis.core.tools.housing.profile import HousingProfile
 from jarvis.core.tools.housing.lh_notice import Notice
-from tests.unit.core.housing.conftest import TODAY
+from tests.fixtures.housing_board import TODAY
 
 RENTAL = Notice(
     "2015122300020803-03-06-10", "국민임대", "태백철암1 국민임대", "강원특별자치도",

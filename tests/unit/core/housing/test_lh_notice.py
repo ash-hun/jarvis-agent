@@ -17,7 +17,7 @@ from jarvis.core.tools.housing.lh_notice import (
     resolve_region,
     unit_price,
 )
-from tests.unit.core.housing.conftest import TODAY, FakeBoard, page
+from tests.fixtures.housing_board import TODAY, FakeBoard, page
 
 
 def _run(tool: LhNoticeTool, params: dict) -> tuple[str, bool]:

@@ -104,7 +104,7 @@ def test_same_input_same_answer():
 
 def test_loan_from_notice_id_and_unit(lh_board):
     from jarvis.core.tools.housing import housing_tools
-    from tests.unit.core.housing.conftest import TODAY
+    from tests.fixtures.housing_board import TODAY
 
     loan = housing_tools(lh_board, lambda: TODAY)[2]
     params = {"notice_id": "0000061179-02-39-39", "unit": "55A", "ltv_percent": 70, "annual_rate_percent": 3.5,
@@ -117,7 +117,7 @@ def test_loan_from_notice_id_and_unit(lh_board):
 
 
 def test_loan_from_notice_reports_board_failure():
-    from tests.unit.core.housing.conftest import TODAY, FakeBoard
+    from tests.fixtures.housing_board import TODAY, FakeBoard
     from jarvis.core.tools.housing import housing_tools
 
     loan = housing_tools(FakeBoard({}), lambda: TODAY)[2]

@@ -8,11 +8,11 @@ pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
 from tests.fixtures.pattern_provider import ASK_BACK, PatternProvider  # noqa: E402
-from tests.unit.core.housing.conftest import TODAY, page  # noqa: E402
-from tests.unit.core.housing.test_budget import Board  # noqa: E402
+from tests.fixtures.housing_board import TODAY, page  # noqa: E402
 from jarvis.core.tools.housing import housing_tools  # noqa: E402
 from jarvis.jarvis_config import JarvisSettings  # noqa: E402
 from jarvis.app.infra_builder import build_app  # noqa: E402
+from tests.fixtures.housing_board import Board  # noqa: E402
 from jarvis.ui.web.server import create_app  # noqa: E402
 
 TEAM_DIR = Path(__file__).resolve().parents[2] / "team"

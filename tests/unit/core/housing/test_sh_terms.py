@@ -6,12 +6,12 @@ from jarvis.core.tools.housing.sh_terms import close_date, land_rents, pick_sh_p
 from jarvis.core.tools.housing.budget import Terms, options_from_sh, plan_for
 from jarvis.core.tools.housing.sh_notice import Post, parse_list
 from jarvis.core.tools.housing.profile import HousingProfile
-from tests.unit.core.housing.conftest import TODAY, page
 from jarvis.core.tools.housing.fetch import FetchError
 from jarvis.core.tools.housing.lh_notice import Notice
 from jarvis.core.tools.housing.rules import load_rules
-from tests.unit.core.housing.test_budget import Board
+from tests.fixtures.housing_board import TODAY, page
 from jarvis.core.tools.housing import housing_tools
+from tests.fixtures.housing_board import Board
 
 RECRUIT_TITLE = "2026년 3차 희망하우징(공공기숙사) 잔여세대 입주자 모집공고"
 

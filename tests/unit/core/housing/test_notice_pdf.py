@@ -1,7 +1,7 @@
 """공고문 PDF 의 임대조건 표와 분양가 표 읽기. 실제 공고문에서 꺼낸 텍스트로 본다."""
 
 from jarvis.core.tools.housing.notice_pdf import pick_notice_pdf, rent_terms, sale_terms
-from tests.unit.core.housing.conftest import page
+from tests.fixtures.housing_board import page
 
 
 def test_thousand_won_table_is_scaled():

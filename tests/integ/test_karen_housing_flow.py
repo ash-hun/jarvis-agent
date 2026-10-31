@@ -7,7 +7,7 @@ pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from tests.unit.core.housing.conftest import TODAY, FakeBoard, page  # noqa: E402
+from tests.fixtures.housing_board import TODAY, FakeBoard, page  # noqa: E402
 from tests.fixtures.housing_provider import HousingProvider  # noqa: E402
 from jarvis.core.tools.housing import housing_tools  # noqa: E402
 from jarvis.jarvis_config import JarvisSettings  # noqa: E402

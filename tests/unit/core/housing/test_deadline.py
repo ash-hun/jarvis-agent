@@ -4,10 +4,9 @@ import asyncio
 from datetime import date, datetime
 
 from jarvis.core.tools.housing.deadline import deadline_loop, loop_id, remind_date, track_deadlines
+from tests.fixtures.housing_board import TODAY, Board, budget_tool, page
 from jarvis.agent_layer.openloop import InMemoryOpenLoopStore
-from tests.unit.core.housing.test_budget import Board, _tool
 from jarvis.core.tools.tools_registry import ToolContext
-from tests.unit.core.housing.conftest import TODAY, page
 from jarvis.core.tools.housing.lh_notice import Notice
 from jarvis.memory.scope import MemoryScope
 
@@ -42,7 +41,7 @@ def test_tracking_twice_keeps_one_loop_and_does_not_reopen_a_closed_one():
 
 def test_budget_leaves_a_deadline_loop_for_the_top_pick_and_says_so():
     store = InMemoryOpenLoopStore()
-    tool = _tool(Board(pdf_text=page("rent_terms_uiwang.txt")))
+    tool = budget_tool(Board(pdf_text=page("rent_terms_uiwang.txt")))
     tool._loops = store
     context = ToolContext(scope=MemoryScope(user_id="u", agent_id="karen", session_id="s1"), session_id="s1")
     params = {"budget": 3e8, "cash": 1.2e8, "monthly_limit": 2e6}
@@ -60,7 +59,7 @@ def test_budget_leaves_a_deadline_loop_for_the_top_pick_and_says_so():
 def test_scheduled_and_test_sessions_leave_no_deadline_loop():
     """목표 차례(sched-)와 시험 세션은 끝나면 아무도 약속을 꺼내지 않는다. 남기지 않고, 결과 글도 매번 같다."""
     store = InMemoryOpenLoopStore()
-    tool = _tool(Board(pdf_text=page("rent_terms_uiwang.txt")))
+    tool = budget_tool(Board(pdf_text=page("rent_terms_uiwang.txt")))
     tool._loops = store
     params = {"budget": 3e8, "cash": 1.2e8, "monthly_limit": 2e6}
     texts = []

@@ -30,6 +30,7 @@ from jarvis.memory.working.window import (
 from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
 from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank, relevance
 from jarvis.memory.scope import MemoryScope, current_task, scope_from_context, task_scope
+from jarvis.memory.stores.protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore
 from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind, Visibility
 from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
 from jarvis.memory.consolidation.semantic_extract import FactExtractor
@@ -40,7 +41,6 @@ from jarvis.memory.consolidation.compaction import Summarizer
 from jarvis.memory.long_term.episodic import prepare_episode
 from jarvis.model_layer.types import Message, UserMessage
 from jarvis.memory.working.deixis import retrieval_query
-from jarvis.memory.stores.protocol import ItemStore
 from jarvis.model_layer.embeddings import Embedder
 
 FACTS_HEADER = "[핵심 사실]"  # 고정 블록: 질의와 무관하게 항상 넣는 상위 의미 사실
@@ -86,6 +86,9 @@ PATTERN_INJECT_LIMIT = 2
 PATTERN_SCAN_LIMIT = 100
 # 일반 회상 블록은 일화와 사실만. 작업 패턴은 따로 고른다
 RECALL_KINDS = (MemoryKind.EPISODIC, MemoryKind.SEMANTIC)
+# 사고 로그는 매 턴 사용자 말을 다시 적어 같은 낱말로 턴 일화보다 많이, 더 최근에 걸린다. 회상 자리를 빼앗지 않게 뺀다
+RECALL_FILTER = ItemFilter(exclude_sources=frozenset({"thought"}))
+CHAT_TASK = "chat"  # 도구를 부르지 않은 턴의 task_type
 # 떠올린 항목의 낱말이 답에 이만큼 나오면 답에 쓰였다고 보고 되뇌기로 센다
 USED_OVERLAP = 0.5
 # 규칙에 없는 경로는 에이전트가 겪은 일로 둔다. 의미 기억은 사용자에 대한 사실(사용자 프로필)이라 위 규칙으로만 쓴다
@@ -212,7 +215,11 @@ class MemoryService:
         patterns: list[TaskPattern] = []
         if cue:
             # 고정 블록에 이미 있는 항목도 질의에 걸리면 떠올린 것이다. 회상 블록에는 겹치지 않게 뺀다
-            cued = await self.recall(cue, scope, kinds=RECALL_KINDS, limit=self._inject_limit + len(fixed))
+            # 창 안의 턴은 아래에서 빼므로 그만큼 더 받아야 회상 자리가 줄지 않는다
+            extra = len(fixed) + (self._stm_turns or 0)
+            cued = await self.recall(
+                cue, scope, kinds=RECALL_KINDS, limit=self._inject_limit + extra, where=RECALL_FILTER
+            )
             recalled = [
                 i for i in cued if i.id not in fixed_ids and not _in_window(i, scope, first_in_window)
             ][: self._inject_limit]
@@ -244,15 +251,21 @@ class MemoryService:
             await self._store.touch([i.id for i in cued], datetime.now())
         return blocks + out
 
-    async def reinforce(self, answer: str, context: dict[str, Any]) -> list[str]:
+    async def reinforce(
+        self, answer: str, context: dict[str, Any], *, tools: Sequence[str] = (), failed: bool = False
+    ) -> list[str]:
         """이번 턴에 떠올린 항목 중 답에 쓰인 것만 되뇌기로 센다. 두 번 불러도 한 번만 센다.
+
+        턴 모드면 이번 턴을 EDM 에 쓴다. tools 는 이번 턴에 부른 도구 순서, failed 는 도구나 모델 실패.
 
         # ponytail: 항목 낱말이 답에 절반 넘게 나와야 쓰였다고 본다(긴 일화는 덜 잡힌다), 누락이 보이면 임베딩 유사도로
         """
         scope = scope_from_context(context)
         turn = self._pending_turn.pop(scope, None)
         if turn is not None:
-            await self.record_turn(turn[0], turn[1], answer, scope)
+            await self.record_turn(
+                turn[0], turn[1], answer, scope, task_type=tools[0] if tools else CHAT_TASK, failed=failed, tools=tools
+            )
         cued = self._pending_recall.pop(scope, [])
         used = [item.id for item in cued if answer and relevance(item.content, answer) >= USED_OVERLAP]
         if used:
@@ -262,7 +275,17 @@ class MemoryService:
             await self._working.save(state)
         return used
 
-    async def record_turn(self, index: int, user: str, answer: str, scope: MemoryScope) -> str:
+    async def record_turn(
+        self,
+        index: int,
+        user: str,
+        answer: str,
+        scope: MemoryScope,
+        *,
+        task_type: str = CHAT_TASK,
+        failed: bool = False,
+        tools: Sequence[str] = (),
+    ) -> str:
         """턴 하나를 EDM 일화로 쓴다. 같은 세션의 같은 턴 번호면 같은 항목을 덮어 두 번 불러도 하나다.
 
         # ponytail: 이력이 줄어 턴 번호를 1부터 다시 세면 옛 턴 일화를 덮는다, 세션 초기화가 잦아지면 세대 번호를 키에
@@ -270,7 +293,9 @@ class MemoryService:
         key = f"{scope.user_id}|{scope.agent_id}|{scope.session_id}|{index}"
         content = f"사용자: {user[:TURN_CHARS]}\n답: {answer[:TURN_CHARS]}"
         return await self.remember(
-            content, source=TURN_SOURCE, scope=scope, metadata={TURN_INDEX: index},
+            content, source=TURN_SOURCE, scope=scope,
+            metadata={TURN_INDEX: index, TASK_TYPE: task_type, OUTCOME: "failure" if failed else "success",
+                      "tools": list(dict.fromkeys(tools))},
             item_id="turn_" + hashlib.sha1(key.encode()).hexdigest()[:27],
         )
 
@@ -416,17 +441,33 @@ class MemoryService:
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
         exclude: set[str] | None = None,
+        where: ItemFilter | None = None,
     ) -> list[MemoryItem]:
         """키워드와 의미 유사도로 후보를 넓게 모은 뒤 합성 점수로 상위 limit 개."""
         resolved = scope
         query_embedding = await self._embed_query(query)
         candidates = await self._store.search(
             query, resolved, kinds, limit * 4, query_embedding=query_embedding, min_similarity=self._min_similarity,
-            readable=self.readable(resolved),
+            readable=self.readable(resolved), where=where,
         )
         if exclude:
             candidates = [c for c in candidates if c.id not in exclude]
         return rank(candidates, query, resolved, limit, params=self._scoring, query_embedding=query_embedding)
+
+    async def recall_episodes(
+        self,
+        query: str,
+        scope: MemoryScope,
+        *,
+        task_type: str | None = None,
+        outcome: str | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
+        limit: int = 5,
+    ) -> list[MemoryItem]:
+        """조건에 맞는 일화만 골라 회상한다(cherry-pick). 조건에 맞는 것이 없으면 비운다."""
+        where = replace(RECALL_FILTER, task_type=task_type, outcome=outcome, since=since, until=until)
+        return await self.recall(query, scope, kinds=[MemoryKind.EPISODIC], limit=limit, where=where)
 
     async def recall_messages(self, query: str, context: dict[str, Any], limit: int = 10) -> list[Message]:
         """inner thought 의 회상 콜백(RecallFn) 모양. 범위는 턴 컨텍스트에서 정하고 항목은 사용자 메시지로 감싼다."""

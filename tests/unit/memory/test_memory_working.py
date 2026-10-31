@@ -281,3 +281,47 @@ async def test_consolidate_extracts_once_per_session_from_turns():
     first = next(c for c in calls if "12가3456" in c)
     assert len(calls) == 2 and first.index("12가3456") < first.index("날씨")
     assert await memory.consolidate(SCOPE) == 0 and len(calls) == 2
+
+
+async def _ltm_block(memory: MemoryService, history: list) -> str:
+    blocks = await memory.observe(history, CTX)
+    return next((m.content for m in blocks if isinstance(m.content, str) and m.content.startswith(LTM_HEADER)), "")
+
+
+async def test_thought_logs_do_not_take_recall_slots_from_turns():
+    """실서버에서 본 실패: 사고 로그가 사용자 말을 다시 적어 같은 낱말로 더 최근에 걸리고, 턴 일화는 밀려났다."""
+    store = InMemoryItemStore()
+    memory = MemoryService(store, stm_turns=3)
+    pairs = [
+        ("내 자전거 자물쇠 비밀번호는 4719야", "알겠습니다"),
+        ("저녁 추천", "국수"), ("음악 추천", "재즈"), ("차 추천", "홍차"),
+    ]
+    await _turns(memory, pairs)
+    for i in range(5):
+        thought = f'{{"observation": "사용자가 자전거 자물쇠 비밀번호 얘기 {i}"}}'
+        await memory.remember(thought, source="thought", scope=SCOPE)
+    history = [m for u, a in pairs for m in (_u(u), _a(a))] + [_u("내 자전거 자물쇠 비밀번호가 뭐였지?")]
+    block = await _ltm_block(memory, history)
+    assert "4719" in block and "observation" not in block
+
+
+async def test_window_turns_do_not_shrink_recall_slots():
+    memory = MemoryService(InMemoryItemStore(), stm_turns=3, inject_limit=1, fixed_facts=0)
+    # 창 안의 두 턴이 같은 낱말로 더 최근에 걸린다. 그 둘을 한도 안에서 빼면 회상 자리가 남지 않았다
+    pairs = [("자전거 비밀번호는 4719", "네"), ("자전거 비밀번호 얘기 하나", "네"), ("자전거 비밀번호 얘기 둘", "네")]
+    await _turns(memory, pairs)
+    history = [m for u, a in pairs for m in (_u(u), _a(a))] + [_u("자전거 비밀번호?")]
+    assert "4719" in await _ltm_block(memory, history)
+
+
+async def test_turn_episode_keeps_first_tool_as_task_type_and_outcome():
+    store = InMemoryItemStore()
+    memory = MemoryService(store, stm_turns=3)
+    await memory.observe([_u("공고 보고 대출 계산해줘")], CTX)
+    await memory.reinforce("PDF 를 못 읽었습니다", CTX, tools=["lh_notice", "housing_loan", "lh_notice"], failed=True)
+    await memory.observe([_u("공고 보고 대출 계산해줘"), _a("PDF 를 못 읽었습니다"), _u("안녕")], CTX)
+    await memory.reinforce("안녕하세요", CTX)
+    meta = {i.metadata["turn"]: i.metadata for i in await store.recent(SCOPE, limit=10)}
+    assert meta[1]["task_type"] == "lh_notice" and meta[1]["outcome"] == "failure"
+    assert meta[1]["tools"] == ["lh_notice", "housing_loan"]
+    assert meta[2]["task_type"] == "chat" and meta[2]["outcome"] == "success"

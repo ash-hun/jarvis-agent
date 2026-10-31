@@ -31,7 +31,8 @@ class SpyMemory:
             return messages
         return [UserMessage(content=self._prefix), *messages]
 
-    async def reinforce(self, answer: str, context: dict) -> list[str]:
+    async def reinforce(self, answer: str, context: dict, *, tools=(), failed: bool = False) -> list[str]:
+        self.reinforced = (answer, list(tools), failed)
         return []
 
 
@@ -311,3 +312,27 @@ async def test_provider_error_persists_only_the_user_message(faux_model, repo):
 
     assert result is not None and result.error_message is not None
     assert [type(m).__name__ for m in await repo.get_messages("s1")] == ["UserMessage"]
+
+
+async def test_reinforce_gets_called_tools_and_failure(faux_model_with_response, repo):
+    """턴 일화의 작업 종류(처음 부른 도구)와 성패는 루프가 쌓은 메시지에서 정한다."""
+    model = faux_model_with_response(
+        "", tool_calls=[{"id": "c1", "name": "read_file", "arguments": {"path": "a"}}]
+    )
+
+    async def executor(tool_call_id, tool_name, params):
+        return ToolResultMessage(
+            tool_call_id=tool_call_id, tool_name=tool_name, content=[TextContent(text="없음")], is_error=True
+        )
+
+    memory = SpyMemory()
+    await _harness(model, repo, memory, loop_config=AgentLoopConfig(max_turns=2)).run("파일 읽어", executor)
+    _, tools, failed = memory.reinforced
+    assert tools[0] == "read_file" and failed is True
+
+
+async def test_plain_answer_is_a_successful_turn_without_tools(faux_model_with_response, repo):
+    memory = SpyMemory()
+    await _harness(faux_model_with_response("안녕하세요"), repo, memory).run("안녕")
+    answer, tools, failed = memory.reinforced
+    assert answer.strip() == "안녕하세요" and tools == [] and failed is False

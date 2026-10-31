@@ -130,7 +130,7 @@ def test_tools_are_scoped_to_session_agent(client):
     sid = client.post("/api/sessions", json={"agent": "karen"}).json()["session_id"]
     karen = [t["name"] for t in client.get(f"/api/tools?session_id={sid}").json()["tools"]]
     # 정의의 도구에 팀 대화 도구와 작업 패턴 저장 도구가 늘 붙는다
-    assert karen == ["ask_agent", "read_file", "remember_task_pattern"]
+    assert karen == ["ask_agent", "read_file", "recall_episodes", "remember_task_pattern"]
     everything = [t["name"] for t in client.get("/api/tools").json()["tools"]]
     assert "bash" in everything and "bash" in [
         t["name"] for t in client.get("/api/tools?session_id=default").json()["tools"]

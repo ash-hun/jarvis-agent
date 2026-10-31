@@ -48,7 +48,7 @@ memory:                       # 비우면 자기 기억만 읽는다
 - id 는 `^[a-z][a-z0-9_-]{0,31}$` 를 따라야 한다. `main.yaml` 은 무시한다. JARVIS 의 정본은 env(`JARVIS_BRAND__*`, `JARVIS_LLM__*`)다
 - 잘못된 파일은 로그만 남기고 그 파일만 건너뛴다
 - `tools` 에는 에이전트만 쓰는 도구(`lh_notice`, `sh_notice`, `housing_loan`, `housing_budget`)도 적을 수 있다. 이 도구는 `tools` 가 빈 JARVIS 에게는 보이지 않는다
-- `ask_agent` 와 `remember_task_pattern` 은 `tools` 에 적지 않아도 모든 에이전트에게 붙는다. 작업 패턴은 에이전트마다 따로 기억한다([Memory Management → 작업 패턴](../memory.md#작업-패턴))
+- `ask_agent`, `remember_task_pattern`, `recall_episodes` 는 `tools` 에 적지 않아도 모든 에이전트에게 붙는다. 작업 패턴은 에이전트마다 따로 기억한다([Memory Management → 작업 패턴](../memory.md#작업-패턴))
 - `memory.read` 는 층별로 더 읽을 에이전트를 적는다([Memory Management → 읽기 권한](../memory.md#읽기-권한)). 모르는 키가 있으면 그 파일을 건너뛴다
 - 사고 설정은 JARVIS 것을 같이 쓰고, proactive 피드백 학습기는 에이전트마다 따로 둔다
 

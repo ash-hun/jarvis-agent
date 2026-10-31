@@ -2,6 +2,7 @@
 
 import string
 from datetime import datetime
+from dataclasses import dataclass
 from collections.abc import Sequence
 
 from jarvis.memory.types import MemoryItem, MemoryKind
@@ -17,6 +18,29 @@ JOSA = (
 MIN_STEM_CHARS = 2
 # 토큰 앞뒤에서 떼는 문장부호. 붙어 있으면 '서울에서?' 의 조사를 못 떼고 '-' 하나가 모든 항목에 걸린다
 EDGE_PUNCT = string.punctuation + "“”‘’「」『』《》〈〉…·"
+TASK_TYPE = "task_type"  # 일화 metadata: 그 턴에서 처음 부른 도구, 도구가 없으면 chat
+OUTCOME = "outcome"  # 일화 metadata: success | failure
+
+
+@dataclass(frozen=True)
+class ItemFilter:
+    """검색 조건. 비운 칸은 조건이 아니다. 시각은 일화의 사건 시각(없으면 저장 시각)으로 본다."""
+
+    exclude_sources: frozenset[str] = frozenset()
+    task_type: str | None = None
+    outcome: str | None = None
+    since: datetime | None = None  # 이 시각 이상
+    until: datetime | None = None  # 이 시각 미만
+
+    def allows(self, item: MemoryItem) -> bool:
+        at = item.occurred_at or item.created_at
+        return (
+            item.source not in self.exclude_sources
+            and (self.task_type is None or item.metadata.get(TASK_TYPE) == self.task_type)
+            and (self.outcome is None or item.metadata.get(OUTCOME) == self.outcome)
+            and (self.since is None or at >= self.since)
+            and (self.until is None or at < self.until)
+        )
 
 
 class ItemStore:
@@ -42,6 +66,7 @@ class ItemStore:
         query_embedding: list[float] | None = None,
         min_similarity: float = 0.3,
         readable: Readable | None = None,
+        where: ItemFilter | None = None,
     ) -> list[MemoryItem]:
         """scope 에서 보이는 항목 중 query 토큰과 겹치거나(키워드) 벡터가 min_similarity 이상 가까운 것(의미).
 
@@ -54,11 +79,14 @@ class ItemStore:
             return []
         hits = [
             i for i in self._visible(scope, kinds, readable)
-            if any(t in i.search_text.lower() for t in tokens)
+            if (where is None or where.allows(i))
+            and (
+                any(t in i.search_text.lower() for t in tokens)
             or (
                 query_embedding is not None
                 and i.embedding is not None
                 and cosine(query_embedding, i.embedding) >= min_similarity
+                )
             )
         ]
         nearest: list[MemoryItem] = []

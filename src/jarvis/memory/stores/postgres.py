@@ -7,9 +7,9 @@ from typing import Any
 from datetime import UTC, datetime
 from collections.abc import Sequence
 
+from jarvis.memory.stores.protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore, tokens_of
 from jarvis.memory.scope import MAIN_AGENT, PRIVATE, SHARED, MemoryScope
 from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind
-from jarvis.memory.stores.protocol import ItemStore, tokens_of
 from jarvis.common.logger import get_logger
 from jarvis.memory.access import Readable
 
@@ -201,6 +201,7 @@ class PostgresItemStore(ItemStore):
         query_embedding: list[float] | None = None,
         min_similarity: float = 0.3,
         readable: Readable | None = None,
+        where: ItemFilter | None = None,
     ) -> list[MemoryItem]:
         pool = await self._get_pool()  # 마이그레이션이 끝나야 _vector 가 정해진다
         tokens = tokens_of(query)
@@ -208,10 +209,12 @@ class PostgresItemStore(ItemStore):
         if not tokens and not use_vector:
             return []
         params = _visible_params(scope, readable)
-        where = [_VISIBLE]
+        conds = [_VISIBLE]
         if kinds:
             params.append([str(k) for k in kinds])
-            where.append(f"kind = ANY(${len(params)})")
+            conds.append(f"kind = ANY(${len(params)})")
+        if where is not None:
+            conds += _filter_sql(where, params)
         matches = []
         for t in tokens:
             params.append(f"%{t}%")
@@ -225,14 +228,14 @@ class PostgresItemStore(ItemStore):
             matches.append(f"({vector_where})")
         params.append(limit)
         lim = f"${len(params)}"
-        hit = " AND ".join([*where, "(" + " OR ".join(matches) + ")"])
+        hit = " AND ".join([*conds, "(" + " OR ".join(matches) + ")"])
         # 최신순 하나로만 자르면 오래됐지만 중요하거나 가장 가까운 항목이 점수를 받기도 전에 빠진다
         parts = [
             f"(SELECT {self._cols()} FROM {TABLE} WHERE {hit} ORDER BY created_at DESC LIMIT {lim})",
             f"(SELECT {self._cols()} FROM {TABLE} WHERE {hit} ORDER BY importance DESC, created_at DESC LIMIT {lim})",
         ]
         if use_vector:
-            near = " AND ".join([*where, vector_where])
+            near = " AND ".join([*conds, vector_where])
             parts.append(f"(SELECT {self._cols()} FROM {TABLE} WHERE {near} ORDER BY embedding <=> {vec} LIMIT {lim})")
         async with pool.acquire() as conn:
             rows = await conn.fetch(" UNION ALL ".join(parts), *params)
@@ -324,6 +327,25 @@ class PostgresItemStore(ItemStore):
             await self._pool.close()
             self._pool = None
             self._loop = None
+
+
+def _filter_sql(where: ItemFilter, params: list[Any]) -> list[str]:
+    """ItemFilter.allows 의 SQL 투영. 값은 params 에 붙이고 조건 문자열을 돌려준다."""
+    conds: list[str] = []
+    if where.exclude_sources:
+        params.append(sorted(where.exclude_sources))
+        conds.append(f"NOT (source = ANY(${len(params)}))")
+    for key, value in ((TASK_TYPE, where.task_type), (OUTCOME, where.outcome)):
+        if value is not None:
+            params.append(value)
+            conds.append(f"metadata->>'{key}' = ${len(params)}")
+    if where.since is not None:
+        params.append(where.since)
+        conds.append(f"COALESCE(occurred_at, created_at) >= ${len(params)}")
+    if where.until is not None:
+        params.append(where.until)
+        conds.append(f"COALESCE(occurred_at, created_at) < ${len(params)}")
+    return conds
 
 
 def _visible_params(scope: MemoryScope, readable: Readable | None) -> list[Any]:

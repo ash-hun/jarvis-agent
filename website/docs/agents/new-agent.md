@@ -56,7 +56,7 @@ proactive: false
 ## 도구 고르기
 
 - `tools` 를 비우면 앱에 등록된 도구 전체를 쓴다. 역할이 좁은 에이전트는 필요한 도구만 적는다
-- `ask_agent`(다른 에이전트에게 맡기기)와 `remember_task_pattern`(작업 패턴 저장)은 적지 않아도 붙는다
+- `ask_agent`(다른 에이전트에게 맡기기), `remember_task_pattern`(작업 패턴 저장), `recall_episodes`(지난 일화 골라 읽기)는 적지 않아도 붙는다
 - KAREN 의 `lh_notice`, `sh_notice`, `housing_budget`, `housing_loan` 처럼 에이전트 전용 도구도 이름을 적으면 쓸 수 있다
 - 새 전용 도구를 만들려면 코드가 필요하다. 도구를 구현해 `app/infra_builder.py` 의 `build_agent_tools` 에 등록한 뒤 정의 파일의 `tools` 에 이름을 적는다. 이 도구는 `tools` 가 빈 JARVIS 에게는 보이지 않는다
 

@@ -98,11 +98,18 @@ class AgentHarness:
 
         # 루프가 쌓은 메시지(assistant tool_use → tool_result → ... → 최종 assistant)를 전부 남긴다.
         # 최종 메시지만 남기면 세션 재개 시 provider가 tool_use/tool_result 짝 불일치로 거부한다.
-        for msg in agent_context.messages[n_before:]:
+        produced = agent_context.messages[n_before:]
+        for msg in produced:
             await self._session_repo.append(self._session_id, msg)
         if self._memory is not None:
-            # 떠올린 기억 중 답에 쓰인 것만 강해진다
-            await self._memory.reinforce(result.text() if result is not None else "", mem_context)
+            # 떠올린 기억 중 답에 쓰인 것만 강해진다. 턴 일화의 작업 종류와 성패도 여기서 정한다
+            tools = [c.name for m in produced if isinstance(m, AssistantMessage) for c in m.tool_calls()]
+            failed = result is None or result.error_message is not None or any(
+                isinstance(m, ToolResultMessage) and m.is_error for m in produced
+            )
+            await self._memory.reinforce(
+                result.text() if result is not None else "", mem_context, tools=tools, failed=failed
+            )
 
         self._running = False
         return result

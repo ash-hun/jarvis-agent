@@ -297,6 +297,41 @@ class TestItemStoreMigration:
         finally:
             await store.close()
 
+    async def test_item_filter_in_sql(self, postgres_dsn):
+        """사고 로그 제외와 일화 조건(작업 종류, 성패, 기간)을 SQL 이 건다. 후보를 자르기 전에 거른다."""
+        from datetime import datetime
+
+        from jarvis.memory.stores.postgres import PostgresItemStore
+        from jarvis.memory.memory_service import MemoryService
+        from jarvis.memory import MemoryScope
+
+        store = PostgresItemStore(dsn=postgres_dsn)
+        memory = MemoryService(store, stm_turns=3)
+        scope = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
+        try:
+            await memory.clear()
+            for index, failed, day in ((1, False, "2026-10-01"), (2, True, "2026-10-05")):
+                item_id = await memory.record_turn(
+                    index, f"대출 계산 {index}", "답", scope, task_type="housing_loan", failed=failed
+                )
+                item = await memory.get(item_id)
+                assert item is not None
+                item.occurred_at = datetime.fromisoformat(day)
+                await store.store(item)
+            await memory.remember("대출 계산 사고", source="thought", scope=scope)
+
+            got = await memory.recall_episodes("대출 계산", scope)
+            assert {i.content for i in got} == {"사용자: 대출 계산 1\n답: 답", "사용자: 대출 계산 2\n답: 답"}
+            failed_only = await memory.recall_episodes("대출 계산", scope, outcome="failure")
+            assert [i.metadata["turn"] for i in failed_only] == [2]
+            dated = await memory.recall_episodes(
+                "대출 계산", scope, since=datetime(2026, 10, 1), until=datetime(2026, 10, 2)
+            )
+            assert [i.metadata["turn"] for i in dated] == [1]
+            assert await memory.recall_episodes("대출 계산", scope, task_type="weather") == []
+        finally:
+            await store.close()
+
     async def test_supersede_hides_old_fact(self, ltm):
         from jarvis.memory import MemoryScope
 

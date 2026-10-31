@@ -103,18 +103,19 @@ class SessionBuilder:
         if not self._profile.tools and not never:
             return registry
         from jarvis.core.tools.task_pattern import TASK_PATTERN_TOOL
+        from jarvis.core.tools.episodes import RECALL_EPISODES_TOOL
         from jarvis.core.tools.registry import PickedToolRegistry
         from jarvis.app.agent_conversation import ASK_AGENT_TOOL
         from jarvis.core.procedures import TOOL_PREFIX
 
-        # 팀 대화와 작업 패턴 저장은 정의에 적지 않아도 늘 쓴다. 팀이 한 명이면 팀 대화는 등록돼 있지 않다.
+        # 팀 대화, 작업 패턴 저장, 일화 회상은 정의에 적지 않아도 늘 쓴다. 팀이 한 명이면 팀 대화는 등록돼 있지 않다.
         # 승인된 절차도 보인다. 절차의 단계는 이 창을 거쳐 실행되므로 정의에 없는 도구는 그 단계에서 멈춘다
         if not self._profile.tools:
             # 도구 전체에서 쓰지 않을 것만 뺀다. 빈 접두어는 앱 레지스트리의 모든 도구와 맞는다
             return PickedToolRegistry((registry,), (), prefixes=("",), exclude=never)
         return PickedToolRegistry(
             (registry, self._ctx.agent_tools),
-            (*self._profile.tools, ASK_AGENT_TOOL, TASK_PATTERN_TOOL),
+            (*self._profile.tools, ASK_AGENT_TOOL, TASK_PATTERN_TOOL, RECALL_EPISODES_TOOL),
             prefixes=(TOOL_PREFIX,),
             exclude=never,
         )

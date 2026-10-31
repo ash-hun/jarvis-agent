@@ -43,8 +43,32 @@ async def test_remember_keyword_overrides_rule(memory):
     assert item is not None and item.visibility == "private" and item.tags == ["t"]
 
 
+async def test_unknown_source_is_an_agent_episode_not_a_user_fact(memory):
+    """의미 기억은 사용자 프로필이다. 규칙에 없는 경로가 쓴 글이 [핵심 사실] 에 올라가면 안 된다."""
+    item_id = await memory.remember("새 경로가 남긴 결과", source="some_new_path", scope=U1_MAIN)
+    item = await memory.get(item_id)
+    assert item is not None and (item.kind, item.visibility) == (MemoryKind.EPISODIC, "private")
+    assert await memory.fixed_facts(U1_MAIN) == []
+
+
+async def test_user_profile_fact_written_by_one_agent_is_fixed_for_every_agent(memory):
+    """사용자 프로필은 에이전트가 아니라 사용자의 것이다. KAREN 이 저장한 사실도 JARVIS 의 [핵심 사실] 에 들어간다."""
+    karen = MemoryScope(user_id="u1", agent_id="karen")
+    await memory.remember("관심 지역: 서울", source="explicit", scope=karen)
+    for reader in (U1_MAIN, karen, U1_RESEARCHER):
+        assert [i.content for i in await memory.fixed_facts(reader)] == ["관심 지역: 서울"]
+    assert await memory.fixed_facts(U2_MAIN) == []
+
+
+def test_every_semantic_rule_is_shared():
+    """의미 기억을 쓰는 규칙은 전부 shared 다. private 의미 기억은 사용자 프로필인데 일부 에이전트만 보게 된다."""
+    assert all(r.visibility == "shared" for r in WRITE_RULES.values() if r.kind is MemoryKind.SEMANTIC)
+
+
 def test_every_known_source_has_a_rule():
-    assert {"explicit", "auto_summary", "manual_compact", "session_end", "thought", "journal"} <= set(WRITE_RULES)
+    assert {"explicit", "auto_summary", "manual_compact", "session_end", "thought", "journal", "promoted"} <= set(
+        WRITE_RULES
+    )
 
 
 # ── 저장소 격리 ──────────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ title: JARVIS
 
 ## 맡은 일
 
-- 사용자의 요청에 답하고, 앱에 등록된 도구(파일, 셸, 웹 검색, MCP, 절차 도구)를 쓴다. 도구 목록은 [JARVIS 도구](./tools.md)에 있다
+- 사용자의 요청에 답하고, 앱에 등록된 도구(파일, 셸, 웹 검색, 알림 예약, 목표, MCP, 절차 도구)를 쓴다. 도구 목록은 [JARVIS 도구](./tools.md)에 있다
 - 요청마다 판단을 남기고([Inner Thought](../../concepts/architecture/inner-thought.md)), 요청이 없는 시간에는 성찰해서 먼저 말을 건넨다([Proactive Dialogue](../../concepts/architecture/proactive.md))
 - 대화에서 흘린 약속을 기억했다가 챙긴다([Open loop](../../concepts/conversation/open-loop.md))
 - 다른 에이전트가 더 잘하는 일은 `ask_agent` 로 맡긴다. 예를 들어 청약 공고 질문은 [KAREN](../karen/index.md)에게 넘긴다
@@ -29,7 +29,7 @@ title: JARVIS
 
 ## 하지 않는 것
 
-JARVIS 는 에이전트만 쓰는 도구(`lh_notice`, `sh_notice`, `housing_loan`, `housing_budget`)를 갖지 않는다. 이 도구는 정의 파일의 `tools` 에 이름을 적은 에이전트만 받는다.
+JARVIS 는 에이전트만 쓰는 도구(`lh_notice`, `sh_notice`, `housing_loan`, `housing_budget`, `housing_profile`, `housing_watch`)를 갖지 않는다. 이 도구는 정의 파일의 `tools` 에 이름을 적은 에이전트만 받는다.
 
 ## 설정
 

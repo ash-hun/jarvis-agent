@@ -11,7 +11,7 @@ import FigureExpMemoryRecall from '@site/src/figures/exp-memory-recall.svg';
 
 <figure className="paper-fig">
   <FigureMemory />
-  <figcaption><b>Figure 1.</b> (a) 매 턴 히스토리의 최근 3턴만 두고, 장기 기억에서 회상한 블록을 앞에 붙여 LLM 에 넣는다. 창 안의 턴은 회상 블록에 다시 넣지 않는다. [절차 기억] 은 장기 기억이 아니라 스킬 레지스트리에서 읽는다. (b) 턴이 끝날 때마다 그 턴을 일화(EDM)로 쓰고, 그 밖에는 정해진 경로로만 쓴다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) 매 턴 히스토리의 최근 3턴만 두고, 장기 기억에서 회상한 블록을 앞에 붙여 LLM 에 넣는다. 창 안의 턴과 사고 로그는 회상 블록에 넣지 않는다. [절차 기억] 은 장기 기억이 아니라 스킬 레지스트리에서 읽는다. (b) 턴이 끝날 때마다 그 턴을 일화(EDM)로 쓰고, 그 밖에는 정해진 경로로만 쓴다.</figcaption>
 </figure>
 
 Memory Management 는 JARVIS 가 지난 대화와 사용자에 대한 사실을 기억해 매 턴의 프롬프트에 넣는 기능이다. 작업 기억과 장기 기억 두 층으로 나뉜다. 모델에는 최근 3턴만 넣고, 턴이 끝날 때마다 그 턴을 장기 기억의 일화(EDM)로 쓴다. 3턴 밖의 대화는 회상으로 돌아온다.
@@ -27,7 +27,7 @@ Memory Management 는 JARVIS 가 지난 대화와 사용자에 대한 사실을 
 | 작업 기억 | 세션 히스토리 위의 메타데이터. 되뇌기 횟수, 메모(최대 50) | 메모리 또는 Postgres `jarvis_working_memory` |
 | 장기 기억 | `MemoryItem`. 종류는 의미(semantic), 일화(episodic), 절차(procedural) | 메모리 또는 Postgres `jarvis_ltm_entries`(pgvector 선택) |
 | 절차 기억 | 스킬은 저장하지 않고 스킬 레지스트리를 그대로 읽는다 | |
-| 작업 패턴 | 사용자가 알려 준 작업 방식. 장기 기억의 절차(procedural) 항목으로, 저장한 에이전트만 본다 | 장기 기억과 같은 곳 |
+| 작업 패턴 | 사용자가 알려 준 작업 방식. 장기 기억의 절차(procedural) 항목이다. 저장한 에이전트와, `memory.read.pdm` 에 그 에이전트를 적은 에이전트가 본다 | 장기 기억과 같은 곳 |
 
 세션 히스토리 자체의 정본은 세션 저장소다. 모델에 넣는 창은 그 이력의 최근 3턴이다.
 
@@ -140,10 +140,11 @@ sequenceDiagram
 1. `turn`, `manual_compact` 일화(그리고 재설계 전에 쓴 `session_end`, `auto_summary` 요약) 중 아직 통합되지 않은 것을 최근 50건까지 본다. 턴 일화는 세션별로 턴 순서대로 묶어 LLM 을 한 번만 부른다. 턴 일화는 사용자 발화만 넘긴다. 답까지 넘기면 JARVIS 가 추천한 메뉴("저녁 메뉴: 볶음밥")가 사용자 사실로 뽑혔다
 2. LLM 이 `{key, value, importance}` 목록을 낸다. 중요도 0.5 미만은 버린다
 3. `extracted` 사실로 저장하고, 원래 일화에 통합됨 표시를 남긴다
-4. 작업 기억의 되뇌기 횟수를 항목으로 옮긴다
+4. 주제가 다른데 내용이 비슷한(0.6 이상) 의미 사실 쌍을 간섭 후보로 표시한다
 5. 같은 작업 종류의 성공 턴이 3회 쌓였으면 절차 초안으로 정제한다([Tool & Approve System → 절차 학습](./conversation/tools-and-approval.md#절차-학습)). 승인하면 PDM 절차가 된다
+6. 작업 기억의 되뇌기 횟수를 항목으로 옮기고 비운다
 
-통합은 세션 종료(TUI 종료, Web 셧다운) 때 항상 돈다. 유휴 때는 `JARVIS_MEMORY__CONSOLIDATE_ON_IDLE` 가 켜져 있고 daemon 트리거가 `idle` 또는 `both` 일 때만 돈다. 기본 트리거가 `interval` 이므로 기본 설정에서는 유휴 통합이 꺼져 있다.
+통합은 세션 종료(TUI 종료, Web 셧다운) 때 항상 돈다. 유휴 때는 `JARVIS_MEMORY__CONSOLIDATE_ON_IDLE`(기본 켜짐)이고 사용자가 `JARVIS_PROACTIVE__DAEMON_IDLE_SEC`(180초)보다 오래 조용하면, 성찰 daemon 틱마다 성찰 뒤에 돈다. 트리거 종류(`interval`, `idle`, `both`)와는 상관없고, 답하는 중인 세션은 건너뛴다. daemon 이 꺼져 있으면 유휴 통합도 돌지 않는다.
 
 ## 임베딩
 

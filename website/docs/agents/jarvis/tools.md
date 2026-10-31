@@ -32,6 +32,8 @@ JARVIS 는 정의 파일이 없어서 도구 목록(`tools`)도 비어 있다. �
 | 도구 | 언제 붙나 | 자세히 |
 |---|---|---|
 | `agent_<name>`, `orchestrate` | 서브 에이전트 정의가 있을 때 | [Orchestration Pattern](../../concepts/multi-agent-orchestration/orchestration-pattern.md) |
+| `schedule` | 스케줄러가 켜져 있을 때(`JARVIS_SCHEDULER__ENABLED`, 기본 켜짐). "1분 뒤 알려줘" 를 `/schedule` 과 같은 일정으로 만든다 | [Scheduling](../../concepts/conversation/scheduling.md) |
+| `goal` | 스케줄러가 켜져 있을 때. 계속 맡길 목표를 맡기고, 목록을 보고, 멈춘다 | [Goals](../../concepts/conversation/goals.md) |
 | `procedure_<name>` | 여러 도구로 성공한 작업을 절차로 승인했을 때 | [Memory Management](../../concepts/memory.md) |
 | MCP 서버의 도구 | MCP 서버를 연결했을 때 | [Extension](../../concepts/extension.md#mcp-서버) |
 | 사용자 도구 | `~/.jarvis/tools/` 에 도구 파일을 두었을 때 | [Extension](../../concepts/extension.md#도구) |
@@ -43,9 +45,9 @@ JARVIS 는 정의 파일이 없어서 도구 목록(`tools`)도 비어 있다. �
 | 도구 | 하는 일 |
 |---|---|
 | `ask_agent` | 다른 최상위 에이전트에게 일을 맡긴다. 에이전트가 둘 이상일 때만 있다([Multi agent Orchestration](../../concepts/multi-agent-orchestration/index.md#에이전트끼리-대화)) |
-| `remember_task_pattern` | 사용자가 알려 준 작업 방식을 JARVIS 의 작업 패턴으로 저장한다([Memory Management → 작업 패턴](../../concepts/memory.md#작업-패턴)) |
+| `remember_task_pattern` | 사용자가 알려 준 작업 방식을 부른 에이전트의 작업 패턴으로 저장한다([Memory Management → 작업 패턴](../../concepts/memory.md#작업-패턴)) |
 | `recall_episodes` | 최근 3턴보다 앞의 지난 턴을 작업 종류, 성패, 기간으로 골라 읽는다([Memory Management](../../concepts/memory.md#턴마다-일어나는-일)) |
 
 ## 갖지 않는 도구
 
-`lh_notice`, `sh_notice`, `housing_budget`, `housing_loan` 은 에이전트 전용 도구라서 JARVIS 에게 없다. 청약 질문을 받으면 JARVIS 는 `ask_agent` 로 [KAREN](../karen/index.md)에게 맡긴다.
+`lh_notice`, `sh_notice`, `housing_budget`, `housing_loan`, `housing_profile`, `housing_watch` 는 에이전트 전용 도구라서 JARVIS 에게 없다. 청약 질문을 받으면 JARVIS 는 `ask_agent` 로 [KAREN](../karen/index.md)에게 맡긴다.

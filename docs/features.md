@@ -2,7 +2,7 @@
 
 | 항목 | 값 |
 |---|---|
-| Last Updated | 2026-10-31 |
+| Last Updated | 2026-11-01 |
 
 > `Last Updated` 는 문서 내용이 실제로 바뀐 날만 적는다. 시각은 적지 않는다.
 
@@ -67,7 +67,7 @@
 |---|---|
 | `ask_agent` 도구 호출(받는 에이전트, 질문) | 받는 쪽의 `peer-<부른 쪽>-<받는 쪽>` 세션에서 한 턴을 돌린 답. Web HUD 에서는 그 세션이 세션 목록에 열린다 |
 
-**처리 흐름**: `agent_conversation.AskAgentTool` 에서 받을 수 있는 질문 규칙과 깊이 제한을 확인하고, 쌍 세션을 열어(`WebState.open_peer_session`) 받는 쪽 `AgentSession.prompt` 순.
+**처리 흐름**: `agent_conversation.AskAgentTool` 에서 받을 수 있는 질문 규칙과 깊이 제한을 확인하고, 쌍 세션을 열어(Web 은 `WebState.open_peer_session`, TUI 와 스케줄은 `AgentRegistry.open_peer_session`) 받는 쪽 `AgentSession.prompt` 순.
 
 **구현 파일**
 
@@ -97,7 +97,7 @@
 | ws `user_message{text}`, TUI 입력 | `agent_start`, `message_update`, `tool_execution_start`, `tool_execution_end`, `agent_end` 이벤트와 세션에 저장된 메시지 |
 | ws `abort`, `ctrl+k` | 진행 중인 루프 중단 |
 
-**처리 흐름**: `ws_router` 에서 `AgentSession.prompt` 로, 보안 파이프라인, 스킬 확장, router 판정, 사고와 AGENDA 판단 띄우기, `AgentHarness.run`, `run_agent_loop`, `model_layer.stream`, 도구 실행기 순.
+**처리 흐름**: `ws_router` 에서 `AgentSession.prompt` 로, 보안 파이프라인, 스킬 확장, router 판정, 사고와 AGENDA 판단 띄우기, `AgentHarness.run`, `run_agent_loop`, `model_layer.stream`, 도구 실행기 순. 프로바이더나 저장소가 예외를 던져도 `AgentHarness.run` 이 `finally` 에서 실행 표시(`is_running`)를 풀어, 다음 턴이 실행 중으로 막히지 않는다.
 
 **구현 파일**
 
@@ -131,7 +131,7 @@
 
 ### agent_registry: 최상위 에이전트 등록
 
-**설명**: `~/.jarvis/team/*.yaml` 정의 파일 한 장이 최상위 에이전트 하나가 된다. 에이전트마다 이름, 명언, 색, 도구 경계(`ask`, `never`)를 갖고, Web HUD 는 세션 에이전트의 브랜드로 칠해진다.
+**설명**: `~/.jarvis/team/*.yaml` 정의 파일 한 장이 최상위 에이전트 하나가 된다. 에이전트마다 이름, 명언, 색, 모델, 개성, 도구 목록, 도구 경계(`ask`, `never`), 층별 기억 읽기 정책(`memory.read`)을 갖고, 비운 항목은 main 설정을 이어받는다. Web HUD 는 세션 에이전트의 브랜드로 칠해진다.
 
 **입력과 결과**
 
@@ -465,7 +465,7 @@
 | `/remember <내용>`, `/remember list`, `/remember search <키워드>`, `/remember forget <id>` | 장기 기억 저장, 나열, 검색, 삭제 |
 | `/compact` | 현재 세션을 요약해 장기 기억에 저장 |
 | `recall_episodes` 도구 | 부른 에이전트의 지난 턴 일화를 작업 종류, 성패, 기간으로 회상 |
-| 사용자가 조용할 때 | daemon 틱에 얹혀 활성 세션의 일화에서 "주제: 값" 사실 추출 |
+| 사용자가 조용할 때 | daemon 틱에 얹혀 활성 세션의 일화에서 "주제: 값" 사실 추출, 같은 작업 종류의 성공 턴 일화가 3번 쌓이면 절차 초안 정제(`procedures`) |
 
 **처리 흐름**: `MemoryService.observe` 에서 `working.window` 와 `deixis` 로 창과 지칭을 정하고, `scope` 와 `access` 로 읽을 범위를 계산해 `stores` 조회, `retrieval.scoring` 과 `cues` 로 순위, `remember` 쓰기는 `long_term` 정책 적용, 공고화는 `consolidation.idle` 에서 `semantic_extract` 순.
 
@@ -534,8 +534,8 @@
 
 | 입력 | 결과 |
 |---|---|
-| `uv run python -m jarvis.memory.eval [--suite S] [--json] [-v]` | 스위트별 지표 |
-| `--benchmark longmemeval\|locomo --path <json> [--limit] [--k] [--mode raw\|turns] [--judge llm\|contains]` | 외부 벤치마크 재현율과 정답 판정 |
+| `uv run python -m jarvis.memory.eval [--suite S] [--summarizer extractive\|llm] [--judge llm\|contains] [--json] [-v]` | 스위트별 지표 |
+| `--benchmark longmemeval\|locomo --path <json> [--limit] [--seed] [--k] [--mode raw\|turns] [--extract llm] [--embedder fake\|config] [--judge llm\|contains]` | 외부 벤치마크 재현율과 정답 판정 |
 
 **처리 흐름**: `__main__` 에서 `eval_schema` 로 사례 로드, `runner` 가 사례마다 저장소를 비우고 `target` 에 재생, `metrics` 집계 순. 벤치마크는 `adapters` 에서 `benchmark` 로, 선택적으로 `judge`, `probe` 순.
 
@@ -938,11 +938,11 @@
 | `/schedule <시각>에 <내용>` | 한 번 실행 작업 등록. LLM 이 알림(reminder)과 작업(task)을 가른다 |
 | `/schedule YYYY.MM.DD 오전/오후 N시까지 <프롬프트>` | 반복 작업 등록 |
 | `schedule` 도구 | 대화 중 "1분 뒤에 알려줘" 를 같은 규칙으로 등록 |
-| `~/.jarvis/schedules/*.yaml` | cron 작업 정의 |
+| `~/.jarvis/schedules/*.yaml` | cron 작업 정의. `kind` 는 `reminder`(문구 그대로), `task`(에이전트 실행), `tool`(도구를 `args` 로 바로 부르기), `goal`(목표 한 차례) 중 하나이고, `agent` 가 작업을 돌릴 최상위 에이전트다 |
 | `POST /api/schedules/{name}` `{enabled}` | 켜기, 끄기 |
 | 실행 시각 | ws `reminder`, 열린 화면이 없으면 최근 20건을 다음 접속 때 `missed:true` 로. `deliver: conversation` 이면 최근 대화 세션에 `proactive_message` |
 
-**처리 흐름**: `schedule_cmd` 또는 `tool` 에서 `classify` 로, `scheduler_loader` 저장, `SchedulerService` 루프가 때가 된 `ScheduledTask` 를 새 세션에서 실행, 알림 순.
+**처리 흐름**: `schedule_cmd` 또는 `tool` 에서 `classify` 로, `scheduler_loader` 저장, `SchedulerService` 루프가 때가 된 `ScheduledTask` 를 새 세션에서 실행, 알림 순. `run_until` 이 지난 작업은 `set_enabled` 로 꺼서 저장 파일에도 남기므로 재시작해도 다시 켜지지 않는다.
 
 **구현 파일**
 
@@ -1146,7 +1146,7 @@
 | 입력 | 결과 |
 |---|---|
 | 에이전트의 tool_call | `bash`, `read_file`, `write_file`, `edit_file`, `list_dir`, `glob`, `grep`, `web_fetch`, `web_search` 실행 결과 |
-| `~/.jarvis/tools/*.py`, `*.yaml` | 사용자 도구 등록, 바뀌면 다시 읽기 |
+| `~/.jarvis/tools/*.py`, `*.yaml` | 기동 때 사용자 도구 등록. 같은 이름의 내장 도구를 덮어쓴다 |
 | `GET /api/tools?session_id=`, `/tools` | 도구 목록(`approval` 표시) |
 
 **처리 흐름**: `InfraBuilder` 에서 내장 도구와 `tools_loader` 로 `ToolRegistry` 등록, 세션 에이전트 경계로 거르기, 도구 실행기 순.
@@ -1184,7 +1184,7 @@
 | 단위 | `tests/unit/test_tools_write_file.py` |
 | 통합 | `tests/integ/test_tools.py` |
 
-**제약과 미구현**: 없음.
+**제약과 미구현**: `ToolLoader.watch`(파일이 바뀌면 다시 읽기)는 있지만 기동 경로에서 부르지 않아, 사용자 도구를 고치면 서버를 다시 띄워야 한다.
 
 ---
 
@@ -1382,7 +1382,7 @@
 | 파일 | 역할 | 쓰는 기능 |
 |---|---|---|
 | `src/jarvis/jarvis_config.py` | env 와 `.env` 에서 읽는 전체 설정 | 전체 |
-| `src/jarvis/common/logger.py` | structlog 로거 설정 | 전체 |
+| `src/jarvis/common/logger.py` | structlog 로거 설정. 출력 형식은 `LOG_FORMAT`(`console` 기본, `json`), 레벨은 `JARVIS_LOG_LEVEL`(기본 `INFO`) | 전체 |
 | `src/jarvis/core/session.py` | `AgentSession`: 보안, 플러그인, 스킬, 사고, proactive 를 묶어 한 턴과 성찰 실행 | 전체 |
 | `src/jarvis/agent_layer/agent_types.py` | 루프 이벤트, 실행 컨텍스트, 루프 설정 | 전체 |
 | `src/jarvis/app/app_assembly.py` | 기동 한 번의 조립 결과 | 전체 |
@@ -1401,7 +1401,7 @@
 | `src/jarvis/model_layer/providers/anthropic.py` | Anthropic 스트리밍(프롬프트 캐싱) | agent_loop |
 | `src/jarvis/model_layer/providers/openai.py` | OpenAI 스트리밍 | agent_loop |
 | `src/jarvis/model_layer/providers/gemini.py` | Gemini 스트리밍 | agent_loop |
-| `src/jarvis/model_layer/providers/ollama.py` | Ollama NDJSON 스트리밍 | agent_loop |
+| `src/jarvis/model_layer/providers/ollama.py` | Ollama NDJSON 스트리밍. id 없이 온 도구 호출에는 `{이름}_{순번}` id 를 붙여, 같은 도구를 두 번 불러도 호출이 합쳐지지 않는다 | agent_loop |
 | `src/jarvis/model_layer/providers/vllm.py` | vLLM SSE 스트리밍 | agent_loop |
 | `src/jarvis/model_layer/embeddings.py` | 임베딩 프로바이더 | memory, openloop |
 | `src/jarvis/ui/ui_protocol.py` | 화면이 이벤트, 스트림, 승인, 오류를 받는 기본 어댑터 | tui, web_hud |

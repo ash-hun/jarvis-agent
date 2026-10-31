@@ -36,7 +36,7 @@ jarvis --web --host 0.0.0.0 --port 8080 # 바인딩 바꾸기
 
 `.env.example` 은 세션과 메모리 백엔드를 `postgres` 로 둔다. Docker 없이 띄우려면 두 줄을 `jsonl` 과 `in_memory` 로 바꾼다. 그러면 세션이 `~/.jarvis/sessions/` 에 JSONL 로 쌓인다.
 
-기존 세션을 이어 가려면 `jarvis -s <session_id>` 를 쓰고, 세션 목록은 `jarvis --list-sessions` 로 본다.
+기존 세션을 이어 가려면 `jarvis -s <session_id>` 를 쓰고, 세션 목록은 `jarvis --list-sessions` 로 본다. `jarvis -a karen` 처럼 `-a` 로 에이전트를 고르면 그 에이전트의 기본 세션으로 TUI 를 연다. 모든 옵션은 `jarvis -h` 로 본다.
 
 </TabItem>
 <TabItem value="docker" label="Docker">
@@ -44,7 +44,7 @@ jarvis --web --host 0.0.0.0 --port 8080 # 바인딩 바꾸기
 ```bash
 cp .env.example .env
 
-docker compose --profile app up jarvis        # TUI + Postgres
+docker compose --profile app run --rm jarvis  # TUI + Postgres
 docker compose --profile web up -d            # nginx + 백엔드 + Postgres, http://localhost:7777
 docker compose --profile web down
 ```
@@ -54,7 +54,9 @@ docker compose --profile web down
 | `app` | jarvis TUI, postgres | 터미널 |
 | `web` | nginx, jarvis-backend, postgres | http://localhost:7777 |
 
-컨테이너는 `./src` 를 그대로 마운트한다. 파이썬을 고친 뒤에는 이미지를 다시 만들지 않고 `docker compose restart jarvis-backend` 로 반영한다. 정적 파일은 nginx 가 바로 서빙하므로 새로고침만 하면 된다.
+`web` 백엔드 이미지는 `web`, `scheduler`, `voice`, `piper`, `wake`, `discord` extra 와 ffmpeg 를 넣어 빌드하므로 따로 설치할 것이 없다. 저장소의 `team/`(최상위 에이전트 정의)과 `models/`(음성 모델)는 읽기 전용으로 마운트한다.
+
+백엔드 컨테이너는 `./src` 를 그대로 마운트한다. 파이썬을 고친 뒤에는 이미지를 다시 만들지 않고 `docker compose restart jarvis-backend` 로 반영한다. 정적 파일은 nginx 가 바로 서빙하므로 새로고침만 하면 된다.
 
 컨테이너 안에서 호스트의 Ollama 를 쓰려면 `JARVIS_LLM__BASE_URL=http://host.docker.internal:11434` 로 둔다.
 
@@ -67,13 +69,13 @@ docker compose --profile web down
 
 ## LLM Provider 선택
 
-로컬 LLM(Ollama, vLLM)과 클라우드 LLM API(Anthropic, OpenAI, Google)를 연동할 수 있다. 프로바이더는 환경변수 `JARVIS_LLM__PROVIDER` 로 고른다.
+로컬 LLM(Ollama, vLLM)과 클라우드 LLM API(Anthropic, OpenAI, Google Gemini)를 연동할 수 있다. 프로바이더는 환경변수 `JARVIS_LLM__PROVIDER` 로 고른다.
 
 | 프로바이더 | `JARVIS_LLM__PROVIDER` | API 키 |
 |---|---|---|
 | Anthropic (Claude) | `anthropic` | 필요 |
 | OpenAI (GPT) | `openai` | 필요 |
-| Google (Gemini) | `google` | 필요, `uv sync --extra gemini` |
+| Google (Gemini) | `gemini` | 필요, `uv sync --extra gemini` |
 | Ollama (로컬) | `ollama` | 불필요 |
 | vLLM (로컬) | `vllm` | 불필요 |
 

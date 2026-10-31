@@ -2,7 +2,7 @@
 
 | 항목 | 값 |
 |---|---|
-| Last Updated | 2026-10-18 |
+| Last Updated | 2026-11-01 |
 | Base URL | `http://localhost:7777` (Docker `web` 프로파일, nginx 가 `/api/`, `/ws`, `/brand.js`, `/manifest.json` 을 백엔드로 프록시하고 `/m/` 에서 모바일 앱 빌드 결과를 서빙. 포트는 127.0.0.1 에만 열리고 밖에서는 `tailscale serve` 로 들어온다) |
 | 데이터 포맷 | JSON (UTF-8) |
 | 인증 | 기본 없음. `JARVIS_SECURITY__API_KEYS` 가 비어 있지 않으면 `/api/*` 와 `/ws` 가 키를 요구한다 |
@@ -43,7 +43,7 @@
 
 Web HUD(`src/jarvis/ui/web/static/`)가 쓰는 백엔드 인터페이스다. 대화는 전부 WebSocket `/ws` 로 오가고, REST 는 화면 옆 카드(세션 목록, AGENDA, 도구 목록)를 채우거나 상태를 바꾸는 데만 쓴다. 정본은 백엔드의 세션 저장소(Postgres 또는 jsonl), 스케줄러, open loop 저장소이고 이 API 는 그 투영이다. 변경 알림 이벤트가 따로 없어서 프론트는 접속 직후, 응답이 끝날 때, 조작 직후, 그리고 1분마다 REST 를 다시 부른다.
 
-소스: `src/jarvis/ui/web/server.py`, WebSocket 어댑터 `src/jarvis/ui/web/adapter.py`.
+소스: 앱 조립과 인증 미들웨어 `src/jarvis/ui/web/server.py`, 접근 키 확인 `web_auth.py`, 요청 본문 모델 `web_schema.py`, REST 라우터 `router/agent_router.py`, `agenda_router.py`, `brand_router.py`, `push_router.py`, `session_router.py`, `tool_router.py`, `voice_router.py`, WebSocket 라우터 `router/ws_router.py`(메시지가 띄우는 작업은 `ws_tasks.py`, 이벤트 전송은 `adapter.py`, 승인은 `approvals.py`). 경로는 모두 `src/jarvis/ui/web/` 아래다.
 
 ---
 
@@ -51,23 +51,27 @@ Web HUD(`src/jarvis/ui/web/static/`)가 쓰는 백엔드 인터페이스다. 대
 
 **에러 응답**
 
+핸들러가 판정한 오류는 아래 모양이다.
+
 ```json
 { "error": "사람이 읽을 수 있는 메시지" }
 ```
+
+422 만 FastAPI 기본 모양 `{"detail": [{"type", "loc", "msg", "input", ...}]}` 이다.
 
 | 상태 코드 | 언제 |
 |---|---|
 | 200 | 정상 |
 | 400 | 본문 값이 허용 범위 밖 (`status`, `enabled`) |
-| 401 | 인증이 켜져 있는데 키가 없거나 틀림 (`/api/*`) |
+| 401 | 인증이 켜져 있는데 키가 없거나 틀림 (`/api/*`). 본문 `{"error": "unauthorized"}` |
 | 404 | 대상 없음 (open loop, 스케줄, 읽기 문구) |
-| 422 | FastAPI 가 본문을 JSON 객체로 못 읽음 |
+| 422 | 본문 모델이 있는 엔드포인트(`POST /api/openloops/{loop_id}`, `POST /api/schedules/{name}`, `POST /api/sessions`)에서 FastAPI 가 본문을 JSON 으로 못 읽거나, 본문이 필수인데 없음 |
 
 **인증**: `JARVIS_SECURITY__API_KEYS` 에 키가 등록돼 있을 때만. `Authorization: Bearer <key>` 헤더 또는 `?token=<key>` 쿼리. `/ws` 는 쿼리만 받고 틀리면 close code `4401` 로 끊는다. 정적 셸(`/`, js, css)은 항상 열려 있다.
 
 **페이지네이션**: 없음. 목록이 전부 작다. open loop 는 20개까지만 돌려준다.
 
-**공통 헤더**: 없음. `Cache-Control: no-cache` 는 정적 셸과 `/brand.js`, `/manifest.json` 에만 붙고 `/api/*` 에는 붙지 않는다.
+**공통 헤더**: 없음. 서버 미들웨어가 `/api/` 로 시작하지 않는 모든 응답(정적 셸, `/brand.js`, `/manifest.json`)에 `Cache-Control: no-cache` 를 붙인다(응답에 이미 있으면 그대로 둔다). `/api/*` 에는 붙지 않는다.
 
 ---
 
@@ -236,6 +240,7 @@ POST /api/openloops/{loop_id}
 | `400` | `status` 가 셋 중 하나가 아님 | `{"error": "status must be 'done', 'dismissed' or 'open'"}` |
 | `404` | id 없음, 또는 open loop 저장소가 꺼져 있음 | `{"error": "open loop not found"}` |
 | `409` | `open` 인데 기한이 `JARVIS_OPENLOOP__EXPIRE_AFTER_SEC` 넘게 지났거나, 기한 없이 `JARVIS_OPENLOOP__MAX_AGE_SEC` 보다 오래됨. 열자마자 다시 만료되므로 상태를 바꾸지 않는다 | `{"error": "open loop is past its due or age"}` |
+| `422` | 본문이 없거나 JSON 이 아님 | `{"detail": [...]}` |
 
 #### 호출 예시
 
@@ -248,6 +253,9 @@ $ curl -s -X POST -H 'Content-Type: application/json' -d '{"status":"maybe"}' ht
 
 $ curl -s -X POST -H 'Content-Type: application/json' -d '{"status":"done"}' http://localhost:7777/api/openloops/nope
 {"error":"open loop not found"}
+
+$ curl -s -X POST http://localhost:7777/api/openloops/x
+{"detail":[{"type":"missing","loc":["body"],"msg":"Field required","input":null}]}
 ```
 
 #### 특이사항
@@ -362,7 +370,9 @@ PUT /api/push/subscriptions
 | 코드 | 의미 | 본문 |
 |---|---|---|
 | `200` | 정상 | `{"ok": true}` |
-| `400` | 본문이 JSON 객체가 아니거나, `endpoint` 가 `https://` 가 아니거나, 키가 비었다 | `{"error": "endpoint must start with https://"}` |
+| `400` | 본문이 JSON 객체가 아님 | `{"error": "body must be a JSON object"}` |
+| `400` | `endpoint` 가 `https://` 로 시작하지 않음 | `{"error": "endpoint must start with https://"}` |
+| `400` | `keys.p256dh` 나 `keys.auth` 가 비었음 | `{"error": "keys.p256dh and keys.auth are required"}` |
 | `404` | 푸시가 꺼져 있음 | `{"error": "push disabled"}` |
 
 #### 호출 예시
@@ -370,13 +380,16 @@ PUT /api/push/subscriptions
 ```bash
 $ curl -s -X PUT -H 'Content-Type: application/json' -d '{"endpoint":"https://web.push.apple.com/QH...","expirationTime":null,"keys":{"p256dh":"BN...","auth":"k8..."}}' http://localhost:7777/api/push/subscriptions
 {"ok":true}
+
+$ curl -s -X PUT -H 'Content-Type: application/json' -d '{"endpoint":"https://x","keys":{}}' http://localhost:7777/api/push/subscriptions
+{"error":"keys.p256dh and keys.auth are required"}
 ```
 
 #### 특이사항
 
-**재호출**: `endpoint` 를 자연 키로 upsert 한다(`push_subscriptions` 테이블의 기본 키). 몇 번 보내도 행은 하나이고 키와 `updated_at` 만 갱신된다. 인증이 켜져 있으면 그 키의 사용자 이름을 `user_id` 로 남긴다.
+**재호출**: `endpoint` 를 자연 키로 upsert 한다(`push_subscriptions` 테이블의 기본 키). 몇 번 보내도 행은 하나이고 키와 `updated_at` 만 갱신된다. `Authorization: Bearer` 헤더로 온 키가 등록된 키면 그 사용자 이름을 `user_id` 로 남긴다. `?token=` 쿼리로만 인증한 요청은 `user_id` 가 null 이다. 테이블은 첫 호출 때 `CREATE TABLE IF NOT EXISTS` 로 만든다.
 
-**발송**: `JARVIS_NOTIFY__KINDS` 의 알림(스케줄 결과, 🔔 등)을 구독 전부에 `{"title", "body", "tag"}` 로 보낸다. `title` 은 디스코드처럼 보낸 에이전트를 보인다. 에이전트 주색에 가장 가까운 색 원 이모지와 이름이다(예: `🟢 K.A.R.E.N.`, `🔵 J.A.R.V.I.S.`). 알림 종류 표시는 `body` 앞으로 간다(예: `⏱ 오늘의 LH 공고\n공고 2건`, `💭 Sir, ...`). 에이전트 아바타 주소가 설정돼 있으면 `icon` 도 준다(iOS 는 앱 아이콘만 보일 수 있다) `body` 는 1000자에서 자른다. `tag` 는 알림 id 라 같은 알림이 두 번 가도 iPhone 에는 하나로 보인다. 푸시 서비스가 404, 410 을 주면 그 구독을 지우고, 그 밖의 실패는 로그만 남기고 다시 보내지 않는다.
+**발송**: `JARVIS_NOTIFY__KINDS` 의 알림(스케줄 결과, 🔔 등)을 구독 전부에 `{"title", "body", "tag"}` 로 보낸다. `title` 은 디스코드처럼 보낸 에이전트를 보인다. 에이전트 주색에 가장 가까운 색 원 이모지와 이름이다(예: `🟢 K.A.R.E.N.`, `🔵 J.A.R.V.I.S.`). 알림 종류 표시는 `body` 앞으로 간다(예: `⏱ 오늘의 LH 공고\n공고 2건`, `💭 Sir, ...`). 에이전트 아바타 주소가 설정돼 있으면 `icon` 도 준다(iOS 는 앱 아이콘만 보일 수 있다). `body` 는 1000자에서 자른다. 제목과 본문이 모두 비면 보내지 않는다. 푸시 서비스 TTL 은 하루(86400초)다. `tag` 는 알림 id 라 같은 알림이 두 번 가도 iPhone 에는 하나로 보인다. 푸시 서비스가 404, 410 을 주면 그 구독을 지우고, 그 밖의 실패는 로그만 남기고 다시 보내지 않는다.
 
 ---
 
@@ -431,6 +444,9 @@ DELETE /api/push/subscriptions
 ```bash
 $ curl -s -X DELETE -H 'Content-Type: application/json' -d '{"endpoint":"https://web.push.apple.com/QH..."}' http://localhost:7777/api/push/subscriptions
 {"ok":true}
+
+$ curl -s -X DELETE -H 'Content-Type: application/json' -d '{}' http://localhost:7777/api/push/subscriptions
+{"error":"endpoint is required"}
 ```
 
 #### 특이사항
@@ -485,17 +501,21 @@ POST /api/schedules/{name}
 | `200` | 정상 | `{"name", "enabled"}` |
 | `400` | `enabled` 가 불리언이 아님 | `{"error": "enabled must be true or false"}` |
 | `404` | 이름 없음, 또는 스케줄러가 꺼져 있음 | `{"error": "schedule not found"}` |
+| `422` | 본문이 없거나 JSON 이 아님 | `{"detail": [...]}` |
 
 #### 호출 예시
 
 ```bash
 $ curl -s -X POST -H 'Content-Type: application/json' -d '{"enabled":false}' http://localhost:7777/api/schedules/nope
 {"error":"schedule not found"}
+
+$ curl -s -X POST -H 'Content-Type: application/json' -d '{"enabled":"yes"}' http://localhost:7777/api/schedules/nope
+{"error":"enabled must be true or false"}
 ```
 
 #### 특이사항
 
-**재호출**: 멱등. 같은 값을 다시 보내도 상태가 같다.
+**재호출**: 멱등. 같은 값을 다시 보내도 상태가 같다. 메모리의 작업과 함께 저장 파일의 `enabled` 도 바꾼다(정의 YAML 에서 온 작업은 원본 파일, 그 밖에는 스케줄 폴더의 파일). 마감(`run_until`)이 지난 작업은 켜도 `next_run` 이 null 이고, 스케줄러가 다음 틱에 다시 끄고 파일에도 끈 값을 남긴다.
 
 ---
 
@@ -553,7 +573,7 @@ $ curl -s http://localhost:7777/api/sessions
 
 **재호출**: 상태를 바꾸지 않는다.
 
-저장소(DB)에 있는 세션이 아니라 **프로세스가 띄운 세션**만 나온다. 재시작하면 `default` 와 그 뒤 접속하거나 만든 것만 보인다. 저장된 전체 목록은 슬래시 명령 `/sessions` 가 보여준다.
+저장소(DB)에 있는 세션이 아니라 **프로세스가 띄운 세션**만 나온다. 재시작하면 `default` 와 그 뒤 접속하거나 만든 것만 보인다. 에이전트끼리 묻는 도구(`ask_agent`)가 연 대화 세션(`peer-<부른 쪽>-<받는 쪽>`)과, 스케줄 결과를 건네려고 다시 연 대화 세션도 여기 나온다. 저장된 전체 목록은 슬래시 명령 `/sessions` 가 보여준다.
 
 ---
 
@@ -602,12 +622,16 @@ POST /api/sessions
 |---|---|---|
 | `200` | 정상 | `{"session_id", "agent"}` |
 | `400` | 모르는 에이전트 | `{"error": "unknown agent: <id>"}` |
+| `422` | 본문이 JSON 이 아님 | `{"detail": [...]}` |
 
 #### 호출 예시
 
 ```bash
 $ curl -s -X POST http://localhost:7777/api/sessions -H 'content-type: application/json' -d '{"agent":"karen"}'
 {"session_id":"2e076b96","agent":"karen"}
+
+$ curl -s -X POST http://localhost:7777/api/sessions -H 'content-type: application/json' -d '{"agent":"ghost"}'
+{"error":"unknown agent: ghost"}
 ```
 
 #### 특이사항
@@ -717,7 +741,7 @@ DELETE /api/sessions/{session_id}
 | 코드 | 의미 | 본문 |
 |---|---|---|
 | `200` | 지웠거나 원래 없었다 | `{"deleted"}` |
-| `409` | 그 세션에 붙어 있는 WebSocket 이 있다 | `{"error"}` |
+| `409` | 그 세션에 붙어 있는 WebSocket 이 있다 | `{"error": "session has live connections"}` |
 
 #### 호출 예시
 
@@ -728,7 +752,7 @@ $ curl -s -X DELETE http://localhost:7777/api/sessions/2e076b96
 
 #### 특이사항
 
-**재호출**: 멱등하다. 없는 세션을 지워도 `200` 이고 상태는 같다. 붙어 있는 연결이 있으면 `409` 로 거절하므로, 보고 있는 세션을 지우려면 먼저 다른 세션으로 옮긴다. `default` 도 지울 수 있고, 다음 접속 때 빈 세션으로 다시 생긴다.
+**재호출**: 멱등하다. 없는 세션을 지워도 `200` 이고 상태는 같다. 붙어 있는 연결이 있으면 `409` 로 거절하므로, 보고 있는 세션을 지우려면 먼저 다른 세션으로 옮긴다. `default` 도 지울 수 있고, 다음 접속 때 빈 세션으로 다시 생긴다. 세션의 승인 브로커도 함께 버린다.
 
 ---
 
@@ -786,7 +810,7 @@ $ curl -s -X POST http://localhost:7777/api/sessions/nope/branch
 
 **재호출**: 멱등하지 않다. 부를 때마다 새 세션이 생긴다.
 
-분기는 부모와 같은 에이전트의 세션이다.
+분기는 부모와 같은 에이전트의 세션이다. Postgres 저장소에서 원본 id 가 저장소에 없으면 main 에이전트의 빈 세션이 생긴다.
 
 저장소가 Postgres(Docker 기본)면 분기가 아니라 **빈 새 세션 생성**과 같다. 원본 id 가 없어도 200 이고 히스토리를 복사하지 않는다(위 예시가 그 경우). 진짜 분기는 jsonl 저장소에서만 된다.
 
@@ -988,7 +1012,7 @@ GET /brand.js
 
 #### Response Body
 
-JavaScript. `window.BRAND = {name, quote, palette: {primary, accent, background, nebula[]}}` 를 대입하고 CSS 변수를 설정한다. 값은 `JARVIS_BRAND__*` 설정.
+JavaScript. `window.BRAND = {name, quote, palette: {primary, accent, background, nebula[]}}` 를 대입하고 CSS 변수(`--primary`, `--accent`, `--bg-0`, `--nebula-<i>`)를 설정한다. 값은 main 에이전트의 브랜드(`JARVIS_BRAND__*`)이고, 개성 문장(`persona`)은 모델에게 주는 지시라 싣지 않는다. 다른 에이전트 세션의 이름과 색은 화면이 `connected.agent` 로 바꾼다.
 
 #### 응답 코드
 
@@ -1058,13 +1082,13 @@ $ curl -s http://localhost:7777/manifest.json | head -c 200
 
 #### 특이사항
 
-**재호출**: 상태를 바꾸지 않는다. nginx 가 `Cache-Control: no-cache` 를 붙인다.
+**재호출**: 상태를 바꾸지 않는다. 서버 미들웨어가 `Cache-Control: no-cache` 를 붙이고, nginx 도 같은 헤더를 붙인다. 정적 `manifest.json` 을 요청마다 읽어 `name`(`<이름> · HUD`), `short_name`, `background_color`, `theme_color` 만 main 에이전트 브랜드로 바꾼다.
 
 ---
 
 ### WS /ws
 
-대화 채널. 연결 하나가 세션 하나에 붙고, 그 세션의 모든 에이전트 이벤트를 받는다. 같은 세션에 여러 연결이 붙으면 이벤트는 전부에게 가지만 **승인 요청은 마지막에 붙은 연결에만** 간다.
+대화 채널. 연결 하나가 세션 하나에 붙고, 그 세션의 모든 에이전트 이벤트를 받는다. 같은 세션에 여러 연결이 붙으면 이벤트도 승인 요청도 전부에게 가고, 승인은 먼저 온 답 하나만 쓴다. 세션에 붙은 연결이 하나도 없을 때 도구가 승인을 요청하면 묻지 않고 바로 거부한다.
 
 #### Endpoint
 
@@ -1086,7 +1110,7 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 
 | 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
 |---|---|---|---|---|---|
-| `session_id` | query | string | 아니오 | `default` | 없으면 만든다 |
+| `session_id` | query | string | 아니오 | `default` | 열린 세션이 없으면 저장소에 만들고(이미 있으면 그대로) 조립한다 |
 | `agent` | query | string | 아니오 | `main` | 새 세션을 맡을 에이전트. 이미 있는 세션(저장소 포함)은 저장된 에이전트로 열고 이 값은 무시한다 |
 | `token` | query | string | 인증 시 예 | 없음 | API 키 |
 
@@ -1098,30 +1122,31 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `approval_response` | `id`, `approved`, `always` | `approval_request` 에 대한 답. 같은 `id` 에 먼저 온 답만 쓰고 나머지는 버린다. `always=true` 는 `approved=true` 일 때만 의미 있고 제안된 패턴을 세션 에이전트의 규칙 파일(`approvals/<agent_id>.yaml`)에 남긴다 |
 | `proactive_feedback` | `id`, `accepted` | 🔔 에 대한 수락/무시. 임계치 학습기에 반영. 한 연결에서 같은 `id` 는 처음 한 번만 반영. Web HUD 는 더 보내지 않는다(서버가 다음 `user_message` 로 학습). 옛 화면을 위해 받는다. 이걸 받으면 다음 말로 다시 학습하지 않는다 |
 | `reply_classify` | `kind`(`feedback`/`approval`), `id`, `text`, `context`, `has_always` | 키워드로 판정이 안 되는 짧은 답을 사고 모델로 분류. `feedback` 이면 `id` 는 🔔 의 `message_id`, `context` 는 🔔 본문. `approval` 이면 `id` 는 승인 요청 id, `context` 는 명령, `has_always` 는 항상 허용 패턴이 있는지. 결과는 `reply_classified`. 🔔 가 `accept`/`dismiss` 로 판정되면 서버가 바로 학습기에 반영한다(같은 `id` 는 한 번만). 승인은 판정만 돌려주고 승인 자체는 화면이 `approval_response` 로 보낸다 |
-| `voice_tts_request` | `text`, `lang?`, `id?`, `source?`, `part?`, `full_text?`, `stream?` | 음성 합성. 서버가 마크다운 기호(제목, 강조, 목록, 표, 인라인 코드)를 지우고, 코드 블록과 URL 은 빼고, 링크는 글자만 남기고, 원, 만, 억 앞의 금액 숫자(`70,000,000원`)는 한글(`칠천만원`)로 바꾼 뒤 읽는다. 서버 TTS 가 없거나 읽을 글자가 없으면 `voice_tts_audio{data:"", text}` 로 되돌려 브라우저가 읽게 한다. `id` 는 결과에 그대로 돌아온다. `source`(reply, filler, proactive, reminder, approval, approval_answer)는 무엇을 읽는지이고, 서버는 읽을 글을 외부 알림 채널(`spoken`)에도 보낸다. 서버가 이미 따로 보낸 `proactive`, `reminder` 는 보내지 않는다. 같은 세션의 같은 글은 10초 안에 다시 와도(화면을 여럿 열었거나 재요청) 한 번만 보낸다. 화면이 글을 문장 조각으로 나눠 보내면 조각마다 `part`(0부터)와 따로 된 `id` 를 붙이고, `part` 0 에만 나누기 전 원문 `full_text` 를 붙인다. 서버는 조각마다 `voice_tts_audio` 를 하나씩 돌려주고, 외부 알림은 `part` 0 에서 `full_text` 로 한 번만 보낸다. `stream: true` 면 서버가 소리를 나오는 대로 조각(Qwen 은 0.32초)으로 같은 `id` 의 `voice_tts_audio` 에 실어 보낸다. 영어 글은 문장마다 따로 합성한다. 조각으로 못 내는 TTS 는 문장마다 한 조각이다 |
+| `voice_tts_request` | `text`, `lang?`, `id?`, `source?`, `part?`, `full_text?`, `stream?` | 음성 합성. 서버가 마크다운 기호(제목, 강조, 목록, 표, 인라인 코드)를 지우고, 코드 블록과 URL 은 빼고, 링크는 글자만 남기고, 원, 만, 억 앞의 금액 숫자(`70,000,000원`)는 한글(`칠천만원`)로 바꾼 뒤 읽는다. 서버 TTS 가 없거나 읽을 글자가 없으면 `voice_tts_audio{data:"", text}` 로 되돌려 브라우저가 읽게 한다. `id` 는 결과에 그대로 돌아온다. `source`(reply, answer, filler, proactive, reminder, approval, approval_answer)는 무엇을 읽는지이고, 서버는 읽을 글을 외부 알림 채널(`spoken`)에도 보낸다. 서버가 이미 따로 보낸 `proactive`, `reminder`, `answer` 는 보내지 않는다. 같은 세션의 같은 글은 10초 안에 다시 와도(화면을 여럿 열었거나 재요청) 한 번만 보낸다. 화면이 글을 문장 조각으로 나눠 보내면 조각마다 `part`(0부터)와 따로 된 `id` 를 붙이고, `part` 0 에만 나누기 전 원문 `full_text` 를 붙인다. 서버는 조각마다 `voice_tts_audio` 를 하나씩 돌려주고, 외부 알림은 `part` 0 에서 `full_text` 로 한 번만 보낸다. `stream: true` 면 서버가 소리를 나오는 대로 조각으로 같은 `id` 의 `voice_tts_audio` 에 실어 보낸다(조각 길이는 TTS 프로바이더가 정한다). 영어 글은 문장마다 따로 합성한다. 조각으로 못 내는 TTS 는 문장마다 한 조각이다 |
 | `voice_spoken` | `phrase` | 화면이 녹음 문구를 재생했다. 서버가 그 문구의 문장(`phrases.json` 의 `text`)을 외부 알림 채널에 보낸다. 같은 세션의 같은 문장은 10초 안에 한 번만. 모르는 이름이면 무시 |
-| `voice_stt_submit` | `data`(base64), `mime`, `sample_rate` | 서버 STT. 서버 STT 가 없으면 무시 |
-| `abort` | 없음 | 진행 중인 에이전트 루프 중단 |
+| `voice_stt_submit` | `data`(base64), `mime`, `sample_rate`(기본 16000) | 서버 STT. `mime` 은 받기만 하고 쓰지 않는다. 서버 STT 가 없거나 `data` 가 비면 무시. 결과는 `voice_stt_result` |
+| `abort` | 없음 | 진행 중인 에이전트 루프 중단. 도는 루프가 없으면 아무 일도 없다 |
 | (바이너리 프레임) | 16kHz mono int16 LE PCM | 웨이크워드 감지. `connected.voice.wake` 가 true 일 때만 받고, 아니면 버린다. 프레임 경계는 자유롭다(서버가 80ms 단위로 이어 붙인다). 화면은 모드와 상관없이 기다리는 동안(듣기, 읽기, 응답, 승인 중이 아닐 때) 보낸다 |
 
 #### 서버 → 클라이언트
 
 | `type` | 필드 | 언제 |
 |---|---|---|
-| `connected` | `session_id`, `agent`, `user`, `model`, `sessions[]`, `session_agents`, `active_agents[]`, `slash_commands[]`, `voice{stt_mode, stt_lang, phrases[], wake}`, `reply_classifier` | 접속 직후 한 번. `voice.phrases` 는 [읽기 문구](#get-apivoicephrasesname) 이름, `voice.wake` 는 웨이크워드 오디오를 받는지. `agent` 는 이 세션의 [Agent](#agent), `session_agents` 는 세션 id → 에이전트 id, `active_agents` 는 지금 루프가 도는 에이전트 id. `reply_classifier` 는 사고가 켜져 있어 `reply_classify` 를 쓸 수 있는지 |
-| `agent_start` | `session_id`, `prompt`, `agent_name?` | 루프 시작. 서브 에이전트는 `agent_name` 이 있다 |
-| `message_update` | `text_delta`, `thinking_delta` | 스트리밍 조각 |
+| `connected` | `session_id`, `agent`, `user`, `model`, `sessions[]`, `session_agents`, `active_agents[]`, `slash_commands[]`, `voice{stt_mode, stt_lang, phrases[], wake}`, `reply_classifier` | 접속 직후 한 번. 그 뒤 쌓여 있던 `reminder` 를 `missed: true` 로 보내고, 진행 중인 Focus 작업이 있으면 `focus_state`, `focus_panel` 을 보낸다. `user` 는 인증이 켜져 있을 때 키의 사용자 이름, 아니면 null. `voice.stt_mode` 는 `browser`(Web Speech API) 또는 `server`(녹음을 `voice_stt_submit` 으로). `voice.phrases` 는 [읽기 문구](#get-apivoicephrasesname) 이름, `voice.wake` 는 웨이크워드 오디오를 받는지. `agent` 는 이 세션의 [Agent](#agent), `session_agents` 는 세션 id → 에이전트 id, `active_agents` 는 지금 루프가 도는 에이전트 id. `reply_classifier` 는 사고가 켜져 있어 `reply_classify` 를 쓸 수 있는지 |
+| `agent_start` | `session_id`, `prompt`, `agent_name`, `timestamp` | 루프 시작. `prompt` 는 늘 빈 문자열이다. `agent_name` 은 main 이 아닌 에이전트의 세션과 서브 에이전트에서 이름이 오고, main 세션의 루트 루프는 null. 슬래시 명령과 `/focus` 안내를 감싸는 `agent_start`, `agent_end` 는 `type` (과 `continues`)만 있다 |
+| `turn_start` | `turn`, `timestamp` | 루프 안에서 LLM 호출 한 번이 시작될 때(0부터). 화면은 쓰지 않는다 |
+| `message_update` | `text_delta`, `thinking_delta`, `timestamp` | 스트리밍 조각 |
 | `stream_delta` | `text` | 슬래시 명령 결과 등 비스트림 텍스트 |
-| `tool_execution_start` | `tool_call_id`, `tool_name`, `args` | 도구 실행 시작 |
-| `tool_execution_end` | `tool_call_id`, `tool_name`, `is_error` | 도구 실행 끝 |
-| `agent_end` | `session_id`, `final_message{usage}`, `turns`, `agent_name?`, `continues?` | 루프 끝. 루트면 입력을 다시 받는다. `continues: true` 는 `/focus` 안내 뒤 메인 에이전트가 이어 돈다는 뜻이라, 화면은 입력 잠금과 음성 요청 표시를 그대로 둔다 |
-| `agent_error` | `message`, `code?` | 루프 실패 |
-| `inner_thought` | `session_id`, `interpretation`, `decision`, `confidence`, `frame` | 요청 시점과 성찰 시점의 사고 1회 |
+| `tool_execution_start` | `tool_call_id`, `tool_name`, `args`(object), `timestamp` | 도구 실행 시작 |
+| `tool_execution_end` | `tool_call_id`, `tool_name`, `is_error`, `timestamp` | 도구 실행 끝 |
+| `agent_end` | `session_id`, `final_message`, `turns`, `agent_name`, `timestamp`, `continues?` | 루프 끝. `final_message` 는 마지막 assistant 메시지(`role`, `content[]`, `provider`, `model`, `usage{input, output, cache_read, cache_write}`, `stop_reason`, `error_message`, `timestamp`)이고 null 일 수 있다. 루트면 입력을 다시 받는다. `continues: true` 는 `/focus` 안내 뒤 메인 에이전트가 이어 돈다는 뜻이라, 화면은 입력 잠금과 음성 요청 표시를 그대로 둔다 |
+| `agent_error` | `message`, `code`, `timestamp` | 모델 스트림이 오류를 냈다. `code` 는 지금 늘 null |
+| `inner_thought` | `session_id`, `interpretation`, `decision`(기본 `silent`), `confidence`(0~1), `frame`(사고 프레임 전체), `timestamp` | 요청 시점과 성찰 시점의 사고 1회 |
 | `thought_route` | `session_id`, `think`, `p_think` | router(`JARVIS_THOUGHT__ROUTER_MODEL`)가 켜져 있을 때 요청마다 한 번, 응답보다 먼저. `think: true` 면 사고가 응답과 함께 돌고 그 결과는 다음 턴 시스템 프롬프트에 한 번 들어간다. `p_think` 는 맥락 없는 판정과 직전 두 턴을 넣은 판정 중 큰 값이고, router 가 답하지 못하면 null 이며 `think: true` 로 둔다 |
 | `thought_end` | `session_id`, `ok` | `think: true` 로 띄운 사고가 끝났다. 응답보다 늦게 올 수 있다. 실패해도 `ok: false` 로 보낸다 |
 | `agenda_changed` | `session_id` | 요청마다 사고와 따로 도는 AGENDA 판단이 약속을 새로 열거나(기한 갱신 포함) 닫았다. 응답보다 늦게 올 수 있다. 화면은 `GET /api/agenda` 로 다시 읽는다 |
-| `proactive_message` | `session_id`, `text`, `kind`(`filler`/`proactive`/`answer`), `speak`, `message_id` | 먼저 건네는 말. `proactive` 는 세션 대화 기록에도 assistant 메시지로 남아(히스토리에 보이고 다음 턴 모델이 안다) 사람이 건넨 말처럼 이어진다. 그 뒤 첫 `user_message` 를 서버가 이 말에 대한 반응(accept, dismiss, 딴 얘기는 약한 무시)으로 분류해 학습한다. 화면은 피드백을 묻지 않는다. `answer` 는 대기 안내(`filler`) 뒤 뒤로 넘긴 작업이 끝났을 때의 답이고, 답은 스트림으로 이미 왔으므로 화면은 그리지 않는다(외부 알림 채널용). Focus 작업 중인 세션은 `proactive` 를 보내지 않는다(`filler`, `answer` 는 보낸다) |
-| `approval_request` | `id`, `command`, `reason`, `always_pattern` | 도구 실행 승인 요청. 같은 세션의 열린 연결 전부에 보내고, 기다리는 중에 새로 붙은 연결에도 보낸다. 120초 안에 답이 없으면 거부로 처리 |
+| `proactive_message` | `session_id`, `text`, `kind`(`filler`/`proactive`/`answer`), `speak`, `message_id` | 먼저 건네는 말. `proactive` 는 세션 대화 기록에도 assistant 메시지로 남아(히스토리에 보이고 다음 턴 모델이 안다) 사람이 건넨 말처럼 이어진다. 그 뒤 첫 `user_message` 를 서버가 이 말에 대한 반응(accept, dismiss, 딴 얘기는 약한 무시)으로 분류해 학습한다. 화면은 피드백을 묻지 않는다. `answer` 는 대기 안내(`filler`) 뒤 뒤로 넘긴 작업이 끝났을 때의 답이고, 답은 스트림으로 이미 왔으므로 화면은 그리지 않는다(외부 알림 채널용). Focus 작업 중이거나 그 세션이 답하는 중이면 `proactive` 를 보내지 않는다(`filler`, `answer` 는 보낸다). `speak` 는 지금 늘 false 다 |
+| `approval_request` | `id`(uuid4), `command`(앞 500자), `reason`, `always_pattern`(없으면 빈 문자열) | 도구 실행 승인 요청. 같은 세션의 열린 연결 전부에 보내고, 기다리는 중에 새로 붙은 연결에도 보낸다. 120초 안에 답이 없으면 거부로 처리 |
 | `approval_resolved` | `id`, `timeout?` | 그 요청이 끝났다(어느 연결의 답, 또는 시간 초과). 아직 모달을 띄운 연결은 닫는다. 시간 초과면 `timeout: true` 이고, 에이전트 응답도 `승인 요청에 시간 안에 답이 없어 …` 로 거부(`승인이 거부되어 …`)와 구분된다 |
 | `reminder` | `id`, `name`, `label`, `kind`, `agent`, `once`, `title`, `text`, `error`, `delayed_sec`, `fired_at`, `missed?` | 스케줄 실행 결과. 열린 연결 전부에 방송하고, 없으면 최근 20건을 쌓아 다음 접속 때 `missed: true` 로 보낸다. `label` 은 사람에게 보일 제목이다(사람이 붙인 이름, `/schedule` 이 붙인 이름이면 알림은 `알림`, 작업은 할 일 첫 줄). `kind: tool` 작업은 도구가 빈 글을 주면 보내지 않는다(새 공고가 없는 날 등). `kind: goal` 작업은 이미 알린 것만 있거나 알릴 것이 없으면 보내지 않고, `label` 은 `목표: <목표 문장 앞 60자>` 다. `deliver: conversation` 작업은 사용자가 그 에이전트와 최근 대화한 세션에 `proactive_message`(`kind: proactive`)로 건네고, 그런 세션이 없거나 건넬 수 없을 때만 이 이벤트로 보낸다 |
 | `voice_tts_audio` | `data`(base64), `mime`, `text`, `id`, `more?` | 합성 결과. `text` 는 실제로 읽은 글이다. `data` 가 비면 브라우저 TTS 로(`text` 는 기호를 지운 문장). `JARVIS_VOICE__SPEAK_ENGLISH=true` 면 JARVIS 세션의 한국어 글은 `source` 와 상관없이 LLM 이 짧은 영어로 옮겨 영어 TTS(JARVIS 목소리)로 읽고 `text` 에 그 영어를 준다. 옮기지 못하면(실패, 8초 초과) "Sir, I've put it on your screen." 을 읽는다. 다른 에이전트 세션은 원문 그대로다. 화면 글과 대화 기록은 한국어 그대로다. `id` 는 요청의 `id`(없었으면 null). 화면은 멈춘 읽기의 결과를 이 값으로 버린다. 요청이 `stream: true` 였으면 소리 조각마다 `more: true` 로 오고(`text` 는 그 조각이 속한 문장), 끝에 `data:""`, `text:""`, `more: false` 가 한 번 온다. 화면은 조각을 앞 조각이 끝나는 시각에 예약해 잇는다. 소리가 하나도 없었으면 끝 메시지의 `text` 에 읽을 글을 실어 브라우저가 읽게 한다. Qwen 서버가 첫 조각 전에 닿지 않으면 그 문장을 Piper 로 통째로 읽고, 조각을 보내다 끊기면 그 문장의 나머지는 읽지 않는다 |
@@ -1129,9 +1154,9 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `voice_wake` | `score` | 바이너리 프레임의 오디오에서 "Jarvis" 를 들었다. 점수가 `JARVIS_VOICE__WAKE_THRESHOLD`(0.5) 이상인 첫 프레임에서 한 번 보내고, 그 뒤 1초(13프레임)는 다시 보내지 않는다 |
 | `reply_classified` | `kind`, `id`, `verdict` | `reply_classify` 의 결과. `feedback` 은 `accept`/`dismiss`/`other`, `approval` 은 `allow`/`always`/`deny`/`unclear`. 사고 모델이 없거나 6초 안에 답하지 못하면 `other`, `unclear`. 항상 허용 패턴이 없는데 `always` 면 `allow` 로 낮춘다 |
 | `agent_activity` | `active[]` | 어느 세션이든 루프가 시작하거나 끝나 일하는 에이전트 목록이 바뀔 때. 열린 연결 전부에 보내고 쌓아 두지 않는다. 먼저 시작한 순서, 같은 에이전트는 한 번 |
-| `focus_state` | `session_id`, `state` | Focus 작업 상태 전체. `state.active=false` 면 Focus 종료. 켜져 있으면 `task_id`, `task`, `steps[{title, done}]`, `progress`(0~1), `eta_sec`(완료 단계가 없으면 null), `elapsed_sec`. 접속 직후 진행 중인 작업이 있으면 한 번 보낸다 |
+| `focus_state` | `session_id`, `state` | Focus 작업 상태 전체. `state.active=false` 면 Focus 종료(이때 `state` 는 `active`, `task_id` 뿐). 켜져 있으면 `task_id`, `task`, `steps[{title, done}]`, `progress`(0~1), `eta_sec`(완료 단계가 없으면 null), `elapsed_sec`. 접속 직후 진행 중인 작업이 있으면 한 번 보낸다 |
 | `focus_panel` | `session_id`, `area`(`reference`/`log`/`analysis`), `markdown`, `busy` | 한 영역의 마크다운 전체. `busy=true` 는 sub-agent 가 갱신 중. 접속 직후 진행 중인 작업이 있으면 세 영역을 한 번씩 보낸다 |
-| `error` | `message` | TTS 오류 등 |
+| `error` | `message` | 에이전트에 넘긴 요청이 실패했다(앞 요청이 3초 안에 끝나지 않아 거절한 `이전 요청을 아직 처리 중입니다. …` 포함), `Focus 오류: …`, `TTS 오류: …` |
 
 #### 호출 예시
 
@@ -1151,7 +1176,7 @@ ws.send(JSON.stringify({ type: "user_message", text: "안녕" }));
 
 #### Focus
 
-`/focus <작업>` 은 이 세션의 Focus 작업을 시작하고, 안내(`agent_start`, `stream_delta`, `agent_end`)를 보낸 뒤 작업 문장을 에이전트 프롬프트로 이어 보낸다. 시작할 때 첫 분석과 단계 계획을 `JARVIS_FOCUS__READY_TIMEOUT_SEC`(30초)까지 기다린다. `/focus stop`(또는 `off`, `종료`)은 끝내고, `/focus` 만 보내면 현황을 텍스트로 돌려준다.
+`/focus <작업>` 은 이 세션의 Focus 작업을 시작하고, 안내(`agent_start`, `stream_delta`, `agent_end`)를 보낸 뒤 작업 문장을 에이전트 프롬프트로 이어 보낸다. 시작할 때 첫 분석과 단계 계획을 `JARVIS_FOCUS__READY_TIMEOUT_SEC`(30초)까지 기다린다. `/focus stop`(또는 `off`, `end`, `종료`, `끝`, `그만`. 대소문자 무시)은 끝내고, `/focus` 만 보내면 현황을 텍스트로 돌려준다.
 
 | 명령 | 이미 작업이 있을 때 | 작업이 없을 때 |
 |---|---|---|

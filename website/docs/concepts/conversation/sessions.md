@@ -9,12 +9,12 @@ import FigureSessions from '@site/src/figures/sessions.svg';
 
 <figure className="paper-fig">
   <FigureSessions />
-  <figcaption><b>Figure 1.</b> (a) 세션은 에이전트 하나의 대화 한 줄기다. 분기는 부모의 메시지(U 사용자, A 어시스턴트, T 도구)를 복사한 새 세션을 만든다. Web 의 ⑂ 는 jsonl 저장소에서만 복사하고, 다른 저장소면 parent_id 없는 빈 새 세션을 연다. 턴마다 그 턴이 일화 기억이 되고, 종료 때 통합이 일화에서 사실을 뽑는다. (b) 사용자 메시지는 턴 시작 때, 나머지는 루프가 끝난 뒤 한꺼번에 저장된다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) 세션은 에이전트 하나의 대화 한 줄기다. 분기는 부모의 메시지(U 사용자, A 어시스턴트, T 도구)를 복사한 새 세션을 만든다. Web 의 ⑂ 는 jsonl 저장소에서만 복사하고, 다른 저장소면 parent_id 없는 빈 새 세션을 연다. 턴마다 그 턴이 일화 기억이 되고, 종료 때나 180초 넘게 조용할 때 통합이 일화에서 사실을 뽑고, 같은 종류 작업이 세 번 성공했으면 절차 초안을 만든다. (b) 사용자 메시지는 턴 시작 때, 나머지는 루프가 끝난 뒤 한꺼번에 저장된다.</figcaption>
 </figure>
 
 세션은 JARVIS 가 대화 한 줄기를 묶어 저장하는 단위다. 세션은 만들 때 에이전트가 정해지고, 그 뒤로 바뀌지 않는다.
 
-`agent_layer/session/` 의 저장소 프로토콜(`create`, `list`, `get_messages`, `append`, `delete`, `create_branch`) 위에 두 구현이 있다.
+`agent_layer/session/` 의 저장소 프로토콜(`create`, `get_meta`, `list`, `get_messages`, `append`, `delete`, `create_branch`, 그리고 🔔 를 남기고 읽는 `append_proactive`, `get_proactive`) 위에 두 구현이 있다. 🔔 는 같은 메시지 id 로 몇 번 남겨도 하나다.
 
 | 백엔드 | 설정 | 저장 |
 |---|---|---|
@@ -33,7 +33,7 @@ import FigureSessions from '@site/src/figures/sessions.svg';
 
 ## 분기
 
-분기는 `/branch [session_id]`, TUI 의 `Ctrl+F`, Web 의 ⑂ 로 만든다. 분기는 부모의 메시지를 전부 복사한 새 세션을 만들고 `parent_id` 를 남긴다. 포인터가 아니라 복사이므로 이후 변경은 서로 전파되지 않는다. `/branch` 는 jsonl 과 Postgres 모두에서 복사한다. Web 의 ⑂(`POST /api/sessions/{id}/branch`)는 jsonl 에서만 복사하고, 다른 저장소면 같은 에이전트의 빈 새 세션을 열고 `parent_id` 를 null 로 돌려준다.
+분기는 `/branch [session_id]`, TUI 의 `Ctrl+F`, Web 의 ⑂ 로 만든다. `/branch` 에 id 를 주지 않으면 지금 세션이 아니라 `default` 세션을 분기한다. 분기는 부모의 메시지를 전부 복사한 새 세션을 만들고 `parent_id` 를 남긴다. 포인터가 아니라 복사이므로 이후 변경은 서로 전파되지 않는다. `/branch` 는 jsonl 과 Postgres 모두에서 복사한다. Web 의 ⑂(`POST /api/sessions/{id}/branch`)는 jsonl 에서만 복사하고, 다른 저장소면 같은 에이전트의 빈 새 세션을 열고 `parent_id` 를 null 로 돌려준다.
 
 Web 의 SESSIONS 카드는 지금 프로세스가 띄운 세션만 보여준다. 다른 세션은 `/sessions` 나 `jarvis --list-sessions` 로 본다.
 
@@ -44,7 +44,9 @@ flowchart LR
   C[생성: 접속, +, /branch] --> A[대화]
   A --> E[종료: TUI 종료, Web 셧다운]
   A --> T[턴마다 그 턴을 일화 기억으로]
+  A --> I[유휴: 조용한 daemon 틱]
   E --> S2[통합: 일화에서 사실 추출]
+  I --> S2
   S2 --> S3[절차 정제: 같은 종류 성공 3회]
   A --> D[삭제: ✕, DELETE /api/sessions/id, /cleanup]
 ```
@@ -68,10 +70,14 @@ Web 의 `DELETE /api/sessions/{id}` 는 메모리 세션, 샌드박스, 승인 �
 ## 세션 관련 명령
 
 - `/sessions`: 세션 목록을 보여준다. 분기한 세션에는 `← parent` 가 붙는다
-- `/export md|json`: 지금 세션을 `~/.jarvis/exports/` 로 내보낸다
-- `/cost`: 토큰 사용량과 모델별 추정 비용을 보여준다
+- `/export md|json`: 세션 대화를 `~/.jarvis/exports/<세션 id>.md` 나 `.json` 으로 내보낸다. 인자가 없으면 md 다
+- `/cost`: 세션의 토큰 사용량과 모델별 추정 비용을 보여준다
 - `/compact`: 지금까지의 대화를 요약해 장기 기억에 저장한다
-- `/cleanup`: 옛 서브 에이전트 세션, 옛 STM 테이블, 시험 흔적을 보여주고, `agents confirm`, `stm confirm`, `tests confirm` 으로 지운다
+- `/cleanup`: 옛 서브 에이전트 세션(`agent_<name>`, `per_agent` 정책 에이전트의 세션은 남긴다), 옛 STM 테이블(`jarvis_stm_messages`, Postgres), 시험 흔적을 보여주고, `agents confirm`, `stm confirm`, `tests confirm` 으로 지운다
+
+:::warning
+`/export`, `/cost`, 인자 없는 `/branch` 는 명령을 친 세션이 아니라 늘 `default` 세션을 대상으로 한다. 다른 세션을 내보내거나 비용을 보는 명령은 아직 없다.
+:::
 
 ## 시험 세션
 

@@ -152,6 +152,6 @@ KAREN 에게 말로 맡긴 결과(라이브 서버, 시험 세션마다 새 대�
 
 ## 구현 위치
 
-- `core/goals/`: `types.py`(목표, 답 해석, 거르기), `store.py`(파일 저장소), `runner.py`(한 차례, 경계 도구 창), `tool.py`(`goal` 도구)
+- `core/goals/`: `goals_types.py`(목표, 답 해석, 거르기), `goals_store.py`(파일 저장소), `runner.py`(한 차례, 경계 도구 창), `tool.py`(`goal` 도구)
 - `core/slash/goal_cmd.py`(`/goal`), `core/scheduler/scheduler_service.py`(`kind: goal`, 경계), `app/agent_registry.py`(`boundaries`)
 - 실험: `scripts/experiments/goal_store.py`, `scripts/experiments/goal_karen.py`

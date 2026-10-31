@@ -5,7 +5,7 @@
  *  - 셸(index, css, js)은 네트워크 우선이고, 끊겼을 때만 캐시를 쓴다. 캐시 우선이면
  *    파일을 고쳐도 다음 로드까지 옛 셸이 보여 HTML 과 CSS 가 섞인다.
  *  - 그래서 버전 문자열이 없다. 네트워크에서 받는 것이 곧 최신이고 캐시는 받을 때마다 덮인다.
- *  - SHELL 목록은 tests/unit/test_web_server.py 가 static/ 의 실제 파일과 대조한다.
+ *  - SHELL 목록은 tests/integ/test_web_hud.py 가 static/ 의 실제 파일과 대조한다.
  */
 const CACHE = 'jarvis-shell';
 

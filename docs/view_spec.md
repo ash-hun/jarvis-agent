@@ -2,7 +2,7 @@
 
 | 항목 | 값 |
 |---|---|
-| Last Updated | 2026-10-18 |
+| Last Updated | 2026-11-01 |
 | 소스 | `src/jarvis/ui/web/static/` (`index.html`, `styles.css`, `app/*.js`, `hud.js`, `sphere.js`, `voice.js`, `wake-worklet.js`, `sw.js`) |
 | 범위 | 브라우저 Web HUD. 터미널 TUI(`src/jarvis/ui/tui/`)는 이 문서 밖 |
 
@@ -75,19 +75,21 @@
 |---|---|---|
 | WS `connected` | 접속 직후 | SYSTEM 의 MODEL, SESSION, 세션 목록과 각 세션의 에이전트(`session_agents`), 세션 에이전트의 이름과 색(`agent`), 슬래시 명령, 음성 STT 모드, 읽기 문구 이름(`voice.phrases`), 웨이크워드 사용 여부(`voice.wake`) |
 | `GET /api/sessions/{id}/messages` | 접속, 세션 전환 직후 | CONVERSATION 복원(마크다운 렌더) |
-| `GET /api/agenda` | 접속, `inner_thought`, `agent_end`, `agenda_changed`, open loop 나 스케줄 조작 직후, 1분마다 | AGENDA |
-| `GET /api/agents` | 첫 접속 때 한 번 | 에이전트 칩, 세션 표식 색, AGENDA 항목의 에이전트 라벨 |
-| `POST /api/sessions {agent}` | `+`, 열린 세션이 없는 에이전트 칩 클릭 | 그 에이전트의 새 세션 |
+| `GET /api/agenda` | 접속, `inner_thought`, `agent_end`, `agenda_changed`, `reminder`, open loop 나 스케줄 조작 직후, 1분마다 | AGENDA |
+| `GET /api/agents` | 처음 한 번 받고 탭이 닫힐 때까지 다시 쓴다. 네트워크 오류면 다음 접속이나 AGENDA 갱신 때 다시 받는다 | 에이전트 칩, 세션 표식 색, AGENDA 항목의 에이전트 라벨, 구체 색 섞기 |
+| `POST /api/sessions {agent}` | `+`(지금 에이전트), 열린 세션이 없는 에이전트 칩 클릭 | 그 에이전트의 새 세션. 실패하면 ACTIVITY 에 `세션 생성 실패 · <agent> · <status>` |
 | `GET /api/tools?session_id=` | 접속, `agent_end` | SYSTEM 의 TOOLS(지금 세션 에이전트의 도구) |
 | `POST /api/openloops/{id}` | ✓ / ✕ / ↺ 클릭 | open loop 닫기, 되살리기 |
 | `POST /api/schedules/{name}` | 스위치 클릭 | 스케줄 켜기/끄기 |
-| `POST /api/sessions` | `+` 클릭 | 새 세션 |
 | `POST /api/sessions/{id}/branch` | ⑂ 클릭 | 세션 분기 |
 | `DELETE /api/sessions/{id}` | ✕ 클릭 후 확인 | 세션 삭제. 목록은 `GET /api/sessions` 로 다시 그린다 |
+| `GET /api/sessions` | 세션 삭제 직후, 일하는 에이전트 목록을 반영할 때마다(`connected`, `agent_activity`) | SESSIONS 목록. 에이전트끼리 대화하며 새로 생긴 `peer-…` 세션이 여기서 보인다 |
 | `GET /brand.js` | 페이지 로드 | 이름, 명언, 색 |
 | `GET /api/voice/phrases/{name}` | 그 문구를 처음 읽을 때 한 번(받은 wav 는 탭이 닫힐 때까지 둔다) | 읽기 문구 재생 |
 | WS 바이너리 프레임(보냄), `voice_wake`(받음) | 모드와 상관없이 기다리는 동안 80ms 마다 | 웨이크워드 |
-| WS 이벤트 전부 | 연결 중 | CONVERSATION, 상태 pill, 리액터 상태, ACTIVITY, 사용량 |
+| WS 이벤트 전부 | 연결 중 | CONVERSATION, 상태 pill, 리액터 상태, ACTIVITY, 사용량. `turn_start` 는 받지만 쓰지 않는다 |
+| WS `reminder` | 스케줄 실행 결과. 놓친 것은 접속 직후 `missed: true` 로 | CONVERSATION(에이전트의 말 또는 SYS 에러 줄), ACTIVITY `🔔`, 리액터 캡션, 탭이 뒤에 있으면 브라우저 알림, 음성 |
+| WS 보냄 `user_message`, `abort`, `approval_response`, `reply_classify`(승인 음성 답만), `voice_tts_request`(`stream: true`), `voice_spoken`, `voice_stt_submit` | 전송, Ctrl+K, 승인, 음성 | `proactive_feedback` 는 보내지 않는다 |
 | WS `thought_route`, `thought_end` | router 가 켜져 있으면 요청마다 판정 한 번, think 로 띄운 사고가 끝날 때 | ACTIVITY `💭 think · 0.81` / `💭 skip · direct 0.02`(router 가 답하지 못하면 `💭 think · router 응답 없음`), 응답 뒤에도 사고가 돌면 리액터 `thinking` 유지 |
 | WS `agenda_changed` | AGENDA 판단이 약속을 새로 열거나 닫을 때(응답보다 늦을 수 있다) | AGENDA 다시 읽기 |
 | WS `agent_activity`, `connected.active_agents` | 어느 에이전트든 일을 시작하거나 끝낼 때 | 에이전트 칩의 빛남, 구체 색 섞기, ACTIVITY `⇄ A · B 함께 작업 중` |
@@ -123,7 +125,7 @@
 | SESSIONS 의 세션 이름 클릭 | 그 세션으로 재연결. 대화, 사용량, 아티팩트 초기화 후 히스토리 복원. 세션 앞 네모 표식은 그 세션 에이전트의 색 |
 | `+` | 지금 에이전트의 새 세션 생성 후 연결 |
 | SESSIONS 의 에이전트 칩(에이전트가 둘 이상일 때만 보임) | 그 에이전트의 열린 세션 중 목록에서 가장 위의 것(에이전트끼리의 대화 세션 `peer-…` 제외)으로 연결, 없으면 새로 만든다. 연결되면 이름, 명언, 링, 구체, 패널 색이 그 에이전트 것으로 바뀐다. 지금 에이전트 칩은 채워진 색 |
-| 활성 세션의 ⑂ | 분기 생성 후 연결 |
+| 활성 세션의 ⑂ | 분기 생성 후 연결. 응답 코드를 보지 않는다 |
 | 비활성 세션의 ✕ (행에 마우스를 올리면 보임) | `confirm()` 뒤 삭제. 보고 있는 세션은 ✕ 가 없다. 409 면 ACTIVITY 에 `세션 삭제 실패` |
 | AGENDA 의 ✓ / ✕ | open loop 를 done / dismissed 로. 항목이 사라지고 ACTIVITY 에 한 줄. 다른 에이전트의 약속도 닫을 수 있다 |
 | AGENDA 의 Closed 펼치기 | 최근 닫힌 약속 10개(닫힌 순)를 상태(완료, 무시, 만료)와 닫힌 시각으로 보인다. 닫힌 약속이 없으면 Closed 줄 자체가 없다 |
@@ -138,7 +140,7 @@
 | Full-voice: 마이크 | 켜는 클릭 뒤 첫 듣기에서 마이크 스트림을 잡고 Default 로 돌아갈 때까지 놓지 않는다. 블루투스 헤드셋이 듣기와 읽기 사이에 통화, 음악 프로필을 오가지 않게 하려는 것으로, 그동안 출력은 통화 음질이다. 권한이 없으면 잡지 않고 매번 열고 닫는다 |
 | 음성 읽기 시점 | 인식이 열려 있으면 닫힐 때까지(최대 1.5초) 기다리고, 닫힌 뒤 0.6초를 더 쉰 다음 읽는다. 헤드셋이 오디오 경로를 다시 잡는 사이 짧은 문장(승인 되읽기)이 사라지는 것을 막는다. 브라우저 TTS 가 1.5초 안에 시작하지 않으면 한 번만 다시 읽고, 콘솔에 `[voice] tts ...` 를 남긴다. 서버 합성은 `stream` 으로 받아 소리 조각을 나오는 대로 앞 조각이 끝나는 시각(Web Audio 시계)에 예약해 잇고, 마지막 조각이 끝날 때까지 SPEAKING 이다. 조각이 늦어 틈이 생기면 콘솔에 `[voice] underrun Nms` 를 남긴다 |
 | 먼저 건네는 말(`proactive_message`) | 🔔, 💬 표시 없이 에이전트의 보통 답과 같은 모양(에이전트 이름)으로 대화에 붙는다. 대기 안내(filler)도 같다. ACTIVITY 에는 🔔, 💬 로 남는다. 음성 모드면 읽고, Full-voice 면 읽은 뒤 답을 듣는다. 사용자가 말하거나, 듣거나, 다른 말을 읽거나, 에이전트가 일하는 중이면 끊지 않고 끝난 뒤에 읽는다(미룬 말은 가장 새것 하나) |
-| 스케줄 알림(`reminder`) | 에이전트의 말로 보인다(작업 결과는 `⏱ 작업 이름` 머리줄). 실패만 SYS 줄. 읽기는 먼저 건네는 말처럼 끝난 뒤에 한다 |
+| 스케줄 알림(`reminder`) | 에이전트의 말로 보인다(`kind` 가 `task`, `tool` 이면 `⏱ <title>` 머리줄과 마크다운 본문, 그 밖에는 이스케이프한 글 그대로). 실패(`error: true`)만 SYS 줄. 늦게 울렸으면 `(지연 N분)`, 놓친 알림이면 `(놓친 알림)` 이 붙는다. 탭이 뒤에 있고 알림 권한이 있으면 브라우저 알림(본문 앞 240자)도 띄운다. 음성 모드와 상관없이 앞 400자를 읽는다(놓친 알림은 읽지 않는다). 읽기는 먼저 건네는 말처럼 끝난 뒤에 한다 |
 | "Jarvis" (웨이크워드) | Default, Full-voice 모두. 듣기, 읽기, 응답, 승인 중이 아닐 때만 마이크 소리를 16kHz PCM 으로 서버에 보낸다. 서버가 `voice_wake` 를 보내면 ACTIVITY `◉ wake · Jarvis`, `At your service, sir.` 를 읽고 바로 듣는다(LISTENING). Default 에서 깨워 보낸 요청은 음성으로 시작한 요청이라 응답을 읽어 주고, 다 읽은 뒤 다시 듣지는 않는다. 영어 발음 "Jarvis" 만 알아듣는다. 서버가 `voice.wake=false` 면 보내지 않는다 |
 | 읽기 문구 | 음성으로 일하는 중(Full-voice, 또는 음성으로 시작한 요청)에 아래 순간마다 합성 대신 녹음한 문구를 읽는다. `web_search` 도구 시작 `Searching Reference.`, `remember_task_pattern` 도구 시작 `Checking the Pattern.`, 💬 filler `Processing Long Task.`(filler 문장은 화면에만 쓰고 읽지 않는다), `/focus` 로 켜고 끔 `Activate Focus mode.` / `Deactivate Focus mode.`(접속 때 되살아나는 Focus 는 읽지 않는다), Focus 분석 갱신 시작 `Target. Analysis.`, 에이전트 칩으로 전환 `Change to KAREN.` / `Change to JARVIS.`. 서버가 알려 준 문구가 없으면 예전대로 한다 |
 | Ctrl+K | `abort` 전송, 스트림 종료, 입력 복원 |
@@ -149,14 +151,15 @@
 | Focus: CONVERSATION 띠 클릭 | 대화를 오른쪽 띠 옆에 덮어 띄운다. 다시 누르거나 대화, 입력 독 밖을 누르면 닫힌다. 다른 띠(AGENDA, ACTIVITY, SYSTEM, SESSIONS)는 눌러도 반응하지 않는다 |
 | 코드블록의 COPY | 클립보드 복사. 8줄 이상 코드블록이 응답에 있으면 오른쪽 아티팩트 패널에도 뜬다(COPY, ✕) |
 | 응답에 `/schedule` 포함해 전송 | 브라우저 알림 권한을 그때 묻는다 |
+| 사용자와 LLM 글 렌더(이스케이프) | 사용자 입력, 음성 전사, 슬래시 입력 하이라이트, 💭 해석과 decision, 도구 이름과 인자, 세션 id, SYS 에러, 스케줄 알림 제목은 `escapeHtml` 을 거쳐 `innerHTML` 로 넣는다. 응답, 히스토리, 🔔, filler, 작업 알림 본문, Focus 영역은 `renderMarkdown`(이스케이프 뒤 태그 생성)을 거친다. 스트리밍 중 응답, ACTIVITY, 리액터 캡션, AGENDA 항목, 도구 목록, 승인 모달의 명령과 이유, 에이전트 이름과 설명, 아티팩트 패널, Focus PROGRESS 는 `textContent` 로 넣는다. 링크는 `http`, `https` 만 만든다 |
 
 **빈 상태**
 
-CONVERSATION: 히스토리가 없으면 `— SESSION · 시각 · id —` 한 줄만. AGENDA: `예정된 작업 없음`, `남은 할 일 없음`(CSS `data-empty`). TOOLS: 0. ACTIVITY: 접속 줄 하나. 리액터 캡션: 명언.
+CONVERSATION: 히스토리가 없으면 `— SESSION · 시각 · id —` 한 줄만. AGENDA: `예정된 작업 없음`, `남은 할 일 없음`(CSS `data-empty`), 닫힌 약속이 없으면 Closed 줄을 숨긴다. TOOLS: 0. ACTIVITY: 접속 줄 하나. 리액터 캡션: 명언. Focus: REFERENCE `조사 중인 레퍼런스가 없습니다`, ANALYSIS `지시를 분석하는 중입니다`, LOG `아직 기록이 없습니다`, PROGRESS 단계 목록 `단계를 나누는 중입니다`, 예상 시간 `예상 시간 계산 중`. SESSIONS 의 에이전트 칩: 에이전트가 하나면 숨긴다.
 
 **에러 상태**
 
-WS 끊김: 상단 배너 `연결 끊김 — 재연결 중...`, 입력 잠금, 1초부터 2배씩 최대 10초 간격으로 재접속. `4401`: 키 입력 `prompt()`, 취소하면 배너와 ACTIVITY `접근 키 없음`. `agent_error`, `error`: SYS 에러 메시지 + 상태 `ERROR` 3초 뒤 READY. `/api/agenda`, `/api/tools` 실패: 콘솔 경고만, 화면은 이전 값 유지. 히스토리 실패: 콘솔 에러, 빈 대화. 승인 요청 120초 무응답: 서버가 거부로 처리하고 도구 결과에 `denied` 가 온다. 음성 TTS 오류: `error` 로 와서 음성 상태가 풀린다.
+WS 끊김: 상단 배너 `연결 끊김 — 재연결 중...`, 입력 잠금, 1초부터 2배씩 최대 10초 간격으로 재접속. `4401`: 키 입력 `prompt()`, 취소하면 배너와 ACTIVITY `접근 키 없음`. `agent_error`, `error`: SYS 에러 메시지 + 상태 `ERROR` 3초 뒤 READY. `/api/agenda`, `/api/tools` 실패: 콘솔 경고만, 화면은 이전 값 유지. 히스토리 실패: 응답이 실패 코드면 아무 표시 없이, 요청이 예외면 콘솔 에러. 대화는 빈 채로 둔다. `/api/agents` 실패: 빈 목록으로 둔다(칩과 에이전트 라벨 없음). 응답이 실패 코드(401 등)면 새로고침 전까지 다시 받지 않고, 네트워크 오류면 다음 호출 때 다시 받는다. `/api/voice/phrases/{name}` 실패: 담아 두지 않고 합성으로 읽는다. ⑂ 분기 실패: 처리 없음. open loop 처리 실패: ACTIVITY `open loop 처리 실패`, `open loop 되살리기 실패`. 스케줄 변경 실패: ACTIVITY `스케줄 변경 실패 · <name>`. STT 오류: SYS `STT 오류: …`, 인식한 글이 비면 SYS `음성을 인식하지 못했습니다.`. `4404`(모르는 에이전트): 처리 없음. 다른 끊김과 같이 재접속을 되풀이한다. 승인 요청 120초 무응답: 서버가 거부로 처리하고 도구 결과에 `denied` 가 온다. 음성 TTS 오류: `error` 로 와서 음성 상태가 풀린다.
 
 ---
 
@@ -166,7 +169,7 @@ WS 끊김: 상단 배너 `연결 끊김 — 재연결 중...`, 입력 잠금, 1�
 |---|---|---|---|
 | `panel-head` + `setupCollapse` | `shell.js` | 토글 id, body 클래스, localStorage 키 | SESSIONS, CONVERSATION |
 | 메시지(`appendMsg`, `appendThought`, 스트림, 도구 흔적, 대기 자리표시, 히스토리) | `messages.js` | 역할 라벨, 종류, HTML | CONVERSATION |
-| 마크다운 렌더(`renderMarkdown`, `attachCopyBtns`) | `markdown.js` | 텍스트 | 응답, 히스토리, 🔔, 스케줄 작업 알림, Focus 영역. `[글자](URL)` 는 글자만, 맨 URL 은 40자를 넘으면 도메인만 링크로 보인다(http, https 만, 새 탭). 번호 목록은 원문 번호에서 시작한다(항목 사이에 문단이 끼어도 `2.` 가 2 로 보인다) |
+| 마크다운 렌더(`renderMarkdown`, `attachCopyBtns`) | `markdown.js` | 텍스트 | 응답, 히스토리, 🔔, 스케줄 작업 알림, Focus 영역. 원문 전체를 먼저 `escapeHtml`(`&`, `<`, `>`, `"`)로 바꾼 뒤 태그를 만든다. 코드 블록의 언어 이름과 본문도 이스케이프한다. `[글자](URL)` 는 글자만, 맨 URL 은 40자를 넘으면 도메인만 링크로 보인다(http, https 만, 새 탭). 번호 목록은 원문 번호에서 시작한다(항목 사이에 문단이 끼어도 `2.` 가 2 로 보인다) |
 | 승인 오버레이, 음성 답 해석(`parseApprovalAnswer`) | `approval.js` | `approval_request`, 전사 텍스트 | 전역 모달 |
 | 모드 세그먼트 | `mode.js` | 클릭, `hud.mode` | 헤더 |
 | 슬래시 팝업, 입력 하이라이트 | `composer.js` | 명령 목록 | 입력 독 |

@@ -47,7 +47,7 @@ flowchart TB
   end
   subgraph MODEL["model_layer/  LLM 추상화"]
     PROVIDERS["providers/  anthropic, openai, gemini, ollama, vllm"]
-    STREAM["stream.py  types.py  embeddings.py  decision.py"]
+    STREAM["stream.py  model_types.py  embeddings.py  decision.py"]
   end
   MEMORY["memory/  MemoryService, 작업 기억, 장기 기억, 회상, 통합"]
   VOICE["voice/  STT, TTS, 웨이크 워드"]
@@ -65,7 +65,7 @@ flowchart TB
 - **core**: `AgentSession` 이 한 턴을 지휘한다. 보안, 도구, 승인, proactive 정책, 슬래시, 절차 학습, 멀티 에이전트, 스케줄러가 이 층에 있다
 - **app**: 조립 층. `InfraBuilder` 가 설정 하나로 도구, 메모리, 저장소, 보안, 스케줄러, proactive, 슬래시 명령을 만들고, `AgentProfile`(에이전트 한 명분 설정과 피드백 학습기)과 `SessionBuilder` 가 세션을 만든다
 - **ui**: TUI 와 Web 이 있다. 둘 다 `app` 의 조립 결과(`AppAssembly`)를 받아 화면만 담당한다
-- **memory**: `MemoryService` 가 작업 기억(요약과 창)과 장기 기억(의미, 일화, 절차)을 가진다
+- **memory**: `MemoryService` 가 작업 기억(되뇌기 횟수, 메모)과 장기 기억(의미, 일화, 절차)을 가진다. 모델에는 최근 3턴만 넣고 그 밖은 회상으로 되찾는다
 
 ## 요청 한 번의 흐름
 
@@ -84,14 +84,14 @@ sequenceDiagram
   S->>T: think(요청). 시점은 before / race / after, router 가 있으면 router 가 정한다
   T-->>S: ThoughtFrame (💭 이벤트). 약속은 AGENDA 판단이 따로 남긴다
   S->>H: run(입력, 사고 블록)
-  H->>H: 창, 요약, 회상 주입
+  H->>H: 최근 3턴 창, 회상 블록 주입
   loop 최대 20턴
     H->>L: stream(messages, tools)
     L-->>H: 텍스트 또는 도구 호출
     H->>X: 허용 목록, 플러그인, 승인
     X-->>H: 결과 (거부면 is_error)
   end
-  H->>H: 세션 저장소에 메시지 저장
+  H->>H: 세션 저장소에 메시지 저장, 이번 턴을 일화(EDM)로 쓰기
   H-->>U: 스트리밍 응답, agent_end
 ```
 
@@ -99,7 +99,7 @@ sequenceDiagram
 
 - 보안 파이프라인은 검증, 인증, 정책 순으로 돌고, 어느 단계도 건너뛸 수 없다. 검증은 빈 입력, 길이 상한(기본 10,000자), 스크립트 패턴을 막고 NFC 정규화와 HTML 이스케이프를 한다
 - 도구 호출은 정책 허용 목록, 플러그인 `before_tool_call`, 샌드박스 승인 순으로 검사한다. 거부는 예외가 아니라 `is_error` 결과로 LLM 에 돌아가고, 루프는 계속된다
-- 메모리 주입은 LLM 호출 직전의 `transform` 한 곳에서만 한다. `[핵심 사실]`, `[장기 기억]`, `[절차 기억]`, `[작업 공유 메모리]`, 요약 순으로 앞에 붙는다
+- 메모리 주입은 LLM 호출 직전의 `MemoryService.observe` 한 곳에서만 한다. `[핵심 사실]`, `[장기 기억]`, `[절차 기억]`, `[작업 패턴]`, `[작업 공유 메모리]` 순으로 최근 3턴 앞에 붙는다
 
 ## 이벤트
 
@@ -114,11 +114,15 @@ sequenceDiagram
 | `agent_end` | 루프 끝 | `final_message.usage`, `turns` |
 | `agent_error` | 프로바이더 오류 | `message` |
 | `inner_thought` | 사고 프레임이 나왔을 때 | `interpretation`, `decision`, `confidence`, `frame` |
-| `proactive_message` | filler 또는 먼저 건네는 말 | `text`, `kind`, `message_id` |
+| `thought_route` | router 가 사고를 돌릴지 정했을 때 | `think`, `p_think` |
+| `thought_end` | router 가 띄운 사고가 끝났을 때(실패해도 보낸다) | `ok` |
+| `agenda_changed` | AGENDA 판단이 약속을 열거나 닫았을 때 | `session_id` |
+| `proactive_message` | filler, 먼저 건네는 말, 맡긴 일의 답 | `text`, `kind`(`filler`, `proactive`, `answer`), `message_id` |
+| `focus_state`, `focus_panel` | Focus 작업 상태나 패널이 바뀌었을 때 | `state`, `area`, `markdown`, `busy` |
 
 ## 두 화면, 한 배선
 
-TUI 와 Web 모두 `app/infra_builder.py` 의 `build_app`(도구, 스케줄러, 알림, 서브 에이전트, 디스패처)과 `app/session_builder.py` 의 `SessionBuilder`(사고 엔진, proactive 코어, open loop, 사용자 모델)를 쓴다. 에이전트마다 달라질 수 있는 값(브랜드, 모델, 사고와 proactive 설정, 피드백 학습기)은 `AgentProfile` 에 모여 있고, 지금은 `main` 하나다. Web 은 세션마다 샌드박스와 보안 파이프라인을 따로 두고, 승인은 세션 단위 브로커가 모든 연결에 방송한다. 차이는 화면과 승인 입력 방식뿐이다.
+TUI 와 Web 모두 `app/infra_builder.py` 의 `build_app`(도구, 스케줄러, 알림, 서브 에이전트, 디스패처)과 `app/session_builder.py` 의 `SessionBuilder`(사고 엔진, proactive 코어, open loop, 사용자 모델)를 쓴다. 에이전트마다 달라질 수 있는 값(브랜드, 모델, 사고와 proactive 설정, 피드백 학습기)은 `AgentProfile` 에 모여 있다. `main`(JARVIS) 말고도 `~/.jarvis/team/<id>.yaml` 파일 하나마다 최상위 에이전트가 하나 생기고, `AgentRegistry` 가 에이전트마다 `AgentProfile` 과 `SessionBuilder` 를 들고 있다. Web 은 세션마다 샌드박스와 보안 파이프라인을 따로 두고, 승인은 세션 단위 브로커가 모든 연결에 방송한다. 차이는 화면과 승인 입력 방식뿐이다.
 
 ## 저장 위치
 
@@ -133,6 +137,9 @@ JARVIS 가 남기는 데이터는 아래 위치에 저장된다.
 | 승인 기억 | 공용 `~/.jarvis/approvals.yaml`, 에이전트별 `~/.jarvis/approvals/<agent_id>.yaml` |
 | 절차 | `~/.jarvis/procedures/<name>.md` |
 | 스케줄 | `~/.jarvis/schedules/*.yaml` |
+| 목표 | `~/.jarvis/goals/<id>.json` |
+| Focus 작업 | `~/.jarvis/focus/<task_id>/`(`state.json`, `log.md`, `references.md`, `analysis.jsonl`) |
+| 최상위 에이전트 정의 | `~/.jarvis/team/<id>.yaml` |
 | 사용자 모델 | `~/.jarvis/user_model.json` |
 | 사고 템플릿 | `~/.jarvis/inner_thought.md`, `inner_thought_reflection.md` |
 | 외부 소스 | `~/.jarvis/external_sources/*.yaml`, 본 것은 `external_seen.jsonl` |

@@ -47,7 +47,8 @@ flowchart LR
   - 기한: 판단과 사고 전, `GET /api/agenda` 때, 기한 뒤 `JARVIS_OPENLOOP__EXPIRE_AFTER_SEC`(6시간)가 지났거나 기한 없이 `JARVIS_OPENLOOP__MAX_AGE_SEC`(7일)보다 오래되면 `expired` 로 닫는다
 - 상태는 `open`, `done`, `dismissed`, `expired` 넷이다
 - 저장소: `~/.jarvis/openloops.jsonl`(append 로그, id 기준 마지막이 이긴다), Postgres `jarvis_open_loops`, 메모리
-- 조작: `/openloop`, `/openloop done <id>`, `/openloop dismiss <id>`, `POST /api/openloops/{id}` 로 약속을 보고 닫는다
+- 조작: `/openloop`, `/openloop done <id>`(id 앞 8자로도 찾는다), `/openloop dismiss <id>`, `POST /api/openloops/{id}` 로 약속을 보고 닫는다
+- 되살리기: AGENDA 카드는 최근 닫힌 약속 10개를 함께 보여 주고, ↺ 를 누르면 `POST /api/openloops/{id}` 에 `status: open` 을 보내 다시 연다. 다시 열자마자 기한이나 수명으로 만료될 약속은 409 로 거절한다. `/openloop` 명령에는 되살리기가 없다
 
 ## 약속 판정
 
@@ -126,7 +127,7 @@ ollama 기본값인 nomic-embed-text 는 한국어 문장끼리 코사인이 0.6
 | 약속이 생기지 않거나 취소 턴에 생긴다 | 사고 모델이 약속을 놓쳤다가 다음 턴에 적는다 | 한 번은 첫 턴에 약속이 없고 "취소됐어" 턴에 생겼다. 같은 프레임에서 닫으라고 한 것은 열지 않지만 이 경우는 막지 못한다 | ✕ |
 | 근거 없이 바꿔 말한 새 약속은 버려진다 | 사고가 `(근거: ...)` 를 빠뜨리면 약속 문구와 입력의 글자 겹침 20% 로만 본다 | "배포 끝나면 알려줄게" 를 근거 없이 "결과 공유" 로만 적으면 버려진다 | 다시 말한다 |
 | 닫힘이 답보다 늦을 수 있다 | AGENDA 판단은 응답과 함께 돌아 응답보다 늦게 끝날 수 있다 | 측정 전(이 표의 다른 수치는 약속 판단이 사고 안에 있을 때 잰 것이다) | 없음. 약속이 바뀌면 `agenda_changed` 로 AGENDA 가 다시 불린다 |
-| 잘못 닫힌 약속을 되살릴 수 없다 | 닫기만 있고 `open` 으로 되돌리는 API 와 화면이 없다 | | 다시 말하면 새 약속으로 생긴다 |
+| 기한이 지난 약속은 되살리지 못한다 | 다시 열면 곧바로 `expired` 로 닫히므로 API 가 409 로 거절한다 | 기한 뒤 6시간이 지났거나, 기한 없이 7일이 지난 약속 | 기한을 붙여 다시 말하면 새 약속으로 생긴다 |
 | 기한은 서버 시간대로 계산한다 | `[지금]` 과 기한 해석 모두 프로세스 로컬 시각이다 | 컨테이너 `TZ=Asia/Seoul` | 컨테이너 `TZ` 를 사용자 시간대로 맞춘다 |
 
 ## 성능 실험

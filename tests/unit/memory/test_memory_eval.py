@@ -11,15 +11,13 @@ from jarvis.memory.eval.runner import (
     format_report,
     load_retention_suites,
     load_suites,
-    load_working_suites,
     run,
     run_retention,
-    run_working,
 )
 from jarvis.memory.eval.schema import EpisodeFilter, EvalCase, Expect, ScopeSpec, SetupStep, load_cases
-from jarvis.memory.eval.target import LayeredTarget, StoreTarget
 from jarvis.memory.eval.probe import count_llm_calls
 from jarvis.memory import MemoryKind, MemoryScope
+from jarvis.memory.eval.target import EvalTarget
 from jarvis.memory.eval.metrics import judge
 from jarvis.memory.access import Readable
 
@@ -45,11 +43,10 @@ def test_shipped_datasets_parse():
     for suite in STORE_SUITES + REDESIGN_SUITES:
         cases = load_cases(DATASETS_DIR / f"{suite}.jsonl")
         assert cases and all(c.suite == suite for c in cases)
-    assert load_working_suites(["working"])
     assert load_retention_suites(["retention"])
     assert set(SUITES) == {
         "isolation", "semantic", "episodic", "procedural", "paraphrase", "access", "episode_filter",
-        "consolidation", "working", "retention", "faithfulness",
+        "consolidation", "retention", "faithfulness",
     }
 
 
@@ -174,39 +171,18 @@ async def test_redesign_suites_are_satisfiable_by_layered_reference():
 
 
 @pytest.mark.memory_eval
-async def test_store_baseline_without_case_policy_fails_redesign_suites():
-    """store 는 사례의 정책을 넘기지 않아(기본 정책만) 허락된 항목을 못 읽는다. 메타데이터와 정제는 아직 없다."""
-    report = await run(load_suites(list(REDESIGN_SUITES)), StoreTarget())
-    assert report.suites["access"].leak_rate == 0.0 and report.suites["access"].recall < 1.0
-    assert report.suites["episode_filter"].passed == 0
-    assert report.suites["consolidation"].recall == 0.0
+async def test_redesign_suites_pass():
+    report = await run(load_suites(list(REDESIGN_SUITES)), EvalTarget())
+    assert report.all_passed, format_report(report, verbose=True)
+    assert report.suites["access"].leak_rate == 0.0
 
 
 @pytest.mark.memory_eval
-async def test_retention_baseline_loses_facts_past_the_message_window():
-    """창 50 메시지 안이면 이력에, 컴팩션이 돌면 요약에 남는다. 창을 넘고 컴팩션 임계에 못 미치면 사라진다."""
-    report = await run_retention(load_retention_suites(["retention"]), StoreTarget())
-    passed = {c.case: c.passed for c in report.cases}
-    assert passed == {
-        "distance_2": True, "distance_5": True, "distance_20": True,
-        "distance_60": False, "distance_60_long_turns": True,
-    }
-
-
-@pytest.mark.memory_eval
-async def test_layered_retention_keeps_every_distance_with_a_fraction_of_the_context():
-    """STM 3턴 밖의 사실은 턴마다 쓴 EDM 에서 회상된다. 50 메시지 창보다 컨텍스트가 훨씬 작다."""
-    cases = load_retention_suites(["retention"])
-    layered = await run_retention(cases, LayeredTarget())
-    store = await run_retention(cases, StoreTarget())
-    assert layered.all_passed, format_report(layered, verbose=True)
-    assert layered.injected_chars * 5 < store.injected_chars
-
-
-async def test_layered_target_is_registered_and_runs_every_suite_kind():
-    target = LayeredTarget()
-    assert (await run(load_suites(["access"]), target)).all_passed  # 3단계(접근 정책)부터
-    assert (await run_retention(load_retention_suites(["retention"])[:1], target)).all_passed
+async def test_retention_keeps_every_distance_within_a_small_context():
+    """STM 3턴 밖의 사실은 턴마다 쓴 EDM 에서 회상된다. 옛 50 메시지 창은 같은 사례에 117,786자를 넣었다."""
+    report = await run_retention(load_retention_suites(["retention"]), EvalTarget())
+    assert report.all_passed, format_report(report, verbose=True)
+    assert report.injected_chars < 20_000
 
 
 # ── 실제 저장소: 격리(1단계), 지식 갱신과 일화와 절차(3단계) ───────────────
@@ -214,14 +190,14 @@ async def test_layered_target_is_registered_and_runs_every_suite_kind():
 
 @pytest.mark.memory_eval
 async def test_store_isolates_users_and_agents():
-    report = await run(load_suites(["isolation"]), StoreTarget())
+    report = await run(load_suites(["isolation"]), EvalTarget())
     assert report.all_passed, format_report(report, verbose=True)
     assert report.suites["isolation"].leak_rate == 0.0
 
 
 @pytest.mark.memory_eval
 async def test_store_prefers_latest_fact_and_abstains():
-    report = await run(load_suites(["semantic"]), StoreTarget())
+    report = await run(load_suites(["semantic"]), EvalTarget())
     assert report.all_passed, format_report(report, verbose=True)
     assert report.suites["semantic"].leak_rate == 0.0
     assert report.suites["semantic"].abstain_rate == 1.0
@@ -229,7 +205,7 @@ async def test_store_prefers_latest_fact_and_abstains():
 
 @pytest.mark.memory_eval
 async def test_store_episodic_and_procedural_suites_pass():
-    report = await run(load_suites(["episodic", "procedural"]), StoreTarget())
+    report = await run(load_suites(["episodic", "procedural"]), EvalTarget())
     assert report.all_passed, format_report(report, verbose=True)
     assert report.suites["episodic"].recall == 1.0
     assert report.suites["procedural"].recall == 1.0
@@ -256,17 +232,7 @@ def test_memory_kind_values():
     assert {k.value for k in MemoryKind} == {"episodic", "semantic", "procedural"}
 
 
-# ── 작업 기억 스위트 ─────────────────────────────────────────────────────────
-
-
-@pytest.mark.memory_eval
-async def test_working_suite_passes():
-    report = await run_working(load_working_suites(["working"]))
-    assert report.all_passed, format_report(report, verbose=True)
-    assert report.suites["working"].total >= 5
-
-
 @pytest.mark.memory_eval
 async def test_paraphrase_suite_passes_with_fake_embedder():
-    report = await run(load_suites(["paraphrase"]), StoreTarget())
+    report = await run(load_suites(["paraphrase"]), EvalTarget())
     assert report.all_passed, format_report(report, verbose=True)

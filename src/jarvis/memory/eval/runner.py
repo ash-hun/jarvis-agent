@@ -4,17 +4,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from dataclasses import asdict, dataclass
 
-from jarvis.memory.eval.schema import (
-    EvalCase,
-    RetentionCase,
-    WorkingCase,
-    load_cases,
-    load_retention_cases,
-    load_working_cases,
-)
+from jarvis.memory.eval.schema import EvalCase, RetentionCase, load_cases, load_retention_cases
 from jarvis.memory.eval.metrics import CaseResult, SuiteReport, judge, summarize
-from jarvis.memory.eval.target import EvalTarget, WorkingTarget
-from jarvis.memory.working.window import SUMMARY_HEADER
+from jarvis.memory.eval.target import EvalTarget
 from jarvis.model_layer.types import Message
 
 if TYPE_CHECKING:
@@ -23,12 +15,11 @@ if TYPE_CHECKING:
 
 DATASETS_DIR = Path(__file__).parent / "datasets"
 STORE_SUITES = ("isolation", "semantic", "episodic", "procedural", "paraphrase")
-# 계층 재설계 비교용. 기존 대상의 실패가 기준선이다(docs/memory-architecture-plan.md "기존 구조와의 성능 비교")
+# 계층 재설계(층별 권한, 일화 cherry-pick, 절차 정제)
 REDESIGN_SUITES = ("access", "episode_filter", "consolidation")
-WORKING_SUITES = ("working",)
 RETENTION_SUITES = ("retention",)
 FAITHFULNESS_SUITES = ("faithfulness",)
-SUITES = STORE_SUITES + REDESIGN_SUITES + WORKING_SUITES + RETENTION_SUITES + FAITHFULNESS_SUITES
+SUITES = STORE_SUITES + REDESIGN_SUITES + RETENTION_SUITES + FAITHFULNESS_SUITES
 
 
 @dataclass
@@ -56,14 +47,6 @@ def load_suites(names: list[str]) -> list[EvalCase]:
     for name in names:
         if name in STORE_SUITES + REDESIGN_SUITES:
             cases.extend(load_cases(DATASETS_DIR / f"{name}.jsonl"))
-    return cases
-
-
-def load_working_suites(names: list[str]) -> list[WorkingCase]:
-    cases: list[WorkingCase] = []
-    for name in names:
-        if name in WORKING_SUITES:
-            cases.extend(load_working_cases(DATASETS_DIR / f"{name}.jsonl"))
     return cases
 
 
@@ -114,46 +97,6 @@ def _text(message: Message) -> str:
     if isinstance(message.content, str):
         return message.content
     return message.text() if hasattr(message, "text") else ""
-
-
-async def run_working(cases: list[WorkingCase], target: WorkingTarget | None = None) -> EvalReport:
-    target = target or WorkingTarget()
-    results: list[CaseResult] = []
-    for case in cases:
-        calls, contexts = await target.run_case(case)
-        results.append(judge_working(case, calls, contexts))
-    return EvalReport(cases=results, suites=summarize(results), llm_calls=target.calls)
-
-
-def judge_working(case: WorkingCase, calls: list[int], contexts: list[list[Message]]) -> CaseResult:
-    e = case.expect
-    problems: list[str] = []
-    if calls != e.summarizer_calls:
-        problems.append(f"summarizer_calls={calls} expected={e.summarizer_calls}")
-    if e.max_messages is not None:
-        worst = max(len(c) for c in contexts)
-        if worst > e.max_messages:
-            problems.append(f"max_messages={worst} > {e.max_messages}")
-    has_summary = [bool(c) and _is_summary(c[0]) for c in contexts]
-    expected = [e.summary_from_turn is not None and t >= e.summary_from_turn for t in range(len(contexts))]
-    if has_summary != expected:
-        problems.append(f"summary_present={has_summary} expected={expected}")
-    if e.first_role is not None:
-        body = [m for m in contexts[-1] if not _is_summary(m)]
-        first = body[0].role if body else None
-        if first != e.first_role:
-            problems.append(f"first_role={first} expected={e.first_role}")
-    return CaseResult(
-        suite=case.suite,
-        case=case.case,
-        passed=not problems,
-        results=[f"calls={calls}", f"sizes={[len(c) for c in contexts]}"],
-        detail="; ".join(problems),
-    )
-
-
-def _is_summary(message: Message) -> bool:
-    return message.role == "user" and isinstance(message.content, str) and message.content.startswith(SUMMARY_HEADER)
 
 
 async def run_faithfulness_suite(

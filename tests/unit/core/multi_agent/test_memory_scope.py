@@ -104,7 +104,7 @@ async def test_parent_remembers_the_delegation_as_an_episode(harness, memory, fa
     assert len(episodes) == 1
     item = episodes[0]
     assert "researcher" in item.content and "논문 3편" in item.content and "세 편 요약" in item.content
-    assert (item.source, item.visibility, item.author) == ("delegation", "private", "orchestrator")
+    assert (item.source, item.kind, item.author) == ("delegation", MemoryKind.EPISODIC, "orchestrator")
     assert item.metadata["success"] is True and "agent:researcher" in item.tags
     # 서브 에이전트 자신은 부모의 위임 기록을 보지 않는다(부모 private)
     child_scope = PARENT_S1.child("researcher", "agent_researcher__s1")
@@ -113,8 +113,8 @@ async def test_parent_remembers_the_delegation_as_an_episode(harness, memory, fa
 
 async def test_subagent_sees_user_shared_facts_but_not_parent_private(harness, memory, faux_model_with_response):
     faux_model_with_response("ok")
-    await memory.remember("선호 음료: 커피", source="explicit", scope=PARENT_S1)  # shared
-    await memory.remember("세션 요약: 예산 논의", source="auto_summary", scope=PARENT_S1)  # private
+    await memory.remember("선호 음료: 커피", source="explicit", scope=PARENT_S1)  # 사용자 프로필
+    await memory.remember("세션 요약: 예산 논의", source="manual_compact", scope=PARENT_S1)  # 부모의 EDM
     make, built = harness
     tool, _ = make(AgentDefinition(name="researcher", description="리서치"))
 
@@ -122,9 +122,10 @@ async def test_subagent_sees_user_shared_facts_but_not_parent_private(harness, m
 
     child_scope = built["agent_researcher__s1"].memory_scope
     assert [i.content for i in await memory.fixed_facts(child_scope)] == ["선호 음료: 커피"]
-    assert [i.content for i in await memory.recent(scope=child_scope)] == ["선호 음료: 커피"]
-    # 반대로 자식이 남긴 private 요약은 부모에게 안 보인다
-    await memory.remember("작업 메모: 논문 요약", source="auto_summary", scope=child_scope)
+    seen = [i.content for i in await memory.recent(scope=child_scope)]
+    assert "선호 음료: 커피" in seen and "세션 요약: 예산 논의" not in seen
+    # 반대로 자식의 EDM 은 부모에게 안 보인다
+    await memory.remember("작업 메모: 논문 요약", source="manual_compact", scope=child_scope)
     assert "작업 메모" not in " ".join(i.content for i in await memory.recent(scope=PARENT_S1))
 
 

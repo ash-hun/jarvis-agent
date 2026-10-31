@@ -10,7 +10,6 @@ from jarvis.memory.long_term.procedural import (
     SkillRegistryProcedures,
 )
 from jarvis.memory import MemoryItem, MemoryKind, MemoryScope, MemoryService
-from jarvis.memory.eval.target import TARGETS, EvalTarget, StoreTarget
 from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.working.in_memory import InMemoryWorkingStore
 from jarvis.memory.working.postgres import PostgresWorkingStore
@@ -19,6 +18,7 @@ from jarvis.memory.stores.postgres import PostgresItemStore
 from jarvis.memory.eval.fake_embedder import FakeEmbedder
 from jarvis.memory.stores.protocol import ItemStore
 from jarvis.model_layer.embeddings import Embedder
+from jarvis.memory.eval.target import EvalTarget
 from jarvis.memory.eval.schema import SetupStep
 
 SCOPE = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
@@ -35,7 +35,6 @@ def test_concrete_stores_inherit_their_bases():
     assert isinstance(PostgresWorkingStore(dsn="postgresql://unused"), WorkingStore)
     assert isinstance(InMemoryProcedures(), ProceduralSource)
     assert isinstance(SkillRegistryProcedures(object()), ProceduralSource)
-    assert isinstance(StoreTarget(), EvalTarget)
     assert isinstance(FakeEmbedder(), Embedder)
 
 
@@ -65,12 +64,12 @@ async def test_item_store_search_without_tokens_or_vector_is_empty():
 
 async def test_working_store_base_roundtrip_and_legacy_defaults():
     store = WorkingStore()
-    state = WorkingState(scope=SCOPE, summary="요약", summary_covers=3)
+    state = WorkingState(scope=SCOPE, rehearsal={"i": 2}, notes=["n"])
     await store.save(state)
     loaded = await store.load(SCOPE)
-    assert (loaded.summary, loaded.summary_covers) == ("요약", 3)
+    assert (loaded.rehearsal, loaded.notes) == ({"i": 2}, ["n"])
     await store.clear(SCOPE)
-    assert (await store.load(SCOPE)).summary is None
+    assert (await store.load(SCOPE)).notes == []
     assert await store.legacy_stm_rows() is None
     await store.drop_legacy_stm()  # 지울 것이 없어도 에러 없이
 
@@ -112,4 +111,3 @@ async def test_eval_target_base_remembers_probes_and_resets():
     assert await target.probe("배포", SCOPE, top_k=3, kind="procedures") == ["deploy"]
     await target.reset()
     assert await target.probe("거주지", SCOPE, top_k=3) == []
-    assert TARGETS["store"] is StoreTarget

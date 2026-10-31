@@ -13,39 +13,31 @@ from jarvis.memory.eval.runner import (
     format_report,
     load_retention_suites,
     load_suites,
-    load_working_suites,
     merge,
     run,
     run_faithfulness_suite,
     run_retention,
-    run_working,
 )
-from jarvis.memory.eval.target import TARGETS
+from jarvis.memory.eval.target import EvalTarget
 
 if TYPE_CHECKING:
     from jarvis.memory.consolidation.semantic_extract import FactExtractor
     from jarvis.memory.consolidation.compaction import Summarizer
-    from jarvis.memory.eval.benchmark import Judge, Summarize
-    from jarvis.model_layer.types import Message, ModelConfig
     from jarvis.memory.eval.faithfulness import FactJudge
     from jarvis.model_layer.embeddings import Embedder
-    from jarvis.memory.scope import MemoryScope
+    from jarvis.model_layer.types import ModelConfig
+    from jarvis.memory.eval.benchmark import Judge
 
 
-async def _run_all(
-    names: list[str], target_name: str, summarizer: str = "extractive", judge: str | None = None
-) -> EvalReport:
+async def _run_all(names: list[str], summarizer: str = "extractive", judge: str | None = None) -> EvalReport:
     reports: list[EvalReport] = []
-    target = TARGETS[target_name]()
+    target = EvalTarget()
     store_cases = load_suites(names)
     if store_cases:
         reports.append(await run(store_cases, target))
     retention_cases = load_retention_suites(names)
     if retention_cases:
         reports.append(await run_retention(retention_cases, target))
-    working_cases = load_working_suites(names)
-    if working_cases:
-        reports.append(await run_working(working_cases))
     llm_summarizer_fn: Summarizer | None = None
     llm_judge_fn: FactJudge | None = None
     if summarizer == "llm" or judge == "llm":
@@ -97,31 +89,18 @@ async def _run_benchmark(args: argparse.Namespace) -> int:
         )
 
     model: ModelConfig | None = None
-    if args.mode == "full" or args.judge == "llm":
+    if args.extract == "llm" or args.judge == "llm":
         model = _settings_model()
 
-    save_session: Summarize | None = None
-    summarizer: Summarizer | None = None
     extractor: FactExtractor | None = None
-    if args.mode == "full":
+    if args.extract == "llm":
         from jarvis.memory.consolidation.semantic_extract import llm_fact_extractor
-        from jarvis.memory.consolidation.episodic import EpisodicSummarizer
-        from jarvis.memory.consolidation import llm_summarizer
 
-        assert model is not None  # mode == "full" 이면 바로 위에서 채웠다
-        full_model = model
-        summarizer, extractor = llm_summarizer(full_model), llm_fact_extractor(full_model)
+        assert model is not None  # extract == "llm" 이면 바로 위에서 채웠다
+        extractor = llm_fact_extractor(model)
 
     def memory_factory() -> MemoryService:
-        return MemoryService(InMemoryItemStore(), summarizer=summarizer, extractor=extractor, embedder=embedder)
-
-    if args.mode == "full":
-        async def full_save_session(
-            memory: MemoryService, session_id: str, history: "list[Message]", scope: "MemoryScope"
-        ) -> str | None:
-            return await EpisodicSummarizer(full_model, memory).save_session(session_id, history, scope)
-
-        save_session = full_save_session
+        return MemoryService(InMemoryItemStore(), extractor=extractor, embedder=embedder)
 
     judge: Judge | None = None
     if args.judge == "llm":
@@ -135,7 +114,7 @@ async def _run_benchmark(args: argparse.Namespace) -> int:
         judge = contains_judge()
 
     report = await run_benchmark(
-        args.benchmark, questions, memory_factory, k=args.k, mode=args.mode, save_session=save_session, judge=judge
+        args.benchmark, questions, memory_factory, k=args.k, mode=args.mode, judge=judge
     )
     print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2) if args.json else format_benchmark(report))
     return 0
@@ -144,13 +123,14 @@ async def _run_benchmark(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="jarvis.memory.eval")
     parser.add_argument("--suite", default="all", choices=("all", *SUITES))
-    parser.add_argument("--target", default="store", choices=tuple(TARGETS))
     parser.add_argument("--benchmark", choices=("longmemeval", "locomo"))
     parser.add_argument("--path", help="벤치마크 원본 JSON 경로 (레포 밖, 예: ~/.jarvis/benchmarks/longmemeval_s.json)")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--k", type=int, default=5)
-    parser.add_argument("--mode", default="raw", choices=("raw", "full"))
+    parser.add_argument("--mode", default="raw", choices=("raw", "turns"),
+                        help="raw: 대화 턴마다 항목 하나. turns: 발화와 답을 턴 일화 하나로 쓰고 세션 끝에 공고화")
+    parser.add_argument("--extract", default=None, choices=("llm",), help="turns 모드의 공고화에서 사실 추출")
     parser.add_argument("--embedder", default="fake", choices=("fake", "config"))
     parser.add_argument("--judge", default=None, choices=("llm", "contains"))
     parser.add_argument("--summarizer", default="extractive", choices=("extractive", "llm"),
@@ -165,7 +145,7 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(_run_benchmark(args))
 
     names = list(SUITES) if args.suite == "all" else [args.suite]
-    report = asyncio.run(_run_all(names, args.target, args.summarizer, args.judge))
+    report = asyncio.run(_run_all(names, args.summarizer, args.judge))
     if args.json:
         print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
     else:

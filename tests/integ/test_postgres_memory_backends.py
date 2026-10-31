@@ -68,23 +68,22 @@ class TestPostgresWorkingStore:
         from jarvis.memory import MemoryScope
 
         state = await working.load(MemoryScope(user_id="u1", session_id="nothing-here"))
-        assert state.summary is None and state.summary_covers == 0 and state.notes == []
+        assert state.notes == [] and state.rehearsal == {}
 
     async def test_save_load_and_upsert(self, working):
         from jarvis.memory.working import WorkingState
         from jarvis.memory import MemoryScope
 
         scope = MemoryScope(user_id="u1", agent_id="main", session_id="w1")
-        state = WorkingState(scope=scope, summary="첫 요약", summary_covers=3, rehearsal={"i": 1}, notes=["n"])
+        state = WorkingState(scope=scope, rehearsal={"i": 1}, notes=["n"])
         await working.save(state)
         await working.save(state)  # 같은 키 두 번: 행 하나, 같은 상태
         loaded = await working.load(scope)
-        assert (loaded.summary, loaded.summary_covers) == ("첫 요약", 3)
         assert (loaded.rehearsal, loaded.notes) == ({"i": 1}, ["n"])
 
-        state.summary, state.summary_covers = "둘째 요약", 7
+        state.notes = ["둘째"]
         await working.save(state)
-        assert (await working.load(scope)).summary == "둘째 요약"
+        assert (await working.load(scope)).notes == ["둘째"]
 
     async def test_sessions_and_users_are_separate_rows(self, working):
         from jarvis.memory.working import WorkingState
@@ -92,20 +91,20 @@ class TestPostgresWorkingStore:
 
         a = MemoryScope(user_id="u1", session_id="iso")
         b = MemoryScope(user_id="u2", session_id="iso")
-        await working.save(WorkingState(scope=a, summary="A"))
-        await working.save(WorkingState(scope=b, summary="B"))
-        assert (await working.load(a)).summary == "A"
-        assert (await working.load(b)).summary == "B"
-        assert (await working.load(a.with_session("other"))).summary is None
+        await working.save(WorkingState(scope=a, notes=["A"]))
+        await working.save(WorkingState(scope=b, notes=["B"]))
+        assert (await working.load(a)).notes == ["A"]
+        assert (await working.load(b)).notes == ["B"]
+        assert (await working.load(a.with_session("other"))).notes == []
 
     async def test_clear(self, working):
         from jarvis.memory.working import WorkingState
         from jarvis.memory import MemoryScope
 
         scope = MemoryScope(user_id="u1", session_id="clr")
-        await working.save(WorkingState(scope=scope, summary="x"))
+        await working.save(WorkingState(scope=scope, notes=["x"]))
         await working.clear(scope)
-        assert (await working.load(scope)).summary is None
+        assert (await working.load(scope)).notes == []
 
     async def test_close_and_reopen(self, postgres_dsn):
         from jarvis.memory.working.postgres import PostgresWorkingStore
@@ -114,11 +113,11 @@ class TestPostgresWorkingStore:
 
         scope = MemoryScope(user_id="u1", session_id="reopen")
         b = PostgresWorkingStore(dsn=postgres_dsn)
-        await b.save(WorkingState(scope=scope, summary="before close", summary_covers=2))
+        await b.save(WorkingState(scope=scope, notes=["before close"]))
         await b.close()
 
         b2 = PostgresWorkingStore(dsn=postgres_dsn)
-        assert (await b2.load(scope)).summary == "before close"
+        assert (await b2.load(scope)).notes == ["before close"]
         await b2.close()
 
 
@@ -206,9 +205,9 @@ class TestItemStoreMigration:
             fact = await memory.get("legacy1")
             summary = await memory.get("legacy2")
             assert fact is not None and summary is not None
-            assert (fact.kind.value, fact.visibility, fact.author) == ("semantic", "shared", "user")
+            assert (fact.kind.value, fact.author) == ("semantic", "user")
             assert fact.scope.user_id is None
-            assert (summary.kind.value, summary.visibility, summary.author) == ("episodic", "private", "agent")
+            assert (summary.kind.value, summary.author) == ("episodic", "agent")
             assert summary.scope.agent_id == "main"
             # 어느 사용자의 main 에서도 둘 다 보이고, 다른 에이전트에는 사실만 보인다
             for user in ("u1", "u2"):
@@ -218,37 +217,6 @@ class TestItemStoreMigration:
             other = {i.id for i in await memory.recent(scope=MemoryScope(user_id="u1", agent_id="karen"), limit=10)}
             assert "legacy1" in other and "legacy2" not in other
             await store.close()
-
-    async def test_shared_episodes_from_old_backfill_become_private(self, postgres_dsn):
-        """예전 backfill 이 shared 로 둔 일화는 main 전용으로 바뀌고, 사실은 그대로 shared 다. 두 번 열어도 같다."""
-        import asyncpg
-
-        from jarvis.memory.stores.postgres import PostgresItemStore
-
-        store = PostgresItemStore(dsn=postgres_dsn)
-        await store._get_pool()  # 테이블 준비
-        await store.close()
-        conn = await asyncpg.connect(postgres_dsn)
-        try:
-            await conn.execute("DELETE FROM jarvis_ltm_entries")
-            await conn.execute(
-                "INSERT INTO jarvis_ltm_entries (id, content, source, kind, visibility, agent_id, author) VALUES "
-                "('ep', '옛 요약', 'auto_summary', 'episodic', 'shared', 'main', 'agent'),"
-                "('fa', '옛 사실', 'explicit', 'semantic', 'shared', 'main', 'user')"
-            )
-        finally:
-            await conn.close()
-
-        for _ in range(2):
-            store = PostgresItemStore(dsn=postgres_dsn)
-            await store._get_pool()
-            await store.close()
-        conn = await asyncpg.connect(postgres_dsn)
-        try:
-            rows = dict(await conn.fetch("SELECT id, visibility FROM jarvis_ltm_entries ORDER BY id"))
-        finally:
-            await conn.close()
-        assert rows == {"ep": "private", "fa": "shared"}
 
     async def test_scope_filter_in_sql(self, ltm):
         from jarvis.memory import MemoryScope

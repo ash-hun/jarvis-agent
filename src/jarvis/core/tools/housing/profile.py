@@ -230,7 +230,7 @@ class ProfileStore:
         # 모든 에이전트가 보는 사용자 사실이다. 같은 id 로 덮어 다시 저장해도 하나만 남는다
         await self._memory.remember(
             content, source=PROFILE_SOURCE, scope=scope.with_session(None), kind=MemoryKind.SEMANTIC,
-            visibility="shared", author="user", metadata=profile.metadata(), importance=0.8, item_id=profile_id(user),
+            author="user", metadata=profile.metadata(), importance=0.8, item_id=profile_id(user),
         )
 
     async def clear(self, user_id: str) -> bool:

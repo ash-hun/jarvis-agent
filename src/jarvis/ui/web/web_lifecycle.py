@@ -65,4 +65,4 @@ class WebLifecycle:
         if ctx.external_poller is not None:
             await ctx.external_poller.stop()
         services = state.assembly.services
-        await state.registry.save_all_sessions(ctx.session_repo, services.memory, services.model_config)
+        await state.registry.consolidate_all_sessions(services.memory)

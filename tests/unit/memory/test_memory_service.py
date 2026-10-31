@@ -28,26 +28,26 @@ async def test_remember_applies_write_rule_for_source(memory):
     item_id = await memory.remember("거주지: 서울", source="explicit", scope=U1_MAIN)
     item = await memory.get(item_id)
     assert item is not None
-    assert (item.kind, item.visibility, item.author) == (MemoryKind.SEMANTIC, "shared", "user")
+    assert (item.kind, item.author) == (MemoryKind.SEMANTIC, "user")
 
-    summary_id = await memory.remember("요약", source="auto_summary", scope=U1_RESEARCHER)
+    summary_id = await memory.remember("요약", source="manual_compact", scope=U1_RESEARCHER)
     summary = await memory.get(summary_id)
     assert summary is not None
-    assert (summary.kind, summary.visibility, summary.author) == (MemoryKind.EPISODIC, "private", "researcher")
+    assert (summary.kind, summary.author) == (MemoryKind.EPISODIC, "researcher")
     assert summary.session_id == "agent_researcher__s1"
 
 
 async def test_remember_keyword_overrides_rule(memory):
-    item_id = await memory.remember("x", source="explicit", scope=U1_MAIN, visibility="private", tags=["t"])
+    item_id = await memory.remember("x", source="explicit", scope=U1_MAIN, kind=MemoryKind.EPISODIC, tags=["t"])
     item = await memory.get(item_id)
-    assert item is not None and item.visibility == "private" and item.tags == ["t"]
+    assert item is not None and item.kind is MemoryKind.EPISODIC and item.tags == ["t"]
 
 
 async def test_unknown_source_is_an_agent_episode_not_a_user_fact(memory):
     """의미 기억은 사용자 프로필이다. 규칙에 없는 경로가 쓴 글이 [핵심 사실] 에 올라가면 안 된다."""
     item_id = await memory.remember("새 경로가 남긴 결과", source="some_new_path", scope=U1_MAIN)
     item = await memory.get(item_id)
-    assert item is not None and (item.kind, item.visibility) == (MemoryKind.EPISODIC, "private")
+    assert item is not None and item.kind is MemoryKind.EPISODIC
     assert await memory.fixed_facts(U1_MAIN) == []
 
 
@@ -60,15 +60,8 @@ async def test_user_profile_fact_written_by_one_agent_is_fixed_for_every_agent(m
     assert await memory.fixed_facts(U2_MAIN) == []
 
 
-def test_every_semantic_rule_is_shared():
-    """의미 기억을 쓰는 규칙은 전부 shared 다. private 의미 기억은 사용자 프로필인데 일부 에이전트만 보게 된다."""
-    assert all(r.visibility == "shared" for r in WRITE_RULES.values() if r.kind is MemoryKind.SEMANTIC)
-
-
 def test_every_known_source_has_a_rule():
-    assert {"explicit", "auto_summary", "manual_compact", "session_end", "thought", "journal", "promoted"} <= set(
-        WRITE_RULES
-    )
+    assert {"explicit", "turn", "manual_compact", "thought", "journal", "promoted", "task_pattern"} <= set(WRITE_RULES)
 
 
 # ── 저장소 격리 ──────────────────────────────────────────────────────────────

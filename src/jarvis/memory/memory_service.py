@@ -20,26 +20,18 @@ from jarvis.memory.long_term.task_pattern import (
     render_block,
     teaches,
 )
-from jarvis.memory.working.window import (
-    apply_window,
-    chars_of,
-    cut_at_user_boundary,
-    last_turns,
-    summary_message,
-    turn_starts,
-)
 from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
 from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank, relevance
 from jarvis.memory.scope import MemoryScope, current_task, scope_from_context, task_scope
 from jarvis.memory.stores.protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore
-from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind, Visibility
 from jarvis.memory.long_term.refine import CHAT_TASK, Candidate, candidates
 from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
 from jarvis.memory.consolidation.semantic_extract import FactExtractor
 from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.access import MemoryPolicy, Readable, resolve
+from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind
 from jarvis.memory.working.in_memory import InMemoryWorkingStore
-from jarvis.memory.consolidation.compaction import Summarizer
+from jarvis.memory.working.window import last_turns, turn_starts
 from jarvis.memory.long_term.episodic import prepare_episode
 from jarvis.model_layer.types import Message, UserMessage
 from jarvis.memory.working.deixis import retrieval_query
@@ -55,14 +47,13 @@ TURN_INDEX = "turn"  # 턴 일화 metadata 의 세션 안 턴 번호(1부터)
 TURN_CHARS = 1000  # 턴 일화에 남기는 발화와 답의 최대 글자 수. 도구 결과는 남기지 않는다
 USER_PREFIX = "사용자: "
 TURN_USER_CHARS = "user_chars"  # 턴 일화 content 에서 사용자 발화가 차지하는 글자 수(접두어 뒤)
-# session_end, auto_summary 는 더 쓰지 않지만 운영 DB 에 아직 추출하지 않은 행이 남아 있다
+# session_end, auto_summary 는 더 쓰지 않는다(옛 세션 요약). 운영 DB 에 아직 추출하지 않은 행이 남아 있다
 CONSOLIDATABLE_SOURCES = frozenset({TURN_SOURCE, "session_end", "auto_summary", "manual_compact"})
 
 
 @dataclass(frozen=True)
 class WriteRule:
     kind: MemoryKind
-    visibility: Visibility
     author: str | None  # None 이면 쓰는 에이전트의 id
     importance: float | None = None  # None 이면 MemoryItem 기본값
 
@@ -70,20 +61,18 @@ class WriteRule:
 # 쓰기 경로별 규칙. 계획서의 표가 정본이고 이 상수가 그 투영이다.
 WRITE_RULES: dict[str, WriteRule] = {
     # /remember. 사용자가 일부러 남기라고 한 것은 그 자체로 임팩트 신호다(섬광 기억 자리 대상)
-    "explicit": WriteRule(MemoryKind.SEMANTIC, "shared", "user", importance=0.8),
-    "usermodel": WriteRule(MemoryKind.SEMANTIC, "shared", None),  # 사용자 모델 증류
-    "extracted": WriteRule(MemoryKind.SEMANTIC, "shared", None),  # 일화에서 추출한 사실
-    "auto_summary": WriteRule(MemoryKind.EPISODIC, "private", None),  # 컴팩션
-    "manual_compact": WriteRule(MemoryKind.EPISODIC, "private", None),  # /compact
-    "session_end": WriteRule(MemoryKind.EPISODIC, "private", None),  # 세션 종료 요약
-    TURN_SOURCE: WriteRule(MemoryKind.EPISODIC, "private", None),  # 턴 기록(STM 3턴 밖은 여기서 회상)
-    "thought": WriteRule(MemoryKind.EPISODIC, "private", None),  # 사고 로그
-    "journal": WriteRule(MemoryKind.EPISODIC, "private", None),  # 자기 성찰 저널
-    "delegation": WriteRule(MemoryKind.EPISODIC, "private", "orchestrator"),  # 위임 기록
-    # 블랙보드 결과. 에이전트가 한 일이라 사용자 프로필(의미 기억)이 아니다. 다른 에이전트도 읽는다
-    "promoted": WriteRule(MemoryKind.EPISODIC, "shared", None),
-    # 사용자가 알려 준 작업 방식. 그 에이전트만 본다(같은 말도 에이전트마다 하는 일이 다르다)
-    TASK_PATTERN_SOURCE: WriteRule(MemoryKind.PROCEDURAL, "private", "user"),
+    "explicit": WriteRule(MemoryKind.SEMANTIC, "user", importance=0.8),
+    "usermodel": WriteRule(MemoryKind.SEMANTIC, None),  # 사용자 모델 증류
+    "extracted": WriteRule(MemoryKind.SEMANTIC, None),  # 일화에서 추출한 사실
+    "manual_compact": WriteRule(MemoryKind.EPISODIC, None),  # /compact
+    TURN_SOURCE: WriteRule(MemoryKind.EPISODIC, None),  # 턴 기록(STM 3턴 밖은 여기서 회상)
+    "thought": WriteRule(MemoryKind.EPISODIC, None),  # 사고 로그
+    "journal": WriteRule(MemoryKind.EPISODIC, None),  # 자기 성찰 저널
+    "delegation": WriteRule(MemoryKind.EPISODIC, "orchestrator"),  # 위임 기록
+    # 블랙보드 결과. 에이전트가 한 일이라 사용자 프로필(의미 기억)이 아니다. 승격한 에이전트의 EDM 이다
+    "promoted": WriteRule(MemoryKind.EPISODIC, None),
+    # 사용자가 알려 준 작업 방식. 그 에이전트의 PDM 이다(같은 말도 에이전트마다 하는 일이 다르다)
+    TASK_PATTERN_SOURCE: WriteRule(MemoryKind.PROCEDURAL, "user"),
 }
 # 한 턴에 넣는 작업 패턴 수와, 고를 때 보는 후보 수
 PATTERN_INJECT_LIMIT = 2
@@ -102,8 +91,9 @@ REFINE_FILTER = ItemFilter(exclude_sources=frozenset({"thought", "journal"}))
 Refiner = Callable[[MemoryScope], Awaitable[list[str]]]
 # 떠올린 항목의 낱말이 답에 이만큼 나오면 답에 쓰였다고 보고 되뇌기로 센다
 USED_OVERLAP = 0.5
+STM_TURNS = 3  # 모델에 넣는 최근 턴 수(config.MemoryConfig.stm_turns 기본값)
 # 규칙에 없는 경로는 에이전트가 겪은 일로 둔다. 의미 기억은 사용자에 대한 사실(사용자 프로필)이라 위 규칙으로만 쓴다
-_DEFAULT_RULE = WriteRule(MemoryKind.EPISODIC, "private", None)
+_DEFAULT_RULE = WriteRule(MemoryKind.EPISODIC, None)
 
 
 class MemoryService:
@@ -112,12 +102,8 @@ class MemoryService:
         store: ItemStore,
         working: WorkingStore | None = None,
         *,
-        summarizer: Summarizer | None = None,
         extractor: FactExtractor | None = None,
         procedures: ProceduralSource | None = None,
-        threshold_chars: int = 80_000,
-        keep_recent: int = 10,
-        window_size: int = 50,
         inject_limit: int = 3,
         fixed_facts: int = 3,
         importance_threshold: float = 0.5,
@@ -126,16 +112,12 @@ class MemoryService:
         embedder: Embedder | None = None,
         min_similarity: float = 0.3,
         policies: Mapping[str, MemoryPolicy] | None = None,
-        stm_turns: int | None = None,
+        stm_turns: int = STM_TURNS,
     ) -> None:
         self._store = store
         self._working: WorkingStore = working or InMemoryWorkingStore()
-        self._summarizer = summarizer
         self._extractor = extractor
         self._procedures = procedures
-        self._threshold_chars = threshold_chars
-        self._keep_recent = max(1, keep_recent)
-        self._window_size = window_size
         self._inject_limit = inject_limit
         self._fixed_facts = fixed_facts
         self._importance_threshold = importance_threshold
@@ -145,8 +127,8 @@ class MemoryService:
         self._min_similarity = min_similarity
         # 에이전트 id 별 읽기 정책(team/<id>.yaml). 없는 에이전트는 자기 것만 읽는다
         self._policies: Mapping[str, MemoryPolicy] = policies or {}
-        # 정하면 STM 은 최근 이 턴 수이고 컴팩션 대신 턴마다 EDM 에 쓴다. None 은 옛 창과 컴팩션(평가 store 대상)
-        self._stm_turns = stm_turns
+        # STM 은 최근 이 턴 수다. 그 밖의 대화는 턴마다 쓴 EDM 에서 회상한다
+        self._stm_turns = max(1, stm_turns)
         # 이번 턴의 (턴 번호, 사용자 발화). reinforce 가 답과 묶어 EDM 에 쓴다
         self._pending_turn: dict[MemoryScope, tuple[int, str]] = {}
         self._refiner: Refiner | None = None
@@ -165,60 +147,24 @@ class MemoryService:
         """절차 저장소와 증류기는 메모리보다 늦게 만들어져 생성자로 받지 못한다. 다시 꽂으면 바꾼다."""
         self._refiner = refiner
 
-    @property
-    def summarizes_sessions(self) -> bool:
-        """옛 창 모드만 세션 종료 요약을 쓴다. 턴 모드는 턴마다 EDM 에 이미 남겼다."""
-        return self._stm_turns is None
-
     # ── 턴 전 변환 ──────────────────────────────────────────────────────────
 
     async def observe(self, messages: list[Message], context: dict[str, Any]) -> list[Message]:
         """세션 이력 전체를 받아 LLM 에 넣을 컨텍스트를 만든다.
 
-        stm_turns 를 정했으면 최근 그 턴 수만 두고 블록을 붙인다. 이번 턴은 reinforce 가 EDM 에 쓴다.
-        정하지 않았으면 옛 창이다.
-        1. 작업 기억의 요약이 덮는 앞부분을 버리고
-        2. 남은 꼬리가 임계를 넘으면 한 번 더 요약해 persist 하고(임계를 다시 넘기 전엔 재요약 없음)
-        3. 창 크기로 자르고
-        4. 고정 블록(상위 의미 사실), 회상 블록(질의로 떠오른 항목), 절차 힌트를 앞에 붙이며 되뇌기를 올린다.
+        최근 stm_turns 턴만 두고 고정 블록(사용자 프로필), 회상 블록, 절차, 작업 패턴을 앞에 붙인다.
+        이번 턴은 reinforce 가 EDM 에 쓴다.
         """
         scope = scope_from_context(context)
-        if self._stm_turns is not None:
-            starts = turn_starts(messages)
-            if starts:
-                self._pending_turn[scope] = (len(starts), _text_of(messages[starts[-1]]))
-            # 창에 아직 있는 턴은 회상 블록에 다시 넣지 않는다
-            first_in_window = max(1, len(starts) - self._stm_turns + 1)
-            return await self._with_blocks(messages, last_turns(messages, self._stm_turns), scope, first_in_window)
-        state = await self._working.load(scope)
-        if state.summary_covers > len(messages):  # 이력이 줄었다(세션 초기화 등). 요약은 더 이상 맞지 않는다
-            state = WorkingState(scope=scope)
-        tail = messages[state.summary_covers :]
-        dirty = False
-
-        if (
-            self._summarizer is not None
-            and len(tail) > self._keep_recent
-            and chars_of(tail, state.summary) > self._threshold_chars
-        ):
-            keep = cut_at_user_boundary(tail[-self._keep_recent :])
-            to_compact = tail[: len(tail) - len(keep)]
-            new_summary = await self._summarizer(to_compact, state.summary)
-            if new_summary is not None:
-                state.summary = new_summary
-                state.summary_covers += len(to_compact)
-                dirty = True
-                await self.remember(new_summary, source="auto_summary", scope=scope)
-                tail = keep
-
-        tail = apply_window(tail, self._window_size)
-        out: list[Message] = ([summary_message(state.summary)] if state.summary else []) + tail
-        if dirty:
-            await self._working.save(state)
-        return await self._with_blocks(messages, out, scope, None)
+        starts = turn_starts(messages)
+        if starts:
+            self._pending_turn[scope] = (len(starts), _text_of(messages[starts[-1]]))
+        # 창에 아직 있는 턴은 회상 블록에 다시 넣지 않는다
+        first_in_window = max(1, len(starts) - self._stm_turns + 1)
+        return await self._with_blocks(messages, last_turns(messages, self._stm_turns), scope, first_in_window)
 
     async def _with_blocks(
-        self, messages: list[Message], out: list[Message], scope: MemoryScope, first_in_window: int | None
+        self, messages: list[Message], out: list[Message], scope: MemoryScope, first_in_window: int
     ) -> list[Message]:
         """고정 블록, 회상 블록, 절차, 작업 패턴, 작업 공유 메모리를 창 앞에 붙이고 떠올린 항목을 기록한다."""
         query = _last_user_text(messages)
@@ -232,7 +178,7 @@ class MemoryService:
         if cue:
             # 고정 블록에 이미 있는 항목도 질의에 걸리면 떠올린 것이다. 회상 블록에는 겹치지 않게 뺀다
             # 창 안의 턴은 아래에서 빼므로 그만큼 더 받아야 회상 자리가 줄지 않는다
-            extra = len(fixed) + (self._stm_turns or 0)
+            extra = len(fixed) + self._stm_turns
             cued = await self.recall(
                 cue, scope, kinds=RECALL_KINDS, limit=self._inject_limit + extra, where=RECALL_FILTER
             )
@@ -278,7 +224,7 @@ class MemoryService:
     ) -> list[str]:
         """이번 턴에 떠올린 항목 중 답에 쓰인 것만 되뇌기로 센다. 두 번 불러도 한 번만 센다.
 
-        턴 모드면 이번 턴을 EDM 에 쓴다. tools 는 이번 턴에 부른 도구 순서, failed 는 도구나 모델 실패,
+        이번 턴을 EDM 에 쓴다. tools 는 이번 턴에 부른 도구 순서, failed 는 도구나 모델 실패,
         steps 는 성공한 도구 호출(이름, 인자)이다.
 
         # ponytail: 항목 낱말이 답에 절반 넘게 나와야 쓰였다고 본다(긴 일화는 덜 잡힌다), 누락이 보이면 임베딩 유사도로
@@ -415,7 +361,6 @@ class MemoryService:
         scope: MemoryScope,
         *,
         kind: MemoryKind | None = None,
-        visibility: Visibility | None = None,
         author: str | None = None,
         tags: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
@@ -435,7 +380,6 @@ class MemoryService:
             content=content,
             kind=kind or rule.kind,
             scope=resolved,
-            visibility=visibility or rule.visibility,
             author=author or rule.author or resolved.agent_id,
             source=source,
             tags=list(tags or []),
@@ -668,8 +612,8 @@ def _text_of(message: Message) -> str:
     return message.text() if hasattr(message, "text") else ""
 
 
-def _in_window(item: MemoryItem, scope: MemoryScope, first_in_window: int | None) -> bool:
-    if first_in_window is None or item.source != TURN_SOURCE or item.scope.session_id != scope.session_id:
+def _in_window(item: MemoryItem, scope: MemoryScope, first_in_window: int) -> bool:
+    if item.source != TURN_SOURCE or item.scope.session_id != scope.session_id:
         return False
     return int(item.metadata.get(TURN_INDEX, 0)) >= first_in_window
 

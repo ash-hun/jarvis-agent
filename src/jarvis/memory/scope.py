@@ -5,8 +5,6 @@ from contextvars import ContextVar
 from dataclasses import dataclass, replace
 
 MAIN_AGENT = "main"
-SHARED = "shared"
-PRIVATE = "private"
 # 인증이 없는 TUI 와 열린 web 모드의 사용자 id. NoAuthAuthenticator 와 같은 값이어야
 # 턴 안에서 읽는 scope 와 슬래시 명령이 쓰는 scope 가 일치한다.
 LOCAL_USER = "local"

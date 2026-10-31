@@ -35,8 +35,6 @@ class PostgresWorkingStore(WorkingStore):
                         user_id        TEXT        NOT NULL,
                         agent_id       TEXT        NOT NULL,
                         session_id     TEXT        NOT NULL,
-                        summary        TEXT,
-                        summary_covers INTEGER     NOT NULL DEFAULT 0,
                         rehearsal      JSONB       NOT NULL DEFAULT '{{}}',
                         notes          JSONB       NOT NULL DEFAULT '[]',
                         updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -49,7 +47,7 @@ class PostgresWorkingStore(WorkingStore):
         pool = await self._get_pool()
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
-                f"SELECT summary, summary_covers, rehearsal, notes, updated_at FROM {TABLE}"
+                f"SELECT rehearsal, notes, updated_at FROM {TABLE}"
                 " WHERE user_id = $1 AND agent_id = $2 AND session_id = $3",
                 *_key(scope),
             )
@@ -61,8 +59,6 @@ class PostgresWorkingStore(WorkingStore):
             updated = updated.astimezone(UTC).replace(tzinfo=None)
         return WorkingState(
             scope=scope,
-            summary=row["summary"],
-            summary_covers=row["summary_covers"],
             rehearsal=json.loads(rehearsal) if isinstance(rehearsal, str) else dict(rehearsal or {}),
             notes=json.loads(notes) if isinstance(notes, str) else list(notes or []),
             updated_at=updated,
@@ -74,15 +70,12 @@ class PostgresWorkingStore(WorkingStore):
             await conn.execute(
                 f"""
                 INSERT INTO {TABLE}
-                    (user_id, agent_id, session_id, summary, summary_covers, rehearsal, notes, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8)
+                    (user_id, agent_id, session_id, rehearsal, notes, updated_at)
+                VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6)
                 ON CONFLICT (user_id, agent_id, session_id) DO UPDATE SET
-                    summary = EXCLUDED.summary, summary_covers = EXCLUDED.summary_covers,
                     rehearsal = EXCLUDED.rehearsal, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at
                 """,
                 *_key(state.scope),
-                state.summary,
-                state.summary_covers,
                 json.dumps(state.rehearsal, ensure_ascii=False),
                 json.dumps(state.notes, ensure_ascii=False),
                 datetime.now(),

@@ -10,12 +10,11 @@ from jarvis.ui.web.web_auth import auth_enabled
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.protocol import SessionMetadata, SessionRepo
+    from jarvis.agent_layer.session.protocol import SessionMetadata
     from jarvis.memory.memory_service import MemoryService
     from jarvis.core.policy.sandbox import DefaultSandbox
     from jarvis.app.agent_registry import AgentRegistry
     from jarvis.core.tools.registry import ToolRegistry
-    from jarvis.model_layer.types import ModelConfig
     from jarvis.app.app_services import AppServices
     from jarvis.app.app_context import AppContext
     from jarvis.core.session import AgentSession
@@ -178,32 +177,17 @@ class SessionRegistry:
         items.sort(key=lambda kv: self._last_activity.get(kv[0], float("-inf")), reverse=True)
         return [session for _, session in items]
 
-    async def save_all_sessions(
-        self, session_repo: "SessionRepo", memory: "MemoryService", model: "ModelConfig"
-    ) -> None:
-        """서버 종료 때 세션마다 요약(옛 창 모드만), 공고화, 절차 학습. 한 세션 실패가 다른 세션을 막지 않는다."""
-        from jarvis.memory.consolidation.episodic import EpisodicSummarizer
-        from jarvis.app.session_builder import learn_procedures
+    async def consolidate_all_sessions(self, memory: "MemoryService") -> None:
+        """서버 종료 때 세션마다 공고화(사실 추출, 절차 정제). 대화는 턴마다 EDM 에 이미 남았다.
 
-        summarizer = EpisodicSummarizer(model=model, memory=memory)
+        한 세션의 실패가 다른 세션을 막지 않는다.
+        """
         for session_id, session in list(self._sessions.items()):
             try:
                 # 응답과 함께 띄운 사고와 AGENDA 판단을 끊지 않고 마무리한다
                 await session.settle()
-                msgs = await session_repo.get_messages(session._session_id)
-                if not msgs:
-                    continue
-                scope = session.memory_scope
-                entry_id = None
-                if memory.summarizes_sessions:
-                    entry_id = await summarizer.save_session(session._session_id, msgs, scope=scope)
-                if entry_id:
-                    logger.info(f"[Episodic] Session {session_id[:8]} summary saved (id: {entry_id[:8]})")
-                facts = await memory.consolidate(scope)
+                facts = await memory.consolidate(session.memory_scope)
                 if facts:
                     logger.info(f"[Memory] Session {session_id[:8]}: {facts} fact(s) consolidated")
-                learned = await learn_procedures(self._ctx, session._session_id, msgs)
-                if learned:
-                    logger.info(f"[Procedures] Session {session_id[:8]}: draft(s) saved: {', '.join(learned)}")
             except Exception as exc:
-                logger.info(f"[Episodic] Session {session_id[:8]} summary failed (non-fatal): {exc}")
+                logger.info(f"[Memory] Session {session_id[:8]} consolidation failed (non-fatal): {exc}")

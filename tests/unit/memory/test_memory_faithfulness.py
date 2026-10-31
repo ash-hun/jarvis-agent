@@ -32,11 +32,14 @@ async def test_lossy_summarizer_fails_and_reports_missing_facts():
     assert "retention=0.25" in r.detail
 
 
-async def test_no_compaction_is_a_failure_not_a_pass():
+async def test_no_summary_is_a_failure_not_a_pass():
     cases = load_faithfulness_cases(DATASETS_DIR / "faithfulness.jsonl")
-    big = cases[0].model_copy(update={"threshold_chars": 10_000_000})
-    (r,) = await run_faithfulness([big], extractive_summarizer(), contains_fact_judge())
-    assert not r.passed and r.detail == "no compaction happened"
+
+    async def silent(messages, prior):
+        return None
+
+    (r,) = await run_faithfulness(cases[:1], silent, contains_fact_judge())
+    assert not r.passed and r.detail == "no summary"
 
 
 async def test_suite_report_has_mean_score_column():

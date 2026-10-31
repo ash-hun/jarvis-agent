@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from jarvis.memory.scope import MAIN_AGENT, MemoryScope
-from jarvis.memory.types import MemoryKind, Visibility
+from jarvis.memory.types import MemoryKind
 
 Outcome = Literal["success", "failure"]
 
@@ -25,7 +25,6 @@ class SetupStep(BaseModel):
 
     remember: str | None = None
     kind: MemoryKind = MemoryKind.SEMANTIC
-    visibility: Visibility = "private"
     scope: ScopeSpec | None = None  # 없으면 사례의 scope 를 쓴다
     at: str | None = None  # ISO 날짜. 지식 갱신처럼 순서가 중요한 사례용
     importance: float | None = None
@@ -80,57 +79,14 @@ def load_cases(path: Path) -> list[EvalCase]:
     return cases
 
 
-# ── 작업 기억 스위트 ────────────────────────────────────────────────────────────
-# 저장소가 아니라 턴 단위 변환(observe)을 잰다. 사례는 턴마다 몇 개의 메시지를 몇 글자로 더할지로 정의한다.
-
-
-class WorkingTurn(BaseModel):
-    messages: int  # 이번 턴에 이력에 더할 메시지 수 (user, assistant 번갈아)
-    chars: int = 100
-
-
-class WorkingConfig(BaseModel):
-    threshold_chars: int = 80_000
-    keep_recent: int = 10
-    window_size: int = 50
-    rebuild_between_turns: bool = False  # True 면 턴마다 매니저를 새로 만든다(저장소는 공유). 영속성 검증용
-
-
-class WorkingExpect(BaseModel):
-    summarizer_calls: list[int]  # 턴별 요약기 호출 수
-    max_messages: int | None = None  # 어느 턴이든 컨텍스트 메시지 수 상한(요약 메시지 포함)
-    # 이 턴(0부터)부터 요약 메시지가 앞에 붙어야 한다. None 이면 끝까지 없어야 한다
-    summary_from_turn: int | None = None
-    first_role: str | None = None  # 마지막 턴 컨텍스트에서 요약 다음 첫 메시지의 role
-
-
-class WorkingCase(BaseModel):
-    suite: str
-    case: str
-    config: WorkingConfig = Field(default_factory=WorkingConfig)
-    turns: list[WorkingTurn]
-    expect: WorkingExpect
-
-
-def load_working_cases(path: Path) -> list[WorkingCase]:
-    cases: list[WorkingCase] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            cases.append(WorkingCase.model_validate(json.loads(line)))
-    return cases
-
-
 # ── 턴 거리별 보존 스위트 ────────────────────────────────────────────────────────
-# 사실을 말하고 distance 턴 뒤에 묻는다. 답이 모델 컨텍스트(이력 창, 요약, 주입 블록)에 있어야 한다.
+# 사실을 말하고 distance 턴 뒤에 묻는다. 답이 모델 컨텍스트(최근 턴 창, 회상 블록)에 있어야 한다.
 
 
 class RetentionConfig(BaseModel):
     """기본값은 운영 설정(config.MemorySettings)과 같다."""
 
-    stm_turns: int = 3  # layered 대상만 쓴다
-    threshold_chars: int = 100_000  # 아래 둘은 store 대상(옛 창)만
-    keep_recent: int = 10
-    window_size: int = 50
+    stm_turns: int = 3
 
 
 class RetentionCase(BaseModel):

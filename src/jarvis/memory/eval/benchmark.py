@@ -6,7 +6,6 @@ from datetime import datetime
 from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass, field
 
-from jarvis.model_layer.types import AssistantMessage, Message, TextContent, UserMessage
 from jarvis.memory.memory_service import MemoryService
 from jarvis.memory.scope import MemoryScope
 from jarvis.memory.types import MemoryItem
@@ -14,7 +13,7 @@ from jarvis.memory.types import MemoryItem
 USER = "benchmark"
 
 # mode raw: 턴마다 일화 하나, LLM 없이 검색 품질만 본다(기본, 빠름).
-# mode full: 하네스처럼 observe 로 흘리고 세션 끝에 요약과 공고화. 실제 LLM 이 필요해 비싸다.
+# mode turns: 하네스처럼 사용자 발화와 답을 턴 일화(EDM) 하나로 쓰고 세션 끝에 공고화. 추출기를 주면 LLM 이 돈다.
 # 증거 재현율은 LLM 없이 계산하고, 정답 포함 여부(accuracy)는 --judge 일 때만 LLM 으로 판정한다.
 
 
@@ -101,31 +100,46 @@ async def ingest_raw(memory: MemoryService, question: BenchmarkQuestion) -> None
         for turn in session.turns:
             await memory.remember(
                 f"[{turn.role}] {turn.text}",
-                source="session_end",
+                source="benchmark",
                 scope=scope,
                 tags=[f"session:{session.session_id}", f"turn:{turn.turn_id}"],
                 created_at=created,
             )
 
 
-# 세션 종료 요약. 질문에 쓰는 메모리를 받아야 요약이 회상 대상에 남는다
-Summarize = Callable[[MemoryService, str, list[Message], MemoryScope], Awaitable[str | None]]
-
-
-async def ingest_full(memory: MemoryService, question: BenchmarkQuestion, save_session: Summarize) -> None:
-    """하네스처럼: user 턴마다 observe(컴팩션 포함), 세션 끝에 종료 요약과 공고화."""
+async def ingest_turns(memory: MemoryService, question: BenchmarkQuestion) -> None:
+    """사용자 발화와 바로 뒤의 답을 턴 일화 하나로. 두 턴 id 를 태그로 남겨 증거 재현율을 계산한다."""
     for session in question.sessions:
         scope = MemoryScope(user_id=USER, agent_id="main", session_id=session.session_id)
-        context = {"user_id": USER, "agent_id": "main", "session_id": session.session_id}
-        history: list[Message] = []
-        for turn in session.turns:
+        created = _parse_date(session.date)
+        index = 0
+        pending: tuple[str, str] | None = None  # (발화, 턴 id)
+        for turn in [*session.turns, None]:
+            if pending is not None and (turn is None or turn.role == "user"):
+                await _turn(memory, scope, index, pending, None, created)
+                pending = None
+            if turn is None:
+                break
             if turn.role == "user":
-                history.append(UserMessage(content=turn.text))
-                await memory.observe(history, context)
-            else:
-                history.append(AssistantMessage(content=[TextContent(text=turn.text)]))
-        await save_session(memory, session.session_id, history, scope)
+                index += 1
+                pending = (turn.text, turn.turn_id)
+            elif pending is not None:
+                await _turn(memory, scope, index, pending, (turn.text, turn.turn_id), created)
+                pending = None
         await memory.consolidate(scope)
+
+
+async def _turn(
+    memory: MemoryService, scope: MemoryScope, index: int, user: tuple[str, str], answer: tuple[str, str] | None,
+    created: datetime | None,
+) -> None:
+    item = await memory.get(await memory.record_turn(index, user[0], answer[0] if answer else "", scope))
+    if item is None:
+        return
+    item.tags = [f"session:{scope.session_id}", f"turn:{user[1]}"] + ([f"turn:{answer[1]}"] if answer else [])
+    if created is not None:
+        item.created_at = item.occurred_at = created
+    await memory.store.store(item)
 
 
 # ── 질문 ──────────────────────────────────────────────────────────────────────
@@ -165,17 +179,14 @@ async def run_benchmark(
     *,
     k: int = 5,
     mode: str = "raw",
-    save_session: Summarize | None = None,
     judge: Judge | None = None,
 ) -> BenchmarkReport:
     """질문마다 새 메모리에 그 질문의 대화 전체를 넣고 묻는다. 질문 간 오염이 없고 순서에 의존하지 않는다."""
     results: list[QuestionResult] = []
     for question in questions:
         memory = memory_factory()
-        if mode == "full":
-            if save_session is None:
-                raise ValueError("full mode needs save_session")
-            await ingest_full(memory, question, save_session)
+        if mode == "turns":
+            await ingest_turns(memory, question)
         else:
             await ingest_raw(memory, question)
         result = await ask(memory, question, k)

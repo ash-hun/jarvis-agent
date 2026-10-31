@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from jarvis.memory.types import MemoryItem, MemoryKind
 from jarvis.model_layer.embeddings import cosine
 from jarvis.memory.scope import MemoryScope
+from jarvis.memory.access import Readable
 
 # 긴 것부터 본다('에서' 를 '서' 보다 먼저). 떼고 남는 말이 MIN_STEM_CHARS 보다 짧으면 떼지 않는다(회의, 평가)
 JOSA = (
@@ -40,6 +41,7 @@ class ItemStore:
         limit: int = 10,
         query_embedding: list[float] | None = None,
         min_similarity: float = 0.3,
+        readable: Readable | None = None,
     ) -> list[MemoryItem]:
         """scope 에서 보이는 항목 중 query 토큰과 겹치거나(키워드) 벡터가 min_similarity 이상 가까운 것(의미).
 
@@ -51,7 +53,7 @@ class ItemStore:
         if not tokens and query_embedding is None:
             return []
         hits = [
-            i for i in self._visible(scope, kinds)
+            i for i in self._visible(scope, kinds, readable)
             if any(t in i.search_text.lower() for t in tokens)
             or (
                 query_embedding is not None
@@ -70,17 +72,19 @@ class ItemStore:
         scope: MemoryScope,
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
+        readable: Readable | None = None,
     ) -> list[MemoryItem]:
-        return _latest(self._visible(scope, kinds), limit)
+        return _latest(self._visible(scope, kinds, readable), limit)
 
     async def important(
         self,
         scope: MemoryScope,
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
+        readable: Readable | None = None,
     ) -> list[MemoryItem]:
         """저장된 importance 내림차순(같으면 최신순). 질의 없이 고르는 고정 블록의 후보."""
-        return _most_important(self._visible(scope, kinds), limit)
+        return _most_important(self._visible(scope, kinds, readable), limit)
 
     async def touch(self, item_ids: Sequence[str], at: datetime) -> None:
         """회상된 항목의 last_accessed 를 갱신한다(점화)."""
@@ -114,12 +118,17 @@ class ItemStore:
         for key in [k for k, i in self._items.items() if _same_owner(i.scope, scope)]:
             del self._items[key]
 
-    def _visible(self, scope: MemoryScope, kinds: Sequence[MemoryKind] | None) -> list[MemoryItem]:
+    def _visible(
+        self, scope: MemoryScope, kinds: Sequence[MemoryKind] | None, readable: Readable | None
+    ) -> list[MemoryItem]:
+        """사용자 경계를 먼저 보고, 그 안에서 층별 정책(readable, 없으면 자기 것만)으로 거른다."""
         allowed = set(kinds) if kinds else None
+        policy = readable or Readable.own(scope.agent_id)
         return [
             i for i in self._items.values()
             if i.superseded_by is None
-            and scope.can_read(i.scope, i.visibility)
+            and (i.scope.user_id is None or i.scope.user_id == scope.user_id)
+            and policy.allows(i.scope.agent_id, i.kind)
             and (allowed is None or i.kind in allowed)
         ]
 

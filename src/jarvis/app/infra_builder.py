@@ -216,6 +216,7 @@ class InfraBuilder:
         """임베딩, 항목과 작업 기억 저장소(in_memory 또는 Postgres), 요약과 사실 추출을 단 메모리 서비스."""
         from jarvis.memory.consolidation.semantic_extract import llm_fact_extractor
         from jarvis.memory.long_term.procedural import SkillRegistryProcedures
+        from jarvis.app.agent_registry import load_agent_specs
         from jarvis.memory.consolidation import llm_summarizer
         from jarvis.memory.memory_service import MemoryService
         from jarvis.memory.retrieval import ScoringParams
@@ -250,6 +251,9 @@ class InfraBuilder:
             summarizer=llm_summarizer(model_config),
             extractor=llm_fact_extractor(model_config),
             procedures=SkillRegistryProcedures(skill_registry),
+            # 정본은 team/<id>.yaml 이다. 에이전트 레지스트리도 같은 파일을 읽는다
+            # ponytail: main 은 정의 파일이 없어 기본 정책(자기 것만)이다, 열어야 하면 설정에 memory 를 둔다
+            policies={agent_id: spec.memory for agent_id, spec in load_agent_specs(settings.team.dir).items()},
             threshold_chars=mcfg.compaction_threshold,
             window_size=mcfg.window_size,
             inject_limit=mcfg.recall_limit,

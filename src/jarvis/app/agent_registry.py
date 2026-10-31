@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from jarvis.app.agent_profile import MAIN_AGENT_ID, AgentProfile, compose_system_prompt
 from jarvis.app.session_builder import SessionBuilder
 from jarvis.config import BrandConfig, BrandPalette
+from jarvis.memory.access import MemoryPolicy
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
@@ -53,6 +54,8 @@ class AgentSpec(BaseModel):
     # 비우면 main 의 proactive 설정 그대로
     proactive: bool | None = None
     boundaries: Boundaries = Field(default_factory=Boundaries)
+    # 층별 메모리 읽기 정책. 비우면 자기 EDM, PDM 만 읽는다. 사용자 프로필은 정책과 무관하게 읽는다
+    memory: MemoryPolicy = Field(default_factory=MemoryPolicy)
 
 
 def load_agent_specs(team_dir: str) -> dict[str, AgentSpec]:

@@ -73,13 +73,16 @@ async def test_hierarchical_run_records_and_clears_task_memory(service, memory, 
     assert await memory.task_notes(episodes[0].metadata["task_id"], PARENT) == []
 
 
-async def test_blackboard_promote_writes_shared_episodes_not_user_facts(service, memory, faux_model_with_response):
+async def test_blackboard_promote_writes_parent_episodes_not_user_facts(service, memory, faux_model_with_response):
+    """올린 결과는 맡긴 쪽(부모)의 EDM 이다. 다른 에이전트는 정책이 허락할 때만 읽는다."""
     faux_model_with_response("시장은 성장 중")
     await _run(service, "blackboard", "시장 분석", promote=True)
+    episodes = await memory.recent(scope=PARENT, kinds=[MemoryKind.EPISODIC])
+    promoted = [e for e in episodes if e.source == "promoted"]
+    assert len(promoted) == 2
+    assert await memory.recent(scope=PARENT, kinds=[MemoryKind.SEMANTIC]) == []
     other = MemoryScope(user_id="jh", agent_id="other")
-    episodes = await memory.recent(scope=other, kinds=[MemoryKind.EPISODIC])
-    assert len(episodes) == 2 and all(e.source == "promoted" for e in episodes)
-    assert await memory.recent(scope=other, kinds=[MemoryKind.SEMANTIC]) == []
+    assert [e for e in await memory.recent(scope=other, kinds=[MemoryKind.EPISODIC]) if e.source == "promoted"] == []
 
 
 async def test_market_picks_matching_agent_and_subset(service, faux_model_with_response):

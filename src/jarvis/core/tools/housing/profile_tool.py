@@ -6,8 +6,8 @@ from datetime import date
 from collections.abc import Callable
 
 from jarvis.core.tools.housing.profile import KNOWN, HousingProfile, ProfileStore, apply_updates
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.tools.registry import JarvisTool, ToolContext
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+from jarvis.core.tools.tools_registry import JarvisTool, ToolContext
 from jarvis.core.tools.housing.fetch import kst_today
 from jarvis.memory.scope import LOCAL_USER
 

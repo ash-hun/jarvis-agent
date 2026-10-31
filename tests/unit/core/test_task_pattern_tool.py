@@ -3,8 +3,8 @@
 from jarvis.core.slash.patterns_cmd import make_patterns_handler
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.core.tools.task_pattern import TaskPatternTool
+from jarvis.core.tools.tools_registry import ToolContext
 from jarvis.memory import MemoryScope, MemoryService
-from jarvis.core.tools.registry import ToolContext
 
 KAREN = MemoryScope(user_id="u1", agent_id="karen", session_id="k1")
 MAIN = MemoryScope(user_id="u1", agent_id="main", session_id="m1")

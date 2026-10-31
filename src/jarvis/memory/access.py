@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from collections.abc import Mapping
 from pydantic import BaseModel, ConfigDict, Field
 
-from jarvis.memory.types import MemoryKind
+from jarvis.memory.memory_types import MemoryKind
 
 SELF = "self"
 

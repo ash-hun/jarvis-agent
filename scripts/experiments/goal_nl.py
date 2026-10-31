@@ -9,14 +9,14 @@ import asyncio
 import argparse
 from pathlib import Path
 
+from jarvis.model_layer.model_types import LLMContext, Message, ModelConfig, Tool, UserMessage
 from jarvis.memory.memory_service import LTM_HEADER, RECALL_KINDS, MemoryService, _block
-from jarvis.model_layer.types import LLMContext, Message, ModelConfig, Tool, UserMessage
 from jarvis.core.tools.task_pattern import TOOL_DESCRIPTION as PATTERN_DESCRIPTION
 from jarvis.core.tools.task_pattern import TOOL_PARAMETERS as PATTERN_PARAMETERS
 from jarvis.core.scheduler.tool import TOOL_DESCRIPTION as SCHEDULE_DESCRIPTION
+from jarvis.agent_layer.session.session_protocol import TEST_SESSION_PREFIXES
 from jarvis.core.scheduler.tool import TOOL_PARAMETERS as SCHEDULE_PARAMETERS
 from jarvis.memory.long_term.task_pattern import best_matches, render_block
-from jarvis.agent_layer.session.protocol import TEST_SESSION_PREFIXES
 from jarvis.core.goals.tool import TOOL_DESCRIPTION, TOOL_PARAMETERS
 from jarvis.core.tools.housing import ProfileStore, housing_tools
 from jarvis.memory.stores.in_memory import InMemoryItemStore
@@ -25,8 +25,8 @@ from jarvis.app.agent_profile import compose_system_prompt
 from jarvis.model_layer.stream import stream_to_message
 from jarvis.app.agent_registry import load_agent_specs
 from jarvis.app.infra_builder import InfraBuilder
+from jarvis.jarvis_config import get_settings
 from jarvis.memory.scope import MemoryScope
-from jarvis.config import get_settings
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "scripts" / "experiments" / "results.json"

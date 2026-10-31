@@ -35,13 +35,13 @@ class TestScheduledTask:
 
 class TestSchedulerLoader:
     def test_load_tasks_missing_dir(self, tmp_path):
-        from jarvis.core.scheduler.loader import load_tasks
+        from jarvis.core.scheduler.scheduler_loader import load_tasks
 
         tasks = load_tasks(str(tmp_path / "nonexistent"))
         assert tasks == []
 
     def test_load_tasks_single_yaml(self, tmp_path):
-        from jarvis.core.scheduler.loader import load_tasks
+        from jarvis.core.scheduler.scheduler_loader import load_tasks
 
         yaml_content = textwrap.dedent("""
             name: morning-brief
@@ -58,7 +58,7 @@ class TestSchedulerLoader:
         assert "web_search" in tasks[0].tools_allowed
 
     def test_load_tasks_list_yaml(self, tmp_path):
-        from jarvis.core.scheduler.loader import load_tasks
+        from jarvis.core.scheduler.scheduler_loader import load_tasks
 
         yaml_content = textwrap.dedent("""
             - name: task-a
@@ -76,7 +76,7 @@ class TestSchedulerLoader:
         assert "task-b" in names
 
     def test_load_tasks_skips_invalid_yaml(self, tmp_path):
-        from jarvis.core.scheduler.loader import load_tasks
+        from jarvis.core.scheduler.scheduler_loader import load_tasks
 
         (tmp_path / "bad.yaml").write_text("not: valid: yaml: !!!")
         (tmp_path / "good.yaml").write_text("name: ok\nschedule: '0 * * * *'\nprompt: hi")
@@ -87,9 +87,9 @@ class TestSchedulerLoader:
 
 class TestSchedulerService:
     def _make_service(self, tasks=None):
-        from jarvis.core.scheduler.service import SchedulerService
-        from jarvis.core.tools.registry import ToolRegistry
-        from jarvis.model_layer.types import ModelConfig
+        from jarvis.core.scheduler.scheduler_service import SchedulerService
+        from jarvis.core.tools.tools_registry import ToolRegistry
+        from jarvis.model_layer.model_types import ModelConfig
 
         mock_repo = MagicMock()
         mock_repo.create = AsyncMock()
@@ -168,7 +168,7 @@ class TestSchedulerService:
 
     async def test_execute_task_runs_as_its_agent(self):
         """agent 가 main 이 아니면 그 에이전트의 모델, 시스템 프롬프트, 이름으로 세션을 만든다."""
-        from jarvis.core.scheduler.service import TaskAgent
+        from jarvis.core.scheduler.scheduler_service import TaskAgent
 
         svc = self._make_service()
         karen_model = MagicMock()
@@ -197,14 +197,14 @@ class TestSchedulerConfig:
     def test_scheduler_config_defaults(self, monkeypatch):
         monkeypatch.delenv("JARVIS_SCHEDULER__ENABLED", raising=False)
         monkeypatch.delenv("JARVIS_SCHEDULER__SCHEDULES_DIR", raising=False)
-        from jarvis.config import SchedulerConfig
+        from jarvis.jarvis_config import SchedulerConfig
 
         cfg = SchedulerConfig()
         assert cfg.enabled is True
         assert "schedules" in cfg.schedules_dir
 
     def test_scheduler_in_jarvis_settings(self):
-        from jarvis.config import JarvisSettings
+        from jarvis.jarvis_config import JarvisSettings
         s = JarvisSettings()
         assert hasattr(s, "scheduler")
         assert s.scheduler.enabled is True
@@ -214,7 +214,7 @@ class TestSchedulerConfig:
 
 
 def _service(tasks=None, schedules_dir=None):
-    from jarvis.core.scheduler.service import SchedulerService
+    from jarvis.core.scheduler.scheduler_service import SchedulerService
 
     return SchedulerService(
         tasks=tasks or [],
@@ -244,7 +244,7 @@ class TestSchedulerAgenda:
         """사용자가 쓴 파일에서는 enabled 키만 바뀌고 나머지 필드는 남아야 한다."""
         import yaml
 
-        from jarvis.core.scheduler.loader import load_tasks
+        from jarvis.core.scheduler.scheduler_loader import load_tasks
 
         path = tmp_path / "brief.yaml"
         path.write_text(textwrap.dedent("""
@@ -267,7 +267,7 @@ class TestSchedulerAgenda:
     def test_toggle_in_list_file_touches_only_matching_item(self, tmp_path):
         import yaml
 
-        from jarvis.core.scheduler.loader import load_tasks
+        from jarvis.core.scheduler.scheduler_loader import load_tasks
 
         path = tmp_path / "many.yaml"
         path.write_text(textwrap.dedent("""
@@ -287,7 +287,7 @@ class TestSchedulerAgenda:
         assert items[1]["enabled"] is False
 
     def test_toggle_is_idempotent(self, tmp_path):
-        from jarvis.core.scheduler.loader import load_tasks
+        from jarvis.core.scheduler.scheduler_loader import load_tasks
 
         path = tmp_path / "brief.yaml"
         path.write_text('name: brief\nschedule: "0 9 * * *"\nprompt: p\n')
@@ -301,7 +301,7 @@ class TestSchedulerAgenda:
         """/schedule 로 만든 작업이 재시작 후에도 남아야 한다."""
         from datetime import datetime, timedelta
 
-        from jarvis.core.scheduler.loader import load_tasks
+        from jarvis.core.scheduler.scheduler_loader import load_tasks
 
         deadline = datetime.now().replace(microsecond=0) + timedelta(days=3)
         svc = _service(schedules_dir=str(tmp_path))
@@ -329,14 +329,14 @@ class TestSchedulerNextRun:
     def test_next_run_follows_cron(self):
         from datetime import datetime
 
-        from jarvis.core.scheduler.service import SchedulerService
+        from jarvis.core.scheduler.scheduler_service import SchedulerService
 
         task = ScheduledTask(name="t", schedule="0 9 * * *", prompt="p")
         nxt = SchedulerService.next_run(task, datetime(2026, 9, 24, 8, 30))
         assert nxt == datetime(2026, 9, 24, 9, 0)
 
     def test_disabled_task_has_no_next_run(self):
-        from jarvis.core.scheduler.service import SchedulerService
+        from jarvis.core.scheduler.scheduler_service import SchedulerService
 
         task = ScheduledTask(name="t", schedule="0 9 * * *", prompt="p", enabled=False)
         assert SchedulerService.next_run(task) is None
@@ -344,7 +344,7 @@ class TestSchedulerNextRun:
     def test_next_run_after_deadline_is_none(self):
         from datetime import datetime
 
-        from jarvis.core.scheduler.service import SchedulerService
+        from jarvis.core.scheduler.scheduler_service import SchedulerService
 
         task = ScheduledTask(
             name="t", schedule="0 9 * * *", prompt="p", run_until=datetime(2026, 9, 24, 8, 45),
@@ -352,7 +352,7 @@ class TestSchedulerNextRun:
         assert SchedulerService.next_run(task, datetime(2026, 9, 24, 8, 30)) is None
 
     def test_bad_cron_has_no_next_run(self):
-        from jarvis.core.scheduler.service import SchedulerService
+        from jarvis.core.scheduler.scheduler_service import SchedulerService
 
         task = ScheduledTask(name="t", schedule="not a cron", prompt="p")
         assert SchedulerService.next_run(task) is None
@@ -561,7 +561,7 @@ class TestSchedulerOnceFiring:
     def test_user_authored_once_file_is_disabled_not_deleted(self, tmp_path):
         import yaml
 
-        from jarvis.core.scheduler.loader import load_tasks, remove_task_file
+        from jarvis.core.scheduler.scheduler_loader import load_tasks, remove_task_file
 
         path = tmp_path / "mine.yaml"
         path.write_text(
@@ -578,8 +578,8 @@ class TestToolTask:
     """kind: tool 은 LLM 없이 도구를 바로 부르고, 빈 글이면 알리지 않는다."""
 
     def _service(self, tool):
-        from jarvis.core.scheduler.service import SchedulerService, TaskAgent
-        from jarvis.core.tools.registry import ToolRegistry
+        from jarvis.core.scheduler.scheduler_service import SchedulerService, TaskAgent
+        from jarvis.core.tools.tools_registry import ToolRegistry
 
         agent_tools = ToolRegistry()
         agent_tools.register(tool)
@@ -594,8 +594,8 @@ class TestToolTask:
         return svc, sent
 
     def _tool(self, texts: list[str], error: bool = False):
-        from jarvis.model_layer.types import TextContent, ToolResultMessage
-        from jarvis.core.tools.registry import JarvisTool
+        from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+        from jarvis.core.tools.tools_registry import JarvisTool
 
         class Echo(JarvisTool):
             name = "housing_watch"

@@ -2,7 +2,7 @@
 
 import pytest
 
-from jarvis.core.focus.types import (
+from jarvis.core.focus.focus_types import (
     FocusCommand,
     FocusState,
     FocusStep,

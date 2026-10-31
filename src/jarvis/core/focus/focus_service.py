@@ -6,7 +6,7 @@ from dataclasses import replace
 from typing import Any, Protocol
 from collections.abc import Awaitable, Callable
 
-from jarvis.core.focus.types import (
+from jarvis.core.focus.focus_types import (
     FocusCommand,
     FocusState,
     apply_plan,
@@ -25,8 +25,8 @@ from jarvis.core.focus.prompts import (
     progress_request,
     reference_request,
 )
-from jarvis.agent_layer.types import AgentEvent, FocusPanelEvent, FocusStateEvent
-from jarvis.core.focus.store import FocusStore
+from jarvis.agent_layer.agent_types import AgentEvent, FocusPanelEvent, FocusStateEvent
+from jarvis.core.focus.focus_store import FocusStore
 from jarvis.common.logger import get_logger
 
 PANEL_TAIL_CHARS = 8000

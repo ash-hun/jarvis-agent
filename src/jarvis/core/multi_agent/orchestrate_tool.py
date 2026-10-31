@@ -3,9 +3,9 @@
 import asyncio
 from typing import Any
 
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.tools.registry import JarvisTool, ToolContext
-from .service import PATTERNS, OrchestrationService
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+from jarvis.core.tools.tools_registry import JarvisTool, ToolContext
+from .multi_agent_service import PATTERNS, OrchestrationService
 
 
 class OrchestrateTool(JarvisTool):

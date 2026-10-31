@@ -9,7 +9,7 @@ from collections.abc import Awaitable, Callable
 from jarvis.core.scheduler.task import ONCE_PREFIX, SLASH_PREFIX
 
 if TYPE_CHECKING:
-    from jarvis.core.scheduler.service import SchedulerService
+    from jarvis.core.scheduler.scheduler_service import SchedulerService
     from jarvis.core.slash.dispatcher import ScopedHandler
     from jarvis.core.scheduler.task import ScheduledTask
     from jarvis.memory.scope import MemoryScope

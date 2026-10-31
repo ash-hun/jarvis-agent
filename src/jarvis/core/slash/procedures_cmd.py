@@ -3,14 +3,14 @@
 from typing import TYPE_CHECKING
 from collections.abc import Awaitable, Callable
 
+from jarvis.core.procedures.procedures_store import STATUS_APPROVED, ProcedureStore
 from jarvis.core.procedures.tool import register_procedure, unregister_procedure
-from jarvis.core.procedures.store import STATUS_APPROVED, ProcedureStore
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.protocol import SessionRepo
+    from jarvis.agent_layer.session.session_protocol import SessionRepo
+    from jarvis.core.skills.skills_registry import SkillRegistry
     from jarvis.core.procedures.learner import ProcedureLearner
-    from jarvis.core.skills.registry import SkillRegistry
-    from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.core.tools.tools_registry import ToolRegistry
 
 Handler = Callable[[str], Awaitable[str]]
 

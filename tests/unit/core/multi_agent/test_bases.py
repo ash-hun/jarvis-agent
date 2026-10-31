@@ -1,4 +1,4 @@
-"""multi-agent 기반 클래스(protocol, topologies.base, orchestrators.base)의 기본 동작 테스트."""
+"""multi-agent 기반 클래스(multi_agent_protocol, topology_base, orchestrator_base)의 기본 동작 테스트."""
 
 import pytest
 
@@ -17,8 +17,8 @@ from jarvis.core.multi_agent import (
     TopologyProtocol,
 )
 from jarvis.core.multi_agent.topologies import BlackboardTopology, HierarchicalTopology, P2PTopology, SupervisorTopology
-from jarvis.core.multi_agent.orchestrators.base import BaseOrchestrator
-from jarvis.core.multi_agent.topologies.base import BaseTopology
+from jarvis.core.multi_agent.orchestrators.orchestrator_base import BaseOrchestrator
+from jarvis.core.multi_agent.topologies.topology_base import BaseTopology
 
 
 class Node(AgentNodeProtocol):

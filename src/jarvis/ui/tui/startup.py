@@ -11,8 +11,8 @@ from jarvis.common.logger import get_logger
 if TYPE_CHECKING:
     from jarvis.ui.tui.voice import TuiVoiceController
     from jarvis.app.app_assembly import AppAssembly
+    from jarvis.jarvis_config import JarvisSettings
     from jarvis.core.session import AgentSession
-    from jarvis.config import JarvisSettings
 
 logger = get_logger(__name__)
 # 에이전트를 정하지 않고 시작하면 붙는 세션. main 의 예전 고정 세션 이름이다
@@ -115,8 +115,8 @@ def build_tui_voice(settings: "JarvisSettings") -> "TuiVoiceController | None":
     if not vcfg.tui_enabled:
         return None
     try:
+        from jarvis.voice.voice_service import VoiceService
         from jarvis.ui.tui.voice import TuiVoiceController
-        from jarvis.voice.service import VoiceService
 
         service = VoiceService.from_config(
             stt_provider=vcfg.stt_provider,
@@ -165,7 +165,7 @@ async def resolve_tui_session(
 
 def main() -> None:
     from jarvis.app.infra_builder import build_app
-    from jarvis.config import get_settings
+    from jarvis.jarvis_config import get_settings
 
     plan = parse_startup_plan()
     if plan.kind == "help":

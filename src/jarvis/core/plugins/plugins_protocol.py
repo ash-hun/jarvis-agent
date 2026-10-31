@@ -3,7 +3,7 @@
 from typing import Any, TypedDict
 
 from jarvis.core.policy.pipeline import AuthContext
-from jarvis.model_layer.types import Message
+from jarvis.model_layer.model_types import Message
 
 
 class HookResult(TypedDict, total=False):

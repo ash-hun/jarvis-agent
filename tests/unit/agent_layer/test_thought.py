@@ -17,7 +17,7 @@ from jarvis.agent_layer.thought import (
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.agent_layer.thought.log import THOUGHT_SOURCE
 from jarvis.memory.memory_service import MemoryService
-from jarvis.model_layer.types import UserMessage
+from jarvis.model_layer.model_types import UserMessage
 from jarvis.memory.scope import MemoryScope
 
 S1 = MemoryScope(user_id="local", session_id="s1")
@@ -361,7 +361,7 @@ def test_interpretation_only_composer_is_lean():
 
 def _engine():
     from jarvis.agent_layer.thought.engine import InnerThoughtEngine
-    from jarvis.model_layer.types import ModelConfig
+    from jarvis.model_layer.model_types import ModelConfig
 
     return InnerThoughtEngine(model=ModelConfig(provider="faux", model="m"))
 

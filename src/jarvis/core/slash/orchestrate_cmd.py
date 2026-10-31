@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
-    from jarvis.core.multi_agent.service import OrchestrationService
+    from jarvis.core.multi_agent.multi_agent_service import OrchestrationService
     from jarvis.core.slash.dispatcher import ScopedHandler
     from jarvis.memory.scope import MemoryScope
 

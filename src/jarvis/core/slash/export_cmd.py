@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.protocol import SessionRepo
-    from jarvis.model_layer.types import Message
+    from jarvis.agent_layer.session.session_protocol import SessionRepo
+    from jarvis.model_layer.model_types import Message
 
 Handler = Callable[[str], Awaitable[str]]
 

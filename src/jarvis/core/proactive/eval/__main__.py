@@ -19,8 +19,8 @@ FIXED_CLOCK = datetime(2026, 1, 1, 9, 0, 0)
 def _llm_engine() -> "InnerThoughtEngine":
     from jarvis.agent_layer.thought import InnerThoughtEngine, ThoughtPromptTemplate
     from jarvis.agent_layer.thought.prompt import DEFAULT_REFLECTION_TEMPLATE
-    from jarvis.model_layer.types import ModelConfig
-    from jarvis.config import get_settings
+    from jarvis.model_layer.model_types import ModelConfig
+    from jarvis.jarvis_config import get_settings
 
     settings = get_settings()
     llm, tcfg = settings.llm, settings.thought

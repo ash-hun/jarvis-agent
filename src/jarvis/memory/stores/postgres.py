@@ -7,8 +7,8 @@ from typing import Any
 from datetime import UTC, datetime
 from collections.abc import Sequence
 
-from jarvis.memory.stores.protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore, tokens_of
-from jarvis.memory.types import REFERENT, MemoryItem, MemoryKind
+from jarvis.memory.stores.store_protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore, tokens_of
+from jarvis.memory.memory_types import REFERENT, MemoryItem, MemoryKind
 from jarvis.memory.scope import MAIN_AGENT, MemoryScope
 from jarvis.common.logger import get_logger
 from jarvis.memory.access import Readable

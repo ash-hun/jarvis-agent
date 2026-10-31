@@ -4,10 +4,10 @@ import re
 from typing import TYPE_CHECKING, Any
 from collections.abc import Awaitable, Callable
 
-from jarvis.agent_layer.session.protocol import TEST_SESSION_PREFIXES
+from jarvis.agent_layer.session.session_protocol import TEST_SESSION_PREFIXES
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.protocol import SessionRepo
+    from jarvis.agent_layer.session.session_protocol import SessionRepo
 
 Handler = Callable[[str], Awaitable[str]]
 CONFIRM = "confirm"

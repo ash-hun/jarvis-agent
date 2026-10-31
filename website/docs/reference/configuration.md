@@ -11,7 +11,7 @@ JARVIS 가 읽는 설정을 영역별로 정리한다. 모든 설정은 환경�
 
 :::note
 
-설정의 정본은 레포의 `.env.example` 과 `src/jarvis/config.py` 다.
+설정의 정본은 레포의 `.env.example` 과 `src/jarvis/jarvis_config.py` 다.
 
 :::
 
@@ -171,7 +171,7 @@ JARVIS_EXTERNAL__SOURCES_DIR=~/.jarvis/external_sources
 JARVIS_WEB_SEARCH__BRAVE_API_KEY=           # 비우면 web_search 가 DuckDuckGo 결과 페이지를 읽는다
 ```
 
-여기 없는 조정 값(메모리 반감기, 사고 임계치, 외부 이벤트 한도 등)은 `src/jarvis/config.py` 의 기본값을 따른다.
+여기 없는 조정 값(메모리 반감기, 사고 임계치, 외부 이벤트 한도 등)은 `src/jarvis/jarvis_config.py` 의 기본값을 따른다.
 
 `JARVIS_PLUGIN__WATCH_FILES` 는 설정에 있지만 현재 아무것도 감시하지 않는다. 파일을 더했으면 재시작한다.
 
@@ -205,7 +205,7 @@ TZ=Asia/Seoul                           # 스케줄과 /schedule 마감 시각�
 
 JARVIS_BRAND__NAME=J.A.R.V.I.S.
 JARVIS_BRAND__QUOTE=Proof the Heart
-JARVIS_BRAND__PERSONA="..."                 # JARVIS 의 말투와 성격. 기본은 침착한 집사(config.py DEFAULT_PERSONA). 비우면 모델 기본 말투
+JARVIS_BRAND__PERSONA="..."                 # JARVIS 의 말투와 성격. 기본은 침착한 집사(jarvis_config.py DEFAULT_PERSONA). 비우면 모델 기본 말투
 JARVIS_BRAND__PALETTE__PRIMARY=#5fc8e2
 JARVIS_BRAND__PALETTE__ACCENT=#f0b35f
 JARVIS_BRAND__PALETTE__BACKGROUND=#02060c

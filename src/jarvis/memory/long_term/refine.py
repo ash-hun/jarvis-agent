@@ -4,8 +4,8 @@ from datetime import datetime
 from dataclasses import dataclass
 from collections.abc import Iterable
 
-from jarvis.memory.stores.protocol import OUTCOME, TASK_TYPE
-from jarvis.memory.types import MemoryItem, MemoryKind
+from jarvis.memory.stores.store_protocol import OUTCOME, TASK_TYPE
+from jarvis.memory.memory_types import MemoryItem, MemoryKind
 from jarvis.memory.scope import MemoryScope
 
 MIN_SUCCESSES = 3  # 한 번 성공은 우연일 수 있다. 같은 종류가 이만큼 성공해야 절차로 본다

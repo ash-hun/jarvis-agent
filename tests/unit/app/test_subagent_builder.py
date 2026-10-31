@@ -6,11 +6,11 @@ from unittest.mock import MagicMock
 
 from jarvis.core.tools.builtin.read_file import ReadFileTool
 from jarvis.core.multi_agent.factory import AgentDefinition
+from jarvis.core.tools.tools_registry import ToolRegistry
 from jarvis.app.subagent_builder import SubagentBuilder
 from jarvis.core.tools.builtin.bash import BashTool
-from jarvis.core.tools.registry import ToolRegistry
+from jarvis.jarvis_config import JarvisSettings
 from jarvis.app.app_context import AppContext
-from jarvis.config import JarvisSettings
 
 
 @pytest.fixture

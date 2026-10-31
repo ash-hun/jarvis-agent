@@ -6,8 +6,8 @@ import httpx
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.tools.registry import JarvisTool
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+from jarvis.core.tools.tools_registry import JarvisTool
 
 DDG_HTML_URL = "https://html.duckduckgo.com/html/"
 # 기본 httpx UA 는 차단될 수 있어 브라우저처럼 보이는 값을 쓴다
@@ -63,7 +63,7 @@ class WebSearchTool(JarvisTool):
 
 async def _search(query: str, max_results: int) -> list[dict[str, str]]:
     """Brave Search API 우선, 키 없으면 DuckDuckGo fallback."""
-    from jarvis.config import get_settings
+    from jarvis.jarvis_config import get_settings
 
     settings = get_settings()
     if settings.web_search.brave_api_key:

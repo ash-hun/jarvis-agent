@@ -1,6 +1,6 @@
 """PerConnectionAdapter 를 실 WebSocket 없이 FakeWebSocket 으로 검증한다."""
 
-from jarvis.agent_layer.types import MessageUpdateEvent
+from jarvis.agent_layer.agent_types import MessageUpdateEvent
 from jarvis.ui.web.adapter import PerConnectionAdapter
 
 

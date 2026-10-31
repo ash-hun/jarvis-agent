@@ -3,7 +3,7 @@
 import pytest
 import asyncio
 
-from jarvis.agent_layer.types import InnerThoughtEvent, ThoughtEndEvent, ThoughtRouteEvent
+from jarvis.agent_layer.agent_types import InnerThoughtEvent, ThoughtEndEvent, ThoughtRouteEvent
 from jarvis.agent_layer.thought import ThoughtFrame, ThoughtRequest
 from jarvis.agent_layer.thought.router import RouteVerdict
 from tests.fixtures.faux_provider import FauxProvider
@@ -50,7 +50,7 @@ class FixedRouter:
 
 @pytest.fixture
 def provider(monkeypatch) -> RecordingProvider:
-    from jarvis.model_layer.registry import get_default_registry
+    from jarvis.model_layer.model_registry import get_default_registry
 
     recording = RecordingProvider()
     monkeypatch.setitem(get_default_registry()._providers, "faux", recording)

@@ -31,9 +31,9 @@ async def test_llm_extractor_parses_model_output(faux_model_with_response):
 
 
 async def test_llm_extractor_returns_empty_on_provider_error():
-    from jarvis.model_layer.registry import get_default_registry
+    from jarvis.model_layer.model_registry import get_default_registry
     from tests.fixtures.faux_provider import FauxProviderFactory
-    from jarvis.model_layer.types import ModelConfig
+    from jarvis.model_layer.model_types import ModelConfig
 
     get_default_registry()._providers["faux"] = FauxProviderFactory.error()
     assert await llm_fact_extractor(ModelConfig(provider="faux", model="faux-model"))("요약") == []

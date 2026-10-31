@@ -4,7 +4,7 @@ import os
 import json
 from pathlib import Path
 
-from jarvis.core.goals.types import Goal
+from jarvis.core.goals.goals_types import Goal
 
 GOALS_DIR = "~/.jarvis/goals"
 

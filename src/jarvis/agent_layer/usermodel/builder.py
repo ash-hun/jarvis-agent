@@ -3,8 +3,8 @@
 import json
 from typing import Any
 
-from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
-from jarvis.agent_layer.usermodel.types import UserModel
+from jarvis.model_layer.model_types import LLMContext, ModelConfig, StreamOptions, UserMessage
+from jarvis.agent_layer.usermodel.usermodel_types import UserModel
 from jarvis.model_layer.stream import stream_to_message
 
 DEFAULT_PROMPT = """\

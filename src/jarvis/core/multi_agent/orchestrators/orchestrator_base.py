@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from jarvis.core.multi_agent.protocol import OrchestratorProtocol, TopologyProtocol
+from jarvis.core.multi_agent.multi_agent_protocol import OrchestratorProtocol, TopologyProtocol
 from jarvis.core.multi_agent.task import AgentTask
 
 

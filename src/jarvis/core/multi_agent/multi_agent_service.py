@@ -5,16 +5,16 @@ from collections.abc import Sequence
 
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_task
 from .orchestrators.hierarchical import HierarchicalOrchestrator
+from .orchestrators.orchestrator_base import BaseOrchestrator
 from .orchestrators.blackboard import BlackboardOrchestrator
 from .orchestrators.supervisor import SupervisorOrchestrator
 from .topologies.hierarchical import HierarchicalTopology
 from .orchestrators.pipeline import OrchestratorPipeline
+from .multi_agent_protocol import OrchestratorProtocol
 from .topologies.blackboard import BlackboardTopology
 from .topologies.supervisor import SupervisorTopology
 from .orchestrators.market import MarketOrchestrator
 from .factory import AgentDefinition, AgentFactory
-from .orchestrators.base import BaseOrchestrator
-from .protocol import OrchestratorProtocol
 from .blackboard import SharedBlackboard
 from .task import AgentResult, AgentTask
 from .node import LazyAgentNode, _clip

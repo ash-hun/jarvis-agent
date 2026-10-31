@@ -4,8 +4,8 @@ from jarvis.memory.working.in_memory import InMemoryWorkingStore
 from jarvis.core.slash.cleanup_cmd import make_cleanup_handler
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory.memory_service import MemoryService
+from jarvis.model_layer.model_types import UserMessage
 from jarvis.memory.working.state import WorkingState
-from jarvis.model_layer.types import UserMessage
 from jarvis.memory.scope import MemoryScope
 
 

@@ -2,7 +2,7 @@
 
 import re
 
-from jarvis.model_layer.types import Message
+from jarvis.model_layer.model_types import Message
 
 # 대명사는 낱말 앞부분으로 본다(그거, 그걸, 그게, 그건). "그 방식", "이 계획" 처럼 명사 앞의 관형사는
 # 띄어 쓴 한 글자 낱말일 때만 본다. 붙여 쓴 "그" 는 그래서, 그런데 같은 접속사에도 들어 있다

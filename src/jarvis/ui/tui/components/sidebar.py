@@ -6,8 +6,8 @@ from textual.containers import Vertical
 from textual.widgets import Label, ListItem, ListView
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.protocol import SessionMetadata, SessionRepo
-    from jarvis.core.tools.registry import ToolRegistry
+    from jarvis.agent_layer.session.session_protocol import SessionMetadata, SessionRepo
+    from jarvis.core.tools.tools_registry import ToolRegistry
 
 
 class SidebarPane(Vertical):

@@ -13,24 +13,24 @@ import tempfile
 from pathlib import Path
 from datetime import date
 
+from jarvis.core.scheduler.scheduler_service import SchedulerService, TaskAgent
+from jarvis.model_layer.model_types import AssistantMessage, ToolResultMessage
 from jarvis.core.tools.housing.profile import HousingProfile, ProfileStore
-from jarvis.model_layer.types import AssistantMessage, ToolResultMessage
-from jarvis.core.scheduler.service import SchedulerService, TaskAgent
-from jarvis.core.goals.types import parse_step, Goal, goal_key
+from jarvis.core.goals.goals_types import parse_step, Goal, goal_key
 from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.app.agent_profile import compose_system_prompt
+from jarvis.core.tools.tools_registry import ToolRegistry
 from jarvis.app.agent_registry import load_agent_specs
 from jarvis.memory.memory_service import MemoryService
 from jarvis.core.tools.housing.fetch import kst_today
 from jarvis.core.scheduler.task import ScheduledTask
+from jarvis.core.goals.goals_store import GoalStore
 from jarvis.core.tools.housing import housing_tools
-from jarvis.core.tools.registry import ToolRegistry
 from jarvis.core.goals.runner import GoalRunner
-from jarvis.core.goals.store import GoalStore
+from jarvis.jarvis_config import get_settings
 from jarvis.core.goals.tool import goal_task
 from jarvis.memory.scope import MemoryScope
-from jarvis.config import get_settings
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "scripts" / "experiments" / "results.json"
@@ -43,7 +43,7 @@ NOTICE_ID = re.compile(r"panId=([0-9A-Za-z]+)")
 
 async def ground_truth(tools: ToolRegistry, scope: MemoryScope) -> tuple[list[str], list[str], list[str], float]:
     """도구를 직접 불러 얻은 추천 1순위 줄, 그 공고 panId, 항목 키. 모델이 고른 것과 견줄 정답이다."""
-    from jarvis.core.tools.registry import ToolContext
+    from jarvis.core.tools.tools_registry import ToolContext
 
     started = time.perf_counter()
     params = {"picks_only": True}
@@ -60,7 +60,7 @@ async def run(runs: int, with_money: bool, seed_first: bool = False, answer_afte
     settings = get_settings()
     spec = load_agent_specs(str(ROOT / "team"))["karen"]
     key = settings.llm.api_key.get_secret_value() if settings.llm.api_key else None
-    from jarvis.model_layer.types import ModelConfig
+    from jarvis.model_layer.model_types import ModelConfig
 
     model = ModelConfig(provider=settings.llm.provider, model=spec.model or settings.llm.model, api_key=key,
                         base_url=settings.llm.base_url, timeout=120.0)

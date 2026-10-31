@@ -7,30 +7,30 @@ import pytest
 class TestVoiceRegistry:
     def test_make_stt_browser(self):
         from jarvis.voice.providers.browser import BrowserSTTProvider
-        from jarvis.voice.registry import make_stt
+        from jarvis.voice.voice_registry import make_stt
 
         assert isinstance(make_stt("browser"), BrowserSTTProvider)
 
     def test_make_tts_browser(self):
         from jarvis.voice.providers.browser import BrowserTTSProvider
-        from jarvis.voice.registry import make_tts
+        from jarvis.voice.voice_registry import make_tts
 
         assert isinstance(make_tts("browser"), BrowserTTSProvider)
 
     def test_make_stt_unknown_raises(self):
-        from jarvis.voice.registry import make_stt
+        from jarvis.voice.voice_registry import make_stt
 
         with pytest.raises(ValueError, match="알 수 없는 STT"):
             make_stt("nonexistent")
 
     def test_make_tts_unknown_raises(self):
-        from jarvis.voice.registry import make_tts
+        from jarvis.voice.voice_registry import make_tts
 
         with pytest.raises(ValueError, match="알 수 없는 TTS"):
             make_tts("nonexistent")
 
     def test_register_custom_stt(self):
-        from jarvis.voice.registry import make_stt, register_stt
+        from jarvis.voice.voice_registry import make_stt, register_stt
 
         class FakeSTT:
             async def transcribe(self, audio_bytes, sample_rate=16000):
@@ -77,7 +77,7 @@ class _FakeTTS:
 
 class TestVoiceService:
     async def test_transcribe_delegates(self):
-        from jarvis.voice.service import VoiceService
+        from jarvis.voice.voice_service import VoiceService
 
         stt = _FakeSTT()
         svc = VoiceService(stt=stt, tts=_FakeTTS())
@@ -86,20 +86,20 @@ class TestVoiceService:
         assert stt.calls == [(b"rawaudio", 8000)]
 
     async def test_synthesize_delegates(self):
-        from jarvis.voice.service import VoiceService
+        from jarvis.voice.voice_service import VoiceService
 
         svc = VoiceService(stt=_FakeSTT(), tts=_FakeTTS())
         assert await svc.synthesize("안녕") == b"WAVDATA"
 
     def test_stt_is_browser_true(self):
-        from jarvis.voice.service import VoiceService
+        from jarvis.voice.voice_service import VoiceService
 
         svc = VoiceService.from_config(stt_provider="browser", tts_provider="browser")
         assert svc.stt_is_browser is True
         assert svc.tts_is_browser is True
 
     def test_stt_is_browser_false_for_custom(self):
-        from jarvis.voice.service import VoiceService
+        from jarvis.voice.voice_service import VoiceService
 
         svc = VoiceService(stt=_FakeSTT(), tts=_FakeTTS())
         assert svc.stt_is_browser is False
@@ -119,7 +119,7 @@ class _FakeWS:
 class TestRunStt:
     async def test_transcribes_and_sends_result(self):
         from jarvis.ui.web.ws_tasks import run_stt as _run_stt
-        from jarvis.voice.service import VoiceService
+        from jarvis.voice.voice_service import VoiceService
 
         ws = _FakeWS()
         svc = VoiceService(stt=_FakeSTT(), tts=_FakeTTS())
@@ -139,7 +139,7 @@ class TestRunStt:
             async def transcribe(self, audio_bytes, sample_rate=16000):
                 raise RuntimeError("whisper 실패")
 
-        from jarvis.voice.service import VoiceService
+        from jarvis.voice.voice_service import VoiceService
 
         ws = _FakeWS()
         svc = VoiceService(stt=_BoomSTT(), tts=_FakeTTS())
@@ -154,7 +154,7 @@ class TestRunStt:
 
     async def test_invalid_base64_sends_error(self):
         from jarvis.ui.web.ws_tasks import run_stt as _run_stt
-        from jarvis.voice.service import VoiceService
+        from jarvis.voice.voice_service import VoiceService
 
         ws = _FakeWS()
         svc = VoiceService(stt=_FakeSTT(), tts=_FakeTTS())
@@ -183,7 +183,7 @@ class TestRunSttUnclear:
             return self.audio
 
     async def _run(self, transcript, agent_id="main"):
-        from jarvis.voice.service import VoiceService
+        from jarvis.voice.voice_service import VoiceService
         from jarvis.ui.web.ws_tasks import run_stt
 
         ws = _FakeWS()
@@ -193,7 +193,7 @@ class TestRunSttUnclear:
         return ws.sent, korean.read, english.read
 
     async def test_unsure_transcript_is_not_passed_on_and_jarvis_asks_again_in_english(self):
-        from jarvis.voice.protocol import Transcript
+        from jarvis.voice.voice_protocol import Transcript
 
         sent, korean, english = await self._run(Transcript("자비스 외골", avg_logprob=-1.4))
         assert sent[0] == {"type": "voice_stt_result", "text": "", "unclear": True, "heard": "자비스 외골"}
@@ -202,13 +202,13 @@ class TestRunSttUnclear:
         assert sent[1]["type"] == "voice_tts_audio" and sent[1]["id"] is None
 
     async def test_other_agents_ask_again_in_korean(self):
-        from jarvis.voice.protocol import Transcript
+        from jarvis.voice.voice_protocol import Transcript
 
         _sent, korean, english = await self._run(Transcript("", no_speech_prob=0.9), agent_id="karen")
         assert korean == ["잘 못 들었어요. 한 번 더 말씀해 주세요."] and english == []
 
     async def test_confident_transcript_goes_through_untouched(self):
-        from jarvis.voice.protocol import Transcript
+        from jarvis.voice.voice_protocol import Transcript
 
         sent, korean, english = await self._run(Transcript("지금 몇 시야", no_speech_prob=0.1, avg_logprob=-0.3))
         assert sent == [{"type": "voice_stt_result", "text": "지금 몇 시야"}]

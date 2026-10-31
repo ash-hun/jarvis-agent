@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 
-from jarvis.voice.protocol import STTProvider, TTSProvider
+from jarvis.voice.voice_protocol import STTProvider, TTSProvider
 
 # ── STT 레지스트리 ─────────────────────────────────────────────────────────────
 # 키: provider 이름(소문자), 값: 팩토리. 팩토리는 지연 임포트로 선택적 deps 를 보호한다

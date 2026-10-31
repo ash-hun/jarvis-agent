@@ -1,7 +1,7 @@
 """[core] 노드마다 이웃 라우팅 테이블을 두고 등록 시 full-mesh 로 잇는 P2P 토폴로지."""
 
-from jarvis.core.multi_agent.protocol import AgentNodeProtocol
-from .base import BaseTopology
+from jarvis.core.multi_agent.multi_agent_protocol import AgentNodeProtocol
+from .topology_base import BaseTopology
 
 
 class P2PTopology(BaseTopology):

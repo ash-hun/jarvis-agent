@@ -37,8 +37,8 @@ os.environ.update(
     }
 )
 
-from jarvis.model_layer.types import StopEvent, TextDeltaEvent, ToolCallDeltaEvent, Usage  # noqa: E402
-from jarvis.model_layer.registry import get_default_registry  # noqa: E402
+from jarvis.model_layer.model_types import StopEvent, TextDeltaEvent, ToolCallDeltaEvent, Usage  # noqa: E402
+from jarvis.model_layer.model_registry import get_default_registry  # noqa: E402
 
 SCRIPTS = {
     "run-echo": ([("bash", {"command": "echo hello"})], "done: hello"),

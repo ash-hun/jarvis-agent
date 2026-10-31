@@ -6,7 +6,7 @@ from fastapi import APIRouter, Path
 from fastapi.responses import JSONResponse
 
 from jarvis.ui.web.web_schema import OpenLoopStatusRequest, ScheduleToggleRequest
-from jarvis.agent_layer.openloop.types import expired_ids
+from jarvis.agent_layer.openloop.openloop_types import expired_ids
 from jarvis.agent_layer.openloop import close_expired
 from jarvis.ui.web.web_state import WebState
 
@@ -41,7 +41,7 @@ def build_agenda_router(state: WebState) -> APIRouter:
     async def get_agenda() -> JSONResponse:
         schedules: list[dict[str, object]] = []
         if ctx.scheduler is not None:
-            from jarvis.core.scheduler.service import SchedulerService
+            from jarvis.core.scheduler.scheduler_service import SchedulerService
 
             now = datetime.now()
             for task in ctx.scheduler.list_tasks():

@@ -93,7 +93,7 @@ whisper 로 인식할 때 결과가 비었거나, 말소리가 없다는 확률(
 | JARVIS | I'm sorry, sir. I didn't catch that. | 영어 TTS(JARVIS 목소리) |
 | 그 밖 | 잘 못 들었어요. 한 번 더 말씀해 주세요. | 한국어 TTS |
 
-직전 발화가 JARVIS 목소리였는데 되묻는 말만 다른 목소리로 나오지 않게 하려는 것이다. 판정 값은 `voice/service.py` 의 `NO_SPEECH_MAX`, `AVG_LOGPROB_MIN` 이다. 백엔드 로그의 `[Voice] stt` 줄에 두 값과 판정이 남는다.
+직전 발화가 JARVIS 목소리였는데 되묻는 말만 다른 목소리로 나오지 않게 하려는 것이다. 판정 값은 `voice/voice_service.py` 의 `NO_SPEECH_MAX`, `AVG_LOGPROB_MIN` 이다. 백엔드 로그의 `[Voice] stt` 줄에 두 값과 판정이 남는다.
 
 ## JARVIS 음성 모델
 

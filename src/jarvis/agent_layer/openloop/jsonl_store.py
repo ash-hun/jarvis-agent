@@ -4,8 +4,8 @@ import asyncio
 import aiofiles
 from pathlib import Path
 
-from jarvis.agent_layer.openloop.store import OpenLoopStore
-from jarvis.agent_layer.openloop.types import OpenLoop
+from jarvis.agent_layer.openloop.openloop_store import OpenLoopStore
+from jarvis.agent_layer.openloop.openloop_types import OpenLoop
 from jarvis.model_layer.embeddings import Embedder
 
 DEFAULT_PATH = "~/.jarvis/openloops.jsonl"

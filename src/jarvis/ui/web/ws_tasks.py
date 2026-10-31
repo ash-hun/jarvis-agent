@@ -6,17 +6,17 @@ import contextlib
 from fastapi import WebSocket
 from typing import TYPE_CHECKING, Any
 
+from jarvis.voice.voice_service import ENGLISH_LANG, is_english, is_unclear
 from jarvis.voice.english import FALLBACK_LINE, Translate, split_sentences
-from jarvis.voice.service import ENGLISH_LANG, is_english, is_unclear
 from jarvis.app.agent_profile import MAIN_AGENT_ID
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
     from jarvis.agent_layer.thought.reply import ReplyClassifier
+    from jarvis.core.focus.focus_service import FocusService
+    from jarvis.core.focus.focus_types import FocusCommand
     from jarvis.ui.web.adapter import PerConnectionAdapter
-    from jarvis.core.focus.service import FocusService
-    from jarvis.core.focus.types import FocusCommand
-    from jarvis.voice.service import VoiceService
+    from jarvis.voice.voice_service import VoiceService
     from jarvis.core.session import AgentSession
     from jarvis.core.notify import Notify
 

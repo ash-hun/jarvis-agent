@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from jarvis.memory.scope import MAIN_AGENT, MemoryScope
-from jarvis.memory.types import MemoryKind
+from jarvis.memory.memory_types import MemoryKind
 
 Outcome = Literal["success", "failure"]
 

@@ -6,7 +6,7 @@ import asyncio
 from pathlib import Path
 from functools import partial
 
-from jarvis.voice.protocol import DEFAULT_LANG, TTSProvider
+from jarvis.voice.voice_protocol import DEFAULT_LANG, TTSProvider
 
 
 class PiperTTSProvider(TTSProvider):

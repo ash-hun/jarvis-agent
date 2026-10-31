@@ -3,8 +3,8 @@
 import pytest
 import asyncio
 
-from jarvis.model_layer.types import ToolCall, ToolResultMessage
-from jarvis.agent_layer.types import AgentLoopConfig
+from jarvis.model_layer.model_types import ToolCall, ToolResultMessage
+from jarvis.agent_layer.agent_types import AgentLoopConfig
 from jarvis.agent_layer.loop import _execute_tools
 
 

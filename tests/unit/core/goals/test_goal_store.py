@@ -1,7 +1,7 @@
 """목표 저장소: 같은 목표를 두 번 맡겨도 하나, 다시 열어도 그대로, 끝난 목표를 다시 맡기면 다시 진행."""
 
-from jarvis.core.goals.types import Goal, goal_key
-from jarvis.core.goals.store import GoalStore
+from jarvis.core.goals.goals_types import Goal, goal_key
+from jarvis.core.goals.goals_store import GoalStore
 
 
 def make(text: str = "공고만 알려줘") -> Goal:

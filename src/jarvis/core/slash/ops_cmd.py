@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING
 from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.protocol import SessionRepo
+    from jarvis.agent_layer.session.session_protocol import SessionRepo
+    from jarvis.core.tools.tools_registry import ToolRegistry
     from jarvis.memory.memory_service import MemoryService
-    from jarvis.core.tools.registry import ToolRegistry
-    from jarvis.model_layer.types import ModelConfig
+    from jarvis.model_layer.model_types import ModelConfig
     from jarvis.memory.scope import MemoryScope
 
 Handler = Callable[[str], Awaitable[str]]

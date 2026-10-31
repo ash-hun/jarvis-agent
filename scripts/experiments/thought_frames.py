@@ -9,8 +9,8 @@ from pathlib import Path
 from scripts.experiments.models import model_config
 from scripts.experiments.proactive_situation import engine
 
+from jarvis.agent_layer.thought.thought_types import ThoughtRequest
 from jarvis.agent_layer.openloop.judge import OpenLoopJudge
-from jarvis.agent_layer.thought.types import ThoughtRequest
 from jarvis.core.proactive.eval.__main__ import FIXED_CLOCK
 
 DATASET = Path(__file__).parent / "datasets" / "thought_requests.jsonl"

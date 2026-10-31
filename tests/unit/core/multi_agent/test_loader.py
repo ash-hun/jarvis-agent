@@ -2,7 +2,7 @@
 
 import textwrap
 
-from jarvis.core.multi_agent.loader import _parse_definition, load_agent_definitions
+from jarvis.core.multi_agent.multi_agent_loader import _parse_definition, load_agent_definitions
 from jarvis.core.multi_agent.factory import AgentDefinition
 
 # ---------------------------------------------------------------------------

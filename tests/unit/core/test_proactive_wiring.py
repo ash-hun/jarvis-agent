@@ -4,9 +4,9 @@ import pytest
 import asyncio
 
 from jarvis.core.proactive import DefaultProactivityCore, DefaultProactivityPolicy
-from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.agent_types import ProactiveMessageEvent
 from tests.fixtures.grounded_loops import GroundedLoopStore
-from jarvis.agent_layer.types import ProactiveMessageEvent
 
 
 class StubEngine:
@@ -183,7 +183,7 @@ class _FakeTool:
         self.calls: list[dict] = []
 
     async def execute(self, tool_call_id, params, signal=None):
-        from jarvis.model_layer.types import TextContent, ToolResultMessage
+        from jarvis.model_layer.model_types import TextContent, ToolResultMessage
 
         self.calls.append(params)
         return ToolResultMessage(
@@ -196,8 +196,8 @@ class _FakeTool:
 
 @pytest.mark.asyncio
 async def test_reflect_executes_only_safelisted_tool(fx):
-    from jarvis.agent_layer.thought.types import ProactiveAction
-    from jarvis.agent_layer.types import ToolExecutionEndEvent
+    from jarvis.agent_layer.thought.thought_types import ProactiveAction
+    from jarvis.agent_layer.agent_types import ToolExecutionEndEvent
 
     await fx["repo"].create(session_id="test-session")
     tool = _FakeTool()
@@ -400,7 +400,7 @@ async def test_restart_after_user_reply_does_not_close_gate(fx):
 
 @pytest.mark.asyncio
 async def test_restart_keeps_feedback_release_and_cooldown(fx):
-    from jarvis.agent_layer.session.protocol import PROACTIVE_ACK_ENTRY
+    from jarvis.agent_layer.session.session_protocol import PROACTIVE_ACK_ENTRY
 
     await fx["repo"].create(session_id="test-session")
     engine = CountingEngine(ThoughtFrame(decision="ask", confidence=0.95, utterance="x"), fresh=True)
@@ -448,7 +448,7 @@ async def test_same_proactive_line_is_not_repeated(fx):
 @pytest.mark.asyncio
 async def test_proactive_repeating_the_last_answer_is_not_sent(fx):
     """사고가 방금 끝난 답을 알릴 거리로 다시 고르면 보내지 않는다. 다른 일을 알리는 말은 보낸다."""
-    from jarvis.model_layer.types import AssistantMessage, TextContent
+    from jarvis.model_layer.model_types import AssistantMessage, TextContent
 
     await fx["repo"].create(session_id="test-session")
     answer = "애쉬, 가장 추천하는 공고는 시흥거모 S-1블록이에요. 월 부담 최대 139만원이고 마감은 11월 17일이에요."
@@ -471,7 +471,7 @@ async def test_proactive_repeating_the_last_answer_is_not_sent(fx):
 @pytest.mark.asyncio
 async def test_old_answer_does_not_block_a_later_reminder(fx):
     """오래전 답과 겹치는 🔔(그 공고의 마감 알림)는 되풀이로 보지 않는다."""
-    from jarvis.model_layer.types import AssistantMessage, TextContent
+    from jarvis.model_layer.model_types import AssistantMessage, TextContent
 
     await fx["repo"].create(session_id="test-session")
     answer = "애쉬, 가장 추천하는 공고는 시흥거모 S-1블록이에요. 마감은 11월 17일이에요."

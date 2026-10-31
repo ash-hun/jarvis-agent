@@ -14,11 +14,11 @@ from jarvis.core.goals.tool import GOAL_TOOL
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.protocol import SessionRepo
-    from jarvis.core.skills.registry import SkillRegistry
+    from jarvis.agent_layer.session.session_protocol import SessionRepo
+    from jarvis.core.skills.skills_registry import SkillRegistry
+    from jarvis.core.tools.tools_registry import ToolRegistry
+    from jarvis.model_layer.model_types import ModelConfig
     from jarvis.core.plugins.runner import PluginRunner
-    from jarvis.core.tools.registry import ToolRegistry
-    from jarvis.model_layer.types import ModelConfig
     from jarvis.core.goals.runner import GoalRunner
 
 
@@ -77,7 +77,7 @@ class SchedulerService:
         self._tool_registry = tool_registry
         self._model = model
         # 주지 않으면 빈 것으로 둔다. None 을 세션에 넘기면 훅 호출에서 작업이 실패한다
-        from jarvis.core.skills.registry import SkillRegistry
+        from jarvis.core.skills.skills_registry import SkillRegistry
         from jarvis.core.plugins.runner import PluginRunner
 
         self._plugin_runner = plugin_runner if plugin_runner is not None else PluginRunner()
@@ -126,7 +126,7 @@ class SchedulerService:
     def add_task(self, task: ScheduledTask) -> None:
         self._tasks.append(task)
         if self._schedules_dir:
-            from jarvis.core.scheduler.loader import save_task
+            from jarvis.core.scheduler.scheduler_loader import save_task
 
             save_task(task, self._schedules_dir)
 
@@ -144,11 +144,11 @@ class SchedulerService:
             return False
         task.enabled = enabled
         if task._source is not None:
-            from jarvis.core.scheduler.loader import write_enabled
+            from jarvis.core.scheduler.scheduler_loader import write_enabled
 
             write_enabled(task)
         elif self._schedules_dir:
-            from jarvis.core.scheduler.loader import save_task
+            from jarvis.core.scheduler.scheduler_loader import save_task
 
             save_task(task, self._schedules_dir)
         return True
@@ -254,7 +254,7 @@ class SchedulerService:
         if task in self._tasks:
             self._tasks.remove(task)
         task.enabled = False
-        from jarvis.core.scheduler.loader import remove_task_file
+        from jarvis.core.scheduler.scheduler_loader import remove_task_file
 
         remove_task_file(task, self._schedules_dir)
 
@@ -413,7 +413,7 @@ class SchedulerService:
             return None
 
     async def _turn_tokens(self, session_id: str) -> tuple[int, int]:
-        from jarvis.model_layer.types import AssistantMessage
+        from jarvis.model_layer.model_types import AssistantMessage
 
         try:
             messages = await self._session_repo.get_messages(session_id)
@@ -432,7 +432,7 @@ class SchedulerService:
         base = resolved.tools if resolved is not None and resolved.tools is not None else self._tool_registry
         if not task.tools_allowed:
             return base
-        from jarvis.core.tools.registry import ToolRegistry
+        from jarvis.core.tools.tools_registry import ToolRegistry
 
         filtered = ToolRegistry()
         for name in task.tools_allowed:
@@ -457,8 +457,8 @@ class SchedulerService:
         self, task: ScheduledTask, registry: "ToolRegistry", name: str, params: dict[str, Any]
     ) -> str | None:
         """도구 하나를 사람 없이 부른 글. 오류면 None."""
-        from jarvis.core.tools.registry import ToolContext
-        from jarvis.model_layer.types import TextContent
+        from jarvis.core.tools.tools_registry import ToolContext
+        from jarvis.model_layer.model_types import TextContent
 
         call_id = f"sched-{task.name}"
         # 스케줄은 사람이 없는 실행이라 로컬 사용자의 범위로 부른다(대화 세션의 memory_scope 와 같은 기본값)

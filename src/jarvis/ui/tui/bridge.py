@@ -3,7 +3,7 @@
 from typing import Literal
 from dataclasses import dataclass, field
 
-from jarvis.agent_layer.types import (
+from jarvis.agent_layer.agent_types import (
     AgentEndEvent,
     AgentErrorEvent,
     AgentEvent,

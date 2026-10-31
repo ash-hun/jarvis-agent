@@ -3,7 +3,7 @@
 from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
 
-from jarvis.model_layer.types import Message
+from jarvis.model_layer.model_types import Message
 
 
 class ProactiveAction(BaseModel):

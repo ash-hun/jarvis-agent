@@ -5,10 +5,10 @@ from typing import TYPE_CHECKING, Any
 from collections.abc import Awaitable, Callable
 
 from jarvis.memory.scope import LOCAL_USER, MemoryScope, current_task
-from jarvis.memory.stores.protocol import tokens_of
-from jarvis.agent_layer.types import AgentEvent
+from jarvis.memory.stores.store_protocol import tokens_of
+from jarvis.agent_layer.agent_types import AgentEvent
+from .multi_agent_protocol import AgentNodeProtocol
 from .task import AgentResult, AgentTask
-from .protocol import AgentNodeProtocol
 
 if TYPE_CHECKING:
     from jarvis.memory.memory_service import MemoryService

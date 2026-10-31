@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
+from jarvis.model_layer.model_types import LLMContext, ModelConfig, StreamOptions, UserMessage
 from jarvis.agent_layer.thought.log import THOUGHT_SOURCE
 from jarvis.model_layer.stream import stream_to_message
 

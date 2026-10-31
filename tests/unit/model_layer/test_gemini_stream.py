@@ -3,7 +3,7 @@
 import types
 import pytest
 
-from jarvis.model_layer.types import LLMContext, ModelConfig, StopEvent, TextDeltaEvent, UserMessage
+from jarvis.model_layer.model_types import LLMContext, ModelConfig, StopEvent, TextDeltaEvent, UserMessage
 
 
 class _Chunk:

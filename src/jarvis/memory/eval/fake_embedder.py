@@ -2,7 +2,7 @@
 
 import hashlib
 
-from jarvis.memory.stores.protocol import tokens_of
+from jarvis.memory.stores.store_protocol import tokens_of
 from jarvis.model_layer.embeddings import Embedder
 
 DIMENSIONS = 64

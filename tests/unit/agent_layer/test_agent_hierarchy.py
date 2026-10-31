@@ -8,7 +8,7 @@ from jarvis.ui.tui.bridge import (
     AgentPushAction,
     EventBridge,
 )
-from jarvis.agent_layer.types import AgentEndEvent, AgentStartEvent
+from jarvis.agent_layer.agent_types import AgentEndEvent, AgentStartEvent
 from jarvis.core.multi_agent.node import AgentNode
 from jarvis.core.multi_agent.task import AgentTask
 

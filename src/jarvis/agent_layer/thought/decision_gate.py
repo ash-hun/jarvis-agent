@@ -4,9 +4,9 @@ from typing import Any
 from datetime import datetime
 from collections.abc import Callable
 
-from jarvis.model_layer.types import LLMContext, Message, ModelConfig, StreamOptions, UserMessage
-from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
-from jarvis.agent_layer.thought.protocol import ThoughtEngine
+from jarvis.model_layer.model_types import LLMContext, Message, ModelConfig, StreamOptions, UserMessage
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.thought.thought_protocol import ThoughtEngine
 from jarvis.model_layer.stream import stream_to_message
 from jarvis.model_layer.decision import DecisionModel
 

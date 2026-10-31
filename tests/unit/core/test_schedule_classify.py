@@ -3,7 +3,7 @@
 import pytest
 import asyncio
 
-from jarvis.model_layer.types import AssistantMessage, ModelConfig, TextContent
+from jarvis.model_layer.model_types import AssistantMessage, ModelConfig, TextContent
 from jarvis.core.scheduler.classify import make_llm_classifier
 
 MODEL = ModelConfig(provider="faux", model="faux-model")

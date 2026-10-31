@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 class TestMCPToolWrapper:
     def _make_wrapper(self):
         from jarvis.core.tools.mcp_loader import MCPToolWrapper
-        from jarvis.config import MCPServerConfig
+        from jarvis.jarvis_config import MCPServerConfig
 
         server = MCPServerConfig(name="test-server", transport="stdio", command=["echo", "hi"])
         return MCPToolWrapper(
@@ -46,15 +46,15 @@ class TestMCPToolWrapper:
 
 class TestMCPToolLoader:
     def _make_loader(self):
+        from jarvis.core.tools.tools_registry import ToolRegistry
         from jarvis.core.tools.mcp_loader import MCPToolLoader
-        from jarvis.core.tools.registry import ToolRegistry
 
         registry = ToolRegistry()
         return MCPToolLoader(registry), registry
 
     async def test_load_servers_skips_when_mcp_not_installed(self):
         loader, registry = self._make_loader()
-        from jarvis.config import MCPServerConfig
+        from jarvis.jarvis_config import MCPServerConfig
 
         servers = [MCPServerConfig(name="test", transport="stdio", command=["npx", "server"])]
 
@@ -67,7 +67,7 @@ class TestMCPToolLoader:
 
     async def test_load_servers_registers_tools(self):
         loader, registry = self._make_loader()
-        from jarvis.config import MCPServerConfig
+        from jarvis.jarvis_config import MCPServerConfig
 
         servers = [MCPServerConfig(name="test", transport="stdio", command=["npx", "server"])]
 
@@ -94,7 +94,7 @@ class TestMCPToolLoader:
 
     async def test_load_servers_continues_on_server_error(self):
         loader, registry = self._make_loader()
-        from jarvis.config import MCPServerConfig
+        from jarvis.jarvis_config import MCPServerConfig
 
         servers = [
             MCPServerConfig(name="bad-server", transport="stdio", command=["bad-cmd"]),
@@ -119,7 +119,7 @@ class TestMCPToolLoader:
     async def test_load_servers_skips_on_timeout_and_continues(self):
         """응답 없는 서버는 타임아웃 후 skip되고 다른 서버는 계속 로드된다."""
         loader, registry = self._make_loader()
-        from jarvis.config import MCPServerConfig
+        from jarvis.jarvis_config import MCPServerConfig
 
         servers = [
             MCPServerConfig(name="hang", transport="stdio", command=["hang"], timeout=0.05),
@@ -141,7 +141,7 @@ class TestMCPToolLoader:
 
     async def test_load_servers_skips_tool_with_no_name(self):
         loader, registry = self._make_loader()
-        from jarvis.config import MCPServerConfig
+        from jarvis.jarvis_config import MCPServerConfig
 
         servers = [MCPServerConfig(name="s", transport="stdio", command=["x"])]
         tools = [
@@ -161,7 +161,7 @@ class TestMCPToolLoader:
 class TestMCPToolWrapperTimeout:
     def _make_wrapper(self, timeout: float):
         from jarvis.core.tools.mcp_loader import MCPToolWrapper
-        from jarvis.config import MCPServerConfig
+        from jarvis.jarvis_config import MCPServerConfig
 
         server = MCPServerConfig(name="s", transport="stdio", command=["x"], timeout=timeout)
         return MCPToolWrapper(server, "slow-tool", "", {})
@@ -181,7 +181,7 @@ class TestMCPToolWrapperTimeout:
 
 class TestBuildHttpHeaders:
     def _server(self, **kw):
-        from jarvis.config import MCPServerConfig
+        from jarvis.jarvis_config import MCPServerConfig
 
         return MCPServerConfig(name="s", transport="http", url="http://x/sse", **kw)
 
@@ -216,7 +216,7 @@ class TestBuildHttpHeaders:
 
 class TestMCPConfig:
     def test_server_config_defaults(self):
-        from jarvis.config import MCPServerConfig
+        from jarvis.jarvis_config import MCPServerConfig
 
         cfg = MCPServerConfig(name="my-server")
         assert cfg.transport == "stdio"
@@ -230,7 +230,7 @@ class TestMCPConfig:
     def test_server_config_auth_token_is_secret(self):
         from pydantic import SecretStr
 
-        from jarvis.config import MCPServerConfig
+        from jarvis.jarvis_config import MCPServerConfig
 
         cfg = MCPServerConfig(name="s", auth_token="my-secret")
         assert isinstance(cfg.auth_token, SecretStr)
@@ -239,7 +239,7 @@ class TestMCPConfig:
         assert cfg.auth_token.get_secret_value() == "my-secret"
 
     def test_server_config_http(self):
-        from jarvis.config import MCPServerConfig
+        from jarvis.jarvis_config import MCPServerConfig
 
         cfg = MCPServerConfig(name="http-server", transport="http", url="http://localhost:8080/sse")
         assert cfg.transport == "http"

@@ -70,7 +70,7 @@ async def test_update_status_validation(tmp_path):
 
 def test_config_default_and_startup_builder(tmp_path, monkeypatch):
     from jarvis.app.infra_builder import InfraBuilder
-    from jarvis.config import JarvisSettings
+    from jarvis.jarvis_config import JarvisSettings
 
     settings = JarvisSettings()
     assert settings.openloop.backend == "jsonl"  # 기본 영속(jsonl)

@@ -14,8 +14,8 @@ from jarvis.app.agent_conversation import (
     peer_session_id,
     refusal,
 )
-from jarvis.model_layer.types import AssistantMessage, TextContent, Usage
-from jarvis.core.tools.registry import ToolContext
+from jarvis.model_layer.model_types import AssistantMessage, TextContent, Usage
+from jarvis.core.tools.tools_registry import ToolContext
 from jarvis.core.session import SessionBusy
 from jarvis.memory.scope import MemoryScope
 

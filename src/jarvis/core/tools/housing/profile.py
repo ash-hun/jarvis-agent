@@ -223,7 +223,7 @@ class ProfileStore:
         return from_metadata(item.metadata) if item is not None else HousingProfile()
 
     async def save(self, profile: HousingProfile, scope: "MemoryScope", today: date) -> None:
-        from jarvis.memory.types import MemoryKind
+        from jarvis.memory.memory_types import MemoryKind
 
         user = scope.user_id or LOCAL_USER
         content = "주거 프로필(대출 자격 판단용): " + ", ".join(profile.lines(today))

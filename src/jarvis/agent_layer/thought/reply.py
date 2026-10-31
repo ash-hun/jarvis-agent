@@ -4,7 +4,7 @@ import json
 import asyncio
 from typing import Literal
 
-from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
+from jarvis.model_layer.model_types import LLMContext, ModelConfig, StreamOptions, UserMessage
 from jarvis.model_layer.stream import stream_to_message
 from jarvis.common.logger import get_logger
 

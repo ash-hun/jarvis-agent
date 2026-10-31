@@ -5,9 +5,9 @@ import pytest
 from jarvis.core.multi_agent.factory import AgentDefinition, AgentFactory, AgentMemoryPolicy, child_session_id
 from jarvis.memory import MemoryKind, MemoryScope, MemoryService
 from jarvis.memory.stores.in_memory import InMemoryItemStore
+from jarvis.core.tools.tools_registry import ToolContext
 from jarvis.core.multi_agent.tool import AgentNodeTool
 from jarvis.core.multi_agent.task import AgentTask
-from jarvis.core.tools.registry import ToolContext
 from jarvis.core.session import AgentSession
 
 PARENT_S1 = MemoryScope(user_id="jh", agent_id="main", session_id="s1")
@@ -162,7 +162,7 @@ def test_memory_policy_rejects_unknown_stm():
 
 
 def test_loader_parses_memory_block(tmp_path):
-    from jarvis.core.multi_agent.loader import load_agent_definitions
+    from jarvis.core.multi_agent.multi_agent_loader import load_agent_definitions
 
     (tmp_path / "a.yaml").write_text(
         "- name: grep\n  description: d\n  memory:\n    stm: per_task\n"

@@ -18,7 +18,7 @@ from jarvis.core.external import (
     derive_events,
     load_source_specs,
 )
-from jarvis.config import MCPServerConfig
+from jarvis.jarvis_config import MCPServerConfig
 
 
 class _Clock:

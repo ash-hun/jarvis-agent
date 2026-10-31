@@ -2,9 +2,9 @@
 
 from jarvis.voice.providers.browser import BrowserSTTProvider, BrowserTTSProvider
 from jarvis.voice.providers.supertonic import SupertonicTTSProvider
+from jarvis.voice.voice_protocol import STTProvider, TTSProvider
 from jarvis.voice.providers.whisper import WhisperSTTProvider
-from jarvis.voice.protocol import STTProvider, TTSProvider
-from jarvis.voice.service import VoiceService
+from jarvis.voice.voice_service import VoiceService
 
 
 async def test_base_defaults_delegate_to_browser() -> None:

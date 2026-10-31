@@ -4,9 +4,9 @@ import pytest
 from datetime import datetime
 
 from jarvis.agent_layer.thought.decision_gate import DecisionGatedEngine, decision_state
-from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
-from jarvis.agent_layer.thought.protocol import ThoughtEngine
-from jarvis.model_layer.types import ModelConfig, UserMessage
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.thought.thought_protocol import ThoughtEngine
+from jarvis.model_layer.model_types import ModelConfig, UserMessage
 
 NOW = datetime(2026, 1, 1, 9, 0)
 
@@ -102,7 +102,7 @@ async def test_ask_from_thought_is_kept_when_speaking() -> None:
 
 
 def test_decision_model_uses_its_own_threshold() -> None:
-    from jarvis.config import ProactiveConfig
+    from jarvis.jarvis_config import ProactiveConfig
 
     assert ProactiveConfig().effective_threshold() == 0.85
     assert ProactiveConfig(decision_model="tev1").effective_threshold() == 0.6
@@ -115,7 +115,7 @@ async def test_nothing_to_tell_stays_silent_even_with_high_probability() -> None
 
 
 async def test_utterance_prompt_carries_persona_and_allows_nothing(monkeypatch) -> None:  # type: ignore[no-untyped-def]
-    from jarvis.model_layer.types import AssistantMessage
+    from jarvis.model_layer.model_types import AssistantMessage
     from jarvis.agent_layer.thought import decision_gate
 
     prompts: list[str] = []

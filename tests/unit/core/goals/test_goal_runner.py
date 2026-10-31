@@ -5,14 +5,14 @@ from typing import Any
 from datetime import datetime
 from unittest.mock import MagicMock
 
+from jarvis.core.tools.tools_registry import JarvisTool, ToolContext, ToolRegistry
 from jarvis.core.goals.runner import GoalRunner, build_prompt, step_registry
-from jarvis.core.tools.registry import JarvisTool, ToolContext, ToolRegistry
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
 from jarvis.core.goals.tool import GOAL_RULE, GoalTool, standing_rule
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.scheduler.service import SchedulerService
+from jarvis.core.scheduler.scheduler_service import SchedulerService
+from jarvis.core.goals.goals_types import Goal, goal_key
 from jarvis.core.scheduler.task import ScheduledTask
-from jarvis.core.goals.types import Goal, goal_key
-from jarvis.core.goals.store import GoalStore
+from jarvis.core.goals.goals_store import GoalStore
 from jarvis.memory.scope import MemoryScope
 
 NOW = datetime(2026, 10, 28, 10, 0)

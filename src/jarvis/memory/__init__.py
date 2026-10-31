@@ -9,7 +9,7 @@ from jarvis.memory.scope import (
     task_scope,
 )
 from jarvis.memory.memory_service import WRITE_RULES, MemoryService
-from jarvis.memory.types import MemoryItem, MemoryKind
+from jarvis.memory.memory_types import MemoryItem, MemoryKind
 
 __all__ = [
     "LOCAL_USER",

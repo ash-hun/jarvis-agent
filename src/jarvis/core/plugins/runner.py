@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from jarvis.core.plugins.protocol import HookResult, JarvisPlugin
-from jarvis.model_layer.types import Message
+from jarvis.core.plugins.plugins_protocol import HookResult, JarvisPlugin
+from jarvis.model_layer.model_types import Message
 from jarvis.common.logger import get_logger
 
 logger = get_logger(__name__)

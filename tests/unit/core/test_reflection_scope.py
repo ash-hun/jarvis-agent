@@ -2,7 +2,7 @@
 
 import pytest
 
-from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame, ThoughtRequest
 from tests.fixtures.grounded_loops import GroundedLoopStore
 from jarvis.core.proactive import DefaultProactivityCore
 from jarvis.memory.scope import MemoryScope

@@ -17,15 +17,15 @@ from jarvis.memory.scope import (
     scope_from_context,
     task_scope,
 )
-from jarvis.model_layer.types import AssistantMessage, LLMContext, TextContent, UserMessage
+from jarvis.model_layer.model_types import AssistantMessage, LLMContext, TextContent, UserMessage
 from jarvis.memory.eval.adapters.longmemeval import parse_longmemeval
 from jarvis.memory.working.in_memory import InMemoryWorkingStore
 from jarvis.memory.working.state import MAX_NOTES, WorkingState
+from jarvis.memory.memory_types import MemoryItem, MemoryKind
 from jarvis.memory.long_term.episodic import prepare_episode
 from jarvis.memory.eval.adapters.locomo import parse_locomo
-from jarvis.memory.types import MemoryItem, MemoryKind
+from jarvis.memory.stores.store_protocol import tokens_of
 from jarvis.memory.retrieval.cues import cue_overlap
-from jarvis.memory.stores.protocol import tokens_of
 
 SCOPE = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
 
@@ -192,7 +192,7 @@ def test_locomo_orders_sessions_numerically_and_drops_unknown_evidence():
 
 def test_summary_language_follows_conversation_text() -> None:
     from jarvis.memory.consolidation.compaction import conversation_language
-    from jarvis.model_layer.types import AssistantMessage, TextContent
+    from jarvis.model_layer.model_types import AssistantMessage, TextContent
 
     ko = [UserMessage(content="예산은 1200만원이야"), AssistantMessage(content=[TextContent(text="알겠습니다")])]
     en = [UserMessage(content="The budget is $40k"), AssistantMessage(content=[TextContent(text="Got it")])]

@@ -4,7 +4,7 @@ import uuid
 from typing import Any, Literal
 from pydantic import BaseModel, Field
 
-from jarvis.agent_layer.thought.types import ProactiveAction
+from jarvis.agent_layer.thought.thought_types import ProactiveAction
 
 
 class ProactiveMessage(BaseModel):

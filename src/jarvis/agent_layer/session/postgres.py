@@ -5,14 +5,14 @@ import asyncio
 import builtins
 from typing import Any
 
-from jarvis.agent_layer.session.protocol import (
+from jarvis.agent_layer.session.session_protocol import (
     PROACTIVE_ENTRY,
     SessionEntry,
     SessionMetadata,
     SessionRepo,
     deserialize_message,
 )
-from jarvis.model_layer.types import Message
+from jarvis.model_layer.model_types import Message
 from jarvis.memory.scope import MAIN_AGENT
 
 

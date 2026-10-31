@@ -3,13 +3,13 @@
 import pytest
 
 from jarvis.memory.working import InMemoryWorkingStore, WorkingState, WorkingStore, cut_at_user_boundary
-from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage, UserMessage
+from jarvis.model_layer.model_types import AssistantMessage, TextContent, ToolResultMessage, UserMessage
 from jarvis.memory.memory_service import LTM_HEADER, TURN_SOURCE
 from jarvis.memory.consolidation.semantic_extract import Fact
 from jarvis.memory.stores.in_memory import InMemoryItemStore
 from jarvis.memory import MemoryScope, MemoryService
 from jarvis.memory.working.window import last_turns
-from jarvis.memory.types import MemoryKind
+from jarvis.memory.memory_types import MemoryKind
 
 CTX = {"session_id": "s1", "user_id": "u1", "agent_id": "main"}
 SCOPE = MemoryScope(user_id="u1", agent_id="main", session_id="s1")

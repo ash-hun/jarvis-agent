@@ -1,6 +1,6 @@
 """[agent_layer] ThoughtFrame 을 메인 턴 프롬프트에 끼울 텍스트로 조립하는 전략들을 둔다."""
 
-from jarvis.agent_layer.thought.types import ThoughtFrame
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame
 
 
 class ThoughtComposer:

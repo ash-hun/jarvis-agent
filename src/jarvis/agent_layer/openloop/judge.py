@@ -5,9 +5,9 @@ from datetime import datetime
 from collections.abc import Callable
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from jarvis.model_layer.types import LLMContext, Message, ModelConfig, StreamOptions, UserMessage
+from jarvis.model_layer.model_types import LLMContext, Message, ModelConfig, StreamOptions, UserMessage
 from jarvis.agent_layer.thought.engine import HISTORY_CHARS, extract_json, format_history
-from jarvis.agent_layer.thought.types import items_to_text
+from jarvis.agent_layer.thought.thought_types import items_to_text
 from jarvis.model_layer.stream import stream_to_message
 from jarvis.common.logger import get_logger
 

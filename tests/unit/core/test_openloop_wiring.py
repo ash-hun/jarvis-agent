@@ -4,7 +4,7 @@ import pytest
 from datetime import datetime
 
 from jarvis.agent_layer.openloop import InMemoryOpenLoopStore, LoopExpiry, OpenLoop
-from jarvis.agent_layer.thought.types import ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame, ThoughtRequest
 from jarvis.agent_layer.openloop.judge import LoopVerdict
 from jarvis.core.proactive import DefaultProactivityCore
 
@@ -366,7 +366,7 @@ async def test_open_loops_are_tracked_without_thought(fx):
 @pytest.mark.asyncio
 async def test_agenda_changed_only_when_loops_change(fx):
     """화면은 이 신호로 AGENDA 를 다시 읽는다. 같은 약속을 다시 잡아 바뀐 게 없으면 보내지 않는다."""
-    from jarvis.agent_layer.types import AgendaChangedEvent
+    from jarvis.agent_layer.agent_types import AgendaChangedEvent
 
     await fx["repo"].create(session_id="test-session")
     store = InMemoryOpenLoopStore()

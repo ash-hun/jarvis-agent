@@ -1,8 +1,8 @@
 """core/tools/ — ToolRegistry + 내장 툴 테스트."""
 import pytest
 
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.tools.registry import ToolRegistry
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+from jarvis.core.tools.tools_registry import ToolRegistry
 
 # ── ToolRegistry 기본 동작 ─────────────────────────────────────────────────────
 
@@ -234,7 +234,7 @@ class _Named:
 
 
 def test_picked_registry_sees_tools_registered_after_it_was_made():
-    from jarvis.core.tools.registry import PickedToolRegistry, ToolRegistry
+    from jarvis.core.tools.tools_registry import PickedToolRegistry, ToolRegistry
 
     app, opt_in = ToolRegistry(), ToolRegistry()
     app.register(_Named("lh_notice"))

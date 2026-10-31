@@ -5,10 +5,10 @@ from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any
 from collections.abc import Awaitable, Callable
 
-from jarvis.model_layer.types import AssistantMessage, TextContent, ToolResultMessage
-from jarvis.agent_layer.session.protocol import PEER_SESSION_PREFIX
-from jarvis.core.tools.registry import JarvisTool, ToolContext
-from jarvis.agent_layer.openloop.types import same_loop
+from jarvis.model_layer.model_types import AssistantMessage, TextContent, ToolResultMessage
+from jarvis.agent_layer.session.session_protocol import PEER_SESSION_PREFIX
+from jarvis.core.tools.tools_registry import JarvisTool, ToolContext
+from jarvis.agent_layer.openloop.openloop_types import same_loop
 from jarvis.memory.scope import MAIN_AGENT, MemoryScope
 from jarvis.common.logger import get_logger
 from jarvis.core.session import SessionBusy

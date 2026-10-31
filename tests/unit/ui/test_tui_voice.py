@@ -26,7 +26,7 @@ class _FakeTTS:
 
 
 def _service(stt=None, tts=None):
-    from jarvis.voice.service import VoiceService
+    from jarvis.voice.voice_service import VoiceService
     return VoiceService(stt=stt or _FakeSTT(), tts=tts or _FakeTTS())
 
 
@@ -100,7 +100,7 @@ class TestListen:
 
 class TestAvailability:
     def test_browser_providers_disable(self):
-        from jarvis.voice.service import VoiceService
+        from jarvis.voice.voice_service import VoiceService
 
         svc = VoiceService.from_config(stt_provider="browser", tts_provider="browser")
         ctrl = TuiVoiceController(svc)

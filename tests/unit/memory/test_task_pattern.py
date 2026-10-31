@@ -13,7 +13,7 @@ from jarvis.memory.long_term.task_pattern import (
 )
 from jarvis.memory import MemoryKind, MemoryScope, MemoryService
 from jarvis.memory.stores.in_memory import InMemoryItemStore
-from jarvis.model_layer.types import UserMessage
+from jarvis.model_layer.model_types import UserMessage
 
 KAREN = MemoryScope(user_id="u1", agent_id="karen", session_id="k1")
 KAREN_LATER = MemoryScope(user_id="u1", agent_id="karen", session_id="k2")

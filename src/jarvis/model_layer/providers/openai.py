@@ -5,7 +5,7 @@ from typing import Any
 import openai as openai_sdk
 from collections.abc import AsyncIterator
 
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     ErrorEvent,
     ImageContent,
     LLMContext,
@@ -20,7 +20,7 @@ from jarvis.model_layer.types import (
     ToolCallDeltaEvent,
     Usage,
 )
-from jarvis.model_layer.providers.base import Provider
+from jarvis.model_layer.providers.provider_base import Provider
 
 
 class OpenAIProvider(Provider):

@@ -2,8 +2,8 @@
 
 import os
 
-from jarvis.model_layer.types import ModelConfig
-from jarvis.config import get_settings
+from jarvis.model_layer.model_types import ModelConfig
+from jarvis.jarvis_config import get_settings
 
 OLLAMA_URL = os.environ.get("EXPERIMENT_OLLAMA_URL", "http://localhost:11434")
 LOCAL = {

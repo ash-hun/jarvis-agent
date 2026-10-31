@@ -4,8 +4,8 @@ import pytest
 
 from jarvis.memory import WRITE_RULES, MemoryItem, MemoryKind, MemoryScope, MemoryService
 from jarvis.memory.stores.in_memory import InMemoryItemStore
-from jarvis.memory.stores.protocol import ItemStore
-from jarvis.model_layer.types import UserMessage
+from jarvis.memory.stores.store_protocol import ItemStore
+from jarvis.model_layer.model_types import UserMessage
 
 U1_MAIN = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
 U1_RESEARCHER = MemoryScope(user_id="u1", agent_id="researcher", session_id="agent_researcher__s1")
@@ -180,7 +180,7 @@ async def test_episodes_get_occurred_at(memory):
 
 async def test_fixed_facts_block_then_recall_block_then_procedures(memory):
     from jarvis.memory.long_term.procedural import InMemoryProcedures, Procedure
-    from jarvis.model_layer.types import UserMessage
+    from jarvis.model_layer.model_types import UserMessage
 
     procedures = InMemoryProcedures([Procedure(name="deploy", description="스테이징 배포", aliases=("배포",))])
     mgr = MemoryService(memory.store, procedures=procedures, fixed_facts=1, inject_limit=3)

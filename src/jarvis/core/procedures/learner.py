@@ -5,10 +5,10 @@ from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from jarvis.core.procedures.detect import DEFAULT_MIN_TOOL_CALLS, TaskSpan, ToolStep, find_spans
-from jarvis.core.procedures.store import STATUS_DRAFT, Procedure, ProcedureStore
+from jarvis.core.procedures.procedures_store import STATUS_DRAFT, Procedure, ProcedureStore
 from jarvis.core.procedures.distill import Distiller, ProcedureDraft
 from jarvis.core.procedures.plan import valid_plan
-from jarvis.model_layer.types import Message
+from jarvis.model_layer.model_types import Message
 
 if TYPE_CHECKING:
     from jarvis.memory.memory_service import MemoryService

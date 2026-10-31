@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 from jarvis.core.multi_agent.topologies.supervisor import SupervisorTopology
 from jarvis.core.multi_agent.task import AgentResult, AgentTask
 from jarvis.core.multi_agent.tool import AgentNodeTool
-from .base import BaseOrchestrator
+from .orchestrator_base import BaseOrchestrator
 
 if TYPE_CHECKING:
     from jarvis.core.session import AgentSession

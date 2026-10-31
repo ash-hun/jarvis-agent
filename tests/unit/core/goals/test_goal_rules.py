@@ -1,6 +1,6 @@
 """목표 규칙: 자연 키, 답 해석, 새로 알릴 항목 고르기, 진행 기록이 두 번 적어도 한 번만 남는지."""
 
-from jarvis.core.goals.types import (
+from jarvis.core.goals.goals_types import (
     MAX_NOTES, Goal, Step, advance, compose, goal_key, new_items, parse_step, with_tool_items, worth_noting,
 )
 

@@ -4,8 +4,8 @@ import asyncio
 from typing import Any
 from collections.abc import AsyncIterator
 
-from jarvis.model_layer.types import LLMContext, ModelConfig, StreamEvent, StreamOptions
-from jarvis.model_layer.registry import get_default_registry
+from jarvis.model_layer.model_types import LLMContext, ModelConfig, StreamEvent, StreamOptions
+from jarvis.model_layer.model_registry import get_default_registry
 from tests.fixtures.faux_provider import FauxProvider
 
 
@@ -86,7 +86,7 @@ async def test_hook_adds_context_and_runs_around_turn(
 async def test_proactive_push_is_quiet_while_hook_is_set(
     permissive_pipeline, plugin_runner, session_memory, tool_registry, skill_registry, jsonl_repo
 ) -> None:
-    from jarvis.core.proactive.types import ProactiveMessage
+    from jarvis.core.proactive.proactive_types import ProactiveMessage
 
     fx = {
         "pipeline": permissive_pipeline,
@@ -116,7 +116,7 @@ async def test_proactive_push_is_quiet_while_hook_is_set(
 async def test_no_proactive_message_while_the_agent_is_answering(
     permissive_pipeline, plugin_runner, session_memory, tool_registry, skill_registry, jsonl_repo
 ):
-    from jarvis.core.proactive.types import ProactiveMessage
+    from jarvis.core.proactive.proactive_types import ProactiveMessage
 
     fx = {
         "pipeline": permissive_pipeline,

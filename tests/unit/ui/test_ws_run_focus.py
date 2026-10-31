@@ -3,7 +3,7 @@
 import pytest
 from typing import Any
 
-from jarvis.core.focus.types import parse_command
+from jarvis.core.focus.focus_types import parse_command
 from jarvis.ui.web.ws_tasks import run_focus
 
 

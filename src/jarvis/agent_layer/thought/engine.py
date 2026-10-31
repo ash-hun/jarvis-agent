@@ -6,15 +6,15 @@ from datetime import datetime
 from collections.abc import Callable
 from pydantic import ValidationError
 
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     LLMContext,
     Message,
     ModelConfig,
     StreamOptions,
     UserMessage,
 )
-from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame, ThoughtRequest
-from jarvis.agent_layer.thought.protocol import RecallFn, ThoughtEngine
+from jarvis.agent_layer.thought.thought_types import ProactiveAction, ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.thought.thought_protocol import RecallFn, ThoughtEngine
 from jarvis.agent_layer.thought.prompt import ThoughtPromptTemplate
 from jarvis.model_layer.stream import stream_to_message
 from jarvis.common.logger import get_logger

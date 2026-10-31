@@ -23,9 +23,9 @@ from jarvis.memory.eval.target import EvalTarget
 if TYPE_CHECKING:
     from jarvis.memory.consolidation.semantic_extract import FactExtractor
     from jarvis.memory.consolidation.compaction import Summarizer
+    from jarvis.model_layer.model_types import ModelConfig
     from jarvis.memory.eval.faithfulness import FactJudge
     from jarvis.model_layer.embeddings import Embedder
-    from jarvis.model_layer.types import ModelConfig
     from jarvis.memory.eval.benchmark import Judge
 
 
@@ -54,8 +54,8 @@ async def _run_all(names: list[str], summarizer: str = "extractive", judge: str 
 
 
 def _settings_model() -> "ModelConfig":
-    from jarvis.model_layer.types import ModelConfig
-    from jarvis.config import get_settings
+    from jarvis.model_layer.model_types import ModelConfig
+    from jarvis.jarvis_config import get_settings
 
     llm = get_settings().llm
     return ModelConfig(
@@ -79,7 +79,7 @@ async def _run_benchmark(args: argparse.Namespace) -> int:
         embedder = FakeEmbedder()
     else:
         from jarvis.model_layer.embeddings import build_embedder
-        from jarvis.config import get_settings
+        from jarvis.jarvis_config import get_settings
 
         mcfg = get_settings().memory
         key = mcfg.embedding_api_key or get_settings().llm.api_key

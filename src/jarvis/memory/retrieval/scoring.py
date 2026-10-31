@@ -4,9 +4,9 @@ import math
 from datetime import datetime
 from dataclasses import dataclass
 
-from jarvis.memory.types import MemoryItem, MemoryKind
+from jarvis.memory.memory_types import MemoryItem, MemoryKind
+from jarvis.memory.stores.store_protocol import tokens_of
 from jarvis.memory.retrieval.cues import cue_overlap
-from jarvis.memory.stores.protocol import tokens_of
 from jarvis.model_layer.embeddings import cosine
 from jarvis.memory.scope import MemoryScope
 

@@ -1,11 +1,11 @@
 """[agent_layer] JsonlSessionRepo.create_branch() 로 대화를 갈라 내는 동작 테스트."""
 
-from jarvis.model_layer.types import UserMessage
+from jarvis.model_layer.model_types import UserMessage
 
 
 class TestSessionMetadataParentId:
     def test_metadata_has_parent_id_field(self):
-        from jarvis.agent_layer.session.protocol import SessionMetadata
+        from jarvis.agent_layer.session.session_protocol import SessionMetadata
 
         meta = SessionMetadata(
             session_id="abc",
@@ -17,7 +17,7 @@ class TestSessionMetadataParentId:
         assert meta.parent_id is None
 
     def test_metadata_parent_id_set(self):
-        from jarvis.agent_layer.session.protocol import SessionMetadata
+        from jarvis.agent_layer.session.session_protocol import SessionMetadata
 
         meta = SessionMetadata(
             session_id="child",
@@ -98,7 +98,7 @@ class TestJsonlSessionRepoBranch:
 class TestSidebarTreeView:
     def test_root_sessions_shown_without_prefix(self):
         """parent_id=None 인 세션은 ↳ 없이 표시되어야 한다."""
-        from jarvis.agent_layer.session.protocol import SessionMetadata
+        from jarvis.agent_layer.session.session_protocol import SessionMetadata
 
         root = SessionMetadata(
             session_id="root-abc123456789",
@@ -114,7 +114,7 @@ class TestSidebarTreeView:
 
     def test_child_session_shown_with_prefix(self):
         """parent_id 있는 세션은 ↳ 접두사로 표시되어야 한다."""
-        from jarvis.agent_layer.session.protocol import SessionMetadata
+        from jarvis.agent_layer.session.session_protocol import SessionMetadata
 
         child = SessionMetadata(
             session_id="child-xyz987654321",

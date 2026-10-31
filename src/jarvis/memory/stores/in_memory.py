@@ -1,6 +1,6 @@
 """[memory] 프로세스가 끝나면 사라지는 테스트와 in_memory 설정용 장기 기억 저장소."""
 
-from jarvis.memory.stores.protocol import ItemStore
+from jarvis.memory.stores.store_protocol import ItemStore
 
 
 class InMemoryItemStore(ItemStore):

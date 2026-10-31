@@ -37,12 +37,12 @@ async def repo(postgres_dsn: str):
 # ── 헬퍼 ──────────────────────────────────────────────────────────────────────
 
 def _user_msg(text: str):
-    from jarvis.model_layer.types import UserMessage
+    from jarvis.model_layer.model_types import UserMessage
     return UserMessage(content=text)
 
 
 def _assistant_msg(text: str):
-    from jarvis.model_layer.types import AssistantMessage, TextContent, Usage
+    from jarvis.model_layer.model_types import AssistantMessage, TextContent, Usage
     return AssistantMessage(
         content=[TextContent(text=text)],
         provider="faux",

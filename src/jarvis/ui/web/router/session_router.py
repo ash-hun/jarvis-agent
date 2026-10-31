@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Path
 from fastapi.responses import JSONResponse
 
-from jarvis.model_layer.types import AssistantMessage, UserMessage
+from jarvis.model_layer.model_types import AssistantMessage, UserMessage
 from jarvis.ui.web.web_schema import CreateSessionRequest
 from jarvis.ui.web.session_registry import UnknownAgent
 from jarvis.ui.web.web_state import WebState

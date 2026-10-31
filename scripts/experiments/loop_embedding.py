@@ -6,9 +6,9 @@ import argparse
 from pathlib import Path
 from scripts.experiments.models import OLLAMA_URL
 
-from jarvis.agent_layer.openloop.types import SAME_COSINE, same_loop
+from jarvis.agent_layer.openloop.openloop_types import SAME_COSINE, same_loop
 from jarvis.model_layer.embeddings import build_embedder, cosine
-from jarvis.config import get_settings
+from jarvis.jarvis_config import get_settings
 
 DATASET = Path(__file__).parent / "datasets" / "loop_pairs.jsonl"
 EMBEDDERS = {

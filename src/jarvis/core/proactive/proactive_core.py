@@ -5,9 +5,9 @@ import contextlib
 from collections.abc import Awaitable, Callable
 
 from jarvis.core.proactive.policy import SILENT_REASON, DefaultProactivityPolicy, ProactivityPolicy
-from jarvis.core.proactive.types import ProactiveDecision, ProactiveMessage
-from jarvis.agent_layer.thought.types import ProactiveAction, ThoughtFrame
-from jarvis.model_layer.types import AssistantMessage
+from jarvis.core.proactive.proactive_types import ProactiveDecision, ProactiveMessage
+from jarvis.agent_layer.thought.thought_types import ProactiveAction, ThoughtFrame
+from jarvis.model_layer.model_types import AssistantMessage
 
 # 메인 에이전트 턴 실행기(slow channel). 결과 메시지(or None)를 반환.
 RunMain = Callable[[], Awaitable[AssistantMessage | None]]

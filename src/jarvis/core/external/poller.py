@@ -5,10 +5,10 @@ import asyncio
 import contextlib
 from collections.abc import Awaitable, Callable
 
+from jarvis.core.external.external_protocol import ExternalSource
+from jarvis.core.external.external_types import ExternalEvent
 from jarvis.core.proactive.triggers import ExternalTrigger
 from jarvis.core.external.inbox import ExternalEventInbox
-from jarvis.core.external.protocol import ExternalSource
-from jarvis.core.external.types import ExternalEvent
 from jarvis.core.external.dedup import SeenStore
 from jarvis.common.logger import get_logger
 

@@ -4,8 +4,8 @@ import time
 import asyncio
 from typing import Any
 
-from jarvis.agent_layer.openloop.types import LOOP_STATUSES, OpenLoop
-from jarvis.agent_layer.openloop.store import OpenLoopStore
+from jarvis.agent_layer.openloop.openloop_types import LOOP_STATUSES, OpenLoop
+from jarvis.agent_layer.openloop.openloop_store import OpenLoopStore
 from jarvis.model_layer.embeddings import Embedder
 from jarvis.memory.scope import MAIN_AGENT
 

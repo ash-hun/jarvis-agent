@@ -25,7 +25,7 @@ aliases: [단축명1, 단축명2]   # 선택
 {{args}} 위치에 사용자 입력이 치환된다.
 ```
 
-**SkillRegistry 동작** (`src/jarvis/core/skills/registry.py`):
+**SkillRegistry 동작** (`src/jarvis/core/skills/skills_registry.py`):
 - `load_directory("~/.jarvis/skills/")` 에서 자동 로드
 - `expand("/skill-name some args")` → `content.replace("{{args}}", "some args")`
 - 중복 name은 first-registration-wins (강제 덮어쓰기 불가)
@@ -75,7 +75,7 @@ cat ~/.jarvis/skills/<name>.md
 
 # 2. Python으로 파싱 검증 (Jarvis 설치된 경우)
 python3 -c "
-from jarvis.core.skills.registry import SkillRegistry, _parse_skill_file
+from jarvis.core.skills.skills_registry import SkillRegistry, _parse_skill_file
 from pathlib import Path
 skill = _parse_skill_file(Path('~/.jarvis/skills/<name>.md').expanduser())
 print('name:', skill.name)

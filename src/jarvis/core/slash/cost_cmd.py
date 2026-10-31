@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, cast
 from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
-    from jarvis.model_layer.types import AssistantMessage, Usage
-    from jarvis.agent_layer.session.protocol import SessionRepo
+    from jarvis.agent_layer.session.session_protocol import SessionRepo
+    from jarvis.model_layer.model_types import AssistantMessage, Usage
 
 Handler = Callable[[str], Awaitable[str]]
 

@@ -4,9 +4,9 @@ import asyncio
 from typing import Any
 from dataclasses import dataclass, field
 
-from jarvis.core.multi_agent.protocol import AgentNodeProtocol, TopologyProtocol
+from jarvis.core.multi_agent.multi_agent_protocol import AgentNodeProtocol, TopologyProtocol
 from jarvis.core.multi_agent.task import AgentResult, AgentTask
-from .base import BaseOrchestrator
+from .orchestrator_base import BaseOrchestrator
 
 
 @dataclass

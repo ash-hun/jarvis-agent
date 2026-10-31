@@ -5,16 +5,16 @@ import uuid
 from typing import TYPE_CHECKING
 from collections.abc import Callable
 
-from jarvis.agent_layer.session.protocol import NOT_CONVERSATION
+from jarvis.agent_layer.session.session_protocol import NOT_CONVERSATION
 from jarvis.ui.web.web_auth import auth_enabled
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.protocol import SessionMetadata
+    from jarvis.agent_layer.session.session_protocol import SessionMetadata
+    from jarvis.core.tools.tools_registry import ToolRegistry
     from jarvis.memory.memory_service import MemoryService
     from jarvis.core.policy.sandbox import DefaultSandbox
     from jarvis.app.agent_registry import AgentRegistry
-    from jarvis.core.tools.registry import ToolRegistry
     from jarvis.app.app_services import AppServices
     from jarvis.app.app_context import AppContext
     from jarvis.core.session import AgentSession

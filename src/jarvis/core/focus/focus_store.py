@@ -5,7 +5,7 @@ import json
 from typing import Any
 from pathlib import Path
 
-from jarvis.core.focus.types import FocusState
+from jarvis.core.focus.focus_types import FocusState
 
 ACTIVE_DIR = "active"
 STATE_FILE = "state.json"

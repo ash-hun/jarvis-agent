@@ -4,7 +4,7 @@ import time
 from typing import Any, Literal
 from pydantic import BaseModel, Field
 
-from jarvis.model_layer.types import AssistantMessage, Message, ModelConfig, StreamOptions, Tool
+from jarvis.model_layer.model_types import AssistantMessage, Message, ModelConfig, StreamOptions, Tool
 
 # ── Agent events (Pi: AgentEvent 패턴) ────────────────────────────────────────
 

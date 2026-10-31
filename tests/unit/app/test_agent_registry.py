@@ -5,9 +5,9 @@ from unittest.mock import MagicMock
 
 from jarvis.app.agent_registry import AgentRegistry, load_agent_specs, profile_from_spec
 from jarvis.app.agent_profile import ANSWER_RULE, MAIN_AGENT_ID, AgentProfile
-from jarvis.model_layer.types import ModelConfig
+from jarvis.model_layer.model_types import ModelConfig
+from jarvis.jarvis_config import JarvisSettings
 from jarvis.app.app_context import AppContext
-from jarvis.config import JarvisSettings
 
 MAIN = ModelConfig(provider="ollama", model="gemma", api_key=None, base_url="http://x")
 KAREN = """

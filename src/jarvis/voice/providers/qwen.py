@@ -6,7 +6,7 @@ import httpx
 import struct
 from collections.abc import AsyncIterator
 
-from jarvis.voice.protocol import DEFAULT_LANG, TTSProvider
+from jarvis.voice.voice_protocol import DEFAULT_LANG, TTSProvider
 from jarvis.common.logger import get_logger
 
 # 서버가 꺼져 있으면 바로 Piper 로 넘어가도록 연결은 짧게, 합성(긴 문장 3초쯤)은 넉넉히 기다린다

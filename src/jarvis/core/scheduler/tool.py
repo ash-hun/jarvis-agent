@@ -3,8 +3,8 @@
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.tools.registry import JarvisTool, ToolContext
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+from jarvis.core.tools.tools_registry import JarvisTool, ToolContext
 
 if TYPE_CHECKING:
     from jarvis.core.slash.dispatcher import ScopedHandler

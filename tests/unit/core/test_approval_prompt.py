@@ -3,8 +3,8 @@
 from typing import Any
 from collections.abc import AsyncIterator
 
-from jarvis.model_layer.types import LLMContext, ModelConfig, StreamEvent, StreamOptions
-from jarvis.model_layer.registry import get_default_registry
+from jarvis.model_layer.model_types import LLMContext, ModelConfig, StreamEvent, StreamOptions
+from jarvis.model_layer.model_registry import get_default_registry
 from tests.fixtures.faux_provider import FauxProvider
 
 

@@ -3,8 +3,8 @@
 import base64
 
 from jarvis.voice.english import FALLBACK_LINE, clean_english, split_sentences, should_speak_english
-from jarvis.voice.protocol import TTSProvider
-from jarvis.voice.service import VoiceService
+from jarvis.voice.voice_protocol import TTSProvider
+from jarvis.voice.voice_service import VoiceService
 from jarvis.ui.web.ws_tasks import run_tts
 
 

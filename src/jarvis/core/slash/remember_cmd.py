@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from collections.abc import Awaitable, Callable
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.session.protocol import SessionRepo
+    from jarvis.agent_layer.session.session_protocol import SessionRepo
     from jarvis.memory.memory_service import MemoryService
     from jarvis.memory.scope import MemoryScope
 
@@ -105,7 +105,7 @@ async def _handle_save(
 async def _handle_conflicts(memory: "MemoryService", scope: "MemoryScope") -> str:
     """간섭 후보: 주제는 다른데 내용이 비슷한 사실 쌍. 사람이 보고 /remember forget 으로 정리한다."""
     from jarvis.memory.long_term.semantic import CONFLICTS_KEY
-    from jarvis.memory.types import MemoryKind
+    from jarvis.memory.memory_types import MemoryKind
 
     items = await memory.recent(scope, kinds=[MemoryKind.SEMANTIC], limit=200)
     by_id = {i.id: i for i in items}

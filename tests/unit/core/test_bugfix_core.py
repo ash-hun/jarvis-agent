@@ -7,12 +7,12 @@ from unittest.mock import MagicMock
 
 from jarvis.core.multi_agent.orchestrators.hierarchical import HierarchicalOrchestrator
 from jarvis.core.multi_agent.topologies.hierarchical import HierarchicalTopology
+from jarvis.core.scheduler.scheduler_service import SchedulerService
 from jarvis.core.multi_agent.task import AgentResult, AgentTask
-from jarvis.core.scheduler.service import SchedulerService
-from jarvis.core.skills.registry import SkillRegistry
+from jarvis.core.skills.skills_registry import SkillRegistry
+from jarvis.core.tools.tools_registry import ToolRegistry
+from jarvis.core.tools.tools_loader import ToolLoader
 from jarvis.core.plugins.runner import PluginRunner
-from jarvis.core.tools.registry import ToolRegistry
-from jarvis.core.tools.loader import ToolLoader
 
 
 def test_scheduler_without_deps_gets_empty_runner_and_registry():

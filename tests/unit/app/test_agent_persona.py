@@ -18,10 +18,10 @@ def test_both_thought_templates_have_a_persona_slot():
 
 
 def test_karen_has_her_own_persona_and_keeps_her_rules(monkeypatch):
+    from jarvis.model_layer.model_types import ModelConfig
     from jarvis.app.agent_profile import AgentProfile
     from jarvis.core.proactive import FeedbackLearner
-    from jarvis.model_layer.types import ModelConfig
-    from jarvis.config import JarvisSettings
+    from jarvis.jarvis_config import JarvisSettings
 
     settings = JarvisSettings()
     main = AgentProfile.main(settings, ModelConfig(provider="faux", model="m"), FeedbackLearner())

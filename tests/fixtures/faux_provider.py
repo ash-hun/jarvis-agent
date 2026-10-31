@@ -3,7 +3,7 @@
 import json
 from collections.abc import AsyncIterator
 
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     LLMContext,
     ModelConfig,
     StopEvent,
@@ -76,7 +76,7 @@ class FauxProviderFactory:
 
     @staticmethod
     def error() -> FauxProvider:
-        from jarvis.model_layer.types import ErrorEvent
+        from jarvis.model_layer.model_types import ErrorEvent
 
         class _ErrorProvider(FauxProvider):
             async def stream(self, model, context, options=None):

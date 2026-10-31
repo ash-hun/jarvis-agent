@@ -4,13 +4,13 @@ import json
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from jarvis.core.tools.registry import JarvisTool
+from jarvis.core.tools.tools_registry import JarvisTool
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from jarvis.model_layer.types import ToolResultMessage
-    from jarvis.core.tools.registry import ToolRegistry
-    from jarvis.config import MCPServerConfig
+    from jarvis.model_layer.model_types import ToolResultMessage
+    from jarvis.core.tools.tools_registry import ToolRegistry
+    from jarvis.jarvis_config import MCPServerConfig
 
 logger = get_logger(__name__)
 
@@ -32,7 +32,7 @@ class MCPToolWrapper(JarvisTool):
         self._server = server_config
 
     async def execute(self, tool_call_id: str, params: dict[str, Any], signal: Any = None) -> "ToolResultMessage":
-        from jarvis.model_layer.types import TextContent, ToolResultMessage
+        from jarvis.model_layer.model_types import TextContent, ToolResultMessage
 
         try:
             result_text = await asyncio.wait_for(

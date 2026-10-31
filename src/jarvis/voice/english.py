@@ -5,11 +5,11 @@ import asyncio
 from typing import TYPE_CHECKING
 from collections.abc import Awaitable, Callable
 
-from jarvis.voice.service import is_english
+from jarvis.voice.voice_service import is_english
 from jarvis.memory.scope import MAIN_AGENT
 
 if TYPE_CHECKING:
-    from jarvis.model_layer.types import ModelConfig
+    from jarvis.model_layer.model_types import ModelConfig
 
 TIMEOUT_SEC = 8.0
 # 옮기지 못했을 때 읽는 말. 한국어 원문을 다른 목소리로 읽지 않고 화면을 보게 한다
@@ -60,7 +60,7 @@ def make_llm_translator(model: "ModelConfig", timeout: float = TIMEOUT_SEC) -> T
     """실패, 시간 초과, 영어가 아닌 답은 None. 부른 쪽이 원문으로 읽는다."""
 
     async def translate(text: str) -> str | None:
-        from jarvis.model_layer.types import LLMContext, StreamOptions, UserMessage
+        from jarvis.model_layer.model_types import LLMContext, StreamOptions, UserMessage
         from jarvis.model_layer.stream import stream_to_message
 
         prompt = _PROMPT.format(text=text, max_words=MAX_WORDS)

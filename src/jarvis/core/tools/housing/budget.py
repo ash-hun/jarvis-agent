@@ -16,19 +16,19 @@ from jarvis.core.tools.housing.lh_notice import LhNoticeTool, Notice, build_quer
 from jarvis.core.tools.housing.rental_complex import ComplexUnit, fetch_complexes, match_complex
 from jarvis.core.tools.housing.sh_terms import ShUnit, collect, is_sh, sh_pdf_text, sh_url
 from jarvis.core.tools.housing.deadline import LEAD_DAYS, track_deadlines
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+from jarvis.agent_layer.session.session_protocol import NOT_CONVERSATION
 from jarvis.core.tools.housing.markup import deadline_label, parse_date
 from jarvis.core.tools.housing.notice_pdf import rent_terms, sale_terms
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.agent_layer.session.protocol import NOT_CONVERSATION
+from jarvis.core.tools.tools_registry import JarvisTool, ToolContext
 from jarvis.core.tools.housing.lh_notice import resolve_region
-from jarvis.core.tools.registry import JarvisTool, ToolContext
 from jarvis.core.tools.housing.scenario import purchase_cases
 from jarvis.core.tools.housing.rules import unit_mismatch
 from jarvis.core.tools.housing.amount import parse_won
 from jarvis.memory.scope import LOCAL_USER
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.openloop.store import OpenLoopStore
+    from jarvis.agent_layer.openloop.openloop_store import OpenLoopStore
 
 TOOL_NAME = "housing_budget"
 T = TypeVar("T")

@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 
-from jarvis.agent_layer.openloop.types import (
+from jarvis.agent_layer.openloop.openloop_types import (
     cancelled_ids,
     expired_ids,
     grounded,

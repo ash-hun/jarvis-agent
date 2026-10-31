@@ -13,7 +13,7 @@ from jarvis.core.proactive.triggers import (
     IntervalTrigger,
     ReflectionTrigger,
 )
-from jarvis.core.proactive.core import (
+from jarvis.core.proactive.proactive_core import (
     DefaultProactivityCore,
     EmitProactive,
     ProactivityCore,
@@ -24,7 +24,7 @@ from jarvis.core.proactive.policy import (
     DefaultProactivityPolicy,
     ProactivityPolicy,
 )
-from jarvis.core.proactive.types import (
+from jarvis.core.proactive.proactive_types import (
     ProactiveDecision,
     ProactiveMessage,
     ResponsePlan,

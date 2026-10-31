@@ -4,8 +4,8 @@ from pydantic import SecretStr
 from unittest.mock import MagicMock
 
 from jarvis.app.agent_profile import MAIN_AGENT_ID, AgentProfile
-from jarvis.model_layer.types import ModelConfig
-from jarvis.config import JarvisSettings
+from jarvis.model_layer.model_types import ModelConfig
+from jarvis.jarvis_config import JarvisSettings
 
 MAIN = ModelConfig(provider="anthropic", model="claude", api_key="mainkey", base_url="https://main", temperature=0.3,
                    max_tokens=123)

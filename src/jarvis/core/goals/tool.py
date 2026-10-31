@@ -6,15 +6,15 @@ from datetime import datetime
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from jarvis.core.goals.types import DEFAULT_SCHEDULE, Goal, goal_key
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.tools.registry import JarvisTool, ToolContext
+from jarvis.core.goals.goals_types import DEFAULT_SCHEDULE, Goal, goal_key
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+from jarvis.core.tools.tools_registry import JarvisTool, ToolContext
 from jarvis.core.scheduler.task import ScheduledTask
-from jarvis.core.goals.store import GoalStore
+from jarvis.core.goals.goals_store import GoalStore
 from jarvis.memory.scope import MAIN_AGENT
 
 if TYPE_CHECKING:
-    from jarvis.core.scheduler.service import SchedulerService
+    from jarvis.core.scheduler.scheduler_service import SchedulerService
 
 GOAL_TOOL = "goal"
 TOOL_DESCRIPTION = (

@@ -5,11 +5,11 @@ from dataclasses import dataclass
 from collections.abc import Callable
 
 if TYPE_CHECKING:
-    from jarvis.config import BrandConfig, JarvisSettings, ProactiveConfig, ThoughtConfig
-    from jarvis.core.proactive.core import EmitProactive, ProactivityCore
+    from jarvis.jarvis_config import BrandConfig, JarvisSettings, ProactiveConfig, ThoughtConfig
+    from jarvis.core.proactive.proactive_core import EmitProactive, ProactivityCore
     from jarvis.agent_layer.thought.reply import ReplyClassifier
     from jarvis.core.proactive.feedback import FeedbackLearner
-    from jarvis.model_layer.types import ModelConfig
+    from jarvis.model_layer.model_types import ModelConfig
 
 # 지금은 에이전트가 하나다. 기존 메모리와 세션 데이터가 이 id 로 쌓여 있으므로 바꾸지 않는다
 MAIN_AGENT_ID = "main"
@@ -73,7 +73,7 @@ class AgentProfile:
 
     def thought_model(self) -> "ModelConfig":
         """사고 모델: 사고 설정에 지정한 항목만 메인 모델에서 바꾸고 나머지는 이어받는다."""
-        from jarvis.model_layer.types import ModelConfig
+        from jarvis.model_layer.model_types import ModelConfig
 
         tcfg = self.thought
         api_key = tcfg.api_key.get_secret_value() if tcfg.api_key is not None else self.model.api_key

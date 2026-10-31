@@ -1,7 +1,7 @@
-"""config.py — Pydantic Settings 로딩 테스트."""
+"""jarvis_config.py — Pydantic Settings 로딩 테스트."""
 import pytest
 
-from jarvis.config import JarvisSettings, get_settings, reset_settings
+from jarvis.jarvis_config import JarvisSettings, get_settings, reset_settings
 
 
 def test_default_settings(monkeypatch):
@@ -120,7 +120,7 @@ def test_nested_config_ignores_bare_env(monkeypatch):
 
 def test_voice_options_reach_the_providers(monkeypatch):
     """JARVIS_VOICE__WHISPER_MODEL_SIZE, SUPERTONIC_MODEL 이 공급자 생성 옵션으로 간다(전에는 읽기만 하고 버렸다)."""
-    from jarvis.config import VoiceConfig
+    from jarvis.jarvis_config import VoiceConfig
 
     v = VoiceConfig(stt_provider="whisper", whisper_model_size="small", tts_provider="browser")
     assert v.stt_options() == {"model_size": "small"}

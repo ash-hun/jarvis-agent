@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from jarvis.agent_layer.usermodel.types import UserModel
+from jarvis.agent_layer.usermodel.usermodel_types import UserModel
 
 DEFAULT_PATH = "~/.jarvis/user_model.json"
 

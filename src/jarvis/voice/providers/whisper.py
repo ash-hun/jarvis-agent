@@ -4,7 +4,7 @@ import io
 import asyncio
 from functools import partial
 
-from jarvis.voice.protocol import DEFAULT_SAMPLE_RATE, STTProvider, Transcript
+from jarvis.voice.voice_protocol import DEFAULT_SAMPLE_RATE, STTProvider, Transcript
 
 
 class WhisperSTTProvider(STTProvider):

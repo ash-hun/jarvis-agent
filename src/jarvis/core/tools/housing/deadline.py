@@ -4,14 +4,14 @@ from typing import TYPE_CHECKING
 from collections.abc import Iterable
 from datetime import UTC, date, datetime, time, timedelta
 
+from jarvis.agent_layer.openloop.openloop_types import OpenLoop
 from jarvis.core.tools.housing.markup import parse_date
-from jarvis.agent_layer.openloop.types import OpenLoop
 from jarvis.core.tools.housing.fetch import KST_OFFSET
 from jarvis.core.tools.housing.lh_notice import Notice
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from jarvis.agent_layer.openloop.store import OpenLoopStore
+    from jarvis.agent_layer.openloop.openloop_store import OpenLoopStore
 
 # 마감 사흘 전 아침. 공고문을 다시 보고 서류를 챙길 시간이다
 LEAD_DAYS = 3

@@ -1,7 +1,7 @@
 """InfraBuilder 배선: YAML 에이전트 → 에이전트 도구 + orchestrate 도구 + /orchestrate 명령."""
 
+from jarvis.jarvis_config import JarvisSettings
 from jarvis.app.infra_builder import build_app
-from jarvis.config import JarvisSettings
 
 
 def test_build_infra_wires_agent_tools_orchestrate_tool_and_slash(monkeypatch, tmp_path):

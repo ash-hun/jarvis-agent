@@ -7,7 +7,7 @@ import builtins
 from typing import Any
 from pydantic import BaseModel
 
-from jarvis.model_layer.types import AssistantMessage, Message, ToolResultMessage, UserMessage
+from jarvis.model_layer.model_types import AssistantMessage, Message, ToolResultMessage, UserMessage
 from jarvis.memory.scope import MAIN_AGENT
 
 # 먼저 건넨 말(🔔). 대화 기록이 아니라 get_messages 에는 섞이지 않는다

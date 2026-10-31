@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
 @pytest.fixture
 def stdio_server(tmp_path):
-    from jarvis.config import MCPServerConfig
+    from jarvis.jarvis_config import MCPServerConfig
 
     script = tmp_path / "mcp_server.py"
     script.write_text(_SERVER_SRC)
@@ -44,8 +44,8 @@ def stdio_server(tmp_path):
 
 async def test_stdio_tool_discovery(stdio_server):
     """실제 stdio MCP 서버에서 툴 목록을 열거해 레지스트리에 등록한다."""
+    from jarvis.core.tools.tools_registry import ToolRegistry
     from jarvis.core.tools.mcp_loader import MCPToolLoader
-    from jarvis.core.tools.registry import ToolRegistry
 
     registry = ToolRegistry()
     loaded = await MCPToolLoader(registry).load_servers([stdio_server])
@@ -59,8 +59,8 @@ async def test_stdio_tool_discovery(stdio_server):
 
 async def test_stdio_tool_execution(stdio_server):
     """등록된 MCP 툴을 실제 서버에 호출해 결과를 받는다."""
+    from jarvis.core.tools.tools_registry import ToolRegistry
     from jarvis.core.tools.mcp_loader import MCPToolLoader
-    from jarvis.core.tools.registry import ToolRegistry
 
     registry = ToolRegistry()
     await MCPToolLoader(registry).load_servers([stdio_server])
@@ -79,7 +79,7 @@ async def test_stdio_tool_execution(stdio_server):
 async def test_stdio_missing_command_raises():
     """stdio transport인데 command가 없으면 명확한 에러."""
     from jarvis.core.tools.mcp_loader import _list_mcp_tools
-    from jarvis.config import MCPServerConfig
+    from jarvis.jarvis_config import MCPServerConfig
 
     server = MCPServerConfig(name="bad", transport="stdio", command=[])
     with pytest.raises(ValueError, match="requires command"):

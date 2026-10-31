@@ -5,7 +5,7 @@ import json
 from dataclasses import dataclass
 from collections.abc import Awaitable, Callable
 
-from jarvis.model_layer.types import LLMContext, ModelConfig, StreamOptions, UserMessage
+from jarvis.model_layer.model_types import LLMContext, ModelConfig, StreamOptions, UserMessage
 from jarvis.core.procedures.plan import PlanStep, parse_plan
 from jarvis.core.procedures.detect import TaskSpan
 

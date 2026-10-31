@@ -2,7 +2,7 @@
 import json
 import pytest
 
-from jarvis.model_layer.types import (
+from jarvis.model_layer.model_types import (
     AssistantMessage,
     TextContent,
     ToolResultMessage,

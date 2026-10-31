@@ -3,8 +3,8 @@
 import time
 from collections.abc import Callable
 
-from jarvis.core.proactive.types import ProactiveDecision, ResponsePlan
-from jarvis.agent_layer.thought.types import ThoughtFrame
+from jarvis.core.proactive.proactive_types import ProactiveDecision, ResponsePlan
+from jarvis.agent_layer.thought.thought_types import ThoughtFrame
 
 # filler가 비었을 때 쓰는 대기-신호 fallback. 모두 "오래 걸림"을 명시한다.
 DEFAULT_FILLERS = (

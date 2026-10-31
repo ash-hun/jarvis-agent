@@ -1,11 +1,11 @@
 """core/session.py — AgentSession 전체 흐름 테스트 (faux provider 사용)."""
 import pytest
 
-from jarvis.model_layer.types import TextContent, ToolResultMessage
-from jarvis.core.policy.pipeline import ValidationError
-from jarvis.agent_layer.types import (
+from jarvis.model_layer.model_types import TextContent, ToolResultMessage
+from jarvis.agent_layer.agent_types import (
     AgentEvent,
 )
+from jarvis.core.policy.pipeline import ValidationError
 
 
 class TestAgentSessionPrompt:
@@ -43,7 +43,7 @@ class TestAgentSessionPrompt:
         assert "AgentEndEvent" in event_types
 
     async def test_skill_expansion(self, agent_session, faux_model_with_response):
-        from jarvis.core.skills.registry import Skill
+        from jarvis.core.skills.skills_registry import Skill
 
         faux_model_with_response("Summarized!")
         agent_session._skill_registry.register(Skill(

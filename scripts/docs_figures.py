@@ -422,7 +422,7 @@ def memory() -> Fig:
     f.edge([c.right, w.left], "accent")
     f.edge([w.right, (pr.x, w.cy)], "accent")
     f.edge([(pr.x + pr.w, llm.cy), llm.left], "accent")
-    ltm = f.store(80, 184, "장기 기억", "의미 shared, 일화 private, 작업 패턴 private", w=360)
+    ltm = f.store(80, 184, "장기 기억", "프로필 공유, 일화와 절차는 정책이 연 것만", w=360)
     f.edge(
         [ltm.right, (490, ltm.cy), (490, pr.y + pr.h)],
         "",
@@ -435,11 +435,11 @@ def memory() -> Fig:
     f.edge([(600, skills.y), (600, pr.y + pr.h)], "")
     f.panel(16, 260, 728, 120, "(b) 정해진 순간에만 쓴다. 매 턴 대화는 자동으로 쓰지 않는다", bottom=True)
     writes = [
-        ("/remember", "의미, shared, 주거 프로필도", 150),
-        ("압축, 세션 종료", "일화, private", 118),
+        ("/remember", "사용자 프로필, 주거도", 150),
+        ("압축, 세션 종료", "일화(EDM)", 118),
         ("통합", "일화에서 사실 뽑기", 110),
-        ("사고, 저널, 위임", "일화, private", 118),
-        ("remember_task_pattern", "작업 패턴, 에이전트별", 172),
+        ("사고, 저널, 위임", "일화(EDM)", 118),
+        ("remember_task_pattern", "절차(PDM), 에이전트별", 172),
     ]
     x = 26.0
     for t, sub, bw in writes:

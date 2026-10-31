@@ -73,7 +73,7 @@ class BlackboardOrchestrator(BaseOrchestrator):
         )
 
     async def promote(self, items: list[Any], scope: Any = None) -> None:
-        """블랙보드의 result_* 항목(또는 지정한 키)을 부모 범위의 shared 의미 사실로 올린다.
+        """블랙보드의 result_* 항목(또는 지정한 키)을 부모 범위의 shared 일화로 올린다.
 
         작업이 끝난 뒤 명시적으로 부른다.
         """

@@ -61,6 +61,8 @@ WRITE_RULES: dict[str, WriteRule] = {
     "thought": WriteRule(MemoryKind.EPISODIC, "private", None),  # 사고 로그
     "journal": WriteRule(MemoryKind.EPISODIC, "private", None),  # 자기 성찰 저널
     "delegation": WriteRule(MemoryKind.EPISODIC, "private", "orchestrator"),  # 위임 기록
+    # 블랙보드 결과. 에이전트가 한 일이라 사용자 프로필(의미 기억)이 아니다. 다른 에이전트도 읽는다
+    "promoted": WriteRule(MemoryKind.EPISODIC, "shared", None),
     # 사용자가 알려 준 작업 방식. 그 에이전트만 본다(같은 말도 에이전트마다 하는 일이 다르다)
     TASK_PATTERN_SOURCE: WriteRule(MemoryKind.PROCEDURAL, "private", "user"),
 }
@@ -71,7 +73,8 @@ PATTERN_SCAN_LIMIT = 100
 RECALL_KINDS = (MemoryKind.EPISODIC, MemoryKind.SEMANTIC)
 # 떠올린 항목의 낱말이 답에 이만큼 나오면 답에 쓰였다고 보고 되뇌기로 센다
 USED_OVERLAP = 0.5
-_DEFAULT_RULE = WriteRule(MemoryKind.SEMANTIC, "private", None)
+# 규칙에 없는 경로는 에이전트가 겪은 일로 둔다. 의미 기억은 사용자에 대한 사실(사용자 프로필)이라 위 규칙으로만 쓴다
+_DEFAULT_RULE = WriteRule(MemoryKind.EPISODIC, "private", None)
 
 
 class MemoryService:

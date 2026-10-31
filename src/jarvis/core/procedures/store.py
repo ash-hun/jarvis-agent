@@ -29,6 +29,9 @@ class Procedure:
     # 입력만 채우면 그대로 돌릴 수 있는 도구 호출 순서. 비면 본문(레시피)만 돌려준다
     inputs: tuple[str, ...] = ()
     plan: tuple[PlanStep, ...] = ()
+    # 정제한 에이전트. 비면 세션 구간에서 배운 절차다
+    # ponytail: 승인된 절차는 모든 에이전트의 도구가 된다(PDM 읽기 정책 밖), 에이전트별 절차가 갈리면 agent 로 거른다
+    agent: str = ""
 
     @property
     def approved(self) -> bool:
@@ -47,6 +50,8 @@ class Procedure:
             tools=list(self.tools),
             parameters=self.parameters,
         )
+        if self.agent:
+            post["agent"] = self.agent
         if self.plan:
             post["inputs"] = list(self.inputs)
             post["plan"] = [{"tool": step.tool, "args": step.args} for step in self.plan]
@@ -69,6 +74,7 @@ def parse_procedure(text: str, fallback_name: str) -> Procedure:
         parameters=str(meta.get("parameters", "")),
         inputs=tuple(str(i) for i in cast(list[Any], meta.get("inputs") or [])),
         plan=parse_plan(meta.get("plan")),
+        agent=str(meta.get("agent", "")),
     )
 
 

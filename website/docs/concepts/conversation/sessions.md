@@ -45,7 +45,7 @@ flowchart LR
   A --> E[종료: TUI 종료, Web 셧다운]
   A --> T[턴마다 그 턴을 일화 기억으로]
   E --> S2[통합: 일화에서 사실 추출]
-  S2 --> S3[절차 학습]
+  S2 --> S3[절차 정제: 같은 종류 성공 3회]
   A --> D[삭제: ✕, DELETE /api/sessions/id, /cleanup]
 ```
 

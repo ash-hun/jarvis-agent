@@ -142,6 +142,7 @@ sequenceDiagram
 2. LLM 이 `{key, value, importance}` 목록을 낸다. 중요도 0.5 미만은 버린다
 3. `extracted` 사실로 저장하고, 원래 일화에 통합됨 표시를 남긴다
 4. 작업 기억의 되뇌기 횟수를 항목으로 옮긴다
+5. 같은 작업 종류의 성공 턴이 3회 쌓였으면 절차 초안으로 정제한다([Tool & Approve System → 절차 학습](./conversation/tools-and-approval.md#절차-학습)). 승인하면 PDM 절차가 된다
 
 통합은 세션 종료(TUI 종료, Web 셧다운) 때 항상 돈다. 유휴 때는 `JARVIS_MEMORY__CONSOLIDATE_ON_IDLE` 가 켜져 있고 daemon 트리거가 `idle` 또는 `both` 일 때만 돈다. 기본 트리거가 `interval` 이므로 기본 설정에서는 유휴 통합이 꺼져 있다.
 

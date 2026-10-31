@@ -225,6 +225,8 @@ async def learn_procedures(ctx: "AppContext", session_id: str, messages: "list[M
     """세션 종료 때 절차 학습. 학습기가 없거나 실패하면 빈 목록(요약 저장을 막지 않는다)."""
     if ctx.procedure_learner is None or not messages:
         return []
+    if ctx.memory is not None and not ctx.memory.summarizes_sessions:
+        return []  # 턴 모드는 한 번의 성공으로 배우지 않는다. consolidate 가 EDM 의 반복된 성공에서 정제한다
     try:
         return await ctx.procedure_learner.learn(session_id, messages)
     except Exception as exc:

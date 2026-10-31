@@ -179,14 +179,14 @@ Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는�
 
 ### 절차 학습 (Procedural Learning)
 
-도구를 여러 번 써서 성공으로 끝난 작업은 세션 종료 때 **절차 초안**으로 증류된다(`~/.jarvis/procedures/<name>.md`). 사용자가 승인하면 그 절차는 LLM 도구 `procedure_<name>` 과 슬래시 스킬 `/<name>` 이 되어, 에이전트가 같은 종류의 요청에 스스로 꺼내 쓴다.
+같은 종류의 작업(처음 부른 도구가 같은 턴)이 3번 성공하면 통합(세션 종료, 유휴) 때 **절차 초안**으로 증류된다(`~/.jarvis/procedures/<name>.md`). 사용자가 승인하면 그 절차는 LLM 도구 `procedure_<name>` 과 슬래시 스킬 `/<name>` 이 되어, 에이전트가 같은 종류의 요청에 스스로 꺼내 쓴다.
 
 ```
 /procedures                    # 초안·승인 목록
 /procedures show run-tests     # 본문 보기
 /procedures approve run-tests  # 승인 → 도구 + 스킬 등록
 /procedures reject run-tests   # 삭제
-/procedures learn [session_id] # 지금 바로 학습 (기본: 세션 종료 때 자동)
+/procedures learn [session_id] # 그 세션의 도구 3회 이상 구간을 지금 바로 학습
 ```
 
 - 자연 키는 `<session_id>#<메시지 인덱스>`. 같은 구간은 두 번 배우지 않고, 세션 종료 훅을 다시 돌려도 파일이 늘지 않는다.

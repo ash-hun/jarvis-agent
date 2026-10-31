@@ -103,12 +103,12 @@ class AgentHarness:
             await self._session_repo.append(self._session_id, msg)
         if self._memory is not None:
             # 떠올린 기억 중 답에 쓰인 것만 강해진다. 턴 일화의 작업 종류와 성패도 여기서 정한다
-            tools = [c.name for m in produced if isinstance(m, AssistantMessage) for c in m.tool_calls()]
-            failed = result is None or result.error_message is not None or any(
-                isinstance(m, ToolResultMessage) and m.is_error for m in produced
-            )
+            calls = [c for m in produced if isinstance(m, AssistantMessage) for c in m.tool_calls()]
+            errors = {m.tool_call_id for m in produced if isinstance(m, ToolResultMessage) and m.is_error}
+            failed = result is None or result.error_message is not None or bool(errors)
             await self._memory.reinforce(
-                result.text() if result is not None else "", mem_context, tools=tools, failed=failed
+                result.text() if result is not None else "", mem_context, tools=[c.name for c in calls],
+                failed=failed, steps=[(c.name, dict(c.arguments)) for c in calls if c.id not in errors],
             )
 
         self._running = False

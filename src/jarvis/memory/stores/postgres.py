@@ -248,8 +248,9 @@ class PostgresItemStore(ItemStore):
         kinds: Sequence[MemoryKind] | None = None,
         limit: int = 10,
         readable: Readable | None = None,
+        where: ItemFilter | None = None,
     ) -> list[MemoryItem]:
-        return await self._select(scope, kinds, "created_at DESC", limit, readable)
+        return await self._select(scope, kinds, "created_at DESC", limit, readable, where)
 
     async def important(
         self,
@@ -267,16 +268,19 @@ class PostgresItemStore(ItemStore):
         order: str,
         limit: int,
         readable: Readable | None,
+        where: ItemFilter | None = None,
     ) -> list[MemoryItem]:
         pool = await self._get_pool()
         params = _visible_params(scope, readable)
-        where = [_VISIBLE]
+        conds = [_VISIBLE]
         if kinds:
             params.append([str(k) for k in kinds])
-            where.append(f"kind = ANY(${len(params)})")
+            conds.append(f"kind = ANY(${len(params)})")
+        if where is not None:
+            conds += _filter_sql(where, params)
         params.append(limit)
         sql = (
-            f"SELECT {self._cols()} FROM {TABLE} WHERE {' AND '.join(where)}"
+            f"SELECT {self._cols()} FROM {TABLE} WHERE {' AND '.join(conds)}"
             f" ORDER BY {order} LIMIT ${len(params)}"
         )
         async with pool.acquire() as conn:

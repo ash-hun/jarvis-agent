@@ -79,8 +79,8 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/app/test_agent_conversation.py` |
-| 통합 | `tests/integ/test_team_conversation.py` |
+| 단위 | `tests/unit/test_agent_conversation_agent_conversation.py` |
+| 통합 | `tests/integ/test_agent_conversation.py` |
 
 **제약과 미구현**: 에이전트끼리의 대화 세션은 Web HUD 세션 목록에 다른 세션처럼 보인다(`docs/view_spec.md`).
 
@@ -110,21 +110,20 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/agent_layer/test_loop.py` |
-| 단위 | `tests/unit/agent_layer/test_loop_parallel_cancel.py` |
-| 단위 | `tests/unit/agent_layer/test_harness.py` |
-| 단위 | `tests/unit/agent_layer/test_agent_hierarchy.py` |
-| 단위 | `tests/unit/core/test_session.py` |
-| 단위 | `tests/unit/model_layer/test_base.py` |
-| 단위 | `tests/unit/model_layer/test_caching.py` |
-| 단위 | `tests/unit/model_layer/test_gemini.py` |
-| 단위 | `tests/unit/model_layer/test_gemini_stream.py` |
-| 단위 | `tests/unit/model_layer/test_ollama.py` |
-| 단위 | `tests/unit/model_layer/test_openai.py` |
-| 단위 | `tests/unit/model_layer/test_stream.py` |
-| 단위 | `tests/unit/model_layer/test_types.py` |
-| 단위 | `tests/unit/model_layer/test_vllm.py` |
-| 통합 | `tests/integ/test_web_hud_api_flow.py` |
+| 단위 | `tests/unit/test_agent_loop_agent_types.py` |
+| 단위 | `tests/unit/test_agent_loop_anthropic.py` |
+| 단위 | `tests/unit/test_agent_loop_gemini.py` |
+| 단위 | `tests/unit/test_agent_loop_harness.py` |
+| 단위 | `tests/unit/test_agent_loop_loop.py` |
+| 단위 | `tests/unit/test_agent_loop_model_registry.py` |
+| 단위 | `tests/unit/test_agent_loop_model_types.py` |
+| 단위 | `tests/unit/test_agent_loop_ollama.py` |
+| 단위 | `tests/unit/test_agent_loop_openai.py` |
+| 단위 | `tests/unit/test_agent_loop_provider_base.py` |
+| 단위 | `tests/unit/test_agent_loop_session.py` |
+| 단위 | `tests/unit/test_agent_loop_stream.py` |
+| 단위 | `tests/unit/test_agent_loop_vllm.py` |
+| 통합 | 없음. 턴 루프는 `tests/integ/test_web_hud.py` 의 ws 턴 시나리오가 함께 돈다 |
 
 **제약과 미구현**: 메인 모델의 프롬프트 처리 시간이 첫 글자 지연의 대부분이라 시스템 프롬프트와 도구 목록 크기를 줄이는 일이 남아 있다(`TODO.md`).
 
@@ -160,13 +159,12 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/app/test_agent_registry.py` |
-| 단위 | `tests/unit/app/test_agent_profile.py` |
-| 단위 | `tests/unit/app/test_agent_persona.py` |
-| 단위 | `tests/unit/app/test_agent_boundaries.py` |
-| 단위 | `tests/unit/ui/test_brand_router.py` |
-| 단위 | `tests/unit/ui/test_agent_activity.py` |
-| 통합 | `tests/integ/test_web_team_flow.py` |
+| 단위 | `tests/unit/test_agent_registry_agent_activity.py` |
+| 단위 | `tests/unit/test_agent_registry_agent_profile.py` |
+| 단위 | `tests/unit/test_agent_registry_agent_registry.py` |
+| 단위 | `tests/unit/test_agent_registry_brand_router.py` |
+| 단위 | `tests/unit/test_agent_registry_infra_builder.py` |
+| 통합 | `tests/integ/test_agent_registry.py` |
 
 **제약과 미구현**: 구체 색 섞기는 두 색까지다. AGENDA 에 에이전트별 필터가 없다(`docs/view_spec.md`).
 
@@ -199,10 +197,9 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/test_approval_rules.py` |
-| 단위 | `tests/unit/core/test_approval_prompt.py` |
-| 단위 | `tests/unit/ui/test_web_approvals.py` |
-| 통합 | `tests/integ/test_web_team_flow.py` |
+| 단위 | `tests/unit/test_approval_approval_rules.py` |
+| 단위 | `tests/unit/test_approval_approvals.py` |
+| 통합 | `tests/integ/test_approval.py` |
 
 **제약과 미구현**: 음성 승인 답에 부정어가 있으면 분류 없이 거부한다. 에어팟에서 승인 되읽기가 들리는지 실기기 확인 전이다(`TODO.md`).
 
@@ -237,9 +234,14 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/test_external.py` |
-| 단위 | `tests/unit/core/test_external_wiring.py` |
-| 통합 | 없음. 외부 MCP 소스를 실제로 띄워 폴링부터 성찰까지 잇는 시나리오가 아직 없다 |
+| 단위 | `tests/unit/test_external_dedup.py` |
+| 단위 | `tests/unit/test_external_external_loader.py` |
+| 단위 | `tests/unit/test_external_external_protocol.py` |
+| 단위 | `tests/unit/test_external_external_types.py` |
+| 단위 | `tests/unit/test_external_inbox.py` |
+| 단위 | `tests/unit/test_external_mcp_source.py` |
+| 단위 | `tests/unit/test_external_poller.py` |
+| 통합 | `tests/integ/test_external.py` |
 
 **제약과 미구현**: 없음.
 
@@ -274,12 +276,10 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/focus/test_focus_service.py` |
-| 단위 | `tests/unit/core/focus/test_focus_session_hook.py` |
-| 단위 | `tests/unit/core/focus/test_focus_store.py` |
-| 단위 | `tests/unit/core/focus/test_focus_types.py` |
-| 단위 | `tests/unit/ui/test_ws_run_focus.py` |
-| 통합 | 없음. ws 로 `/focus` 를 보내 sub-agent 가 영역을 채우는 엔드투엔드 시나리오가 아직 없다 |
+| 단위 | `tests/unit/test_focus_focus_service.py` |
+| 단위 | `tests/unit/test_focus_focus_store.py` |
+| 단위 | `tests/unit/test_focus_focus_types.py` |
+| 통합 | `tests/integ/test_focus.py` |
 
 **제약과 미구현**: Web HUD 에서만 쓸 수 있다(TUI 에서는 안내만 돌려준다). Focus 동안 🔔 는 보내지 않는다. 분석 결과는 이번 응답이 아니라 다음 응답에 들어간다(첫 지시만 기다린다).
 
@@ -314,9 +314,11 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/goals/test_goal_rules.py` |
-| 단위 | `tests/unit/core/goals/test_goal_runner.py` |
-| 단위 | `tests/unit/core/goals/test_goal_store.py` |
+| 단위 | `tests/unit/test_goal_goal_cmd.py` |
+| 단위 | `tests/unit/test_goal_goals_store.py` |
+| 단위 | `tests/unit/test_goal_goals_types.py` |
+| 단위 | `tests/unit/test_goal_runner.py` |
+| 단위 | `tests/unit/test_goal_tool.py` |
 | 통합 | 없음. 스케줄러 차례부터 알림까지 잇는 시나리오가 아직 없다 |
 
 **제약과 미구현**: 알린 직후 정산 전에 죽으면 다음 차례에 같은 항목을 한 번 더 알린다(`# idempotent`). 결과가 바뀐 차례는 도구를 두 번 부른다(`# ponytail`).
@@ -366,21 +368,24 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/housing/test_amount.py` |
-| 단위 | `tests/unit/core/housing/test_budget.py` |
-| 단위 | `tests/unit/core/housing/test_deadline.py` |
-| 단위 | `tests/unit/core/housing/test_lh_notice.py` |
-| 단위 | `tests/unit/core/housing/test_loan.py` |
-| 단위 | `tests/unit/core/housing/test_markup.py` |
-| 단위 | `tests/unit/core/housing/test_notice_pdf.py` |
-| 단위 | `tests/unit/core/housing/test_profile.py` |
-| 단위 | `tests/unit/core/housing/test_rental_complex.py` |
-| 단위 | `tests/unit/core/housing/test_rules.py` |
-| 단위 | `tests/unit/core/housing/test_scenario.py` |
-| 단위 | `tests/unit/core/housing/test_sh_notice.py` |
-| 단위 | `tests/unit/core/housing/test_sh_terms.py` |
-| 단위 | `tests/unit/core/housing/test_watch.py` |
-| 통합 | `tests/integ/test_karen_housing_flow.py` |
+| 단위 | `tests/unit/test_housing_amount.py` |
+| 단위 | `tests/unit/test_housing_budget.py` |
+| 단위 | `tests/unit/test_housing_deadline.py` |
+| 단위 | `tests/unit/test_housing_fetch.py` |
+| 단위 | `tests/unit/test_housing_housing_cmd.py` |
+| 단위 | `tests/unit/test_housing_lh_notice.py` |
+| 단위 | `tests/unit/test_housing_loan.py` |
+| 단위 | `tests/unit/test_housing_markup.py` |
+| 단위 | `tests/unit/test_housing_notice_pdf.py` |
+| 단위 | `tests/unit/test_housing_profile.py` |
+| 단위 | `tests/unit/test_housing_profile_tool.py` |
+| 단위 | `tests/unit/test_housing_rental_complex.py` |
+| 단위 | `tests/unit/test_housing_rules.py` |
+| 단위 | `tests/unit/test_housing_scenario.py` |
+| 단위 | `tests/unit/test_housing_sh_notice.py` |
+| 단위 | `tests/unit/test_housing_sh_terms.py` |
+| 단위 | `tests/unit/test_housing_watch.py` |
+| 통합 | `tests/integ/test_housing.py` |
 
 **제약과 미구현**: 공고 상세는 100건, 공고문 PDF 는 한 번에 60건까지만 연다. LH 전체 조회는 `MAX_PAGES` 쪽까지, `housing_watch` 는 게시판마다 첫 쪽(최신 10건)만 본다. SH 는 최근 `RECENT_DAYS` 안의 모집 글 `MAX_NOTICES` 건만 본다. 소득 기준은 1인 기준만 댄다. 단위 없는 '천'은 천만으로 읽는다. `housing_watch` 는 알리기 전에 본 것으로 적어 알림이 실패하면 그 공고는 다시 오지 않는다(모두 `# ponytail`).
 
@@ -410,7 +415,8 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/agent_layer/test_journal.py` |
+| 단위 | `tests/unit/test_journal_journal_cmd.py` |
+| 단위 | `tests/unit/test_journal_journaler.py` |
 | 통합 | 없음. 실제 저장소에 사고 로그를 쌓아 저널을 쓰는 시나리오가 아직 없다 |
 
 **제약과 미구현**: 사고(`thought.enabled`)가 꺼져 있으면 `/journal` 이 등록되지 않는다.
@@ -440,8 +446,8 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/test_mcp.py` |
-| 통합 | `tests/integ/test_mcp_stdio_flow.py` |
+| 단위 | `tests/unit/test_mcp_mcp_loader.py` |
+| 통합 | `tests/integ/test_mcp.py` |
 
 **제약과 미구현**: 없음.
 
@@ -494,20 +500,27 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/memory/test_memory_access.py` |
-| 단위 | `tests/unit/memory/test_memory_bases.py` |
-| 단위 | `tests/unit/memory/test_memory_deixis.py` |
-| 단위 | `tests/unit/memory/test_memory_idle.py` |
-| 단위 | `tests/unit/memory/test_memory_primitives.py` |
-| 단위 | `tests/unit/memory/test_memory_scoring.py` |
-| 단위 | `tests/unit/memory/test_memory_service.py` |
-| 단위 | `tests/unit/memory/test_memory_working.py` |
-| 단위 | `tests/unit/memory/test_recall_episodes.py` |
-| 단위 | `tests/unit/memory/test_semantic_extract.py` |
-| 단위 | `tests/unit/model_layer/test_embeddings.py` |
-| 단위 | `tests/unit/core/test_remember_cmd.py` |
-| 단위 | `tests/unit/core/test_ops_cmd.py` |
-| 통합 | `tests/integ/test_postgres_memory_backends.py` |
+| 단위 | `tests/unit/test_memory_access.py` |
+| 단위 | `tests/unit/test_memory_compaction.py` |
+| 단위 | `tests/unit/test_memory_cues.py` |
+| 단위 | `tests/unit/test_memory_deixis.py` |
+| 단위 | `tests/unit/test_memory_embeddings.py` |
+| 단위 | `tests/unit/test_memory_episodes.py` |
+| 단위 | `tests/unit/test_memory_episodic.py` |
+| 단위 | `tests/unit/test_memory_idle.py` |
+| 단위 | `tests/unit/test_memory_memory_service.py` |
+| 단위 | `tests/unit/test_memory_memory_types.py` |
+| 단위 | `tests/unit/test_memory_ops_cmd.py` |
+| 단위 | `tests/unit/test_memory_procedural.py` |
+| 단위 | `tests/unit/test_memory_remember_cmd.py` |
+| 단위 | `tests/unit/test_memory_scope.py` |
+| 단위 | `tests/unit/test_memory_scoring.py` |
+| 단위 | `tests/unit/test_memory_semantic.py` |
+| 단위 | `tests/unit/test_memory_semantic_extract.py` |
+| 단위 | `tests/unit/test_memory_state.py` |
+| 단위 | `tests/unit/test_memory_store_protocol.py` |
+| 단위 | `tests/unit/test_memory_window.py` |
+| 통합 | `tests/integ/test_memory.py` |
 
 **제약과 미구현**: 항목 낱말이 답에 절반 넘게 나와야 쓰였다고 본다. 이력이 줄어 턴 번호를 다시 세면 옛 턴 일화를 덮는다. 조사 목록 휴리스틱으로 명사를 자른다. main 에이전트는 정의 파일이 없어 기본 정책(자기 것만)이다(모두 `# ponytail`).
 
@@ -548,9 +561,15 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/memory/test_memory_eval.py` |
-| 단위 | `tests/unit/memory/test_memory_benchmark.py` |
-| 단위 | `tests/unit/memory/test_memory_faithfulness.py` |
+| 단위 | `tests/unit/test_memory_eval_benchmark.py` |
+| 단위 | `tests/unit/test_memory_eval_faithfulness.py` |
+| 단위 | `tests/unit/test_memory_eval_judge.py` |
+| 단위 | `tests/unit/test_memory_eval_locomo.py` |
+| 단위 | `tests/unit/test_memory_eval_longmemeval.py` |
+| 단위 | `tests/unit/test_memory_eval_metrics.py` |
+| 단위 | `tests/unit/test_memory_eval_probe.py` |
+| 단위 | `tests/unit/test_memory_eval_runner.py` |
+| 단위 | `tests/unit/test_memory_eval_target.py` |
 | 통합 | 없음. 평가 도구 자체라 CLI 를 끝까지 돌리는 테스트를 두지 않았다 |
 
 **제약과 미구현**: 벤치마크 원본 데이터는 레포 밖에 둔다.
@@ -602,19 +621,25 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/multi_agent/test_bases.py` |
-| 단위 | `tests/unit/core/multi_agent/test_blackboard.py` |
-| 단위 | `tests/unit/core/multi_agent/test_loader.py` |
-| 단위 | `tests/unit/core/multi_agent/test_memory_channel.py` |
-| 단위 | `tests/unit/core/multi_agent/test_memory_scope.py` |
-| 단위 | `tests/unit/core/multi_agent/test_node.py` |
-| 단위 | `tests/unit/core/multi_agent/test_orchestrators.py` |
-| 단위 | `tests/unit/core/multi_agent/test_service.py` |
-| 단위 | `tests/unit/core/multi_agent/test_task.py` |
-| 단위 | `tests/unit/core/multi_agent/test_topologies.py` |
-| 단위 | `tests/unit/app/test_subagent_builder.py` |
-| 단위 | `tests/unit/app/test_infra_builder.py` |
-| 통합 | 없음. 서브 에이전트 정의 파일로 앱을 띄워 패턴을 끝까지 돌리는 시나리오가 아직 없다 |
+| 단위 | `tests/unit/test_multi_agent_blackboard.py` |
+| 단위 | `tests/unit/test_multi_agent_factory.py` |
+| 단위 | `tests/unit/test_multi_agent_market.py` |
+| 단위 | `tests/unit/test_multi_agent_multi_agent_loader.py` |
+| 단위 | `tests/unit/test_multi_agent_multi_agent_protocol.py` |
+| 단위 | `tests/unit/test_multi_agent_multi_agent_service.py` |
+| 단위 | `tests/unit/test_multi_agent_node.py` |
+| 단위 | `tests/unit/test_multi_agent_orchestrate_cmd.py` |
+| 단위 | `tests/unit/test_multi_agent_orchestrator_base.py` |
+| 단위 | `tests/unit/test_multi_agent_orchestrators_blackboard.py` |
+| 단위 | `tests/unit/test_multi_agent_orchestrators_hierarchical.py` |
+| 단위 | `tests/unit/test_multi_agent_p2p.py` |
+| 단위 | `tests/unit/test_multi_agent_pipeline.py` |
+| 단위 | `tests/unit/test_multi_agent_subagent_builder.py` |
+| 단위 | `tests/unit/test_multi_agent_task.py` |
+| 단위 | `tests/unit/test_multi_agent_tool.py` |
+| 단위 | `tests/unit/test_multi_agent_topologies_hierarchical.py` |
+| 단위 | `tests/unit/test_multi_agent_topology_base.py` |
+| 통합 | `tests/integ/test_multi_agent.py` |
 
 **제약과 미구현**: 서브 에이전트가 하나도 없으면 `/orchestrate` 와 `orchestrate` 도구가 등록되지 않는다.
 
@@ -652,10 +677,14 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/test_notify.py` |
-| 단위 | `tests/unit/core/test_discord_voice.py` |
-| 단위 | `tests/unit/core/test_webpush.py` |
-| 통합 | `tests/integ/test_web_hud_api_flow.py` |
+| 단위 | `tests/unit/test_notify_dedupe.py` |
+| 단위 | `tests/unit/test_notify_discord.py` |
+| 단위 | `tests/unit/test_notify_discord_voice.py` |
+| 단위 | `tests/unit/test_notify_events.py` |
+| 단위 | `tests/unit/test_notify_notify.py` |
+| 단위 | `tests/unit/test_notify_slack.py` |
+| 단위 | `tests/unit/test_notify_webpush.py` |
+| 통합 | `tests/integ/test_notify.py` |
 
 **제약과 미구현**: 슬랙, 디스코드 webhook 과 Web Push 에는 중복 제거 키가 없어 재시도하지 않는다. 실패한 알림은 다시 가지 않는다(`# idempotent`).
 
@@ -691,13 +720,13 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/agent_layer/test_openloop.py` |
-| 단위 | `tests/unit/agent_layer/test_openloop_jsonl.py` |
-| 단위 | `tests/unit/agent_layer/test_openloop_judge.py` |
-| 단위 | `tests/unit/core/test_openloop_cmd.py` |
-| 단위 | `tests/unit/core/test_openloop_wiring.py` |
-| 통합 | `tests/integ/test_postgres_openloop_store.py` |
-| 통합 | `tests/integ/test_web_hud_api_flow.py` |
+| 단위 | `tests/unit/test_openloop_jsonl_store.py` |
+| 단위 | `tests/unit/test_openloop_judge.py` |
+| 단위 | `tests/unit/test_openloop_openloop_cmd.py` |
+| 단위 | `tests/unit/test_openloop_openloop_store.py` |
+| 단위 | `tests/unit/test_openloop_openloop_types.py` |
+| 단위 | `tests/unit/test_openloop_postgres_store.py` |
+| 통합 | `tests/integ/test_openloop.py` |
 
 **제약과 미구현**: 임베딩 벡터는 프로세스 메모리에만 있어 재시작 뒤 첫 판정은 다시 임베딩한다. 조회는 전부 읽어 고른다(모두 `# ponytail`). 뜻이 멀게 바꾼 약속은 따로 쌓이고, 입력과 글자가 거의 겹치지 않는 새 약속은 저장하지 않는다. 약속 수정은 없다(`docs/view_spec.md`).
 
@@ -727,7 +756,9 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/test_plugins.py` |
+| 단위 | `tests/unit/test_plugins_plugins_loader.py` |
+| 단위 | `tests/unit/test_plugins_plugins_protocol.py` |
+| 단위 | `tests/unit/test_plugins_runner.py` |
 | 통합 | 없음. 실제 플러그인 파일을 두고 앱을 띄우는 시나리오가 아직 없다 |
 
 **제약과 미구현**: 없음.
@@ -763,11 +794,14 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/test_policy.py` |
-| 단위 | `tests/unit/core/test_rate_limit.py` |
-| 단위 | `tests/unit/ui/test_web_auth.py` |
-| 단위 | `tests/unit/app/test_app_services.py` |
-| 통합 | `tests/integ/test_web_hud_api_flow.py` |
+| 단위 | `tests/unit/test_policy_app_services.py` |
+| 단위 | `tests/unit/test_policy_authenticator.py` |
+| 단위 | `tests/unit/test_policy_pipeline.py` |
+| 단위 | `tests/unit/test_policy_policy.py` |
+| 단위 | `tests/unit/test_policy_sandbox.py` |
+| 단위 | `tests/unit/test_policy_validator.py` |
+| 단위 | `tests/unit/test_policy_web_auth.py` |
+| 통합 | `tests/integ/test_policy.py` |
 
 **제약과 미구현**: 정적 셸(`/`, js, css)은 키 없이 항상 열려 있다(`docs/api_spec.md`).
 
@@ -803,14 +837,12 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/test_proactive.py` |
-| 단위 | `tests/unit/core/test_proactive_wiring.py` |
-| 단위 | `tests/unit/core/test_feedback.py` |
-| 단위 | `tests/unit/core/test_triggers.py` |
-| 단위 | `tests/unit/core/test_any_trigger_cancel.py` |
-| 단위 | `tests/unit/ui/test_bridge_proactive.py` |
-| 단위 | `tests/unit/ui/test_ws_tasks.py` |
-| 통합 | `tests/integ/test_web_hud_api_flow.py` |
+| 단위 | `tests/unit/test_proactive_daemon.py` |
+| 단위 | `tests/unit/test_proactive_feedback.py` |
+| 단위 | `tests/unit/test_proactive_policy.py` |
+| 단위 | `tests/unit/test_proactive_proactive_core.py` |
+| 단위 | `tests/unit/test_proactive_triggers.py` |
+| 통합 | `tests/integ/test_proactive.py` |
 
 **제약과 미구현**: 🔔 가 되풀이인지 볼 때 마지막 답 하나만 본다(`# ponytail`). 성찰에서 🔔 까지 이어지는 시나리오는 e2e 자동화가 없고 수동이다(`TODO.md`).
 
@@ -841,7 +873,9 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/test_proactive_eval.py` |
+| 단위 | `tests/unit/test_proactive_eval_eval_schema.py` |
+| 단위 | `tests/unit/test_proactive_eval_main.py` |
+| 단위 | `tests/unit/test_proactive_eval_runner.py` |
 | 통합 | 없음. 평가 도구 자체라 CLI 를 끝까지 돌리는 테스트를 두지 않았다 |
 
 **제약과 미구현**: 없음.
@@ -880,10 +914,13 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/test_procedures.py` |
-| 단위 | `tests/unit/core/test_procedures_tool.py` |
-| 단위 | `tests/unit/core/test_procedure_refine.py` |
-| 단위 | `tests/unit/memory/test_procedures_block.py` |
+| 단위 | `tests/unit/test_procedures_detect.py` |
+| 단위 | `tests/unit/test_procedures_distill.py` |
+| 단위 | `tests/unit/test_procedures_learner.py` |
+| 단위 | `tests/unit/test_procedures_procedures_cmd.py` |
+| 단위 | `tests/unit/test_procedures_procedures_store.py` |
+| 단위 | `tests/unit/test_procedures_refine.py` |
+| 단위 | `tests/unit/test_procedures_tool.py` |
 | 통합 | 없음. 절차 학습은 `scripts/e2e/hud_flow.py` 의 e2e 시나리오로만 돈다 |
 
 **제약과 미구현**: 승인된 절차는 모든 에이전트의 도구가 된다(`# ponytail`).
@@ -922,12 +959,14 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/test_scheduler.py` |
-| 단위 | `tests/unit/core/test_schedule_classify.py` |
-| 단위 | `tests/unit/core/test_schedule_tool.py` |
-| 단위 | `tests/unit/core/test_slash.py` |
-| 단위 | `tests/unit/core/test_bugfix_core.py` |
-| 통합 | `tests/integ/test_web_hud_api_flow.py` |
+| 단위 | `tests/unit/test_scheduler_classify.py` |
+| 단위 | `tests/unit/test_scheduler_dispatcher.py` |
+| 단위 | `tests/unit/test_scheduler_schedule_cmd.py` |
+| 단위 | `tests/unit/test_scheduler_scheduler_loader.py` |
+| 단위 | `tests/unit/test_scheduler_scheduler_service.py` |
+| 단위 | `tests/unit/test_scheduler_task.py` |
+| 단위 | `tests/unit/test_scheduler_tool.py` |
+| 통합 | `tests/integ/test_scheduler.py` |
 
 **제약과 미구현**: `schedule` 도구를 같은 요청으로 두 번 부르면 알림도 두 개다(`# idempotent`). `reminder` 보류 큐는 메모리에만 있어 재시작하면 사라진다. 화면에서는 켜고 끄기만 되고 만들기와 지우기는 `/schedule` 로 한다(`docs/api_spec.md`, `docs/view_spec.md`).
 
@@ -970,14 +1009,14 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/agent_layer/test_branching.py` |
-| 단위 | `tests/unit/agent_layer/test_jsonl_session_meta.py` |
-| 단위 | `tests/unit/core/test_cleanup_cmd.py` |
-| 단위 | `tests/unit/core/test_export_cost.py` |
-| 단위 | `tests/unit/core/test_ops_cmd.py` |
-| 단위 | `tests/unit/ui/test_session_registry.py` |
-| 통합 | `tests/integ/test_postgres_session_repo.py` |
-| 통합 | `tests/integ/test_web_hud_api_flow.py` |
+| 단위 | `tests/unit/test_session_cleanup_cmd.py` |
+| 단위 | `tests/unit/test_session_cost_cmd.py` |
+| 단위 | `tests/unit/test_session_export_cmd.py` |
+| 단위 | `tests/unit/test_session_jarvis_config.py` |
+| 단위 | `tests/unit/test_session_jsonl.py` |
+| 단위 | `tests/unit/test_session_session_protocol.py` |
+| 단위 | `tests/unit/test_session_session_registry.py` |
+| 통합 | `tests/integ/test_session.py` |
 
 **제약과 미구현**: Web HUD 세션 목록은 프로세스가 띄운 것만 보인다. Postgres 저장소에서 분기는 히스토리가 복사되지 않은 빈 새 세션이다(`docs/view_spec.md`).
 
@@ -1006,8 +1045,8 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/test_skills.py` |
-| 통합 | 없음. 스킬 파일을 두고 앱 입력으로 펼치는 시나리오가 아직 없다 |
+| 단위 | `tests/unit/test_skills_skills_registry.py` |
+| 통합 | `tests/integ/test_skills.py` |
 
 **제약과 미구현**: 없음.
 
@@ -1039,9 +1078,9 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/memory/test_task_pattern.py` |
-| 단위 | `tests/unit/core/test_task_pattern_tool.py` |
-| 통합 | `tests/integ/test_task_pattern_flow.py` |
+| 단위 | `tests/unit/test_task_pattern_patterns_cmd.py` |
+| 단위 | `tests/unit/test_task_pattern_task_pattern.py` |
+| 통합 | `tests/integ/test_task_pattern.py` |
 
 **제약과 미구현**: 없음.
 
@@ -1081,16 +1120,18 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/agent_layer/test_thought.py` |
-| 단위 | `tests/unit/agent_layer/test_thought_router.py` |
-| 단위 | `tests/unit/agent_layer/test_decision_gate.py` |
-| 단위 | `tests/unit/agent_layer/test_reply_classifier.py` |
-| 단위 | `tests/unit/core/test_thought_routing.py` |
-| 단위 | `tests/unit/core/test_thought_wiring.py` |
-| 단위 | `tests/unit/core/test_reflection_scope.py` |
-| 단위 | `tests/unit/model_layer/test_decision.py` |
-| 단위 | `tests/unit/app/test_session_builder.py` |
-| 통합 | `tests/integ/test_web_hud_api_flow.py` |
+| 단위 | `tests/unit/test_thought_composer.py` |
+| 단위 | `tests/unit/test_thought_decision.py` |
+| 단위 | `tests/unit/test_thought_decision_gate.py` |
+| 단위 | `tests/unit/test_thought_engine.py` |
+| 단위 | `tests/unit/test_thought_log.py` |
+| 단위 | `tests/unit/test_thought_prompt.py` |
+| 단위 | `tests/unit/test_thought_reply.py` |
+| 단위 | `tests/unit/test_thought_router.py` |
+| 단위 | `tests/unit/test_thought_session_builder.py` |
+| 단위 | `tests/unit/test_thought_thought_protocol.py` |
+| 단위 | `tests/unit/test_thought_thought_types.py` |
+| 통합 | `tests/integ/test_thought.py` |
 
 **제약과 미구현**: 클라우드 provider 에서 race(병렬) 타이밍이 맞는지 미측정이다(`TODO.md`). router 가 direct 로 판정한 턴에는 사고와 💬 filler 가 없다(`docs/view_spec.md`).
 
@@ -1130,13 +1171,18 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/core/test_tools.py` |
-| 단위 | `tests/unit/core/test_explore_tools.py` |
-| 단위 | `tests/unit/core/test_web_search.py` |
-| 단위 | `tests/unit/core/test_tool_loader.py` |
-| 단위 | `tests/unit/app/test_infra_builder_parts.py` |
-| 통합 | `tests/integ/test_web_hud_api_flow.py` |
-| 통합 | `tests/integ/test_web_team_flow.py` |
+| 단위 | `tests/unit/test_tools_bash.py` |
+| 단위 | `tests/unit/test_tools_edit_file.py` |
+| 단위 | `tests/unit/test_tools_glob.py` |
+| 단위 | `tests/unit/test_tools_grep.py` |
+| 단위 | `tests/unit/test_tools_list_dir.py` |
+| 단위 | `tests/unit/test_tools_read_file.py` |
+| 단위 | `tests/unit/test_tools_tools_loader.py` |
+| 단위 | `tests/unit/test_tools_tools_registry.py` |
+| 단위 | `tests/unit/test_tools_web_fetch.py` |
+| 단위 | `tests/unit/test_tools_web_search.py` |
+| 단위 | `tests/unit/test_tools_write_file.py` |
+| 통합 | `tests/integ/test_tools.py` |
 
 **제약과 미구현**: 없음.
 
@@ -1174,9 +1220,10 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/ui/test_startup_plan.py` |
-| 단위 | `tests/unit/ui/test_bridge_proactive.py` |
-| 단위 | `tests/unit/ui/test_ui_adapter.py` |
+| 단위 | `tests/unit/test_tui_bridge.py` |
+| 단위 | `tests/unit/test_tui_sidebar.py` |
+| 단위 | `tests/unit/test_tui_startup.py` |
+| 단위 | `tests/unit/test_tui_ui_protocol.py` |
 | 통합 | 없음. 터미널 화면을 띄워 입력을 흘리는 시나리오가 아직 없다 |
 
 **제약과 미구현**: `/focus` 를 쓸 수 없다. TUI 화면 명세가 `docs/view_spec.md` 에 없다(`TODO.md`).
@@ -1209,8 +1256,11 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/agent_layer/test_usermodel.py` |
-| 통합 | 없음. 실제 저장소의 기억으로 모델을 증류하는 시나리오가 아직 없다 |
+| 단위 | `tests/unit/test_usermodel_builder.py` |
+| 단위 | `tests/unit/test_usermodel_usermodel_cmd.py` |
+| 단위 | `tests/unit/test_usermodel_usermodel_store.py` |
+| 단위 | `tests/unit/test_usermodel_usermodel_types.py` |
+| 통합 | `tests/integ/test_usermodel.py` |
 
 **제약과 미구현**: 없음.
 
@@ -1261,19 +1311,19 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/voice/test_english.py` |
-| 단위 | `tests/unit/voice/test_phrases.py` |
-| 단위 | `tests/unit/voice/test_piper.py` |
-| 단위 | `tests/unit/voice/test_protocol.py` |
-| 단위 | `tests/unit/voice/test_qwen_provider.py` |
-| 단위 | `tests/unit/voice/test_speech_text.py` |
-| 단위 | `tests/unit/voice/test_supertonic.py` |
-| 단위 | `tests/unit/voice/test_voice.py` |
-| 단위 | `tests/unit/voice/test_voice_options.py` |
-| 단위 | `tests/unit/voice/test_wake.py` |
-| 단위 | `tests/unit/voice/test_whisper.py` |
-| 단위 | `tests/unit/ui/test_tui_voice.py` |
-| 통합 | `tests/integ/test_web_voice_flow.py` |
+| 단위 | `tests/unit/test_voice_english.py` |
+| 단위 | `tests/unit/test_voice_phrases.py` |
+| 단위 | `tests/unit/test_voice_piper.py` |
+| 단위 | `tests/unit/test_voice_qwen.py` |
+| 단위 | `tests/unit/test_voice_speech_text.py` |
+| 단위 | `tests/unit/test_voice_supertonic.py` |
+| 단위 | `tests/unit/test_voice_voice.py` |
+| 단위 | `tests/unit/test_voice_voice_protocol.py` |
+| 단위 | `tests/unit/test_voice_voice_registry.py` |
+| 단위 | `tests/unit/test_voice_voice_service.py` |
+| 단위 | `tests/unit/test_voice_wake.py` |
+| 단위 | `tests/unit/test_voice_whisper.py` |
+| 통합 | `tests/integ/test_voice.py` |
 
 **제약과 미구현**: 영어 문장 나누기가 약어 마침표에서도 나뉜다(`# ponytail`). 웨이크워드는 영어 발음 "Jarvis" 만 알아듣고 16kHz AudioContext 를 쓸 수 있는 브라우저에서만 돈다. 읽기가 겹치면 소리가 겹친다(`docs/view_spec.md`). 에어팟에서 승인 되읽기 확인이 남아 있다(`TODO.md`).
 
@@ -1316,8 +1366,10 @@
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/ui/test_web_adapter.py` |
-| 통합 | `tests/integ/test_web_hud_api_flow.py` |
+| 단위 | `tests/unit/test_web_hud_adapter.py` |
+| 단위 | `tests/unit/test_web_hud_logger.py` |
+| 단위 | `tests/unit/test_web_hud_ws_tasks.py` |
+| 통합 | `tests/integ/test_web_hud.py` |
 
 **제약과 미구현**: 오른쪽 여백(헤더와 스테이지가 창보다 좁게 보임) 사용자 보고가 재현되지 않아 열려 있다(`TODO.md`). 입력창은 한 줄이다. 아티팩트 패널은 응답 하나에 코드블록 하나만 보인다(`docs/view_spec.md`).
 

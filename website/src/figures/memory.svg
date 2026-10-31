@@ -26,7 +26,7 @@
 <path class="pf-edge pf-edge--accent" d="M620.0,112.0 L648.0,112.0" marker-end="url(#memory-h-accent)"/>
 <path class="pf-store" d="M80.0,189 a180.0,5 0 0,0 360,0 a180.0,5 0 0,0 -360,0 v48 a180.0,5 0 0,0 360,0 v-48"/>
 <text class="pf-t" x="260.0" y="212.0" text-anchor="middle">장기 기억</text>
-<text class="pf-s" x="260.0" y="229.0" text-anchor="middle">의미 shared, 일화 private, 작업 패턴 private</text>
+<text class="pf-s" x="260.0" y="229.0" text-anchor="middle">프로필 공유, 일화와 절차는 정책이 연 것만</text>
 <path class="pf-edge" d="M440.0,213.0 L490.0,213.0 L490.0,166.0" marker-end="url(#memory-h)"/>
 <text class="pf-elabel" x="482.0" y="180.0" text-anchor="end">회상: 키워드 + 벡터, 점수</text>
 <path class="pf-store" d="M560.0,189 a80.0,5 0 0,0 160,0 a80.0,5 0 0,0 -160,0 v48 a80.0,5 0 0,0 160,0 v-48"/>
@@ -37,11 +37,11 @@
 <text class="pf-plabel" x="28" y="370">(b) 정해진 순간에만 쓴다. 매 턴 대화는 자동으로 쓰지 않는다</text>
 <rect class="pf-box" x="26.0" y="290" width="150" height="50" rx="6"/>
 <text class="pf-t" x="101.0" y="311.0" text-anchor="middle">/remember</text>
-<text class="pf-s" x="101.0" y="328.0" text-anchor="middle">의미, shared, 주거 프로필도</text>
+<text class="pf-s" x="101.0" y="328.0" text-anchor="middle">사용자 프로필, 주거도</text>
 <path class="pf-edge" d="M101.0,290.0 L101.0,242.0" marker-end="url(#memory-h)"/>
 <rect class="pf-box" x="186.0" y="290" width="118" height="50" rx="6"/>
 <text class="pf-t" x="245.0" y="311.0" text-anchor="middle">압축, 세션 종료</text>
-<text class="pf-s" x="245.0" y="328.0" text-anchor="middle">일화, private</text>
+<text class="pf-s" x="245.0" y="328.0" text-anchor="middle">일화(EDM)</text>
 <path class="pf-edge" d="M245.0,290.0 L245.0,242.0" marker-end="url(#memory-h)"/>
 <rect class="pf-box" x="314.0" y="290" width="110" height="50" rx="6"/>
 <text class="pf-t" x="369.0" y="311.0" text-anchor="middle">통합</text>
@@ -49,10 +49,10 @@
 <path class="pf-edge" d="M369.0,290.0 L369.0,242.0" marker-end="url(#memory-h)"/>
 <rect class="pf-box" x="434.0" y="290" width="118" height="50" rx="6"/>
 <text class="pf-t" x="493.0" y="311.0" text-anchor="middle">사고, 저널, 위임</text>
-<text class="pf-s" x="493.0" y="328.0" text-anchor="middle">일화, private</text>
+<text class="pf-s" x="493.0" y="328.0" text-anchor="middle">일화(EDM)</text>
 <path class="pf-edge" d="M493.0,290.0 L493.0,280.0 L420.0,280.0 L420.0,242.0" marker-end="url(#memory-h)"/>
 <rect class="pf-box" x="562.0" y="290" width="172" height="50" rx="6"/>
 <text class="pf-t" x="648.0" y="311.0" text-anchor="middle">remember_task_pattern</text>
-<text class="pf-s" x="648.0" y="328.0" text-anchor="middle">작업 패턴, 에이전트별</text>
+<text class="pf-s" x="648.0" y="328.0" text-anchor="middle">절차(PDM), 에이전트별</text>
 <path class="pf-edge" d="M648.0,290.0 L648.0,280.0 L420.0,280.0 L420.0,242.0" marker-end="url(#memory-h)"/>
 </svg>

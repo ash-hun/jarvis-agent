@@ -37,7 +37,7 @@ class OrchestrateTool(JarvisTool):
                 },
                 "promote": {
                     "type": "boolean",
-                    "description": "Blackboard only: save each agent's result as shared long-term facts.",
+                    "description": "Blackboard only: save each agent's result as episodes in your long-term memory.",
                 },
             },
             "required": ["pattern", "task"],

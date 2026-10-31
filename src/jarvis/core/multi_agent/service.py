@@ -76,7 +76,7 @@ class OrchestrationService:
         """한 번의 오케스트레이션. 쉼표로 이은 패턴은 파이프라인(앞 결과가 뒤 입력).
 
         끝나면 부모 범위에 기록을 남기고 작업 공유 메모리를 비운다. promote 면 블랙보드 결과를
-        shared 사실로 올린다.
+        부모 일화로 남긴다.
         """
         stages = [p.strip().lower() for p in pattern.split(",") if p.strip()]
         unknown = [s for s in stages if s not in PATTERNS]

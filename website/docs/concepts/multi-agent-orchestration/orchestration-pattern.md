@@ -21,7 +21,7 @@ Orchestration Pattern 은 JARVIS 가 한 작업을 여러 서브 에이전트에
 서브 에이전트는 보통의 `AgentSession` 이고, 세 가지가 다르다.
 
 - 정의의 `system_prompt` 와 `tools` 부분집합을 쓴다. `model_override` 는 모델 이름만 바꾼다
-- 부모의 사용자 범위를 상속한다(`inherit_scope`). 그래서 사용자의 `/remember` 사실은 보이고 부모의 private 요약은 보이지 않는다
+- 부모의 사용자 범위를 상속한다(`inherit_scope`). 그래서 사용자 프로필(`/remember` 사실)은 보이고 부모의 일화와 절차는 보이지 않는다
 - Inner Thought 와 Proactive Dialogue 가 없다
 
 부모 LLM 에게 서브 에이전트 호출은 `agent_<name>` 도구의 결과로 보인다. 내용과 맥락이 같으면 `task_id`(해시)가 같으므로 다시 돌지 않는다. 부모는 "위임: ..." 을 일화로 기억한다.
@@ -52,7 +52,7 @@ flowchart TB
 | `supervisor` | 감독자 세션이 `agent_*` 도구를 들고 LLM 이 위임을 결정한다. 감독자 프롬프트는 `JARVIS_AGENTS__SUPERVISOR_PROMPT`(문자열 또는 파일 경로) |
 | `hierarchical` | `level` 순서대로 돌고, 같은 레벨은 병렬로 돈다. 앞 레벨 결과가 뒤 레벨의 컨텍스트와 작업 공유 메모리로 간다 |
 | `market` | 에이전트가 `capabilities` 로 입찰하고 점수가 가장 높은 하나가 맡는다 |
-| `blackboard` | 전원이 공유 보드 스냅샷을 보고 병렬로 돌고, 결과를 취합한다. `--promote` 면 결과를 shared 장기 기억으로 올린다 |
+| `blackboard` | 전원이 공유 보드 스냅샷을 보고 병렬로 돌고, 결과를 취합한다. `--promote` 면 결과를 부모 에이전트의 일화로 남긴다 |
 
 패턴을 쉼표로 이으면 파이프라인이 된다. 앞 결과가 다음 작업의 입력이 되고, 하나라도 실패하면 멈춘다.
 

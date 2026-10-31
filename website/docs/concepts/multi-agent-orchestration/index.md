@@ -41,12 +41,15 @@ system_prompt: |
 model: null                   # 모델 이름만 바꾼다. 프로바이더와 키는 JARVIS 것
 tools: [lh_notice, web_search, read_file]   # 비우면 앱 레지스트리 전체
 proactive: false              # 비우면 JARVIS 의 proactive 설정
+memory:                       # 비우면 자기 기억만 읽는다
+  read: { edm: [self], pdm: [self] }
 ```
 
 - id 는 `^[a-z][a-z0-9_-]{0,31}$` 를 따라야 한다. `main.yaml` 은 무시한다. JARVIS 의 정본은 env(`JARVIS_BRAND__*`, `JARVIS_LLM__*`)다
 - 잘못된 파일은 로그만 남기고 그 파일만 건너뛴다
 - `tools` 에는 에이전트만 쓰는 도구(`lh_notice`, `sh_notice`, `housing_loan`, `housing_budget`)도 적을 수 있다. 이 도구는 `tools` 가 빈 JARVIS 에게는 보이지 않는다
 - `ask_agent` 와 `remember_task_pattern` 은 `tools` 에 적지 않아도 모든 에이전트에게 붙는다. 작업 패턴은 에이전트마다 따로 기억한다([Memory Management → 작업 패턴](../memory.md#작업-패턴))
+- `memory.read` 는 층별로 더 읽을 에이전트를 적는다([Memory Management → 읽기 권한](../memory.md#읽기-권한)). 모르는 키가 있으면 그 파일을 건너뛴다
 - 사고 설정은 JARVIS 것을 같이 쓰고, proactive 피드백 학습기는 에이전트마다 따로 둔다
 
 ## 무엇을 공유하나
@@ -54,9 +57,10 @@ proactive: false              # 비우면 JARVIS 의 proactive 설정
 | 항목 | 규칙 |
 |---|---|
 | 사용자 모델 | 공유. 파일 하나를 모든 에이전트가 읽는다 |
-| 장기 기억 | 사용자에 대한 사실(semantic)만 공유. 대화 요약, 사고 로그 같은 일화(episodic)는 쓴 에이전트 전용 |
+| 사용자 프로필(의미 기억) | 공유. 같은 사용자의 모든 에이전트가 읽는다 |
+| EDM(일화), PDM(절차) | 쓴 에이전트 전용. 정의 파일의 `memory.read` 에 적은 에이전트의 것만 더 읽는다 |
 
-장기 기억의 공유 여부는 쓰기 경로가 정한다(`memory_service.WRITE_RULES`). `/remember`, 사용자 모델 증류, 일화에서 뽑은 사실은 shared 로, 나머지는 private 로 쓴다. 기억 범위의 `agent_id` 는 세션의 에이전트 id 다.
+어느 층에 쓰는지는 쓰기 경로가 정하고(`memory_service.WRITE_RULES`), 누가 읽는지는 층과 정책이 정한다. `/remember`, 사용자 모델 증류, 일화에서 뽑은 사실은 사용자 프로필로, 나머지는 일화나 절차로 쓴다. 기억 범위의 `agent_id` 는 세션의 에이전트 id 다.
 
 범위를 도입하기 전의 옛 행은 Postgres 저장소가 열릴 때 main 행으로 채운다. 이때 사실만 shared 로 두고, 일화는 main 전용으로 둔다. 예전 backfill 이 shared 로 둔 일화도 같은 때 private 로 고친다. 저장소를 두 번 열어도 결과가 같다.
 

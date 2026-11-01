@@ -98,6 +98,6 @@ Jarvis-Agent는 구현 및 운영부문에 아래 원칙을 지킨다. 기능마
 | [Sessions](./conversation/sessions.md) | 삭제와 다시 열기가 겹칠 때 | 세션별 잠금 전 18.1% 가 기록 없이 세션만 남음, 잠금 뒤 0% |
 | [Scheduling](./conversation/scheduling.md) | 알림 실패 때 놓친 공고 | 알림 실패율 30% 에서 29.4% 가 0% 로, 두 번 알림 0건 |
 | [MCP Events](./conversation/mcp.md) | 전하지 못한 외부 이벤트 | 사고 실패율 50%, 주기마다 5건에서 48.3% 가 0% 로 |
-| [Orchestration Pattern](./multi-agent-orchestration/orchestration-pattern.md) | 패턴별 걸린 시간 | blackboard 0.201초, hierarchical 0.604초, 한 턴에 하나씩 부르는 감독자 1.819초 |
-| [Extension](./extension.md) | 도구 파일 반영 시간 | 새 파일 p50 89.6ms, 고친 파일 p50 80.5ms. 감시 전에는 재시작 필요 |
+| [Orchestration Pattern](./multi-agent-orchestration/orchestration-pattern.md) | 패턴별 걸린 시간 | blackboard 0.201초, hierarchical 0.604초, 한 턴에 하나씩 부르는 감독자 1.829초 |
+| [Extension](./extension.md) | 도구 파일 반영 시간 | 새 파일 p50 77.1ms, 고친 파일 p50 78.0ms. 감시 전에는 재시작 필요 |
 

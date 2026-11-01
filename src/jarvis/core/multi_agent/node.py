@@ -44,7 +44,16 @@ def capability_score(task: AgentTask, name: str, capabilities: list[str]) -> flo
     """Market 입찰 점수. 작업 문구의 토큰과 이름, capabilities 의 겹침 수. 0 이면 입찰하지 않는다."""
     tokens = set(tokens_of(task.content))
     labels = {name.lower(), *(c.lower() for c in capabilities)}
-    return float(sum(1 for t in tokens if t in labels or any(t in c for c in labels if len(c) >= 3)))
+    return float(sum(1 for t in tokens if any(_label_matches(t, c) for c in labels)))
+
+
+def _label_matches(token: str, label: str) -> bool:
+    """같은 낱말, 레이블 안에 든 토큰(3자 이상 레이블), 또는 레이블 뒤에 한글 조사나 어미만 붙은 토큰."""
+    if token == label or (len(label) >= 3 and token in label):
+        return True
+    # "정리하고", "검토해" 처럼 한국어는 낱말 뒤에 조사나 어미가 붙는다. 영어 접미("ui" 와 "uint")는 맞추지 않는다
+    rest = token[len(label):]
+    return len(label) >= 2 and token.startswith(label) and bool(rest) and all("가" <= ch <= "힣" for ch in rest)
 
 
 async def record_delegation(

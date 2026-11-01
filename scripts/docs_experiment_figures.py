@@ -593,13 +593,14 @@ def exp_scheduling(r: dict) -> Fig:
 
 
 def exp_extension(r: dict) -> Fig:
-    d = r["tool_reload"]["3c7e938_after_195"]
+    d = r["tool_reload"]["after_cache_fix"]
+    restart = r["tool_reload"]["3c7e938_after_195"]["restart"]["restart"]
     names = {"p50": ("p50", "pf-s2"), "p95": ("p95", "pf-s3")}
     fig = Fig("exp-extension", 0, "도구 파일을 고친 뒤 쓸 수 있을 때까지 걸린 시간")
     rows = [
         ("새 파일 (감시)", {k: d["watch"]["new_file"][f"{k}_ms"] for k in names}),
         ("고친 파일 (감시)", {k: d["watch"]["modified_file"][f"{k}_ms"] for k in names}),
-        ("재시작 (프로세스와 앱 조립만)", {k: d["restart"]["restart"][f"{k}_ms"] for k in names}),
+        ("재시작 (프로세스와 앱 조립만)", {k: restart[f"{k}_ms"] for k in names}),
     ]
     note = "#195 전에는 감시가 없어 새 도구가 5초 뒤에도 보이지 않았다(재시작 필요)"
     draw = bars_with_legend(

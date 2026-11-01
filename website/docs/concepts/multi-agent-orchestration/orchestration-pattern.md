@@ -37,7 +37,7 @@ import FigureExpOrchestration from '@site/src/figures/exp-orchestration.svg';
 
 ### 핵심 결과
 
-- 같은 작업에서 걸린 시간은 에이전트 수가 아니라 차례로 기다리는 단계 수를 따른다. 한 단계인 blackboard 는 0.201초, 레벨이 셋인 hierarchical 은 0.604초, 에이전트를 한 차례에 하나씩 부르는 감독자는 1.819초였다(서브 에이전트 한 번 0.2초로 고정)
+- 같은 작업에서 걸린 시간은 에이전트 수가 아니라 차례로 기다리는 단계 수를 따른다. 한 단계인 blackboard 는 0.201초, 레벨이 셋인 hierarchical 은 0.604초, 에이전트를 한 차례에 하나씩 부르는 감독자는 1.829초였다(서브 에이전트 한 번 0.2초로 고정)
 - 앞 단계 결과를 다음 에이전트가 받는 패턴은 hierarchical 과 파이프라인뿐이었다. hierarchical 에서는 4번 호출 중 3번이 앞 결과를 받았다
 
 ## 세부 구현
@@ -96,7 +96,7 @@ flowchart TB
 |---|---|
 | `supervisor` | 감독자 세션이 `agent_*` 도구를 들고 LLM 이 위임을 결정한다. 감독자 프롬프트는 `JARVIS_AGENTS__SUPERVISOR_PROMPT`(문자열 또는 파일 경로) |
 | `hierarchical` | `level` 순서대로 돌고, 같은 레벨은 병렬로 돈다. 앞 레벨 결과가 뒤 레벨의 컨텍스트와 작업 공유 메모리로 간다 |
-| `market` | 에이전트가 `capabilities` 로 입찰하고 점수가 가장 높은 하나가 맡는다 |
+| `market` | 에이전트가 `capabilities` 로 입찰하고 점수가 가장 높은 하나가 맡는다. 점수는 작업 낱말과 이름, `capabilities` 가 겹친 수다. "정리하고" 처럼 레이블 뒤에 한글 조사나 어미만 붙은 낱말도 "정리" 와 맞는다 |
 | `blackboard` | 전원이 공유 보드 스냅샷을 보고 병렬로 돌고, 결과를 취합한다. `--promote` 면 결과를 부모 에이전트의 일화로 남긴다 |
 
 패턴을 쉼표로 이으면 파이프라인이 된다. 앞 결과가 다음 작업의 입력이 되고, 하나라도 실패하면 멈춘다.
@@ -158,13 +158,14 @@ flowchart LR
 
 | 패턴 | 걸린 시간(5회 평균) | 서브 에이전트 호출 | 감독 모델 호출 | 앞 결과를 받은 호출 |
 |---|---|---|---|---|
-| supervisor (한 턴에 함께) | 0.610초 | 4 | 2 | 0 |
-| supervisor (한 턴에 하나씩) | 1.819초 | 4 | 5 | 0 |
+| supervisor (한 턴에 함께) | 0.619초 | 4 | 2 | 0 |
+| supervisor (한 턴에 하나씩) | 1.829초 | 4 | 5 | 0 |
 | hierarchical | 0.604초 | 4 | 0 | 3 |
-| market | 0.201초 | 1 (researcher) | 0 | 0 |
+| market | 0.201초 | 1 (writer) | 0 | 0 |
 | blackboard | 0.201초 | 4 | 0 | 0 |
-| hierarchical,blackboard | 0.805초 | 8 | 0 | 7 |
+| hierarchical,blackboard | 0.806초 | 8 | 0 | 7 |
 
+- **실험에서 찾아 고친 것**: 처음 쟀을 때 market 에서는 researcher, writer, reviewer 가 모두 1점으로 같아 먼저 등록된 researcher 가 맡았다. writer 의 능력 "정리" 가 작업의 "정리하고" 와 조사 때문에 맞지 않았다. 레이블 뒤에 한글 조사나 어미만 붙은 낱말도 맞추게 고친 뒤 writer 가 2점으로 맡는다
 - **해석**: 빠르게 끝내야 하면 blackboard, 앞 단계 결과를 이어 써야 하면 hierarchical 이나 파이프라인을 고른다. 감독자는 판단이 유연한 대신 자기 모델 호출만큼 느려진다. 프레임워크가 더한 시간은 5ms 이하였다
-- **한계**: 감독 모델은 대본대로 움직여 실제 모델의 위임 판단과 호출 수는 재지 않았다. 결과의 품질도 재지 않았다. market 에서는 researcher, writer, reviewer 가 모두 1점으로 같아 먼저 등록된 researcher 가 맡았다. writer 의 "정리" 가 작업의 "정리하고" 와 조사 때문에 맞지 않았다
+- **한계**: 감독 모델은 대본대로 움직여 실제 모델의 위임 판단과 호출 수는 재지 않았다. 결과의 품질도 재지 않았다. market 입찰 점수는 낱말 겹침이라 능력 이름을 짧은 낱말로 적어야 맞는다
 - **재현**: `uv run python scripts/experiments/orchestration_patterns.py`

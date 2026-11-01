@@ -94,6 +94,14 @@ def test_capability_score_counts_name_and_label_hits(name, capabilities, score):
     assert capability_score(task, name, capabilities) == score
 
 
+@pytest.mark.parametrize(
+    ("content", "capabilities", "score"),
+    [("시장 조사 후 정리하고 검토", ["작성", "정리"], 1.0), ("정리해 줘", ["정리"], 1.0), ("uint 값", ["ui"], 0.0)],
+)
+def test_capability_score_matches_korean_word_with_particle_but_not_english_prefix(content, capabilities, score):
+    assert capability_score(AgentTask.create(content), "writer", capabilities) == score
+
+
 def _session(prompt_error: Exception | None = None) -> AsyncMock:
     session = AsyncMock()
     if prompt_error is None:

@@ -15,7 +15,7 @@ def test_locomo_parsing_maps_dia_ids_to_sessions_and_categories():
     assert first.sessions[1].turns[0].text.endswith("(사진: a sunny park)")
     assert first.sessions[0].turns[0].text.startswith("Caroline: ")
     assert qs[1].question_type == "adversarial" and qs[1].evidence_session_ids == set()
-    assert set(LOADERS) == {"longmemeval", "locomo"}
+    assert set(LOADERS) == {"longmemeval", "locomo", "personamem", "minteval"}
 
 
 def test_locomo_orders_sessions_numerically_and_drops_unknown_evidence():

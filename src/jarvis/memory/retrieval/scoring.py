@@ -133,3 +133,18 @@ def rank(
         None,
     )
     return top if salient is None else [*top[:-1], salient]
+
+
+def joint_rank(
+    items: list[MemoryItem], query: str, limit: int, query_embedding: list[float] | None = None
+) -> list[MemoryItem]:
+    """종류를 가리지 않고 질의 관련도 하나로 줄 세운다. 같으면 최근 것이 먼저다.
+
+    추출한 사실과 원래 턴을 같은 잣대로 다시 매긴다(Memory Tax 의 source 회상과 공동 재순위). 종류별 가중치를 쓰면
+    관련도 비중이 큰 사실이 늘 원래 턴을 밀어낸다.
+    """
+    return sorted(
+        items,
+        key=lambda i: (relevance(query, i.search_text, query_embedding, i.embedding), i.created_at),
+        reverse=True,
+    )[:limit]

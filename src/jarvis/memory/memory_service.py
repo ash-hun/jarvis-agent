@@ -1,5 +1,6 @@
 """[memory] MemoryService 로 턴 전 변환(observe), 범위를 아는 조회(recall, recent), 쓰기(remember), 공고화를 맡는다."""
 
+import re
 import time
 import hashlib
 from typing import Any
@@ -20,8 +21,14 @@ from jarvis.memory.long_term.task_pattern import (
     render_block,
     teaches,
 )
+from jarvis.memory.long_term.fact_source import (
+    SOURCE_EPISODE,
+    nearest_episode,
+    pick_source,
+    source_excerpt,
+)
+from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, joint_rank, rank, relevance
 from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
-from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, rank, relevance
 from jarvis.memory.scope import MemoryScope, current_task, scope_from_context, task_scope
 from jarvis.memory.stores.store_protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore
 from jarvis.memory.long_term.refine import CHAT_TASK, Candidate, candidates
@@ -47,6 +54,15 @@ TURN_INDEX = "turn"  # 턴 일화 metadata 의 세션 안 턴 번호(1부터)
 TURN_CHARS = 1000  # 턴 일화에 남기는 발화와 답의 최대 글자 수. 도구 결과는 남기지 않는다
 USER_PREFIX = "사용자: "
 TURN_USER_CHARS = "user_chars"  # 턴 일화 content 에서 사용자 발화가 차지하는 글자 수(접두어 뒤)
+# 긴 답의 TURN_CHARS 뒤를 문단 단위로 나눠 남기는 조각 일화. 자르면 그 뒤의 증거는 구성 단계에서 사라져
+# 검색으로 되찾을 수 없다(Memory Tax, He et al. 2026). 공고화와 절차 정제는 본 턴 일화만 본다
+TURN_PART_SOURCE = "turn_part"
+TURN_PART = "part"  # 조각 일화 metadata 의 조각 번호(1부터)
+TURN_PARTS = "parts"  # 턴 일화 metadata 의 조각 수. 다시 쓸 때 줄어든 조각을 지우는 데 쓴다
+# 답 약 3,000자까지. LongMemEval-s 정답 턴은 조각 1개로 보존율 92% 가 100% 가 됐다. 2개는 더 긴 답의 여유이고
+# 일화 수는 조각 없을 때의 2.18배다(4개면 2.29배)
+MAX_TURN_PARTS = 2
+PART_USER_CHARS = 200  # 조각 일화에 붙이는 발화 앞부분. 조각만으로도 무슨 질문의 답인지 보이게
 # session_end, auto_summary 는 더 쓰지 않는다(옛 세션 요약). 운영 DB 에 아직 추출하지 않은 행이 남아 있다
 CONSOLIDATABLE_SOURCES = frozenset({TURN_SOURCE, "session_end", "auto_summary", "manual_compact"})
 
@@ -66,6 +82,7 @@ WRITE_RULES: dict[str, WriteRule] = {
     "extracted": WriteRule(MemoryKind.SEMANTIC, None),  # 일화에서 추출한 사실
     "manual_compact": WriteRule(MemoryKind.EPISODIC, None),  # /compact
     TURN_SOURCE: WriteRule(MemoryKind.EPISODIC, None),  # 턴 기록(STM 3턴 밖은 여기서 회상)
+    TURN_PART_SOURCE: WriteRule(MemoryKind.EPISODIC, None),  # 긴 답의 나머지 조각
     "thought": WriteRule(MemoryKind.EPISODIC, None),  # 사고 로그
     "journal": WriteRule(MemoryKind.EPISODIC, None),  # 자기 성찰 저널
     "delegation": WriteRule(MemoryKind.EPISODIC, "orchestrator"),  # 위임 기록
@@ -113,6 +130,8 @@ class MemoryService:
         min_similarity: float = 0.3,
         policies: Mapping[str, MemoryPolicy] | None = None,
         stm_turns: int = STM_TURNS,
+        answer_parts: int = MAX_TURN_PARTS,
+        source_recall: bool = True,
     ) -> None:
         self._store = store
         self._working: WorkingStore = working or InMemoryWorkingStore()
@@ -129,6 +148,12 @@ class MemoryService:
         self._policies: Mapping[str, MemoryPolicy] = policies or {}
         # STM 은 최근 이 턴 수다. 그 밖의 대화는 턴마다 쓴 EDM 에서 회상한다
         self._stm_turns = max(1, stm_turns)
+        self._answer_parts = max(0, answer_parts)
+        # 회상 블록은 추출 사실의 출처 턴까지 후보에 넣고 질의 관련도 하나로 다시 매긴다. LongMemEval-s 60문항,
+        # 실서비스 블록(핵심 사실 3건 + 회상 3건) 조건에서 정답률 0.28 이 0.50 이 됐다(잃은 문항 0, 문서 실험 절)
+        # ponytail: 이 경로는 최근성, 중요도, 섬광 기억 자리를 쓰지 않는다, 최근 일화를 묻는 회상이 평가에서 밀리면
+        # 관련도 동점 구간에만 합성 점수를 쓰도록 바꾼다
+        self._source_recall = source_recall
         # 이번 턴의 (턴 번호, 사용자 발화). reinforce 가 답과 묶어 EDM 에 쓴다
         self._pending_turn: dict[MemoryScope, tuple[int, str]] = {}
         self._refiner: Refiner | None = None
@@ -142,6 +167,15 @@ class MemoryService:
     @property
     def working(self) -> WorkingStore:
         return self._working
+
+    @property
+    def fixed_facts_limit(self) -> int:
+        return self._fixed_facts
+
+    @property
+    def answer_parts(self) -> int:
+        """긴 답을 나눠 남기는 조각 일화의 최대 수. 0 이면 나누지 않는다."""
+        return self._answer_parts
 
     def attach_refiner(self, refiner: Refiner) -> None:
         """절차 저장소와 증류기는 메모리보다 늦게 만들어져 생성자로 받지 못한다. 다시 꽂으면 바꾼다."""
@@ -179,9 +213,8 @@ class MemoryService:
             # 고정 블록에 이미 있는 항목도 질의에 걸리면 떠올린 것이다. 회상 블록에는 겹치지 않게 뺀다
             # 창 안의 턴은 아래에서 빼므로 그만큼 더 받아야 회상 자리가 줄지 않는다
             extra = len(fixed) + self._stm_turns
-            cued = await self.recall(
-                cue, scope, kinds=RECALL_KINDS, limit=self._inject_limit + extra, where=RECALL_FILTER
-            )
+            find = self.recall_with_sources if self._source_recall else self.recall
+            cued = await find(cue, scope, kinds=RECALL_KINDS, limit=self._inject_limit + extra, where=RECALL_FILTER)
             recalled = [
                 i for i in cued if i.id not in fixed_ids and not _in_window(i, scope, first_in_window)
             ][: self._inject_limit]
@@ -221,6 +254,7 @@ class MemoryService:
         tools: Sequence[str] = (),
         failed: bool = False,
         steps: Sequence[tuple[str, dict[str, Any]]] = (),
+        overflow: bool = False,
     ) -> list[str]:
         """이번 턴에 떠올린 항목 중 답에 쓰인 것만 되뇌기로 센다. 두 번 불러도 한 번만 센다.
 
@@ -234,7 +268,7 @@ class MemoryService:
         if turn is not None:
             await self.record_turn(
                 turn[0], turn[1], answer, scope, task_type=tools[0] if tools else CHAT_TASK, failed=failed,
-                tools=tools, steps=steps,
+                tools=tools, steps=steps, overflow=overflow,
             )
         cued = self._pending_recall.pop(scope, [])
         used = [item.id for item in cued if answer and relevance(item.content, answer) >= USED_OVERLAP]
@@ -256,21 +290,37 @@ class MemoryService:
         failed: bool = False,
         tools: Sequence[str] = (),
         steps: Sequence[tuple[str, dict[str, Any]]] = (),
+        overflow: bool = False,
     ) -> str:
         """턴 하나를 EDM 일화로 쓴다. 같은 세션의 같은 턴 번호면 같은 항목을 덮어 두 번 불러도 하나다.
 
+        답이 TURN_CHARS 보다 길면 나머지를 조각 일화로 남긴다. 다시 쓸 때 조각이 줄면 남는 조각을 지운다.
+
         # ponytail: 이력이 줄어 턴 번호를 1부터 다시 세면 옛 턴 일화를 덮는다, 세션 초기화가 잦아지면 세대 번호를 키에
         """
-        key = f"{scope.user_id}|{scope.agent_id}|{scope.session_id}|{index}"
         said = user[:TURN_CHARS]
-        content = f"{USER_PREFIX}{said}\n답: {answer[:TURN_CHARS]}"
-        return await self.remember(
+        content, *parts = turn_contents(user, answer, self._answer_parts)
+        main_id = turn_item_id(scope, index)
+        previous = await self._store.get(main_id) if self._answer_parts else None
+        stored = await self.remember(
             content, source=TURN_SOURCE, scope=scope,
             metadata={TURN_INDEX: index, TASK_TYPE: task_type, OUTCOME: "failure" if failed else "success",
                       "tools": list(dict.fromkeys(tools)), TURN_USER_CHARS: len(said),
-                      TURN_STEPS: [{"name": n, "args": _short_args(a)} for n, a in steps[:MAX_TURN_STEPS]]},
-            item_id="turn_" + hashlib.sha1(key.encode()).hexdigest()[:27],
+                      TURN_STEPS: [{"name": n, "args": _short_args(a)} for n, a in steps[:MAX_TURN_STEPS]],
+                      TURN_PARTS: len(parts),
+                      # 루프가 max_turns 를 넘겨 이어갔다. 단계가 너무 컸다는 근거로 실패 반성이 읽는다
+                      **({"overflow": True} if overflow else {})},
+            item_id=main_id,
         )
+        for number, part in enumerate(parts, start=1):
+            await self.remember(
+                part, source=TURN_PART_SOURCE, scope=scope, metadata={TURN_INDEX: index, TURN_PART: number},
+                item_id=turn_item_id(scope, index, number),
+            )
+        if previous is not None:
+            for number in range(len(parts) + 1, int(previous.metadata.get(TURN_PARTS, 0)) + 1):
+                await self._store.delete(turn_item_id(scope, index, number))
+        return stored
 
     async def fixed_facts(self, scope: MemoryScope) -> list[MemoryItem]:
         """질의와 무관하게 항상 넣는 의미 사실. 중요도와 최근성으로 고른다."""
@@ -457,6 +507,52 @@ class MemoryService:
         )
         return candidates(items, resolved)
 
+    async def recall_with_sources(
+        self,
+        query: str,
+        scope: MemoryScope,
+        kinds: Sequence[MemoryKind] | None = None,
+        limit: int = 10,
+        where: ItemFilter | None = None,
+    ) -> list[MemoryItem]:
+        """후보에 든 추출 사실의 출처 턴을 후보에 더하고, 사실과 턴을 질의 관련도 하나로 다시 매긴다.
+
+        추출은 원문에서 벗어난다(줄이기, 바꿔 말하기, 옮기기). 원래 턴으로 돌아갈 길을 회상 안에 남긴다
+        (Memory Tax, He et al. 2026 의 source 회상과 공동 재순위). 지워진 출처는 건너뛴다.
+        """
+        query_embedding = await self._embed_query(query)
+        candidates = await self._store.search(
+            query, scope, kinds, limit * 4, query_embedding=query_embedding, min_similarity=self._min_similarity,
+            readable=self.readable(scope), where=where,
+        )
+        seen = {c.id for c in candidates}
+        for item in list(candidates):
+            source_id = item.metadata.get(SOURCE_EPISODE)
+            if item.kind is not MemoryKind.SEMANTIC or not source_id or source_id in seen:
+                continue
+            episode = await self._store.get(str(source_id))
+            if episode is not None and (where is None or where.allows(episode)):
+                candidates.append(episode)
+                seen.add(episode.id)
+        return joint_rank(candidates, query, limit, query_embedding)
+
+    async def source_excerpts(self, items: Sequence[MemoryItem]) -> dict[str, str]:
+        """추출한 사실마다 출처 일화에서 사실과 가장 겹치는 부분(최대 300자). 출처가 지워졌거나 함께 떠올랐으면 뺀다.
+
+        처음 시도한 출처 발췌 방식이다. 발췌가 같은 노출 예산을 먹어 사실과 턴을 밀어내 실서비스에서는 쓰지 않고,
+        평가의 turns+excerpt 비교군만 쓴다.
+        """
+        shown = {i.id for i in items}
+        out: dict[str, str] = {}
+        for item in items:
+            source_id = item.metadata.get(SOURCE_EPISODE)
+            if item.kind is not MemoryKind.SEMANTIC or not source_id or source_id in shown:
+                continue
+            episode = await self._store.get(str(source_id))
+            if episode is not None:
+                out[item.id] = source_excerpt(item.content, source_text(episode))
+        return out
+
     async def recall_messages(self, query: str, context: dict[str, Any], limit: int = 10) -> list[Message]:
         """inner thought 의 회상 콜백(RecallFn) 모양. 범위는 턴 컨텍스트에서 정하고 항목은 사용자 메시지로 감싼다."""
         items = await self.recall(query, scope_from_context(context), limit=limit)
@@ -549,12 +645,18 @@ class MemoryService:
                 for fact in facts:
                     if fact.importance < self._importance_threshold:
                         continue
+                    # 출처는 사실 낱말이 가장 많이 나온 턴이다. 회상 때 그 턴의 해당 부분을 사실 아래 붙인다
+                    source = pick_source(fact.content, group, source_text)
+                    if source is None and len(group) > 1:
+                        vector = await self._embed_query(fact.content)
+                        source = nearest_episode(vector, group) if vector else None
+                    source = source or group[0]
                     await self.remember(
                         fact.content,
                         source="extracted",
                         scope=resolved.with_session(None),
                         importance=fact.importance,
-                        metadata={"from_episode": group[0].id},
+                        metadata={SOURCE_EPISODE: source.id},
                     )
                     written += 1
                 # 추출 중에 죽으면 표시하지 않은 묶음은 다음 호출에서 다시 뽑는다. 같은 주제 사실은 remember 가 대체한다
@@ -600,6 +702,11 @@ def _extraction_text(episode: MemoryItem) -> str:
     return USER_PREFIX + turn_parts(episode)[0]
 
 
+def source_text(episode: MemoryItem) -> str:
+    """사실을 뽑은 글. 턴 일화는 사용자 발화만이다(추출기에 발화만 넘긴다). "사용자: " 접두어는 뺀다."""
+    return turn_parts(episode)[0] if episode.source == TURN_SOURCE else episode.content
+
+
 def turn_parts(episode: MemoryItem) -> tuple[str, str]:
     """턴 일화의 (사용자 발화, 답)."""
     n = episode.metadata.get(TURN_USER_CHARS)
@@ -608,6 +715,52 @@ def turn_parts(episode: MemoryItem) -> tuple[str, str]:
         user, _, answer = body.partition("\n답: ")
         return user, answer
     return body[: int(n)], body[int(n):].removeprefix("\n답: ")
+
+
+def turn_item_id(scope: MemoryScope, index: int, part: int = 0) -> str:
+    """턴 일화(part 0)와 조각 일화의 자연 키. 같은 세션, 턴 번호, 조각 번호면 같은 id 다."""
+    key = f"{scope.user_id}|{scope.agent_id}|{scope.session_id}|{index}" + (f"|{part}" if part else "")
+    return "turn_" + hashlib.sha1(key.encode()).hexdigest()[:27]
+
+
+def turn_contents(user: str, answer: str, max_parts: int = MAX_TURN_PARTS) -> list[str]:
+    """턴 일화 본문과 그 뒤 조각 일화 본문들. record_turn 이 쓰는 글자 그대로다."""
+    said = user[:TURN_CHARS]
+    head = f"{USER_PREFIX}{said}\n답: {answer[:TURN_CHARS]}"
+    parts = answer_parts(answer, max_parts)
+    return [head] + [f"{USER_PREFIX}{said[:PART_USER_CHARS]}\n답({n + 1}): {part}" for n, part in enumerate(parts, 1)]
+
+
+def answer_parts(answer: str, max_parts: int = MAX_TURN_PARTS) -> list[str]:
+    """턴 일화에 못 담은 답의 나머지를 문단 경계에서 TURN_CHARS 이하 조각으로 나눈다. 짧은 답이면 빈 목록.
+
+    잘린 문단은 처음부터 다시 담는다. 다만 그 문단이 TURN_CHARS 의 절반보다 앞에서 시작하면 자른 자리부터 담는다.
+    """
+    if max_parts <= 0 or len(answer) <= TURN_CHARS:
+        return []
+    start = answer.rfind("\n", 0, TURN_CHARS) + 1
+    if start < TURN_CHARS // 2:
+        start = TURN_CHARS
+    parts: list[str] = []
+    current = ""
+    for paragraph in (p.strip() for p in re.split(r"\n+", answer[start:])):
+        while len(paragraph) > TURN_CHARS:
+            if current:
+                parts.append(current)
+                current = ""
+            parts.append(paragraph[:TURN_CHARS])
+            paragraph = paragraph[TURN_CHARS:]
+        if not paragraph:
+            continue
+        if current and len(current) + 1 + len(paragraph) > TURN_CHARS:
+            parts.append(current)
+            current = paragraph
+        else:
+            current = f"{current}\n{paragraph}" if current else paragraph
+    if current:
+        parts.append(current)
+    # ponytail: 조각은 max_parts 개까지만 남긴다(답 약 3,000자), 더 긴 답의 뒤쪽 증거가 실제로 사라지면 상한을 올린다
+    return parts[:max_parts]
 
 
 def _short_args(args: dict[str, Any]) -> dict[str, Any]:
@@ -621,7 +774,7 @@ def _text_of(message: Message) -> str:
 
 
 def _in_window(item: MemoryItem, scope: MemoryScope, first_in_window: int) -> bool:
-    if item.source != TURN_SOURCE or item.scope.session_id != scope.session_id:
+    if item.source not in (TURN_SOURCE, TURN_PART_SOURCE) or item.scope.session_id != scope.session_id:
         return False
     return int(item.metadata.get(TURN_INDEX, 0)) >= first_in_window
 

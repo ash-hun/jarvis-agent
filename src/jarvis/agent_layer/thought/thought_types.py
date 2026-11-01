@@ -67,6 +67,29 @@ class ThoughtFrame(BaseModel):
         return "\n".join(lines)
 
 
+class SituationFact(BaseModel):
+    """성찰 항목(약속이나 외부 이벤트) 하나에 코드가 미리 계산해 둔 사실. 모르는 값은 None 이다.
+
+    작은 모델은 시각 두 개를 빼다 틀리고 "수락했다" 를 못 보고 지나친다. 계산은 코드가 하고 모델은 판단만 한다.
+    """
+
+    text: str
+    source: Literal["loop", "event"] = "event"
+    days: int | None = None  # 언급된 날짜까지 남은 날(지난 날은 음수)
+    minutes: int | None = None  # 언급된 시각까지 남은 분(지난 시각은 음수). 시각이 없으면 None
+    signal: str | None = None  # 처리 신호(수락, 완료, 취소, 확인)
+
+    def view(self) -> dict[str, Any]:
+        """decision model 에 넘길 모양. 모르는 값은 "unknown" 으로 적어 없는 것과 구분한다."""
+        within = None if self.minutes is None else self.minutes <= 30
+        return {
+            "item": self.text,
+            "time_left": when_text(self.days, self.minutes),
+            "within_30_min": "unknown" if within is None else within,
+            "handled_signal": self.signal or "none",
+        }
+
+
 class ThoughtRequest(BaseModel):
     """
     `ThoughtEngine.think()`의 입력 계약.
@@ -90,6 +113,10 @@ class ThoughtRequest(BaseModel):
     external_events: list[str] = Field(default_factory=list)
     # 이 세션에서 최근 먼저 건넨 말(🔔). 성찰이 같은 취지를 바꿔 말해 반복하지 않게 보여준다.
     recent_proactive: list[str] = Field(default_factory=list)
+    # 성찰 항목마다 코드가 계산한 사실(core 가 채운다). 비어 있으면 decision model 은 원문만 본다
+    facts: list[SituationFact] = Field(default_factory=list)
+    # 먼저 건넬 말이 인용해야 할 항목. decision gate 가 확률이 가장 높은 항목으로 채운다
+    anchor: str = ""
     # 요청 시점이 아닌 백그라운드 성찰(Tier 1 daemon)도 같은 계약을 재사용한다.
     mode: Literal["request", "reflection"] = "request"
 
@@ -107,3 +134,20 @@ def _item_text(item: Any) -> str:
     if isinstance(item, dict):
         return " ".join(str(v).strip() for v in item.values() if isinstance(v, str) and v.strip())
     return str(item).strip()
+
+
+def when_text(days: int | None, minutes: int | None) -> str:
+    """남은 시간을 말로. 시각을 알면 분 단위, 날짜만 알면 날 단위, 둘 다 모르면 "unknown". 순수 함수."""
+    if minutes is not None:
+        span = abs(minutes)
+        if span < 60:
+            amount = f"{span}분"
+        elif span < 48 * 60:
+            hours, rest = divmod(span, 60)
+            amount = f"{hours}시간 {rest}분" if rest else f"{hours}시간"
+        else:
+            amount = f"{span // 1440}일"
+        return "지금" if minutes == 0 else f"{amount} {'뒤' if minutes > 0 else '전'}"
+    if days is not None:
+        return {0: "오늘", 1: "내일", -1: "어제"}.get(days, f"{abs(days)}일 {'뒤' if days > 0 else '전'}")
+    return "unknown"

@@ -4,14 +4,16 @@
 
 from typing import Any
 from pathlib import Path
+from datetime import datetime
 from dataclasses import asdict, dataclass, field
 
+from jarvis.core.proactive.eval.eval_schema import CaseLabel, ProactiveCase, Situation, load_cases
 from jarvis.model_layer.model_types import AssistantMessage, Message, TextContent, UserMessage
-from jarvis.core.proactive.eval.eval_schema import ProactiveCase, Situation, load_cases
 from jarvis.agent_layer.thought.thought_types import ThoughtFrame, ThoughtRequest
 from jarvis.agent_layer.thought.thought_protocol import ThoughtEngine
 from jarvis.core.proactive.proactive_types import ProactiveDecision
 from jarvis.core.proactive.policy import DefaultProactivityPolicy
+from jarvis.core.proactive.situation_facts import situation_facts
 
 DATASETS_DIR = Path(__file__).parent / "datasets"
 SUITES = ("policy", "situation")
@@ -36,6 +38,8 @@ class ProactiveCaseResult:
     missing: list[str] = field(default_factory=list)
     detail: str = ""
     skipped: bool = False
+    label: CaseLabel | None = None  # 3단 라벨(라벨 없는 사례는 expect.speak 로 정한 값)
+    confidence: float | None = None  # 사고 프레임의 확신도. AUC 를 이 값으로 잰다
 
 
 @dataclass
@@ -112,7 +116,7 @@ def build_policy(case: ProactiveCase, now: float) -> DefaultProactivityPolicy:
     return policy
 
 
-def to_request(situation: Situation) -> ThoughtRequest:
+def to_request(situation: Situation, now: datetime | None = None) -> ThoughtRequest:
     history: list[Message] = []
     for i, turn in enumerate(situation.history):
         if turn.role == "assistant":
@@ -126,6 +130,10 @@ def to_request(situation: Situation) -> ThoughtRequest:
         open_loops=situation.open_loops,
         user_model=situation.user_model,
         external_events=situation.external_events,
+        # 시각을 주면 남은 시간과 처리 신호를 계산해 붙인다. 약속은 글뿐이라 글에 적힌 시각을 읽는다
+        facts=situation_facts([(x, None) for x in situation.open_loops], situation.external_events, now)
+        if now is not None
+        else [],
         mode="reflection",
     )
 
@@ -155,10 +163,13 @@ def judge_case(case: ProactiveCase, decision: ProactiveDecision) -> ProactiveCas
         message=decision.message[:200],
         missing=missing,
         detail="; ".join(problems),
+        label=case.effective_label,
     )
 
 
-async def run_case(case: ProactiveCase, engine: ThoughtEngine | None, now: float) -> ProactiveCaseResult:
+async def run_case(
+    case: ProactiveCase, engine: ThoughtEngine | None, now: float, facts_now: datetime | None = None
+) -> ProactiveCaseResult:
     if case.frame is not None:
         frame: ThoughtFrame | None = ThoughtFrame.model_validate(case.frame)
     elif engine is None:
@@ -168,19 +179,24 @@ async def run_case(case: ProactiveCase, engine: ThoughtEngine | None, now: float
         )
     else:
         assert case.situation is not None
-        frame = await engine.think(to_request(case.situation))
+        frame = await engine.think(to_request(case.situation, facts_now))
     if frame is None:
         # 엔진이 사고를 생략했거나 파싱에 실패하면 말하지 않은 것이다
         decision = ProactiveDecision(speak=False, reason="no frame")
     else:
         decision = build_policy(case, now).decide_proactive(frame, session_id=SESSION, now=now)
-    return judge_case(case, decision)
+    result = judge_case(case, decision)
+    result.confidence = None if frame is None else frame.confidence
+    return result
 
 
 async def run_cases(
-    cases: list[ProactiveCase], engine: ThoughtEngine | None = None, now: float = FIXED_NOW
+    cases: list[ProactiveCase],
+    engine: ThoughtEngine | None = None,
+    now: float = FIXED_NOW,
+    facts_now: datetime | None = None,
 ) -> ProactiveReport:
-    return ProactiveReport(results=[await run_case(case, engine, now) for case in cases])
+    return ProactiveReport(results=[await run_case(case, engine, now, facts_now) for case in cases])
 
 
 def format_report(report: ProactiveReport, verbose: bool = False) -> str:

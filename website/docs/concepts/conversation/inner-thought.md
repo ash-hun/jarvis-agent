@@ -46,7 +46,7 @@ Inner Thought는 사람이 말하기 전에 잠시 생각하듯, JARVIS의 즉�
 
 <figure className="paper-fig">
   <FigureInnerThought />
-  <figcaption><b>Figure 1.</b> (a) 사고 한 번. 다섯 가지 맥락과 페르소나를 템플릿에 채워(1) 도구 없이 사고 모델을 한 번 부르고(2), JSON 스키마로 받은 ThoughtFrame 을 나눠 쓴다(3). 성찰일 때는 외부 이벤트도 함께 넣는다. 스키마를 강제하는 것은 Ollama 뿐이고 다른 프로바이더는 파싱만 한다. 약속 저장과 닫기는 ThoughtFrame 이 아니라 AGENDA 판단이 맡는다. router 가 think 로 판정한 턴의 사고는 응답과 함께 돌고, 결과는 다음 턴에 한 번 들어간다. (b) 사고와 메인 응답의 순서. `router_model` 을 정하면 이 설정 대신 router 가 턴마다 정한다. before 는 해석이 이번 응답에 섞이고, race(기본)는 3초까지만 기다리며, after 는 같은 GPU 를 나눠 쓰는 로컬에서 가장 빠르다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) 사고 한 번. 다섯 가지 맥락과 페르소나를 템플릿에 채워(1) 도구 없이 사고 모델을 한 번 부르고(2), JSON 스키마로 받은 ThoughtFrame 을 나눠 쓴다(3). 성찰일 때는 외부 이벤트와 먼저 꺼낼 항목(앵커)도 함께 넣는다. decision model 을 쓰면 성찰은 판정이 문턱을 넘을 때만 사고 모델을 부른다. 스키마를 강제하는 것은 Ollama 뿐이고 다른 프로바이더는 파싱만 한다. 약속 저장과 닫기는 ThoughtFrame 이 아니라 AGENDA 판단이 맡는다. router 가 think 로 판정한 턴의 사고는 응답과 함께 돌고, 결과는 다음 턴에 한 번 들어간다. (b) 사고와 메인 응답의 순서. `router_model` 을 정하면 이 설정 대신 router 가 턴마다 정한다. before 는 해석이 이번 응답에 섞이고, race(기본)는 3초까지만 기다리며, after 는 같은 GPU 를 나눠 쓰는 로컬에서 가장 빠르다.</figcaption>
 </figure>
 
 ```mermaid
@@ -165,7 +165,7 @@ router 는 Ollama 로 띄울 수 없다(판정 head 를 읽지 못한다). LLMCl
 
 ### 템플릿 직접 쓰기
 
-요청용 템플릿은 `~/.jarvis/inner_thought.md`, 성찰용 템플릿은 `~/.jarvis/inner_thought_reflection.md` 에 직접 쓴다. 자리표시자는 `{{persona}}`(에이전트 말투), `{{now}}`, `{{open_loops}}`, `{{external_events}}`, `{{recalled_memories}}`, `{{history}}`, `{{user_input}}`, `{{user_model}}`, `{{recent_proactive}}`(성찰 전용, 최근 먼저 건넨 말)이다. 없는 값은 빈 문자열이 된다. 외부 이벤트, 말투, 최근 먼저 건넨 말이 있는데 템플릿에 자리가 없으면, 끝에 덧붙여 빠지지 않게 한다.
+요청용 템플릿은 `~/.jarvis/inner_thought.md`, 성찰용 템플릿은 `~/.jarvis/inner_thought_reflection.md` 에 직접 쓴다. 자리표시자는 `{{persona}}`(에이전트 말투), `{{now}}`, `{{open_loops}}`, `{{external_events}}`, `{{recalled_memories}}`, `{{history}}`, `{{user_input}}`, `{{user_model}}`, `{{recent_proactive}}`(성찰 전용, 최근 먼저 건넨 말)이다. 없는 값은 빈 문자열이 된다. 외부 이벤트, 말투, 최근 먼저 건넨 말이 있는데 템플릿에 자리가 없으면, 끝에 덧붙여 빠지지 않게 한다. 성찰에서 decision model 이 고른 앵커는 자리표시자가 아니라 `[먼저 꺼낼 항목]` 줄로 항상 끝에 덧붙는다([Proactive Dialogue](./proactive.md)).
 
 :::warning
 

@@ -534,3 +534,17 @@ async def test_say_refused_during_focus(fx):
     session.set_turn_hook(object())  # type: ignore[arg-type]
 
     assert await session.say("애쉬, 새 공고예요.") is False
+
+
+@pytest.mark.asyncio
+async def test_reflect_attaches_computed_loop_facts_to_the_thought_request(fx):
+    await _open(fx)
+    due = int(time.time() * 1000) + 10 * 60_000
+    engine = CountingEngine(ThoughtFrame(decision="silent", confidence=0.1))
+    loops = FixedLoops([OpenLoop(description="보고서 제출", origin_session="s", due_ms=due)])
+    session = _build(fx, engine=engine, factory=NO_COOLDOWN, loops=loops)
+
+    await session.reflect()
+
+    fact = engine.requests[0].facts[0]
+    assert fact.source == "loop" and fact.text.startswith("보고서 제출") and fact.minutes in (9, 10)

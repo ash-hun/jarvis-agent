@@ -24,6 +24,8 @@ title: 먼저 건네는 말이 오지 않을 때
 [Thought] proactive silent: nothing to tell
 [Thought] proactive silent: repeats a recent proactive message
 [Thought] proactive silent: repeats the last answer
+[Thought] proactive silent: decision tev1 p=0.12 < floor 0.30
+[Thought] proactive silent: anchor missing (<문장>)
 [Proactive] suppressed while answering: <문장>
 ```
 
@@ -38,6 +40,7 @@ title: 먼저 건네는 말이 오지 않을 때
 - `cooldown`: 마지막 발화 뒤 300초가 지나지 않았다
 - `nothing to tell`: 챙길 약속(기한이 없거나 기한이 30분 안으로 다가왔거나 지난 약속)도 새 외부 이벤트도 없어 사고 모델을 부르지 않았다. 먼저 말할 근거가 없는 것이다. 대화나 약속, 이벤트가 그대로면 로그 없이 건너뛴다(`unchanged`). 새로 연 세션에 아직 대화가 없을 때도 로그 없이 건너뛴다
 - `repeats a recent proactive message`, `repeats the last answer`: 사고가 최근 🔔 세 개 중 하나나 10분 안에 한 마지막 답과 같은 내용을 다시 골랐다
+- `decision <모델> p=… < floor 0.30`: decision model(`JARVIS_PROACTIVE__DECISION_MODEL`)을 쓸 때만 나온다. decision model 이 지금 말할 확률을 0.3 보다 낮게 봐서 사고 모델을 부르지 않았다. `items=0.62,0.08` 처럼 항목별 확률이 붙어 있으면, 전체 확률과 가장 높은 항목 확률 중 작은 쪽이 0.3 보다 낮았던 것이다. 바로 다음 줄에 `decision=silent` 가 함께 남는다
 - `[Proactive] suppressed while answering`: 세션이 답하는 중에 🔔 가 생겼다. 답과 섞이지 않게 버린 것이다. 버린 🔔 는 쿨다운, 응답 대기, 무시 학습에 들어가지 않고 뒤이어 `proactive silent: suppressed` 가 남는다
 - `[Proactive] suppressed during turn hook`: 그 세션이 Focus 작업 중이다. Focus 동안에는 🔔 를 보내지 않는다(💬 filler 와 맡긴 일의 답은 보낸다). `/focus stop` 으로 끝내면 다시 나온다
 
@@ -45,6 +48,7 @@ title: 먼저 건네는 말이 오지 않을 때
 
 - `confidence`: 사고 프레임의 확신도가 임계치보다 낮다. Process Pattern Analysis 로 임계치가 올라갔을 수도 있다
 - `empty utterance`: 모델이 건넬 말을 채우지 않았다. 사고 템플릿에 `utterance` 키가 있는지 확인한다
+- `anchor missing (<문장>)`: decision model 을 쓸 때만 나온다. 건넬 말이 근거 항목(확률이 가장 높은 약속이나 이벤트)의 숫자, 이름, 핵심 낱말을 하나도 담지 않아 막았다. 괄호 안 문장이 인사나 사용자 분석문이면 맞게 막은 것이다. 근거를 다른 말로 바꿔 쓴 알림("카드값 128만원")이 자주 막히면 사고 모델이 [먼저 꺼낼 항목]을 인용하는지 사고 템플릿을 확인한다. 바로 다음 줄에 `decision=silent` 가 함께 남는다
 - 로그가 아예 없음: daemon 이 꺼져 있거나(`JARVIS_PROACTIVE__DAEMON_ENABLED`) 성찰 프레임이 깨지고 있는 것이다
 
 관련 문서: [Proactive Dialogue](../concepts/conversation/proactive.md), [피드백 학습](../concepts/conversation/proactive.md#피드백-학습)

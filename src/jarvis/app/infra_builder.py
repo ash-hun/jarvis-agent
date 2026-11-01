@@ -284,12 +284,15 @@ class InfraBuilder:
     def build_procedures(
         self, model_config: "ModelConfig", memory: "MemoryService | None" = None
     ) -> tuple["ProcedureStore", "ProcedureLearner | None"]:
-        from jarvis.core.procedures import ProcedureLearner, ProcedureStore, llm_distiller
+        from jarvis.core.procedures import ProcedureLearner, ProcedureStore, llm_distiller, llm_reflector
 
         pcfg = self._settings.procedures
         store = ProcedureStore(pcfg.dir)
         learner = (
-            ProcedureLearner(store, llm_distiller(model_config), min_tool_calls=pcfg.min_tool_calls, memory=memory)
+            ProcedureLearner(
+                store, llm_distiller(model_config), min_tool_calls=pcfg.min_tool_calls, memory=memory,
+                reflector=llm_reflector(model_config) if pcfg.reflect else None,
+            )
             if pcfg.enabled
             else None
         )

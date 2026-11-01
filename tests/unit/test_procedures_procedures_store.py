@@ -1,6 +1,7 @@
-"""procedures 기능의 절차 저장소: 파일 왕복과 upsert, 상태 변경의 멱등성, 깨진 파일 건너뛰기."""
+"""procedures 기능의 절차 저장소: 파일 왕복과 upsert, 상태 변경과 개정 승인의 멱등성, 보관, 깨진 파일 건너뛰기."""
 
 import pytest
+from dataclasses import replace
 
 from jarvis.core.procedures import (
     STATUS_APPROVED,
@@ -59,3 +60,29 @@ def test_list_skips_unparseable_file(tmp_path):
     (tmp_path / "bad.md").write_bytes(b"\xff\xfe")
 
     assert [p.name for p in ProcedureStore(str(tmp_path)).list()] == ["ok"]
+
+
+def test_approve_adopts_revision_keeping_name_and_drop_revision_marks_generation(tmp_path):
+    store = ProcedureStore(str(tmp_path))
+    revision = Procedure(name="x", description="새", body="새 본문\n", generation=2)
+    store.save(Procedure(name="x", description="옛", body="옛 본문\n", status=STATUS_APPROVED, source="edm:a:t",
+                         generation=1, revision=revision))
+    assert store.get("x").revision == revision
+
+    approved = store.approve("x")
+    assert (approved.body, approved.source, approved.generation, approved.revision) == ("새 본문\n", "edm:a:t", 2, None)
+    assert store.approve("x") == approved and store.approve("nope") is None
+
+    store.save(replace(approved, revision=replace(revision, generation=3)))
+    assert store.drop_revision("x").generation == 3 and store.get("x").body == "새 본문\n"
+    assert store.drop_revision("x") is None
+
+
+def test_archive_moves_file_out_of_list_without_overwriting(tmp_path):
+    store = ProcedureStore(str(tmp_path))
+    for _ in range(2):
+        store.save(Procedure(name="x", description="d", body="b\n"))
+        store.archive("x")
+
+    assert store.list() == [] and store.archive("x") is None
+    assert sorted(p.name for p in (tmp_path / ".archive").iterdir()) == ["x.1.md", "x.md"]

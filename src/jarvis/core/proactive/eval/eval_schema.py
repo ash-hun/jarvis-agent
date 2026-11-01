@@ -34,9 +34,14 @@ class ProactiveExpect(BaseModel):
     approval_tools: list[str] = Field(default_factory=list)  # 승인 대상(고위험)으로 분류돼야 하는 도구
 
 
+CaseLabel = Literal["must", "can", "must_not"]
+
+
 class ProactiveCase(BaseModel):
     suite: str
     case: str
+    # 3단 라벨. must 는 말해야 하고, must_not 은 말하면 소음이고, can 은 어느 쪽이든 괜찮다(recall 과 오경보에서 뺀다)
+    label: CaseLabel | None = None
     frame: dict[str, Any] | None = None  # ThoughtFrame 필드. 있으면 엔진을 건너뛰고 정책만 잰다
     situation: Situation | None = None  # 없으면 frame 이 필수
     policy: PolicySpec = Field(default_factory=PolicySpec)
@@ -51,6 +56,11 @@ class ProactiveCase(BaseModel):
     @property
     def needs_engine(self) -> bool:
         return self.frame is None
+
+    @property
+    def effective_label(self) -> CaseLabel:
+        """라벨이 없는 옛 사례는 expect.speak 로 must 나 must_not 을 정한다."""
+        return self.label or ("must" if self.expect.speak else "must_not")
 
 
 def load_cases(path: Path) -> list[ProactiveCase]:

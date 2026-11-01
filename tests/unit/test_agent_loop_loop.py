@@ -3,6 +3,21 @@
 import pytest
 import asyncio
 
+from jarvis.model_layer.model_types import (
+    ErrorEvent,
+    ModelConfig,
+    StopEvent,
+    TextContent,
+    TextDeltaEvent,
+    ThinkingContent,
+    ThinkingDeltaEvent,
+    Tool,
+    ToolCall,
+    ToolCallDeltaEvent,
+    ToolResultMessage,
+    Usage,
+    UserMessage,
+)
 from jarvis.agent_layer.agent_types import (
     AgentContext,
     AgentEndEvent,
@@ -15,21 +30,8 @@ from jarvis.agent_layer.agent_types import (
     ToolExecutionStartEvent,
     TurnStartEvent,
 )
-from jarvis.model_layer.model_types import (
-    ErrorEvent,
-    ModelConfig,
-    StopEvent,
-    TextContent,
-    TextDeltaEvent,
-    ThinkingContent,
-    ThinkingDeltaEvent,
-    ToolCall,
-    ToolCallDeltaEvent,
-    ToolResultMessage,
-    Usage,
-    UserMessage,
-)
 from tests.fixtures.agent_loop_helpers import ScriptedProvider, register, text_turn, tool_turn
+from jarvis.agent_layer.loop_overflow import FALLBACK_HEADER, SUMMARY_PROMPT
 from jarvis.agent_layer.loop import EMPTY_REPLY_NUDGE, run_agent_loop
 from jarvis.model_layer.model_registry import get_default_registry
 from tests.fixtures.faux_provider import FauxProvider
@@ -204,14 +206,84 @@ async def test_tool_calls_are_not_executed_and_loop_ends(turn, executor):
     assert rec.of(AgentEndEvent)[0].turns == 1
 
 
-async def test_max_turns_caps_the_loop():
-    model = register(ScriptedProvider([tool_turn(("c1", "bash", {}))]))
+async def test_max_turns_caps_the_loop_after_one_resume():
+    provider = ScriptedProvider([tool_turn(("c1", "bash", {}))])
     rec = Recorder()
 
-    await run_agent_loop(_context(model), AgentLoopConfig(max_turns=3), rec, _ok_executor)
+    result = await run_agent_loop(_context(register(provider)), AgentLoopConfig(max_turns=4), rec, _ok_executor)
 
-    assert rec.of(AgentEndEvent)[0].turns == 3
-    assert len(rec.of(TurnStartEvent)) == 3
+    end = rec.of(AgentEndEvent)[0]
+    assert (end.turns, end.overflows) == (6, 2)
+    assert len(rec.of(TurnStartEvent)) == 6
+    assert len(provider.calls) == 6 + 2
+    assert result is not None and result.text().startswith(FALLBACK_HEADER)
+
+
+async def test_overflow_resume_off_stops_at_max_turns():
+    provider = ScriptedProvider([tool_turn(("c1", "bash", {}))])
+    rec = Recorder()
+
+    await run_agent_loop(_context(register(provider)), AgentLoopConfig(max_turns=3, overflow_resume=False), rec,
+                         _ok_executor)
+
+    assert (rec.of(AgentEndEvent)[0].turns, rec.of(AgentEndEvent)[0].overflows) == (3, 0)
+    assert len(provider.calls) == 3
+
+
+async def test_overflow_resumes_with_summary_and_finishes():
+    provider = ScriptedProvider(
+        [tool_turn(("c1", "bash", {})), tool_turn(("c2", "bash", {})), text_turn("한 것: a\n남은 단계: b"),
+         text_turn("끝")]
+    )
+    rec = Recorder()
+    context = _context(register(provider), tools=[Tool(name="bash", description="셸", parameters={})])
+
+    result = await run_agent_loop(context, AgentLoopConfig(max_turns=2), rec, _ok_executor)
+
+    assert result is not None and result.text() == "끝"
+    assert provider.calls[1].tools is not None and provider.calls[2].tools is None
+    assert provider.calls[2].messages[-1].content == SUMMARY_PROMPT
+    assert "남은 단계: b" in provider.calls[3].messages[-1].content
+    assert rec.of(AgentEndEvent)[0].overflows == 1
+    # 정리문과 이어가기 지시는 화면에도 대화 기록에도 남지 않는다
+    assert [m.text_delta for m in rec.of(MessageUpdateEvent)] == ["끝"]
+    assert all("남은 단계" not in str(getattr(m, "content", "")) for m in context.messages)
+    assert _kinds(context) == ["AssistantMessage", "ToolResultMessage"] * 2 + ["AssistantMessage"]
+
+
+async def test_second_overflow_returns_summary_as_answer():
+    provider = ScriptedProvider(
+        [tool_turn(("c1", "bash", {})), text_turn("정리 1"), tool_turn(("c2", "bash", {})), text_turn("정리 2")]
+    )
+    rec = Recorder()
+    context = _context(register(provider))
+
+    result = await run_agent_loop(context, AgentLoopConfig(max_turns=1), rec, _ok_executor)
+
+    assert result is not None and result.text() == "정리 2"
+    assert len(provider.calls) == 4
+    assert [m.text_delta for m in rec.of(MessageUpdateEvent)] == ["정리 2"]
+    assert rec.of(AgentEndEvent)[0].overflows == 2
+    assert context.messages[-1] is result
+
+
+async def test_overflow_respects_abort_during_summary():
+    signal = asyncio.Event()
+
+    class AbortingProvider(ScriptedProvider):
+        async def stream(self, model, context, options=None):  # type: ignore[no-untyped-def]
+            if context.messages and getattr(context.messages[-1], "content", None) == SUMMARY_PROMPT:
+                signal.set()
+            async for event in super().stream(model, context, options):
+                yield event
+
+    provider = AbortingProvider([tool_turn(("c1", "bash", {})), text_turn("정리")])
+    rec = Recorder()
+
+    await run_agent_loop(_context(register(provider)), AgentLoopConfig(max_turns=1), rec, _ok_executor, signal=signal)
+
+    assert len(provider.calls) == 2
+    assert rec.of(AgentEndEvent)[0].turns == 1
 
 
 async def test_zero_max_turns_ends_cleanly():
@@ -358,14 +430,22 @@ async def test_inner_thought_is_appended_to_system_prompt_only(system_prompt, in
     assert inner_thought is None or all(inner_thought not in str(getattr(m, "content", "")) for m in sent.messages)
 
 
-async def test_max_turns_exhaustion_closes_dangling_tool_calls():
-    """마지막 턴이 tool_use 로 끝나면 에러 tool_result 를 붙여 히스토리를 provider 가 받는 형태로 유지한다."""
-    model = register(ScriptedProvider([tool_turn(("c1", "bash", {}))] * 2))
+async def test_abort_after_tool_use_closes_dangling_tool_calls():
+    """tool_use 뒤에 루프가 끊기면 에러 tool_result 를 붙여 히스토리를 provider 가 받는 형태로 유지한다."""
+    signal = asyncio.Event()
+
+    async def abort_first(tool_call_id, tool_name, params):
+        signal.set()
+        return await _ok_executor(tool_call_id, tool_name, params)
+
+    model = register(ScriptedProvider([tool_turn(("c1", "a", {}), ("c2", "b", {}))]))
     context = _context(model)
 
-    await run_agent_loop(context, AgentLoopConfig(max_turns=2), Recorder(), _ok_executor)
+    await run_agent_loop(context, AgentLoopConfig(tool_execution_mode="sequential"), Recorder(), abort_first,
+                         signal=signal)
 
-    assert _kinds(context) == ["AssistantMessage", "ToolResultMessage", "AssistantMessage", "ToolResultMessage"]
+    results = [m for m in context.messages if isinstance(m, ToolResultMessage)]
+    assert [(r.tool_call_id, r.is_error) for r in results] == [("c1", False), ("c2", True)]
 
 
 async def test_no_executor_closes_dangling_tool_calls_with_error_results():

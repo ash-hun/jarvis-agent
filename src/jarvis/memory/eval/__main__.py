@@ -19,6 +19,7 @@ from jarvis.memory.eval.runner import (
     run_retention,
 )
 from jarvis.memory.eval.target import EvalTarget
+from jarvis.memory.eval.benchmark import MODES
 
 if TYPE_CHECKING:
     from jarvis.memory.consolidation.semantic_extract import FactExtractor
@@ -114,7 +115,8 @@ async def _run_benchmark(args: argparse.Namespace) -> int:
         judge = contains_judge()
 
     report = await run_benchmark(
-        args.benchmark, questions, memory_factory, k=args.k, mode=args.mode, judge=judge
+        args.benchmark, questions, memory_factory, k=args.k, mode=args.mode, judge=judge, embedder=embedder,
+        budget=args.budget,
     )
     print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2) if args.json else format_benchmark(report))
     return 0
@@ -123,13 +125,16 @@ async def _run_benchmark(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="jarvis.memory.eval")
     parser.add_argument("--suite", default="all", choices=("all", *SUITES))
-    parser.add_argument("--benchmark", choices=("longmemeval", "locomo"))
+    parser.add_argument("--benchmark", choices=("longmemeval", "locomo", "personamem", "minteval"))
     parser.add_argument("--path", help="벤치마크 원본 JSON 경로 (레포 밖, 예: ~/.jarvis/benchmarks/longmemeval_s.json)")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--k", type=int, default=5)
-    parser.add_argument("--mode", default="raw", choices=("raw", "turns"),
-                        help="raw: 대화 턴마다 항목 하나. turns: 발화와 답을 턴 일화 하나로 쓰고 세션 끝에 공고화")
+    parser.add_argument("--mode", default="raw", choices=MODES,
+                        help="rag: 원문 조각 코사인 top-k. raw: 턴마다 항목 하나. turns: 턴 일화와 공고화. "
+                             "turns+src: 사실의 출처 턴과 공동 재순위. turns+excerpt: 사실 아래 출처 발췌")
+    parser.add_argument("--budget", type=int, default=None,
+                        help="모델에 보일 기억의 글자 예산. 주면 k 대신 이 예산으로 잘라 비교군의 노출량을 맞춘다")
     parser.add_argument("--extract", default=None, choices=("llm",), help="turns 모드의 공고화에서 사실 추출")
     parser.add_argument("--embedder", default="fake", choices=("fake", "config"))
     parser.add_argument("--judge", default=None, choices=("llm", "contains"))

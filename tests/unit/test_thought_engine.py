@@ -190,3 +190,13 @@ async def test_think_reflection_renders_recent_proactive(monkeypatch, template, 
     await engine.think(ThoughtRequest(user_input="s", mode="reflection", recent_proactive=["잘 되나요?"]))
 
     assert check(calls.prompts[0])
+
+
+@pytest.mark.parametrize(("mode", "shown"), [("reflection", True), ("request", False)], ids=["reflection", "request"])
+async def test_think_renders_anchor_only_in_reflection(monkeypatch, mode, shown):
+    calls = fake_llm(monkeypatch, engine_mod, reply=frame_json())
+    engine = InnerThoughtEngine(model=MODEL, clock=clock)
+
+    await engine.think(ThoughtRequest(user_input="입력이 충분히 길다", mode=mode, anchor="[bank] 잔액 부족"))
+
+    assert ("[먼저 꺼낼 항목] [bank] 잔액 부족" in calls.prompts[0]) is shown

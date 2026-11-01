@@ -33,7 +33,7 @@
 | `journal` | 사고 로그를 성찰해 저널로 남긴다 | `/journal` | 구현됨 |
 | `mcp` | MCP 서버의 툴을 에이전트 도구로 등록 | 설정 `mcp_servers` | 구현됨 |
 | `memory` | 범위를 아는 장기 기억과 작업 기억의 저장, 회상, 공고화 | `/remember`, `/compact`, `recall_episodes` 도구 | 구현됨 |
-| `memory_eval` | 메모리 기능별 평가와 외부 벤치마크 실행 | `uv run python -m jarvis.memory.eval` | 구현됨 |
+| `memory_eval` | 메모리 기능별 평가와 외부 벤치마크 실행, RAG 대비 순이득(benefit, tax) 비교 | `uv run python -m jarvis.memory.eval`, `scripts/experiments/memory_net_value.py` | 구현됨 |
 | `multi_agent` | 서브 에이전트를 패턴(supervisor, hierarchical, market, blackboard)으로 조율 | `/orchestrate`, `orchestrate` 도구 | 구현됨 |
 | `notify` | 먼저 건넨 말과 스케줄 결과를 슬랙, 디스코드, Web Push 로도 보낸다 | `GET /api/push/vapid`, `PUT /api/push/subscriptions`, `DELETE /api/push/subscriptions`, ws `voice_spoken` | 구현됨 |
 | `openloop` | 대화에서 흘린 약속과 미완 작업을 추적하는 AGENDA | `GET /api/agenda`, `POST /api/openloops/{loop_id}`, `/openloop` | 구현됨 |
@@ -41,7 +41,7 @@
 | `policy` | 입력 검증, 인증, 정책, 샌드박스 4단계 보안 파이프라인과 접근 키 | `/api/*`, `/ws` 의 `Authorization` 헤더 또는 `token` 쿼리 | 구현됨 |
 | `proactive` | 요청 없이 성찰해 먼저 말을 건네고 반응으로 임계치를 학습 | ws `proactive_message`, `proactive_feedback`, TUI `ctrl+y` / `ctrl+g` | 구현됨 |
 | `proactive_eval` | "먼저 말해야 했나" 사례로 proactive 정책을 잰다 | `uv run python -m jarvis.core.proactive.eval` | 구현됨 |
-| `procedures` | 성공한 다단계 작업을 절차로 증류하고 승인된 절차를 도구와 스킬로 노출 | `/procedures` | 구현됨 |
+| `procedures` | 성공한 작업을 작업 종류당 절차 하나로 증류하고 실패는 반성해 개정 초안으로 고치며, 승인된 절차를 도구와 스킬로 노출 | `/procedures` | 구현됨 |
 | `scheduler` | cron 반복 작업과 한 번 실행 작업을 돌리고 결과를 알린다 | `/schedule`, `schedule` 도구, `POST /api/schedules/{name}`, ws `reminder` | 구현됨 |
 | `session` | 세션 목록, 만들기, 분기, 삭제, 이력, 내보내기, 비용 보고, 옛 데이터 정리 | `GET /api/sessions`, `POST /api/sessions`, `POST /api/sessions/{session_id}/branch`, `DELETE /api/sessions/{session_id}`, `GET /api/sessions/{session_id}/messages`, `/sessions`, `/branch`, `/export`, `/cost`, `/cleanup` | 구현됨 |
 | `skills` | Markdown/YAML 명령 매크로를 `/스킬 인자` 로 펼친다 | `/<스킬 이름> <인자>`, `~/.jarvis/skills/*.md` | 구현됨 |
@@ -99,11 +99,14 @@
 
 **처리 흐름**: `ws_router` 에서 `AgentSession.prompt` 로, 보안 파이프라인, 스킬 확장, router 판정, 사고와 AGENDA 판단 띄우기, `AgentHarness.run`, `run_agent_loop`, `model_layer.stream`, 도구 실행기 순. 프로바이더나 저장소가 예외를 던져도 `AgentHarness.run` 이 `finally` 에서 실행 표시(`is_running`)를 풀어, 다음 턴이 실행 중으로 막히지 않는다.
 
+**넘침 이어가기**: `max_turns` 의 마지막 차례까지 도구를 부르고 끝나면(다음 차례를 기다리는 도구 결과로 끝남) 루프가 바로 끊지 않는다. 도구 정의 없이 "한 것, 남은 단계, 지금까지의 답" 을 정리하는 LLM 호출을 한 번 하고, 그 정리를 기록에 남지 않는 지시로 매 호출 끝에 붙여 `max(1, max_turns // 2)` 차례를 더 돈다. 이어간 구간에서도 또 넘치면 두 번째 정리문을 답으로 돌려준다. 정리문은 화면에 흘리지 않고(두 번째만 답으로 보냄), 정리 호출이 실패하거나 비면 부른 도구 이름으로 만든 기본 정리문을 쓴다. 중단 신호는 정리 호출 뒤에도 확인한다. 한 턴의 LLM 호출은 차례 `max_turns + max_turns // 2` 개(빈 답 재촉 포함 차례당 최대 두 번)와 정리 두 번이 상한이다. `agent_end.overflows` 가 넘친 횟수를 알리고, 하네스는 넘친 턴의 턴 일화 metadata 에 `overflow: true` 를 남긴다(실패 반성의 근거). `AgentLoopConfig.overflow_resume=False` 면 예전처럼 그 자리에서 끊는다. EMMA(arXiv 2610.35966) 의 overflow decomposition 을 한 에이전트 루프에 맞게 줄였다.
+
 **구현 파일**
 
 | 파일 | 층 | 역할 |
 |---|---|---|
 | `src/jarvis/agent_layer/loop.py` | agent_layer | LLM 호출과 툴 실행을 반복하는 루프 본체 |
+| `src/jarvis/agent_layer/loop_overflow.py` | agent_layer | 넘침 판단, 이어갈 예산, 정리 지시와 기본 정리문(순수 함수) |
 | `src/jarvis/agent_layer/harness.py` | agent_layer | 세션 이력, 작업 기억 변환, 이벤트 구독을 묶어 한 턴을 돌리는 래퍼 |
 
 **테스트**
@@ -115,6 +118,7 @@
 | 단위 | `tests/unit/test_agent_loop_gemini.py` |
 | 단위 | `tests/unit/test_agent_loop_harness.py` |
 | 단위 | `tests/unit/test_agent_loop_loop.py` |
+| 단위 | `tests/unit/test_agent_loop_loop_overflow.py` |
 | 단위 | `tests/unit/test_agent_loop_model_registry.py` |
 | 단위 | `tests/unit/test_agent_loop_model_types.py` |
 | 단위 | `tests/unit/test_agent_loop_ollama.py` |
@@ -123,7 +127,8 @@
 | 단위 | `tests/unit/test_agent_loop_session.py` |
 | 단위 | `tests/unit/test_agent_loop_stream.py` |
 | 단위 | `tests/unit/test_agent_loop_vllm.py` |
-| 통합 | 없음. 턴 루프는 `tests/integ/test_web_hud.py` 의 ws 턴 시나리오가 함께 돈다 |
+| 통합 | `tests/integ/test_agent_loop.py`(넘친 턴이 이어가서 답하고 턴 일화에 `overflow` 를 남김). ws 턴 루프는 `tests/integ/test_web_hud.py` 시나리오가 함께 돈다 |
+| 실험 | `scripts/experiments/loop_overflow.py`(KramaBench archeology, legal 과제로 이어가기 전후 비교) |
 
 **제약과 미구현**: 메인 모델의 프롬프트 처리 시간이 첫 글자 지연의 대부분이라 시스템 프롬프트와 도구 목록 크기를 줄이는 일이 남아 있다(`TODO.md`).
 
@@ -463,11 +468,11 @@
 
 | 입력 | 결과 |
 |---|---|
-| 매 턴 | 범위 규칙과 합성 점수로 고른 기억을 프롬프트에 싣고, 턴 일화(EDM)를 남긴다 |
+| 매 턴 | 범위 규칙으로 고른 기억을 프롬프트에 싣고(회상 블록은 추출 사실의 출처 턴까지 후보에 넣어 질의 관련도로 다시 매김), 턴 일화(EDM)를 남긴다. 답이 1,000자를 넘으면 나머지를 조각 일화(최대 2개)로 남긴다 |
 | `/remember <내용>`, `/remember list`, `/remember search <키워드>`, `/remember forget <id>` | 장기 기억 저장, 나열, 검색, 삭제 |
 | `/compact` | 현재 세션을 요약해 장기 기억에 저장 |
 | `recall_episodes` 도구 | 부른 에이전트의 지난 턴 일화를 작업 종류, 성패, 기간으로 회상 |
-| 사용자가 조용할 때 | daemon 틱에 얹혀 활성 세션의 일화에서 "주제: 값" 사실 추출, 같은 작업 종류의 성공 턴 일화가 3번 쌓이면 절차 초안 정제(`procedures`) |
+| 사용자가 조용할 때 | daemon 틱에 얹혀 활성 세션의 일화에서 "주제: 값" 사실 추출(사실마다 내용이 가장 많이 겹치는 턴을 출처로 남김), 같은 작업 종류의 성공 턴 일화가 3번 쌓이면 절차 초안 정제(`procedures`) |
 
 **처리 흐름**: `MemoryService.observe` 에서 `working.window` 와 `deixis` 로 창과 지칭을 정하고, `scope` 와 `access` 로 읽을 범위를 계산해 `stores` 조회, `retrieval.scoring` 과 `cues` 로 순위, `remember` 쓰기는 `long_term` 정책 적용, 공고화는 `consolidation.idle` 에서 `semantic_extract` 순.
 
@@ -484,6 +489,7 @@
 | `src/jarvis/memory/consolidation/semantic_extract.py` | memory | 일화에서 사실 추출 |
 | `src/jarvis/memory/long_term/episodic.py` | memory | 일화 기억 정책 |
 | `src/jarvis/memory/long_term/semantic.py` | memory | 의미 기억 대체와 간섭 후보 |
+| `src/jarvis/memory/long_term/fact_source.py` | memory | 추출 사실의 출처 턴 고르기와 출처 발췌(발췌는 평가 비교군만, 순수 함수) |
 | `src/jarvis/memory/long_term/procedural.py` | memory | 스킬 파일을 읽기 전용 절차 기억으로 노출 |
 | `src/jarvis/memory/retrieval/cues.py` | memory | 단서 겹침 점수 |
 | `src/jarvis/memory/retrieval/scoring.py` | memory | recency, importance, relevance 합성 점수 |
@@ -509,6 +515,7 @@
 | 단위 | `tests/unit/test_memory_embeddings.py` |
 | 단위 | `tests/unit/test_memory_episodes.py` |
 | 단위 | `tests/unit/test_memory_episodic.py` |
+| 단위 | `tests/unit/test_memory_fact_source.py` |
 | 단위 | `tests/unit/test_memory_idle.py` |
 | 단위 | `tests/unit/test_memory_memory_service.py` |
 | 단위 | `tests/unit/test_memory_memory_types.py` |
@@ -524,22 +531,23 @@
 | 단위 | `tests/unit/test_memory_window.py` |
 | 통합 | `tests/integ/test_memory.py` |
 
-**제약과 미구현**: 항목 낱말이 답에 절반 넘게 나와야 쓰였다고 본다. 이력이 줄어 턴 번호를 다시 세면 옛 턴 일화를 덮는다. 조사 목록 휴리스틱으로 명사를 자른다. main 에이전트는 정의 파일이 없어 기본 정책(자기 것만)이다(모두 `# ponytail`).
+**제약과 미구현**: 항목 낱말이 답에 절반 넘게 나와야 쓰였다고 본다. 이력이 줄어 턴 번호를 다시 세면 옛 턴 일화를 덮는다. 조사 목록 휴리스틱으로 명사를 자른다. main 에이전트는 정의 파일이 없어 기본 정책(자기 것만)이다. 긴 답은 조각 2개(약 3,000자)까지만 남긴다. 출처 회상을 켜면 회상 블록이 최근성과 중요도를 쓰지 않는다(모두 `# ponytail`). 출처 회상은 `MemoryService(source_recall=...)` 로 끄고 켜며 기본은 켜짐이다(LongMemEval-s 실서비스 블록 조건 정답률 0.28 → 0.50). Memory Tax(He et al. 2026)의 recursive memory 와 미래 수요 예측은 범위 밖이다.
 
 ---
 
 ### memory_eval: 메모리 평가
 
-**설명**: jsonl 사례를 in-memory 대상에 넣고 질의해 기능별 지표를 내고, LongMemEval, LoCoMo 원본으로 증거 재현율을 잰다.
+**설명**: jsonl 사례를 in-memory 대상에 넣고 질의해 기능별 지표를 내고, LongMemEval, LoCoMo, PersonaMem-v2, MINT-Eval 원본으로 비교군(rag, raw, turns, turns+src, turns+excerpt)별 증거 재현율, 정답률, RAG 대비 benefit 과 tax 를 잰다.
 
 **입력과 결과**
 
 | 입력 | 결과 |
 |---|---|
 | `uv run python -m jarvis.memory.eval [--suite S] [--summarizer extractive\|llm] [--judge llm\|contains] [--json] [-v]` | 스위트별 지표 |
-| `--benchmark longmemeval\|locomo --path <json> [--limit] [--seed] [--k] [--mode raw\|turns] [--extract llm] [--embedder fake\|config] [--judge llm\|contains]` | 외부 벤치마크 재현율과 정답 판정 |
+| `--benchmark longmemeval\|locomo\|personamem\|minteval --path <json> [--limit] [--seed] [--k] [--budget 글자] [--mode rag\|raw\|turns\|turns+src\|turns+excerpt] [--extract llm] [--embedder fake\|config] [--judge llm\|contains]` | 외부 벤치마크 재현율과 정답 판정 |
+| `uv run python -m scripts.experiments.memory_net_value [--only ...] [--dry-run]` | 세 벤치마크 층화 표본 × 네 비교군, RAG 대비 benefit, tax, net, 턴 일화 구성 손실(MT-3)을 `results.json` 의 `memory_net_value` 에 쓴다. 임베딩, 사실 추출, 판정은 `~/.jarvis/benchmarks/cache/` 에 캐시해 다시 돌리면 부르지 않는다 |
 
-**처리 흐름**: `__main__` 에서 `eval_schema` 로 사례 로드, `runner` 가 사례마다 저장소를 비우고 `target` 에 재생, `metrics` 집계 순. 벤치마크는 `adapters` 에서 `benchmark` 로, 선택적으로 `judge`, `probe` 순.
+**처리 흐름**: `__main__` 에서 `eval_schema` 로 사례 로드, `runner` 가 사례마다 저장소를 비우고 `target` 에 재생, `metrics` 집계 순. 벤치마크는 `adapters` 에서 `benchmark` 로(대화 묶음마다 새 메모리 또는 `rag_baseline` 색인, 노출 글자 예산으로 자름), 선택적으로 `judge`, `probe`, 비교는 `net_value`, 구성 손실은 `turn_loss`, 캐시는 `eval_cache` 순.
 
 **구현 파일**
 
@@ -552,11 +560,18 @@
 | `src/jarvis/memory/eval/metrics.py` | memory | 판정과 스위트별 집계 |
 | `src/jarvis/memory/eval/faithfulness.py` | memory | 요약 뒤 사실 보존율 |
 | `src/jarvis/memory/eval/fake_embedder.py` | memory | 결정론 임베더 |
-| `src/jarvis/memory/eval/benchmark.py` | memory | 외부 벤치마크 실행 |
-| `src/jarvis/memory/eval/judge.py` | memory | 회상 증거로 답 생성과 정답 판정 |
+| `src/jarvis/memory/eval/benchmark.py` | memory | 외부 벤치마크 실행, 비교군, 층화 표본, 노출 예산 |
+| `src/jarvis/memory/eval/rag_baseline.py` | memory | naive RAG 비교군(원문 턴 조각, 코사인 top-k) |
+| `src/jarvis/memory/eval/net_value.py` | memory | RAG 대비 benefit, tax, net |
+| `src/jarvis/memory/eval/turn_loss.py` | memory | 정답 턴의 턴 일화 구성 손실 |
+| `src/jarvis/memory/eval/eval_cache.py` | memory | 임베딩(sqlite), 사실 추출, 판정(jsonl) 캐시 |
+| `src/jarvis/memory/eval/judge.py` | memory | 회상 증거로 답 생성과 정답 판정(객관식은 기호 일치) |
 | `src/jarvis/memory/eval/probe.py` | memory | LLM 호출 횟수 계측 |
 | `src/jarvis/memory/eval/adapters/locomo.py` | memory | LoCoMo 어댑터 |
 | `src/jarvis/memory/eval/adapters/longmemeval.py` | memory | LongMemEval 어댑터 |
+| `src/jarvis/memory/eval/adapters/personamem.py` | memory | PersonaMem-v2 text 어댑터(128k 이력, 객관식) |
+| `src/jarvis/memory/eval/adapters/minteval.py` | memory | MINT-Eval 어댑터(jsonl 로 바꾼 네 영역) |
+| `scripts/experiments/memory_net_value.py` | scripts | Memory Tax 벤치마크 셋 비교 실험 |
 | `src/jarvis/memory/eval/datasets/` | memory | 기능별 평가 사례 jsonl |
 
 **테스트**
@@ -564,17 +579,23 @@
 | 종류 | 파일 |
 |---|---|
 | 단위 | `tests/unit/test_memory_eval_benchmark.py` |
+| 단위 | `tests/unit/test_memory_eval_eval_cache.py` |
 | 단위 | `tests/unit/test_memory_eval_faithfulness.py` |
 | 단위 | `tests/unit/test_memory_eval_judge.py` |
 | 단위 | `tests/unit/test_memory_eval_locomo.py` |
 | 단위 | `tests/unit/test_memory_eval_longmemeval.py` |
 | 단위 | `tests/unit/test_memory_eval_metrics.py` |
+| 단위 | `tests/unit/test_memory_eval_minteval.py` |
+| 단위 | `tests/unit/test_memory_eval_net_value.py` |
+| 단위 | `tests/unit/test_memory_eval_personamem.py` |
 | 단위 | `tests/unit/test_memory_eval_probe.py` |
 | 단위 | `tests/unit/test_memory_eval_runner.py` |
+| 단위 | `tests/unit/test_memory_eval_rag_baseline.py` |
 | 단위 | `tests/unit/test_memory_eval_target.py` |
-| 통합 | 없음. 평가 도구 자체라 CLI 를 끝까지 돌리는 테스트를 두지 않았다 |
+| 단위 | `tests/unit/test_memory_eval_turn_loss.py` |
+| 통합 | `tests/integ/test_memory_eval.py` |
 
-**제약과 미구현**: 벤치마크 원본 데이터는 레포 밖에 둔다.
+**제약과 미구현**: 벤치마크 원본 데이터는 레포 밖에 둔다. RAG 비교군은 논문의 BM25 와 재순위기를 빼고 임베딩 코사인만 본다. MINT-Eval 은 정답 맥락 라벨이 없어 증거 재현율을 내지 않는다. 추출기 캐시는 API 오류로 생긴 빈 결과도 캐시한다(`# ponytail`).
 
 ---
 
@@ -825,7 +846,7 @@
 | 먼저 건넨 말 뒤의 첫 `user_message` | accept, dismiss, 약한 무시로 학습 |
 | ws `proactive_feedback{id, accepted}`, TUI `ctrl+y` / `ctrl+g` | 수락, 무시 학습(연결당 같은 `id` 한 번) |
 
-**처리 흐름**: `daemon` 이 `triggers` 를 기다려 `AgentSession.reflect` 로, 성찰 사고, `ProactivityCore` 의 `policy` 게이팅, `_emit_proactive`, `feedback` 학습 순. `_emit_proactive` 가 답하는 중이나 Focus 중이라 🔔 를 버리면 `policy.withdraw` 가 쿨다운과 응답 대기를 통과 전으로 되돌려, 버린 말은 무시로 세지 않는다. 요청 시점은 `ProactivityCore.dispatch_request` 가 Dual-Channel 로 filler 와 백그라운드 실행을 가른다.
+**처리 흐름**: `daemon` 이 `triggers` 를 기다려 `AgentSession.reflect` 로, `situation_facts` 가 약속과 외부 이벤트마다 남은 시간과 처리 신호를 계산해 요청에 붙이고, 성찰 사고, `ProactivityCore` 의 `policy` 게이팅, `_emit_proactive`, `feedback` 학습 순. `_emit_proactive` 가 답하는 중이나 Focus 중이라 🔔 를 버리면 `policy.withdraw` 가 쿨다운과 응답 대기를 통과 전으로 되돌려, 버린 말은 무시로 세지 않는다. 요청 시점은 `ProactivityCore.dispatch_request` 가 Dual-Channel 로 filler 와 백그라운드 실행을 가른다.
 
 **구현 파일**
 
@@ -837,6 +858,7 @@
 | `src/jarvis/core/proactive/proactive_core.py` | core | 정책, 채널, push 조율 |
 | `src/jarvis/core/proactive/proactive_types.py` | core | 발화 메시지, 응답 계획, 게이팅 판정 |
 | `src/jarvis/core/proactive/feedback.py` | core | 수락, 무시, 무응답 누적과 임계치 조정 |
+| `src/jarvis/core/proactive/situation_facts.py` | core | 약속과 이벤트 글에서 남은 시간, 처리 신호 계산(정규식, 순수 함수) |
 
 **테스트**
 
@@ -846,16 +868,17 @@
 | 단위 | `tests/unit/test_proactive_feedback.py` |
 | 단위 | `tests/unit/test_proactive_policy.py` |
 | 단위 | `tests/unit/test_proactive_proactive_core.py` |
+| 단위 | `tests/unit/test_proactive_situation_facts.py` |
 | 단위 | `tests/unit/test_proactive_triggers.py` |
 | 통합 | `tests/integ/test_proactive.py` |
 
-**제약과 미구현**: 🔔 가 되풀이인지 볼 때 마지막 답 하나만 본다(`# ponytail`). 성찰에서 🔔 까지 이어지는 시나리오는 e2e 자동화가 없고 수동이다(`TODO.md`).
+**제약과 미구현**: 🔔 가 되풀이인지 볼 때 마지막 답 하나만 본다(`# ponytail`). 같은 대상의 이벤트(초대와 수락)를 잇지 않고 줄마다 사실을 따로 계산한다. 시각은 "10:30", "오후 2시", "9시 반", 날짜는 "2026-01-02", "1월 3일", "오늘/내일" 만 읽고 영문 날짜는 모름으로 둔다. 성찰에서 🔔 까지 이어지는 시나리오는 e2e 자동화가 없고 수동이다(`TODO.md`).
 
 ---
 
 ### proactive_eval: proactive 평가
 
-**설명**: "이 상황에서 먼저 말해야 했나"를 jsonl 사례로 적어, 사례마다 새 정책과 고정 시계로 판정하고 지표로 요약한다.
+**설명**: "이 상황에서 먼저 말해야 했나"를 jsonl 사례로 적어, 사례마다 새 정책과 고정 시계로 판정하고 지표로 요약한다. 사례에는 3단 라벨(`must`, `can`, `must_not`)을 달 수 있고, recall 은 must 에서, 오경보는 must_not 에서만, AUC 는 must 대 must_not 을 사고 프레임의 확신도로 잰다. 먼저 건넨 말은 블라인드 판정자가 누출 라벨(인사뿐, 답 재진술, 분석문 누출, 구체 알림, 불명)과 근거 구간으로 분류한다(평가 전용).
 
 **입력과 결과**
 
@@ -871,36 +894,45 @@
 |---|---|---|
 | `src/jarvis/core/proactive/eval/__main__.py` | core | 평가 CLI |
 | `src/jarvis/core/proactive/eval/eval_schema.py` | core | 사례 형식 |
-| `src/jarvis/core/proactive/eval/runner.py` | core | 판정과 지표 요약 |
-| `src/jarvis/core/proactive/eval/datasets/` | core | `policy`, `situation` 사례 jsonl |
+| `src/jarvis/core/proactive/eval/runner.py` | core | 판정과 지표 요약. `facts_now` 를 주면 상황에 계산한 사실을 붙인다 |
+| `src/jarvis/core/proactive/eval/label_metrics.py` | core | 3단 라벨의 recall, 오경보, AUC |
+| `src/jarvis/core/proactive/eval/utterance_judge.py` | core | 🔔 누출 판정자(pydantic 스키마, 근거 구간 확인, 라벨별 일치율) |
+| `src/jarvis/core/proactive/eval/datasets/` | core | `policy`, `situation`(개발용, 3단 라벨) 사례 jsonl |
+| `scripts/experiments/datasets/situation_test.jsonl` | scripts | 시험용 사례(블라인드, 3단 라벨) |
+| `scripts/experiments/datasets/situation_label_review.csv` | scripts | 3단 라벨 사람 검수 시트 |
+| `scripts/experiments/datasets/utterance_label_review.csv` | scripts | 🔔 누출 라벨 사람 검수 시트 |
+| `scripts/experiments/proactive_decision_first.py` | scripts | 성찰 순서, 앵커, 사실 계산 비교 실험 |
 
 **테스트**
 
 | 종류 | 파일 |
 |---|---|
 | 단위 | `tests/unit/test_proactive_eval_eval_schema.py` |
+| 단위 | `tests/unit/test_proactive_eval_label_metrics.py` |
 | 단위 | `tests/unit/test_proactive_eval_main.py` |
 | 단위 | `tests/unit/test_proactive_eval_runner.py` |
+| 단위 | `tests/unit/test_proactive_eval_utterance_judge.py` |
 | 통합 | 없음. 평가 도구 자체라 CLI 를 끝까지 돌리는 테스트를 두지 않았다 |
 
-**제약과 미구현**: 없음.
+**제약과 미구현**: 3단 라벨과 🔔 누출 라벨은 블라인드 에이전트와 LLM 판정자가 단 초안이다. 사람 검수 시트가 채워지기 전까지 판정자 수치는 "검증 전" 이다.
 
 ---
 
 ### procedures: 절차 학습
 
-**설명**: 세션 이력에서 도구를 여러 번 써서 성공한 구간, 또는 같은 작업 종류로 성공한 턴 일화가 쌓인 것을 절차 초안으로 증류하고, 승인된 절차를 LLM 도구와 슬래시 스킬로 노출한다.
+**설명**: 같은 작업 종류로 성공한 턴 일화가 쌓이면 (에이전트, 작업 종류)당 절차 파일 하나로 증류하고 다음 세대는 그 파일의 개정 초안으로 붙인다. 실패한 턴 일화는 유휴 통합 때 reflector LLM 이 범위 하나로 분류해 절차 개정 초안이나 작업 패턴 초안을 내고, 코드 거름망을 통과한 것만 초안으로 남긴다. 승인된 절차는 LLM 도구와 슬래시 스킬로 노출한다. 설계는 EMMA(Niu et al., 2026, https://arxiv.org/abs/2610.35966)의 bounded growth 와 scoped, guarded update 를 옮겼다.
 
 **입력과 결과**
 
 | 입력 | 결과 |
 |---|---|
-| `/procedures` | 명령을 친 에이전트가 학습한 절차 목록 |
+| `/procedures` | 명령을 친 에이전트의 절차와 초안 목록. 개정 초안과 작업 패턴 초안은 상태 옆에 적는다 |
 | `/procedures learn [session_id]` | 세션에서 절차 초안 학습(같은 출처는 한 번만). 절차는 명령을 친 에이전트의 것이 된다 |
-| `/procedures approve <name>`, `reject <name>`, `show <name>` | 승인(도구와 스킬로 등록), 삭제, 본문 보기. 다른 에이전트의 절차는 없는 절차로 답한다 |
-| 공고화 | 같은 종류 성공 일화가 쌓이면 정제 후보로 증류 |
+| `/procedures approve <name>` | 초안은 승인(도구와 스킬로 등록), 개정 초안이 있으면 본문을 개정으로 교체하고 도구를 다시 올린다, 작업 패턴 초안은 그 에이전트의 작업 패턴(`task_pattern`)으로 옮기고 파일을 지운다 |
+| `/procedures reject <name>`, `show <name>` | 개정 초안이 있으면 개정만 버리고(그 세대는 검토한 것으로 남는다), 없으면 삭제. `show` 는 본문과 개정 초안을 함께 보인다 |
+| 공고화(세션 종료, 유휴 틱) | 옛 세대 파일 수렴, 성공 3회마다 한 세대 증류, 실패 반성(틱당 2묶음) |
 
-**처리 흐름**: `detect` 또는 `refine` 에서 `distill` (LLM) 로, `learner` 가 `procedures_store` 에 upsert, 승인 시 `tool` 이 도구와 스킬로 등록, 실행 계획은 `plan` 순.
+**처리 흐름**: 공고화의 refiner 콜백(`ProcedureLearner.refine`)이 `converge` 로 옛 파일을 모으고, `refine.candidates` 의 성공 묶음을 `distill` (LLM) 로 증류해 `procedures_store` 에 쓰고, `refine.failures` 의 실패 묶음을 `reflect` (LLM 1회, 거부되면 한 번 더) 에 보여 `update_guard` 를 통과한 제안만 초안으로 쓴다. 승인 시 `tool` 이 도구와 스킬로 등록, 실행 계획은 `plan` 순.
 
 **구현 파일**
 
@@ -908,27 +940,37 @@
 |---|---|---|
 | `src/jarvis/core/procedures/detect.py` | core | 성공한 다단계 작업 구간 찾기 |
 | `src/jarvis/core/procedures/distill.py` | core | 구간을 절차 초안으로 증류 |
-| `src/jarvis/core/procedures/learner.py` | core | 초안 저장(같은 출처 한 번) |
+| `src/jarvis/core/procedures/learner.py` | core | 증류 결과와 반성 결과를 초안이나 개정으로 저장, 에이전트당 상한, 틱당 반성 상한 |
+| `src/jarvis/core/procedures/converge.py` | core | 옛 세대 파일을 (에이전트, 작업 종류)당 하나로 모으는 계획(순수) |
+| `src/jarvis/core/procedures/reflect.py` | core | 실패 묶음을 reflector 프롬프트로, 출력은 pydantic `Reflection`(scope, action, 내용) |
+| `src/jarvis/core/procedures/update_guard.py` | core | 범위-행동 일치, 정답과 원문 누출, 크기, 상한 거름망(순수) |
 | `src/jarvis/core/procedures/plan.py` | core | 실행 계획 읽기, 검사, 채우기 |
-| `src/jarvis/core/procedures/procedures_store.py` | core | `~/.jarvis/procedures/<name>.md` 저장소 |
+| `src/jarvis/core/procedures/procedures_store.py` | core | `~/.jarvis/procedures/<name>.md` 저장소, 개정 승인, 보관 |
 | `src/jarvis/core/procedures/tool.py` | core | 승인된 절차를 도구와 스킬로 노출 |
 | `src/jarvis/core/slash/procedures_cmd.py` | core | `/procedures` 핸들러 |
-| `src/jarvis/memory/long_term/refine.py` | memory | 턴 일화에서 정제 후보 고르기 |
+| `src/jarvis/memory/long_term/refine.py` | memory | 턴 일화에서 성공 후보와 반성할 실패 묶음 고르기, 잇단 거부 세기 |
 
 **테스트**
 
 | 종류 | 파일 |
 |---|---|
+| 단위 | `tests/unit/test_procedures_converge.py` |
 | 단위 | `tests/unit/test_procedures_detect.py` |
 | 단위 | `tests/unit/test_procedures_distill.py` |
 | 단위 | `tests/unit/test_procedures_learner.py` |
 | 단위 | `tests/unit/test_procedures_procedures_cmd.py` |
 | 단위 | `tests/unit/test_procedures_procedures_store.py` |
+| 단위 | `tests/unit/test_procedures_reflect.py` |
 | 단위 | `tests/unit/test_procedures_refine.py` |
 | 단위 | `tests/unit/test_procedures_tool.py` |
-| 통합 | 없음. 절차 학습은 `scripts/e2e/hud_flow.py` 의 e2e 시나리오로만 돈다 |
+| 단위 | `tests/unit/test_procedures_update_guard.py` |
+| 통합 | `tests/integ/test_procedures.py` |
 
 **에이전트 범위**: 승인된 절차는 그 절차를 배운 에이전트에게만 `procedure_<name>` 도구, `/<name>` 스킬, 기억의 절차 블록으로 보인다. `memory.read` 정책과 상관없다. 에이전트가 적히지 않은 예전 절차는 main 의 것으로 본다. 서브 에이전트와 스케줄 작업도 같은 규칙을 따른다.
+
+**멱등**: 출처 `edm:<에이전트>:<작업 종류>` 가 자연 키라 같은 (에이전트, 작업 종류)는 파일 하나이고, 이미 다룬 세대(`generation`, 대기 중인 개정 포함)는 LLM 을 부르지 않는다. 반성한 실패 일화에는 `reflected` 표시가 남아 다시 반성하지 않는다. 옛 출처 `edm:<에이전트>:<작업 종류>:<세대>` 파일은 통합 때 하나로 모으고 밀려난 파일은 `~/.jarvis/procedures/.archive/` 로 옮긴다(지우지 않는다). 다 모은 저장소에서는 아무것도 바꾸지 않는다.
+
+**제약과 미구현**: EMMA 의 routing, missing_capability 범위(컨트롤러 기억, 새 에이전트 생성)와 에이전트 프롬프트 자동 수정은 없다. agent_behavior 는 프롬프트 대신 작업 패턴 초안으로 간다. 실서비스의 실패 신호는 도구나 모델 오류뿐이라 답이 틀린 턴은 실패로 남지 않는다. 같은 작업 종류의 반성이 두 번 잇달아 거부되면 그 종류는 새 성공이 올 때까지 반성하지 않는다. 개정 초안 칸은 하나라 새 개정이 옛 개정을 덮는다. 세션 구간 학습(`/procedures learn`)은 여전히 구간마다 파일이다.
 
 ---
 
@@ -1068,6 +1110,7 @@
 | `remember_task_pattern` 도구 | 부른 에이전트 범위로 패턴 저장 |
 | `/patterns` | 지금 에이전트의 작업 패턴 목록 |
 | `/patterns forget <이름>` | 삭제 |
+| 실패 반성의 작업 패턴 초안(`procedures`) | `/procedures approve pattern-<이름>` 으로 승인하면 그 에이전트의 작업 패턴으로 저장 |
 
 **처리 흐름**: `task_pattern` 도구에서 `memory.long_term.task_pattern` 변환으로, `MemoryService.remember` 저장, 회상 때 질의 맞추기 순.
 
@@ -1086,8 +1129,9 @@
 | 단위 | `tests/unit/test_task_pattern_patterns_cmd.py` |
 | 단위 | `tests/unit/test_task_pattern_task_pattern.py` |
 | 통합 | `tests/integ/test_task_pattern.py` |
+| 통합 | `tests/integ/test_procedures.py`(반성 초안을 승인한 패턴이 다음 요청에 들어감) |
 
-**제약과 미구현**: 없음.
+**제약과 미구현**: 반성이 낸 작업 패턴은 승인 전까지 `~/.jarvis/procedures/` 의 초안 파일이고 기억에 들어가지 않는다.
 
 ---
 
@@ -1100,7 +1144,7 @@
 | 입력 | 결과 |
 |---|---|
 | 요청 턴 | ws `thought_route{think, p_think}`(router 가 켜졌을 때), `inner_thought`, `thought_end`. think 면 사고 결과가 다음 턴 시스템 프롬프트에 한 번 들어간다 |
-| 성찰 | `DecisionGatedEngine` 이 "먼저 말할까" 를 decision model 확률로 정한다 |
+| 성찰 | `DecisionGatedEngine` 이 decision model 을 먼저 묻고(전체 판단, 항목별 판단), 문턱 아래면 사고 LLM 을 부르지 않는다. 넘으면 가장 높은 항목을 앵커로 사고를 돌리고, 말에 앵커 낱말이 없으면 침묵한다(`anchor missing`) |
 | ws `reply_classify{kind, id, text, context, has_always}` | `reply_classified{verdict}`. 모델이 없거나 6초 안에 답하지 못하면 `other`, `unclear` |
 
 **처리 흐름**: `AgentSession._route` 에서 `router` (`model_layer.decision`) 로, `engine` 이 `prompt` 템플릿과 회상 콜백으로 `ThoughtFrame` 생성, `composer` 조립, `log` 싱크 저장 순. 분류는 `ws_tasks` 에서 `reply.ReplyClassifier` 순.
@@ -1116,7 +1160,8 @@
 | `src/jarvis/agent_layer/thought/composer.py` | agent_layer | 프레임을 메인 프롬프트 텍스트로 |
 | `src/jarvis/agent_layer/thought/log.py` | agent_layer | 프레임을 LTM, 작업 기억 메모 싱크로 |
 | `src/jarvis/agent_layer/thought/router.py` | agent_layer | think, direct 판정 |
-| `src/jarvis/agent_layer/thought/decision_gate.py` | agent_layer | 성찰 결정을 decision model 확률로 |
+| `src/jarvis/agent_layer/thought/decision_gate.py` | agent_layer | 성찰에서 decision model 을 사고보다 먼저 묻고, 항목별 판단과 앵커를 정한다 |
+| `src/jarvis/agent_layer/thought/anchor_check.py` | agent_layer | 말이 앵커의 숫자, 이름, 핵심 낱말을 담았는지(순수 함수) |
 | `src/jarvis/agent_layer/thought/reply.py` | agent_layer | 짧은 답 분류기 |
 | `src/jarvis/model_layer/decision.py` | model_layer | decision model(System One API) 클라이언트 |
 | `src/jarvis/ui/web/static/app/reply.js` | ui | 화면에서 `reply_classify` 요청 |
@@ -1125,6 +1170,7 @@
 
 | 종류 | 파일 |
 |---|---|
+| 단위 | `tests/unit/test_thought_anchor_check.py` |
 | 단위 | `tests/unit/test_thought_composer.py` |
 | 단위 | `tests/unit/test_thought_decision.py` |
 | 단위 | `tests/unit/test_thought_decision_gate.py` |

@@ -3,8 +3,8 @@
 import asyncio
 from typing import Any
 
+from jarvis.core.procedures.procedures_store import KIND_PROCEDURE, Procedure, ProcedureStore
 from jarvis.core.tools.tools_registry import JarvisTool, ToolContext, ToolRegistry
-from jarvis.core.procedures.procedures_store import Procedure, ProcedureStore
 from jarvis.model_layer.model_types import TextContent, ToolResultMessage
 from jarvis.core.skills.skills_registry import Skill, SkillRegistry
 from jarvis.core.procedures.plan import fill
@@ -119,7 +119,7 @@ def register_approved(store: ProcedureStore, tools: ToolRegistry, skills: SkillR
     """저장소의 승인된 절차 전부를 등록한다. 기동 때와 승인 직후에 부른다."""
     names: list[str] = []
     for procedure in store.list():
-        if procedure.approved:
+        if procedure.approved and procedure.kind == KIND_PROCEDURE:
             register_procedure(procedure, tools, skills)
             names.append(procedure.name)
     return names

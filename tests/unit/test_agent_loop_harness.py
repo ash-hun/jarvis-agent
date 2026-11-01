@@ -16,7 +16,8 @@ from jarvis.model_layer.model_types import (
     ErrorEvent,
     UserMessage,
 )
-from tests.fixtures.agent_loop_helpers import ScriptedProvider, register
+from tests.fixtures.agent_loop_helpers import ScriptedProvider, register, text_turn, tool_turn
+from jarvis.agent_layer.loop_overflow import FALLBACK_HEADER
 from jarvis.agent_layer.harness import AgentHarness
 
 
@@ -33,9 +34,12 @@ class SpyMemory:
             return messages
         return [UserMessage(content=self._prefix), *messages]
 
-    async def reinforce(self, answer: str, context: dict, *, tools=(), failed: bool = False, steps=()) -> list[str]:
+    async def reinforce(
+        self, answer: str, context: dict, *, tools=(), failed: bool = False, steps=(), overflow: bool = False
+    ) -> list[str]:
         self.reinforced = (answer, list(tools), failed)
         self.steps = list(steps)
+        self.overflow = overflow
         return []
 
 
@@ -282,12 +286,14 @@ async def test_tool_turn_persists_tool_use_and_tool_result(faux_model_with_respo
             tool_call_id=tool_call_id, tool_name=tool_name, content=[TextContent(text="done")]
         )
 
-    harness = _harness(model, repo, loop_config=AgentLoopConfig(max_turns=2))
+    harness = _harness(model, repo, loop_config=AgentLoopConfig(max_turns=1))
     await harness.run("파일 읽어", tool_executor=executor)
 
+    # 계속 도구만 부르면 한 번 이어간 뒤 정리문으로 끝난다. 정리 호출 자체는 남지 않는다
     stored = await repo.get_messages("s1")
     assert [type(m).__name__ for m in stored] == [
         "UserMessage", "AssistantMessage", "ToolResultMessage", "AssistantMessage", "ToolResultMessage",
+        "AssistantMessage",
     ]
     assert stored[1].tool_calls()[0].id == stored[2].tool_call_id
 
@@ -306,8 +312,8 @@ async def test_provider_error_persists_only_the_user_message(repo):
     ("response", "tool_error", "expected"),
     [
         ("안녕하세요", None, ("안녕하세요", [], False, [])),
-        ("", False, ("", ["read_file"], False, [("read_file", {"path": "a"})])),
-        ("", True, ("", ["read_file"], True, [])),
+        ("", False, (FALLBACK_HEADER, ["read_file"], False, [("read_file", {"path": "a"})])),
+        ("", True, (FALLBACK_HEADER, ["read_file"], True, [])),
     ],
     ids=["plain_answer", "successful_tool", "failed_tool"],
 )
@@ -331,4 +337,19 @@ async def test_reinforce_gets_answer_called_tools_failure_and_successful_steps(
     await _harness(model, repo, memory, loop_config=AgentLoopConfig(max_turns=2)).run("요청", executor)
 
     answer, tools, failed = memory.reinforced
-    assert (answer.strip(), tools[:1], failed, memory.steps[:1]) == expected
+    assert answer.startswith(expected[0])
+    assert (tools[:1], failed, memory.steps[:1]) == expected[1:]
+
+
+@pytest.mark.parametrize(("max_turns", "overflow"), [(1, True), (3, False)])
+async def test_reinforce_gets_overflow_when_loop_ran_past_max_turns(repo, max_turns, overflow):
+    model = register(ScriptedProvider([tool_turn(("c1", "read_file", {})), text_turn("끝")]))
+
+    async def executor(tool_call_id, tool_name, params):
+        return ToolResultMessage(tool_call_id=tool_call_id, tool_name=tool_name, content=[TextContent(text="결과")])
+
+    memory = SpyMemory()
+
+    await _harness(model, repo, memory, loop_config=AgentLoopConfig(max_turns=max_turns)).run("요청", executor)
+
+    assert memory.overflow is overflow

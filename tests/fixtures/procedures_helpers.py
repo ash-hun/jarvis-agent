@@ -1,9 +1,9 @@
-"""procedures 테스트 공용: 도구 세 번 쓰고 성공한 대화, 세는 증류기, 턴 일화 기록."""
+"""procedures 테스트 공용: 도구 세 번 쓰고 성공한 대화, 세는 증류기와 반성기, 턴 일화 기록."""
 
 from datetime import datetime, timedelta
 
 from jarvis.model_layer.model_types import AssistantMessage, TextContent, ToolCall, ToolResultMessage, UserMessage
-from jarvis.core.procedures import ProcedureDraft, ProcedureLearner, ProcedureStore
+from jarvis.core.procedures import FailureCase, ProcedureDraft, ProcedureLearner, ProcedureStore, Reflection
 from jarvis.memory.memory_service import MemoryService
 from jarvis.memory import MemoryScope
 
@@ -78,3 +78,39 @@ def edm_learner(tmp_path, memory: MemoryService) -> tuple[ProcedureLearner, Proc
     store = ProcedureStore(str(tmp_path))
     distiller = CountingDistiller(LOAN_DRAFT)
     return ProcedureLearner(store, distiller, memory=memory), store, distiller
+
+
+PROCEDURE_FIX = Reflection(
+    scope="procedure", action="revise_procedure", name="loan-check",
+    when="공고로 대출을 계산할 때", content="1. 공고의 공급가를 먼저 확인한다\n2. 대출 한도를 계산한다",
+)
+PATTERN_FIX = Reflection(
+    scope="agent_behavior", action="task_pattern", name="verify-first", when="숫자를 계산해 답할 때",
+    content="답하기 전에 계산을 한 번 더 검산한다", keywords=["계산", "대출"],
+)
+SLIP = Reflection(scope="execution_slip", action="no_change")
+
+
+class ScriptedReflector:
+    """정해 둔 제안을 차례로 낸다. 다 쓰면 마지막 것을 되풀이한다. 받은 거부 이유를 남긴다."""
+
+    def __init__(self, *proposals: Reflection | None) -> None:
+        self.proposals = list(proposals)
+        self.cases: list[FailureCase] = []
+        self.refusals: list[str] = []
+
+    @property
+    def calls(self) -> int:
+        return len(self.cases)
+
+    async def __call__(self, case: FailureCase, refusal: str) -> Reflection | None:
+        self.cases.append(case)
+        self.refusals.append(refusal)
+        return self.proposals[min(len(self.cases), len(self.proposals)) - 1]
+
+
+def reflect_learner(
+    tmp_path, memory: MemoryService, reflector: ScriptedReflector, **kw
+) -> tuple[ProcedureLearner, ProcedureStore]:
+    store = ProcedureStore(str(tmp_path))
+    return ProcedureLearner(store, CountingDistiller(LOAN_DRAFT), memory=memory, reflector=reflector, **kw), store

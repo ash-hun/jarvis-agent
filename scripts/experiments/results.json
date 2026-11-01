@@ -1,1816 +1,4503 @@
 {
-  "_note": "scripts/experiments 의 실험 결과. 문서의 표와 그래프는 이 파일에서 나온다. 조건은 각 문서의 성능 실험 절에 있다.",
-  "reply_feedback": {
-    "e2b": {
-      "accuracy": 1.0,
-      "latency_p50": 0.21
-    },
-    "e4b": {
-      "accuracy": 0.972,
-      "latency_p50": 0.38
-    },
-    "gpt": {
-      "accuracy": 0.917,
-      "latency_p50": 0.67
-    },
-    "top_miss": {
-      "gpt": "이미 보냈어 → accept 3/3",
-      "e4b": "이미 보냈어 → other 1/3"
-    }
+ "_note": "scripts/experiments 의 실험 결과. 문서의 표와 그래프는 이 파일에서 나온다. 조건은 각 문서의 성능 실험 절에 있다.",
+ "reply_feedback": {
+  "e2b": {
+   "accuracy": 1.0,
+   "latency_p50": 0.21
   },
-  "reply_approval": {
-    "e2b": {
-      "label_accuracy": 0.778,
-      "decision_accuracy": 0.917,
-      "unsafe_allow": 0,
-      "missed_allow": 3,
-      "label_errors": 8,
-      "latency_p50": 0.21
-    },
-    "e4b": {
-      "label_accuracy": 0.75,
-      "decision_accuracy": 1.0,
-      "unsafe_allow": 0,
-      "missed_allow": 0,
-      "label_errors": 9,
-      "latency_p50": 0.38
-    },
-    "gpt": {
-      "label_accuracy": 0.639,
-      "decision_accuracy": 0.75,
-      "unsafe_allow": 0,
-      "missed_allow": 9,
-      "label_errors": 13,
-      "latency_p50": 0.67
-    },
-    "allow_trials": 18
+  "e4b": {
+   "accuracy": 0.972,
+   "latency_p50": 0.38
   },
-  "proactive_situation": {
-    "e2b": {
-      "recall": 1.0,
-      "precision": 0.783,
-      "false_alarm": 0.278,
-      "mention_ok": "16/18",
-      "sec_per_case": 5.9,
-      "misses": {
-        "far_future_loop_is_silent": 3,
-        "irrelevant_external_event_is_silent": 1,
-        "marketing_event_is_silent": 1
-      }
-    },
-    "e4b": {
-      "recall": 1.0,
-      "precision": 0.692,
-      "false_alarm": 0.444,
-      "mention_ok": "16/18",
-      "sec_per_case": 9.71,
-      "misses": {
-        "finished_task_is_silent": 2,
-        "marketing_event_is_silent": 2,
-        "far_future_loop_is_silent": 3,
-        "irrelevant_external_event_is_silent": 1
-      }
-    },
-    "gpt": {
-      "recall": 0.167,
-      "precision": 1.0,
-      "false_alarm": 0.0,
-      "mention_ok": "3/3",
-      "sec_per_case": 1.77,
-      "misses": {
-        "due_open_loop_speaks": 3,
-        "meeting_soon_speaks": 3,
-        "ci_failed_on_user_branch_speaks": 3,
-        "overdue_promise_speaks": 3,
-        "urgent_relevant_event_speaks": 1,
-        "disk_almost_full_speaks": 2
-      }
-    }
+  "gpt": {
+   "accuracy": 0.917,
+   "latency_p50": 0.67
   },
-  "thought_frames": {
-    "e2b": {
-      "valid": 1.0,
-      "loop_recall": 1.0,
-      "loop_precision": 0.706,
-      "latency_p50": 5.4
-    },
-    "e4b": {
-      "valid": 1.0,
-      "loop_recall": 0.75,
-      "loop_precision": 1.0,
-      "latency_p50": 9.79
-    },
-    "gpt": {
-      "valid": 1.0,
-      "loop_recall": 0.75,
-      "loop_precision": 1.0,
-      "latency_p50": 2.33
-    }
-  },
-  "thought_timing": {
-    "local": {
-      "before": {
-        "first": 15.61,
-        "total": 21.32
-      },
-      "race": {
-        "first": 5.98,
-        "total": 24.45
-      },
-      "after": {
-        "first": 2.28,
-        "total": 12.43
-      }
-    },
-    "cloud": {
-      "before": {
-        "first": 3.54,
-        "total": 4.5
-      },
-      "race": {
-        "first": 3.24,
-        "total": 4.32
-      },
-      "after": {
-        "first": 0.93,
-        "total": 1.93
-      }
-    }
-  },
-  "loop_embedding": {
-    "bge-m3": {
-      "same_loop_acc": 0.833,
-      "false_merge": 0,
-      "acc_at_085": 0.833,
-      "pairs": [
-        {
-          "cos": 0.956,
-          "same": true
-        },
-        {
-          "cos": 0.958,
-          "same": true
-        },
-        {
-          "cos": 0.753,
-          "same": true
-        },
-        {
-          "cos": 0.783,
-          "same": true
-        },
-        {
-          "cos": 0.598,
-          "same": true
-        },
-        {
-          "cos": 0.866,
-          "same": true
-        },
-        {
-          "cos": 0.856,
-          "same": true
-        },
-        {
-          "cos": 0.896,
-          "same": true
-        },
-        {
-          "cos": 0.789,
-          "same": false
-        },
-        {
-          "cos": 0.697,
-          "same": false
-        },
-        {
-          "cos": 0.546,
-          "same": false
-        },
-        {
-          "cos": 0.695,
-          "same": false
-        },
-        {
-          "cos": 0.698,
-          "same": false
-        },
-        {
-          "cos": 0.727,
-          "same": false
-        },
-        {
-          "cos": 0.681,
-          "same": false
-        },
-        {
-          "cos": 0.722,
-          "same": false
-        },
-        {
-          "cos": 0.525,
-          "same": false
-        },
-        {
-          "cos": 0.557,
-          "same": false
-        }
-      ]
-    },
-    "nomic-embed-text": {
-      "same_loop_acc": 0.611,
-      "false_merge": 5,
-      "acc_at_085": 0.611,
-      "pairs": [
-        {
-          "cos": 0.788,
-          "same": true
-        },
-        {
-          "cos": 0.874,
-          "same": true
-        },
-        {
-          "cos": 0.896,
-          "same": true
-        },
-        {
-          "cos": 0.867,
-          "same": true
-        },
-        {
-          "cos": 0.836,
-          "same": true
-        },
-        {
-          "cos": 0.878,
-          "same": true
-        },
-        {
-          "cos": 0.979,
-          "same": true
-        },
-        {
-          "cos": 0.908,
-          "same": true
-        },
-        {
-          "cos": 0.88,
-          "same": false
-        },
-        {
-          "cos": 0.888,
-          "same": false
-        },
-        {
-          "cos": 0.816,
-          "same": false
-        },
-        {
-          "cos": 0.936,
-          "same": false
-        },
-        {
-          "cos": 0.885,
-          "same": false
-        },
-        {
-          "cos": 0.823,
-          "same": false
-        },
-        {
-          "cos": 0.857,
-          "same": false
-        },
-        {
-          "cos": 0.832,
-          "same": false
-        },
-        {
-          "cos": 0.665,
-          "same": false
-        },
-        {
-          "cos": 0.775,
-          "same": false
-        }
-      ]
-    },
-    "text-embedding-3-small": {
-      "same_loop_acc": 0.556,
-      "false_merge": 0,
-      "acc_at_085": 0.556,
-      "pairs": [
-        {
-          "cos": 0.731,
-          "same": true
-        },
-        {
-          "cos": 0.514,
-          "same": true
-        },
-        {
-          "cos": 0.629,
-          "same": true
-        },
-        {
-          "cos": 0.609,
-          "same": true
-        },
-        {
-          "cos": 0.432,
-          "same": true
-        },
-        {
-          "cos": 0.754,
-          "same": true
-        },
-        {
-          "cos": 0.668,
-          "same": true
-        },
-        {
-          "cos": 0.757,
-          "same": true
-        },
-        {
-          "cos": 0.526,
-          "same": false
-        },
-        {
-          "cos": 0.639,
-          "same": false
-        },
-        {
-          "cos": 0.401,
-          "same": false
-        },
-        {
-          "cos": 0.633,
-          "same": false
-        },
-        {
-          "cos": 0.672,
-          "same": false
-        },
-        {
-          "cos": 0.44,
-          "same": false
-        },
-        {
-          "cos": 0.579,
-          "same": false
-        },
-        {
-          "cos": 0.575,
-          "same": false
-        },
-        {
-          "cos": 0.26,
-          "same": false
-        },
-        {
-          "cos": 0.106,
-          "same": false
-        }
-      ]
-    },
-    "none": {
-      "same_loop_acc": 0.556,
-      "false_merge": 0
-    }
-  },
-  "compaction_faithfulness": {
-    "e2b": {
-      "llm": 1.0,
-      "contains": 1.0
-    },
-    "e4b": {
-      "llm": 1.0,
-      "contains": 1.0
-    },
-    "gpt": {
-      "llm": 1.0,
-      "contains": 1.0
-    },
-    "judge": "gpt-4o-mini",
-    "judge_check": {
-      "gpt-4o-mini": "16/16",
-      "gemma4:e4b": "16/16"
-    },
-    "facts": 36
-  },
-  "approval_compliance": [
-    {
-      "stage": "고치기 전 (gpt-4o-mini)",
-      "cells": [
-        "2/2",
-        "0/2",
-        "기록 없음"
-      ]
-    },
-    {
-      "stage": "프롬프트 규칙만 (gpt-4o-mini)",
-      "cells": [
-        "1/1",
-        "0/2",
-        "1/1"
-      ]
-    },
-    {
-      "stage": "규칙 + 루프 종료 (gpt-4o-mini)",
-      "cells": [
-        "3/3",
-        "3/3",
-        "3/3"
-      ]
-    },
-    {
-      "stage": "규칙 + 루프 종료 (gemma4:e4b)",
-      "cells": [
-        "3/3",
-        "3/3",
-        "3/3"
-      ]
-    }
-  ],
-  "piper": [
-    {
-      "chars": 13,
-      "synth_s": 0.142,
-      "audio_s": 0.65
-    },
-    {
-      "chars": 58,
-      "synth_s": 0.578,
-      "audio_s": 3.02
-    },
-    {
-      "chars": 89,
-      "synth_s": 0.985,
-      "audio_s": 4.71
-    },
-    {
-      "chars": 110,
-      "synth_s": 1.319,
-      "audio_s": 6.12
-    }
-  ],
-  "delegation": {
-    "local": {
-      "total_s": 36.48,
-      "ask_agent": "3/3",
-      "karen_tool": "3/3"
-    },
-    "cloud": {
-      "total_s": 8.48,
-      "ask_agent": "3/3",
-      "karen_tool": "3/3"
-    }
-  },
-  "focus": {
-    "first_reply": [
-      {
-        "task": "온보딩 계획",
-        "local": 20.08,
-        "cloud": 2.77
-      },
-      {
-        "task": "발표 목차",
-        "local": 19.47,
-        "cloud": 2.89
-      }
-    ],
-    "reference": [
-      {
-        "rule": "조사 결과가 남음(작업)",
-        "cells": [
-          "2/2",
-          "2/2"
-        ]
-      },
-      {
-        "rule": "선례 3개 이하(조사 건)",
-        "cells": [
-          "2/4",
-          "4/4"
-        ]
-      },
-      {
-        "rule": "출처가 URL(선례)",
-        "cells": [
-          "9/12",
-          "6/8"
-        ]
-      },
-      {
-        "rule": "특징 두 줄 이하(선례)",
-        "cells": [
-          "10/12",
-          "6/8"
-        ]
-      },
-      {
-        "rule": "특징 60자 이하(선례)",
-        "cells": [
-          "5/12",
-          "6/8"
-        ]
-      },
-      {
-        "rule": "한국어(선례)",
-        "cells": [
-          "10/12",
-          "8/8"
-        ]
-      },
-      {
-        "rule": "번호 목록 없음(조사 건)",
-        "cells": [
-          "4/4",
-          "4/4"
-        ]
-      }
-    ],
-    "steps": {
-      "local": [
-        5,
-        5
-      ],
-      "cloud": [
-        5,
-        1
-      ]
-    }
-  },
-  "proactive_compare": {
-    "_note": "dev 12사례(지시문과 임계치를 고를 때 봤다), holdout 12사례(지시문을 쓰기 전에 봐서 오염됐다), test 20사례(지시문을 보지 않은 에이전트가 만든 블라인드). 모두 x3. 임계치는 dev 에서 고른 값을 그대로 썼다",
-    "holdout": [
-      {
-        "label": "옛 지시문 · gpt-4o-mini",
-        "threshold": 0.6,
-        "recall": 0.333,
-        "false_alarm": 0.0
-      },
-      {
-        "label": "옛 지시문 · gemma4:e2b",
-        "threshold": 0.6,
-        "recall": 0.944,
-        "false_alarm": 0.556
-      },
-      {
-        "label": "옛 지시문 · gemma4:e4b",
-        "threshold": 0.6,
-        "recall": 1.0,
-        "false_alarm": 0.444
-      },
-      {
-        "label": "새 지시문 · gpt-4o-mini",
-        "threshold": 0.85,
-        "recall": 0.778,
-        "false_alarm": 0.0
-      },
-      {
-        "label": "새 지시문 · gemma4:e2b",
-        "threshold": 0.9,
-        "recall": 0.778,
-        "false_alarm": 0.0
-      },
-      {
-        "label": "새 지시문 · gemma4:e4b",
-        "threshold": 0.85,
-        "recall": 1.0,
-        "false_alarm": 0.0
-      },
-      {
-        "label": "decision tev1:0.8b",
-        "threshold": 0.6,
-        "recall": 0.0,
-        "false_alarm": 0.0
-      },
-      {
-        "label": "decision tev1",
-        "threshold": 0.6,
-        "recall": 1.0,
-        "false_alarm": 0.0
-      },
-      {
-        "label": "decision nimble",
-        "threshold": 0.6,
-        "recall": 1.0,
-        "false_alarm": 0.0
-      }
-    ],
-    "dev": [
-      {
-        "label": "옛 지시문 · gpt-4o-mini",
-        "threshold": 0.6,
-        "recall": 0.167,
-        "false_alarm": 0.0
-      },
-      {
-        "label": "옛 지시문 · gemma4:e2b",
-        "threshold": 0.6,
-        "recall": 1.0,
-        "false_alarm": 0.444
-      },
-      {
-        "label": "옛 지시문 · gemma4:e4b",
-        "threshold": 0.6,
-        "recall": 1.0,
-        "false_alarm": 0.444
-      },
-      {
-        "label": "새 지시문 · gpt-4o-mini",
-        "threshold": 0.85,
-        "recall": 0.889,
-        "false_alarm": 0.0
-      },
-      {
-        "label": "새 지시문 · gemma4:e2b",
-        "threshold": 0.9,
-        "recall": 0.944,
-        "false_alarm": 0.167
-      },
-      {
-        "label": "새 지시문 · gemma4:e4b",
-        "threshold": 0.85,
-        "recall": 1.0,
-        "false_alarm": 0.0
-      },
-      {
-        "label": "decision tev1:0.8b",
-        "threshold": 0.6,
-        "recall": 0.0,
-        "false_alarm": 0.0
-      },
-      {
-        "label": "decision tev1",
-        "threshold": 0.6,
-        "recall": 1.0,
-        "false_alarm": 0.0
-      },
-      {
-        "label": "decision nimble",
-        "threshold": 0.6,
-        "recall": 1.0,
-        "false_alarm": 0.167
-      }
-    ],
-    "new_prompt_at_0_6": {
-      "dev": {
-        "gpt": [
-          1.0,
-          0.444
-        ],
-        "e2b": [
-          1.0,
-          0.833
-        ],
-        "e4b": [
-          1.0,
-          0.389
-        ]
-      },
-      "holdout": {
-        "gpt": [
-          1.0,
-          0.667
-        ],
-        "e2b": [
-          0.889,
-          0.556
-        ],
-        "e4b": [
-          1.0,
-          0.556
-        ]
-      }
-    },
-    "old_gpt_silence": "hold-out 에서 놓친 12번 모두 사고의 decision=silent",
-    "test": [
-      {
-        "label": "옛 지시문 · gpt-4o-mini",
-        "threshold": 0.6,
-        "recall": 0.633,
-        "false_alarm": 0.0
-      },
-      {
-        "label": "옛 지시문 · gemma4:e2b",
-        "threshold": 0.9,
-        "recall": 0.467,
-        "false_alarm": 0.267
-      },
-      {
-        "label": "옛 지시문 · gemma4:e4b",
-        "threshold": 0.85,
-        "recall": 1.0,
-        "false_alarm": 0.2
-      },
-      {
-        "label": "새 지시문 · gpt-4o-mini",
-        "threshold": 0.85,
-        "recall": 0.767,
-        "false_alarm": 0.233
-      },
-      {
-        "label": "새 지시문 · gemma4:e2b",
-        "threshold": 0.9,
-        "recall": 0.833,
-        "false_alarm": 0.2
-      },
-      {
-        "label": "새 지시문 · gemma4:e4b",
-        "threshold": 0.85,
-        "recall": 0.967,
-        "false_alarm": 0.2
-      },
-      {
-        "label": "decision tev1:0.8b",
-        "threshold": 0.6,
-        "recall": 0.0,
-        "false_alarm": 0.0
-      },
-      {
-        "label": "decision tev1",
-        "threshold": 0.6,
-        "recall": 1.0,
-        "false_alarm": 0.3
-      },
-      {
-        "label": "decision nimble",
-        "threshold": 0.6,
-        "recall": 1.0,
-        "false_alarm": 0.3
-      }
-    ],
-    "old_prompt_dev_best_threshold": {
-      "gpt": "0.6 (어느 임계치도 recall 0.167 을 넘지 못함)",
-      "e2b": "0.9 (0.833/0.056)",
-      "e4b": "0.85 (1.0/0.222)"
-    },
-    "test_hard_negatives": [
-      "test_tax_docs_due_mid_january",
-      "test_promo_newsletter",
-      "test_reminder_already_acknowledged",
-      "test_afternoon_1on1_confirmed"
-    ],
-    "sec_per_case_test": {
-      "gpt-4o-mini": 2.28,
-      "gpt-4o-mini + tev1": 2.77,
-      "gpt-4o-mini + nimble": 3.05,
-      "gemma4:e2b": 6.97,
-      "gemma4:e4b": 10.96
-    },
-    "_dev_note": "dev 의 옛 지시문은 임계치 0.6 값(old_dev_sweep). 블라인드(test) 에는 dev 에서 고른 임계치(e2b 0.9, e4b 0.85)를 썼다"
-  },
-  "summary_language": {
-    "before": {
-      "e2b": {
-        "korean": "5/9",
-        "verbatim": 0.722
-      },
-      "e4b": {
-        "korean": "2/9",
-        "verbatim": 0.556
-      },
-      "gpt": {
-        "korean": "0/9",
-        "verbatim": 0.333
-      }
-    },
-    "after": {
-      "e2b": {
-        "korean": "9/9",
-        "verbatim": 1.0
-      },
-      "e4b": {
-        "korean": "9/9",
-        "verbatim": 1.0
-      },
-      "gpt": {
-        "korean": "9/9",
-        "verbatim": 1.0
-      }
-    },
-    "retention_llm": {
-      "before": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "after": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "english_check": "scripts/experiments/summary_language_check.py: 한국어 2, 영어 2, 코드 섞인 한국어 1 대화 x2. 세 모델 모두 10/10 대화 언어로 요약"
-  },
-  "memory_recall": {
-    "before": {
-      "salient_hit_at_3": {
-        "0": 1.0,
-        "3": 0.0,
-        "6": 0.0,
-        "9": 0.0,
-        "12": 0.0,
-        "20": 0.0,
-        "40": 0.0
-      },
-      "core_fact_kept": {
-        "0": 1.0,
-        "4": 1.0,
-        "8": 1.0,
-        "12": 0.0,
-        "20": 0.0,
-        "40": 0.0
-      },
-      "particle_hit_at_3": 0.0,
-      "deictic_recall": 0.0,
-      "referent_recall": 0.125,
-      "rehearsal_per_fixed_fact": 10.0,
-      "overreach_rate": 0.0,
-      "postgres": {
-        "recall_p50_ms": 2.33,
-        "recall_p95_ms": 3.01,
-        "fixed_p50_ms": 0.66
-      }
-    },
-    "after": {
-      "salient_hit_at_3": {
-        "0": 1.0,
-        "3": 1.0,
-        "6": 1.0,
-        "9": 1.0,
-        "12": 1.0,
-        "20": 1.0,
-        "40": 1.0
-      },
-      "core_fact_kept": {
-        "0": 1.0,
-        "4": 1.0,
-        "8": 1.0,
-        "12": 1.0,
-        "20": 1.0,
-        "40": 1.0
-      },
-      "particle_hit_at_3": 1.0,
-      "deictic_recall": 1.0,
-      "referent_recall": 1.0,
-      "rehearsal_per_fixed_fact": 0.0,
-      "overreach_rate": 0.0,
-      "postgres": {
-        "recall_p50_ms": 7.27,
-        "recall_p95_ms": 8.85,
-        "fixed_p50_ms": 2.07
-      }
-    }
-  },
-  "thought_router": {
-    "_note": "router(P(think)) 오프라인 평가. 합성은 datasets/thought_router.jsonl 62건(애매 4건 제외 58건), 실사용은 jarvis 세션의 실제 요청 34건(애매 4건 제외 30건, 원문은 저장소에 두지 않음). 라벨은 router 학습 기준 문구로 사람이 아닌 Claude 가 매겼다.",
-    "synthetic": {
-      "ctx2_t0.3": {
-        "accuracy": 0.914,
-        "think_recall": 0.941,
-        "direct_recall": 0.902,
-        "promise_loss": 0.667,
-        "latency_p50": 0.065
-      },
-      "ctx0_t0.3": {
-        "accuracy": 0.931,
-        "think_recall": 0.882,
-        "direct_recall": 0.951,
-        "promise_loss": 0.667,
-        "latency_p50": 0.065
-      },
-      "max_t0.2": {
-        "accuracy": 0.914,
-        "think_recall": 0.941,
-        "direct_recall": 0.902,
-        "promise_loss": 0.667,
-        "latency_p50": 0.129
-      }
-    },
-    "real": {
-      "ctx2_t0.3": {
-        "accuracy": 0.7,
-        "think_recall": 0.75,
-        "direct_recall": 0.682,
-        "latency_p50": 0.117
-      },
-      "ctx0_t0.3": {
-        "accuracy": 0.9,
-        "think_recall": 0.625,
-        "direct_recall": 1.0,
-        "latency_p50": 0.064
-      },
-      "max_t0.2": {
-        "accuracy": 0.767,
-        "think_recall": 1.0,
-        "direct_recall": 0.682,
-        "latency_p50": 0.184
-      }
-    }
-  },
-  "karen_budget_calls": {
-    "model": "gpt-4o-mini",
-    "repeat": 3,
-    "cases": 8,
-    "correct": 24,
-    "total": 24,
-    "misses": []
-  },
-  "goal_karen": {
-    "with_money": true,
-    "assumed": {
-      "cash": 150000000,
-      "monthly_limit": 2000000,
-      "regions": [
-        "서울",
-        "경기"
-      ]
-    },
-    "date": "2026-10-29",
-    "model": "gpt-4o",
-    "truth_lines": [
-      "추천 1순위(분양) 항목: [0000061195-02-05-05] [정정공고]시흥거모 S-1블록 공공분양주택 입주자모집공고, 59.8000B 보금자리론 2억 5,687만원 + 현금 1억 5,000만원, 월 부담 최대 139만원, 마감 2026.11.17, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061195&ccrCnntSysDsCd=02&uppAisTpCd=05&aisTpCd=05&mi=1027 자격은 공고문 확인이 필요해요",
-      "추천 1순위(임대) 항목: [2015122300020958-03-06-10] 화성시 동탄지역 행복주택 입주자 모집 공고[입주자격완화/선계약후검증]('26.10.27.), 20B (원)계 16A형 대학생, 청년(소득無) 대출 없이 현금 1,632만원, 월 부담 최대 7만원, 마감 2026.11.12, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020958&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026"
-    ],
-    "truth_ids": [
-      "0000061195",
-      "2015122300020958"
-    ],
-    "truth_keys": [
-      "0000061195-02-05-05",
-      "2015122300020958-03-06-10"
-    ],
-    "links_exact": true,
-    "truth_tool_sec": 17.9,
-    "runs": 3,
-    "parsed": 3,
-    "reports": 1,
-    "recall": true,
-    "only_top": true,
-    "seed_first": false,
-    "answer_after": 0,
-    "asks": 0,
-    "notes": [
-      "조건에 맞는 공고 추천 완료",
-      "공고 추천 진행 완료",
-      "목표에 맞는 공고 추천 완료"
-    ],
-    "repeated_seeded": null,
-    "repeat_reports": 0,
-    "took_sec": [
-      25.9,
-      24.9,
-      26.9
-    ],
-    "tokens_in": [
-      10861,
-      10875,
-      10889
-    ],
-    "tokens_out": [
-      383,
-      379,
-      382
-    ],
-    "reported_keys": [
-      "0000061195-02-05-05",
-      "2015122300020958-03-06-10"
-    ]
-  },
-  "goal_karen_no_money": {
-    "with_money": false,
-    "assumed": {
-      "cash": 150000000,
-      "monthly_limit": 2000000,
-      "regions": [
-        "서울",
-        "경기"
-      ]
-    },
-    "date": "2026-10-29",
-    "model": "gpt-4o",
-    "truth_lines": [],
-    "truth_ids": [],
-    "truth_keys": [],
-    "links_exact": true,
-    "truth_tool_sec": 0.0,
-    "runs": 2,
-    "parsed": 1,
-    "reports": 1,
-    "recall": null,
-    "only_top": true,
-    "seed_first": false,
-    "answer_after": 0,
-    "asks": 0,
-    "notes": [],
-    "repeated_seeded": null,
-    "repeat_reports": 0,
-    "took_sec": [
-      2.5,
-      2.0
-    ],
-    "tokens_in": [
-      10502,
-      10502
-    ],
-    "tokens_out": [
-      53,
-      77
-    ],
-    "reported_keys": [
-      "ask-money"
-    ]
-  },
-  "goal_karen_seed_first": {
-    "with_money": true,
-    "assumed": {
-      "cash": 150000000,
-      "monthly_limit": 2000000,
-      "regions": [
-        "서울",
-        "경기"
-      ]
-    },
-    "date": "2026-10-28",
-    "model": "gpt-4o",
-    "truth_lines": [
-      "추천 1순위(분양) 항목: [0000061195-02-05-05] [정정공고]시흥거모 S-1블록 공공분양주택 입주자모집공고, 59.8000B 월 부담 최대 139만원, 마감 2026.11.17, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061195&ccrCnntSysDsCd=02&uppAisTpCd=05&aisTpCd=05&mi=1027 자격은 공고문 확인이 필요해요",
-      "추천 1순위(임대) 항목: [2015122300020958-03-06-10] 화성시 동탄지역 행복주택 입주자 모집 공고[입주자격완화/선계약후검증]('26.10.27.), 20B (원)계 16A형 대학생, 청년(소득無) 월 부담 최대 7만원, 마감 2026.11.12, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020958&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026"
-    ],
-    "truth_ids": [
-      "0000061195",
-      "2015122300020958"
-    ],
-    "truth_keys": [
-      "0000061195-02-05-05",
-      "2015122300020958-03-06-10"
-    ],
-    "links_exact": true,
-    "truth_tool_sec": 24.0,
-    "runs": 1,
-    "parsed": 1,
-    "reports": 1,
-    "recall": true,
-    "only_top": true,
-    "seed_first": true,
-    "repeated_seeded": false,
-    "repeat_reports": 0,
-    "took_sec": [
-      27.0
-    ],
-    "tokens_in": [
-      10458
-    ],
-    "tokens_out": [
-      346
-    ],
-    "reported_keys": [
-      "0000061195-02-05-05",
-      "2015122300020958-03-06-10"
-    ]
-  },
-  "goal_karen_answer_after": {
-    "with_money": true,
-    "assumed": {
-      "cash": 150000000,
-      "monthly_limit": 2000000,
-      "regions": [
-        "서울",
-        "경기"
-      ]
-    },
-    "date": "2026-10-29",
-    "model": "gpt-4o",
-    "truth_lines": [
-      "추천 1순위(분양) 항목: [0000061195-02-05-05] [정정공고]시흥거모 S-1블록 공공분양주택 입주자모집공고, 59.8000B 보금자리론 2억 5,687만원 + 현금 1억 5,000만원, 월 부담 최대 139만원, 마감 2026.11.17, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061195&ccrCnntSysDsCd=02&uppAisTpCd=05&aisTpCd=05&mi=1027 자격은 공고문 확인이 필요해요",
-      "추천 1순위(임대) 항목: [2015122300020958-03-06-10] 화성시 동탄지역 행복주택 입주자 모집 공고[입주자격완화/선계약후검증]('26.10.27.), 20B (원)계 16A형 대학생, 청년(소득無) 대출 없이 현금 1,632만원, 월 부담 최대 7만원, 마감 2026.11.12, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020958&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026"
-    ],
-    "truth_ids": [
-      "0000061195",
-      "2015122300020958"
-    ],
-    "truth_keys": [
-      "0000061195-02-05-05",
-      "2015122300020958-03-06-10"
-    ],
-    "links_exact": true,
-    "truth_tool_sec": 19.7,
-    "runs": 4,
-    "parsed": 3,
-    "reports": 1,
-    "recall": true,
-    "only_top": true,
-    "seed_first": false,
-    "answer_after": 2,
-    "asks": 1,
-    "notes": [
-      "조건에 맞는 공고를 추천했습니다.",
-      "조건 및 원리금 납부액에 따른 추천 공고 전달"
-    ],
-    "repeated_seeded": null,
-    "repeat_reports": 0,
-    "took_sec": [
-      2.7,
-      2.1,
-      22.8,
-      22.7
-    ],
-    "tokens_in": [
-      10502,
-      10502,
-      10861,
-      10877
-    ],
-    "tokens_out": [
-      53,
-      101,
-      377,
-      389
-    ],
-    "reported_keys": [
-      "ask-money",
-      "0000061195-02-05-05",
-      "2015122300020958-03-06-10"
-    ]
-  },
-  "goal_nl_live": {
-    "mode": "live",
-    "model": "gpt-4o",
-    "repeat": 3,
-    "keep_goal": "12/12",
-    "once_not_goal": "12/12"
-  },
-  "goal_nl_clean": {
-    "mode": "clean",
-    "model": "gpt-4o",
-    "repeat": 3,
-    "keep_goal": "12/12",
-    "once_not_goal": "12/12"
-  },
-  "goal_nl_none": {
-    "mode": "none",
-    "model": "gpt-4o",
-    "repeat": 3,
-    "keep_goal": "12/12",
-    "once_not_goal": "12/12"
-  },
-  "goal_nl_live_ws": {
-    "date": "2026-10-29",
-    "model": "gpt-4o",
-    "via": "live WS, test- sessions, real memory and inner thought",
-    "with_rule": {
-      "keep_goal": "8/8",
-      "once_not_goal": "8/8"
-    },
-    "without_rule": {
-      "keep_goal": "0/5",
-      "phrase": "조건 및 가장 좋은 원리금 납부액을 추천하는 공고만 알려줘"
-    }
-  },
-  "external_delivery": {
-    "d07aa36_before_196": {
-      "steady_5": [
-        {
-          "fail_rate": 0.0,
-          "created": 1200,
-          "delivered": 1200,
-          "loss_rate": 0.0,
-          "loss_min": 0.0,
-          "loss_max": 0.0,
-          "duplicates": 0,
-          "thought_calls_mean": 24
-        },
-        {
-          "fail_rate": 0.2,
-          "created": 1200,
-          "delivered": 940,
-          "loss_rate": 0.217,
-          "loss_min": 0.125,
-          "loss_max": 0.375,
-          "duplicates": 0,
-          "thought_calls_mean": 24
-        },
-        {
-          "fail_rate": 0.5,
-          "created": 1200,
-          "delivered": 620,
-          "loss_rate": 0.483,
-          "loss_min": 0.292,
-          "loss_max": 0.625,
-          "duplicates": 0,
-          "thought_calls_mean": 24
-        }
-      ],
-      "burst_50": [
-        {
-          "fail_rate": 0.0,
-          "created": 500,
-          "delivered": 200,
-          "loss_rate": 0.6,
-          "loss_min": 0.6,
-          "loss_max": 0.6,
-          "duplicates": 0,
-          "thought_calls_mean": 1
-        },
-        {
-          "fail_rate": 0.2,
-          "created": 500,
-          "delivered": 180,
-          "loss_rate": 0.64,
-          "loss_min": 0.6,
-          "loss_max": 1.0,
-          "duplicates": 0,
-          "thought_calls_mean": 1
-        },
-        {
-          "fail_rate": 0.5,
-          "created": 500,
-          "delivered": 80,
-          "loss_rate": 0.84,
-          "loss_min": 0.6,
-          "loss_max": 1.0,
-          "duplicates": 0,
-          "thought_calls_mean": 1
-        }
-      ],
-      "overload_30": [
-        {
-          "fail_rate": 0.0,
-          "created": 7200,
-          "delivered": 4800,
-          "loss_rate": 0.333,
-          "loss_min": 0.333,
-          "loss_max": 0.333,
-          "duplicates": 0,
-          "thought_calls_mean": 24
-        },
-        {
-          "fail_rate": 0.2,
-          "created": 7200,
-          "delivered": 3760,
-          "loss_rate": 0.478,
-          "loss_min": 0.417,
-          "loss_max": 0.583,
-          "duplicates": 0,
-          "thought_calls_mean": 24
-        },
-        {
-          "fail_rate": 0.5,
-          "created": 7200,
-          "delivered": 2480,
-          "loss_rate": 0.656,
-          "loss_min": 0.528,
-          "loss_max": 0.75,
-          "duplicates": 0,
-          "thought_calls_mean": 24
-        }
-      ],
-      "seeds": 10
-    },
-    "b3b2b0b_after_196": {
-      "steady_5": [
-        {
-          "fail_rate": 0.0,
-          "created": 1200,
-          "delivered": 1200,
-          "loss_rate": 0.0,
-          "loss_min": 0.0,
-          "loss_max": 0.0,
-          "duplicates": 0,
-          "thought_calls_mean": 24
-        },
-        {
-          "fail_rate": 0.2,
-          "created": 1200,
-          "delivered": 940,
-          "loss_rate": 0.217,
-          "loss_min": 0.125,
-          "loss_max": 0.375,
-          "duplicates": 0,
-          "thought_calls_mean": 24
-        },
-        {
-          "fail_rate": 0.5,
-          "created": 1200,
-          "delivered": 620,
-          "loss_rate": 0.483,
-          "loss_min": 0.292,
-          "loss_max": 0.625,
-          "duplicates": 0,
-          "thought_calls_mean": 24
-        }
-      ],
-      "burst_50": [
-        {
-          "fail_rate": 0.0,
-          "created": 500,
-          "delivered": 500,
-          "loss_rate": 0.0,
-          "loss_min": 0.0,
-          "loss_max": 0.0,
-          "duplicates": 0,
-          "thought_calls_mean": 3
-        },
-        {
-          "fail_rate": 0.2,
-          "created": 500,
-          "delivered": 420,
-          "loss_rate": 0.16,
-          "loss_min": 0.0,
-          "loss_max": 0.6,
-          "duplicates": 0,
-          "thought_calls_mean": 3
-        },
-        {
-          "fail_rate": 0.5,
-          "created": 500,
-          "delivered": 270,
-          "loss_rate": 0.46,
-          "loss_min": 0.0,
-          "loss_max": 1.0,
-          "duplicates": 0,
-          "thought_calls_mean": 3
-        }
-      ],
-      "overload_30": [
-        {
-          "fail_rate": 0.0,
-          "created": 7200,
-          "delivered": 5500,
-          "loss_rate": 0.236,
-          "loss_min": 0.236,
-          "loss_max": 0.236,
-          "duplicates": 0,
-          "thought_calls_mean": 28
-        },
-        {
-          "fail_rate": 0.2,
-          "created": 7200,
-          "delivered": 4360,
-          "loss_rate": 0.394,
-          "loss_min": 0.319,
-          "loss_max": 0.514,
-          "duplicates": 0,
-          "thought_calls_mean": 28
-        },
-        {
-          "fail_rate": 0.5,
-          "created": 7200,
-          "delivered": 2850,
-          "loss_rate": 0.604,
-          "loss_min": 0.458,
-          "loss_max": 0.708,
-          "duplicates": 0,
-          "thought_calls_mean": 28
-        }
-      ],
-      "seeds": 10
-    },
-    "3c7e938_after_197": {
-      "steady_5": [
-        {
-          "fail_rate": 0.0,
-          "created": 1200,
-          "delivered": 1200,
-          "loss_rate": 0.0,
-          "loss_min": 0.0,
-          "loss_max": 0.0,
-          "duplicates": 0,
-          "thought_calls_mean": 24
-        },
-        {
-          "fail_rate": 0.2,
-          "created": 1200,
-          "delivered": 1200,
-          "loss_rate": 0.0,
-          "loss_min": 0.0,
-          "loss_max": 0.0,
-          "duplicates": 0,
-          "thought_calls_mean": 25.5
-        },
-        {
-          "fail_rate": 0.5,
-          "created": 1200,
-          "delivered": 1200,
-          "loss_rate": 0.0,
-          "loss_min": 0.0,
-          "loss_max": 0.0,
-          "duplicates": 0,
-          "thought_calls_mean": 27.3
-        }
-      ],
-      "burst_50": [
-        {
-          "fail_rate": 0.0,
-          "created": 500,
-          "delivered": 500,
-          "loss_rate": 0.0,
-          "loss_min": 0.0,
-          "loss_max": 0.0,
-          "duplicates": 0,
-          "thought_calls_mean": 3
-        },
-        {
-          "fail_rate": 0.2,
-          "created": 500,
-          "delivered": 500,
-          "loss_rate": 0.0,
-          "loss_min": 0.0,
-          "loss_max": 0.0,
-          "duplicates": 0,
-          "thought_calls_mean": 3.2
-        },
-        {
-          "fail_rate": 0.5,
-          "created": 500,
-          "delivered": 500,
-          "loss_rate": 0.0,
-          "loss_min": 0.0,
-          "loss_max": 0.0,
-          "duplicates": 0,
-          "thought_calls_mean": 4.2
-        }
-      ],
-      "overload_30": [
-        {
-          "fail_rate": 0.0,
-          "created": 7200,
-          "delivered": 5500,
-          "loss_rate": 0.236,
-          "loss_min": 0.236,
-          "loss_max": 0.236,
-          "duplicates": 0,
-          "thought_calls_mean": 28
-        },
-        {
-          "fail_rate": 0.2,
-          "created": 7200,
-          "delivered": 5500,
-          "loss_rate": 0.236,
-          "loss_min": 0.236,
-          "loss_max": 0.236,
-          "duplicates": 0,
-          "thought_calls_mean": 29.4
-        },
-        {
-          "fail_rate": 0.5,
-          "created": 7200,
-          "delivered": 5500,
-          "loss_rate": 0.236,
-          "loss_min": 0.236,
-          "loss_max": 0.236,
-          "duplicates": 0,
-          "thought_calls_mean": 32.1
-        }
-      ],
-      "seeds": 10
-    }
-  },
-  "housing_delivery": {
-    "3c7e938_after_197": {
-      "rows": [
-        {
-          "fail_rate": 0.0,
-          "posted": 1198,
-          "never_delivered": 0,
-          "miss_rate": 0.0,
-          "delivered_twice": 0,
-          "notify_failures": 0,
-          "notifications": 798
-        },
-        {
-          "fail_rate": 0.1,
-          "posted": 1198,
-          "never_delivered": 0,
-          "miss_rate": 0.0,
-          "delivered_twice": 0,
-          "notify_failures": 73,
-          "notifications": 747
-        },
-        {
-          "fail_rate": 0.3,
-          "posted": 1198,
-          "never_delivered": 0,
-          "miss_rate": 0.0,
-          "delivered_twice": 0,
-          "notify_failures": 264,
-          "notifications": 632
-        }
-      ],
-      "seeds": 20,
-      "days": 60,
-      "open_days": 14
-    },
-    "b3b2b0b_before_197": {
-      "rows": [
-        {
-          "fail_rate": 0.0,
-          "posted": 1198,
-          "never_delivered": 0,
-          "miss_rate": 0.0,
-          "delivered_twice": 0,
-          "notify_failures": 0,
-          "notifications": 798
-        },
-        {
-          "fail_rate": 0.1,
-          "posted": 1198,
-          "never_delivered": 115,
-          "miss_rate": 0.096,
-          "delivered_twice": 0,
-          "notify_failures": 73,
-          "notifications": 725
-        },
-        {
-          "fail_rate": 0.3,
-          "posted": 1198,
-          "never_delivered": 352,
-          "miss_rate": 0.294,
-          "delivered_twice": 0,
-          "notify_failures": 234,
-          "notifications": 564
-        }
-      ],
-      "seeds": 20,
-      "days": 60,
-      "open_days": 14
-    }
-  },
-  "session_race": {
-    "eb41779_before_195": {
-      "both_gone": 726,
-      "both_alive": 912,
-      "alive_without_history": 362,
-      "history_without_session": 0,
-      "trials": 2000,
-      "inconsistent": 362,
-      "inconsistent_rate": 0.181
-    },
-    "d07aa36_after_195": {
-      "both_gone": 726,
-      "both_alive": 1274,
-      "alive_without_history": 0,
-      "history_without_session": 0,
-      "trials": 2000,
-      "inconsistent": 0,
-      "inconsistent_rate": 0.0
-    }
-  },
-  "tool_reload": {
-    "3c7e938_after_195": {
-      "watch": {
-        "new_file": {
-          "runs": 30,
-          "timeouts": 0,
-          "p50_ms": 89.6,
-          "p95_ms": 115.9,
-          "max_ms": 122.8
-        },
-        "modified_file": {
-          "runs": 30,
-          "timeouts": 0,
-          "p50_ms": 80.5,
-          "p95_ms": 89.9,
-          "max_ms": 109.0
-        },
-        "called_after_change": "30/30",
-        "same_size_edit_seen": "9/30",
-        "same_size_wait_s": 3.0
-      },
-      "restart": {
-        "restart": {
-          "runs": 10,
-          "timeouts": 0,
-          "p50_ms": 289.6,
-          "p95_ms": 394.9,
-          "max_ms": 394.9
-        }
-      }
-    },
-    "eb41779_before_195": {
-      "static": {
-        "boot_tool_loaded": true,
-        "late_tool_visible_after_s": 5.0,
-        "late_tool_visible": false
-      },
-      "restart": {
-        "restart": {
-          "runs": 10,
-          "timeouts": 0,
-          "p50_ms": 292.7,
-          "p95_ms": 395.6,
-          "max_ms": 395.6
-        }
-      }
-    },
-    "after_cache_fix": {
-      "watch": {
-        "new_file": {
-          "runs": 30,
-          "timeouts": 0,
-          "p50_ms": 77.1,
-          "p95_ms": 122.6,
-          "max_ms": 123.8
-        },
-        "modified_file": {
-          "runs": 30,
-          "timeouts": 0,
-          "p50_ms": 78.0,
-          "p95_ms": 94.7,
-          "max_ms": 123.3
-        },
-        "called_after_change": "30/30",
-        "same_size_edit_seen": "30/30",
-        "same_size_wait_s": 3.0
-      }
-    }
-  },
-  "orchestration_patterns": {
-    "rows": [
-      {
-        "pattern": "supervisor",
-        "wall_s_mean": 0.619,
-        "wall_s_min": 0.61,
-        "wall_s_max": 0.624,
-        "sub_agent_calls": 4,
-        "supervisor_model_calls": 2,
-        "agents_used": [
-          "planner",
-          "researcher",
-          "reviewer",
-          "writer"
-        ],
-        "calls_that_saw_upstream": 0,
-        "success": true
-      },
-      {
-        "pattern": "supervisor_serial",
-        "wall_s_mean": 1.829,
-        "wall_s_min": 1.819,
-        "wall_s_max": 1.835,
-        "sub_agent_calls": 4,
-        "supervisor_model_calls": 5,
-        "agents_used": [
-          "planner",
-          "researcher",
-          "reviewer",
-          "writer"
-        ],
-        "calls_that_saw_upstream": 0,
-        "success": true
-      },
-      {
-        "pattern": "hierarchical",
-        "wall_s_mean": 0.604,
-        "wall_s_min": 0.603,
-        "wall_s_max": 0.604,
-        "sub_agent_calls": 4,
-        "supervisor_model_calls": 0,
-        "agents_used": [
-          "planner",
-          "researcher",
-          "reviewer",
-          "writer"
-        ],
-        "calls_that_saw_upstream": 3,
-        "success": true
-      },
-      {
-        "pattern": "market",
-        "wall_s_mean": 0.201,
-        "wall_s_min": 0.201,
-        "wall_s_max": 0.202,
-        "sub_agent_calls": 1,
-        "supervisor_model_calls": 0,
-        "agents_used": [
-          "writer"
-        ],
-        "calls_that_saw_upstream": 0,
-        "success": true
-      },
-      {
-        "pattern": "blackboard",
-        "wall_s_mean": 0.201,
-        "wall_s_min": 0.201,
-        "wall_s_max": 0.202,
-        "sub_agent_calls": 4,
-        "supervisor_model_calls": 0,
-        "agents_used": [
-          "planner",
-          "researcher",
-          "reviewer",
-          "writer"
-        ],
-        "calls_that_saw_upstream": 0,
-        "success": true
-      },
-      {
-        "pattern": "hierarchical,blackboard",
-        "wall_s_mean": 0.806,
-        "wall_s_min": 0.805,
-        "wall_s_max": 0.808,
-        "sub_agent_calls": 8,
-        "supervisor_model_calls": 0,
-        "agents_used": [
-          "planner",
-          "researcher",
-          "reviewer",
-          "writer"
-        ],
-        "calls_that_saw_upstream": 7,
-        "success": true
-      }
-    ],
-    "repeats": 5,
-    "sub_agent_s": 0.2,
-    "supervisor_model_s": 0.2,
-    "task": "분기 보고서 작성: 시장 조사 후 정리하고 검토"
-  },
-  "turn_overhead": {
-    "jsonl_memory_on": {
-      "turns_1_20": {
-        "total_ms": 2.651,
-        "security_ms": 0.004,
-        "memory_observe_ms": 0.17,
-        "memory_reinforce_ms": 0.06,
-        "repo_read_ms": 0.816,
-        "repo_write_ms": 1.176,
-        "events_ms": 0.407,
-        "model_ms": 0.007,
-        "other_ms": 0.043,
-        "framework_ms": 2.645
-      },
-      "turns_181_200": {
-        "total_ms": 16.065,
-        "security_ms": 0.004,
-        "memory_observe_ms": 0.537,
-        "memory_reinforce_ms": 0.061,
-        "repo_read_ms": 13.705,
-        "repo_write_ms": 1.262,
-        "events_ms": 0.428,
-        "model_ms": 0.007,
-        "other_ms": 0.08,
-        "framework_ms": 16.058
-      }
-    },
-    "jsonl_memory_off": {
-      "turns_1_20": {
-        "total_ms": 2.467,
-        "security_ms": 0.004,
-        "memory_observe_ms": 0.0,
-        "memory_reinforce_ms": 0.0,
-        "repo_read_ms": 0.816,
-        "repo_write_ms": 1.183,
-        "events_ms": 0.407,
-        "model_ms": 0.007,
-        "other_ms": 0.044,
-        "framework_ms": 2.458
-      },
-      "turns_181_200": {
-        "total_ms": 15.579,
-        "security_ms": 0.004,
-        "memory_observe_ms": 0.0,
-        "memory_reinforce_ms": 0.0,
-        "repo_read_ms": 13.693,
-        "repo_write_ms": 1.253,
-        "events_ms": 0.421,
-        "model_ms": 0.008,
-        "other_ms": 0.129,
-        "framework_ms": 15.571
-      }
-    },
-    "dict_memory_on": {
-      "turns_1_20": {
-        "total_ms": 0.669,
-        "security_ms": 0.003,
-        "memory_observe_ms": 0.154,
-        "memory_reinforce_ms": 0.049,
-        "repo_read_ms": 0.0,
-        "repo_write_ms": 0.006,
-        "events_ms": 0.425,
-        "model_ms": 0.006,
-        "other_ms": 0.031,
-        "framework_ms": 0.663
-      },
-      "turns_181_200": {
-        "total_ms": 1.078,
-        "security_ms": 0.003,
-        "memory_observe_ms": 0.542,
-        "memory_reinforce_ms": 0.052,
-        "repo_read_ms": 0.001,
-        "repo_write_ms": 0.006,
-        "events_ms": 0.432,
-        "model_ms": 0.007,
-        "other_ms": 0.033,
-        "framework_ms": 1.07
-      }
-    },
-    "turns_per_session": 200,
-    "sessions": 3
+  "top_miss": {
+   "gpt": "이미 보냈어 → accept 3/3",
+   "e4b": "이미 보냈어 → other 1/3"
   }
+ },
+ "reply_approval": {
+  "e2b": {
+   "label_accuracy": 0.778,
+   "decision_accuracy": 0.917,
+   "unsafe_allow": 0,
+   "missed_allow": 3,
+   "label_errors": 8,
+   "latency_p50": 0.21
+  },
+  "e4b": {
+   "label_accuracy": 0.75,
+   "decision_accuracy": 1.0,
+   "unsafe_allow": 0,
+   "missed_allow": 0,
+   "label_errors": 9,
+   "latency_p50": 0.38
+  },
+  "gpt": {
+   "label_accuracy": 0.639,
+   "decision_accuracy": 0.75,
+   "unsafe_allow": 0,
+   "missed_allow": 9,
+   "label_errors": 13,
+   "latency_p50": 0.67
+  },
+  "allow_trials": 18
+ },
+ "proactive_situation": {
+  "e2b": {
+   "recall": 1.0,
+   "precision": 0.783,
+   "false_alarm": 0.278,
+   "mention_ok": "16/18",
+   "sec_per_case": 5.9,
+   "misses": {
+    "far_future_loop_is_silent": 3,
+    "irrelevant_external_event_is_silent": 1,
+    "marketing_event_is_silent": 1
+   }
+  },
+  "e4b": {
+   "recall": 1.0,
+   "precision": 0.692,
+   "false_alarm": 0.444,
+   "mention_ok": "16/18",
+   "sec_per_case": 9.71,
+   "misses": {
+    "finished_task_is_silent": 2,
+    "marketing_event_is_silent": 2,
+    "far_future_loop_is_silent": 3,
+    "irrelevant_external_event_is_silent": 1
+   }
+  },
+  "gpt": {
+   "recall": 0.167,
+   "precision": 1.0,
+   "false_alarm": 0.0,
+   "mention_ok": "3/3",
+   "sec_per_case": 1.77,
+   "misses": {
+    "due_open_loop_speaks": 3,
+    "meeting_soon_speaks": 3,
+    "ci_failed_on_user_branch_speaks": 3,
+    "overdue_promise_speaks": 3,
+    "urgent_relevant_event_speaks": 1,
+    "disk_almost_full_speaks": 2
+   }
+  }
+ },
+ "thought_frames": {
+  "e2b": {
+   "valid": 1.0,
+   "loop_recall": 1.0,
+   "loop_precision": 0.706,
+   "latency_p50": 5.4
+  },
+  "e4b": {
+   "valid": 1.0,
+   "loop_recall": 0.75,
+   "loop_precision": 1.0,
+   "latency_p50": 9.79
+  },
+  "gpt": {
+   "valid": 1.0,
+   "loop_recall": 0.75,
+   "loop_precision": 1.0,
+   "latency_p50": 2.33
+  }
+ },
+ "thought_timing": {
+  "local": {
+   "before": {
+    "first": 15.61,
+    "total": 21.32
+   },
+   "race": {
+    "first": 5.98,
+    "total": 24.45
+   },
+   "after": {
+    "first": 2.28,
+    "total": 12.43
+   }
+  },
+  "cloud": {
+   "before": {
+    "first": 3.54,
+    "total": 4.5
+   },
+   "race": {
+    "first": 3.24,
+    "total": 4.32
+   },
+   "after": {
+    "first": 0.93,
+    "total": 1.93
+   }
+  }
+ },
+ "loop_embedding": {
+  "bge-m3": {
+   "same_loop_acc": 0.833,
+   "false_merge": 0,
+   "acc_at_085": 0.833,
+   "pairs": [
+    {
+     "cos": 0.956,
+     "same": true
+    },
+    {
+     "cos": 0.958,
+     "same": true
+    },
+    {
+     "cos": 0.753,
+     "same": true
+    },
+    {
+     "cos": 0.783,
+     "same": true
+    },
+    {
+     "cos": 0.598,
+     "same": true
+    },
+    {
+     "cos": 0.866,
+     "same": true
+    },
+    {
+     "cos": 0.856,
+     "same": true
+    },
+    {
+     "cos": 0.896,
+     "same": true
+    },
+    {
+     "cos": 0.789,
+     "same": false
+    },
+    {
+     "cos": 0.697,
+     "same": false
+    },
+    {
+     "cos": 0.546,
+     "same": false
+    },
+    {
+     "cos": 0.695,
+     "same": false
+    },
+    {
+     "cos": 0.698,
+     "same": false
+    },
+    {
+     "cos": 0.727,
+     "same": false
+    },
+    {
+     "cos": 0.681,
+     "same": false
+    },
+    {
+     "cos": 0.722,
+     "same": false
+    },
+    {
+     "cos": 0.525,
+     "same": false
+    },
+    {
+     "cos": 0.557,
+     "same": false
+    }
+   ]
+  },
+  "nomic-embed-text": {
+   "same_loop_acc": 0.611,
+   "false_merge": 5,
+   "acc_at_085": 0.611,
+   "pairs": [
+    {
+     "cos": 0.788,
+     "same": true
+    },
+    {
+     "cos": 0.874,
+     "same": true
+    },
+    {
+     "cos": 0.896,
+     "same": true
+    },
+    {
+     "cos": 0.867,
+     "same": true
+    },
+    {
+     "cos": 0.836,
+     "same": true
+    },
+    {
+     "cos": 0.878,
+     "same": true
+    },
+    {
+     "cos": 0.979,
+     "same": true
+    },
+    {
+     "cos": 0.908,
+     "same": true
+    },
+    {
+     "cos": 0.88,
+     "same": false
+    },
+    {
+     "cos": 0.888,
+     "same": false
+    },
+    {
+     "cos": 0.816,
+     "same": false
+    },
+    {
+     "cos": 0.936,
+     "same": false
+    },
+    {
+     "cos": 0.885,
+     "same": false
+    },
+    {
+     "cos": 0.823,
+     "same": false
+    },
+    {
+     "cos": 0.857,
+     "same": false
+    },
+    {
+     "cos": 0.832,
+     "same": false
+    },
+    {
+     "cos": 0.665,
+     "same": false
+    },
+    {
+     "cos": 0.775,
+     "same": false
+    }
+   ]
+  },
+  "text-embedding-3-small": {
+   "same_loop_acc": 0.556,
+   "false_merge": 0,
+   "acc_at_085": 0.556,
+   "pairs": [
+    {
+     "cos": 0.731,
+     "same": true
+    },
+    {
+     "cos": 0.514,
+     "same": true
+    },
+    {
+     "cos": 0.629,
+     "same": true
+    },
+    {
+     "cos": 0.609,
+     "same": true
+    },
+    {
+     "cos": 0.432,
+     "same": true
+    },
+    {
+     "cos": 0.754,
+     "same": true
+    },
+    {
+     "cos": 0.668,
+     "same": true
+    },
+    {
+     "cos": 0.757,
+     "same": true
+    },
+    {
+     "cos": 0.526,
+     "same": false
+    },
+    {
+     "cos": 0.639,
+     "same": false
+    },
+    {
+     "cos": 0.401,
+     "same": false
+    },
+    {
+     "cos": 0.633,
+     "same": false
+    },
+    {
+     "cos": 0.672,
+     "same": false
+    },
+    {
+     "cos": 0.44,
+     "same": false
+    },
+    {
+     "cos": 0.579,
+     "same": false
+    },
+    {
+     "cos": 0.575,
+     "same": false
+    },
+    {
+     "cos": 0.26,
+     "same": false
+    },
+    {
+     "cos": 0.106,
+     "same": false
+    }
+   ]
+  },
+  "none": {
+   "same_loop_acc": 0.556,
+   "false_merge": 0
+  }
+ },
+ "compaction_faithfulness": {
+  "e2b": {
+   "llm": 1.0,
+   "contains": 1.0
+  },
+  "e4b": {
+   "llm": 1.0,
+   "contains": 1.0
+  },
+  "gpt": {
+   "llm": 1.0,
+   "contains": 1.0
+  },
+  "judge": "gpt-4o-mini",
+  "judge_check": {
+   "gpt-4o-mini": "16/16",
+   "gemma4:e4b": "16/16"
+  },
+  "facts": 36
+ },
+ "approval_compliance": [
+  {
+   "stage": "고치기 전 (gpt-4o-mini)",
+   "cells": [
+    "2/2",
+    "0/2",
+    "기록 없음"
+   ]
+  },
+  {
+   "stage": "프롬프트 규칙만 (gpt-4o-mini)",
+   "cells": [
+    "1/1",
+    "0/2",
+    "1/1"
+   ]
+  },
+  {
+   "stage": "규칙 + 루프 종료 (gpt-4o-mini)",
+   "cells": [
+    "3/3",
+    "3/3",
+    "3/3"
+   ]
+  },
+  {
+   "stage": "규칙 + 루프 종료 (gemma4:e4b)",
+   "cells": [
+    "3/3",
+    "3/3",
+    "3/3"
+   ]
+  }
+ ],
+ "piper": [
+  {
+   "chars": 13,
+   "synth_s": 0.142,
+   "audio_s": 0.65
+  },
+  {
+   "chars": 58,
+   "synth_s": 0.578,
+   "audio_s": 3.02
+  },
+  {
+   "chars": 89,
+   "synth_s": 0.985,
+   "audio_s": 4.71
+  },
+  {
+   "chars": 110,
+   "synth_s": 1.319,
+   "audio_s": 6.12
+  }
+ ],
+ "delegation": {
+  "local": {
+   "total_s": 36.48,
+   "ask_agent": "3/3",
+   "karen_tool": "3/3"
+  },
+  "cloud": {
+   "total_s": 8.48,
+   "ask_agent": "3/3",
+   "karen_tool": "3/3"
+  }
+ },
+ "focus": {
+  "first_reply": [
+   {
+    "task": "온보딩 계획",
+    "local": 20.08,
+    "cloud": 2.77
+   },
+   {
+    "task": "발표 목차",
+    "local": 19.47,
+    "cloud": 2.89
+   }
+  ],
+  "reference": [
+   {
+    "rule": "조사 결과가 남음(작업)",
+    "cells": [
+     "2/2",
+     "2/2"
+    ]
+   },
+   {
+    "rule": "선례 3개 이하(조사 건)",
+    "cells": [
+     "2/4",
+     "4/4"
+    ]
+   },
+   {
+    "rule": "출처가 URL(선례)",
+    "cells": [
+     "9/12",
+     "6/8"
+    ]
+   },
+   {
+    "rule": "특징 두 줄 이하(선례)",
+    "cells": [
+     "10/12",
+     "6/8"
+    ]
+   },
+   {
+    "rule": "특징 60자 이하(선례)",
+    "cells": [
+     "5/12",
+     "6/8"
+    ]
+   },
+   {
+    "rule": "한국어(선례)",
+    "cells": [
+     "10/12",
+     "8/8"
+    ]
+   },
+   {
+    "rule": "번호 목록 없음(조사 건)",
+    "cells": [
+     "4/4",
+     "4/4"
+    ]
+   }
+  ],
+  "steps": {
+   "local": [
+    5,
+    5
+   ],
+   "cloud": [
+    5,
+    1
+   ]
+  }
+ },
+ "proactive_compare": {
+  "_note": "dev 12사례(지시문과 임계치를 고를 때 봤다), holdout 12사례(지시문을 쓰기 전에 봐서 오염됐다), test 20사례(지시문을 보지 않은 에이전트가 만든 블라인드). 모두 x3. 임계치는 dev 에서 고른 값을 그대로 썼다",
+  "holdout": [
+   {
+    "label": "옛 지시문 · gpt-4o-mini",
+    "threshold": 0.6,
+    "recall": 0.333,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "옛 지시문 · gemma4:e2b",
+    "threshold": 0.6,
+    "recall": 0.944,
+    "false_alarm": 0.556
+   },
+   {
+    "label": "옛 지시문 · gemma4:e4b",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.444
+   },
+   {
+    "label": "새 지시문 · gpt-4o-mini",
+    "threshold": 0.85,
+    "recall": 0.778,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "새 지시문 · gemma4:e2b",
+    "threshold": 0.9,
+    "recall": 0.778,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "새 지시문 · gemma4:e4b",
+    "threshold": 0.85,
+    "recall": 1.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision tev1:0.8b",
+    "threshold": 0.6,
+    "recall": 0.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision tev1",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision nimble",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.0
+   }
+  ],
+  "dev": [
+   {
+    "label": "옛 지시문 · gpt-4o-mini",
+    "threshold": 0.6,
+    "recall": 0.167,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "옛 지시문 · gemma4:e2b",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.444
+   },
+   {
+    "label": "옛 지시문 · gemma4:e4b",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.444
+   },
+   {
+    "label": "새 지시문 · gpt-4o-mini",
+    "threshold": 0.85,
+    "recall": 0.889,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "새 지시문 · gemma4:e2b",
+    "threshold": 0.9,
+    "recall": 0.944,
+    "false_alarm": 0.167
+   },
+   {
+    "label": "새 지시문 · gemma4:e4b",
+    "threshold": 0.85,
+    "recall": 1.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision tev1:0.8b",
+    "threshold": 0.6,
+    "recall": 0.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision tev1",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision nimble",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.167
+   }
+  ],
+  "new_prompt_at_0_6": {
+   "dev": {
+    "gpt": [
+     1.0,
+     0.444
+    ],
+    "e2b": [
+     1.0,
+     0.833
+    ],
+    "e4b": [
+     1.0,
+     0.389
+    ]
+   },
+   "holdout": {
+    "gpt": [
+     1.0,
+     0.667
+    ],
+    "e2b": [
+     0.889,
+     0.556
+    ],
+    "e4b": [
+     1.0,
+     0.556
+    ]
+   }
+  },
+  "old_gpt_silence": "hold-out 에서 놓친 12번 모두 사고의 decision=silent",
+  "test": [
+   {
+    "label": "옛 지시문 · gpt-4o-mini",
+    "threshold": 0.6,
+    "recall": 0.633,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "옛 지시문 · gemma4:e2b",
+    "threshold": 0.9,
+    "recall": 0.467,
+    "false_alarm": 0.267
+   },
+   {
+    "label": "옛 지시문 · gemma4:e4b",
+    "threshold": 0.85,
+    "recall": 1.0,
+    "false_alarm": 0.2
+   },
+   {
+    "label": "새 지시문 · gpt-4o-mini",
+    "threshold": 0.85,
+    "recall": 0.767,
+    "false_alarm": 0.233
+   },
+   {
+    "label": "새 지시문 · gemma4:e2b",
+    "threshold": 0.9,
+    "recall": 0.833,
+    "false_alarm": 0.2
+   },
+   {
+    "label": "새 지시문 · gemma4:e4b",
+    "threshold": 0.85,
+    "recall": 0.967,
+    "false_alarm": 0.2
+   },
+   {
+    "label": "decision tev1:0.8b",
+    "threshold": 0.6,
+    "recall": 0.0,
+    "false_alarm": 0.0
+   },
+   {
+    "label": "decision tev1",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.3
+   },
+   {
+    "label": "decision nimble",
+    "threshold": 0.6,
+    "recall": 1.0,
+    "false_alarm": 0.3
+   }
+  ],
+  "old_prompt_dev_best_threshold": {
+   "gpt": "0.6 (어느 임계치도 recall 0.167 을 넘지 못함)",
+   "e2b": "0.9 (0.833/0.056)",
+   "e4b": "0.85 (1.0/0.222)"
+  },
+  "test_hard_negatives": [
+   "test_tax_docs_due_mid_january",
+   "test_promo_newsletter",
+   "test_reminder_already_acknowledged",
+   "test_afternoon_1on1_confirmed"
+  ],
+  "sec_per_case_test": {
+   "gpt-4o-mini": 2.28,
+   "gpt-4o-mini + tev1": 2.77,
+   "gpt-4o-mini + nimble": 3.05,
+   "gemma4:e2b": 6.97,
+   "gemma4:e4b": 10.96
+  },
+  "_dev_note": "dev 의 옛 지시문은 임계치 0.6 값(old_dev_sweep). 블라인드(test) 에는 dev 에서 고른 임계치(e2b 0.9, e4b 0.85)를 썼다"
+ },
+ "summary_language": {
+  "before": {
+   "e2b": {
+    "korean": "5/9",
+    "verbatim": 0.722
+   },
+   "e4b": {
+    "korean": "2/9",
+    "verbatim": 0.556
+   },
+   "gpt": {
+    "korean": "0/9",
+    "verbatim": 0.333
+   }
+  },
+  "after": {
+   "e2b": {
+    "korean": "9/9",
+    "verbatim": 1.0
+   },
+   "e4b": {
+    "korean": "9/9",
+    "verbatim": 1.0
+   },
+   "gpt": {
+    "korean": "9/9",
+    "verbatim": 1.0
+   }
+  },
+  "retention_llm": {
+   "before": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "after": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "english_check": "scripts/experiments/summary_language_check.py: 한국어 2, 영어 2, 코드 섞인 한국어 1 대화 x2. 세 모델 모두 10/10 대화 언어로 요약"
+ },
+ "memory_recall": {
+  "before": {
+   "salient_hit_at_3": {
+    "0": 1.0,
+    "3": 0.0,
+    "6": 0.0,
+    "9": 0.0,
+    "12": 0.0,
+    "20": 0.0,
+    "40": 0.0
+   },
+   "core_fact_kept": {
+    "0": 1.0,
+    "4": 1.0,
+    "8": 1.0,
+    "12": 0.0,
+    "20": 0.0,
+    "40": 0.0
+   },
+   "particle_hit_at_3": 0.0,
+   "deictic_recall": 0.0,
+   "referent_recall": 0.125,
+   "rehearsal_per_fixed_fact": 10.0,
+   "overreach_rate": 0.0,
+   "postgres": {
+    "recall_p50_ms": 2.33,
+    "recall_p95_ms": 3.01,
+    "fixed_p50_ms": 0.66
+   }
+  },
+  "after": {
+   "salient_hit_at_3": {
+    "0": 1.0,
+    "3": 1.0,
+    "6": 1.0,
+    "9": 1.0,
+    "12": 1.0,
+    "20": 1.0,
+    "40": 1.0
+   },
+   "core_fact_kept": {
+    "0": 1.0,
+    "4": 1.0,
+    "8": 1.0,
+    "12": 1.0,
+    "20": 1.0,
+    "40": 1.0
+   },
+   "particle_hit_at_3": 1.0,
+   "deictic_recall": 1.0,
+   "referent_recall": 1.0,
+   "rehearsal_per_fixed_fact": 0.0,
+   "overreach_rate": 0.0,
+   "postgres": {
+    "recall_p50_ms": 7.27,
+    "recall_p95_ms": 8.85,
+    "fixed_p50_ms": 2.07
+   }
+  }
+ },
+ "thought_router": {
+  "_note": "router(P(think)) 오프라인 평가. 합성은 datasets/thought_router.jsonl 62건(애매 4건 제외 58건), 실사용은 jarvis 세션의 실제 요청 34건(애매 4건 제외 30건, 원문은 저장소에 두지 않음). 라벨은 router 학습 기준 문구로 사람이 아닌 Claude 가 매겼다.",
+  "synthetic": {
+   "ctx2_t0.3": {
+    "accuracy": 0.914,
+    "think_recall": 0.941,
+    "direct_recall": 0.902,
+    "promise_loss": 0.667,
+    "latency_p50": 0.065
+   },
+   "ctx0_t0.3": {
+    "accuracy": 0.931,
+    "think_recall": 0.882,
+    "direct_recall": 0.951,
+    "promise_loss": 0.667,
+    "latency_p50": 0.065
+   },
+   "max_t0.2": {
+    "accuracy": 0.914,
+    "think_recall": 0.941,
+    "direct_recall": 0.902,
+    "promise_loss": 0.667,
+    "latency_p50": 0.129
+   }
+  },
+  "real": {
+   "ctx2_t0.3": {
+    "accuracy": 0.7,
+    "think_recall": 0.75,
+    "direct_recall": 0.682,
+    "latency_p50": 0.117
+   },
+   "ctx0_t0.3": {
+    "accuracy": 0.9,
+    "think_recall": 0.625,
+    "direct_recall": 1.0,
+    "latency_p50": 0.064
+   },
+   "max_t0.2": {
+    "accuracy": 0.767,
+    "think_recall": 1.0,
+    "direct_recall": 0.682,
+    "latency_p50": 0.184
+   }
+  }
+ },
+ "karen_budget_calls": {
+  "model": "gpt-4o-mini",
+  "repeat": 3,
+  "cases": 8,
+  "correct": 24,
+  "total": 24,
+  "misses": []
+ },
+ "goal_karen": {
+  "with_money": true,
+  "assumed": {
+   "cash": 150000000,
+   "monthly_limit": 2000000,
+   "regions": [
+    "서울",
+    "경기"
+   ]
+  },
+  "date": "2026-10-29",
+  "model": "gpt-4o",
+  "truth_lines": [
+   "추천 1순위(분양) 항목: [0000061195-02-05-05] [정정공고]시흥거모 S-1블록 공공분양주택 입주자모집공고, 59.8000B 보금자리론 2억 5,687만원 + 현금 1억 5,000만원, 월 부담 최대 139만원, 마감 2026.11.17, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061195&ccrCnntSysDsCd=02&uppAisTpCd=05&aisTpCd=05&mi=1027 자격은 공고문 확인이 필요해요",
+   "추천 1순위(임대) 항목: [2015122300020958-03-06-10] 화성시 동탄지역 행복주택 입주자 모집 공고[입주자격완화/선계약후검증]('26.10.27.), 20B (원)계 16A형 대학생, 청년(소득無) 대출 없이 현금 1,632만원, 월 부담 최대 7만원, 마감 2026.11.12, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020958&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026"
+  ],
+  "truth_ids": [
+   "0000061195",
+   "2015122300020958"
+  ],
+  "truth_keys": [
+   "0000061195-02-05-05",
+   "2015122300020958-03-06-10"
+  ],
+  "links_exact": true,
+  "truth_tool_sec": 17.9,
+  "runs": 3,
+  "parsed": 3,
+  "reports": 1,
+  "recall": true,
+  "only_top": true,
+  "seed_first": false,
+  "answer_after": 0,
+  "asks": 0,
+  "notes": [
+   "조건에 맞는 공고 추천 완료",
+   "공고 추천 진행 완료",
+   "목표에 맞는 공고 추천 완료"
+  ],
+  "repeated_seeded": null,
+  "repeat_reports": 0,
+  "took_sec": [
+   25.9,
+   24.9,
+   26.9
+  ],
+  "tokens_in": [
+   10861,
+   10875,
+   10889
+  ],
+  "tokens_out": [
+   383,
+   379,
+   382
+  ],
+  "reported_keys": [
+   "0000061195-02-05-05",
+   "2015122300020958-03-06-10"
+  ]
+ },
+ "goal_karen_no_money": {
+  "with_money": false,
+  "assumed": {
+   "cash": 150000000,
+   "monthly_limit": 2000000,
+   "regions": [
+    "서울",
+    "경기"
+   ]
+  },
+  "date": "2026-10-29",
+  "model": "gpt-4o",
+  "truth_lines": [],
+  "truth_ids": [],
+  "truth_keys": [],
+  "links_exact": true,
+  "truth_tool_sec": 0.0,
+  "runs": 2,
+  "parsed": 1,
+  "reports": 1,
+  "recall": null,
+  "only_top": true,
+  "seed_first": false,
+  "answer_after": 0,
+  "asks": 0,
+  "notes": [],
+  "repeated_seeded": null,
+  "repeat_reports": 0,
+  "took_sec": [
+   2.5,
+   2.0
+  ],
+  "tokens_in": [
+   10502,
+   10502
+  ],
+  "tokens_out": [
+   53,
+   77
+  ],
+  "reported_keys": [
+   "ask-money"
+  ]
+ },
+ "goal_karen_seed_first": {
+  "with_money": true,
+  "assumed": {
+   "cash": 150000000,
+   "monthly_limit": 2000000,
+   "regions": [
+    "서울",
+    "경기"
+   ]
+  },
+  "date": "2026-10-28",
+  "model": "gpt-4o",
+  "truth_lines": [
+   "추천 1순위(분양) 항목: [0000061195-02-05-05] [정정공고]시흥거모 S-1블록 공공분양주택 입주자모집공고, 59.8000B 월 부담 최대 139만원, 마감 2026.11.17, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061195&ccrCnntSysDsCd=02&uppAisTpCd=05&aisTpCd=05&mi=1027 자격은 공고문 확인이 필요해요",
+   "추천 1순위(임대) 항목: [2015122300020958-03-06-10] 화성시 동탄지역 행복주택 입주자 모집 공고[입주자격완화/선계약후검증]('26.10.27.), 20B (원)계 16A형 대학생, 청년(소득無) 월 부담 최대 7만원, 마감 2026.11.12, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020958&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026"
+  ],
+  "truth_ids": [
+   "0000061195",
+   "2015122300020958"
+  ],
+  "truth_keys": [
+   "0000061195-02-05-05",
+   "2015122300020958-03-06-10"
+  ],
+  "links_exact": true,
+  "truth_tool_sec": 24.0,
+  "runs": 1,
+  "parsed": 1,
+  "reports": 1,
+  "recall": true,
+  "only_top": true,
+  "seed_first": true,
+  "repeated_seeded": false,
+  "repeat_reports": 0,
+  "took_sec": [
+   27.0
+  ],
+  "tokens_in": [
+   10458
+  ],
+  "tokens_out": [
+   346
+  ],
+  "reported_keys": [
+   "0000061195-02-05-05",
+   "2015122300020958-03-06-10"
+  ]
+ },
+ "goal_karen_answer_after": {
+  "with_money": true,
+  "assumed": {
+   "cash": 150000000,
+   "monthly_limit": 2000000,
+   "regions": [
+    "서울",
+    "경기"
+   ]
+  },
+  "date": "2026-10-29",
+  "model": "gpt-4o",
+  "truth_lines": [
+   "추천 1순위(분양) 항목: [0000061195-02-05-05] [정정공고]시흥거모 S-1블록 공공분양주택 입주자모집공고, 59.8000B 보금자리론 2억 5,687만원 + 현금 1억 5,000만원, 월 부담 최대 139만원, 마감 2026.11.17, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061195&ccrCnntSysDsCd=02&uppAisTpCd=05&aisTpCd=05&mi=1027 자격은 공고문 확인이 필요해요",
+   "추천 1순위(임대) 항목: [2015122300020958-03-06-10] 화성시 동탄지역 행복주택 입주자 모집 공고[입주자격완화/선계약후검증]('26.10.27.), 20B (원)계 16A형 대학생, 청년(소득無) 대출 없이 현금 1,632만원, 월 부담 최대 7만원, 마감 2026.11.12, https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020958&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026"
+  ],
+  "truth_ids": [
+   "0000061195",
+   "2015122300020958"
+  ],
+  "truth_keys": [
+   "0000061195-02-05-05",
+   "2015122300020958-03-06-10"
+  ],
+  "links_exact": true,
+  "truth_tool_sec": 19.7,
+  "runs": 4,
+  "parsed": 3,
+  "reports": 1,
+  "recall": true,
+  "only_top": true,
+  "seed_first": false,
+  "answer_after": 2,
+  "asks": 1,
+  "notes": [
+   "조건에 맞는 공고를 추천했습니다.",
+   "조건 및 원리금 납부액에 따른 추천 공고 전달"
+  ],
+  "repeated_seeded": null,
+  "repeat_reports": 0,
+  "took_sec": [
+   2.7,
+   2.1,
+   22.8,
+   22.7
+  ],
+  "tokens_in": [
+   10502,
+   10502,
+   10861,
+   10877
+  ],
+  "tokens_out": [
+   53,
+   101,
+   377,
+   389
+  ],
+  "reported_keys": [
+   "ask-money",
+   "0000061195-02-05-05",
+   "2015122300020958-03-06-10"
+  ]
+ },
+ "goal_nl_live": {
+  "mode": "live",
+  "model": "gpt-4o",
+  "repeat": 3,
+  "keep_goal": "12/12",
+  "once_not_goal": "12/12"
+ },
+ "goal_nl_clean": {
+  "mode": "clean",
+  "model": "gpt-4o",
+  "repeat": 3,
+  "keep_goal": "12/12",
+  "once_not_goal": "12/12"
+ },
+ "goal_nl_none": {
+  "mode": "none",
+  "model": "gpt-4o",
+  "repeat": 3,
+  "keep_goal": "12/12",
+  "once_not_goal": "12/12"
+ },
+ "goal_nl_live_ws": {
+  "date": "2026-10-29",
+  "model": "gpt-4o",
+  "via": "live WS, test- sessions, real memory and inner thought",
+  "with_rule": {
+   "keep_goal": "8/8",
+   "once_not_goal": "8/8"
+  },
+  "without_rule": {
+   "keep_goal": "0/5",
+   "phrase": "조건 및 가장 좋은 원리금 납부액을 추천하는 공고만 알려줘"
+  }
+ },
+ "external_delivery": {
+  "d07aa36_before_196": {
+   "steady_5": [
+    {
+     "fail_rate": 0.0,
+     "created": 1200,
+     "delivered": 1200,
+     "loss_rate": 0.0,
+     "loss_min": 0.0,
+     "loss_max": 0.0,
+     "duplicates": 0,
+     "thought_calls_mean": 24
+    },
+    {
+     "fail_rate": 0.2,
+     "created": 1200,
+     "delivered": 940,
+     "loss_rate": 0.217,
+     "loss_min": 0.125,
+     "loss_max": 0.375,
+     "duplicates": 0,
+     "thought_calls_mean": 24
+    },
+    {
+     "fail_rate": 0.5,
+     "created": 1200,
+     "delivered": 620,
+     "loss_rate": 0.483,
+     "loss_min": 0.292,
+     "loss_max": 0.625,
+     "duplicates": 0,
+     "thought_calls_mean": 24
+    }
+   ],
+   "burst_50": [
+    {
+     "fail_rate": 0.0,
+     "created": 500,
+     "delivered": 200,
+     "loss_rate": 0.6,
+     "loss_min": 0.6,
+     "loss_max": 0.6,
+     "duplicates": 0,
+     "thought_calls_mean": 1
+    },
+    {
+     "fail_rate": 0.2,
+     "created": 500,
+     "delivered": 180,
+     "loss_rate": 0.64,
+     "loss_min": 0.6,
+     "loss_max": 1.0,
+     "duplicates": 0,
+     "thought_calls_mean": 1
+    },
+    {
+     "fail_rate": 0.5,
+     "created": 500,
+     "delivered": 80,
+     "loss_rate": 0.84,
+     "loss_min": 0.6,
+     "loss_max": 1.0,
+     "duplicates": 0,
+     "thought_calls_mean": 1
+    }
+   ],
+   "overload_30": [
+    {
+     "fail_rate": 0.0,
+     "created": 7200,
+     "delivered": 4800,
+     "loss_rate": 0.333,
+     "loss_min": 0.333,
+     "loss_max": 0.333,
+     "duplicates": 0,
+     "thought_calls_mean": 24
+    },
+    {
+     "fail_rate": 0.2,
+     "created": 7200,
+     "delivered": 3760,
+     "loss_rate": 0.478,
+     "loss_min": 0.417,
+     "loss_max": 0.583,
+     "duplicates": 0,
+     "thought_calls_mean": 24
+    },
+    {
+     "fail_rate": 0.5,
+     "created": 7200,
+     "delivered": 2480,
+     "loss_rate": 0.656,
+     "loss_min": 0.528,
+     "loss_max": 0.75,
+     "duplicates": 0,
+     "thought_calls_mean": 24
+    }
+   ],
+   "seeds": 10
+  },
+  "b3b2b0b_after_196": {
+   "steady_5": [
+    {
+     "fail_rate": 0.0,
+     "created": 1200,
+     "delivered": 1200,
+     "loss_rate": 0.0,
+     "loss_min": 0.0,
+     "loss_max": 0.0,
+     "duplicates": 0,
+     "thought_calls_mean": 24
+    },
+    {
+     "fail_rate": 0.2,
+     "created": 1200,
+     "delivered": 940,
+     "loss_rate": 0.217,
+     "loss_min": 0.125,
+     "loss_max": 0.375,
+     "duplicates": 0,
+     "thought_calls_mean": 24
+    },
+    {
+     "fail_rate": 0.5,
+     "created": 1200,
+     "delivered": 620,
+     "loss_rate": 0.483,
+     "loss_min": 0.292,
+     "loss_max": 0.625,
+     "duplicates": 0,
+     "thought_calls_mean": 24
+    }
+   ],
+   "burst_50": [
+    {
+     "fail_rate": 0.0,
+     "created": 500,
+     "delivered": 500,
+     "loss_rate": 0.0,
+     "loss_min": 0.0,
+     "loss_max": 0.0,
+     "duplicates": 0,
+     "thought_calls_mean": 3
+    },
+    {
+     "fail_rate": 0.2,
+     "created": 500,
+     "delivered": 420,
+     "loss_rate": 0.16,
+     "loss_min": 0.0,
+     "loss_max": 0.6,
+     "duplicates": 0,
+     "thought_calls_mean": 3
+    },
+    {
+     "fail_rate": 0.5,
+     "created": 500,
+     "delivered": 270,
+     "loss_rate": 0.46,
+     "loss_min": 0.0,
+     "loss_max": 1.0,
+     "duplicates": 0,
+     "thought_calls_mean": 3
+    }
+   ],
+   "overload_30": [
+    {
+     "fail_rate": 0.0,
+     "created": 7200,
+     "delivered": 5500,
+     "loss_rate": 0.236,
+     "loss_min": 0.236,
+     "loss_max": 0.236,
+     "duplicates": 0,
+     "thought_calls_mean": 28
+    },
+    {
+     "fail_rate": 0.2,
+     "created": 7200,
+     "delivered": 4360,
+     "loss_rate": 0.394,
+     "loss_min": 0.319,
+     "loss_max": 0.514,
+     "duplicates": 0,
+     "thought_calls_mean": 28
+    },
+    {
+     "fail_rate": 0.5,
+     "created": 7200,
+     "delivered": 2850,
+     "loss_rate": 0.604,
+     "loss_min": 0.458,
+     "loss_max": 0.708,
+     "duplicates": 0,
+     "thought_calls_mean": 28
+    }
+   ],
+   "seeds": 10
+  },
+  "3c7e938_after_197": {
+   "steady_5": [
+    {
+     "fail_rate": 0.0,
+     "created": 1200,
+     "delivered": 1200,
+     "loss_rate": 0.0,
+     "loss_min": 0.0,
+     "loss_max": 0.0,
+     "duplicates": 0,
+     "thought_calls_mean": 24
+    },
+    {
+     "fail_rate": 0.2,
+     "created": 1200,
+     "delivered": 1200,
+     "loss_rate": 0.0,
+     "loss_min": 0.0,
+     "loss_max": 0.0,
+     "duplicates": 0,
+     "thought_calls_mean": 25.5
+    },
+    {
+     "fail_rate": 0.5,
+     "created": 1200,
+     "delivered": 1200,
+     "loss_rate": 0.0,
+     "loss_min": 0.0,
+     "loss_max": 0.0,
+     "duplicates": 0,
+     "thought_calls_mean": 27.3
+    }
+   ],
+   "burst_50": [
+    {
+     "fail_rate": 0.0,
+     "created": 500,
+     "delivered": 500,
+     "loss_rate": 0.0,
+     "loss_min": 0.0,
+     "loss_max": 0.0,
+     "duplicates": 0,
+     "thought_calls_mean": 3
+    },
+    {
+     "fail_rate": 0.2,
+     "created": 500,
+     "delivered": 500,
+     "loss_rate": 0.0,
+     "loss_min": 0.0,
+     "loss_max": 0.0,
+     "duplicates": 0,
+     "thought_calls_mean": 3.2
+    },
+    {
+     "fail_rate": 0.5,
+     "created": 500,
+     "delivered": 500,
+     "loss_rate": 0.0,
+     "loss_min": 0.0,
+     "loss_max": 0.0,
+     "duplicates": 0,
+     "thought_calls_mean": 4.2
+    }
+   ],
+   "overload_30": [
+    {
+     "fail_rate": 0.0,
+     "created": 7200,
+     "delivered": 5500,
+     "loss_rate": 0.236,
+     "loss_min": 0.236,
+     "loss_max": 0.236,
+     "duplicates": 0,
+     "thought_calls_mean": 28
+    },
+    {
+     "fail_rate": 0.2,
+     "created": 7200,
+     "delivered": 5500,
+     "loss_rate": 0.236,
+     "loss_min": 0.236,
+     "loss_max": 0.236,
+     "duplicates": 0,
+     "thought_calls_mean": 29.4
+    },
+    {
+     "fail_rate": 0.5,
+     "created": 7200,
+     "delivered": 5500,
+     "loss_rate": 0.236,
+     "loss_min": 0.236,
+     "loss_max": 0.236,
+     "duplicates": 0,
+     "thought_calls_mean": 32.1
+    }
+   ],
+   "seeds": 10
+  }
+ },
+ "housing_delivery": {
+  "3c7e938_after_197": {
+   "rows": [
+    {
+     "fail_rate": 0.0,
+     "posted": 1198,
+     "never_delivered": 0,
+     "miss_rate": 0.0,
+     "delivered_twice": 0,
+     "notify_failures": 0,
+     "notifications": 798
+    },
+    {
+     "fail_rate": 0.1,
+     "posted": 1198,
+     "never_delivered": 0,
+     "miss_rate": 0.0,
+     "delivered_twice": 0,
+     "notify_failures": 73,
+     "notifications": 747
+    },
+    {
+     "fail_rate": 0.3,
+     "posted": 1198,
+     "never_delivered": 0,
+     "miss_rate": 0.0,
+     "delivered_twice": 0,
+     "notify_failures": 264,
+     "notifications": 632
+    }
+   ],
+   "seeds": 20,
+   "days": 60,
+   "open_days": 14
+  },
+  "b3b2b0b_before_197": {
+   "rows": [
+    {
+     "fail_rate": 0.0,
+     "posted": 1198,
+     "never_delivered": 0,
+     "miss_rate": 0.0,
+     "delivered_twice": 0,
+     "notify_failures": 0,
+     "notifications": 798
+    },
+    {
+     "fail_rate": 0.1,
+     "posted": 1198,
+     "never_delivered": 115,
+     "miss_rate": 0.096,
+     "delivered_twice": 0,
+     "notify_failures": 73,
+     "notifications": 725
+    },
+    {
+     "fail_rate": 0.3,
+     "posted": 1198,
+     "never_delivered": 352,
+     "miss_rate": 0.294,
+     "delivered_twice": 0,
+     "notify_failures": 234,
+     "notifications": 564
+    }
+   ],
+   "seeds": 20,
+   "days": 60,
+   "open_days": 14
+  }
+ },
+ "session_race": {
+  "eb41779_before_195": {
+   "both_gone": 726,
+   "both_alive": 912,
+   "alive_without_history": 362,
+   "history_without_session": 0,
+   "trials": 2000,
+   "inconsistent": 362,
+   "inconsistent_rate": 0.181
+  },
+  "d07aa36_after_195": {
+   "both_gone": 726,
+   "both_alive": 1274,
+   "alive_without_history": 0,
+   "history_without_session": 0,
+   "trials": 2000,
+   "inconsistent": 0,
+   "inconsistent_rate": 0.0
+  }
+ },
+ "tool_reload": {
+  "3c7e938_after_195": {
+   "watch": {
+    "new_file": {
+     "runs": 30,
+     "timeouts": 0,
+     "p50_ms": 89.6,
+     "p95_ms": 115.9,
+     "max_ms": 122.8
+    },
+    "modified_file": {
+     "runs": 30,
+     "timeouts": 0,
+     "p50_ms": 80.5,
+     "p95_ms": 89.9,
+     "max_ms": 109.0
+    },
+    "called_after_change": "30/30",
+    "same_size_edit_seen": "9/30",
+    "same_size_wait_s": 3.0
+   },
+   "restart": {
+    "restart": {
+     "runs": 10,
+     "timeouts": 0,
+     "p50_ms": 289.6,
+     "p95_ms": 394.9,
+     "max_ms": 394.9
+    }
+   }
+  },
+  "eb41779_before_195": {
+   "static": {
+    "boot_tool_loaded": true,
+    "late_tool_visible_after_s": 5.0,
+    "late_tool_visible": false
+   },
+   "restart": {
+    "restart": {
+     "runs": 10,
+     "timeouts": 0,
+     "p50_ms": 292.7,
+     "p95_ms": 395.6,
+     "max_ms": 395.6
+    }
+   }
+  },
+  "after_cache_fix": {
+   "watch": {
+    "new_file": {
+     "runs": 30,
+     "timeouts": 0,
+     "p50_ms": 77.1,
+     "p95_ms": 122.6,
+     "max_ms": 123.8
+    },
+    "modified_file": {
+     "runs": 30,
+     "timeouts": 0,
+     "p50_ms": 78.0,
+     "p95_ms": 94.7,
+     "max_ms": 123.3
+    },
+    "called_after_change": "30/30",
+    "same_size_edit_seen": "30/30",
+    "same_size_wait_s": 3.0
+   }
+  }
+ },
+ "orchestration_patterns": {
+  "rows": [
+   {
+    "pattern": "supervisor",
+    "wall_s_mean": 0.619,
+    "wall_s_min": 0.61,
+    "wall_s_max": 0.624,
+    "sub_agent_calls": 4,
+    "supervisor_model_calls": 2,
+    "agents_used": [
+     "planner",
+     "researcher",
+     "reviewer",
+     "writer"
+    ],
+    "calls_that_saw_upstream": 0,
+    "success": true
+   },
+   {
+    "pattern": "supervisor_serial",
+    "wall_s_mean": 1.829,
+    "wall_s_min": 1.819,
+    "wall_s_max": 1.835,
+    "sub_agent_calls": 4,
+    "supervisor_model_calls": 5,
+    "agents_used": [
+     "planner",
+     "researcher",
+     "reviewer",
+     "writer"
+    ],
+    "calls_that_saw_upstream": 0,
+    "success": true
+   },
+   {
+    "pattern": "hierarchical",
+    "wall_s_mean": 0.604,
+    "wall_s_min": 0.603,
+    "wall_s_max": 0.604,
+    "sub_agent_calls": 4,
+    "supervisor_model_calls": 0,
+    "agents_used": [
+     "planner",
+     "researcher",
+     "reviewer",
+     "writer"
+    ],
+    "calls_that_saw_upstream": 3,
+    "success": true
+   },
+   {
+    "pattern": "market",
+    "wall_s_mean": 0.201,
+    "wall_s_min": 0.201,
+    "wall_s_max": 0.202,
+    "sub_agent_calls": 1,
+    "supervisor_model_calls": 0,
+    "agents_used": [
+     "writer"
+    ],
+    "calls_that_saw_upstream": 0,
+    "success": true
+   },
+   {
+    "pattern": "blackboard",
+    "wall_s_mean": 0.201,
+    "wall_s_min": 0.201,
+    "wall_s_max": 0.202,
+    "sub_agent_calls": 4,
+    "supervisor_model_calls": 0,
+    "agents_used": [
+     "planner",
+     "researcher",
+     "reviewer",
+     "writer"
+    ],
+    "calls_that_saw_upstream": 0,
+    "success": true
+   },
+   {
+    "pattern": "hierarchical,blackboard",
+    "wall_s_mean": 0.806,
+    "wall_s_min": 0.805,
+    "wall_s_max": 0.808,
+    "sub_agent_calls": 8,
+    "supervisor_model_calls": 0,
+    "agents_used": [
+     "planner",
+     "researcher",
+     "reviewer",
+     "writer"
+    ],
+    "calls_that_saw_upstream": 7,
+    "success": true
+   }
+  ],
+  "repeats": 5,
+  "sub_agent_s": 0.2,
+  "supervisor_model_s": 0.2,
+  "task": "분기 보고서 작성: 시장 조사 후 정리하고 검토"
+ },
+ "turn_overhead": {
+  "jsonl_memory_on": {
+   "turns_1_20": {
+    "total_ms": 2.651,
+    "security_ms": 0.004,
+    "memory_observe_ms": 0.17,
+    "memory_reinforce_ms": 0.06,
+    "repo_read_ms": 0.816,
+    "repo_write_ms": 1.176,
+    "events_ms": 0.407,
+    "model_ms": 0.007,
+    "other_ms": 0.043,
+    "framework_ms": 2.645
+   },
+   "turns_181_200": {
+    "total_ms": 16.065,
+    "security_ms": 0.004,
+    "memory_observe_ms": 0.537,
+    "memory_reinforce_ms": 0.061,
+    "repo_read_ms": 13.705,
+    "repo_write_ms": 1.262,
+    "events_ms": 0.428,
+    "model_ms": 0.007,
+    "other_ms": 0.08,
+    "framework_ms": 16.058
+   }
+  },
+  "jsonl_memory_off": {
+   "turns_1_20": {
+    "total_ms": 2.467,
+    "security_ms": 0.004,
+    "memory_observe_ms": 0.0,
+    "memory_reinforce_ms": 0.0,
+    "repo_read_ms": 0.816,
+    "repo_write_ms": 1.183,
+    "events_ms": 0.407,
+    "model_ms": 0.007,
+    "other_ms": 0.044,
+    "framework_ms": 2.458
+   },
+   "turns_181_200": {
+    "total_ms": 15.579,
+    "security_ms": 0.004,
+    "memory_observe_ms": 0.0,
+    "memory_reinforce_ms": 0.0,
+    "repo_read_ms": 13.693,
+    "repo_write_ms": 1.253,
+    "events_ms": 0.421,
+    "model_ms": 0.008,
+    "other_ms": 0.129,
+    "framework_ms": 15.571
+   }
+  },
+  "dict_memory_on": {
+   "turns_1_20": {
+    "total_ms": 0.669,
+    "security_ms": 0.003,
+    "memory_observe_ms": 0.154,
+    "memory_reinforce_ms": 0.049,
+    "repo_read_ms": 0.0,
+    "repo_write_ms": 0.006,
+    "events_ms": 0.425,
+    "model_ms": 0.006,
+    "other_ms": 0.031,
+    "framework_ms": 0.663
+   },
+   "turns_181_200": {
+    "total_ms": 1.078,
+    "security_ms": 0.003,
+    "memory_observe_ms": 0.542,
+    "memory_reinforce_ms": 0.052,
+    "repo_read_ms": 0.001,
+    "repo_write_ms": 0.006,
+    "events_ms": 0.432,
+    "model_ms": 0.007,
+    "other_ms": 0.033,
+    "framework_ms": 1.07
+   }
+  },
+  "turns_per_session": 200,
+  "sessions": 3
+ },
+ "procedure_reflection": {
+  "emma1": {
+   "successes": [
+    0,
+    3,
+    6,
+    9,
+    12,
+    15,
+    18,
+    21,
+    24,
+    27,
+    30
+   ],
+   "generational_files": {
+    "0": 0,
+    "3": 1,
+    "6": 2,
+    "9": 3,
+    "12": 4,
+    "15": 5,
+    "18": 6,
+    "21": 7,
+    "24": 8,
+    "27": 9,
+    "30": 10
+   },
+   "converged_files": {
+    "0": 0,
+    "3": 1,
+    "6": 1,
+    "9": 1,
+    "12": 1,
+    "15": 1,
+    "18": 1,
+    "21": 1,
+    "24": 1,
+    "27": 1,
+    "30": 1
+   },
+   "distill_calls_converged": 10,
+   "migration": {
+    "files_before": 10,
+    "files_after": 1,
+    "archived": 9,
+    "groups_first_run": 1,
+    "groups_second_run": 0,
+    "kept_status": "approved",
+    "revision_generation": 10
+   },
+   "cap": {
+    "task_types": 40,
+    "files": 30,
+    "distill_calls": 30
+   }
+  },
+  "emma2": {
+   "train": 46,
+   "heldout": 184,
+   "seed": 42,
+   "backbones": {
+    "gpt-4o-mini": {
+     "unguarded": {
+      "kinds": {
+       "procedure": 7,
+       "task_pattern": 14,
+       "no_change": 0,
+       "refused": 0,
+       "blocked": 0
+      },
+      "first_proposals": {
+       "agent_behavior/task_pattern": 14,
+       "procedure/revise_procedure": 7
+      },
+      "batches": 21,
+      "retried": 0,
+      "reasons": [],
+      "ticks": 11,
+      "approved": 7,
+      "would_refuse": []
+     },
+     "guarded": {
+      "kinds": {
+       "procedure": 7,
+       "task_pattern": 14,
+       "no_change": 0,
+       "refused": 0,
+       "blocked": 0
+      },
+      "first_proposals": {
+       "agent_behavior/task_pattern": 14,
+       "procedure/revise_procedure": 7
+      },
+      "batches": 21,
+      "retried": 0,
+      "reasons": [],
+      "ticks": 11,
+      "approved": 7
+     },
+     "heldout": {
+      "none": {
+       "accuracy": 0.1576,
+       "correct": 29,
+       "n": 184,
+       "with_memory": 0,
+       "by_task": {
+        "boardgame qa": 2,
+        "boolean expressions": 1,
+        "buggy tables": 1,
+        "causal understanding": 5,
+        "disambiguation qa": 5,
+        "dyck languages": 0,
+        "geometric shapes": 1,
+        "hyperbaton": 0,
+        "linguini": 0,
+        "movie recommendation": 3,
+        "multistep arithmetic": 0,
+        "nycc": 2,
+        "object counting": 0,
+        "object properties": 0,
+        "sarc triples": 2,
+        "shuffled objects": 1,
+        "spatial reasoning": 0,
+        "sportqa": 2,
+        "temporal sequence": 0,
+        "time arithmetic": 4,
+        "web of lies": 0,
+        "word sorting": 0,
+        "zebra puzzles": 0
+       }
+      },
+      "unguarded": {
+       "accuracy": 0.163,
+       "correct": 30,
+       "n": 184,
+       "with_memory": 65,
+       "by_task": {
+        "boardgame qa": 2,
+        "boolean expressions": 0,
+        "buggy tables": 0,
+        "causal understanding": 5,
+        "disambiguation qa": 5,
+        "dyck languages": 0,
+        "geometric shapes": 3,
+        "hyperbaton": 0,
+        "linguini": 0,
+        "movie recommendation": 3,
+        "multistep arithmetic": 0,
+        "nycc": 2,
+        "object counting": 0,
+        "object properties": 0,
+        "sarc triples": 2,
+        "shuffled objects": 0,
+        "spatial reasoning": 0,
+        "sportqa": 2,
+        "temporal sequence": 0,
+        "time arithmetic": 4,
+        "web of lies": 0,
+        "word sorting": 0,
+        "zebra puzzles": 2
+       },
+       "gained": 4,
+       "lost": 3
+      },
+      "guarded": {
+       "accuracy": 0.163,
+       "correct": 30,
+       "n": 184,
+       "with_memory": 65,
+       "by_task": {
+        "boardgame qa": 2,
+        "boolean expressions": 0,
+        "buggy tables": 0,
+        "causal understanding": 5,
+        "disambiguation qa": 5,
+        "dyck languages": 0,
+        "geometric shapes": 3,
+        "hyperbaton": 0,
+        "linguini": 0,
+        "movie recommendation": 3,
+        "multistep arithmetic": 0,
+        "nycc": 2,
+        "object counting": 0,
+        "object properties": 0,
+        "sarc triples": 2,
+        "shuffled objects": 0,
+        "spatial reasoning": 0,
+        "sportqa": 2,
+        "temporal sequence": 0,
+        "time arithmetic": 4,
+        "web of lies": 0,
+        "word sorting": 0,
+        "zebra puzzles": 2
+       },
+       "gained": 4,
+       "lost": 3
+      }
+     },
+     "llm_calls_this_run": 0
+    },
+    "gemma4:e2b-it-qat": {
+     "unguarded": {
+      "kinds": {
+       "procedure": 4,
+       "task_pattern": 4,
+       "no_change": 10,
+       "refused": 3,
+       "blocked": 0
+      },
+      "first_proposals": {
+       "procedure/revise_procedure": 4,
+       "execution_slip/no_change": 10,
+       "agent_behavior/task_pattern": 4
+      },
+      "batches": 21,
+      "retried": 3,
+      "reasons": [
+       "출력이 JSON 스키마(scope, action, content)에 맞지 않는다",
+       "출력이 JSON 스키마(scope, action, content)에 맞지 않는다",
+       "출력이 JSON 스키마(scope, action, content)에 맞지 않는다"
+      ],
+      "ticks": 11,
+      "approved": 4,
+      "would_refuse": [
+       "task_pattern 에는 when 과 두 글자 이상 keywords 가 하나 이상 있어야 한다",
+       "이번 작업의 정답이 들어 있다. 정답이 아니라 방법을 쓴다",
+       "이번 작업의 정답이 들어 있다. 정답이 아니라 방법을 쓴다"
+      ]
+     },
+     "guarded": {
+      "kinds": {
+       "procedure": 6,
+       "task_pattern": 3,
+       "no_change": 10,
+       "refused": 2,
+       "blocked": 0
+      },
+      "first_proposals": {
+       "procedure/revise_procedure": 5,
+       "execution_slip/no_change": 10,
+       "agent_behavior/task_pattern": 5
+      },
+      "batches": 21,
+      "retried": 6,
+      "reasons": [
+       "출력이 JSON 스키마(scope, action, content)에 맞지 않는다",
+       "출력이 JSON 스키마(scope, action, content)에 맞지 않는다",
+       "출력이 JSON 스키마(scope, action, content)에 맞지 않는다",
+       "task_pattern 에는 when 과 두 글자 이상 keywords 가 하나 이상 있어야 한다",
+       "이번 작업의 정답이 들어 있다. 정답이 아니라 방법을 쓴다",
+       "이번 작업의 정답이 들어 있다. 정답이 아니라 방법을 쓴다",
+       "이번 작업의 정답이 들어 있다. 정답이 아니라 방법을 쓴다",
+       "출력이 JSON 스키마(scope, action, content)에 맞지 않는다"
+      ],
+      "ticks": 11,
+      "approved": 6
+     },
+     "llm_calls_this_run": 0
+    },
+    "gemma4:e4b": {
+     "unguarded": {
+      "kinds": {
+       "procedure": 15,
+       "task_pattern": 5,
+       "no_change": 0,
+       "refused": 1,
+       "blocked": 0
+      },
+      "first_proposals": {
+       "procedure/revise_procedure": 15,
+       "agent_behavior/task_pattern": 5
+      },
+      "batches": 21,
+      "retried": 1,
+      "reasons": [
+       "출력이 JSON 스키마(scope, action, content)에 맞지 않는다"
+      ],
+      "ticks": 11,
+      "approved": 15,
+      "would_refuse": [
+       "이번 작업의 정답이 들어 있다. 정답이 아니라 방법을 쓴다",
+       "이번 작업의 정답이 들어 있다. 정답이 아니라 방법을 쓴다",
+       "이번 작업의 정답이 들어 있다. 정답이 아니라 방법을 쓴다"
+      ]
+     },
+     "guarded": {
+      "kinds": {
+       "procedure": 13,
+       "task_pattern": 5,
+       "no_change": 0,
+       "refused": 3,
+       "blocked": 0
+      },
+      "first_proposals": {
+       "procedure/revise_procedure": 15,
+       "agent_behavior/task_pattern": 5
+      },
+      "batches": 21,
+      "retried": 4,
+      "reasons": [
+       "이번 작업의 정답이 들어 있다. 정답이 아니라 방법을 쓴다",
+       "이번 작업의 정답이 들어 있다. 정답이 아니라 방법을 쓴다",
+       "이번 작업의 정답이 들어 있다. 정답이 아니라 방법을 쓴다",
+       "출력이 JSON 스키마(scope, action, content)에 맞지 않는다",
+       "출력이 JSON 스키마(scope, action, content)에 맞지 않는다",
+       "이번 작업의 정답이 들어 있다. 정답이 아니라 방법을 쓴다",
+       "이번 작업의 정답이 들어 있다. 정답이 아니라 방법을 쓴다"
+      ],
+      "ticks": 11,
+      "approved": 13
+     },
+     "llm_calls_this_run": 0
+    }
+   },
+   "solver": "gpt-4o-mini",
+   "train_accuracy": 0.1304
+  }
+ },
+ "loop_overflow": {
+  "benchmark": "KramaBench (archeology, legal)",
+  "domains": [
+   "archeology",
+   "legal"
+  ],
+  "seed": 0,
+  "max_turns": 6,
+  "resume_budget": 3,
+  "scoring": "official: success / f1 / rae_score",
+  "models": {
+   "gpt-4o-mini": {
+    "baseline": {
+     "summary": {
+      "tasks": 20,
+      "accuracy": 0.0,
+      "solved": 0,
+      "answered": 0.1,
+      "overflow_rate": 0.9,
+      "completed_after_overflow": 0.0,
+      "accuracy_overflowed": 0.0,
+      "mean_llm_calls": 6.0,
+      "summary_calls": 0,
+      "max_llm_calls": 6,
+      "max_turns": 6,
+      "turns": [
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6,
+       6
+      ]
+     },
+     "rows": [
+      {
+       "id": "archeology-hard-1",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-hard-9",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-easy-10",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-easy-6",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": "23086000"
+      },
+      {
+       "id": "archeology-hard-12",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-easy-4",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-easy-3",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-hard-7",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-easy-8",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-hard-2",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-easy-9",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-6",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-1",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-easy-11",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-easy-27",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-16",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-15",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-8",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-easy-3",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-24",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": "Miami-Fort Lauderdale-West Palm Beach, FL Metropolitan Statistical Area"
+      }
+     ]
+    },
+    "resume": {
+     "summary": {
+      "tasks": 20,
+      "accuracy": 0.075,
+      "solved": 1,
+      "answered": 1.0,
+      "overflow_rate": 0.95,
+      "completed_after_overflow": 0.053,
+      "accuracy_overflowed": 0.027,
+      "mean_llm_calls": 10.6,
+      "summary_calls": 37,
+      "max_llm_calls": 11,
+      "max_turns": 6,
+      "turns": [
+       6,
+       7,
+       9,
+       9,
+       9,
+       9,
+       9,
+       9,
+       9,
+       9,
+       9,
+       9,
+       9,
+       9,
+       9,
+       9,
+       9,
+       9,
+       9,
+       9
+      ]
+     },
+     "rows": [
+      {
+       "id": "archeology-hard-1",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재로서는 Potassium 데이터에 대한 정보가 없으므로 답을 낼 수 없음."
+      },
+      {
+       "id": "archeology-hard-9",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재로서는 상관관계 값을 도출할 수 없음."
+      },
+      {
+       "id": "archeology-easy-10",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재까지의 데이터로는 평균 인구를 계산할 수 있지만, 최종 결과를 도출하기 위해서는 추가적인 계산이 필요함."
+      },
+      {
+       "id": "archeology-easy-6",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 1.0,
+       "predicted": "São Paulo"
+      },
+      {
+       "id": "archeology-hard-12",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재까지 읽은 데이터로는 갈등의 수를 정확히 계산할 수 없다."
+      },
+      {
+       "id": "archeology-easy-4",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재로서는 칼슘 농도에 대한 정보가 없습니다."
+      },
+      {
+       "id": "archeology-easy-3",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재로서는 그리스 도시의 평균 순위를 계산할 수 있는 데이터가 부족함."
+      },
+      {
+       "id": "archeology-hard-7",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재까지의 데이터로는 정확한 수치를 제공할 수 없음."
+      },
+      {
+       "id": "archeology-easy-8",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재까지의 정보로는 고유한 출처의 개수를 정확히 알 수 없다."
+      },
+      {
+       "id": "archeology-hard-2",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재로서는 wet-dry index에 대한 구체적인 데이터가 없으므로, 정확한 답을 제공할 수 없습니다."
+      },
+      {
+       "id": "legal-easy-9",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재로서는 상대 증가율을 계산할 수 없으므로, 최종 답변을 제공할 수 없습니다."
+      },
+      {
+       "id": "legal-hard-6",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "비율 계산을 완료하지 않았으므로 현재로서는 답을 제공할 수 없음."
+      },
+      {
+       "id": "legal-hard-1",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재로서는 메트로폴리탄 지역의 이름과 뉴잉글랜드 주의 이름만 알고 있으며, 신원 도용 보고 수치와 인구 데이터는 확인하지 못함."
+      },
+      {
+       "id": "legal-easy-11",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재로서는 'Other' 보고서가 50%를 초과한 연도가 있는지 확인할 수 없음."
+      },
+      {
+       "id": "legal-easy-27",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재로서는 'Prizes, Sweepstakes and Lotteries' 카테고리가 포함된 주의 수를 알 수 없음."
+      },
+      {
+       "id": "legal-hard-16",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재로서는 주어진 정보로는 답을 낼 수 없습니다. 추가 데이터가 필요합니다."
+      },
+      {
+       "id": "legal-hard-15",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "현재까지 확인된 데이터로는 총 신원 도용 보고서 수를 알 수 없음."
+      },
+      {
+       "id": "legal-hard-8",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "True (일관성이 있다면) 또는 False (일관성이 없다면)로 답할 수 없다."
+      },
+      {
+       "id": "legal-easy-3",
+       "turns": 7,
+       "overflows": 1,
+       "llm_calls": 8,
+       "score": 0.5035077384458845,
+       "predicted": "0.1834"
+      },
+      {
+       "id": "legal-hard-24",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": "California**의 대도시 지역에서 신원 도용 보고서 수를 확인한 후, 가장 많은 수치를 가진 지역을 찾으면 최종 답을 낼 수 있습니다."
+      }
+     ]
+    },
+    "unbounded": {
+     "summary": {
+      "tasks": 20,
+      "accuracy": 0.1,
+      "solved": 2,
+      "answered": 0.2,
+      "overflow_rate": 0.75,
+      "completed_after_overflow": 0.0,
+      "accuracy_overflowed": 0.0,
+      "mean_llm_calls": 16.85,
+      "summary_calls": 0,
+      "max_llm_calls": 20,
+      "max_turns": 20,
+      "turns": [
+       1,
+       7,
+       8,
+       9,
+       12,
+       20,
+       20,
+       20,
+       20,
+       20,
+       20,
+       20,
+       20,
+       20,
+       20,
+       20,
+       20,
+       20,
+       20,
+       20
+      ]
+     },
+     "rows": [
+      {
+       "id": "archeology-hard-1",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-hard-9",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-easy-10",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-easy-6",
+       "turns": 1,
+       "overflows": 0,
+       "llm_calls": 1,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-hard-12",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-easy-4",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-easy-3",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-hard-7",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-easy-8",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-hard-2",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-easy-9",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-6",
+       "turns": 8,
+       "overflows": 0,
+       "llm_calls": 8,
+       "score": 0.0,
+       "predicted": "1.2500"
+      },
+      {
+       "id": "legal-hard-1",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-easy-11",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-easy-27",
+       "turns": 9,
+       "overflows": 0,
+       "llm_calls": 9,
+       "score": 1.0,
+       "predicted": "27"
+      },
+      {
+       "id": "legal-hard-16",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-15",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-8",
+       "turns": 12,
+       "overflows": 0,
+       "llm_calls": 12,
+       "score": 1.0,
+       "predicted": "True"
+      },
+      {
+       "id": "legal-easy-3",
+       "turns": 20,
+       "overflows": 0,
+       "llm_calls": 20,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-24",
+       "turns": 7,
+       "overflows": 0,
+       "llm_calls": 7,
+       "score": 0.0,
+       "predicted": "Miami-Fort Lauderdale-West Palm Beach, FL Metropolitan Statistical Area"
+      }
+     ]
+    }
+   },
+   "gemma4:e4b": {
+    "baseline": {
+     "summary": {
+      "tasks": 6,
+      "accuracy": 0.0,
+      "solved": 0,
+      "answered": 0.0,
+      "overflow_rate": 0.0,
+      "completed_after_overflow": null,
+      "accuracy_overflowed": null,
+      "mean_llm_calls": 4.17,
+      "summary_calls": 0,
+      "max_llm_calls": 5,
+      "max_turns": 6,
+      "turns": [
+       3,
+       3,
+       4,
+       5,
+       5,
+       5
+      ]
+     },
+     "rows": [
+      {
+       "id": "archeology-hard-1",
+       "turns": 5,
+       "overflows": 0,
+       "llm_calls": 5,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-hard-9",
+       "turns": 5,
+       "overflows": 0,
+       "llm_calls": 5,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-easy-10",
+       "turns": 3,
+       "overflows": 0,
+       "llm_calls": 3,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-easy-9",
+       "turns": 3,
+       "overflows": 0,
+       "llm_calls": 3,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-6",
+       "turns": 5,
+       "overflows": 0,
+       "llm_calls": 5,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-1",
+       "turns": 4,
+       "overflows": 0,
+       "llm_calls": 4,
+       "score": 0.0,
+       "predicted": null
+      }
+     ]
+    },
+    "resume": {
+     "summary": {
+      "tasks": 6,
+      "accuracy": 0.0,
+      "solved": 0,
+      "answered": 0.333,
+      "overflow_rate": 0.333,
+      "completed_after_overflow": 0.0,
+      "accuracy_overflowed": 0.0,
+      "mean_llm_calls": 7.33,
+      "summary_calls": 4,
+      "max_llm_calls": 12,
+      "max_turns": 6,
+      "turns": [
+       3,
+       5,
+       6,
+       6,
+       9,
+       9
+      ]
+     },
+     "rows": [
+      {
+       "id": "archeology-hard-1",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-hard-9",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-easy-10",
+       "turns": 3,
+       "overflows": 0,
+       "llm_calls": 3,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-easy-9",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 12,
+       "score": 0.0,
+       "predicted": "가장 큰 상대적 증가율을 보인 연도는 계산을 통해 도출되었으나, 이전 단계에서 발생한 `ValueError`로 인해 최종적인 확정 답변을 내릴 수 없습니다. (최종 계산 결과가 필요합니다.)"
+      },
+      {
+       "id": "legal-hard-6",
+       "turns": 5,
+       "overflows": 0,
+       "llm_calls": 5,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-1",
+       "turns": 9,
+       "overflows": 2,
+       "llm_calls": 12,
+       "score": 0.0,
+       "predicted": "데이터 부족으로 인해 최종 답변을 도출할 수 없습니다. 분석을 완료하려면 **메트로 지역별 인구 데이터(2023년 또는 추정 가능한 연도별 데이터)**가 필요합니다."
+      }
+     ]
+    },
+    "unbounded": {
+     "summary": {
+      "tasks": 6,
+      "accuracy": 0.0,
+      "solved": 0,
+      "answered": 0.167,
+      "overflow_rate": 0.0,
+      "completed_after_overflow": null,
+      "accuracy_overflowed": null,
+      "mean_llm_calls": 8.0,
+      "summary_calls": 0,
+      "max_llm_calls": 11,
+      "max_turns": 20,
+      "turns": [
+       3,
+       6,
+       7,
+       8,
+       8,
+       9
+      ]
+     },
+     "rows": [
+      {
+       "id": "archeology-hard-1",
+       "turns": 8,
+       "overflows": 0,
+       "llm_calls": 9,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-hard-9",
+       "turns": 6,
+       "overflows": 0,
+       "llm_calls": 6,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "archeology-easy-10",
+       "turns": 3,
+       "overflows": 0,
+       "llm_calls": 3,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-easy-9",
+       "turns": 7,
+       "overflows": 0,
+       "llm_calls": 10,
+       "score": 0.0,
+       "predicted": "2020"
+      },
+      {
+       "id": "legal-hard-6",
+       "turns": 9,
+       "overflows": 0,
+       "llm_calls": 11,
+       "score": 0.0,
+       "predicted": null
+      },
+      {
+       "id": "legal-hard-1",
+       "turns": 8,
+       "overflows": 0,
+       "llm_calls": 9,
+       "score": 0.0,
+       "predicted": null
+      }
+     ]
+    }
+   }
+  }
+ },
+ "memory_net_value": {
+  "config": {
+   "seed": 0,
+   "k": 5,
+   "budget_chars": 5120,
+   "judge": "gpt-4o-mini",
+   "embedder": "bge-m3",
+   "arms": [
+    "rag",
+    "raw",
+    "turns",
+    "turns+src"
+   ],
+   "max_turn_parts": 2
+  },
+  "turn_loss": {
+   "before": {
+    "assistant": {
+     "evidence": 51,
+     "holding": 50,
+     "kept": 46,
+     "long": 35,
+     "preserved": 0.92
+    },
+    "user": {
+     "evidence": 842,
+     "holding": 318,
+     "kept": 318,
+     "long": 2,
+     "preserved": 1.0
+    },
+    "all": {
+     "evidence": 893,
+     "holding": 368,
+     "kept": 364,
+     "long": 37,
+     "preserved": 0.9891
+    }
+   },
+   "after": {
+    "assistant": {
+     "evidence": 51,
+     "holding": 50,
+     "kept": 50,
+     "long": 35,
+     "preserved": 1.0
+    },
+    "user": {
+     "evidence": 842,
+     "holding": 318,
+     "kept": 318,
+     "long": 2,
+     "preserved": 1.0
+    },
+    "all": {
+     "evidence": 893,
+     "holding": 368,
+     "kept": 368,
+     "long": 37,
+     "preserved": 1.0
+    }
+   },
+   "max_parts": 2
+  },
+  "benchmarks": {
+   "longmemeval_s": {
+    "n": 60,
+    "corpora": 60,
+    "arms": {
+     "rag": {
+      "summary": {
+       "n": 60,
+       "session_recall": 0.9833333333333333,
+       "turn_recall": 0.9629629629629629,
+       "accuracy": 0.5666666666666667,
+       "mean_items": 6.95,
+       "mean_chars": 5120.0
+      },
+      "by_type": {
+       "abstention": {
+        "n": 9,
+        "session_recall": 0.8888888888888888,
+        "turn_recall": 1.0,
+        "accuracy": 1.0
+       },
+       "knowledge-update": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 0.8888888888888888,
+        "accuracy": 0.5555555555555556
+       },
+       "multi-session": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.2222222222222222
+       },
+       "single-session-assistant": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 1.0
+       },
+       "single-session-preference": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.0
+       },
+       "single-session-user": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 1.0
+       },
+       "temporal-reasoning": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 0.875,
+        "accuracy": 0.125
+       }
+      }
+     },
+     "raw": {
+      "summary": {
+       "n": 60,
+       "session_recall": 0.9666666666666667,
+       "turn_recall": 0.9629629629629629,
+       "accuracy": 0.5333333333333333,
+       "mean_items": 8.95,
+       "mean_chars": 5120.0
+      },
+      "by_type": {
+       "abstention": {
+        "n": 9,
+        "session_recall": 0.8888888888888888,
+        "turn_recall": 1.0,
+        "accuracy": 1.0
+       },
+       "knowledge-update": {
+        "n": 9,
+        "session_recall": 0.8888888888888888,
+        "turn_recall": 0.8888888888888888,
+        "accuracy": 0.4444444444444444
+       },
+       "multi-session": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.3333333333333333
+       },
+       "single-session-assistant": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.8888888888888888
+       },
+       "single-session-preference": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.0
+       },
+       "single-session-user": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 1.0
+       },
+       "temporal-reasoning": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 0.875,
+        "accuracy": 0.0
+       }
+      }
+     },
+     "turns": {
+      "summary": {
+       "n": 60,
+       "session_recall": 1.0,
+       "turn_recall": 0.8148148148148148,
+       "accuracy": 0.43333333333333335,
+       "mean_items": 127.28,
+       "mean_chars": 4969.7
+      },
+      "by_type": {
+       "abstention": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 0.6666666666666666,
+        "accuracy": 1.0
+       },
+       "knowledge-update": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 0.8888888888888888,
+        "accuracy": 0.5555555555555556
+       },
+       "multi-session": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.2222222222222222
+       },
+       "single-session-assistant": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 0.8888888888888888,
+        "accuracy": 0.6666666666666666
+       },
+       "single-session-preference": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 0.625,
+        "accuracy": 0.0
+       },
+       "single-session-user": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 0.625,
+        "accuracy": 0.5
+       },
+       "temporal-reasoning": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 0.875,
+        "accuracy": 0.0
+       }
+      }
+     },
+     "turns+src": {
+      "summary": {
+       "n": 60,
+       "session_recall": 0.95,
+       "turn_recall": 0.8333333333333334,
+       "accuracy": 0.5166666666666667,
+       "mean_items": 7.67,
+       "mean_chars": 5120.0
+      },
+      "by_type": {
+       "abstention": {
+        "n": 9,
+        "session_recall": 0.8888888888888888,
+        "turn_recall": 0.6666666666666666,
+        "accuracy": 1.0
+       },
+       "knowledge-update": {
+        "n": 9,
+        "session_recall": 0.8888888888888888,
+        "turn_recall": 0.7777777777777778,
+        "accuracy": 0.5555555555555556
+       },
+       "multi-session": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.1111111111111111
+       },
+       "single-session-assistant": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.8888888888888888
+       },
+       "single-session-preference": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 0.625,
+        "accuracy": 0.125
+       },
+       "single-session-user": {
+        "n": 8,
+        "session_recall": 0.875,
+        "turn_recall": 0.75,
+        "accuracy": 0.875
+       },
+       "temporal-reasoning": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 0.875,
+        "accuracy": 0.0
+       }
+      }
+     },
+     "turns+excerpt": {
+      "summary": {
+       "n": 60,
+       "session_recall": 0.8,
+       "turn_recall": 0.6666666666666666,
+       "accuracy": 0.31666666666666665,
+       "mean_items": 25.22,
+       "mean_chars": 5120.0
+      },
+      "by_type": {
+       "abstention": {
+        "n": 9,
+        "session_recall": 0.7777777777777778,
+        "turn_recall": 0.3333333333333333,
+        "accuracy": 1.0
+       },
+       "knowledge-update": {
+        "n": 9,
+        "session_recall": 0.8888888888888888,
+        "turn_recall": 0.8888888888888888,
+        "accuracy": 0.3333333333333333
+       },
+       "multi-session": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.1111111111111111
+       },
+       "single-session-assistant": {
+        "n": 9,
+        "session_recall": 0.6666666666666666,
+        "turn_recall": 0.3333333333333333,
+        "accuracy": 0.1111111111111111
+       },
+       "single-session-preference": {
+        "n": 8,
+        "session_recall": 0.875,
+        "turn_recall": 0.625,
+        "accuracy": 0.0
+       },
+       "single-session-user": {
+        "n": 8,
+        "session_recall": 0.75,
+        "turn_recall": 0.625,
+        "accuracy": 0.625
+       },
+       "temporal-reasoning": {
+        "n": 8,
+        "session_recall": 0.625,
+        "turn_recall": 0.625,
+        "accuracy": 0.0
+       }
+      }
+     }
+    },
+    "net": {
+     "raw": {
+      "n": 60,
+      "benefit": 1,
+      "tax": 3,
+      "net": -2,
+      "benefit_rate": 0.0167,
+      "tax_rate": 0.05,
+      "net_rate": -0.0333
+     },
+     "turns": {
+      "n": 60,
+      "benefit": 3,
+      "tax": 11,
+      "net": -8,
+      "benefit_rate": 0.05,
+      "tax_rate": 0.1833,
+      "net_rate": -0.1333
+     },
+     "turns+src": {
+      "n": 60,
+      "benefit": 3,
+      "tax": 6,
+      "net": -3,
+      "benefit_rate": 0.05,
+      "tax_rate": 0.1,
+      "net_rate": -0.05
+     },
+     "turns+excerpt": {
+      "n": 60,
+      "benefit": 3,
+      "tax": 18,
+      "net": -15,
+      "benefit_rate": 0.05,
+      "tax_rate": 0.3,
+      "net_rate": -0.25
+     }
+    },
+    "service": {
+     "k": 3,
+     "arms": {
+      "turns": {
+       "summary": {
+        "n": 60,
+        "session_recall": 0.7,
+        "turn_recall": 0.5185185185185185,
+        "accuracy": 0.2833333333333333,
+        "mean_items": 6.0,
+        "mean_chars": 180.9
+       },
+       "by_type": {
+        "abstention": {
+         "n": 9,
+         "session_recall": 0.5555555555555556,
+         "turn_recall": 0.0,
+         "accuracy": 1.0
+        },
+        "knowledge-update": {
+         "n": 9,
+         "session_recall": 0.7777777777777778,
+         "turn_recall": 0.7777777777777778,
+         "accuracy": 0.3333333333333333
+        },
+        "multi-session": {
+         "n": 9,
+         "session_recall": 1.0,
+         "turn_recall": 0.7777777777777778,
+         "accuracy": 0.1111111111111111
+        },
+        "single-session-assistant": {
+         "n": 9,
+         "session_recall": 0.5555555555555556,
+         "turn_recall": 0.3333333333333333,
+         "accuracy": 0.0
+        },
+        "single-session-preference": {
+         "n": 8,
+         "session_recall": 0.625,
+         "turn_recall": 0.25,
+         "accuracy": 0.0
+        },
+        "single-session-user": {
+         "n": 8,
+         "session_recall": 0.75,
+         "turn_recall": 0.5,
+         "accuracy": 0.5
+        },
+        "temporal-reasoning": {
+         "n": 8,
+         "session_recall": 0.625,
+         "turn_recall": 0.625,
+         "accuracy": 0.0
+        }
+       }
+      },
+      "turns+src": {
+       "summary": {
+        "n": 60,
+        "session_recall": 0.9166666666666666,
+        "turn_recall": 0.8148148148148148,
+        "accuracy": 0.5,
+        "mean_items": 6.0,
+        "mean_chars": 2210.7
+       },
+       "by_type": {
+        "abstention": {
+         "n": 9,
+         "session_recall": 0.8888888888888888,
+         "turn_recall": 0.6666666666666666,
+         "accuracy": 1.0
+        },
+        "knowledge-update": {
+         "n": 9,
+         "session_recall": 0.8888888888888888,
+         "turn_recall": 0.7777777777777778,
+         "accuracy": 0.5555555555555556
+        },
+        "multi-session": {
+         "n": 9,
+         "session_recall": 1.0,
+         "turn_recall": 0.8888888888888888,
+         "accuracy": 0.1111111111111111
+        },
+        "single-session-assistant": {
+         "n": 9,
+         "session_recall": 1.0,
+         "turn_recall": 1.0,
+         "accuracy": 0.8888888888888888
+        },
+        "single-session-preference": {
+         "n": 8,
+         "session_recall": 0.75,
+         "turn_recall": 0.625,
+         "accuracy": 0.125
+        },
+        "single-session-user": {
+         "n": 8,
+         "session_recall": 0.875,
+         "turn_recall": 0.75,
+         "accuracy": 0.75
+        },
+        "temporal-reasoning": {
+         "n": 8,
+         "session_recall": 1.0,
+         "turn_recall": 0.875,
+         "accuracy": 0.0
+        }
+       }
+      }
+     },
+     "net": {
+      "turns": {
+       "n": 60,
+       "benefit": 3,
+       "tax": 20,
+       "net": -17,
+       "benefit_rate": 0.05,
+       "tax_rate": 0.3333,
+       "net_rate": -0.2833
+      },
+      "turns+src": {
+       "n": 60,
+       "benefit": 4,
+       "tax": 8,
+       "net": -4,
+       "benefit_rate": 0.0667,
+       "tax_rate": 0.1333,
+       "net_rate": -0.0667
+      }
+     },
+     "src_vs_turns": {
+      "n": 60,
+      "benefit": 13,
+      "tax": 0,
+      "net": 13,
+      "benefit_rate": 0.2167,
+      "tax_rate": 0.0,
+      "net_rate": 0.2167
+     }
+    },
+    "mt3": {
+     "turns_before": {
+      "summary": {
+       "n": 60,
+       "session_recall": 1.0,
+       "turn_recall": 0.8333333333333334,
+       "accuracy": 0.4166666666666667,
+       "mean_items": 131.47,
+       "mean_chars": 4952.1
+      },
+      "by_type": {
+       "abstention": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 0.6666666666666666,
+        "accuracy": 1.0
+       },
+       "knowledge-update": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 0.8888888888888888,
+        "accuracy": 0.5555555555555556
+       },
+       "multi-session": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.3333333333333333
+       },
+       "single-session-assistant": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 0.8888888888888888,
+        "accuracy": 0.4444444444444444
+       },
+       "single-session-preference": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 0.625,
+        "accuracy": 0.0
+       },
+       "single-session-user": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 0.625,
+        "accuracy": 0.5
+       },
+       "temporal-reasoning": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.0
+       }
+      }
+     },
+     "net_before": {
+      "n": 60,
+      "benefit": 4,
+      "tax": 13,
+      "net": -9,
+      "benefit_rate": 0.0667,
+      "tax_rate": 0.2167,
+      "net_rate": -0.15
+     },
+     "turns_after": {
+      "summary": {
+       "n": 60,
+       "session_recall": 1.0,
+       "turn_recall": 0.8148148148148148,
+       "accuracy": 0.43333333333333335,
+       "mean_items": 127.28,
+       "mean_chars": 4969.7
+      },
+      "by_type": {
+       "abstention": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 0.6666666666666666,
+        "accuracy": 1.0
+       },
+       "knowledge-update": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 0.8888888888888888,
+        "accuracy": 0.5555555555555556
+       },
+       "multi-session": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.2222222222222222
+       },
+       "single-session-assistant": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 0.8888888888888888,
+        "accuracy": 0.6666666666666666
+       },
+       "single-session-preference": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 0.625,
+        "accuracy": 0.0
+       },
+       "single-session-user": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 0.625,
+        "accuracy": 0.5
+       },
+       "temporal-reasoning": {
+        "n": 8,
+        "session_recall": 1.0,
+        "turn_recall": 0.875,
+        "accuracy": 0.0
+       }
+      }
+     }
+    }
+   },
+   "personamem_v2": {
+    "n": 60,
+    "corpora": 10,
+    "arms": {
+     "rag": {
+      "summary": {
+       "n": 60,
+       "session_recall": 0.4807692307692308,
+       "turn_recall": 0.34615384615384615,
+       "accuracy": 0.4166666666666667,
+       "mean_items": 6.07,
+       "mean_chars": 5120.0
+      },
+      "by_type": {
+       "anti_stereotypical_pref": {
+        "n": 9,
+        "session_recall": 0.1111111111111111,
+        "turn_recall": 0.1111111111111111,
+        "accuracy": 0.5555555555555556
+       },
+       "ask_to_forget": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.3333333333333333
+       },
+       "health_and_medical_conditions": {
+        "n": 9,
+        "session_recall": 0.3333333333333333,
+        "turn_recall": 0.3333333333333333,
+        "accuracy": 0.3333333333333333
+       },
+       "neutral_preferences": {
+        "n": 9,
+        "session_recall": 0.7777777777777778,
+        "turn_recall": 0.4444444444444444,
+        "accuracy": 0.4444444444444444
+       },
+       "sensitive_info": {
+        "n": 8,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.5
+       },
+       "stereotypical_pref": {
+        "n": 8,
+        "session_recall": 0.25,
+        "turn_recall": 0.0,
+        "accuracy": 0.5
+       },
+       "therapy_background": {
+        "n": 8,
+        "session_recall": 0.375,
+        "turn_recall": 0.125,
+        "accuracy": 0.25
+       }
+      }
+     },
+     "raw": {
+      "summary": {
+       "n": 60,
+       "session_recall": 0.6538461538461539,
+       "turn_recall": 0.40384615384615385,
+       "accuracy": 0.38333333333333336,
+       "mean_items": 13.63,
+       "mean_chars": 5120.0
+      },
+      "by_type": {
+       "anti_stereotypical_pref": {
+        "n": 9,
+        "session_recall": 0.4444444444444444,
+        "turn_recall": 0.3333333333333333,
+        "accuracy": 0.5555555555555556
+       },
+       "ask_to_forget": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.2222222222222222
+       },
+       "health_and_medical_conditions": {
+        "n": 9,
+        "session_recall": 0.7777777777777778,
+        "turn_recall": 0.3333333333333333,
+        "accuracy": 0.2222222222222222
+       },
+       "neutral_preferences": {
+        "n": 9,
+        "session_recall": 0.6666666666666666,
+        "turn_recall": 0.2222222222222222,
+        "accuracy": 0.5555555555555556
+       },
+       "sensitive_info": {
+        "n": 8,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.5
+       },
+       "stereotypical_pref": {
+        "n": 8,
+        "session_recall": 0.5,
+        "turn_recall": 0.25,
+        "accuracy": 0.375
+       },
+       "therapy_background": {
+        "n": 8,
+        "session_recall": 0.5,
+        "turn_recall": 0.25,
+        "accuracy": 0.25
+       }
+      }
+     },
+     "turns": {
+      "summary": {
+       "n": 60,
+       "session_recall": 0.5,
+       "turn_recall": 0.40384615384615385,
+       "accuracy": 0.35,
+       "mean_items": 7.1,
+       "mean_chars": 5120.0
+      },
+      "by_type": {
+       "anti_stereotypical_pref": {
+        "n": 9,
+        "session_recall": 0.2222222222222222,
+        "turn_recall": 0.2222222222222222,
+        "accuracy": 0.4444444444444444
+       },
+       "ask_to_forget": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.2222222222222222
+       },
+       "health_and_medical_conditions": {
+        "n": 9,
+        "session_recall": 0.3333333333333333,
+        "turn_recall": 0.2222222222222222,
+        "accuracy": 0.1111111111111111
+       },
+       "neutral_preferences": {
+        "n": 9,
+        "session_recall": 0.4444444444444444,
+        "turn_recall": 0.2222222222222222,
+        "accuracy": 0.5555555555555556
+       },
+       "sensitive_info": {
+        "n": 8,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.5
+       },
+       "stereotypical_pref": {
+        "n": 8,
+        "session_recall": 0.5,
+        "turn_recall": 0.375,
+        "accuracy": 0.375
+       },
+       "therapy_background": {
+        "n": 8,
+        "session_recall": 0.5,
+        "turn_recall": 0.375,
+        "accuracy": 0.25
+       }
+      }
+     },
+     "turns+src": {
+      "summary": {
+       "n": 60,
+       "session_recall": 0.5,
+       "turn_recall": 0.40384615384615385,
+       "accuracy": 0.36666666666666664,
+       "mean_items": 7.68,
+       "mean_chars": 5120.0
+      },
+      "by_type": {
+       "anti_stereotypical_pref": {
+        "n": 9,
+        "session_recall": 0.2222222222222222,
+        "turn_recall": 0.2222222222222222,
+        "accuracy": 0.3333333333333333
+       },
+       "ask_to_forget": {
+        "n": 9,
+        "session_recall": 1.0,
+        "turn_recall": 1.0,
+        "accuracy": 0.2222222222222222
+       },
+       "health_and_medical_conditions": {
+        "n": 9,
+        "session_recall": 0.3333333333333333,
+        "turn_recall": 0.2222222222222222,
+        "accuracy": 0.1111111111111111
+       },
+       "neutral_preferences": {
+        "n": 9,
+        "session_recall": 0.4444444444444444,
+        "turn_recall": 0.2222222222222222,
+        "accuracy": 0.6666666666666666
+       },
+       "sensitive_info": {
+        "n": 8,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.5
+       },
+       "stereotypical_pref": {
+        "n": 8,
+        "session_recall": 0.5,
+        "turn_recall": 0.375,
+        "accuracy": 0.5
+       },
+       "therapy_background": {
+        "n": 8,
+        "session_recall": 0.5,
+        "turn_recall": 0.375,
+        "accuracy": 0.25
+       }
+      }
+     }
+    },
+    "net": {
+     "raw": {
+      "n": 60,
+      "benefit": 3,
+      "tax": 5,
+      "net": -2,
+      "benefit_rate": 0.05,
+      "tax_rate": 0.0833,
+      "net_rate": -0.0333
+     },
+     "turns": {
+      "n": 60,
+      "benefit": 2,
+      "tax": 6,
+      "net": -4,
+      "benefit_rate": 0.0333,
+      "tax_rate": 0.1,
+      "net_rate": -0.0667
+     },
+     "turns+src": {
+      "n": 60,
+      "benefit": 3,
+      "tax": 6,
+      "net": -3,
+      "benefit_rate": 0.05,
+      "tax_rate": 0.1,
+      "net_rate": -0.05
+     }
+    }
+   },
+   "minteval": {
+    "n": 40,
+    "corpora": 8,
+    "arms": {
+     "rag": {
+      "summary": {
+       "n": 40,
+       "session_recall": null,
+       "turn_recall": null,
+       "accuracy": 0.2,
+       "mean_items": 4.53,
+       "mean_chars": 4164.0
+      },
+      "by_type": {
+       "counting": {
+        "n": 7,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.0
+       },
+       "history": {
+        "n": 10,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.0
+       },
+       "multi-hop": {
+        "n": 8,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.5
+       },
+       "ordering": {
+        "n": 7,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.14285714285714285
+       },
+       "simple": {
+        "n": 8,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.375
+       }
+      }
+     },
+     "raw": {
+      "summary": {
+       "n": 40,
+       "session_recall": null,
+       "turn_recall": null,
+       "accuracy": 0.075,
+       "mean_items": 16.57,
+       "mean_chars": 4139.2
+      },
+      "by_type": {
+       "counting": {
+        "n": 7,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.0
+       },
+       "history": {
+        "n": 10,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.1
+       },
+       "multi-hop": {
+        "n": 8,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.125
+       },
+       "ordering": {
+        "n": 7,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.0
+       },
+       "simple": {
+        "n": 8,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.125
+       }
+      }
+     },
+     "turns": {
+      "summary": {
+       "n": 40,
+       "session_recall": null,
+       "turn_recall": null,
+       "accuracy": 0.075,
+       "mean_items": 55.85,
+       "mean_chars": 4138.1
+      },
+      "by_type": {
+       "counting": {
+        "n": 7,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.0
+       },
+       "history": {
+        "n": 10,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.1
+       },
+       "multi-hop": {
+        "n": 8,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.25
+       },
+       "ordering": {
+        "n": 7,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.0
+       },
+       "simple": {
+        "n": 8,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.0
+       }
+      }
+     },
+     "turns+src": {
+      "summary": {
+       "n": 40,
+       "session_recall": null,
+       "turn_recall": null,
+       "accuracy": 0.075,
+       "mean_items": 16.38,
+       "mean_chars": 4139.0
+      },
+      "by_type": {
+       "counting": {
+        "n": 7,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.0
+       },
+       "history": {
+        "n": 10,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.1
+       },
+       "multi-hop": {
+        "n": 8,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.125
+       },
+       "ordering": {
+        "n": 7,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.0
+       },
+       "simple": {
+        "n": 8,
+        "session_recall": null,
+        "turn_recall": null,
+        "accuracy": 0.125
+       }
+      }
+     }
+    },
+    "net": {
+     "raw": {
+      "n": 40,
+      "benefit": 1,
+      "tax": 6,
+      "net": -5,
+      "benefit_rate": 0.025,
+      "tax_rate": 0.15,
+      "net_rate": -0.125
+     },
+     "turns": {
+      "n": 40,
+      "benefit": 1,
+      "tax": 6,
+      "net": -5,
+      "benefit_rate": 0.025,
+      "tax_rate": 0.15,
+      "net_rate": -0.125
+     },
+     "turns+src": {
+      "n": 40,
+      "benefit": 1,
+      "tax": 6,
+      "net": -5,
+      "benefit_rate": 0.025,
+      "tax_rate": 0.15,
+      "net_rate": -0.125
+     }
+    }
+   }
+  }
+ },
+ "proactive_decision_first": {
+  "model": "gpt-4o-mini",
+  "decision": "tev1",
+  "repeat": 3,
+  "arms": {
+   "think_first": {
+    "name": "현재(사고 뒤 decision)",
+    "dev": {
+     "threshold": 0.6,
+     "recall": 1.0,
+     "recall_range": [
+      1.0,
+      1.0
+     ],
+     "false_alarm": 0.0,
+     "false_alarm_range": [
+      0.0,
+      0.0
+     ],
+     "auc": 1.0,
+     "auc_range": [
+      1.0,
+      1.0
+     ],
+     "llm_per_case": 1.02,
+     "decision_per_case": 1,
+     "sec_per_case": 2.94,
+     "anchor_missing": 0
+    },
+    "test": {
+     "threshold": 0.6,
+     "recall": 1.0,
+     "recall_range": [
+      1.0,
+      1.0
+     ],
+     "false_alarm": 0.417,
+     "false_alarm_range": [
+      0.417,
+      0.417
+     ],
+     "auc": 0.795,
+     "auc_range": [
+      0.795,
+      0.795
+     ],
+     "llm_per_case": 1.13,
+     "decision_per_case": 1,
+     "sec_per_case": 3.05,
+     "anchor_missing": 0
+    },
+    "test_sweep": {
+     "0.3": {
+      "recall": 1.0,
+      "false_alarm": 0.5
+     },
+     "0.4": {
+      "recall": 1.0,
+      "false_alarm": 0.5
+     },
+     "0.5": {
+      "recall": 1.0,
+      "false_alarm": 0.417
+     },
+     "0.6": {
+      "recall": 1.0,
+      "false_alarm": 0.417
+     },
+     "0.7": {
+      "recall": 0.75,
+      "false_alarm": 0.417
+     },
+     "0.75": {
+      "recall": 0.667,
+      "false_alarm": 0.333
+     },
+     "0.8": {
+      "recall": 0.417,
+      "false_alarm": 0.167
+     },
+     "0.85": {
+      "recall": 0.333,
+      "false_alarm": 0.083
+     },
+     "0.9": {
+      "recall": 0.25,
+      "false_alarm": 0.0
+     }
+    },
+    "test_misses": {
+     "test_tax_docs_due_mid_january": 3,
+     "test_promo_newsletter": 3,
+     "test_reminder_already_acknowledged": 3,
+     "seq_password_expiry_then_changed": 3,
+     "seq_maintenance_fee_reminder_then_paid": 3
+    },
+    "leak_labels": {
+     "greeting_only": 2,
+     "restates_answer": 0,
+     "user_analysis_leak": 1,
+     "concrete_notice": 51,
+     "unclear": 0,
+     "none": 0
+    }
+   },
+   "decision_first": {
+    "name": "판정 먼저",
+    "dev": {
+     "threshold": 0.6,
+     "recall": 1.0,
+     "recall_range": [
+      1.0,
+      1.0
+     ],
+     "false_alarm": 0.0,
+     "false_alarm_range": [
+      0.0,
+      0.0
+     ],
+     "auc": 1.0,
+     "auc_range": [
+      1.0,
+      1.0
+     ],
+     "llm_per_case": 0.77,
+     "decision_per_case": 1,
+     "sec_per_case": 2.43,
+     "anchor_missing": 0
+    },
+    "test": {
+     "threshold": 0.6,
+     "recall": 1.0,
+     "recall_range": [
+      1.0,
+      1.0
+     ],
+     "false_alarm": 0.417,
+     "false_alarm_range": [
+      0.417,
+      0.417
+     ],
+     "auc": 0.795,
+     "auc_range": [
+      0.795,
+      0.795
+     ],
+     "llm_per_case": 0.9,
+     "decision_per_case": 1,
+     "sec_per_case": 2.55,
+     "anchor_missing": 0
+    },
+    "test_sweep": {
+     "0.3": {
+      "recall": 1.0,
+      "false_alarm": 0.5
+     },
+     "0.4": {
+      "recall": 1.0,
+      "false_alarm": 0.5
+     },
+     "0.5": {
+      "recall": 1.0,
+      "false_alarm": 0.417
+     },
+     "0.6": {
+      "recall": 1.0,
+      "false_alarm": 0.417
+     },
+     "0.7": {
+      "recall": 0.75,
+      "false_alarm": 0.417
+     },
+     "0.75": {
+      "recall": 0.667,
+      "false_alarm": 0.333
+     },
+     "0.8": {
+      "recall": 0.417,
+      "false_alarm": 0.167
+     },
+     "0.85": {
+      "recall": 0.333,
+      "false_alarm": 0.083
+     },
+     "0.9": {
+      "recall": 0.25,
+      "false_alarm": 0.0
+     }
+    },
+    "test_misses": {
+     "test_tax_docs_due_mid_january": 3,
+     "test_promo_newsletter": 3,
+     "test_reminder_already_acknowledged": 3,
+     "seq_password_expiry_then_changed": 3,
+     "seq_maintenance_fee_reminder_then_paid": 3
+    },
+    "leak_labels": {
+     "greeting_only": 2,
+     "restates_answer": 0,
+     "user_analysis_leak": 1,
+     "concrete_notice": 51,
+     "unclear": 0,
+     "none": 0
+    }
+   },
+   "anchor": {
+    "name": "판정 먼저 + 앵커",
+    "dev": {
+     "threshold": 0.6,
+     "recall": 1.0,
+     "recall_range": [
+      1.0,
+      1.0
+     ],
+     "false_alarm": 0.0,
+     "false_alarm_range": [
+      0.0,
+      0.0
+     ],
+     "auc": 1.0,
+     "auc_range": [
+      1.0,
+      1.0
+     ],
+     "llm_per_case": 0.75,
+     "decision_per_case": 2.25,
+     "sec_per_case": 2.7,
+     "anchor_missing": 0
+    },
+    "test": {
+     "threshold": 0.6,
+     "recall": 1.0,
+     "recall_range": [
+      1.0,
+      1.0
+     ],
+     "false_alarm": 0.417,
+     "false_alarm_range": [
+      0.417,
+      0.417
+     ],
+     "auc": 0.795,
+     "auc_range": [
+      0.795,
+      0.795
+     ],
+     "llm_per_case": 0.77,
+     "decision_per_case": 2.12,
+     "sec_per_case": 2.87,
+     "anchor_missing": 0
+    },
+    "test_sweep": {
+     "0.3": {
+      "recall": 1.0,
+      "false_alarm": 0.5
+     },
+     "0.4": {
+      "recall": 1.0,
+      "false_alarm": 0.5
+     },
+     "0.5": {
+      "recall": 1.0,
+      "false_alarm": 0.417
+     },
+     "0.6": {
+      "recall": 1.0,
+      "false_alarm": 0.417
+     },
+     "0.7": {
+      "recall": 0.75,
+      "false_alarm": 0.417
+     },
+     "0.75": {
+      "recall": 0.667,
+      "false_alarm": 0.333
+     },
+     "0.8": {
+      "recall": 0.417,
+      "false_alarm": 0.167
+     },
+     "0.85": {
+      "recall": 0.333,
+      "false_alarm": 0.083
+     },
+     "0.9": {
+      "recall": 0.25,
+      "false_alarm": 0.0
+     }
+    },
+    "test_misses": {
+     "test_tax_docs_due_mid_january": 3,
+     "test_promo_newsletter": 3,
+     "test_reminder_already_acknowledged": 3,
+     "seq_password_expiry_then_changed": 3,
+     "seq_maintenance_fee_reminder_then_paid": 3
+    },
+    "leak_labels": {
+     "greeting_only": 0,
+     "restates_answer": 1,
+     "user_analysis_leak": 0,
+     "concrete_notice": 53,
+     "unclear": 0,
+     "none": 0
+    }
+   },
+   "anchor_facts": {
+    "name": "판정 먼저 + 앵커 + 사실과 Boolean",
+    "dev": {
+     "threshold": 0.7,
+     "recall": 1.0,
+     "recall_range": [
+      1.0,
+      1.0
+     ],
+     "false_alarm": 0.0,
+     "false_alarm_range": [
+      0.0,
+      0.0
+     ],
+     "auc": 1.0,
+     "auc_range": [
+      1.0,
+      1.0
+     ],
+     "llm_per_case": 0.56,
+     "decision_per_case": 1.94,
+     "sec_per_case": 1.99,
+     "anchor_missing": 0
+    },
+    "test": {
+     "threshold": 0.7,
+     "recall": 0.889,
+     "recall_range": [
+      0.833,
+      0.917
+     ],
+     "false_alarm": 0.25,
+     "false_alarm_range": [
+      0.25,
+      0.25
+     ],
+     "auc": 0.934,
+     "auc_range": [
+      0.934,
+      0.934
+     ],
+     "llm_per_case": 0.77,
+     "decision_per_case": 2.15,
+     "sec_per_case": 2.83,
+     "anchor_missing": 1
+    },
+    "test_sweep": {
+     "0.3": {
+      "recall": 0.972,
+      "false_alarm": 0.5
+     },
+     "0.4": {
+      "recall": 0.972,
+      "false_alarm": 0.5
+     },
+     "0.5": {
+      "recall": 0.972,
+      "false_alarm": 0.417
+     },
+     "0.6": {
+      "recall": 0.972,
+      "false_alarm": 0.333
+     },
+     "0.7": {
+      "recall": 0.889,
+      "false_alarm": 0.25
+     },
+     "0.75": {
+      "recall": 0.833,
+      "false_alarm": 0.083
+     },
+     "0.8": {
+      "recall": 0.75,
+      "false_alarm": 0.083
+     },
+     "0.85": {
+      "recall": 0.417,
+      "false_alarm": 0.0
+     },
+     "0.9": {
+      "recall": 0.167,
+      "false_alarm": 0.0
+     }
+    },
+    "test_misses": {
+     "test_ssl_cert_expiring_oncall": 3,
+     "test_tax_docs_due_mid_january": 3,
+     "test_promo_newsletter": 3,
+     "test_reminder_already_acknowledged": 3,
+     "seq_ci_fail_then_fail_again_before_release": 1
+    },
+    "leak_labels": {
+     "greeting_only": 0,
+     "restates_answer": 1,
+     "user_analysis_leak": 0,
+     "concrete_notice": 40,
+     "unclear": 0,
+     "none": 0
+    }
+   }
+  },
+  "anchor_blocked": {
+   "n": 1,
+   "labels": {
+    "greeting_only": 0,
+    "restates_answer": 0,
+    "user_analysis_leak": 0,
+    "concrete_notice": 1,
+    "unclear": 0,
+    "none": 0
+   },
+   "examples": [
+    "현재 빌드가 실패한 상태인데, 바로 확인해드릴게요."
+   ]
+  },
+  "judge": {
+   "model": "gpt-4o-mini",
+   "human": {
+    "status": "검증 전",
+    "labeled": 0
+   },
+   "proactivebench": {
+    "n": 60,
+    "Correct-Detection (CD)": {
+     "n": 30,
+     "concrete_notice": 0.7
+    },
+    "False-Alarm (FA)": {
+     "n": 30,
+     "concrete_notice": 0.733
+    }
+   }
+  }
+ }
 }

@@ -683,6 +683,358 @@ def exp_architecture(r: dict) -> Fig:
     return finish(fig, y)
 
 
+# 실패 반성의 수정 종류. 거부는 거름망이나 스키마가 두 번 막은 것, 기록 안 함은 execution_slip 이다
+REFLECT_KINDS = {
+    "procedure": ("절차 개정", "pf-s2"),
+    "task_pattern": ("작업 패턴", "pf-s1"),
+    "no_change": ("기록 안 함", "pf-bar"),
+    "refused": ("거부", "pf-s3"),
+}
+BACKBONE_NAMES = {"gpt-4o-mini": "gpt-4o-mini", "gemma4:e4b": "gemma4:e4b", "gemma4:e2b-it-qat": "gemma4:e2b"}
+
+
+def _stacked(fig: Fig, x: float, y: float, w: float, rows: list[tuple[str, dict[str, int]]]) -> float:
+    """행마다 수정 종류를 비율로 이어 붙인 가로 막대. 칸 안에 건수를 적는다(좁으면 생략)."""
+    label_w = max(text_width(label, LABEL_FS) for label, _ in rows) + 22
+    bar_w = w - label_w - 40
+    for label, counts in rows:
+        total = sum(counts.get(k, 0) for k in REFLECT_KINDS) or 1
+        fig.text(x + label_w - 12, y + BAR_H + 2, label, "pf-lab", "end")
+        bx = x + label_w
+        for key, (name, cls) in REFLECT_KINDS.items():
+            n = counts.get(key, 0)
+            if not n:
+                continue
+            seg = bar_w * n / total
+            fig.parts.append(
+                f'<g><title>{label}, {name}: {n}</title><rect class="{cls}" x="{bx:.1f}" y="{y}"'
+                f' width="{seg:.1f}" height="{BAR_H + 6}" rx="2"/></g>'
+            )
+            if seg > 18:
+                # 진한 칸(절차 개정, 거부)은 밝은 글자로 적어야 읽힌다
+                text_cls = "pf-badge-t" if cls in ("pf-s2", "pf-s3") else "pf-val"
+                fig.text(bx + seg / 2, y + BAR_H + 1, str(n), text_cls, "middle")
+            bx += seg
+        fig.text(x + label_w + bar_w + 8, y + BAR_H + 1, f"{total}", "pf-axis")
+        y += BAR_H + 6 + ROW_GAP
+    return y
+
+
+def _count_lines(fig: Fig, x: float, y: float, w: float, h: float, xs: list[str], curves: dict) -> float:
+    """x 는 성공 횟수, y 는 파일 수. 세대 방식은 이전(점선, 빈 점), 수렴 방식은 지금(실선, 찬 점) 모양이다."""
+    left, right, top, bottom = x + 48, x + w - 130, y + 10, y + h
+    vmax = max(max(values[n] for n in xs) for _, values in curves.values()) or 1
+    step = (right - left) / (len(xs) - 1)
+
+    def px(i: int) -> float:
+        return left + i * step
+
+    def py(v: float) -> float:
+        return bottom - (bottom - top) * v / vmax
+
+    for t in sorted({0, vmax // 2, vmax}):
+        fig.parts.append(f'<line class="pf-grid" x1="{left}" y1="{py(t):.1f}" x2="{right}" y2="{py(t):.1f}"/>')
+        fig.text(left - 8, py(t) + 3.5, f"{t}", "pf-axis", "end")
+    for i, n in enumerate(xs):
+        fig.text(px(i), bottom + 15, n, "pf-axis", "middle")
+    fig.text((left + right) / 2, bottom + 33, "같은 작업 종류의 성공 횟수", "pf-axis-title", "middle")
+    for side, (name, values) in curves.items():
+        vals = [values[n] for n in xs]
+        d = "M" + " L".join(f"{px(i):.1f},{py(v):.1f}" for i, v in enumerate(vals))
+        fig.parts.append(f'<path class="pf-line--{side}" d="{d}"/>')
+        for i, v in enumerate(vals):
+            _dot(fig, px(i), py(v), side, f"{name}, 성공 {xs[i]}번: 파일 {v}개")
+        fig.text(right + 12, py(vals[-1]) + 4, f"{name} {vals[-1]}개", "pf-val")
+    return bottom + 40
+
+
+def exp_procedures(r: dict) -> Fig:
+    d = r["procedure_reflection"]
+    fig = Fig("exp-procedures", 0, "절차 학습: 실패 반성의 held-out 정확도, 백본별 수정 종류, 절차 파일 수")
+    y = 10.0
+    e2 = d.get("emma2", {})
+    backbones = e2.get("backbones", {})
+    held = backbones.get("gpt-4o-mini", {}).get("heldout")
+    if held:
+        names = {"gpt": ("gpt-4o-mini", "pf-s3")}
+        arms = [("반성 없음", "none"), ("거름망 없는 반성", "unguarded"), ("거름망 있는 반성", "guarded")]
+        rows = [(f"{label} ({held[k]['correct']}/{held[k]['n']})", {"gpt": held[k]["accuracy"]}) for label, k in arms]
+        draw = bars_with_legend(
+            fig, list(names), rows, 0.4, [0, 0.1, 0.2, 0.3, 0.4], "{:.1f}", "{:.3f}", names, axis_title="정확도"
+        )
+        y = section(fig, y, f"(a) BBEH-mini held-out {e2['heldout']}문항, train {e2['train']}문항으로 학습", draw)
+    rows_k = [
+        (f"{BACKBONE_NAMES.get(name, name)}, {'거름망 있음' if arm == 'guarded' else '거름망 없음'}", row[arm]["kinds"])
+        for name, row in backbones.items()
+        for arm in ("unguarded", "guarded")
+        if arm in row
+    ]
+    if rows_k:
+
+        def draw_k(top: float) -> float:
+            legend(fig, 30, top + 2, list(REFLECT_KINDS), REFLECT_KINDS)
+            return _stacked(fig, 20, top + 26, WIDTH - 40, rows_k)
+
+        y = section(fig, y, "(b) 실패 묶음마다 받아들인 수정 종류. 막대 끝은 묶음 수", draw_k)
+    e1 = d.get("emma1")
+    if e1:
+        xs = [str(n) for n in e1["successes"]]
+        curves = {"before": ("세대 방식", e1["generational_files"]), "after": ("수렴 방식", e1["converged_files"])}
+
+        def draw_l(top: float) -> float:
+            _legend_named(fig, 30, top + 2, ("세대 방식(이전)", "수렴 방식(지금)"))
+            return _count_lines(fig, 20, top + 22, WIDTH - 40, 150, xs, curves)
+
+        y = section(fig, y, "(c) 작업 종류 하나의 성공이 쌓일 때 절차 파일 수(LLM 없이 합성 일화)", draw_l)
+    return finish(fig, y)
+
+
+def _legend_named(fig: Fig, x: float, y: float, names: tuple[str, str]) -> None:
+    for side, name in zip(("before", "after"), names, strict=True):
+        fig.parts.append(f'<line class="pf-line--{side}" x1="{x}" y1="{y}" x2="{x + 26}" y2="{y}"/>')
+        fig.parts.append(f'<circle class="pf-dot--{side}" cx="{x + 13}" cy="{y}" r="{DOT_R}"/>')
+        fig.text(x + 34, y + 4.5, name, "pf-lab")
+        x += 34 + text_width(name, LABEL_FS) + 24
+
+
+NET_ARMS = {
+    "rag": ("rag (기준선)", "pf-ok"),
+    "raw": ("raw", "pf-s1"),
+    "turns": ("turns", "pf-s2"),
+    "turns+src": ("turns+src", "pf-s3"),
+}
+NET_BENCH = {"longmemeval_s": "LongMemEval-s", "personamem_v2": "PersonaMem-v2", "minteval": "MINT-Eval"}
+
+
+def _diverging(fig: Fig, x: float, y: float, w: float, rows: list, vmax: float) -> float:
+    """가운데 0 에서 tax 는 왼쪽(주황), benefit 은 오른쪽(청록)으로 뻗고 오른쪽 끝에 net 을 적는다."""
+    label_w, net_w = 218, 78
+    mid = x + label_w + (w - label_w - net_w) / 2
+    half = (w - label_w - net_w) / 2 - 8
+    top = y
+    for name, benefit, tax, net in rows:
+        fig.text(x + label_w - 12, y + BAR_H - 1, name, "pf-lab", "end")
+        tw, bw = half * tax / vmax, half * benefit / vmax
+        for cls, bx, width in (("pf-s3", mid - tw, tw), ("pf-s2", mid, bw)):
+            fig.parts.append(
+                f'<rect class="{cls}" x="{bx:.1f}" y="{y}" width="{max(width, 1.5):.1f}" height="{BAR_H}" rx="2"/>'
+            )
+        fig.text(x + w - 8, y + BAR_H - 1, f"net {net:+.0%}", "pf-val", "end")
+        y += BAR_H + ROW_GAP
+    bottom = y - ROW_GAP + 4
+    for t in (-vmax, -vmax / 2, 0, vmax / 2, vmax):
+        tx = mid + half * t / vmax
+        fig.parts.append(f'<line class="pf-grid" x1="{tx:.1f}" y1="{top - 4}" x2="{tx:.1f}" y2="{bottom}"/>')
+        fig.text(tx, bottom + 15, f"{abs(t):.0%}", "pf-axis", "middle")
+    fig.text(mid - half / 2, bottom + 33, "tax (RAG 는 맞고 비교군은 틀림)", "pf-axis-title", "middle")
+    fig.text(mid + half / 2, bottom + 33, "benefit (RAG 는 틀리고 비교군은 맞음)", "pf-axis-title", "middle")
+    return bottom + 41
+
+
+def exp_memory_net_value(r: dict) -> Fig:
+    m = r["memory_net_value"]
+    benches = [b for b in NET_BENCH if b in m["benchmarks"]]
+    title = "Memory Tax 벤치마크 셋: 비교군별 정답률, RAG 대비 benefit 과 tax, 턴 일화 증거 보존"
+    fig = Fig("exp-memory-net-value", 0, title)
+    rows = [
+        (NET_BENCH[b], {a: m["benchmarks"][b]["arms"][a]["summary"]["accuracy"] for a in NET_ARMS}) for b in benches
+    ]
+    draw = bars_with_legend(fig, list(NET_ARMS), rows, 1.0, UNIT, names=NET_ARMS, axis_title="정답률 (0~1)")
+    y = section(fig, 10, f"(a) 비교군별 정답률. 노출 예산 {m['config']['budget_chars']:,}자, 판정 gpt-4o-mini", draw)
+
+    rows = []
+    for b in benches:
+        for a in ("raw", "turns", "turns+src"):
+            v = m["benchmarks"][b]["net"][a]
+            rows.append((f"{NET_BENCH[b]}, {a}", v["benefit_rate"], v["tax_rate"], v["net_rate"]))
+    vmax = max(0.25, max(max(b, t) for _, b, t, _ in rows))
+    vmax = round(vmax + 0.049, 1)
+    y = section(
+        fig, y, "(b) RAG 대비 질문 단위 benefit 과 tax(질문 수 대비 비율)",
+        lambda yy: _diverging(fig, 20, yy, WIDTH - 40, rows, vmax),
+    )
+
+    loss = m["turn_loss"]
+    rows = [
+        ("답(assistant) 정답 턴", loss["before"]["assistant"]["preserved"], loss["after"]["assistant"]["preserved"]),
+        ("발화(user) 정답 턴", loss["before"]["user"]["preserved"], loss["after"]["user"]["preserved"]),
+        ("전체 정답 턴", loss["before"]["all"]["preserved"], loss["after"]["all"]["preserved"]),
+    ]
+    mt3 = m["benchmarks"].get("longmemeval_s", {}).get("mt3")
+    if mt3:
+        rows.append(("turns 정답률 (표본 60)", mt3["turns_before"]["summary"]["accuracy"],
+                     mt3["turns_after"]["summary"]["accuracy"]))
+    height = 52 + DUMBBELL_ROW_H * len(rows) + 40
+    fig.panel(10, y, WIDTH - 20, height, "(c) 턴 일화에 정답이 남는 비율: 1,000자 자르기(이전 코드)와 조각 일화(지금)")
+    _legend_pair(fig, 30, y + 40)
+    # 100% 에 붙은 "전후 같음" 이 패널 밖으로 나가지 않게 오른쪽을 비운다
+    bottom = _dumbbell(fig, 20, y + 64, WIDTH - 130, rows, 1.0, [0, 0.5, 1.0], "{:.0%}".format, label_w=196)
+    a = loss["before"]["assistant"]
+    held = loss["before"]["all"]["holding"]
+    note = f"LongMemEval-s 500문항, 정답 낱말이 원문에 있는 정답 턴 {held}개(답 {a['holding']}개)"
+    fig.text(22, bottom + 8, note, "pf-note")
+    y += height + 24
+
+    svc = m["benchmarks"].get("longmemeval_s", {}).get("service")
+    if svc:
+        before, after = svc["arms"]["turns"]["summary"], svc["arms"]["turns+src"]["summary"]
+        rows = [(name, before[k], after[k]) for name, k in
+                (("정답률", "accuracy"), ("증거 세션 재현율", "session_recall"), ("증거 턴 재현율", "turn_recall"))]
+        height = 52 + DUMBBELL_ROW_H * len(rows) + 40
+        fig.panel(10, y, WIDTH - 20, height, "(d) 실서비스 블록(핵심 사실 3 + 회상 3): 출처 회상 없음과 있음")
+        _legend_pair(fig, 30, y + 40)
+        bottom = _dumbbell(fig, 20, y + 64, WIDTH - 130, rows, 1.0, [0, 0.5, 1.0], "{:.0%}".format, label_w=196)
+        v = svc["src_vs_turns"]
+        note = f"LongMemEval-s 60문항. 출처 회상이 새로 맞힌 문항 {v['benefit']}, 잃은 문항 {v['tax']}"
+        fig.text(22, bottom + 8, note, "pf-note")
+        y += height + 24
+    return finish(fig, y)
+
+
+def exp_loop_overflow(r: dict) -> Fig:
+    d = r["loop_overflow"]
+    gpt = d["models"]["gpt-4o-mini"]
+    t, budget = d["max_turns"], d["resume_budget"]
+    names = {
+        "baseline": (f"이어가기 없음 ({t}차례)", "pf-s1"),
+        "resume": (f"넘침 이어가기 ({t}+{budget}차례)", "pf-s3"),
+        "unbounded": ("참고: 20차례", "pf-s2"),
+    }
+    keys = list(names)
+    s = {k: gpt[k]["summary"] for k in keys}
+    rows = [
+        ("정답률 (공식 점수 평균)", {k: s[k]["accuracy"] for k in keys}),
+        ("답을 낸 과제 비율", {k: s[k]["answered"] for k in keys}),
+        ("예산을 넘긴 과제 비율", {k: s[k]["overflow_rate"] for k in keys}),
+        ("넘친 뒤 모델 답으로 끝낸 비율", {k: s[k]["completed_after_overflow"] for k in keys}),
+    ]
+    fig = Fig("exp-loop-overflow", 0, "넘침 이어가기 전후, KramaBench 과제")
+    note = f"gpt-4o-mini, archeology와 legal 과제 {s['resume']['tasks']}개, 과제당 LLM 호출 평균: " + ", ".join(
+        f"{names[k][0].split(' (')[0]} {s[k]['mean_llm_calls']:.1f}" for k in keys
+    )
+    draw = bars_with_legend(fig, keys, rows, 1.0, UNIT, PCT, PCT, names, note, axis_title="비율")
+    y = section(fig, 10, "정답률, 답 비율, 넘침과 넘친 뒤 완료", draw)
+    buckets = [("1~6차례", 1, 6), ("7~9차례", 7, 9), ("10~19차례", 10, 19), ("20차례", 20, 20)]
+    hist = [
+        (label, {k: float(sum(lo <= n <= hi for n in s[k]["turns"])) for k in keys}) for label, lo, hi in buckets
+    ]
+    n = s["resume"]["tasks"]
+    draw2 = bars_with_legend(fig, keys, hist, float(n), [0, n / 2, n], "{:.0f}", "{:.0f}", names,
+                             axis_title="과제 수")
+    y = section(fig, y, "과제별로 쓴 차례 수 분포", draw2)
+    return finish(fig, y)
+
+
+# 성찰 순서 비교의 구성과 🔔 누출 라벨
+GATE_ARMS = {
+    "think_first": "현재 (사고 뒤 decision)",
+    "decision_first": "판정 먼저",
+    "anchor": "판정 먼저 + 앵커",
+    "anchor_facts": "판정 먼저 + 앵커 + 사실",
+}
+LEAK_KINDS = {
+    "concrete_notice": ("구체 알림", "pf-s2"),
+    "greeting_only": ("인사뿐", "pf-s3"),
+    "restates_answer": ("답 재진술", "pf-s1"),
+    "user_analysis_leak": ("분석문 누출", "pf-ok"),
+    "unclear": ("불명", "pf-bar"),
+}
+
+
+def _ranged_bars(fig: Fig, x: float, y: float, w: float, rows: list, keys: list[str], names: dict) -> float:
+    """막대는 반복 평균, 가로선은 반복 사이 최소와 최대다. 행마다 시리즈를 위아래로 쌓는다."""
+    label_w = max(text_width(label, LABEL_FS) for label, _ in rows) + 22
+    bar_w = w - label_w - VALUE_W - 30
+    top = y
+    for label, values in rows:
+        group_h = len(keys) * (BAR_H + BAR_GAP) - BAR_GAP
+        fig.text(x + label_w - 12, y + group_h / 2 + 4.5, label, "pf-lab", "end")
+        for i, key in enumerate(keys):
+            v, (lo, hi) = values[key]
+            by = y + i * (BAR_H + BAR_GAP)
+            bx = x + label_w
+            fig.parts.append(
+                f'<rect class="{names[key][1]}" x="{bx:.1f}" y="{by}" width="{max(bar_w * v, 1.5):.1f}"'
+                f' height="{BAR_H}" rx="2"/>'
+            )
+            cy = by + BAR_H / 2
+            fig.parts.append(
+                f'<line class="pf-line--after" x1="{bx + bar_w * lo:.1f}" y1="{cy}" x2="{bx + bar_w * hi:.1f}" y2="{cy}"/>'
+            )
+            fig.text(bx + bar_w * max(v, hi) + 6, by + BAR_H - 1, f"{v:.2f}", "pf-val")
+        y += group_h + ROW_GAP
+    return axis(fig, x + label_w, top - 4, y - ROW_GAP + 4, bar_w, 1.0, UNIT, "{:.1f}", "비율, AUC (0~1)") + 8
+
+
+def _stacked_kinds(fig: Fig, x: float, y: float, w: float, rows: list, kinds: dict) -> float:
+    """행마다 라벨 건수를 비율로 이어 붙인 가로 막대. 칸 안에 건수를, 끝에 합계를 적는다."""
+    label_w = max(text_width(label, LABEL_FS) for label, _ in rows) + 22
+    bar_w = w - label_w - 40
+    for label, counts in rows:
+        total = sum(counts.get(k, 0) for k in kinds)
+        fig.text(x + label_w - 12, y + BAR_H + 2, label, "pf-lab", "end")
+        bx = x + label_w
+        for key, (name, cls) in kinds.items():
+            n = counts.get(key, 0)
+            if not n:
+                continue
+            seg = bar_w * n / total
+            fig.parts.append(
+                f'<g><title>{label}, {name}: {n}</title><rect class="{cls}" x="{bx:.1f}" y="{y}"'
+                f' width="{seg:.1f}" height="{BAR_H + 6}" rx="2"/></g>'
+            )
+            if seg > 18:
+                text_cls = "pf-badge-t" if cls in ("pf-s2", "pf-s3", "pf-ok") else "pf-val"
+                fig.text(bx + seg / 2, y + BAR_H + 1, str(n), text_cls, "middle")
+            bx += seg
+        fig.text(x + label_w + bar_w + 8, y + BAR_H + 1, f"{total}", "pf-axis")
+        y += BAR_H + 6 + ROW_GAP
+    return y
+
+
+def exp_proactive_gate(r: dict) -> Fig:
+    d = r["proactive_decision_first"]
+    arms = [a for a in GATE_ARMS if a in d["arms"]]
+    fig = Fig("exp-proactive-gate", 0, "성찰 순서: 사고 뒤 decision 과 판정 먼저, 앵커, 사실 계산")
+    names = {
+        "recall": ("recall (must)", "pf-s2"),
+        "false_alarm": ("오경보 (must_not)", "pf-s3"),
+        "auc": ("AUC (must 대 must_not)", "pf-s1"),
+    }
+    rows = [
+        (
+            f"{GATE_ARMS[a]} ({d['arms'][a]['test']['threshold']})",
+            {k: (d["arms"][a]["test"][k], d["arms"][a]["test"][f"{k}_range"]) for k in names},
+        )
+        for a in arms
+    ]
+
+    def draw_a(y: float) -> float:
+        legend(fig, 30, y + 2, list(names), names)
+        return _ranged_bars(fig, 20, y + 26, WIDTH - 40, rows, list(names), names)
+
+    y = section(fig, 10, "(a) 시험용 사례, 3회. 막대는 평균, 선은 최소와 최대. 괄호는 개발용에서 고른 임계치", draw_a)
+    calls = {"llm": ("사고와 발화 LLM", "pf-s2"), "decision": ("decision model", "pf-s1")}
+    call_rows = [
+        (GATE_ARMS[a], {"llm": d["arms"][a]["test"]["llm_per_case"], "decision": d["arms"][a]["test"]["decision_per_case"]})
+        for a in arms
+    ]
+    vmax = max(4.0, max(max(v.values()) for _, v in call_rows))
+    draw_b = bars_with_legend(fig, list(calls), call_rows, vmax, [0, vmax / 2, vmax], "{:.0f}", "{:.2f}", calls,
+                              axis_title="사례당 호출 수")
+    y = section(fig, y, "(b) 사례당 호출 수", draw_b)
+    leak_rows = [(GATE_ARMS[a], d["arms"][a]["leak_labels"]) for a in arms]
+
+    def draw_c(y: float) -> float:
+        legend(fig, 30, y + 2, list(LEAK_KINDS), LEAK_KINDS)
+        bottom = _stacked_kinds(fig, 20, y + 26, WIDTH - 40, leak_rows, LEAK_KINDS)
+        fig.text(30, bottom + 4, f"판정자 {d['judge']['model']}, 사람 라벨 {d['judge']['human']['status']}", "pf-note")
+        return bottom + 12
+
+    y = section(fig, y, "(c) 시험용에서 건넨 🔔 의 판정자 라벨", draw_c)
+    return finish(fig, y)
+
+
 FIGURES = [
     exp_mcp,
     exp_scheduling,
@@ -690,15 +1042,19 @@ FIGURES = [
     exp_sessions,
     exp_orchestration,
     exp_architecture,
+    exp_loop_overflow,
     exp_proactive,
+    exp_proactive_gate,
     exp_inner_thought,
     exp_open_loop,
     exp_memory,
     exp_memory_recall,
+    exp_memory_net_value,
     exp_approval,
     exp_voice,
     exp_team,
     exp_focus,
+    exp_procedures,
 ]
 
 
@@ -706,9 +1062,10 @@ def main() -> None:
     results = load()
     only = set(sys.argv[1:])
     for build in FIGURES:
-        fig = build(results)
-        if only and fig.name not in only:
+        # 이름을 고르면 다른 그림은 만들지 않는다(다른 실험의 결과 키가 아직 없어도 돈다)
+        if only and build.__name__.replace("_", "-") not in only:
             continue
+        fig = build(results)
         (OUT_DIR / f"{fig.name}.svg").write_text(fig.svg())
         print(OUT_DIR / f"{fig.name}.svg")
 

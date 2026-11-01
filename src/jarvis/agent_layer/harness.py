@@ -4,8 +4,8 @@ import asyncio
 from typing import Any
 from collections.abc import Awaitable, Callable
 
+from jarvis.agent_layer.agent_types import AgentContext, AgentEndEvent, AgentEvent, AgentLoopConfig
 from jarvis.model_layer.model_types import AssistantMessage, ModelConfig, Tool, ToolResultMessage
-from jarvis.agent_layer.agent_types import AgentContext, AgentEvent, AgentLoopConfig
 from jarvis.agent_layer.session.session_protocol import SessionRepo
 from jarvis.agent_layer.loop import AgentEventSink, run_agent_loop
 from jarvis.memory.memory_service import MemoryService
@@ -89,10 +89,18 @@ class AgentHarness:
             )
 
             n_before = len(agent_context.messages)
+            overflows = 0
+
+            async def emit(event: AgentEvent) -> None:
+                nonlocal overflows
+                if isinstance(event, AgentEndEvent):
+                    overflows = event.overflows
+                await self._emit(event)
+
             result = await run_agent_loop(
                 context=agent_context,
                 config=self._loop_config,
-                emit=self._emit,
+                emit=emit,
                 tool_executor=tool_executor,
                 signal=self._signal,
                 agent_name=self._agent_name,
@@ -104,13 +112,14 @@ class AgentHarness:
             for msg in produced:
                 await self._session_repo.append(self._session_id, msg)
             if self._memory is not None:
-                # 떠올린 기억 중 답에 쓰인 것만 강해진다. 턴 일화의 작업 종류와 성패도 여기서 정한다
+                # 떠올린 기억 중 답에 쓰인 것만 강해진다. 턴 일화의 작업 종류와 성패, 넘침도 여기서 정한다
                 calls = [c for m in produced if isinstance(m, AssistantMessage) for c in m.tool_calls()]
                 errors = {m.tool_call_id for m in produced if isinstance(m, ToolResultMessage) and m.is_error}
                 failed = result is None or result.error_message is not None or bool(errors)
                 await self._memory.reinforce(
                     result.text() if result is not None else "", mem_context, tools=[c.name for c in calls],
                     failed=failed, steps=[(c.name, dict(c.arguments)) for c in calls if c.id not in errors],
+                    overflow=overflows > 0,
                 )
 
             return result

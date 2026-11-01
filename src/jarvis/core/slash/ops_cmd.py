@@ -10,6 +10,8 @@ if TYPE_CHECKING:
     from jarvis.model_layer.model_types import ModelConfig
     from jarvis.memory.scope import MemoryScope
 
+DEFAULT_SESSION_ID = "default"
+
 Handler = Callable[[str], Awaitable[str]]
 ScopedHandler = Callable[[str, "MemoryScope"], Awaitable[str]]
 
@@ -31,11 +33,11 @@ def make_sessions_handler(session_repo: "SessionRepo") -> Handler:
     return handle
 
 
-def make_branch_handler(session_repo: "SessionRepo", default_session_id: str = "default") -> Handler:
-    """/branch [session_id]: 세션을 특정 시점에서 분기."""
+def make_branch_handler(session_repo: "SessionRepo") -> ScopedHandler:
+    """/branch [session_id]: 세션을 분기. 인자가 없으면 명령을 친 세션을 분기한다."""
 
-    async def handle(args: str) -> str:
-        parent_id = args.strip() or default_session_id
+    async def handle(args: str, scope: "MemoryScope") -> str:
+        parent_id = args.strip() or scope.session_id or DEFAULT_SESSION_ID
         existing = {s.session_id for s in await session_repo.list("")}
         if parent_id not in existing:
             return f"[Branch] 세션을 찾을 수 없습니다: {parent_id} (/sessions 로 확인)"
@@ -78,7 +80,7 @@ def make_compact_handler(
     """/compact: 명령을 친 세션을 요약해 장기 기억(LTM)에 저장."""
 
     async def handle(_args: str, scope: "MemoryScope") -> str:
-        session_id = scope.session_id or "default"
+        session_id = scope.session_id or DEFAULT_SESSION_ID
         messages = await session_repo.get_messages(session_id)
         if len(messages) < 2:
             return "[Compact] 요약할 대화 내용이 충분하지 않습니다."

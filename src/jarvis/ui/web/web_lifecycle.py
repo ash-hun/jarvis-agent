@@ -1,4 +1,4 @@
-"""[ui] Web HUD 기동과 종료: 첫 세션, 스케줄러, 성찰 daemon, 외부 이벤트 폴러를 켜고 끄고 세션을 저장한다."""
+"""[ui] Web HUD 기동과 종료: 첫 세션, 스케줄러, 성찰 daemon, 외부 이벤트 폴러, 확장 감시를 켜고 끄고 세션을 저장한다."""
 
 from typing import TYPE_CHECKING
 from collections.abc import Awaitable, Callable
@@ -57,6 +57,8 @@ class WebLifecycle:
         # 외부 이벤트 폴러. 소스 YAML 이 없으면 None
         if ctx.external_poller is not None:
             await ctx.external_poller.start()
+        if ctx.extension_watcher is not None:
+            await ctx.extension_watcher.start()
 
     async def stop(self) -> None:
         state, ctx = self._state, self._state.ctx
@@ -64,5 +66,7 @@ class WebLifecycle:
             await self._daemon.stop()
         if ctx.external_poller is not None:
             await ctx.external_poller.stop()
+        if ctx.extension_watcher is not None:
+            await ctx.extension_watcher.stop()
         services = state.assembly.services
         await state.registry.consolidate_all_sessions(services.memory)

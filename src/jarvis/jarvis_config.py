@@ -1,8 +1,22 @@
 """[config] JarvisSettings: env 와 .env 에서 읽는 전체 설정 모델."""
 
+import re
 from typing import Annotated, Any, Literal
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
+
+
+# 정규식이다. "curl | bash" 처럼 쓰면 | 가 "또는" 이 되어 curl 이 든 명령을 전부 막는다
+DEFAULT_DANGEROUS_COMMANDS: tuple[str, ...] = (
+    r"rm\s+-rf\s+/",
+    r"sudo\s+",
+    r"curl\s+.*\|\s*(ba)?sh",
+    r"wget\s+.*\|\s*(ba)?sh",
+    r">\s*/dev/(sda|hda|nvme)",
+    r"mkfs\.",
+    r"dd\s+if=.*of=/dev/",
+    r":\(\)\s*\{\s*:\|:&\s*\};:",
+)
 
 
 class MCPServerConfig(BaseModel):
@@ -51,9 +65,8 @@ class SecurityConfig(BaseModel):
     # 예: JARVIS_SECURITY__API_KEYS='{"<random-key>": {"name": "jh", "roles": ["admin"]}}'
     api_keys: dict[str, ApiUser] = Field(default_factory=dict)
     allowed_roles: list[str] = Field(default_factory=lambda: ["user", "admin"])
-    dangerous_commands: list[str] = Field(
-        default_factory=lambda: ["rm -rf", "sudo", "curl | bash", "wget | bash", "> /dev/sda"]
-    )
+    # 셸 도구의 command 인자를 대소문자 무시 정규식으로 본다. 걸리면 승인 규칙과 무관하게 막고, 빈 목록이면 끈다
+    dangerous_commands: list[str] = Field(default_factory=lambda: list(DEFAULT_DANGEROUS_COMMANDS))
     require_approval_for: list[str] = Field(default_factory=lambda: ["bash", "write_file", "edit_file"])
     input_max_length: int = 10_000
     # 공용 승인 규칙. 모든 에이전트가 읽고, 사람이 직접 고친다
@@ -61,6 +74,17 @@ class SecurityConfig(BaseModel):
     # 에이전트별 승인 규칙(<agent_id>.yaml). 승인 화면에서 "항상 허용"을 고르면 그 에이전트 파일에 쌓인다
     agent_approvals_dir: str = "~/.jarvis/approvals"
 
+
+    @field_validator("dangerous_commands")
+    @classmethod
+    def _compiles(cls, patterns: list[str]) -> list[str]:
+        # 틀린 정규식은 첫 셸 호출이 아니라 기동 때 알린다
+        for pattern in patterns:
+            try:
+                re.compile(pattern)
+            except re.error as exc:
+                raise ValueError(f"dangerous_commands 의 정규식이 틀렸다: {pattern!r} ({exc})") from exc
+        return patterns
 
 class MemoryConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")

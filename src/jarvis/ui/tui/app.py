@@ -207,12 +207,16 @@ class JarvisTUI(App[None], UIAdapter):
         # 외부 이벤트 폴러(Phase 3) — daemon과 동일한 수명. 소스가 없으면 None.
         if self._ctx.external_poller is not None:
             self.run_worker(self._ctx.external_poller.start())
+        if self._ctx.extension_watcher is not None:
+            self.run_worker(self._ctx.extension_watcher.start())
 
     async def on_unmount(self) -> None:
         if self._proactive_daemon is not None:
             await self._proactive_daemon.stop()
         if self._ctx.external_poller is not None:
             await self._ctx.external_poller.stop()
+        if self._ctx.extension_watcher is not None:
+            await self._ctx.extension_watcher.stop()
 
     # ── 슬래시 명령 picker ────────────────────────────────────────────────────
 

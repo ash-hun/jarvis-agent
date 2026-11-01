@@ -1,4 +1,4 @@
-"""session 기능: 세션 REST(목록, 만들기, 이력, 분기, 삭제)와 PostgresSessionRepo 저장소 계약을 검증한다."""
+"""session 기능: 세션 REST, 지금 세션에 동작하는 슬래시 명령, PostgresSessionRepo 저장소 계약을 검증한다."""
 
 import pytest
 import asyncio
@@ -46,6 +46,34 @@ def test_delete_session_with_live_connection_is_refused(client):
 
     assert refused.status_code == 409
     assert client.delete("/api/sessions/wsdel").status_code == 200
+
+
+def _slash(ws, text: str) -> str:
+    ws.send_json({"type": "user_message", "text": text})
+    while True:
+        msg = ws.receive_json()
+        if msg["type"] == "stream_delta":
+            return msg["text"]
+
+
+def test_session_commands_act_on_the_session_that_typed_them(monkeypatch, tmp_path):
+    assembly = web_assembly(monkeypatch, tmp_path)
+    repo = assembly.ctx.session_repo
+
+    async def seed() -> None:
+        await repo.create(session_id="work")
+        await repo.append("work", UserMessage(content="일 얘기"))
+        await repo.append("work", _assistant("네"))
+
+    asyncio.run(seed())
+
+    with web_client(assembly) as c, c.websocket_connect("/ws?session_id=work") as ws:
+        ws.receive_json()
+        cost = _slash(ws, "/cost")
+        branch = _slash(ws, "/branch")
+
+    assert "세션 'work'" in cost
+    assert "'work'에서 분기했습니다" in branch
 
 
 def test_branch_copies_history_and_messages_are_text_only(monkeypatch, tmp_path):

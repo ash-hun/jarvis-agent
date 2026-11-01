@@ -1,5 +1,6 @@
 """session 의 Web SessionRegistry: 종료 때 세션마다 공고화, 삭제 순서, 스케줄 결과를 건넬 세션 고르기를 검증한다."""
 
+import asyncio
 import itertools
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -110,6 +111,58 @@ async def test_remove_forgets_the_sessions_memory_before_its_history():
 
     assert order == ["memory:s", "repo:s", "memory:s", "repo:s"]
     assert "s" not in registry.list_ids()
+
+
+async def test_open_during_delete_waits_and_reopens_a_fresh_session():
+    order: list[str] = []
+    gate = asyncio.Event()
+    repo = _repo()
+    repo.create = AsyncMock(side_effect=lambda session_id, agent_id: order.append("create"))
+    repo.delete = AsyncMock(side_effect=lambda sid: order.append("delete"))
+    services = MagicMock()
+
+    async def slow_forget(_sid: str) -> None:
+        await gate.wait()
+
+    services.memory.forget_session = slow_forget
+    registry = _registry(repo, services=services)
+    await registry.get_or_create("s")
+
+    deleting = asyncio.create_task(registry.remove_if_idle("s", lambda: True))
+    await asyncio.sleep(0)
+    opening = asyncio.create_task(registry.get_or_create("s"))
+    await asyncio.sleep(0)
+    gate.set()
+
+    assert await deleting is True
+    await opening
+    assert order == ["create", "delete", "create"]
+    assert "s" in registry.list_ids()
+
+
+async def test_remove_if_idle_keeps_a_busy_session():
+    repo = _repo()
+    registry = _registry(repo)
+    await registry.get_or_create("s")
+
+    assert await registry.remove_if_idle("s", lambda: False) is False
+    repo.delete.assert_not_awaited()
+    assert "s" in registry.list_ids()
+
+
+async def test_concurrent_opens_build_one_session():
+    repo = _repo()
+
+    async def slow_meta(_sid: str) -> None:
+        await asyncio.sleep(0)
+
+    repo.get_meta = AsyncMock(side_effect=slow_meta)
+    registry = _registry(repo)
+
+    first, second = await asyncio.gather(registry.get_or_create("s"), registry.get_or_create("s"))
+
+    assert first[0] is second[0]
+    repo.create.assert_awaited_once()
 
 
 async def test_latest_of_picks_the_session_the_user_talked_to_most_recently(monkeypatch):

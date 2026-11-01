@@ -33,7 +33,7 @@ import FigureExpApproval from '@site/src/figures/exp-approval.svg';
 
 `remember_task_pattern` 과 `recall_episodes` 는 모든 에이전트가 쓰는 메모리 도구다. 앞의 것은 사용자가 알려 준 작업 방식을 도구를 부른 에이전트의 작업 패턴으로 저장하고([Memory Management → 작업 패턴](../memory.md#작업-패턴)), 뒤의 것은 그 에이전트의 지난 턴 일화를 조건으로 골라 읽는다.
 
-실행 중에 동적으로 더해지는 도구도 있다. `schedule` 과 `goal`(스케줄러가 켜져 있을 때), `ask_agent`(최상위 에이전트가 둘 이상일 때), `orchestrate` 와 `agent_<name>`(에이전트 정의가 있을 때), `procedure_<name>`(승인된 절차), MCP 서버의 도구, `~/.jarvis/tools/` 의 사용자 도구가 그렇다. 사용자 도구와 MCP 도구는 같은 이름의 내장 도구를 덮어쓴다. 도구 목록은 턴마다 레지스트리에서 다시 읽으므로, 실행 중에 등록된 도구(승인된 절차 등)는 재시작 없이 보인다. `~/.jarvis/tools/` 에 파일을 더한 경우는 기동 때만 읽으므로 재시작한다.
+실행 중에 동적으로 더해지는 도구도 있다. `schedule` 과 `goal`(스케줄러가 켜져 있을 때), `ask_agent`(최상위 에이전트가 둘 이상일 때), `orchestrate` 와 `agent_<name>`(에이전트 정의가 있을 때), `procedure_<name>`(승인된 절차), MCP 서버의 도구, `~/.jarvis/tools/` 의 사용자 도구가 그렇다. 사용자 도구와 MCP 도구는 같은 이름의 내장 도구를 덮어쓴다. 도구 목록은 턴마다 레지스트리에서 다시 읽으므로, 실행 중에 등록된 도구(승인된 절차 등)는 재시작 없이 보인다. `~/.jarvis/tools/` 에 더한 파일도 파일 감시가 켜져 있으면 다음 턴부터 보인다.
 
 ## 도구 호출 한 번
 
@@ -162,12 +162,12 @@ parameters: '1. 파일 검색 패턴, 2. 주요 파일 경로, 3. 읽을 최대 
 
 ## 스킬, 플러그인, MCP
 
-- **스킬**: `~/.jarvis/skills/*.md` 에 둔다. `/name args` 가 본문으로 펼쳐져 LLM 프롬프트가 된다. 기동 때 한 번 읽는다
+- **스킬**: `~/.jarvis/skills/*.md` 에 둔다. `/name args` 가 본문으로 펼쳐져 LLM 프롬프트가 된다. 기동 때 읽고, 파일 감시가 켜져 있으면 바뀔 때 다시 읽는다
 - **플러그인**: `~/.jarvis/plugins/*.py` 에 둔다. 실제로 불리는 훅은 `before_agent_start`, `before_tool_call`(block 가능), `after_tool_call`(관찰만, 반환값은 무시), `on_message_end`(응답 교체 가능)다. `transform_context` 는 선언만 되어 있고 호출되지 않는다. 플러그인 하나의 오류는 격리된다
 - **MCP**: `mcp_servers` 설정의 서버에서 도구를 발견해 등록한다. `stdio` 와 `http`(SSE) 를 지원하고, 호출마다 새 연결을 연다. 서버 하나가 실패해도 다른 서버는 막히지 않는다. 쓰려면 `uv sync --extra mcp` 로 설치한다
 
-:::warning
-파일 감시(`JARVIS_PLUGIN__WATCH_FILES`)는 설정에 있지만 현재 아무것도 감시하지 않는다. 도구, 스킬, 플러그인을 더했으면 재시작한다.
+:::note
+파일 감시(`JARVIS_PLUGIN__WATCH_FILES`, 기본 켜짐)는 기동 때 있던 도구, 스킬, 플러그인 디렉터리를 지켜본다. 파일을 더하거나 고치면 그 디렉터리만 다시 읽어 같은 이름을 덮어쓰고, 세션은 다음 턴부터 새 도구를 본다. 파일을 지운 도구와 스킬은 재시작 전까지 남는다. 기동 뒤에 만든 디렉터리, 에이전트 정의의 `tools` 로 골라 복사한 도구는 재시작해야 바뀐다.
 :::
 
 ## 보안 파이프라인
@@ -178,8 +178,10 @@ parameters: '1. 파일 검색 패턴, 2. 주요 파일 경로, 3. 읽을 최대 
 - **인증**: TUI 는 로컬 사용자로 본다. Web 은 `JARVIS_SECURITY__API_KEYS` 가 있을 때만 키를 요구한다. 키의 `name` 이 메모리 범위와 요청 제한의 사용자 id 가 된다
 - **정책**: 현재는 모든 도구를 허용하는 정책이 배선되어 있다. 역할 기반 정책 클래스는 있지만 쓰이지 않는다
 
-:::danger
-위험 명령 정규식(`JARVIS_SECURITY__DANGEROUS_COMMANDS`)은 설정에 있지만 도구 호출 경로에서는 검사되지 않는다. 지금의 안전장치는 승인 모달과 승인 규칙뿐이다.
+- **위험 명령**: 도구 호출의 `command` 인자(셸 도구 `bash`)가 `JARVIS_SECURITY__DANGEROUS_COMMANDS` 의 정규식(대소문자 무시)에 걸리면 승인을 묻지 않고 막는다. "항상 허용" 규칙이 있어도 막는다. 도구 결과에 `security.dangerous_commands` 에 걸렸다고 적어 모델에 돌려준다. 사람 없이 도는 스케줄 작업과 목표 차례도 같은 목록으로 막는다. 기본 목록은 `rm -rf /`, `sudo`, `curl … | sh`, `wget … | sh`, `> /dev/sda`, `mkfs.`, `dd … of=/dev/`, fork bomb 이다
+
+:::warning
+위험 명령 목록은 정규식이다. `curl | bash` 처럼 쓰면 `|` 가 "또는" 이 되어 `curl ` 이나 ` bash` 가 든 명령을 전부 막는다. 틀린 정규식은 기동 때 설정 오류로 알린다. 빈 목록(`[]`)이면 차단을 끈다. 파일 내용(`write_file` 의 `content`)은 보지 않으므로 이 목록이 셸 스크립트 파일 작성까지 막지는 않는다.
 :::
 
 ## 성능 실험

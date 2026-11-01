@@ -19,12 +19,12 @@ title: 공용 커맨드
 | `/housing` | | 대출 자격용 주거 프로필(무주택, 생애최초, 혼인, 연소득, 순자산, 생년월일이나 나이, 관심 지역, 보유 현금, 월 여유자금) 보기. `set 연소득=6000만 현금=7000만 월여유자금=150만` 으로 준 항목만 고치고, `clear` 로 지운다 |
 | `/goal` | | 지금 세션의 에이전트에게 [목표](../concepts/conversation/goals.md)를 맡긴다(`<문장>`). 인자 없으면 맡은 목표 목록, `stop <문장 일부>` 로 멈춘다. 같은 문장을 다시 맡겨도 하나다 |
 | `/sessions` | | 저장된 세션 목록 |
-| `/branch` | | `[session_id]` 세션을 특정 시점에서 분기 |
+| `/branch` | | `[session_id]` 세션을 분기. 인자가 없으면 명령을 친 세션 |
 | `/tools` | | 현재 사용 가능한 도구 목록 |
 | `/procedures` | | 학습된 절차 (`approve <name>`, `reject <name>`, `show <name>`, `learn [session_id]`) |
 | `/compact` | | 명령을 친 세션을 요약해 장기 기억에 저장 |
-| `/export` | | 현재 세션 대화를 파일로 (`md`, `json`, `~/.jarvis/exports/`) |
-| `/cost` | | 현재 세션 토큰 사용량과 추정 비용, 모델별 집계 |
+| `/export` | | 명령을 친 세션 대화를 파일로 (`md`, `json`, `~/.jarvis/exports/`) |
+| `/cost` | | 명령을 친 세션의 토큰 사용량과 추정 비용, 모델별 집계 |
 | `/openloop` | | 추적 중인 약속과 미완 작업 (`done <id>`, `dismiss <id>`) |
 | `/usermodel` | | 증류된 사용자 모델 표시, `build` 로 갱신 |
 | `/journal` | | 자기 성찰 저널 표시, `write` 로 작성 |

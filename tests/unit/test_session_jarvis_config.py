@@ -84,6 +84,14 @@ def test_brand_env_override(monkeypatch):
     assert settings.brand.palette.nebula == ["#ff4b2b", "#ffb347"]
 
 
+def test_dangerous_commands_reject_broken_regex(monkeypatch):
+    from pydantic import ValidationError
+
+    monkeypatch.setenv("JARVIS_SECURITY__DANGEROUS_COMMANDS", '["rm -rf (", "sudo"]')
+    with pytest.raises(ValidationError, match="dangerous_commands"):
+        JarvisSettings()
+
+
 def test_brand_rejects_non_hex_color(monkeypatch):
     from pydantic import ValidationError
 

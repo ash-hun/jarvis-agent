@@ -83,6 +83,7 @@ def build_ws_router(state: WebState) -> APIRouter:
 
         adapter = PerConnectionAdapter(ws)
         broker = state.broker(session_id)
+        # get_or_create 와 attach 사이에 await 를 두지 않는다. 그 틈에 세션 삭제가 연결 0개로 보고 지운다
         await broker.attach(adapter)
         sandbox.set_approval_callback(broker.request)
         unsubscribe = session.subscribe(adapter.on_agent_event)

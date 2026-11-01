@@ -414,6 +414,18 @@ async def test_tool_error_or_unknown_tool_is_a_failed_notice():
     assert [p["error"] for p in sent] == [True, True]
 
 
+async def test_tool_task_with_dangerous_command_is_not_called():
+    tool = _Echo(["done"])
+    tool.name = "bash"
+    svc, sent = _tool_service(tool)
+
+    await _run(svc, ScheduledTask(name="wipe", prompt="", kind="tool", tool="bash",
+                                  args={"command": "sudo rm -rf /"}, agent="karen"))
+
+    assert tool.calls == []
+    assert [p["error"] for p in sent] == [True]
+
+
 async def test_conversation_delivery_goes_to_the_agent_and_falls_back_to_a_notice():
     svc, sent = _tool_service(_Echo(["애쉬, 새로 올라온 공고가 1건 있어요", "애쉬, 새 공고 2건", "실패", ""]))
     spoken: list[tuple[str, str]] = []

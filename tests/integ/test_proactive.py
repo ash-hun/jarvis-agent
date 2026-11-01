@@ -311,6 +311,28 @@ async def test_unanswered_proactive_learned_once_as_weak_dismiss(fx):
 
 
 @pytest.mark.asyncio
+async def test_proactive_dropped_while_answering_is_neither_cooldown_nor_ignore(fx):
+    await _open(fx)
+    now = [0.0]
+    learner = FeedbackLearner(base_threshold=0.6, step=0.05)
+    factory = _core(cooldown_sec=300, ignore_after_sec=600, clock=lambda: now[0])
+    session = _build(fx, engine=CountingEngine(ASK), factory=factory, learner=learner)
+    events = _record(session)
+
+    session._set_busy(True)
+    dropped = await session.reflect()
+    session._set_busy(False)
+    await fx["repo"].append(SID, AssistantMessage(content=[TextContent(text="답 끝")]))
+    now[0] = 700
+    spoken = await session.reflect()
+
+    assert dropped is not None and dropped.reason == "suppressed"
+    assert spoken is not None and spoken.speak is True
+    assert [e.text for e in _proactive(events, "proactive")] == [ASK.utterance]
+    assert learner.stats()["ignores"] == 0
+
+
+@pytest.mark.asyncio
 async def test_restart_keeps_gate_and_recent_proactive(fx):
     await _open(fx)
     engine = CountingEngine(ASK, fresh=True)

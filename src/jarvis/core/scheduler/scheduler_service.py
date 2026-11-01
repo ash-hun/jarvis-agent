@@ -69,8 +69,13 @@ class SchedulerService:
         schedules_dir: str | None = None,
         plugin_runner: "PluginRunner | None" = None,
         skill_registry: "SkillRegistry | None" = None,
+        dangerous_patterns: list[str] | None = None,
     ) -> None:
         self._tasks = tasks
+        from jarvis.core.policy.sandbox import DefaultSandbox
+
+        # 사람 없이 도는 작업도 위험 명령은 막는다. 물을 사람이 없어 승인 대상은 비운다. None 이면 기본 목록
+        self._sandbox = DefaultSandbox(dangerous_patterns=dangerous_patterns, require_approval_for=[])
         # 설정되면 새 작업·토글을 이 디렉토리의 YAML 로 저장해 재시작 후에도 남긴다.
         self._schedules_dir = schedules_dir
         self._session_repo = session_repo
@@ -351,7 +356,6 @@ class SchedulerService:
         """작업 프롬프트를 새 세션에서 실행하고 최종 답을 돌려준다. 실패하면 None. pick 은 쓸 도구를 다시 고른다."""
         from jarvis.core.policy.authenticator import NoAuthAuthenticator
         from jarvis.core.policy.pipeline import SecurityPipeline
-        from jarvis.core.policy.sandbox import PermissiveSandbox
         from jarvis.core.policy.policy import AllowAllPolicy
         from jarvis.core.session import AgentSession
 
@@ -371,9 +375,8 @@ class SchedulerService:
             ask = resolved.ask_tools if resolved is not None else ()
             filtered = step_registry(filtered, ask, goal_turn=False)
 
-        # PermissiveSandbox: auto-approve all (no HITL)
         from jarvis.core.policy.validator import DefaultInputValidator
-        sandbox = PermissiveSandbox()
+        sandbox = self._sandbox
         pipeline = SecurityPipeline(
             validator=DefaultInputValidator(),
             authenticator=NoAuthAuthenticator(),
@@ -462,6 +465,9 @@ class SchedulerService:
         from jarvis.model_layer.model_types import TextContent
 
         call_id = f"sched-{task.name}"
+        if await self._sandbox.decide(name, params) == "blocked":
+            logger.info(f"[Scheduler] Tool task '{task.name}' blocked: dangerous command in '{name}'")
+            return None
         # 스케줄은 사람이 없는 실행이라 로컬 사용자의 범위로 부른다(대화 세션의 memory_scope 와 같은 기본값)
         context = ToolContext(scope=MemoryScope(user_id=LOCAL_USER, agent_id=task.agent), session_id=call_id)
         # 도구의 예외는 레지스트리가 오류 결과로 바꿔 준다

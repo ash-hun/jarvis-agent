@@ -6,8 +6,11 @@ from collections.abc import Awaitable, Callable
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.session_protocol import SessionRepo
     from jarvis.model_layer.model_types import AssistantMessage, Usage
+    from jarvis.memory.scope import MemoryScope
 
-Handler = Callable[[str], Awaitable[str]]
+DEFAULT_SESSION_ID = "default"
+
+ScopedHandler = Callable[[str, "MemoryScope"], Awaitable[str]]
 
 # 모델명 substring → (입력, 출력) USD per 1M tokens. 순서 중요 (gpt-4o-mini가 gpt-4o보다 먼저).
 # ui/web/static/app.js getCostRate()와 동기화.
@@ -37,10 +40,11 @@ def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     return input_tokens / 1e6 * rate_in + output_tokens / 1e6 * rate_out
 
 
-def make_cost_handler(session_repo: "SessionRepo", session_id: str = "default") -> Handler:
-    """/cost 핸들러 factory. 현재(기본) 세션의 누적 사용량을 모델별로 집계."""
+def make_cost_handler(session_repo: "SessionRepo") -> ScopedHandler:
+    """/cost 핸들러 factory. 명령을 친 세션의 누적 사용량을 모델별로 집계."""
 
-    async def handle(_args: str) -> str:
+    async def handle(_args: str, scope: "MemoryScope") -> str:
+        session_id = scope.session_id or DEFAULT_SESSION_ID
         messages = await session_repo.get_messages(session_id)
         # 모델별 Usage 집계
         per_model: dict[str, dict[str, int]] = {}

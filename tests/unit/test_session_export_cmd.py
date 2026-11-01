@@ -5,6 +5,7 @@ import pytest
 
 from jarvis.model_layer.model_types import AssistantMessage, TextContent, ToolResultMessage, Usage, UserMessage
 from jarvis.core.slash.export_cmd import conversation_to_json, conversation_to_markdown, make_export_handler
+from jarvis.memory.scope import MemoryScope
 
 
 def _assistant(text: str, model: str) -> AssistantMessage:
@@ -35,13 +36,16 @@ def test_conversation_to_json_keeps_session_count_and_roles():
     assert payload["messages"][0]["role"] == "user"
 
 
-@pytest.mark.parametrize(("args", "filename"), [("md", "default.md"), ("json", "default.json"), ("", "default.md")])
-async def test_export_writes_file_in_requested_format(jsonl_repo, tmp_path, args, filename):
+@pytest.mark.parametrize(("args", "filename"), [("md", "work.md"), ("json", "work.json"), ("", "work.md")])
+async def test_export_writes_calling_session_in_requested_format(jsonl_repo, tmp_path, args, filename):
     await jsonl_repo.create(session_id="default")
-    await jsonl_repo.append("default", UserMessage(content="안녕"))
-    await jsonl_repo.append("default", _assistant("반가워요", "claude-sonnet-4-5"))
+    await jsonl_repo.create(session_id="work")
+    await jsonl_repo.append("work", UserMessage(content="안녕"))
+    await jsonl_repo.append("work", _assistant("반가워요", "claude-sonnet-4-5"))
 
-    out = await make_export_handler(jsonl_repo, export_dir=str(tmp_path))(args)
+    scope = MemoryScope(user_id="local", session_id="work")
+
+    out = await make_export_handler(jsonl_repo, export_dir=str(tmp_path))(args, scope)
 
     assert "내보냈습니다" in out
     text = (tmp_path / filename).read_text(encoding="utf-8")
@@ -54,7 +58,22 @@ async def test_export_refuses_empty_session_and_unknown_format(jsonl_repo, tmp_p
     await jsonl_repo.create(session_id="default")
     exports = tmp_path / "exports"
     handler = make_export_handler(jsonl_repo, export_dir=str(exports))
+    scope = MemoryScope(user_id="local", session_id="default")
 
-    assert "내보낼 대화가 없습니다" in await handler("md")
-    assert "사용법" in await handler("pdf")
+    assert "내보낼 대화가 없습니다" in await handler("md", scope)
+    assert "사용법" in await handler("pdf", scope)
     assert not exports.exists()
+
+
+async def test_export_filename_drops_path_characters_of_session_id(tmp_path):
+    class _Repo:
+        async def get_messages(self, _sid):
+            return [UserMessage(content="hi")]
+
+    exports = tmp_path / "exports"
+
+    scope = MemoryScope(user_id="local", session_id="../../evil")
+
+    await make_export_handler(_Repo(), export_dir=str(exports))("md", scope)
+
+    assert [p.name for p in exports.iterdir()] == ["______evil.md"]

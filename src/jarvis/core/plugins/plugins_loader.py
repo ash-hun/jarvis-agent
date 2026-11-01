@@ -27,6 +27,8 @@ class PluginLoader:
             try:
                 plugin = _load_plugin(py_file)
                 if plugin:
+                    # 다시 읽을 때 같은 이름의 옛 플러그인을 빼고 넣는다. 그냥 넣으면 훅이 두 번 돈다
+                    self._runner.unregister(plugin.name)
                     self._runner.register(plugin)
                     loaded.append(plugin.name)
             except Exception as exc:

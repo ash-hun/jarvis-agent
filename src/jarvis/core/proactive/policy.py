@@ -45,6 +45,9 @@ class ProactivityPolicy:
     def restore_last_spoke(self, session_id: str, seconds_ago: float) -> None:
         pass
 
+    def withdraw(self, session_id: str) -> None:
+        pass
+
     def decide_proactive(
         self, frame: ThoughtFrame, *, session_id: str = "default", now: float | None = None
     ) -> ProactiveDecision:
@@ -77,6 +80,8 @@ class DefaultProactivityPolicy(ProactivityPolicy):
         # 세션별 "답을 기다리는 발화" 시각과 무시로 이미 셌는지. 사용자가 무엇이든 보내면 지운다.
         # 재시작하면 세션이 저장된 🔔 로 restore_awaiting 을 불러 되살린다.
         self._awaiting: dict[str, tuple[float, bool]] = {}
+        # 마지막 통과 직전의 쿨다운 시각. 그 말이 화면에 못 나가면 withdraw 가 이 값으로 되돌린다
+        self._before_pass: dict[str, float | None] = {}
         self._filler_idx = 0
 
     def _current_threshold(self) -> float:
@@ -122,6 +127,18 @@ class DefaultProactivityPolicy(ProactivityPolicy):
         """재시작 전에 마지막으로 먼저 말한 지 seconds_ago 초 지났다. 쿨다운을 그 시각부터 이어 센다."""
         self._last_spoke.setdefault(session_id, self._clock() - max(0.0, seconds_ago))
 
+    def withdraw(self, session_id: str) -> None:
+        """방금 통과시킨 말이 화면에 나가지 못했다. 쿨다운과 응답 대기를 통과 전으로 되돌린다. 몇 번 불러도 같다."""
+        if session_id not in self._before_pass:
+            return
+        before = self._before_pass.pop(session_id)
+        if before is None:
+            self._last_spoke.pop(session_id, None)
+        else:
+            self._last_spoke[session_id] = before
+        # 내보내지 않은 말은 답을 기다릴 것도, 무시로 셀 것도 없다
+        self._awaiting.pop(session_id, None)
+
     # ── daemon 자율 발화 게이팅 ────────────────────────────────────────────────
 
     def decide_proactive(
@@ -148,6 +165,7 @@ class DefaultProactivityPolicy(ProactivityPolicy):
         last = self._last_spoke.get(session_id)
         if last is not None and (t - last) < self._cooldown:
             return ProactiveDecision(speak=False, reason="cooldown")
+        self._before_pass[session_id] = last
         self._last_spoke[session_id] = t
         self._awaiting[session_id] = (t, False)
 

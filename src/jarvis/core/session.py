@@ -92,6 +92,7 @@ APPROVAL_RULE = (
 DENIED_RESULT = {
     "deny": "사용자가 '{tool}' 실행을 거부해 실행하지 않았다.",
     "timeout": "'{tool}' 승인 요청에 사용자가 시간 안에 답하지 않아 실행하지 않았다.",
+    "blocked": "'{tool}' 의 명령이 위험 명령 목록(security.dangerous_commands)에 걸려 실행하지 않았다.",
 }
 DENIED_RESULT_TAIL = (
     " 도구는 계속 쓸 수 있다. 실행하지 않았다고 짧게 알리고, 사용자가 직접 하는 방법을 안내하는 것으로 대신하지 않는다."
@@ -443,7 +444,8 @@ class AgentSession:
                 await asyncio.wait_for(self._idle.wait(), SAY_WAIT_SEC)
         if self._busy:
             return False
-        await self._emit_proactive(ProactiveMessage(text=text, kind="proactive"))
+        if not await self._emit_proactive(ProactiveMessage(text=text, kind="proactive")):
+            return False
         if self._proactivity is not None:
             # 이 말에 답이 올 때까지 성찰이 다른 말을 얹지 않는다
             self._proactivity.restore_awaiting(self._session_id)
@@ -703,16 +705,16 @@ class AgentSession:
 
         return frame
 
-    async def _emit_proactive(self, message: ProactiveMessage) -> None:
-        """ProactivityCore의 push 콜백. ProactiveMessage → ProactiveMessageEvent."""
+    async def _emit_proactive(self, message: ProactiveMessage) -> bool:
+        """ProactivityCore의 push 콜백. ProactiveMessage → ProactiveMessageEvent. 버렸으면 False."""
         # Focus 같은 턴 훅이 붙어 있으면 먼저 거는 말은 집중을 깨므로 내지 않는다. filler, 맡긴 일의 답은 보낸다
         if message.kind == "proactive" and self._turn_hook is not None:
             logger.info(f"[Proactive] suppressed during turn hook: {message.text[:40]}")
-            return
+            return False
         # 답하는 중에 먼저 거는 말은 그 답과 엇갈린다(공고 계산 중에 "조건을 말해 주세요"). 끝난 뒤 성찰이 다시 본다
         if message.kind == "proactive" and self._busy:
             logger.info(f"[Proactive] suppressed while answering: {message.text[:40]}")
-            return
+            return False
         if message.kind == "proactive":
             self._recent_proactive.append(message.text)
             self._last_proactive_id = message.id
@@ -734,6 +736,7 @@ class AgentSession:
                 message_id=message.id,
             )
         )
+        return True
 
     async def _restore_proactive(self) -> None:
         """재시작 전에 먼저 건넨 말과 그 말의 응답 대기를 되살린다. 세션당 한 번만 읽는다."""

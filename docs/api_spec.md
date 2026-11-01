@@ -702,7 +702,7 @@ $ curl -s http://localhost:7777/api/sessions/nope/messages
 
 ### DELETE /api/sessions/{session_id}
 
-세션과 그 대화를 지운다. 메모리의 세션 객체, 저장소(jsonl 파일 또는 Postgres 행, 메시지는 cascade), 그 세션의 장기 기억(턴 일화, 사고 로그 등 `session_id` 가 같은 행)과 작업 기억이 함께 사라진다. 세션에 묶이지 않은 사용자 프로필 사실과 절차는 남는다. 기억을 먼저 지우고 이력을 나중에 지우므로, 중간에 실패해도 다시 호출하면 끝난다.
+세션과 그 대화를 지운다. 메모리의 세션 객체, 저장소(jsonl 파일 또는 Postgres 행, 메시지는 cascade), 그 세션의 장기 기억(턴 일화, 사고 로그 등 `session_id` 가 같은 행)과 작업 기억이 함께 사라진다. 세션에 묶이지 않은 사용자 프로필 사실과 절차는 남는다. 기억을 먼저 지우고 이력을 나중에 지우므로, 중간에 실패해도 다시 호출하면 끝난다. 연결 확인과 삭제는 그 세션의 잠금 안에서 한다. 지우는 도중에 같은 세션으로 `/ws` 가 붙으면 삭제가 끝날 때까지 기다렸다가 빈 새 세션으로 열린다.
 
 #### Endpoint
 
@@ -1102,7 +1102,7 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 |---|---|
 | Method | WebSocket |
 | 인증 | 설정 시 `token` 쿼리 필수. 틀리면 accept 뒤 close `4401` |
-| 에이전트 | 새 세션을 모르는 `agent` 로 열려 하면 accept 뒤 close `4404` |
+| 에이전트 | 새 세션을 모르는 `agent` 로 열려 하거나 저장된 세션의 에이전트가 정의에 없으면 accept 뒤 close `4404`. 다시 붙어도 같은 답이다 |
 | 메시지 포맷 | JSON 텍스트 프레임, 항상 `type` 필드. 바이너리 프레임은 웨이크워드용 오디오 하나뿐이다 |
 | 필수 헤더 | 없음 |
 

@@ -47,7 +47,7 @@ def looks_like_tool(obj: object) -> bool:
 
 
 class ToolLoader:
-    """파일 기반 툴 로더. watchfiles 로 핫리로드 지원.
+    """파일 기반 툴 로더. 다시 불러도 같은 이름의 도구를 덮어써 같은 상태가 된다(extension_watcher 가 다시 부른다).
 
     - .py 파일: JarvisTool 모양의 클래스 또는 execute() 함수 포함
     - .yaml 파일: 선언적 메타데이터 + 동일 이름 .py 핸들러
@@ -55,7 +55,6 @@ class ToolLoader:
 
     def __init__(self, registry: ToolRegistry) -> None:
         self._registry = registry
-        self._watch_task: asyncio.Task[None] | None = None
 
     async def load_directory(self, path: str) -> list[str]:
         loaded: list[str] = []
@@ -84,15 +83,6 @@ class ToolLoader:
                 logger.info(f"[ToolLoader] Failed to load {py_file.name}: {exc}")
 
         return loaded
-
-    async def watch(self, path: str) -> None:
-        try:
-            from watchfiles import awatch
-        except ImportError:
-            return
-
-        async for _changes in awatch(path):
-            await self.load_directory(path)
 
     async def _load_yaml_tool(self, yaml_file: Path) -> JarvisTool | None:
         with open(yaml_file) as f:

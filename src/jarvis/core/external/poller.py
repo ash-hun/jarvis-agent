@@ -81,7 +81,8 @@ class ExternalEventPoller:
             return 0
 
         try:
-            fresh = await self._seen.filter_new(collected)
+            # 상한 안의 것만 본 것으로 적는다. 다 적고 자르면 잘린 이벤트가 본 것으로 남아 다시 오지 않는다
+            fresh = await self._seen.filter_new(collected, limit=self._max_events)
         except Exception as exc:
             logger.info(f"[ExternalEventPoller] dedup failed: {exc}")
             return 0
@@ -89,12 +90,11 @@ class ExternalEventPoller:
         if not fresh:
             return 0
 
-        if len(fresh) > self._max_events:
+        if len(fresh) == self._max_events:
             logger.info(
-                f"[ExternalEventPoller] {len(fresh)}건 중 상한 {self._max_events}건만 "
-                f"이번 틱에 전달"
+                f"[ExternalEventPoller] 상한 {self._max_events}건까지 전달. "
+                f"나머지는 본 것으로 적지 않아 다음 조회 때 다시 온다"
             )
-            fresh = fresh[: self._max_events]
 
         self._inbox.put(fresh)
         if self._trigger is not None:

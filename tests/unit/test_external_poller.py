@@ -94,11 +94,19 @@ async def test_tick_isolates_failing_source() -> None:
 
 
 @pytest.mark.asyncio
-async def test_tick_caps_events_per_tick() -> None:
-    batch = [event("s", f"s:{i}") for i in range(30)]
-    poller = _poller([FakeSource("s", 1.0, [batch])], clock=Clock(), max_events_per_tick=5)
+async def test_tick_caps_events_and_delivers_the_rest_on_next_poll() -> None:
+    batch = [event("s", f"s:{i}") for i in range(12)]
+    clock = Clock()
+    inbox = ExternalEventInbox()
+    poller = _poller([FakeSource("s", 1.0, [batch, batch, batch])], clock=clock, inbox=inbox, max_events_per_tick=5)
 
-    assert await poller.tick() == 5
+    counts = []
+    for _ in range(3):
+        counts.append(await poller.tick())
+        clock.t += 10
+
+    assert counts == [5, 5, 2]
+    assert [e.key for e in inbox.drain()] == [f"s:{i}" for i in range(12)]
 
 
 @pytest.mark.asyncio

@@ -117,6 +117,18 @@ async def test_jsonl_seen_survives_new_instance(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_jsonl_seen_marks_only_events_within_limit(tmp_path) -> None:
+    path = str(tmp_path / "seen.jsonl")
+    events = [event("s", "s:1"), event("s", "s:1"), event("s", "s:2"), event("s", "s:3")]
+
+    first = await JsonlSeenStore(path=path).filter_new(events, limit=2)
+    reloaded = JsonlSeenStore(path=path)
+
+    assert [e.key for e in first] == ["s:1", "s:2"]
+    assert [e.key for e in await reloaded.filter_new(events)] == ["s:3"]
+
+
+@pytest.mark.asyncio
 async def test_jsonl_seen_prunes_expired_keys_on_load(tmp_path) -> None:
     path = str(tmp_path / "seen.jsonl")
     clock = Clock()

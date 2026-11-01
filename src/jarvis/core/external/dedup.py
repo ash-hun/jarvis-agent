@@ -111,8 +111,9 @@ class SeenStore:
     기본 구현은 아무것도 기억하지 않아 모든 이벤트를 새것으로 통과시킨다.
     """
 
-    async def filter_new(self, events: list[ExternalEvent]) -> list[ExternalEvent]:
-        return list(events)
+    async def filter_new(self, events: list[ExternalEvent], limit: int | None = None) -> list[ExternalEvent]:
+        """처음 보는 이벤트를 limit 개까지 골라 본 것으로 적는다. limit 밖의 새 이벤트는 적지 않아 다음에 다시 온다."""
+        return list(events)[:limit]
 
 
 class InMemorySeenStore(SeenStore):
@@ -129,11 +130,13 @@ class InMemorySeenStore(SeenStore):
         self._clock = clock
         self._seen: dict[str, float] = {}
 
-    async def filter_new(self, events: list[ExternalEvent]) -> list[ExternalEvent]:
+    async def filter_new(self, events: list[ExternalEvent], limit: int | None = None) -> list[ExternalEvent]:
         now = self._clock()
         self._prune(now)
         fresh: list[ExternalEvent] = []
         for event in events:
+            if limit is not None and len(fresh) >= limit:
+                break
             if event.key in self._seen:
                 continue
             self._seen[event.key] = now
@@ -199,11 +202,13 @@ class JsonlSeenStore(SeenStore):
             self._prune(self._clock())
             self._loaded = True
 
-    async def filter_new(self, events: list[ExternalEvent]) -> list[ExternalEvent]:
+    async def filter_new(self, events: list[ExternalEvent], limit: int | None = None) -> list[ExternalEvent]:
         await self._ensure_loaded()
         now = self._clock()
         fresh: list[ExternalEvent] = []
         for event in events:
+            if limit is not None and len(fresh) >= limit:
+                break
             if event.key in self._seen:
                 continue
             self._seen[event.key] = now

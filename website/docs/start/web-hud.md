@@ -5,9 +5,7 @@ title: Web HUD 사용가이드
 
 # Web HUD 사용가이드
 
-Web HUD 는 브라우저에서 JARVIS 와 대화하는 화면이다. 텍스트 대화만이 아니라 에이전트의 생각, 일정, 먼저 건네는 말, 음성까지 한 화면에서 보고 다룰 수 있도록 설계했다. `jarvis --web` 으로 서버를 띄우고 브라우저에서 http://localhost:7777 을 연다. Docker 로 띄울 때는 `docker compose --profile web up -d` 를 쓴다.
-
-Docker 에서는 nginx 가 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/`)을 서빙하고, `/api/*`, `/ws`, `/brand.js`, `/manifest.json` 만 백엔드로 넘긴다. `jarvis --web` 으로 띄우면 백엔드가 정적 파일까지 직접 서빙한다. 화면은 하나이고, 세션을 바꾸면 WebSocket 을 다시 연결한다.
+Web HUD 는 브라우저에서 JARVIS 와 대화하는 화면이다. 텍스트 대화만이 아니라 에이전트의 생각, 일정, 먼저 건네는 말, 음성까지 한 화면에서 보고 다룰 수 있도록 설계했다. `jarvis --web` 으로 서버를 띄우고 브라우저에서 http://localhost:7777 을 연다. Docker 로 띄울 때는 `docker compose --profile web up -d` 를 쓴다. 이 페이지는 화면 구성을 먼저 보이고, 이어서 대화, 승인, 모드, 세션처럼 사용자가 하려는 일 단위로 조작 방법을 정리한다.
 
 :::note
 
@@ -15,7 +13,9 @@ Docker 에서는 nginx 가 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/`
 
 :::
 
-## 화면
+## 화면 구성
+
+화면은 하나다. 가운데 리액터를 두고 왼쪽 열에 AGENDA, ACTIVITY, SYSTEM, 오른쪽 열에 SESSIONS, CONVERSATION 카드를 둘렀으며, 아래에 입력 독이 있다.
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
@@ -47,7 +47,9 @@ Docker 에서는 nginx 가 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/`
 
 열 안은 세로 flex 다. SESSIONS 나 CONVERSATION 헤더를 클릭하면 그 카드가 접히고 아래 카드가 자리를 채운다. 접힘 상태는 localStorage 에 남는다. 화면 폭이 860px 이하면 왼쪽 열이 드로어가 되고, 헤더의 ≡ 로 연다.
 
-## 입력
+## 대화하기
+
+입력 독에 말을 적어 보내면 응답이 CONVERSATION 카드에 스트리밍으로 쌓인다.
 
 - Enter 나 SEND 로 보낸다. 보내면 입력이 잠기고 THINKING 자리표시가 뜬다. 첫 이벤트가 오면 자리표시가 스트리밍 메시지로 바뀐다. 90초 안에 아무 이벤트가 없으면 자리표시를 지우고 READY 로 돌아간다
 - `/` 로 시작하면 자동완성 팝업이 뜬다. ↑↓ 로 움직이고, Enter 나 Tab 으로 고르고, Esc 로 닫는다. 문장 중간의 `/명령` 도 하이라이트된다
@@ -56,7 +58,7 @@ Docker 에서는 nginx 가 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/`
 - 응답에 8줄 이상인 코드블록이 있으면 오른쪽 아티팩트 패널에 뜬다(COPY, ✕). 코드블록마다 COPY 버튼이 붙는다
 - 입력은 한 줄이고 줄바꿈은 넣을 수 없다
 
-## 승인
+## 승인하기
 
 승인이 필요한 도구가 불리면 모달이 뜬다. `ALLOW` 는 이번만 허용하고, `ALWAYS · 패턴` 은 그 패턴을 규칙으로 저장하고, `DENY` 는 거부한다. `ALWAYS` 버튼은 서버가 패턴을 제안했을 때만 보인다. Enter 를 누르면 ALLOW 다.
 
@@ -64,13 +66,13 @@ Docker 에서는 nginx 가 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/`
 
 음성으로 시작한 요청이거나 Full-voice 면 모달 대신 화면 아래쪽에 띠로 띄우고 승인을 음성으로 묻는다. 답을 들을 때까지 다시 듣는다(최대 20번). 띠의 버튼도 그대로 누를 수 있다.
 
-## 모드
+## 모드 바꾸기
 
 헤더의 `DEFAULT` / `FULL-VOICE` 는 음성으로 주고받는 방식을, `/focus <작업>` 은 작업 하나에 집중하는 Focus 레이아웃을 고른다. 둘은 함께 쓸 수 있고, 자세한 내용은 [Mode](../concepts/mode/index.md)에 있다. Focus 중에는 리액터 캡션이 한 줄로 줄고, 응답이 나오는 동안 CONVERSATION 띠가 빛난다. 띠를 누르면 전체 대화가 펼쳐진다.
 
 세션을 다른 에이전트(예: KAREN)로 바꾸면 화면 색이 약 0.9초에 걸쳐 그 에이전트 색으로 섞인다.
 
-## 먼저 건네는 말과 피드백
+## 먼저 건네는 말 받기
 
 먼저 건네는 말, 대기 안내, 스케줄 알림은 따로 표시하지 않고 에이전트의 보통 답과 같은 말풍선으로 보인다. 대화 기록에도 그 에이전트의 말로 남는다. "도움이 됐나요?" 라고 묻지 않는다.
 
@@ -78,7 +80,9 @@ Docker 에서는 nginx 가 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/`
 
 음성으로 일하는 중이면 먼저 건네는 말을 읽어 주고, Full-voice 면 읽은 뒤 듣는다. 사용자가 말하거나, 듣거나, 다른 말을 읽거나, 에이전트가 일하는 중이면 끊지 않고 끝난 뒤에 읽는다. 미룬 말은 가장 새것 하나만 둔다.
 
-## 세션
+## 세션 다루기
+
+SESSIONS 카드에서 세션을 만들고, 바꾸고, 분기하고, 지운다.
 
 - `+` 로 새 세션을 만든다. 이름을 클릭해 전환하면 대화, 사용량, 아티팩트가 초기화되고 히스토리가 복원된다
 - ⑂ 로 활성 세션을 분기한다. Postgres 저장소에서는 빈 새 세션이 만들어진다
@@ -90,19 +94,24 @@ Docker 에서는 nginx 가 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/`
 
 :::
 
-## 접근 키
+## 접근 키 넣기
 
 `JARVIS_SECURITY__API_KEYS` 가 설정돼 있으면 첫 연결이 4401 로 끊기고, 브라우저가 키를 한 번 묻는다. 입력한 키는 localStorage 에 저장된다. 묻는 창을 취소하면 상단 배너와 ACTIVITY 에 "접근 키 없음" 이 뜬다.
 
-## 끊김과 복구
+## 연결이 끊겼을 때
 
 WS 가 끊기면 상단에 `연결 끊김 — 재연결 중...` 배너가 뜨고 입력이 잠긴다. 재접속 간격은 1초에서 시작해 2배씩 늘고, 최대 10초에서 멈춘다. `agent_error` 와 `error` 가 오면 SYS 메시지를 띄우고 상태를 3초 동안 ERROR 로 둔다. AGENDA 나 TOOLS 요청이 실패하면 콘솔에 경고만 남긴다.
 
-## PWA 와 캐시
+## 정적 파일과 캐시
+
+Docker 에서는 nginx 가 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/`)을 서빙하고, `/api/*`, `/ws`, `/brand.js`, `/manifest.json` 만 백엔드로 넘긴다. `jarvis --web` 으로 띄우면 백엔드가 정적 파일까지 직접 서빙한다. 세션을 바꾸면 WebSocket 을 다시 연결한다.
 
 서비스 워커는 셸 파일을 네트워크 우선으로 받고, 연결이 끊겼을 때만 캐시를 쓴다. 버전 문자열이 없으므로 파일을 고치면 새로고침만으로 반영된다. `manifest.json` 과 아이콘이 있어 홈 화면에 추가할 수 있다. 브랜드 이름과 색은 `/brand.js` 로 내려온다.
 
-## 자동과 수동 검증
+## 화면 검증하기
+
+화면을 고친 뒤 동작을 확인하는 방법은 두 가지다.
+
 
 - 수동 시나리오 3개(Proactive Dialogue 와 피드백, 승인 기억, 절차 학습)는 `scripts/e2e/hud-scenario.md` 에 있다
 - 자동 e2e 는 `uv run python scripts/e2e/launch_hud.py &` 로 스크립트 프로바이더 HUD 를 7799 포트에 띄운 뒤 `uv run --with playwright python scripts/e2e/hud_flow.py` 를 실행한다

@@ -8,68 +8,17 @@ import TabItem from '@theme/TabItem';
 
 # Quick Start
 
-처음 Jarvis-Agent를 접하는 사용자가 가장 빠르게 에이전트와 대화를 시작할 수 있도록 설치와 실행 방법을 정리한다. jarvis-agent 를 내려받아 TUI 나 Web HUD 로 띄우며, 로컬에서 uv 로 띄우는 방법과 Docker 로 전체 스택을 띄우는 방법 중 하나만 고르면 된다.
+처음 Jarvis-Agent 를 접하는 사용자가 가장 빠르게 에이전트와 대화를 시작할 수 있도록 설치와 실행 방법을 정리한다. 저장소를 내려받고, LLM 을 하나 고르고, TUI 나 Web HUD 로 띄우면 된다. 실행 방법은 로컬에서 uv 로 띄우는 방법과 Docker 로 전체 스택을 띄우는 방법 중 하나만 고른다.
 
-## 실행환경
+## 준비물
 
 - Python 3.11 이상과 [uv](https://docs.astral.sh/uv/)
 - LLM 하나. 클라우드 API 키가 있거나 로컬에 Ollama, vLLM 이 떠 있어야 한다
 - Docker(선택). Web HUD 전체 스택(nginx, 백엔드, Postgres)을 한 번에 띄울 때만 쓴다
 
-## 서비스 구동방법
+## LLM Provider 고르기
 
-<Tabs groupId="runtime">
-<TabItem value="uv" label="로컬 (uv)" default>
-
-```bash
-git clone https://github.com/ash-hun/jarvis-agent.git
-cd jarvis-agent
-
-uv sync --extra web --extra scheduler
-cp .env.example .env
-# .env 에서 최소 JARVIS_LLM__API_KEY 를 채운다 (Ollama 면 비워도 된다)
-
-jarvis                                  # TUI
-jarvis --web                            # Web HUD, http://localhost:7777
-jarvis --web --host 0.0.0.0 --port 8080 # 바인딩 바꾸기
-```
-
-`.env.example` 은 세션과 메모리 백엔드를 `postgres` 로 둔다. Docker 없이 띄우려면 두 줄을 `jsonl` 과 `in_memory` 로 바꾼다. 그러면 세션이 `~/.jarvis/sessions/` 에 JSONL 로 쌓인다.
-
-기존 세션을 이어 가려면 `jarvis -s <session_id>` 를 쓰고, 세션 목록은 `jarvis --list-sessions` 로 본다. `jarvis -a karen` 처럼 `-a` 로 에이전트를 고르면 그 에이전트의 기본 세션으로 TUI 를 연다. 모든 옵션은 `jarvis -h` 로 본다.
-
-</TabItem>
-<TabItem value="docker" label="Docker">
-
-```bash
-cp .env.example .env
-
-docker compose --profile app run --rm jarvis  # TUI + Postgres
-docker compose --profile web up -d            # nginx + 백엔드 + Postgres, http://localhost:7777
-docker compose --profile web down
-```
-
-| 프로파일 | 서비스 | 접속 |
-|---|---|---|
-| `app` | jarvis TUI, postgres | 터미널 |
-| `web` | nginx, jarvis-backend, postgres | http://localhost:7777 |
-
-`web` 백엔드 이미지는 `web`, `scheduler`, `voice`, `piper`, `wake`, `discord` extra 와 ffmpeg 를 넣어 빌드하므로 따로 설치할 것이 없다. 저장소의 `team/`(최상위 에이전트 정의)과 `models/`(음성 모델)는 읽기 전용으로 마운트한다.
-
-백엔드 컨테이너는 `./src` 를 그대로 마운트한다. 파이썬을 고친 뒤에는 이미지를 다시 만들지 않고 `docker compose restart jarvis-backend` 로 반영한다. 정적 파일은 nginx 가 바로 서빙하므로 새로고침만 하면 된다.
-
-컨테이너 안에서 호스트의 Ollama 를 쓰려면 `JARVIS_LLM__BASE_URL=http://host.docker.internal:11434` 로 둔다.
-
-:::warning[WARNING]
-새 의존성이 들어간 버전으로 올렸다면 `./src` 마운트만으로는 반영되지 않는다. `docker compose build` 로 이미지를 다시 만든다.
-:::
-
-</TabItem>
-</Tabs>
-
-## LLM Provider 선택
-
-로컬 LLM(Ollama, vLLM)과 클라우드 LLM API(Anthropic, OpenAI, Google Gemini)를 연동할 수 있다. 프로바이더는 환경변수 `JARVIS_LLM__PROVIDER` 로 고른다.
+로컬 LLM(Ollama, vLLM)과 클라우드 LLM API(Anthropic, OpenAI, Google Gemini)를 연동할 수 있다. 프로바이더는 `.env` 의 `JARVIS_LLM__PROVIDER` 로 고르고, 실행하기 전에 정해 둔다.
 
 | 프로바이더 | `JARVIS_LLM__PROVIDER` | API 키 |
 |---|---|---|
@@ -105,3 +54,79 @@ JARVIS_LLM__MODEL=gemma4:e4b
 :::warning[WARNING]
 클라우드 프로바이더는 요청마다 비용이 든다. JARVIS 는 응답 한 번에 메인 호출 외에 사고 호출을 한 번 더 하고, 요청이 없을 때도 주기적으로 성찰 호출을 한다. 비용이 걱정되면 사고 모델을 작은 모델이나 로컬 모델로 따로 둔다.
 :::
+
+## 실행하기
+
+<Tabs groupId="runtime">
+<TabItem value="uv" label="로컬 (uv)" default>
+
+1. 저장소를 내려받고 의존성을 설치한다.
+
+   ```bash
+   git clone https://github.com/ash-hun/jarvis-agent.git
+   cd jarvis-agent
+   uv sync --extra web --extra scheduler
+   ```
+
+2. 설정 파일을 만든다. `.env` 에서 최소 `JARVIS_LLM__API_KEY` 를 채운다(Ollama 면 비워도 된다).
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   `.env.example` 은 세션과 메모리 백엔드를 `postgres` 로 둔다. Docker 없이 띄우려면 두 줄을 `jsonl` 과 `in_memory` 로 바꾼다. 그러면 세션이 `~/.jarvis/sessions/` 에 JSONL 로 쌓인다.
+
+3. 화면을 골라 띄운다.
+
+   ```bash
+   jarvis                                  # TUI
+   jarvis --web                            # Web HUD, http://localhost:7777
+   jarvis --web --host 0.0.0.0 --port 8080 # 바인딩 바꾸기
+   ```
+
+기존 세션을 이어 가려면 `jarvis -s <session_id>` 를 쓰고, 세션 목록은 `jarvis --list-sessions` 로 본다. `jarvis -a karen` 처럼 `-a` 로 에이전트를 고르면 그 에이전트의 기본 세션으로 TUI 를 연다. 모든 옵션은 `jarvis -h` 로 본다.
+
+</TabItem>
+<TabItem value="docker" label="Docker">
+
+1. 설정 파일을 만들고 LLM 값을 채운다.
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. 프로파일을 골라 띄운다. 끌 때는 `down` 을 쓴다.
+
+   ```bash
+   docker compose --profile app run --rm jarvis  # TUI + Postgres
+   docker compose --profile web up -d            # nginx + 백엔드 + Postgres, http://localhost:7777
+   docker compose --profile web down
+   ```
+
+| 프로파일 | 서비스 | 접속 |
+|---|---|---|
+| `app` | jarvis TUI, postgres | 터미널 |
+| `web` | nginx, jarvis-backend, postgres | http://localhost:7777 |
+
+`web` 백엔드 이미지는 `web`, `scheduler`, `voice`, `piper`, `wake`, `discord` extra 와 ffmpeg 를 넣어 빌드하므로 따로 설치할 것이 없다. 저장소의 `team/`(최상위 에이전트 정의)과 `models/`(음성 모델)는 읽기 전용으로 마운트한다.
+
+백엔드 컨테이너는 `./src` 를 그대로 마운트한다. 파이썬을 고친 뒤에는 이미지를 다시 만들지 않고 `docker compose restart jarvis-backend` 로 반영한다. 정적 파일은 nginx 가 바로 서빙하므로 새로고침만 하면 된다.
+
+컨테이너 안에서 호스트의 Ollama 를 쓰려면 `JARVIS_LLM__BASE_URL=http://host.docker.internal:11434` 로 둔다.
+
+:::warning[WARNING]
+새 의존성이 들어간 버전으로 올렸다면 `./src` 마운트만으로는 반영되지 않는다. `docker compose build` 로 이미지를 다시 만든다.
+:::
+
+</TabItem>
+</Tabs>
+
+## 확인하기
+
+Web HUD 로 띄웠다면 브라우저에서 http://localhost:7777 을 연다. 헤더에 연결 상태와 `READY` 가 보이고, 메시지를 보내면 `THINKING` 자리표시 뒤에 응답이 스트리밍으로 나온다. TUI 라면 입력창에 말을 걸어 응답이 오는지 본다. 응답이 오지 않거나 설정이 반영되지 않는 것 같으면 [FAQ](../troubleshooting/index.md)에서 증상에 맞는 페이지를 찾는다.
+
+## 다음 할 일
+
+- 화면 영역과 조작은 [Web HUD 사용가이드](./web-hud.md)에 있다
+- 대화가 어떻게 흘러가는지는 [Conversation](../concepts/conversation/index.md)에서 본다
+- 모델, 저장소, 음성 설정은 [서비스 설정 값](../reference/configuration.md)에서 바꾼다

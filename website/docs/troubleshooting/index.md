@@ -5,15 +5,17 @@ title: FAQ
 
 # FAQ
 
-JARVIS-Agent를 쓰면서 자주 묻는 질문과 증상별 runbook을 모았다. 증상에 맞는 페이지를 골라 원인과 확인 순서를 따라가면 된다.
+JARVIS-Agent 를 쓰면서 자주 만나는 증상과 그 runbook 을 모았다. 아래 표에서 겪고 있는 증상을 찾아 페이지로 넘어가면, 무엇을 어떤 순서로 확인하고 원인마다 어떻게 고치는지 나온다.
 
-- [먼저 건네는 말이 오지 않을 때](./proactive-silent.md)
-- [사고 프레임이 깨진다](./thought-frame.md)
-- [응답이 느리다](./slow-response.md)
-- [설정이 안 먹는다](./settings.md)
-- [승인 모달](./approval-modal.md)
-- [화면이 옛날 것이다](./stale-ui.md)
-- [세션이 안 보인다](./sessions.md)
-- [청약 공고 조회](./housing.md)
-- [작업 패턴](./task-patterns.md)
-- [음성](./voice.md)
+| 증상 | 페이지 |
+|---|---|
+| 🔔 먼저 건네는 말이 오지 않는다 | [먼저 건네는 말이 오지 않을 때](./proactive-silent.md) |
+| 💭 가 뜨지 않고 로그에 사고 프레임 오류가 찍힌다 | [사고 프레임이 깨진다](./thought-frame.md) |
+| 첫 글자가 늦게 나오거나 요청이 줄을 선다 | [응답이 느리다](./slow-response.md) |
+| `.env` 를 고쳤는데 반영되지 않는다 | [설정이 안 먹는다](./settings.md) |
+| 승인 모달이 여러 탭에 뜨거나, 시간 초과로 거부되거나, `ALWAYS` 규칙을 되돌리고 싶다 | [승인 모달](./approval-modal.md) |
+| 고친 화면이 반영되지 않고 옛 화면이 보인다 | [화면이 옛날 것이다](./stale-ui.md) |
+| SESSIONS 카드에 저장된 세션이 보이지 않는다 | [세션이 안 보인다](./sessions.md) |
+| KAREN 의 청약 공고 조회나 대출 계산이 실패하거나 이상하다 | [청약 공고 조회](./housing.md) |
+| 알려 준 작업 방식을 다음에 따르지 않는다 | [작업 패턴](./task-patterns.md) |
+| 음성 입력이나 읽기가 되지 않는다 | [음성](./voice.md) |

@@ -526,10 +526,12 @@ pre,
   box-shadow: none;
 }
 
-@media (min-width: 997px) {
+/* 인포그래픽은 예전 크기(본문 폭보다 38px 넓게)의 75% 로 가운데에 둔다. 휴대폰 폭에서는 글자가 너무 작아져 본문 폭을 다 쓴다 */
+@media (min-width: 768px) {
   .info-fig {
-    margin-left: -12px;
-    margin-right: -26px;
+    width: calc((100% + 38px) * 0.75);
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 

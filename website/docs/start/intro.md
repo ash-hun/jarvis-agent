@@ -12,7 +12,7 @@ title: JARVIS-Agent 소개
 
 ## 서비스 개요
 
-보통의 채팅 에이전트는 사용자가 말해야 움직인다. JARVIS 는 요청마다 메인 응답과 별도로 한 번 더 생각하고([Inner Thought](../concepts/architecture/inner-thought.md)), 그 판단으로 다음 네 가지를 정한다.
+기존의 Chatbot Assistant는 사용자가 먼저 말을 걸어야만 움직이고, 대화가 끝나면 다음 요청이 올 때까지 아무것도 하지 않는다. JARVIS 는 이 지점에서 출발해, 요청마다 메인 응답과 별도로 한 번 더 생각하고([Inner Thought](../concepts/architecture/inner-thought.md)) 그 판단으로 다음 네 가지를 정한다.
 
 - 지금 바로 답할지, "잠깐만요, 확인할게요" 를 먼저 말하고 뒤에서 처리할지
 - 대화에서 흘린 약속과 끝내지 못한 일을 기억해 둘지

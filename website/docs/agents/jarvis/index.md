@@ -5,7 +5,7 @@ title: JARVIS
 
 # JARVIS
 
-<span className="agent agent--jarvis">J.A.R.V.I.S.</span> 는 팀 전체를 총괄하는 첫 번째 에이전트다(id `main`). 사용자의 기본 대화 상대이고, 묻기 전에 먼저 생각하고 먼저 말을 건다.
+<span className="agent agent--jarvis">J.A.R.V.I.S.</span> 는 팀 전체를 총괄하는 첫 번째 에이전트다(id `main`). 사용자의 기본 대화 상대이자 다른 에이전트에게 일을 나눠 맡기는 창구다. 묻는 말에 답하는 데서 그치지 않고, 묻기 전에 먼저 생각하고 필요하면 먼저 말을 건다.
 
 ![JARVIS 세션의 Web HUD. 시안 리액터 구체와 AGENDA, ACTIVITY, SYSTEM, SESSIONS, CONVERSATION 카드](/img/agents/jarvis-hud.png)
 

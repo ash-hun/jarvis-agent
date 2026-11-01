@@ -3,6 +3,7 @@ sidebar_position: 4
 title: Memory Management
 ---
 
+import InfoMemory from '@site/src/figures/info-memory.svg';
 import FigureMemory from '@site/src/figures/memory.svg';
 import FigureExpMemory from '@site/src/figures/exp-memory.svg';
 import FigureExpMemoryRecall from '@site/src/figures/exp-memory-recall.svg';
@@ -11,9 +12,8 @@ import FigureExpMemoryRecall from '@site/src/figures/exp-memory-recall.svg';
 
 JARVIS 가 지난 대화와 사용자에 대한 사실을 기억해 매 턴의 프롬프트에 넣는 기능이다. 모델에는 최근 3턴만 넣어 프롬프트를 작게 유지하고, 그보다 앞의 대화와 사실은 장기 기억에서 회상해 되돌린다.
 
-<figure className="paper-fig">
-  <FigureMemory />
-  <figcaption><b>Figure 1.</b> (a) 매 턴 히스토리의 최근 3턴만 두고, 장기 기억에서 회상한 블록을 앞에 붙여 LLM 에 넣는다. 창 안의 턴과 사고 로그는 회상 블록에 넣지 않는다. [절차 기억] 은 장기 기억이 아니라 스킬 레지스트리에서 읽는다. (b) 턴이 끝날 때마다 그 턴을 일화(EDM)로 쓰고, 그 밖에는 정해진 경로로만 쓴다. /remember 와 주거 프로필 도구는 사용자 프로필 사실을, remember_task_pattern 은 에이전트별 절차(PDM)를 쓴다.</figcaption>
+<figure className="info-fig">
+  <InfoMemory />
 </figure>
 
 ## 서비스 기능
@@ -44,6 +44,11 @@ JARVIS 가 지난 대화와 사용자에 대한 사실을 기억해 매 턴의 �
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureMemory />
+  <figcaption><b>Figure 1.</b> (a) 매 턴 히스토리의 최근 3턴만 두고, 장기 기억에서 회상한 블록을 앞에 붙여 LLM 에 넣는다. 창 안의 턴과 사고 로그는 회상 블록에 넣지 않는다. [절차 기억] 은 장기 기억이 아니라 스킬 레지스트리에서 읽는다. (b) 턴이 끝날 때마다 그 턴을 일화(EDM)로 쓰고, 그 밖에는 정해진 경로로만 쓴다. /remember 와 주거 프로필 도구는 사용자 프로필 사실을, remember_task_pattern 은 에이전트별 절차(PDM)를 쓴다.</figcaption>
+</figure>
 
 `memory/` 의 `MemoryService` 가 작업 기억과 장기 기억 두 층을 가진다. 하네스가 턴마다 `observe` 로 기억을 프롬프트에 넣고, 답이 나오면 `reinforce` 로 답에 쓰인 기억을 강하게 한다. 3턴 밖의 대화는 회상으로 돌아온다.
 

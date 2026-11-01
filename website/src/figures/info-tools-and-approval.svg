@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 786" class="if-svg" role="img" aria-label="Tool &amp; Approve System: 파일, 셸, 웹을 도구로 다루고, 위험한 도구는 실행 전에 사람에게 묻는다">
+<defs><marker id="info-tools-and-approval-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="if-head" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="if-title" x="228.4" y="14" width="303.1" height="50" rx="12"/>
+<text class="if-title-t" x="380.0" y="47.0" text-anchor="middle">Tool &amp; Approve System</text>
+<text class="if-tagline" x="380.0" y="88.0" text-anchor="middle">파일, 셸, 웹을 도구로 다루고, 위험한 도구는 실행 전에 사람에게 묻는다</text>
+<circle class="if-dot" cx="380.0" cy="104.0" r="4"/>
+<path class="if-edge" d="M380.0,104.0 L380.0,122.0"/>
+<path class="if-edge" d="M71.4,136.0 Q71.4,122.0 85.4,122.0 L674.6,122.0 Q688.6,122.0 688.6,136.0"/>
+<path class="if-edge" d="M71.4,136.0 L71.4,144.0"/>
+<circle class="if-dot" cx="71.4" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="71.4" cy="183.0" r="35"/>
+<circle class="if-c-blue" cx="71.4" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(57.4,169.0) scale(1.167)"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></g>
+<text class="if-feature" x="71.4" y="238.0" text-anchor="middle">내장 도구</text>
+<text class="if-feature-sub" x="71.4" y="256.0" text-anchor="middle">셸, 파일, 웹 검색</text>
+<path class="if-edge" d="M174.3,122.0 L174.3,144.0"/>
+<circle class="if-dot" cx="174.3" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="174.3" cy="183.0" r="35"/>
+<circle class="if-c-red" cx="174.3" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(160.3,169.0) scale(1.167)"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g>
+<text class="if-feature" x="174.3" y="238.0" text-anchor="middle">실행 전 승인</text>
+<text class="if-feature-sub" x="174.3" y="256.0" text-anchor="middle">답은 세 가지</text>
+<path class="if-edge" d="M277.1,122.0 L277.1,144.0"/>
+<circle class="if-dot" cx="277.1" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="277.1" cy="183.0" r="35"/>
+<circle class="if-c-pink" cx="277.1" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(263.1,169.0) scale(1.167)"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></g>
+<text class="if-feature" x="277.1" y="238.0" text-anchor="middle">120초 대기</text>
+<text class="if-feature-sub" x="277.1" y="256.0" text-anchor="middle">답이 없으면 거부</text>
+<path class="if-edge" d="M380.0,122.0 L380.0,144.0"/>
+<circle class="if-dot" cx="380.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="380.0" cy="183.0" r="35"/>
+<circle class="if-c-teal" cx="380.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(366.0,169.0) scale(1.167)"><path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"/></g>
+<text class="if-feature" x="380.0" y="238.0" text-anchor="middle">승인 기억</text>
+<text class="if-feature-sub" x="380.0" y="256.0" text-anchor="middle">에이전트별 규칙</text>
+<path class="if-edge" d="M482.9,122.0 L482.9,144.0"/>
+<circle class="if-dot" cx="482.9" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="482.9" cy="183.0" r="35"/>
+<circle class="if-c-red" cx="482.9" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(468.9,169.0) scale(1.167)"><path d="m15 9-6 6"/><path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z"/><path d="m9 9 6 6"/></g>
+<text class="if-feature" x="482.9" y="238.0" text-anchor="middle">위험 명령 차단</text>
+<text class="if-feature-sub" x="482.9" y="256.0" text-anchor="middle">규칙보다 먼저</text>
+<path class="if-edge" d="M585.7,122.0 L585.7,144.0"/>
+<circle class="if-dot" cx="585.7" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="585.7" cy="183.0" r="35"/>
+<circle class="if-c-purple" cx="585.7" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(571.7,169.0) scale(1.167)"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></g>
+<text class="if-feature" x="585.7" y="238.0" text-anchor="middle">음성 승인</text>
+<text class="if-feature-sub" x="585.7" y="256.0" text-anchor="middle">애매하면 거부</text>
+<path class="if-edge" d="M688.6,136.0 L688.6,144.0"/>
+<circle class="if-dot" cx="688.6" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="688.6" cy="183.0" r="35"/>
+<circle class="if-c-teal" cx="688.6" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(674.6,169.0) scale(1.167)"><path d="M12 5v16"/><path d="m16 12 2 2 4-4"/><path d="M22 6V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2h4.001A2 2 0 0022 17v-1.344"/></g>
+<text class="if-feature" x="688.6" y="238.0" text-anchor="middle">절차 학습</text>
+<text class="if-feature-sub" x="688.6" y="256.0" text-anchor="middle">성공 3회면 초안</text>
+<rect class="if-bar" x="20" y="288" width="720" height="34" rx="8"/>
+<text class="if-bar-t" x="380.0" y="310.5" text-anchor="middle">도구 호출 한 번</text>
+<rect class="if-t-purple if-s-purple" x="20.0" y="340.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-purple" x="20.0" y="340.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-purple" x="20.0" y="362.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(35.4,348.0) scale(0.625)"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></g>
+<text class="if-card-t" x="104.8" y="359.0" text-anchor="middle">LLM 이 도구 호출</text>
+<text class="if-card-b" x="95.8" y="389.0" text-anchor="middle">한 번에 여러 개도 부른다</text>
+<path class="if-edge" d="M171.5,369.5 L207.5,369.5" marker-end="url(#info-tools-and-approval-arrow)"/>
+<rect class="if-decision if-s-slate" x="209.5" y="341.5" width="151.5" height="56.0" rx="18.0"/>
+<text class="if-decision-t" x="285.2" y="361.5" text-anchor="middle">정책과 플러그인</text>
+<text class="if-decision-t" x="285.2" y="378.5" text-anchor="middle">통과?</text>
+<path class="if-edge" d="M361.0,369.5 L397.0,369.5" marker-end="url(#info-tools-and-approval-arrow)"/>
+<text class="if-yes" x="380.0" y="362.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M285.2,397.5 L285.2,425.5" marker-end="url(#info-tools-and-approval-arrow)"/>
+<text class="if-no" x="293.2" y="416.5" text-anchor="start">아니오</text>
+<rect class="if-t-red if-s-red if-chip" x="219.5" y="427.5" width="131.5" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="285.2" y="446.5" text-anchor="middle">오류 결과로 돌려준다</text>
+<rect class="if-decision if-s-slate" x="399.0" y="350.0" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="474.8" y="370.0" text-anchor="middle">위험 명령이 아닌가?</text>
+<path class="if-edge" d="M474.8,389.0 L474.8,417.0" marker-end="url(#info-tools-and-approval-arrow)"/>
+<text class="if-no" x="482.8" y="408.0" text-anchor="start">아니오</text>
+<rect class="if-t-red if-s-red if-chip" x="409.0" y="419.0" width="131.5" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="474.8" y="438.0" text-anchor="middle">묻지 않고 막는다</text>
+<path class="if-edge" d="M550.5,369.5 L564.5,369.5 L564.5,483.5 L95.8,483.5 L95.8,501.0" marker-end="url(#info-tools-and-approval-arrow)"/>
+<text class="if-yes" x="557.5" y="362.5" text-anchor="middle">예</text>
+<rect class="if-decision if-s-slate" x="20.0" y="501.0" width="151.5" height="56.0" rx="18.0"/>
+<text class="if-decision-t" x="95.8" y="521.0" text-anchor="middle">승인이 필요한</text>
+<text class="if-decision-t" x="95.8" y="538.0" text-anchor="middle">도구인가?</text>
+<path class="if-edge" d="M171.5,529.0 L207.5,529.0" marker-end="url(#info-tools-and-approval-arrow)"/>
+<text class="if-yes" x="190.5" y="522.0" text-anchor="middle">예</text>
+<path class="if-edge" d="M95.8,557.0 L95.8,585.0" marker-end="url(#info-tools-and-approval-arrow)"/>
+<text class="if-no" x="103.8" y="576.0" text-anchor="start">아니오</text>
+<rect class="if-t-slate if-s-slate if-chip" x="30.0" y="587.0" width="131.5" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="95.8" y="606.0" text-anchor="middle">바로 실행한다</text>
+<rect class="if-decision if-s-slate" x="209.5" y="509.5" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="285.2" y="529.5" text-anchor="middle">기억된 규칙 밖인가?</text>
+<path class="if-edge" d="M361.0,529.0 L397.0,529.0" marker-end="url(#info-tools-and-approval-arrow)"/>
+<text class="if-yes" x="380.0" y="522.0" text-anchor="middle">예</text>
+<path class="if-edge" d="M285.2,548.5 L285.2,576.5" marker-end="url(#info-tools-and-approval-arrow)"/>
+<text class="if-no" x="293.2" y="567.5" text-anchor="start">아니오</text>
+<rect class="if-t-slate if-s-slate if-chip" x="219.5" y="578.5" width="131.5" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="285.2" y="597.5" text-anchor="middle">묻지 않고 실행한다</text>
+<rect class="if-t-red if-s-red" x="399.0" y="499.5" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-red" x="399.0" y="499.5" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-red" x="399.0" y="521.5" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(424.8,507.5) scale(0.625)"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></g>
+<text class="if-card-t" x="483.8" y="518.5" text-anchor="middle">사람에게 묻기</text>
+<text class="if-card-b" x="474.8" y="548.5" text-anchor="middle">120초 안에 답을 받는다</text>
+<path class="if-edge" d="M474.8,558.5 L474.8,643.0 L95.8,643.0 L95.8,669.0" marker-end="url(#info-tools-and-approval-arrow)"/>
+<rect class="if-decision if-s-slate" x="20.0" y="669.0" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="95.8" y="689.0" text-anchor="middle">허용했나?</text>
+<path class="if-edge" d="M171.5,688.5 L207.5,688.5" marker-end="url(#info-tools-and-approval-arrow)"/>
+<text class="if-yes" x="190.5" y="681.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M95.8,708.0 L95.8,736.0" marker-end="url(#info-tools-and-approval-arrow)"/>
+<text class="if-no" x="103.8" y="727.0" text-anchor="start">아니오</text>
+<rect class="if-t-red if-s-red if-chip" x="30.0" y="738.0" width="131.5" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="95.8" y="757.0" text-anchor="middle">모두 거부면 턴을 끝낸다</text>
+<rect class="if-t-teal if-s-teal" x="209.5" y="659.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-teal" x="209.5" y="659.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-teal" x="209.5" y="681.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(262.2,667.0) scale(0.625)"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></g>
+<text class="if-card-t" x="294.2" y="678.0" text-anchor="middle">실행</text>
+<text class="if-card-b" x="285.2" y="708.0" text-anchor="middle">ALWAYS 면 규칙도 저장</text>
+<path class="if-edge" d="M361.0,688.5 L397.0,688.5" marker-end="url(#info-tools-and-approval-arrow)"/>
+<rect class="if-t-green if-s-green if-end" x="399.0" y="659.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-green" x="399.0" y="659.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-green" x="399.0" y="681.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(422.5,667.0) scale(0.625)"><path d="M20 4v7a4 4 0 0 1-4 4H4"/><path d="m9 10-5 5 5 5"/></g>
+<text class="if-card-t" x="483.8" y="678.0" text-anchor="middle">결과를 LLM 에</text>
+<text class="if-card-b" x="474.8" y="708.0" text-anchor="middle">final 이면 그대로 답으로</text>
+</svg>

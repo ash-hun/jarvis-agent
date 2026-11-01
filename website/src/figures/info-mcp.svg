@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 793" class="if-svg" role="img" aria-label="MCP Events: 캘린더와 메일 같은 외부 소스의 새 소식을, 묻기 전에 급한 것만 먼저 알린다">
+<defs><marker id="info-mcp-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="if-head" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="if-title" x="286.1" y="14" width="187.9" height="50" rx="12"/>
+<text class="if-title-t" x="380.0" y="47.0" text-anchor="middle">MCP Events</text>
+<text class="if-tagline" x="380.0" y="88.0" text-anchor="middle">캘린더와 메일 같은 외부 소스의 새 소식을, 묻기 전에 급한 것만 먼저 알린다</text>
+<circle class="if-dot" cx="380.0" cy="104.0" r="4"/>
+<path class="if-edge" d="M380.0,104.0 L380.0,122.0"/>
+<path class="if-edge" d="M92.0,136.0 Q92.0,122.0 106.0,122.0 L654.0,122.0 Q668.0,122.0 668.0,136.0"/>
+<path class="if-edge" d="M92.0,136.0 L92.0,144.0"/>
+<circle class="if-dot" cx="92.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="92.0" cy="183.0" r="35"/>
+<circle class="if-c-blue" cx="92.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(78.0,169.0) scale(1.167)"><path d="M19.07 4.93A10 10 0 0 0 6.99 3.34"/><path d="M4 6h.01"/><path d="M2.29 9.62A10 10 0 1 0 21.31 8.35"/><path d="M16.24 7.76A6 6 0 1 0 8.23 16.67"/><path d="M12 18h.01"/><path d="M17.99 11.66A6 6 0 0 1 15.77 16.67"/><circle cx="12" cy="12" r="2"/><path d="m13.41 10.59 5.66-5.66"/></g>
+<text class="if-feature" x="92.0" y="238.0" text-anchor="middle">주기적 조회</text>
+<text class="if-feature-sub" x="92.0" y="256.0" text-anchor="middle">소스마다 300초</text>
+<path class="if-edge" d="M236.0,122.0 L236.0,144.0"/>
+<circle class="if-dot" cx="236.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="236.0" cy="183.0" r="35"/>
+<circle class="if-c-teal" cx="236.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(222.0,169.0) scale(1.167)"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/></g>
+<text class="if-feature" x="236.0" y="238.0" text-anchor="middle">중복 제거</text>
+<text class="if-feature-sub" x="236.0" y="256.0" text-anchor="middle">본 항목 7일 기억</text>
+<path class="if-edge" d="M380.0,122.0 L380.0,144.0"/>
+<circle class="if-dot" cx="380.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="380.0" cy="183.0" r="35"/>
+<circle class="if-c-purple" cx="380.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(366.0,169.0) scale(1.167)"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></g>
+<text class="if-feature" x="380.0" y="238.0" text-anchor="middle">inbox 적재</text>
+<text class="if-feature-sub" x="380.0" y="256.0" text-anchor="middle">틱당 20건 상한</text>
+<path class="if-edge" d="M524.0,122.0 L524.0,144.0"/>
+<circle class="if-dot" cx="524.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="524.0" cy="183.0" r="35"/>
+<circle class="if-c-orange" cx="524.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(510.0,169.0) scale(1.167)"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></g>
+<text class="if-feature" x="524.0" y="238.0" text-anchor="middle">못 전하면 되돌림</text>
+<text class="if-feature-sub" x="524.0" y="256.0" text-anchor="middle">사고 실패, 게이트</text>
+<path class="if-edge" d="M668.0,136.0 L668.0,144.0"/>
+<circle class="if-dot" cx="668.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="668.0" cy="183.0" r="35"/>
+<circle class="if-c-green" cx="668.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(654.0,169.0) scale(1.167)"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M22 8c0-2.3-.8-4.3-2-6"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/></g>
+<text class="if-feature" x="668.0" y="238.0" text-anchor="middle">급할 때만 말함</text>
+<text class="if-feature-sub" x="668.0" y="256.0" text-anchor="middle">이벤트당 한 번</text>
+<rect class="if-bar" x="20" y="288" width="720" height="34" rx="8"/>
+<text class="if-bar-t" x="380.0" y="310.5" text-anchor="middle">처리 흐름</text>
+<rect class="if-t-blue if-s-blue" x="20.0" y="340.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-blue" x="20.0" y="340.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-blue" x="20.0" y="362.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(43.5,348.0) scale(0.625)"><path d="M12 22v-5"/><path d="M15 8V2"/><path d="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z"/><path d="M9 8V2"/></g>
+<text class="if-card-t" x="104.8" y="359.0" text-anchor="middle">MCP 도구 호출</text>
+<text class="if-card-b" x="95.8" y="389.0" text-anchor="middle">캘린더, 메일 서버</text>
+<path class="if-edge" d="M171.5,369.5 L207.5,369.5" marker-end="url(#info-mcp-arrow)"/>
+<rect class="if-t-blue if-s-blue" x="209.5" y="340.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-blue" x="209.5" y="340.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-blue" x="209.5" y="362.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(241.5,348.0) scale(0.625)"><path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/></g>
+<text class="if-card-t" x="294.2" y="359.0" text-anchor="middle">이벤트 추출</text>
+<text class="if-card-b" x="285.2" y="389.0" text-anchor="middle">items, id, title 관례</text>
+<path class="if-edge" d="M361.0,369.5 L397.0,369.5" marker-end="url(#info-mcp-arrow)"/>
+<rect class="if-decision if-s-slate" x="399.0" y="350.0" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="474.8" y="370.0" text-anchor="middle">처음 보는 항목인가?</text>
+<path class="if-edge" d="M550.5,369.5 L586.5,369.5" marker-end="url(#info-mcp-arrow)"/>
+<text class="if-yes" x="569.5" y="362.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M474.8,389.0 L474.8,417.0" marker-end="url(#info-mcp-arrow)"/>
+<text class="if-no" x="482.8" y="408.0" text-anchor="start">아니오</text>
+<rect class="if-t-red if-s-red if-chip" x="409.0" y="419.0" width="131.5" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="474.8" y="438.0" text-anchor="middle">이미 본 항목은 버린다</text>
+<rect class="if-t-purple if-s-purple" x="588.5" y="340.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-purple" x="588.5" y="340.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-purple" x="588.5" y="362.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(614.1,348.0) scale(0.625)"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></g>
+<text class="if-card-t" x="673.2" y="359.0" text-anchor="middle">inbox 에 넣기</text>
+<text class="if-card-b" x="664.2" y="389.0" text-anchor="middle">틱당 20건, 최대 200건</text>
+<path class="if-edge" d="M664.2,399.0 L664.2,475.0 L95.8,475.0 L95.8,509.0" marker-end="url(#info-mcp-arrow)"/>
+<rect class="if-decision if-s-slate" x="20.0" y="509.0" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="95.8" y="529.0" text-anchor="middle">성찰할 차례인가?</text>
+<path class="if-edge" d="M171.5,528.5 L207.5,528.5" marker-end="url(#info-mcp-arrow)"/>
+<text class="if-yes" x="190.5" y="521.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M95.8,548.0 L95.8,576.0" marker-end="url(#info-mcp-arrow)"/>
+<text class="if-no" x="103.8" y="567.0" text-anchor="start">아니오</text>
+<rect class="if-t-slate if-s-slate if-chip" x="30.0" y="578.0" width="131.5" height="44.0" rx="7.0"/>
+<text class="if-chip-t" x="95.8" y="597.0" text-anchor="middle">🔔 답 대기 중이면</text>
+<text class="if-chip-t" x="95.8" y="613.0" text-anchor="middle">그대로 둔다</text>
+<rect class="if-t-teal if-s-teal" x="209.5" y="491.0" width="151.5" height="75.0" rx="9.0"/>
+<rect class="if-c-teal" x="209.5" y="491.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-teal" x="209.5" y="513.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(262.2,499.0) scale(0.625)"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></g>
+<text class="if-card-t" x="294.2" y="510.0" text-anchor="middle">성찰</text>
+<text class="if-card-b" x="285.2" y="540.0" text-anchor="middle">사고 모델이 이벤트를</text>
+<text class="if-card-b" x="285.2" y="556.0" text-anchor="middle">사실로 읽는다</text>
+<path class="if-edge" d="M361.0,528.5 L397.0,528.5" marker-end="url(#info-mcp-arrow)"/>
+<rect class="if-decision if-s-slate" x="399.0" y="509.0" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="474.8" y="529.0" text-anchor="middle">말할 만큼 급한가?</text>
+<path class="if-edge" d="M474.8,548.0 L474.8,576.0" marker-end="url(#info-mcp-arrow)"/>
+<text class="if-no" x="482.8" y="567.0" text-anchor="start">아니오</text>
+<rect class="if-t-slate if-s-slate if-chip" x="409.0" y="578.0" width="131.5" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="474.8" y="597.0" text-anchor="middle">말하지 않고 소비한다</text>
+<path class="if-edge" d="M550.5,528.5 L564.5,528.5 L564.5,650.0 L95.8,650.0 L95.8,676.0" marker-end="url(#info-mcp-arrow)"/>
+<text class="if-yes" x="557.5" y="521.5" text-anchor="middle">예</text>
+<rect class="if-decision if-s-slate" x="20.0" y="676.0" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="95.8" y="696.0" text-anchor="middle">게이트를 지났나?</text>
+<path class="if-edge" d="M171.5,695.5 L207.5,695.5" marker-end="url(#info-mcp-arrow)"/>
+<text class="if-yes" x="190.5" y="688.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M95.8,715.0 L95.8,743.0" marker-end="url(#info-mcp-arrow)"/>
+<text class="if-no" x="103.8" y="734.0" text-anchor="start">아니오</text>
+<rect class="if-t-orange if-s-orange if-chip" x="30.0" y="745.0" width="131.5" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="95.8" y="764.0" text-anchor="middle">inbox 앞에 되돌린다</text>
+<rect class="if-t-green if-s-green if-end" x="209.5" y="666.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-green" x="209.5" y="666.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-green" x="209.5" y="688.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(241.5,674.0) scale(0.625)"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M22 8c0-2.3-.8-4.3-2-6"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/></g>
+<text class="if-card-t" x="294.2" y="685.0" text-anchor="middle">먼저 말하기</text>
+<text class="if-card-b" x="285.2" y="715.0" text-anchor="middle">이벤트당 한 번</text>
+</svg>

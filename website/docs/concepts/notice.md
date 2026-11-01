@@ -3,9 +3,15 @@ sidebar_position: 1
 title: Notice
 ---
 
+import InfoNotice from '@site/src/figures/info-notice.svg';
+
 # Notice
 
 Jarvis-Agent의 기능을 정리하고 어떤 원칙으로 구현되었는지 소개한다. 사용자가 답을 기다리는 시간을 줄이고, 알아야 할 일은 묻기 전에 먼저 알리는 개인 비서 에이전트다.
+
+<figure className="info-fig">
+  <InfoNotice />
+</figure>
 
 ## 서비스 기능
 

@@ -3,6 +3,7 @@ sidebar_position: 1
 title: Focus Mode
 ---
 
+import InfoFocusMode from '@site/src/figures/info-focus-mode.svg';
 import FigureFocusMode from '@site/src/figures/focus-mode.svg';
 import FigureExpFocus from '@site/src/figures/exp-focus.svg';
 
@@ -10,9 +11,8 @@ import FigureExpFocus from '@site/src/figures/exp-focus.svg';
 
 작업 하나를 끝까지, 가장 높은 수준으로 해내기 위한 모드다. 켜져 있는 동안 sub-agent 넷이 메인 에이전트 곁에서 매 지시를 분석하고, 레퍼런스를 조사하고, 기록을 남기고, 진행률을 매긴다.
 
-<figure className="paper-fig">
-  <FigureFocusMode />
-  <figcaption><b>Figure 1.</b> (a) 지시가 오면 분석 sub-agent 가 메인 응답과 같이 시작하고, 응답 뒤에 기록과 진행 sub-agent 가 돈다. 분석과 조사 결과는 JARVIS 의 시스템 프롬프트에 Focus 맥락으로 붙는다. 이번 지시의 분석은 다음 응답에 들어가고, 첫 지시만 `/focus` 시작 때 분석을 기다려 첫 응답에 넣는다. Focus 동안은 먼저 거는 말을 내지 않는다. (b) Web HUD 는 좌우 카드를 띠로 접고, 줄어든 구체 둘레에 네 영역을 펼친다.</figcaption>
+<figure className="info-fig">
+  <InfoFocusMode />
 </figure>
 
 ## 서비스 기능
@@ -43,6 +43,11 @@ import FigureExpFocus from '@site/src/figures/exp-focus.svg';
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureFocusMode />
+  <figcaption><b>Figure 1.</b> (a) 지시가 오면 분석 sub-agent 가 메인 응답과 같이 시작하고, 응답 뒤에 기록과 진행 sub-agent 가 돈다. 분석과 조사 결과는 JARVIS 의 시스템 프롬프트에 Focus 맥락으로 붙는다. 이번 지시의 분석은 다음 응답에 들어가고, 첫 지시만 `/focus` 시작 때 분석을 기다려 첫 응답에 넣는다. Focus 동안은 먼저 거는 말을 내지 않는다. (b) Web HUD 는 좌우 카드를 띠로 접고, 줄어든 구체 둘레에 네 영역을 펼친다.</figcaption>
+</figure>
 
 1. `/focus <작업>` 이 오면 활성 표시 파일을 배타적으로 만들고 시작 줄을 기록에 남긴다. 조사는 오래 걸리므로 뒤에서 돌리고, 첫 분석과 단계 계획은 최대 30초 기다렸다가 첫 응답에 넣는다
 2. 지시가 올 때마다(턴 앞) 분석 sub-agent 가 메인 응답과 같이 돈다. 분석이 검색어를 내면 조사를 부른다

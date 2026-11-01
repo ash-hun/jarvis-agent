@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 586" class="if-svg" role="img" aria-label="Extension: ~/.jarvis 에 파일을 놓으면 코드를 고치지 않고 도구, 명령, 훅, 에이전트가 늘어난다">
+<defs><marker id="info-extension-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="if-head" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="if-title" x="294.5" y="14" width="170.9" height="50" rx="12"/>
+<text class="if-title-t" x="380.0" y="47.0" text-anchor="middle">Extension</text>
+<text class="if-tagline" x="380.0" y="88.0" text-anchor="middle">~/.jarvis 에 파일을 놓으면 코드를 고치지 않고 도구, 명령, 훅, 에이전트가 늘어난다</text>
+<circle class="if-dot" cx="380.0" cy="104.0" r="4"/>
+<path class="if-edge" d="M380.0,104.0 L380.0,122.0"/>
+<path class="if-edge" d="M71.4,136.0 Q71.4,122.0 85.4,122.0 L674.6,122.0 Q688.6,122.0 688.6,136.0"/>
+<path class="if-edge" d="M71.4,136.0 L71.4,144.0"/>
+<circle class="if-dot" cx="71.4" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="71.4" cy="183.0" r="35"/>
+<circle class="if-c-blue" cx="71.4" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(57.4,169.0) scale(1.167)"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></g>
+<text class="if-feature" x="71.4" y="238.0" text-anchor="middle">도구</text>
+<text class="if-feature-sub" x="71.4" y="256.0" text-anchor="middle">파이썬, YAML</text>
+<path class="if-edge" d="M174.3,122.0 L174.3,144.0"/>
+<circle class="if-dot" cx="174.3" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="174.3" cy="183.0" r="35"/>
+<circle class="if-c-blue" cx="174.3" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(160.3,169.0) scale(1.167)"><path d="M12 22v-5"/><path d="M15 8V2"/><path d="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z"/><path d="M9 8V2"/></g>
+<text class="if-feature" x="174.3" y="238.0" text-anchor="middle">MCP 서버</text>
+<text class="if-feature-sub" x="174.3" y="256.0" text-anchor="middle">도구 자동 등록</text>
+<path class="if-edge" d="M277.1,122.0 L277.1,144.0"/>
+<circle class="if-dot" cx="277.1" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="277.1" cy="183.0" r="35"/>
+<circle class="if-c-green" cx="277.1" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(263.1,169.0) scale(1.167)"><rect width="18" height="18" x="3" y="3" rx="2"/><line x1="9" x2="15" y1="15" y2="9"/></g>
+<text class="if-feature" x="277.1" y="238.0" text-anchor="middle">슬래시 명령</text>
+<text class="if-feature-sub" x="277.1" y="256.0" text-anchor="middle">프롬프트 매크로</text>
+<path class="if-edge" d="M380.0,122.0 L380.0,144.0"/>
+<circle class="if-dot" cx="380.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="380.0" cy="183.0" r="35"/>
+<circle class="if-c-red" cx="380.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(366.0,169.0) scale(1.167)"><path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2"/><path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06"/><path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8"/></g>
+<text class="if-feature" x="380.0" y="238.0" text-anchor="middle">플러그인 훅</text>
+<text class="if-feature-sub" x="380.0" y="256.0" text-anchor="middle">호출 막기</text>
+<path class="if-edge" d="M482.9,122.0 L482.9,144.0"/>
+<circle class="if-dot" cx="482.9" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="482.9" cy="183.0" r="35"/>
+<circle class="if-c-purple" cx="482.9" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(468.9,169.0) scale(1.167)"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></g>
+<text class="if-feature" x="482.9" y="238.0" text-anchor="middle">서브 에이전트</text>
+<text class="if-feature-sub" x="482.9" y="256.0" text-anchor="middle">YAML 선언</text>
+<path class="if-edge" d="M585.7,122.0 L585.7,144.0"/>
+<circle class="if-dot" cx="585.7" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="585.7" cy="183.0" r="35"/>
+<circle class="if-c-purple" cx="585.7" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(571.7,169.0) scale(1.167)"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></g>
+<text class="if-feature" x="585.7" y="238.0" text-anchor="middle">사고 프롬프트</text>
+<text class="if-feature-sub" x="585.7" y="256.0" text-anchor="middle">요청과 성찰 때</text>
+<path class="if-edge" d="M688.6,136.0 L688.6,144.0"/>
+<circle class="if-dot" cx="688.6" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="688.6" cy="183.0" r="35"/>
+<circle class="if-c-orange" cx="688.6" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(674.6,169.0) scale(1.167)"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></g>
+<text class="if-feature" x="688.6" y="238.0" text-anchor="middle">바로 반영</text>
+<text class="if-feature-sub" x="688.6" y="256.0" text-anchor="middle">다음 턴부터</text>
+<rect class="if-bar" x="20" y="288" width="720" height="34" rx="8"/>
+<text class="if-bar-t" x="380.0" y="310.5" text-anchor="middle">파일을 고친 뒤 반영되기까지</text>
+<rect class="if-t-blue if-s-blue" x="20.0" y="340.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-blue" x="20.0" y="340.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-blue" x="20.0" y="362.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(72.7,348.0) scale(0.625)"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></g>
+<text class="if-card-t" x="104.8" y="359.0" text-anchor="middle">기동</text>
+<text class="if-card-b" x="95.8" y="389.0" text-anchor="middle">~/.jarvis 파일을 등록</text>
+<path class="if-edge" d="M171.5,369.5 L207.5,369.5" marker-end="url(#info-extension-arrow)"/>
+<rect class="if-t-slate if-s-slate" x="209.5" y="340.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-slate" x="209.5" y="340.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-slate" x="209.5" y="362.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(235.3,348.0) scale(0.625)"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></g>
+<text class="if-card-t" x="294.2" y="359.0" text-anchor="middle">디렉터리 감시</text>
+<text class="if-card-b" x="285.2" y="389.0" text-anchor="middle">tools, skills, plugins</text>
+<path class="if-edge" d="M361.0,369.5 L397.0,369.5" marker-end="url(#info-extension-arrow)"/>
+<rect class="if-t-blue if-s-blue" x="399.0" y="340.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-blue" x="399.0" y="340.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-blue" x="399.0" y="362.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(414.6,348.0) scale(0.625)"><path d="M12.659 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v9.34"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10.378 12.622a1 1 0 0 1 3 3.003L8.36 20.637a2 2 0 0 1-.854.506l-2.867.837a.5.5 0 0 1-.62-.62l.836-2.869a2 2 0 0 1 .506-.853z"/></g>
+<text class="if-card-t" x="483.8" y="359.0" text-anchor="middle">파일 넣기, 고치기</text>
+<text class="if-card-b" x="474.8" y="389.0" text-anchor="middle">사용자가 저장한다</text>
+<path class="if-edge" d="M474.8,399.0 L474.8,427.0 L95.8,427.0 L95.8,453.0" marker-end="url(#info-extension-arrow)"/>
+<rect class="if-decision if-s-slate" x="20.0" y="453.0" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="95.8" y="473.0" text-anchor="middle">감시하는 파일인가?</text>
+<path class="if-edge" d="M171.5,472.5 L207.5,472.5" marker-end="url(#info-extension-arrow)"/>
+<text class="if-yes" x="190.5" y="465.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M95.8,492.0 L95.8,520.0" marker-end="url(#info-extension-arrow)"/>
+<text class="if-no" x="103.8" y="511.0" text-anchor="start">아니오</text>
+<rect class="if-t-orange if-s-orange if-chip" x="30.0" y="522.0" width="131.5" height="44.0" rx="7.0"/>
+<text class="if-chip-t" x="95.8" y="541.0" text-anchor="middle">에이전트, MCP 설정은</text>
+<text class="if-chip-t" x="95.8" y="557.0" text-anchor="middle">재시작해야 반영</text>
+<rect class="if-t-teal if-s-teal" x="209.5" y="443.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-teal" x="209.5" y="443.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-teal" x="209.5" y="465.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(247.8,451.0) scale(0.625)"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></g>
+<text class="if-card-t" x="294.2" y="462.0" text-anchor="middle">다시 읽기</text>
+<text class="if-card-b" x="285.2" y="492.0" text-anchor="middle">바뀐 디렉터리만</text>
+<path class="if-edge" d="M361.0,472.5 L397.0,472.5" marker-end="url(#info-extension-arrow)"/>
+<rect class="if-t-green if-s-green if-end" x="399.0" y="443.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-green" x="399.0" y="443.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-green" x="399.0" y="465.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(416.7,451.0) scale(0.625)"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></g>
+<text class="if-card-t" x="483.8" y="462.0" text-anchor="middle">다음 턴부터 사용</text>
+<text class="if-card-b" x="474.8" y="492.0" text-anchor="middle">세션이 매 턴 다시 읽는다</text>
+</svg>

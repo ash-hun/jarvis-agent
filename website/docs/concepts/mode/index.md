@@ -3,9 +3,15 @@ sidebar_position: 0
 title: Mode
 ---
 
+import InfoMode from '@site/src/figures/info-mode.svg';
+
 # Mode
 
 Web HUD 는 두 축의 모드를 따로 고른다. 하나는 말로 주고받는 방식이고, 다른 하나는 화면과 에이전트가 무엇에 집중하는지다. 두 축은 겹쳐 쓸 수 있어서, Full-voice 로 Focus 작업을 해도 된다.
+
+<figure className="info-fig">
+  <InfoMode />
+</figure>
 
 ## 서비스 기능
 

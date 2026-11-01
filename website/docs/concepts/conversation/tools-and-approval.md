@@ -3,6 +3,7 @@ sidebar_position: 2
 title: Tool & Approve System
 ---
 
+import InfoToolsAndApproval from '@site/src/figures/info-tools-and-approval.svg';
 import FigureToolsAndApproval from '@site/src/figures/tools-and-approval.svg';
 import FigureExpApproval from '@site/src/figures/exp-approval.svg';
 
@@ -10,9 +11,8 @@ import FigureExpApproval from '@site/src/figures/exp-approval.svg';
 
 에이전트는 도구로만 파일, 셸, 웹에 손을 댄다. 위험할 수 있는 도구는 실행 전에 사람에게 묻고, 사람이 한 번 허락한 범위는 기억해 다음부터 묻지 않는다.
 
-<figure className="paper-fig">
-  <FigureToolsAndApproval />
-  <figcaption><b>Figure 1.</b> 도구 호출 한 번은 허용 목록(1), 플러그인(2), 승인 여부(3) 순으로 검사한다. 승인이 필요하면 공용 또는 에이전트별 규칙을 먼저 보고(4), 맞는 규칙이 없을 때만 사람에게 묻는다(5). ALWAYS 는 지금 에이전트의 규칙 파일에 패턴을 남긴다. 허용 목록과 플러그인의 거부는 is_error 결과로 LLM 에 돌아가고 루프가 이어진다. 사람이 거부했거나 시간이 지나 한 번에 부른 도구가 모두 거부되면 LLM 을 다시 부르지 않고 정해진 한 줄로 턴을 끝낸다. 결과가 모두 오류 없는 final 이면 그 글을 그대로 답으로 쓴다.</figcaption>
+<figure className="info-fig">
+  <InfoToolsAndApproval />
 </figure>
 
 ## 서비스 기능
@@ -43,6 +43,11 @@ import FigureExpApproval from '@site/src/figures/exp-approval.svg';
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureToolsAndApproval />
+  <figcaption><b>Figure 1.</b> 도구 호출 한 번은 허용 목록(1), 플러그인(2), 승인 여부(3) 순으로 검사한다. 승인이 필요하면 공용 또는 에이전트별 규칙을 먼저 보고(4), 맞는 규칙이 없을 때만 사람에게 묻는다(5). ALWAYS 는 지금 에이전트의 규칙 파일에 패턴을 남긴다. 허용 목록과 플러그인의 거부는 is_error 결과로 LLM 에 돌아가고 루프가 이어진다. 사람이 거부했거나 시간이 지나 한 번에 부른 도구가 모두 거부되면 LLM 을 다시 부르지 않고 정해진 한 줄로 턴을 끝낸다. 결과가 모두 오류 없는 final 이면 그 글을 그대로 답으로 쓴다.</figcaption>
+</figure>
 
 도구는 `core/tools/` 의 레지스트리에 모이고, 위험할 수 있는 도구는 실행 전에 `core/policy/sandbox.py` 가 사람에게 승인을 묻는다. 도구 호출 한 번은 아래 순서로 지난다.
 

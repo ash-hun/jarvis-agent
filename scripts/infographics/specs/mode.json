@@ -1,0 +1,74 @@
+{
+  "name": "mode",
+  "title": "Mode",
+  "tagline": "말로 주고받는 방식과 집중할 작업을 따로 골라 겹쳐 쓴다",
+  "features": [
+    {
+      "icon": "monitor",
+      "label": "Default",
+      "sub": "답은 화면으로",
+      "color": "blue"
+    },
+    {
+      "icon": "audio-lines",
+      "label": "Full-voice",
+      "sub": "읽어 주고 답을 듣는다",
+      "color": "green"
+    },
+    {
+      "icon": "target",
+      "label": "Focus",
+      "sub": "작업 하나에 sub-agent 넷",
+      "color": "purple"
+    },
+    {
+      "icon": "layers",
+      "label": "두 축 겹쳐 쓰기",
+      "sub": "음성과 작업은 따로",
+      "color": "slate"
+    }
+  ],
+  "flow_title": "모드에 따른 한 턴",
+  "flow": [
+    {
+      "type": "step",
+      "icon": "message-circle",
+      "title": "요청",
+      "body": "글이나 음성",
+      "color": "blue"
+    },
+    {
+      "type": "decision",
+      "q": "Focus 중인가?",
+      "no": "일반 대화로 답한다",
+      "no_color": "slate"
+    },
+    {
+      "type": "step",
+      "icon": "target",
+      "title": "Focus 맥락",
+      "body": "분석, 조사, 진행률",
+      "color": "purple"
+    },
+    {
+      "type": "step",
+      "icon": "message-square-text",
+      "title": "응답 만들기",
+      "body": "메인 에이전트가 답한다",
+      "color": "purple"
+    },
+    {
+      "type": "decision",
+      "q": "Full-voice 인가?",
+      "no": "화면으로 보이고, 말로 물은 것만 읽는다",
+      "no_color": "slate"
+    },
+    {
+      "type": "end",
+      "icon": "volume-2",
+      "title": "읽고 듣기",
+      "body": "승인 요청도 음성으로",
+      "color": "green"
+    }
+  ]
+}

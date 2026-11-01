@@ -1,0 +1,24 @@
+{
+  "name": "open-loop",
+  "title": "Open Loop",
+  "tagline": "대화에서 흘린 약속을 기억해 AGENDA 카드에 띄우고, 끝나면 닫는다",
+  "features": [
+    {"icon": "message-square-quote", "label": "약속 잡기", "sub": "말 속의 할 일", "color": "purple"},
+    {"icon": "calendar-clock", "label": "기한 붙이기", "sub": "말한 기한을 함께", "color": "pink"},
+    {"icon": "shield-check", "label": "입력 근거 검사", "sub": "입력에 있는 말만", "color": "red"},
+    {"icon": "copy", "label": "중복 합치기", "sub": "bge-m3 0.85", "color": "teal"},
+    {"icon": "circle-check", "label": "저절로 닫기", "sub": "끝냄, 취소, 만료", "color": "slate"},
+    {"icon": "layout-list", "label": "AGENDA 카드", "sub": "✓ ✕ ↺ 로 정리", "color": "green"},
+    {"icon": "brain", "label": "성찰에 반영", "sub": "사고 때 다시 봄", "color": "purple"}
+  ],
+  "flow_title": "약속 하나의 처리",
+  "flow": [
+    {"type": "step", "icon": "message-square", "title": "사용자 입력", "body": "내일 3시까지 보내야 해", "color": "blue"},
+    {"type": "step", "icon": "brain", "title": "AGENDA 판단", "body": "응답과 따로 돌며 약속을 적는다", "color": "purple"},
+    {"type": "decision", "q": "입력에서 나온 약속인가?", "no": "기억에서 옮긴 약속은 버린다"},
+    {"type": "decision", "q": "처음 보는 약속인가?", "no": "새 기한이 있으면 기한만 고친다", "no_color": "slate"},
+    {"type": "step", "icon": "database", "title": "약속 저장", "body": "기한이 있으면 함께", "color": "teal"},
+    {"type": "step", "icon": "layout-list", "title": "AGENDA 카드", "body": "다음 사고에도 보인다", "color": "green"},
+    {"type": "end", "icon": "circle-check", "title": "닫기", "body": "끝냄, 거두는 말, 만료", "color": "slate"}
+  ]
+}

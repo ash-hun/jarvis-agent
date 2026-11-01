@@ -1,0 +1,25 @@
+{
+  "name": "conversation",
+  "title": "Conversation",
+  "tagline": "속으로 생각하고, 위험한 일은 먼저 묻고, 할 말이 있으면 먼저 말을 거는 대화",
+  "features": [
+    {"icon": "brain", "label": "Inner Thought", "color": "purple"},
+    {"icon": "shield-check", "label": "Tool & Approve", "color": "red"},
+    {"icon": "bell-ring", "label": "Proactive", "color": "green"},
+    {"icon": "messages-square", "label": "Sessions", "color": "blue"},
+    {"icon": "list-checks", "label": "Open Loop", "color": "teal"},
+    {"icon": "radar", "label": "MCP Events", "color": "orange"},
+    {"icon": "calendar-clock", "label": "Scheduling, Goals", "color": "pink"},
+    {"icon": "mic", "label": "Voice", "color": "slate"}
+  ],
+  "flow_title": "대화 한 턴",
+  "flow": [
+    {"type": "step", "icon": "message-circle", "title": "사용자 입력", "body": "글이나 음성", "color": "blue"},
+    {"type": "step", "icon": "brain", "title": "Inner Thought", "body": "의도와 맥락을 먼저 정리", "color": "purple"},
+    {"type": "decision", "q": "도구가 필요한가?", "no": "바로 답한다", "no_color": "slate"},
+    {"type": "decision", "q": "승인이 필요 없는가?", "no": "ALLOW, ALWAYS, DENY 로 묻는다", "no_color": "orange"},
+    {"type": "step", "icon": "wrench", "title": "도구 실행", "body": "결과를 다시 모델에", "color": "red"},
+    {"type": "step", "icon": "message-square-text", "title": "답", "body": "흘린 약속은 AGENDA 에", "color": "teal"},
+    {"type": "end", "icon": "bell-ring", "title": "먼저 말하기", "body": "알릴 일이 생기면", "color": "green"}
+  ]
+}

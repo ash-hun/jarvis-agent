@@ -482,3 +482,90 @@ pre,
 .pf-hero { fill: var(--pf-ink); font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .pf-mark { stroke: var(--pf-muted); stroke-width: 1; stroke-dasharray: 3 3; }
 .pf-mark-t { fill: var(--pf-ink-2); font-size: 13px; }
+
+/* 기능 페이지 맨 위의 인포그래픽(특징 트리와 처리 흐름). SVG 는 `uv run python -m scripts.docs_infographics` 로 만든다.
+   카드 머리와 아이콘 원은 흰 글자가 4.5:1 을 넘는 진한 색만 쓴다 */
+:root {
+  --if-blue: #1d4ed8;
+  --if-teal: #0f766e;
+  --if-green: #15803d;
+  --if-orange: #c2410c;
+  --if-red: #b91c1c;
+  --if-purple: #6d28d9;
+  --if-pink: #be185d;
+  --if-slate: #475569;
+  --if-tint: 0.09;
+  --if-bar: #1f2a30;
+  --if-line: #64748b;
+}
+
+[data-theme='dark'] {
+  --if-blue: #2563eb;
+  --if-teal: #0d9488;
+  --if-green: #16a34a;
+  --if-orange: #c2410c;
+  --if-red: #dc2626;
+  --if-purple: #7c3aed;
+  --if-pink: #db2777;
+  --if-slate: #64748b;
+  --if-tint: 0.2;
+  --if-bar: #12303b;
+  --if-line: #8aa4ad;
+}
+
+.info-fig {
+  margin: 0 0 2rem;
+  padding: 0.75rem 0.5rem 0.5rem;
+  border-radius: 14px;
+  background: var(--jv-surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme='dark'] .info-fig {
+  border: 1px solid var(--jv-hairline);
+  box-shadow: none;
+}
+
+@media (min-width: 997px) {
+  .info-fig {
+    margin-left: -12px;
+    margin-right: -26px;
+  }
+}
+
+.info-fig .if-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--ifm-font-family-base);
+}
+
+.if-title { fill: var(--jv-primary); }
+.if-title-t { fill: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+[data-theme='dark'] .if-title-t { fill: #02060c; }
+.if-tagline { fill: var(--jv-text-secondary); font-size: 14px; }
+.if-edge { fill: none; stroke: var(--if-line); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.if-head, .if-dot { fill: var(--if-line); }
+.if-ring { fill: var(--jv-surface); stroke: var(--jv-hairline); stroke-width: 1; }
+.if-icon { fill: none; stroke: #ffffff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.if-feature { fill: var(--jv-text); font-size: 14.5px; font-weight: 700; }
+.if-feature-sub { fill: var(--jv-text-secondary); font-size: 12.5px; }
+.if-bar { fill: var(--if-bar); }
+.if-bar-t { fill: #ffffff; font-size: 14px; font-weight: 700; letter-spacing: 0.04em; }
+.if-card-t { fill: #ffffff; font-size: 13.5px; font-weight: 700; }
+.if-card-b { fill: var(--jv-text); font-size: 12.5px; }
+.if-decision { fill: var(--jv-surface); stroke-width: 2; }
+.if-decision-t { fill: var(--jv-text); font-size: 13.5px; font-weight: 700; }
+.if-end { stroke-width: 2.4; }
+.if-chip { stroke-dasharray: 4 3; }
+.if-chip-t { fill: var(--jv-text); font-size: 12.5px; }
+.if-yes { fill: var(--if-green); font-size: 12px; font-weight: 700; text-anchor: middle; }
+.if-no { fill: var(--if-red); font-size: 12px; font-weight: 700; }
+.if-c-blue { fill: var(--if-blue); } .if-s-blue { stroke: var(--if-blue); } .if-t-blue { fill: color-mix(in srgb, var(--if-blue) calc(var(--if-tint) * 100%), var(--jv-surface)); }
+.if-c-teal { fill: var(--if-teal); } .if-s-teal { stroke: var(--if-teal); } .if-t-teal { fill: color-mix(in srgb, var(--if-teal) calc(var(--if-tint) * 100%), var(--jv-surface)); }
+.if-c-green { fill: var(--if-green); } .if-s-green { stroke: var(--if-green); } .if-t-green { fill: color-mix(in srgb, var(--if-green) calc(var(--if-tint) * 100%), var(--jv-surface)); }
+.if-c-orange { fill: var(--if-orange); } .if-s-orange { stroke: var(--if-orange); } .if-t-orange { fill: color-mix(in srgb, var(--if-orange) calc(var(--if-tint) * 100%), var(--jv-surface)); }
+.if-c-red { fill: var(--if-red); } .if-s-red { stroke: var(--if-red); } .if-t-red { fill: color-mix(in srgb, var(--if-red) calc(var(--if-tint) * 100%), var(--jv-surface)); }
+.if-c-purple { fill: var(--if-purple); } .if-s-purple { stroke: var(--if-purple); } .if-t-purple { fill: color-mix(in srgb, var(--if-purple) calc(var(--if-tint) * 100%), var(--jv-surface)); }
+.if-c-pink { fill: var(--if-pink); } .if-s-pink { stroke: var(--if-pink); } .if-t-pink { fill: color-mix(in srgb, var(--if-pink) calc(var(--if-tint) * 100%), var(--jv-surface)); }
+.if-c-slate { fill: var(--if-slate); } .if-s-slate { stroke: var(--if-slate); } .if-t-slate { fill: color-mix(in srgb, var(--if-slate) calc(var(--if-tint) * 100%), var(--jv-surface)); }

@@ -1,0 +1,105 @@
+{
+  "name": "scheduling",
+  "title": "Scheduling",
+  "tagline": "정한 시각에 알림이나 작업을 돌려, 화면이 닫혀 있어도 결과를 전한다",
+  "features": [
+    {
+      "icon": "alarm-clock",
+      "label": "한 번 예약",
+      "sub": "정한 시각 한 번",
+      "color": "pink"
+    },
+    {
+      "icon": "calendar-range",
+      "label": "마감까지 반복",
+      "sub": "마감 따라 주기",
+      "color": "pink"
+    },
+    {
+      "icon": "calendar-clock",
+      "label": "cron 주기",
+      "sub": "작업 파일에 직접",
+      "color": "pink"
+    },
+    {
+      "icon": "wrench",
+      "label": "도구 작업",
+      "sub": "LLM 없이 실행",
+      "color": "blue"
+    },
+    {
+      "icon": "message-square-text",
+      "label": "대화로 건넴",
+      "sub": "에이전트의 말로",
+      "color": "green"
+    },
+    {
+      "icon": "inbox",
+      "label": "놓친 알림",
+      "sub": "최근 20건 보관",
+      "color": "teal"
+    },
+    {
+      "icon": "check-check",
+      "label": "건넨 뒤 기록",
+      "sub": "실패하면 재시도",
+      "color": "orange"
+    }
+  ],
+  "flow": [
+    {
+      "type": "step",
+      "icon": "terminal",
+      "title": "예약 해석",
+      "body": "/schedule 이나 schedule 도구",
+      "color": "blue"
+    },
+    {
+      "type": "step",
+      "icon": "file-text",
+      "title": "작업 파일 저장",
+      "body": "~/.jarvis/schedules",
+      "color": "teal"
+    },
+    {
+      "type": "step",
+      "icon": "timer",
+      "title": "10초마다 확인",
+      "body": "시각이 된 작업을 고른다",
+      "color": "pink"
+    },
+    {
+      "type": "step",
+      "icon": "sparkles",
+      "title": "결과 만들기",
+      "body": "문장, 실행 답, 도구 글",
+      "color": "purple"
+    },
+    {
+      "type": "decision",
+      "q": "열린 화면이 있나?",
+      "no": "쌓아 두고 푸시는 보낸다",
+      "no_color": "slate"
+    },
+    {
+      "type": "step",
+      "icon": "send",
+      "title": "결과 전하기",
+      "body": "대화나 열린 화면, 푸시",
+      "color": "green"
+    },
+    {
+      "type": "decision",
+      "q": "전하는 데 성공했나?",
+      "no": "다음 차례에 다시 알린다",
+      "no_color": "orange"
+    },
+    {
+      "type": "end",
+      "icon": "check-check",
+      "title": "건넨 것만 기록",
+      "body": "같은 공고는 한 번만",
+      "color": "teal"
+    }
+  ]
+}

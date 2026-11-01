@@ -1,0 +1,108 @@
+{
+  "name": "voice",
+  "title": "Voice Interface",
+  "tagline": "말로 묻고 소리로 들으며, 승인까지 손을 쓰지 않고 말로 끝낸다",
+  "features": [
+    {
+      "icon": "mic",
+      "label": "웨이크워드",
+      "sub": "Jarvis 로 깨움",
+      "color": "blue"
+    },
+    {
+      "icon": "audio-lines",
+      "label": "STT 와 TTS",
+      "sub": "브라우저, 서버",
+      "color": "blue"
+    },
+    {
+      "icon": "eraser",
+      "label": "기호 지우기",
+      "sub": "금액은 한글로",
+      "color": "slate"
+    },
+    {
+      "icon": "languages",
+      "label": "영어 음성",
+      "sub": "소리로만 영어",
+      "color": "purple"
+    },
+    {
+      "icon": "repeat",
+      "label": "Full-voice",
+      "sub": "읽고 다시 듣기",
+      "color": "pink"
+    },
+    {
+      "icon": "shield-check",
+      "label": "음성 승인",
+      "sub": "애매하면 거부",
+      "color": "red"
+    },
+    {
+      "icon": "message-circle-question-mark",
+      "label": "되묻기",
+      "sub": "못 들었을 때",
+      "color": "orange"
+    }
+  ],
+  "flow": [
+    {
+      "type": "step",
+      "icon": "mic",
+      "title": "듣기 시작",
+      "body": "부르거나 구체를 누름",
+      "color": "blue"
+    },
+    {
+      "type": "step",
+      "icon": "audio-lines",
+      "title": "받아 적기",
+      "body": "브라우저나 whisper",
+      "color": "blue"
+    },
+    {
+      "type": "decision",
+      "q": "잘 알아들었나?",
+      "no": "보내지 않고 되묻는다",
+      "no_color": "orange"
+    },
+    {
+      "type": "decision",
+      "q": "대화 요청인가?",
+      "no": "승인 답으로 해석한다",
+      "no_color": "red",
+      "yes_label": "예",
+      "no_label": "승인 창"
+    },
+    {
+      "type": "step",
+      "icon": "brain",
+      "title": "응답 만들기",
+      "body": "대화로 보낸다",
+      "color": "purple"
+    },
+    {
+      "type": "step",
+      "icon": "eraser",
+      "title": "기호 지우기",
+      "body": "기호 빼고 금액은 한글로",
+      "color": "slate"
+    },
+    {
+      "type": "step",
+      "icon": "languages",
+      "title": "영어 번역",
+      "body": "speak_english",
+      "color": "purple"
+    },
+    {
+      "type": "end",
+      "icon": "volume-2",
+      "title": "소리로 읽기",
+      "body": "Full-voice 면 다시 듣는다",
+      "color": "green"
+    }
+  ],
+  "per_row": 5
+}

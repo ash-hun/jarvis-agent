@@ -1,0 +1,104 @@
+{
+  "name": "memory",
+  "title": "Memory Management",
+  "tagline": "최근 3턴만 모델에 넣고, 그보다 앞의 대화와 사용자 사실은 장기 기억에서 떠올린다",
+  "features": [
+    {
+      "icon": "message-square-text",
+      "label": "최근 3턴 창",
+      "sub": "턴 단위로 자름",
+      "color": "blue"
+    },
+    {
+      "icon": "user-round",
+      "label": "사용자 프로필",
+      "sub": "새 사실로 대체",
+      "color": "teal"
+    },
+    {
+      "icon": "save",
+      "label": "턴마다 일화",
+      "sub": "발화와 답 기록",
+      "color": "teal"
+    },
+    {
+      "icon": "pointer",
+      "label": "지칭 풀기",
+      "sub": "직전 대화 붙임",
+      "color": "purple"
+    },
+    {
+      "icon": "zap",
+      "label": "큰 사건 자리",
+      "sub": "중요도 0.8 이상",
+      "color": "pink"
+    },
+    {
+      "icon": "list-checks",
+      "label": "작업 패턴",
+      "sub": "에이전트별 방식",
+      "color": "orange"
+    },
+    {
+      "icon": "lock",
+      "label": "층별 읽기 권한",
+      "sub": "남의 대화 막음",
+      "color": "red"
+    }
+  ],
+  "flow_title": "대화 한 턴의 기억",
+  "flow": [
+    {
+      "type": "step",
+      "icon": "message-circle",
+      "title": "사용자 발화",
+      "body": "마지막 200자로 찾는다",
+      "color": "blue"
+    },
+    {
+      "type": "decision",
+      "q": "질의만으로 충분한가?",
+      "no": "\"그거\", 짧은 말엔 직전 대화를 붙인다",
+      "no_color": "orange"
+    },
+    {
+      "type": "step",
+      "icon": "search",
+      "title": "장기 기억 회상",
+      "body": "핵심 사실 3건, 회상 3건",
+      "color": "blue"
+    },
+    {
+      "type": "decision",
+      "q": "읽기 권한이 있는가?",
+      "no": "권한 밖 일화는 뺀다"
+    },
+    {
+      "type": "step",
+      "icon": "brain",
+      "title": "LLM 호출",
+      "body": "기억 블록과 최근 3턴",
+      "color": "purple"
+    },
+    {
+      "type": "step",
+      "icon": "save",
+      "title": "턴 일화 쓰기",
+      "body": "발화와 답을 1,000자씩",
+      "color": "teal"
+    },
+    {
+      "type": "decision",
+      "q": "답에 쓰인 기억인가?",
+      "no": "되뇌기로 세지 않는다",
+      "no_color": "slate"
+    },
+    {
+      "type": "end",
+      "icon": "repeat",
+      "title": "되뇌기 +1",
+      "body": "중요도가 덜 식는다",
+      "color": "green"
+    }
+  ]
+}

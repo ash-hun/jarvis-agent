@@ -1,0 +1,115 @@
+{
+  "name": "proactive",
+  "title": "Proactive Dialogue",
+  "tagline": "묻기 전에 먼저 말을 걸되, 알릴 가치가 분명할 때만 말한다",
+  "features": [
+    {
+      "icon": "message-square-dashed",
+      "label": "Dual channel",
+      "sub": "먼저 한마디",
+      "color": "blue"
+    },
+    {
+      "icon": "clock",
+      "label": "주기적 성찰",
+      "sub": "기본 120초",
+      "color": "pink"
+    },
+    {
+      "icon": "shield",
+      "label": "발화 게이트",
+      "sub": "확신도, 쿨다운",
+      "color": "red"
+    },
+    {
+      "icon": "hourglass",
+      "label": "답 기다리기",
+      "sub": "답 전엔 침묵",
+      "color": "slate"
+    },
+    {
+      "icon": "zap",
+      "label": "자율 행동",
+      "sub": "읽기 도구만",
+      "color": "teal"
+    },
+    {
+      "icon": "trending-up",
+      "label": "피드백 학습",
+      "sub": "임계치 조정",
+      "color": "purple"
+    },
+    {
+      "icon": "send",
+      "label": "외부 알림",
+      "sub": "푸시, 메신저",
+      "color": "green"
+    }
+  ],
+  "flow_title": "성찰 한 번",
+  "flow": [
+    {
+      "type": "step",
+      "icon": "timer",
+      "title": "성찰 tick",
+      "body": "120초마다, 유휴 때",
+      "color": "pink"
+    },
+    {
+      "type": "decision",
+      "q": "기다리는 답이 없나?",
+      "no": "🔔 답이 올 때까지 쉰다",
+      "no_color": "slate"
+    },
+    {
+      "type": "decision",
+      "q": "말할 근거가 있나?",
+      "no": "말할 거리가 없어 침묵",
+      "no_color": "slate"
+    },
+    {
+      "type": "decision",
+      "q": "지난번과 달라졌나?",
+      "no": "같은 입력이면 건너뛴다",
+      "no_color": "slate"
+    },
+    {
+      "type": "step",
+      "icon": "brain",
+      "title": "성찰 사고",
+      "body": "말할지와 확신도 판단",
+      "color": "purple"
+    },
+    {
+      "type": "decision",
+      "q": "되풀이가 아닌가?",
+      "no": "최근 🔔 와 같으면 버림",
+      "no_color": "slate"
+    },
+    {
+      "type": "decision",
+      "q": "게이트를 지났나?",
+      "no": "결정, 확신도, 빈 말, 쿨다운에서 침묵"
+    },
+    {
+      "type": "step",
+      "icon": "zap",
+      "title": "저위험 행동",
+      "body": "읽기 도구를 미리 실행",
+      "color": "teal"
+    },
+    {
+      "type": "decision",
+      "q": "지금 말해도 되나?",
+      "no": "답하는 중이나 Focus 면 되돌린다",
+      "no_color": "orange"
+    },
+    {
+      "type": "end",
+      "icon": "bell-ring",
+      "title": "먼저 말하기",
+      "body": "화면, 음성, Push, Slack",
+      "color": "green"
+    }
+  ]
+}

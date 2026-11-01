@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 785" class="if-svg" role="img" aria-label="Memory Management: 최근 3턴만 모델에 넣고, 그보다 앞의 대화와 사용자 사실은 장기 기억에서 떠올린다">
+<defs><marker id="info-memory-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="if-head" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="if-title" x="244.7" y="14" width="270.6" height="50" rx="12"/>
+<text class="if-title-t" x="380.0" y="47.0" text-anchor="middle">Memory Management</text>
+<text class="if-tagline" x="380.0" y="88.0" text-anchor="middle">최근 3턴만 모델에 넣고, 그보다 앞의 대화와 사용자 사실은 장기 기억에서 떠올린다</text>
+<circle class="if-dot" cx="380.0" cy="104.0" r="4"/>
+<path class="if-edge" d="M380.0,104.0 L380.0,122.0"/>
+<path class="if-edge" d="M71.4,136.0 Q71.4,122.0 85.4,122.0 L674.6,122.0 Q688.6,122.0 688.6,136.0"/>
+<path class="if-edge" d="M71.4,136.0 L71.4,144.0"/>
+<circle class="if-dot" cx="71.4" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="71.4" cy="183.0" r="35"/>
+<circle class="if-c-blue" cx="71.4" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(57.4,169.0) scale(1.167)"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path d="M7 11h10"/><path d="M7 15h6"/><path d="M7 7h8"/></g>
+<text class="if-feature" x="71.4" y="238.0" text-anchor="middle">최근 3턴 창</text>
+<text class="if-feature-sub" x="71.4" y="256.0" text-anchor="middle">턴 단위로 자름</text>
+<path class="if-edge" d="M174.3,122.0 L174.3,144.0"/>
+<circle class="if-dot" cx="174.3" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="174.3" cy="183.0" r="35"/>
+<circle class="if-c-teal" cx="174.3" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(160.3,169.0) scale(1.167)"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></g>
+<text class="if-feature" x="174.3" y="238.0" text-anchor="middle">사용자 프로필</text>
+<text class="if-feature-sub" x="174.3" y="256.0" text-anchor="middle">새 사실로 대체</text>
+<path class="if-edge" d="M277.1,122.0 L277.1,144.0"/>
+<circle class="if-dot" cx="277.1" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="277.1" cy="183.0" r="35"/>
+<circle class="if-c-teal" cx="277.1" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(263.1,169.0) scale(1.167)"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></g>
+<text class="if-feature" x="277.1" y="238.0" text-anchor="middle">턴마다 일화</text>
+<text class="if-feature-sub" x="277.1" y="256.0" text-anchor="middle">발화와 답 기록</text>
+<path class="if-edge" d="M380.0,122.0 L380.0,144.0"/>
+<circle class="if-dot" cx="380.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="380.0" cy="183.0" r="35"/>
+<circle class="if-c-purple" cx="380.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(366.0,169.0) scale(1.167)"><path d="M22 14a8 8 0 0 1-8 8"/><path d="M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1"/><path d="M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10"/><path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></g>
+<text class="if-feature" x="380.0" y="238.0" text-anchor="middle">지칭 풀기</text>
+<text class="if-feature-sub" x="380.0" y="256.0" text-anchor="middle">직전 대화 붙임</text>
+<path class="if-edge" d="M482.9,122.0 L482.9,144.0"/>
+<circle class="if-dot" cx="482.9" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="482.9" cy="183.0" r="35"/>
+<circle class="if-c-pink" cx="482.9" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(468.9,169.0) scale(1.167)"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z"/></g>
+<text class="if-feature" x="482.9" y="238.0" text-anchor="middle">큰 사건 자리</text>
+<text class="if-feature-sub" x="482.9" y="256.0" text-anchor="middle">중요도 0.8 이상</text>
+<path class="if-edge" d="M585.7,122.0 L585.7,144.0"/>
+<circle class="if-dot" cx="585.7" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="585.7" cy="183.0" r="35"/>
+<circle class="if-c-orange" cx="585.7" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(571.7,169.0) scale(1.167)"><path d="M13 5h8"/><path d="M13 12h8"/><path d="M13 19h8"/><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/></g>
+<text class="if-feature" x="585.7" y="238.0" text-anchor="middle">작업 패턴</text>
+<text class="if-feature-sub" x="585.7" y="256.0" text-anchor="middle">에이전트별 방식</text>
+<path class="if-edge" d="M688.6,136.0 L688.6,144.0"/>
+<circle class="if-dot" cx="688.6" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="688.6" cy="183.0" r="35"/>
+<circle class="if-c-red" cx="688.6" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(674.6,169.0) scale(1.167)"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g>
+<text class="if-feature" x="688.6" y="238.0" text-anchor="middle">층별 읽기 권한</text>
+<text class="if-feature-sub" x="688.6" y="256.0" text-anchor="middle">남의 대화 막음</text>
+<rect class="if-bar" x="20" y="288" width="720" height="34" rx="8"/>
+<text class="if-bar-t" x="380.0" y="310.5" text-anchor="middle">대화 한 턴의 기억</text>
+<rect class="if-t-blue if-s-blue" x="20.0" y="340.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-blue" x="20.0" y="340.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-blue" x="20.0" y="362.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(52.0,348.0) scale(0.625)"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></g>
+<text class="if-card-t" x="104.8" y="359.0" text-anchor="middle">사용자 발화</text>
+<text class="if-card-b" x="95.8" y="389.0" text-anchor="middle">마지막 200자로 찾는다</text>
+<path class="if-edge" d="M171.5,369.5 L207.5,369.5" marker-end="url(#info-memory-arrow)"/>
+<rect class="if-decision if-s-slate" x="209.5" y="350.0" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="285.2" y="370.0" text-anchor="middle">질의만으로 충분한가?</text>
+<path class="if-edge" d="M361.0,369.5 L397.0,369.5" marker-end="url(#info-memory-arrow)"/>
+<text class="if-yes" x="380.0" y="362.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M285.2,389.0 L285.2,417.0" marker-end="url(#info-memory-arrow)"/>
+<text class="if-no" x="293.2" y="408.0" text-anchor="start">아니오</text>
+<rect class="if-t-orange if-s-orange if-chip" x="219.5" y="419.0" width="131.5" height="44.0" rx="7.0"/>
+<text class="if-chip-t" x="285.2" y="438.0" text-anchor="middle">"그거", 짧은 말엔 직전</text>
+<text class="if-chip-t" x="285.2" y="454.0" text-anchor="middle">대화를 붙인다</text>
+<rect class="if-t-blue if-s-blue" x="399.0" y="340.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-blue" x="399.0" y="340.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-blue" x="399.0" y="362.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(422.9,348.0) scale(0.625)"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></g>
+<text class="if-card-t" x="483.8" y="359.0" text-anchor="middle">장기 기억 회상</text>
+<text class="if-card-b" x="474.8" y="389.0" text-anchor="middle">핵심 사실 3건, 회상 3건</text>
+<path class="if-edge" d="M474.8,399.0 L474.8,491.0 L95.8,491.0 L95.8,517.0" marker-end="url(#info-memory-arrow)"/>
+<rect class="if-decision if-s-slate" x="20.0" y="517.0" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="95.8" y="537.0" text-anchor="middle">읽기 권한이 있는가?</text>
+<path class="if-edge" d="M171.5,536.5 L207.5,536.5" marker-end="url(#info-memory-arrow)"/>
+<text class="if-yes" x="190.5" y="529.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M95.8,556.0 L95.8,584.0" marker-end="url(#info-memory-arrow)"/>
+<text class="if-no" x="103.8" y="575.0" text-anchor="start">아니오</text>
+<rect class="if-t-red if-s-red if-chip" x="30.0" y="586.0" width="131.5" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="95.8" y="605.0" text-anchor="middle">권한 밖 일화는 뺀다</text>
+<rect class="if-t-purple if-s-purple" x="209.5" y="507.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-purple" x="209.5" y="507.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-purple" x="209.5" y="529.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(247.4,515.0) scale(0.625)"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></g>
+<text class="if-card-t" x="294.2" y="526.0" text-anchor="middle">LLM 호출</text>
+<text class="if-card-b" x="285.2" y="556.0" text-anchor="middle">기억 블록과 최근 3턴</text>
+<path class="if-edge" d="M361.0,536.5 L397.0,536.5" marker-end="url(#info-memory-arrow)"/>
+<rect class="if-t-teal if-s-teal" x="399.0" y="507.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-teal" x="399.0" y="507.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-teal" x="399.0" y="529.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(429.2,515.0) scale(0.625)"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></g>
+<text class="if-card-t" x="483.8" y="526.0" text-anchor="middle">턴 일화 쓰기</text>
+<text class="if-card-b" x="474.8" y="556.0" text-anchor="middle">발화와 답을 1,000자씩</text>
+<path class="if-edge" d="M474.8,566.0 L474.8,642.0 L95.8,642.0 L95.8,668.0" marker-end="url(#info-memory-arrow)"/>
+<rect class="if-decision if-s-slate" x="20.0" y="668.0" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="95.8" y="688.0" text-anchor="middle">답에 쓰인 기억인가?</text>
+<path class="if-edge" d="M171.5,687.5 L207.5,687.5" marker-end="url(#info-memory-arrow)"/>
+<text class="if-yes" x="190.5" y="680.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M95.8,707.0 L95.8,735.0" marker-end="url(#info-memory-arrow)"/>
+<text class="if-no" x="103.8" y="726.0" text-anchor="start">아니오</text>
+<rect class="if-t-slate if-s-slate if-chip" x="30.0" y="737.0" width="131.5" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="95.8" y="756.0" text-anchor="middle">되뇌기로 세지 않는다</text>
+<rect class="if-t-green if-s-green if-end" x="209.5" y="658.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-green" x="209.5" y="658.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-green" x="209.5" y="680.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(246.5,666.0) scale(0.625)"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></g>
+<text class="if-card-t" x="294.2" y="677.0" text-anchor="middle">되뇌기 +1</text>
+<text class="if-card-b" x="285.2" y="707.0" text-anchor="middle">중요도가 덜 식는다</text>
+</svg>

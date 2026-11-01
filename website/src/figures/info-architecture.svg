@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 824" class="if-svg" role="img" aria-label="Architecture: 층을 한 방향으로 쌓아, 터미널과 브라우저가 같은 에이전트를 쓴다">
+<defs><marker id="info-architecture-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="if-head" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="if-title" x="276.1" y="14" width="207.9" height="50" rx="12"/>
+<text class="if-title-t" x="380.0" y="47.0" text-anchor="middle">Architecture</text>
+<text class="if-tagline" x="380.0" y="88.0" text-anchor="middle">층을 한 방향으로 쌓아, 터미널과 브라우저가 같은 에이전트를 쓴다</text>
+<circle class="if-dot" cx="380.0" cy="104.0" r="4"/>
+<path class="if-edge" d="M380.0,104.0 L380.0,122.0"/>
+<path class="if-edge" d="M80.0,136.0 Q80.0,122.0 94.0,122.0 L666.0,122.0 Q680.0,122.0 680.0,136.0"/>
+<path class="if-edge" d="M80.0,136.0 L80.0,144.0"/>
+<circle class="if-dot" cx="80.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="80.0" cy="183.0" r="35"/>
+<circle class="if-c-slate" cx="80.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(66.0,169.0) scale(1.167)"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></g>
+<text class="if-feature" x="80.0" y="238.0" text-anchor="middle">한 방향 의존</text>
+<text class="if-feature-sub" x="80.0" y="256.0" text-anchor="middle">아래층이 위층 모름</text>
+<path class="if-edge" d="M200.0,122.0 L200.0,144.0"/>
+<circle class="if-dot" cx="200.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="200.0" cy="183.0" r="35"/>
+<circle class="if-c-blue" cx="200.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(186.0,169.0) scale(1.167)"><path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"/><path d="M10 19v-3.96 3.15"/><path d="M7 19h5"/><rect width="6" height="10" x="16" y="12" rx="2"/></g>
+<text class="if-feature" x="200.0" y="238.0" text-anchor="middle">두 화면, 한 배선</text>
+<text class="if-feature-sub" x="200.0" y="256.0" text-anchor="middle">TUI, Web 공통</text>
+<path class="if-edge" d="M320.0,122.0 L320.0,144.0"/>
+<circle class="if-dot" cx="320.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="320.0" cy="183.0" r="35"/>
+<circle class="if-c-purple" cx="320.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(306.0,169.0) scale(1.167)"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></g>
+<text class="if-feature" x="320.0" y="238.0" text-anchor="middle">에이전트 늘리기</text>
+<text class="if-feature-sub" x="320.0" y="256.0" text-anchor="middle">정의 파일 하나씩</text>
+<path class="if-edge" d="M440.0,122.0 L440.0,144.0"/>
+<circle class="if-dot" cx="440.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="440.0" cy="183.0" r="35"/>
+<circle class="if-c-pink" cx="440.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(426.0,169.0) scale(1.167)"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></g>
+<text class="if-feature" x="440.0" y="238.0" text-anchor="middle">설정으로 교체</text>
+<text class="if-feature-sub" x="440.0" y="256.0" text-anchor="middle">프로바이더, 저장소</text>
+<path class="if-edge" d="M560.0,122.0 L560.0,144.0"/>
+<circle class="if-dot" cx="560.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="560.0" cy="183.0" r="35"/>
+<circle class="if-c-red" cx="560.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(546.0,169.0) scale(1.167)"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g>
+<text class="if-feature" x="560.0" y="238.0" text-anchor="middle">보안 순서 고정</text>
+<text class="if-feature-sub" x="560.0" y="256.0" text-anchor="middle">검증, 인증, 정책</text>
+<path class="if-edge" d="M680.0,136.0 L680.0,144.0"/>
+<circle class="if-dot" cx="680.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="680.0" cy="183.0" r="35"/>
+<circle class="if-c-orange" cx="680.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(666.0,169.0) scale(1.167)"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></g>
+<text class="if-feature" x="680.0" y="238.0" text-anchor="middle">재실행 복구</text>
+<text class="if-feature-sub" x="680.0" y="256.0" text-anchor="middle">두 번 해도 같은 상태</text>
+<rect class="if-bar" x="20" y="288" width="720" height="34" rx="8"/>
+<text class="if-bar-t" x="380.0" y="310.5" text-anchor="middle">요청 한 번</text>
+<rect class="if-t-blue if-s-blue" x="20.0" y="340.0" width="214.7" height="59.0" rx="9.0"/>
+<rect class="if-c-blue" x="20.0" y="340.0" width="214.7" height="31.0" rx="9"/>
+<rect class="if-c-blue" x="20.0" y="362.0" width="214.7" height="9"/>
+<g class="if-icon" transform="translate(77.3,348.0) scale(0.625)"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></g>
+<text class="if-card-t" x="136.3" y="359.0" text-anchor="middle">화면에서 입력</text>
+<text class="if-card-b" x="127.3" y="389.0" text-anchor="middle">TUI 나 Web HUD</text>
+<path class="if-edge" d="M234.7,369.5 L270.7,369.5" marker-end="url(#info-architecture-arrow)"/>
+<rect class="if-decision if-s-slate" x="272.7" y="350.0" width="214.7" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="380.0" y="370.0" text-anchor="middle">보안 검사를 지났나?</text>
+<path class="if-edge" d="M487.3,369.5 L523.3,369.5" marker-end="url(#info-architecture-arrow)"/>
+<text class="if-yes" x="506.3" y="362.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M380.0,389.0 L380.0,417.0" marker-end="url(#info-architecture-arrow)"/>
+<text class="if-no" x="388.0" y="408.0" text-anchor="start">아니오</text>
+<rect class="if-t-red if-s-red if-chip" x="282.7" y="419.0" width="194.7" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="380.0" y="438.0" text-anchor="middle">검증, 인증, 정책에서 막는다</text>
+<rect class="if-t-purple if-s-purple" x="525.3" y="340.0" width="214.7" height="59.0" rx="9.0"/>
+<rect class="if-c-purple" x="525.3" y="340.0" width="214.7" height="31.0" rx="9"/>
+<rect class="if-c-purple" x="525.3" y="362.0" width="214.7" height="9"/>
+<g class="if-icon" transform="translate(595.2,348.0) scale(0.625)"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></g>
+<text class="if-card-t" x="641.7" y="359.0" text-anchor="middle">사고 엔진</text>
+<text class="if-card-b" x="632.7" y="389.0" text-anchor="middle">before, race, after 또는 router</text>
+<path class="if-edge" d="M632.7,399.0 L632.7,475.0 L127.3,475.0 L127.3,491.0" marker-end="url(#info-architecture-arrow)"/>
+<rect class="if-t-teal if-s-teal" x="20.0" y="491.0" width="214.7" height="59.0" rx="9.0"/>
+<rect class="if-c-teal" x="20.0" y="491.0" width="214.7" height="31.0" rx="9"/>
+<rect class="if-c-teal" x="20.0" y="513.0" width="214.7" height="9"/>
+<g class="if-icon" transform="translate(89.9,499.0) scale(0.625)"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></g>
+<text class="if-card-t" x="136.3" y="510.0" text-anchor="middle">기억 주입</text>
+<text class="if-card-b" x="127.3" y="540.0" text-anchor="middle">최근 3턴 앞에 회상 블록</text>
+<path class="if-edge" d="M234.7,520.5 L270.7,520.5" marker-end="url(#info-architecture-arrow)"/>
+<rect class="if-t-purple if-s-purple" x="272.7" y="491.0" width="214.7" height="59.0" rx="9.0"/>
+<rect class="if-c-purple" x="272.7" y="491.0" width="214.7" height="31.0" rx="9"/>
+<rect class="if-c-purple" x="272.7" y="513.0" width="214.7" height="9"/>
+<g class="if-icon" transform="translate(335.9,499.0) scale(0.625)"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></g>
+<text class="if-card-t" x="389.0" y="510.0" text-anchor="middle">LLM 스트림</text>
+<text class="if-card-b" x="380.0" y="540.0" text-anchor="middle">텍스트 또는 도구 호출</text>
+<path class="if-edge" d="M380.0,550.0 L380.0,578.0 L127.3,578.0 L127.3,604.0" marker-end="url(#info-architecture-arrow)"/>
+<rect class="if-decision if-s-slate" x="20.0" y="604.0" width="214.7" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="127.3" y="624.0" text-anchor="middle">도구가 허용됐나?</text>
+<path class="if-edge" d="M234.7,623.5 L270.7,623.5" marker-end="url(#info-architecture-arrow)"/>
+<text class="if-yes" x="253.7" y="616.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M127.3,643.0 L127.3,671.0" marker-end="url(#info-architecture-arrow)"/>
+<text class="if-no" x="135.3" y="662.0" text-anchor="start">아니오</text>
+<rect class="if-t-orange if-s-orange if-chip" x="30.0" y="673.0" width="194.7" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="127.3" y="692.0" text-anchor="middle">거부를 결과로 돌려주고 계속</text>
+<rect class="if-t-red if-s-red" x="272.7" y="594.0" width="214.7" height="59.0" rx="9.0"/>
+<rect class="if-c-red" x="272.7" y="594.0" width="214.7" height="31.0" rx="9"/>
+<rect class="if-c-red" x="272.7" y="616.0" width="214.7" height="9"/>
+<g class="if-icon" transform="translate(342.6,602.0) scale(0.625)"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></g>
+<text class="if-card-t" x="389.0" y="613.0" text-anchor="middle">도구 실행</text>
+<text class="if-card-b" x="380.0" y="643.0" text-anchor="middle">결과를 다시 LLM 에, 최대 20턴</text>
+<path class="if-edge" d="M487.3,623.5 L523.3,623.5" marker-end="url(#info-architecture-arrow)"/>
+<rect class="if-t-teal if-s-teal" x="525.3" y="594.0" width="214.7" height="59.0" rx="9.0"/>
+<rect class="if-c-teal" x="525.3" y="594.0" width="214.7" height="31.0" rx="9"/>
+<rect class="if-c-teal" x="525.3" y="616.0" width="214.7" height="9"/>
+<g class="if-icon" transform="translate(609.6,602.0) scale(0.625)"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></g>
+<text class="if-card-t" x="641.7" y="613.0" text-anchor="middle">기록</text>
+<text class="if-card-b" x="632.7" y="643.0" text-anchor="middle">세션 저장, 일화 기억 쓰기</text>
+<path class="if-edge" d="M632.7,653.0 L632.7,729.0 L127.3,729.0 L127.3,745.0" marker-end="url(#info-architecture-arrow)"/>
+<rect class="if-t-green if-s-green if-end" x="20.0" y="745.0" width="214.7" height="59.0" rx="9.0"/>
+<rect class="if-c-green" x="20.0" y="745.0" width="214.7" height="31.0" rx="9"/>
+<rect class="if-c-green" x="20.0" y="767.0" width="214.7" height="9"/>
+<g class="if-icon" transform="translate(77.3,753.0) scale(0.625)"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path d="M7 11h10"/><path d="M7 15h6"/><path d="M7 7h8"/></g>
+<text class="if-card-t" x="136.3" y="764.0" text-anchor="middle">스트리밍 응답</text>
+<text class="if-card-b" x="127.3" y="794.0" text-anchor="middle">두 화면에 같은 이벤트</text>
+</svg>

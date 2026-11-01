@@ -1,0 +1,24 @@
+{
+  "name": "sessions",
+  "title": "Sessions",
+  "tagline": "대화 한 줄기를 저장해 다시 접속해도 잇고, 갈라 보고, 기억까지 함께 지운다",
+  "features": [
+    {"icon": "save", "label": "대화 저장", "sub": "파일이나 DB", "color": "teal"},
+    {"icon": "refresh-cw", "label": "다시 열기", "sub": "같은 id 는 하나", "color": "blue"},
+    {"icon": "hourglass", "label": "요청은 하나씩", "sub": "겹치면 거절", "color": "pink"},
+    {"icon": "git-branch", "label": "분기", "sub": "메시지를 복사", "color": "orange"},
+    {"icon": "trash", "label": "함께 삭제", "sub": "기억까지", "color": "red"},
+    {"icon": "file-down", "label": "내보내기", "sub": "md, json", "color": "green"},
+    {"icon": "flask-conical", "label": "시험 세션", "sub": "알림 없음", "color": "slate"}
+  ],
+  "flow_title": "대화 한 턴의 저장",
+  "flow": [
+    {"type": "step", "icon": "door-open", "title": "세션 열기", "body": "같은 id 면 지난 대화를 잇는다", "color": "blue"},
+    {"type": "decision", "q": "처리 중인 요청이 없나?", "no": "3초 안에 안 끝나면 거절한다"},
+    {"type": "step", "icon": "save", "title": "사용자 메시지 저장", "body": "턴 시작 때 바로", "color": "teal"},
+    {"type": "step", "icon": "bot", "title": "에이전트 루프", "body": "답과 도구 메시지는 메모리에만", "color": "purple"},
+    {"type": "step", "icon": "database", "title": "나머지 메시지 저장", "body": "호출과 결과를 짝으로", "color": "teal"},
+    {"type": "step", "icon": "notebook-pen", "title": "일화 기억", "body": "턴마다 장기 기억에 남긴다", "color": "teal"},
+    {"type": "end", "icon": "message-square-text", "title": "다음 턴", "body": "끊겨도 다시 열면 이어진다", "color": "green"}
+  ]
+}

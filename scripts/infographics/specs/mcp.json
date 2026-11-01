@@ -1,0 +1,23 @@
+{
+  "name": "mcp",
+  "title": "MCP Events",
+  "tagline": "캘린더와 메일 같은 외부 소스의 새 소식을, 묻기 전에 급한 것만 먼저 알린다",
+  "features": [
+    {"icon": "radar", "label": "주기적 조회", "sub": "소스마다 300초", "color": "blue"},
+    {"icon": "funnel", "label": "중복 제거", "sub": "본 항목 7일 기억", "color": "teal"},
+    {"icon": "inbox", "label": "inbox 적재", "sub": "틱당 20건 상한", "color": "purple"},
+    {"icon": "rotate-ccw", "label": "못 전하면 되돌림", "sub": "사고 실패, 게이트", "color": "orange"},
+    {"icon": "bell-ring", "label": "급할 때만 말함", "sub": "이벤트당 한 번", "color": "green"}
+  ],
+  "flow": [
+    {"type": "step", "icon": "plug", "title": "MCP 도구 호출", "body": "캘린더, 메일 서버", "color": "blue"},
+    {"type": "step", "icon": "list", "title": "이벤트 추출", "body": "items, id, title 관례", "color": "blue"},
+    {"type": "decision", "q": "처음 보는 항목인가?", "no": "이미 본 항목은 버린다"},
+    {"type": "step", "icon": "inbox", "title": "inbox 에 넣기", "body": "틱당 20건, 최대 200건", "color": "purple"},
+    {"type": "decision", "q": "성찰할 차례인가?", "no": "🔔 답 대기 중이면 그대로 둔다", "no_color": "slate"},
+    {"type": "step", "icon": "brain", "title": "성찰", "body": "사고 모델이 이벤트를 사실로 읽는다", "color": "teal"},
+    {"type": "decision", "q": "말할 만큼 급한가?", "no": "말하지 않고 소비한다", "no_color": "slate"},
+    {"type": "decision", "q": "게이트를 지났나?", "no": "inbox 앞에 되돌린다", "no_color": "orange"},
+    {"type": "end", "icon": "bell-ring", "title": "먼저 말하기", "body": "이벤트당 한 번"}
+  ]
+}

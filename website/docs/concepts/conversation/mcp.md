@@ -3,6 +3,7 @@ sidebar_position: 4
 title: MCP Events
 ---
 
+import InfoMcp from '@site/src/figures/info-mcp.svg';
 import FigureMcp from '@site/src/figures/mcp.svg';
 import FigureExpMcp from '@site/src/figures/exp-mcp.svg';
 
@@ -10,9 +11,8 @@ import FigureExpMcp from '@site/src/figures/exp-mcp.svg';
 
 JARVIS 는 MCP 도구를 주기적으로 불러 새 항목을 성찰의 재료로 넣는다. 이 기능으로 캘린더나 메일 같은 소스의 새 항목을 사용자가 묻기 전에 JARVIS 가 먼저 알린다.
 
-<figure className="paper-fig">
-  <FigureMcp />
-  <figcaption><b>Figure 1.</b> Poller 가 소스마다 MCP 도구를 불러(1, 2) 결과에서 이벤트를 뽑고(3), 처음 보는 항목만(4) 틱당 20건까지 inbox 에 넣은 뒤(5) 성찰을 깨운다(6). 다음 성찰이 inbox 를 한 번에 다 비우므로(7) 이벤트마다 발화는 많아야 한 번이다. 답을 기다리는 🔔 가 있으면 그 성찰은 inbox 를 그대로 둔다.</figcaption>
+<figure className="info-fig">
+  <InfoMcp />
 </figure>
 
 ## 서비스 기능
@@ -41,6 +41,11 @@ JARVIS 는 MCP 도구를 주기적으로 불러 새 항목을 성찰의 재료�
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureMcp />
+  <figcaption><b>Figure 1.</b> Poller 가 소스마다 MCP 도구를 불러(1, 2) 결과에서 이벤트를 뽑고(3), 처음 보는 항목만(4) 틱당 20건까지 inbox 에 넣은 뒤(5) 성찰을 깨운다(6). 다음 성찰이 inbox 를 한 번에 다 비우므로(7) 이벤트마다 발화는 많아야 한 번이다. 답을 기다리는 🔔 가 있으면 그 성찰은 inbox 를 그대로 둔다.</figcaption>
+</figure>
 
 ```mermaid
 flowchart LR

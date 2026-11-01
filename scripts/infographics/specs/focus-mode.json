@@ -1,0 +1,92 @@
+{
+  "name": "focus-mode",
+  "title": "Focus Mode",
+  "tagline": "작업 하나에 sub-agent 넷을 붙여 매 지시를 분석하고, 조사하고, 기록하고, 진행률을 매긴다",
+  "features": [
+    {
+      "icon": "scan-search",
+      "label": "정보 분석",
+      "sub": "지시마다 다섯 항목",
+      "color": "purple"
+    },
+    {
+      "icon": "globe",
+      "label": "레퍼런스 조사",
+      "sub": "선례 3개와 출처",
+      "color": "blue"
+    },
+    {
+      "icon": "notebook-pen",
+      "label": "작업 기록",
+      "sub": "3인칭 서기",
+      "color": "teal"
+    },
+    {
+      "icon": "gauge",
+      "label": "진행 현황",
+      "sub": "3~8단계, 예상 시간",
+      "color": "pink"
+    },
+    {
+      "icon": "layout-grid",
+      "label": "네 영역 화면",
+      "sub": "구체 둘레에 펼침",
+      "color": "green"
+    },
+    {
+      "icon": "rotate-ccw",
+      "label": "재시작 복구",
+      "sub": "기록 파일이 정본",
+      "color": "orange"
+    }
+  ],
+  "flow": [
+    {
+      "type": "step",
+      "icon": "play",
+      "title": "/focus 작업",
+      "body": "음성 명령도 같다",
+      "color": "blue"
+    },
+    {
+      "type": "decision",
+      "q": "다른 작업이 없나?",
+      "no": "지금 작업을 알리고 거절한다"
+    },
+    {
+      "type": "step",
+      "icon": "scan-search",
+      "title": "첫 분석과 계획",
+      "body": "30초까지 기다린다",
+      "color": "purple"
+    },
+    {
+      "type": "step",
+      "icon": "message-circle",
+      "title": "지시 받기",
+      "body": "분석이 같이 돌고 필요하면 조사",
+      "color": "blue"
+    },
+    {
+      "type": "step",
+      "icon": "brain",
+      "title": "메인 응답",
+      "body": "직전 분석과 조사 요약",
+      "color": "purple"
+    },
+    {
+      "type": "step",
+      "icon": "notebook-pen",
+      "title": "기록과 진행",
+      "body": "응답 뒤 서기와 진행률",
+      "color": "teal"
+    },
+    {
+      "type": "end",
+      "icon": "layout-grid",
+      "title": "화면 갱신",
+      "body": "네 영역에 전체 상태",
+      "color": "green"
+    }
+  ]
+}

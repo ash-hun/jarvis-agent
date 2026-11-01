@@ -3,9 +3,15 @@ sidebar_position: 5.5
 title: Goals
 ---
 
+import InfoGoals from '@site/src/figures/info-goals.svg';
+
 # Goals
 
 목표는 사용자가 계속 맡기는 일이다. 한 번 맡기면 대화가 없는 동안에도 에이전트가 정해진 때마다 한 단계씩 진행하고, 목표가 알리라고 한 것만 대화로 알린다.
+
+<figure className="info-fig">
+  <InfoGoals />
+</figure>
 
 ## 서비스 기능
 

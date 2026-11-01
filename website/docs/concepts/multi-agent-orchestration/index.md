@@ -3,6 +3,7 @@ sidebar_position: 0
 title: Multi agent Orchestration
 ---
 
+import InfoMultiAgentOrchestration from '@site/src/figures/info-multi-agent-orchestration.svg';
 import FigureMultiAgentOrchestration from '@site/src/figures/multi-agent-orchestration.svg';
 import FigureExpTeam from '@site/src/figures/exp-team.svg';
 
@@ -10,9 +11,8 @@ import FigureExpTeam from '@site/src/figures/exp-team.svg';
 
 JARVIS 혼자 모든 분야를 맡으면 프롬프트, 도구, 기억이 한데 섞인다. Multi agent Orchestration 은 목적이 다른 최상위 에이전트를 JARVIS 와 같은 층에 정의 파일 하나로 더하고, 에이전트끼리 일을 맡기게 한다.
 
-<figure className="paper-fig">
-  <FigureMultiAgentOrchestration />
-  <figcaption><b>Figure 1.</b> 최상위 에이전트는 세션, 일화 기억과 작업 패턴, 목표와 약속(open loop), 승인 규칙, 경계(boundaries 의 ask, never 도구), 모델과 도구, 메인 색을 따로 갖고, 사용자 모델, 사용자에 대한 사실, 공용 승인 규칙, AGENDA 를 함께 쓴다. 서로 일을 맡길 때는 ask_agent 를 쓰고, 되묻기는 A → B → A 까지만 허용한다. 받은 일을 그 일을 보낸 에이전트에게 되돌리는 요청은 거절한다.</figcaption>
+<figure className="info-fig">
+  <InfoMultiAgentOrchestration />
 </figure>
 
 ## 서비스 기능
@@ -43,6 +43,11 @@ JARVIS 혼자 모든 분야를 맡으면 프롬프트, 도구, 기억이 한데 
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureMultiAgentOrchestration />
+  <figcaption><b>Figure 1.</b> 최상위 에이전트는 세션, 일화 기억과 작업 패턴, 목표와 약속(open loop), 승인 규칙, 경계(boundaries 의 ask, never 도구), 모델과 도구, 메인 색을 따로 갖고, 사용자 모델, 사용자에 대한 사실, 공용 승인 규칙, AGENDA 를 함께 쓴다. 서로 일을 맡길 때는 ask_agent 를 쓰고, 되묻기는 A → B → A 까지만 허용한다. 받은 일을 그 일을 보낸 에이전트에게 되돌리는 요청은 거절한다.</figcaption>
+</figure>
 
 에이전트가 둘 이상이면 `ask_agent` 도구가 생긴다. 한 번의 위임은 다음 순서로 돈다.
 

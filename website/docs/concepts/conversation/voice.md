@@ -3,6 +3,7 @@ sidebar_position: 6
 title: Voice Interface
 ---
 
+import InfoVoice from '@site/src/figures/info-voice.svg';
 import FigureVoice from '@site/src/figures/voice.svg';
 import FigureExpVoice from '@site/src/figures/exp-voice.svg';
 
@@ -10,9 +11,8 @@ import FigureExpVoice from '@site/src/figures/exp-voice.svg';
 
 Web HUD 나 TUI 에서 JARVIS 에게 말로 묻고 응답을 소리로 듣는다. 화면을 보지 않고 손을 쓰지 않는 상황에서도 묻고, 듣고, 승인까지 말로 끝낼 수 있게 한다.
 
-<figure className="paper-fig">
-  <FigureVoice />
-  <figcaption><b>Figure 1.</b> (a) STT 와 TTS 는 브라우저가 기본이고 서버(faster-whisper, supertonic)로 바꿀 수 있다. 읽기 전에 서버가 마크다운 기호를 지우고 금액 숫자를 한글로 바꾼다. 영어 문장은 Piper 나 qwen 합성 서버로 따로 읽게 할 수 있고, `speak_english` 를 켜면 JARVIS 가 내는 한국어 글을 소리로만 영어로 옮겨 문장마다 읽는다. (b) Full-voice 는 듣기, 처리, 생각, 말하기를 돈다. (c) 음성 승인 답은 번호 순서로 해석하고, 애매하면 거부한다.</figcaption>
+<figure className="info-fig">
+  <InfoVoice />
 </figure>
 
 ## 서비스 기능
@@ -45,6 +45,11 @@ Web HUD 나 TUI 에서 JARVIS 에게 말로 묻고 응답을 소리로 듣는다
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureVoice />
+  <figcaption><b>Figure 1.</b> (a) STT 와 TTS 는 브라우저가 기본이고 서버(faster-whisper, supertonic)로 바꿀 수 있다. 읽기 전에 서버가 마크다운 기호를 지우고 금액 숫자를 한글로 바꾼다. 영어 문장은 Piper 나 qwen 합성 서버로 따로 읽게 할 수 있고, `speak_english` 를 켜면 JARVIS 가 내는 한국어 글을 소리로만 영어로 옮겨 문장마다 읽는다. (b) Full-voice 는 듣기, 처리, 생각, 말하기를 돈다. (c) 음성 승인 답은 번호 순서로 해석하고, 애매하면 거부한다.</figcaption>
+</figure>
 
 Web HUD 의 기본 상태는 아래와 같다. Full-voice 의 상태 기계는 [Full-voice](#full-voice) 에 있다.
 

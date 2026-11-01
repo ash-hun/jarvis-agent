@@ -3,6 +3,7 @@ sidebar_position: 0
 title: Architecture
 ---
 
+import InfoArchitecture from '@site/src/figures/info-architecture.svg';
 import FigureArchitecture from '@site/src/figures/architecture.svg';
 import FigureExpArchitecture from '@site/src/figures/exp-architecture.svg';
 
@@ -10,9 +11,8 @@ import FigureExpArchitecture from '@site/src/figures/exp-architecture.svg';
 
 JARVIS 는 LLM 추상화, 기억, 에이전트 런타임, 오케스트레이션, 조립, 화면을 층으로 쌓고, 아래층이 위층을 모르게 만든다. TUI 와 Web 두 화면은 같은 조립 결과를 받아 쓰고 화면만 다르다.
 
-<figure className="paper-fig">
-  <FigureArchitecture />
-  <figcaption><b>Figure 1.</b> 계층 구조. 화살표는 의존 방향이다. 아래층은 위층을 모르고, TUI 와 Web 은 app 이 조립한 같은 결과를 받아 화면만 다르게 그린다. memory 는 core 와 agent_layer 가 쓰고, voice 는 ui 와 app 이 쓰며, common 의 로거는 어느 층이든 쓴다.</figcaption>
+<figure className="info-fig">
+  <InfoArchitecture />
 </figure>
 
 ## 서비스 기능
@@ -39,6 +39,11 @@ JARVIS 는 LLM 추상화, 기억, 에이전트 런타임, 오케스트레이션,
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureArchitecture />
+  <figcaption><b>Figure 1.</b> 계층 구조. 화살표는 의존 방향이다. 아래층은 위층을 모르고, TUI 와 Web 은 app 이 조립한 같은 결과를 받아 화면만 다르게 그린다. memory 는 core 와 agent_layer 가 쓰고, voice 는 ui 와 app 이 쓰며, common 의 로거는 어느 층이든 쓴다.</figcaption>
+</figure>
 
 요청 한 번은 화면에서 `AgentSession` 으로 들어와 보안 파이프라인, 사고 엔진, 하네스와 루프를 차례로 지난다.
 

@@ -1,0 +1,94 @@
+{
+  "name": "orchestration-pattern",
+  "title": "Orchestration Pattern",
+  "tagline": "한 작업을 여러 서브 에이전트에게 나눠 맡기고 결과를 모은다",
+  "features": [
+    {
+      "icon": "user-cog",
+      "label": "supervisor",
+      "sub": "LLM 이 위임 결정",
+      "color": "purple"
+    },
+    {
+      "icon": "layers",
+      "label": "hierarchical",
+      "sub": "레벨 순, 같은 층 병렬",
+      "color": "blue"
+    },
+    {
+      "icon": "gavel",
+      "label": "market",
+      "sub": "낱말 겹침으로 입찰",
+      "color": "orange"
+    },
+    {
+      "icon": "clipboard",
+      "label": "blackboard",
+      "sub": "공유 보드 보고 병렬",
+      "color": "teal"
+    },
+    {
+      "icon": "link",
+      "label": "파이프라인",
+      "sub": "쉼표로 이어 붙임",
+      "color": "pink"
+    }
+  ],
+  "flow_title": "처리 흐름: 위임 한 번",
+  "flow": [
+    {
+      "type": "step",
+      "icon": "terminal",
+      "title": "작업 받기",
+      "body": "/orchestrate 나 orchestrate 도구",
+      "color": "blue"
+    },
+    {
+      "type": "step",
+      "icon": "workflow",
+      "title": "패턴 고르기",
+      "body": "사용자나 메인 LLM",
+      "color": "purple"
+    },
+    {
+      "type": "decision",
+      "q": "처음 보는 위임인가?",
+      "no": "저장된 결과를 돌려준다",
+      "no_color": "slate"
+    },
+    {
+      "type": "step",
+      "icon": "bot",
+      "title": "서브 에이전트 실행",
+      "body": "패턴이 정한 순서와 병렬",
+      "color": "purple"
+    },
+    {
+      "type": "step",
+      "icon": "clipboard",
+      "title": "작업 공유 메모리",
+      "body": "앞 결과를 다음 프롬프트로",
+      "color": "teal"
+    },
+    {
+      "type": "decision",
+      "q": "패턴이 성공했나?",
+      "no": "파이프라인을 멈춘다",
+      "no_color": "red"
+    },
+    {
+      "type": "step",
+      "icon": "brain",
+      "title": "위임 기억",
+      "body": "부모가 일화로 남긴다",
+      "color": "teal"
+    },
+    {
+      "type": "end",
+      "icon": "check-check",
+      "title": "결과 돌려주기",
+      "body": "공유 메모리는 지운다",
+      "color": "green"
+    }
+  ]
+}

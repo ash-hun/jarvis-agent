@@ -1,5 +1,6 @@
 """tools 의 파일 기반 도구 로더: 클래스, 함수, YAML 도구 등록과 깨진 파일, 표준 모듈 이름을 검증한다."""
 
+import os
 import sys
 import pytest
 import json as real_json
@@ -60,6 +61,23 @@ async def test_user_tool_named_like_stdlib_does_not_shadow_it(tmp_path):
 
     assert registry.get("json_tool") is not None
     assert sys.modules["json"] is real_json
+
+
+async def test_reload_picks_up_same_size_edit_within_the_same_second(tmp_path):
+    tool_file = tmp_path / "echo_mod.py"
+    stamp = (1_700_000_000, 1_700_000_000)
+    tool_file.write_text(FUNCTION_TOOL.replace('str(params["a"] + params["b"])', '"v1"'))
+    os.utime(tool_file, stamp)
+    registry = ToolRegistry()
+    loader = ToolLoader(registry)
+    await loader.load_directory(str(tmp_path))
+
+    tool_file.write_text(FUNCTION_TOOL.replace('str(params["a"] + params["b"])', '"v2"'))
+    os.utime(tool_file, stamp)
+    await loader.load_directory(str(tmp_path))
+    result = await registry.execute("t", "echo-mod", {})
+
+    assert result.content[0].text == "v2"
 
 
 async def test_load_directory_missing_directory_loads_nothing(tmp_path):

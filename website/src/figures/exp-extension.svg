@@ -7,15 +7,15 @@
 <rect class="pf-s3" x="94.68" y="42" width="12" height="12" rx="2"/>
 <text class="pf-lab" x="112.7" y="53.0" text-anchor="start">p95</text>
 <text class="pf-lab" x="199.7" y="94.0" text-anchor="end">새 파일 (감시)</text>
-<rect class="pf-s2" x="211.7" y="76" width="106.7" height="12" rx="2"/>
-<text class="pf-val" x="324.4" y="87.0" text-anchor="start">90ms</text>
-<rect class="pf-s3" x="211.7" y="91" width="138.0" height="12" rx="2"/>
-<text class="pf-val" x="355.7" y="102.0" text-anchor="start">116ms</text>
+<rect class="pf-s2" x="211.7" y="76" width="91.8" height="12" rx="2"/>
+<text class="pf-val" x="309.5" y="87.0" text-anchor="start">77ms</text>
+<rect class="pf-s3" x="211.7" y="91" width="146.0" height="12" rx="2"/>
+<text class="pf-val" x="363.7" y="102.0" text-anchor="start">123ms</text>
 <text class="pf-lab" x="199.7" y="135.0" text-anchor="end">고친 파일 (감시)</text>
-<rect class="pf-s2" x="211.7" y="117" width="95.9" height="12" rx="2"/>
-<text class="pf-val" x="313.6" y="128.0" text-anchor="start">80ms</text>
-<rect class="pf-s3" x="211.7" y="132" width="107.0" height="12" rx="2"/>
-<text class="pf-val" x="324.7" y="143.0" text-anchor="start">90ms</text>
+<rect class="pf-s2" x="211.7" y="117" width="92.9" height="12" rx="2"/>
+<text class="pf-val" x="310.6" y="128.0" text-anchor="start">78ms</text>
+<rect class="pf-s3" x="211.7" y="132" width="112.8" height="12" rx="2"/>
+<text class="pf-val" x="330.5" y="143.0" text-anchor="start">95ms</text>
 <text class="pf-lab" x="199.7" y="176.0" text-anchor="end">재시작 (프로세스와 앱 조립만)</text>
 <rect class="pf-s2" x="211.7" y="158" width="344.8" height="12" rx="2"/>
 <text class="pf-val" x="562.5" y="169.0" text-anchor="start">290ms</text>

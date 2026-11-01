@@ -7,6 +7,7 @@ import inspect
 import importlib.util
 from typing import Any
 from pathlib import Path
+import importlib.machinery
 from types import ModuleType
 from collections.abc import Awaitable, Callable
 
@@ -134,10 +135,23 @@ class ToolLoader:
         return None
 
 
+class _FreshSourceLoader(importlib.machinery.SourceFileLoader):
+    """바이트코드 캐시를 읽지 않고 매번 소스를 컴파일한다.
+
+    캐시는 소스 크기와 초 단위 수정 시각으로만 낡았는지 본다. 같은 크기로 1초 안에 다시 저장한 도구는
+    예전 캐시가 그대로 쓰여 고친 내용이 반영되지 않았다.
+    """
+
+    def get_code(self, fullname: str) -> Any:
+        path = self.get_filename(fullname)
+        return self.source_to_code(self.get_data(path), path)
+
+
 def _load_module(py_file: Path) -> ModuleType:
     # 접두를 붙여 등록한다. 파일 이름 그대로(json.py 등) 넣으면 같은 이름의 표준 모듈을 덮는다
     module_name = f"{TOOL_MODULE_PREFIX}{py_file.stem}"
-    spec = importlib.util.spec_from_file_location(module_name, py_file)
+    loader = _FreshSourceLoader(module_name, str(py_file))
+    spec = importlib.util.spec_from_file_location(module_name, py_file, loader=loader)
     module = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
     sys.modules[module_name] = module
     spec.loader.exec_module(module)  # type: ignore[union-attr]

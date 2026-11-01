@@ -1607,15 +1607,36 @@
           "max_ms": 395.6
         }
       }
+    },
+    "after_cache_fix": {
+      "watch": {
+        "new_file": {
+          "runs": 30,
+          "timeouts": 0,
+          "p50_ms": 77.1,
+          "p95_ms": 122.6,
+          "max_ms": 123.8
+        },
+        "modified_file": {
+          "runs": 30,
+          "timeouts": 0,
+          "p50_ms": 78.0,
+          "p95_ms": 94.7,
+          "max_ms": 123.3
+        },
+        "called_after_change": "30/30",
+        "same_size_edit_seen": "30/30",
+        "same_size_wait_s": 3.0
+      }
     }
   },
   "orchestration_patterns": {
     "rows": [
       {
         "pattern": "supervisor",
-        "wall_s_mean": 0.61,
+        "wall_s_mean": 0.619,
         "wall_s_min": 0.61,
-        "wall_s_max": 0.611,
+        "wall_s_max": 0.624,
         "sub_agent_calls": 4,
         "supervisor_model_calls": 2,
         "agents_used": [
@@ -1629,9 +1650,9 @@
       },
       {
         "pattern": "supervisor_serial",
-        "wall_s_mean": 1.819,
-        "wall_s_min": 1.818,
-        "wall_s_max": 1.819,
+        "wall_s_mean": 1.829,
+        "wall_s_min": 1.819,
+        "wall_s_max": 1.835,
         "sub_agent_calls": 4,
         "supervisor_model_calls": 5,
         "agents_used": [
@@ -1646,7 +1667,7 @@
       {
         "pattern": "hierarchical",
         "wall_s_mean": 0.604,
-        "wall_s_min": 0.604,
+        "wall_s_min": 0.603,
         "wall_s_max": 0.604,
         "sub_agent_calls": 4,
         "supervisor_model_calls": 0,
@@ -1663,11 +1684,11 @@
         "pattern": "market",
         "wall_s_mean": 0.201,
         "wall_s_min": 0.201,
-        "wall_s_max": 0.201,
+        "wall_s_max": 0.202,
         "sub_agent_calls": 1,
         "supervisor_model_calls": 0,
         "agents_used": [
-          "researcher"
+          "writer"
         ],
         "calls_that_saw_upstream": 0,
         "success": true
@@ -1675,8 +1696,8 @@
       {
         "pattern": "blackboard",
         "wall_s_mean": 0.201,
-        "wall_s_min": 0.2,
-        "wall_s_max": 0.201,
+        "wall_s_min": 0.201,
+        "wall_s_max": 0.202,
         "sub_agent_calls": 4,
         "supervisor_model_calls": 0,
         "agents_used": [
@@ -1690,9 +1711,9 @@
       },
       {
         "pattern": "hierarchical,blackboard",
-        "wall_s_mean": 0.805,
-        "wall_s_min": 0.804,
-        "wall_s_max": 0.805,
+        "wall_s_mean": 0.806,
+        "wall_s_min": 0.805,
+        "wall_s_max": 0.808,
         "sub_agent_calls": 8,
         "supervisor_model_calls": 0,
         "agents_used": [

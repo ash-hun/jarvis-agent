@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 266" class="pf-svg" role="img" aria-label="알림 실패율에 따라 끝내 알리지 못한 공고 비율">
+<defs><marker id="exp-scheduling-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-scheduling-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-scheduling-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-scheduling-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="10" y="10" width="740" height="246" rx="8"/>
+<text class="pf-plabel" x="22" y="31">housing_watch 를 매일 한 번 돌린 60일 시뮬레이션</text>
+<rect class="pf-s1" x="30" y="42" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="48.0" y="53.0" text-anchor="start">#197 전</text>
+<rect class="pf-s2" x="118.44" y="42" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="136.4" y="53.0" text-anchor="start">#197 뒤 (현재)</text>
+<text class="pf-lab" x="122.7" y="94.0" text-anchor="end">알림 실패율 0%</text>
+<rect class="pf-s1" x="134.7" y="76" width="1.5" height="12" rx="2"/>
+<text class="pf-val" x="142.2" y="87.0" text-anchor="start">0.0%</text>
+<rect class="pf-s2" x="134.7" y="91" width="1.5" height="12" rx="2"/>
+<text class="pf-val" x="142.2" y="102.0" text-anchor="start">0.0%</text>
+<text class="pf-lab" x="122.7" y="135.0" text-anchor="end">알림 실패율 10%</text>
+<rect class="pf-s1" x="134.7" y="117" width="132.8" height="12" rx="2"/>
+<text class="pf-val" x="273.5" y="128.0" text-anchor="start">9.6%</text>
+<rect class="pf-s2" x="134.7" y="132" width="1.5" height="12" rx="2"/>
+<text class="pf-val" x="142.2" y="143.0" text-anchor="start">0.0%</text>
+<text class="pf-lab" x="122.7" y="176.0" text-anchor="end">알림 실패율 30%</text>
+<rect class="pf-s1" x="134.7" y="158" width="406.6" height="12" rx="2"/>
+<text class="pf-val" x="547.4" y="169.0" text-anchor="start">29.4%</text>
+<rect class="pf-s2" x="134.7" y="173" width="1.5" height="12" rx="2"/>
+<text class="pf-val" x="142.2" y="184.0" text-anchor="start">0.0%</text>
+<line class="pf-grid" x1="134.7" y1="72" x2="134.7" y2="189"/>
+<text class="pf-axis" x="134.7" y="204.0" text-anchor="middle">0%</text>
+<line class="pf-grid" x1="273.1" y1="72" x2="273.1" y2="189"/>
+<text class="pf-axis" x="273.1" y="204.0" text-anchor="middle">10%</text>
+<line class="pf-grid" x1="411.4" y1="72" x2="411.4" y2="189"/>
+<text class="pf-axis" x="411.4" y="204.0" text-anchor="middle">20%</text>
+<line class="pf-grid" x1="549.7" y1="72" x2="549.7" y2="189"/>
+<text class="pf-axis" x="549.7" y="204.0" text-anchor="middle">30%</text>
+<line class="pf-grid" x1="688.0" y1="72" x2="688.0" y2="189"/>
+<text class="pf-axis" x="688.0" y="204.0" text-anchor="middle">40%</text>
+<text class="pf-axis-title" x="411.4" y="222.0" text-anchor="middle">놓친 공고 비율</text>
+<text class="pf-note" x="30.0" y="242.0" text-anchor="start">공고 1198건, 시드 20개, 두 번 알림 0건</text>
+</svg>

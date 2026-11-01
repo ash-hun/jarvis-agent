@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 299" class="pf-svg" role="img" aria-label="같은 작업을 패턴별로 맡겼을 때의 시간">
+<defs><marker id="exp-orchestration-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-orchestration-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-orchestration-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-orchestration-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="10" y="10" width="740" height="279" rx="8"/>
+<text class="pf-plabel" x="22" y="31">패턴별 걸린 시간과 서브 에이전트 호출 수</text>
+<rect class="pf-s2" x="30" y="42" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="48.0" y="53.0" text-anchor="start">끝까지 걸린 시간</text>
+<text class="pf-lab" x="245.2" y="86.5" text-anchor="end">supervisor (호출 4)</text>
+<rect class="pf-s2" x="257.2" y="76" width="131.4" height="12" rx="2"/>
+<text class="pf-val" x="394.6" y="87.0" text-anchor="start">0.61s</text>
+<text class="pf-lab" x="245.2" y="112.5" text-anchor="end">supervisor_serial (호출 4)</text>
+<rect class="pf-s2" x="257.2" y="102" width="391.8" height="12" rx="2"/>
+<text class="pf-val" x="655.0" y="113.0" text-anchor="start">1.82s</text>
+<text class="pf-lab" x="245.2" y="138.5" text-anchor="end">hierarchical (호출 4)</text>
+<rect class="pf-s2" x="257.2" y="128" width="130.1" height="12" rx="2"/>
+<text class="pf-val" x="393.3" y="139.0" text-anchor="start">0.60s</text>
+<text class="pf-lab" x="245.2" y="164.5" text-anchor="end">market (호출 1)</text>
+<rect class="pf-s2" x="257.2" y="154" width="43.3" height="12" rx="2"/>
+<text class="pf-val" x="306.5" y="165.0" text-anchor="start">0.20s</text>
+<text class="pf-lab" x="245.2" y="190.5" text-anchor="end">blackboard (호출 4)</text>
+<rect class="pf-s2" x="257.2" y="180" width="43.3" height="12" rx="2"/>
+<text class="pf-val" x="306.5" y="191.0" text-anchor="start">0.20s</text>
+<text class="pf-lab" x="245.2" y="216.5" text-anchor="end">hierarchical + blackboard (호출 8)</text>
+<rect class="pf-s2" x="257.2" y="206" width="173.4" height="12" rx="2"/>
+<text class="pf-val" x="436.6" y="217.0" text-anchor="start">0.81s</text>
+<line class="pf-grid" x1="257.2" y1="72" x2="257.2" y2="222"/>
+<text class="pf-axis" x="257.2" y="237.0" text-anchor="middle">0.0</text>
+<line class="pf-grid" x1="364.9" y1="72" x2="364.9" y2="222"/>
+<text class="pf-axis" x="364.9" y="237.0" text-anchor="middle">0.5</text>
+<line class="pf-grid" x1="472.6" y1="72" x2="472.6" y2="222"/>
+<text class="pf-axis" x="472.6" y="237.0" text-anchor="middle">1.0</text>
+<line class="pf-grid" x1="580.3" y1="72" x2="580.3" y2="222"/>
+<text class="pf-axis" x="580.3" y="237.0" text-anchor="middle">1.5</text>
+<line class="pf-grid" x1="688.0" y1="72" x2="688.0" y2="222"/>
+<text class="pf-axis" x="688.0" y="237.0" text-anchor="middle">2.0</text>
+<text class="pf-axis-title" x="472.6" y="255.0" text-anchor="middle">시간 (초)</text>
+<text class="pf-note" x="30.0" y="275.0" text-anchor="start">서브 에이전트 한 번 0.2초, 감독 모델 한 번 0.2초로 고정, 5회 평균</text>
+</svg>

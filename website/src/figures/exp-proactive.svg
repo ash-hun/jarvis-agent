@@ -1,81 +1,83 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 561" class="pf-svg" role="img" aria-label="먼저 말하기: 지시문과 decision model 구성별 비교">
-<defs><marker id="exp-proactive-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-proactive-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-proactive-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-proactive-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
-<rect class="pf-panel" x="10" y="10" width="740" height="399" rx="8"/>
-<text class="pf-plabel" x="22" y="30">(a) 블라인드 시험 상황 20개 × 3회. 괄호는 개발용에서 고른 확신도 임계치</text>
-<rect class="pf-s2" x="30" y="44" width="10" height="10" rx="2"/>
-<text class="pf-s" x="45" y="53" text-anchor="start">recall (말해야 할 때 말함)</text>
-<rect class="pf-s3" x="184.33" y="44" width="10" height="10" rx="2"/>
-<text class="pf-s" x="199.33" y="53" text-anchor="start">오경보 (침묵할 때 말함)</text>
-<text class="pf-s" x="160" y="89.5" text-anchor="end">옛 지시문 · gpt-4o-mini (0.6)</text>
-<rect class="pf-s2" x="170" y="74" width="333.0" height="10" rx="2"/>
-<text class="pf-val" x="507.958" y="83" text-anchor="start">0.63</text>
-<rect class="pf-s3" x="170" y="87" width="1.5" height="10" rx="2"/>
-<text class="pf-val" x="176.5" y="96" text-anchor="start">0.00</text>
-<text class="pf-s" x="160" y="124.5" text-anchor="end">옛 지시문 · gemma4:e2b (0.9)</text>
-<rect class="pf-s2" x="170" y="109" width="245.6" height="10" rx="2"/>
-<text class="pf-val" x="420.64200000000005" y="118" text-anchor="start">0.47</text>
-<rect class="pf-s3" x="170" y="122" width="140.4" height="10" rx="2"/>
-<text class="pf-val" x="315.442" y="131" text-anchor="start">0.27</text>
-<text class="pf-s" x="160" y="159.5" text-anchor="end">옛 지시문 · gemma4:e4b (0.85)</text>
-<rect class="pf-s2" x="170" y="144" width="526.0" height="10" rx="2"/>
-<text class="pf-val" x="701.0" y="153" text-anchor="start">1.00</text>
-<rect class="pf-s3" x="170" y="157" width="105.2" height="10" rx="2"/>
-<text class="pf-val" x="280.2" y="166" text-anchor="start">0.20</text>
-<text class="pf-s" x="160" y="194.5" text-anchor="end">새 지시문 · gpt-4o-mini (0.85)</text>
-<rect class="pf-s2" x="170" y="179" width="403.4" height="10" rx="2"/>
-<text class="pf-val" x="578.442" y="188" text-anchor="start">0.77</text>
-<rect class="pf-s3" x="170" y="192" width="122.6" height="10" rx="2"/>
-<text class="pf-val" x="297.558" y="201" text-anchor="start">0.23</text>
-<text class="pf-s" x="160" y="229.5" text-anchor="end">새 지시문 · gemma4:e2b (0.9)</text>
-<rect class="pf-s2" x="170" y="214" width="438.2" height="10" rx="2"/>
-<text class="pf-val" x="613.1579999999999" y="223" text-anchor="start">0.83</text>
-<rect class="pf-s3" x="170" y="227" width="105.2" height="10" rx="2"/>
-<text class="pf-val" x="280.2" y="236" text-anchor="start">0.20</text>
-<text class="pf-s" x="160" y="264.5" text-anchor="end">새 지시문 · gemma4:e4b (0.85)</text>
-<rect class="pf-s2" x="170" y="249" width="508.6" height="10" rx="2"/>
-<text class="pf-val" x="683.642" y="258" text-anchor="start">0.97</text>
-<rect class="pf-s3" x="170" y="262" width="105.2" height="10" rx="2"/>
-<text class="pf-val" x="280.2" y="271" text-anchor="start">0.20</text>
-<text class="pf-s" x="160" y="299.5" text-anchor="end">decision tev1:0.8b (0.6)</text>
-<rect class="pf-s2" x="170" y="284" width="1.5" height="10" rx="2"/>
-<text class="pf-val" x="176.5" y="293" text-anchor="start">0.00</text>
-<rect class="pf-s3" x="170" y="297" width="1.5" height="10" rx="2"/>
-<text class="pf-val" x="176.5" y="306" text-anchor="start">0.00</text>
-<text class="pf-s" x="160" y="334.5" text-anchor="end">decision tev1 (0.6)</text>
-<rect class="pf-s2" x="170" y="319" width="526.0" height="10" rx="2"/>
-<text class="pf-val" x="701.0" y="328" text-anchor="start">1.00</text>
-<rect class="pf-s3" x="170" y="332" width="157.8" height="10" rx="2"/>
-<text class="pf-val" x="332.79999999999995" y="341" text-anchor="start">0.30</text>
-<text class="pf-s" x="160" y="369.5" text-anchor="end">decision nimble (0.6)</text>
-<rect class="pf-s2" x="170" y="354" width="526.0" height="10" rx="2"/>
-<text class="pf-val" x="701.0" y="363" text-anchor="start">1.00</text>
-<rect class="pf-s3" x="170" y="367" width="157.8" height="10" rx="2"/>
-<text class="pf-val" x="332.79999999999995" y="376" text-anchor="start">0.30</text>
-<line class="pf-grid" x1="170.0" y1="70" x2="170.0" y2="381"/>
-<text class="pf-axis" x="170.0" y="394" text-anchor="middle">0.0</text>
-<line class="pf-grid" x1="433.0" y1="70" x2="433.0" y2="381"/>
-<text class="pf-axis" x="433.0" y="394" text-anchor="middle">0.5</text>
-<line class="pf-grid" x1="696.0" y1="70" x2="696.0" y2="381"/>
-<text class="pf-axis" x="696.0" y="394" text-anchor="middle">1.0</text>
-<rect class="pf-panel" x="10" y="419" width="740" height="132" rx="8"/>
-<text class="pf-plabel" x="22" y="439">(b) 🔔 뒤 짧은 답 12개 × 3회 분류 정확도</text>
-<rect class="pf-s1" x="30" y="453" width="10" height="10" rx="2"/>
-<text class="pf-s" x="45" y="462" text-anchor="start">gemma4:e2b</text>
-<rect class="pf-s2" x="121.74" y="453" width="10" height="10" rx="2"/>
-<text class="pf-s" x="136.74" y="462" text-anchor="start">gemma4:e4b</text>
-<rect class="pf-s3" x="213.48" y="453" width="10" height="10" rx="2"/>
-<text class="pf-s" x="228.48" y="462" text-anchor="start">gpt-4o-mini</text>
-<text class="pf-s" x="160" y="505.0" text-anchor="end">정확도</text>
-<rect class="pf-s1" x="170" y="483" width="526.0" height="10" rx="2"/>
-<text class="pf-val" x="701.0" y="492" text-anchor="start">1.00</text>
-<rect class="pf-s2" x="170" y="496" width="511.3" height="10" rx="2"/>
-<text class="pf-val" x="686.2719999999999" y="505" text-anchor="start">0.97</text>
-<rect class="pf-s3" x="170" y="509" width="482.3" height="10" rx="2"/>
-<text class="pf-val" x="657.3420000000001" y="518" text-anchor="start">0.92</text>
-<line class="pf-grid" x1="170.0" y1="479" x2="170.0" y2="523"/>
-<text class="pf-axis" x="170.0" y="536" text-anchor="middle">0.0</text>
-<line class="pf-grid" x1="433.0" y1="479" x2="433.0" y2="523"/>
-<text class="pf-axis" x="433.0" y="536" text-anchor="middle">0.5</text>
-<line class="pf-grid" x1="696.0" y1="479" x2="696.0" y2="523"/>
-<text class="pf-axis" x="696.0" y="536" text-anchor="middle">1.0</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 661" class="pf-svg" role="img" aria-label="먼저 말하기: 지시문과 decision model 구성별 비교">
+<defs><marker id="exp-proactive-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-proactive-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-proactive-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-proactive-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="10" y="10" width="740" height="472" rx="8"/>
+<text class="pf-plabel" x="22" y="31">(a) 블라인드 시험 상황 20개 × 3회. 괄호는 개발용에서 고른 확신도 임계치</text>
+<rect class="pf-s2" x="30" y="42" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="48.0" y="53.0" text-anchor="start">recall (말해야 할 때 말함)</text>
+<rect class="pf-s3" x="220.90500000000003" y="42" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="238.9" y="53.0" text-anchor="start">오경보 (침묵할 때 말함)</text>
+<text class="pf-lab" x="206.2" y="94.0" text-anchor="end">옛 지시문, gpt-4o-mini (0.6)</text>
+<rect class="pf-s2" x="218.2" y="76" width="297.4" height="12" rx="2"/>
+<text class="pf-val" x="521.6" y="87.0" text-anchor="start">0.63</text>
+<rect class="pf-s3" x="218.2" y="91" width="1.5" height="12" rx="2"/>
+<text class="pf-val" x="225.7" y="102.0" text-anchor="start">0.00</text>
+<text class="pf-lab" x="206.2" y="135.0" text-anchor="end">옛 지시문, gemma4:e2b (0.9)</text>
+<rect class="pf-s2" x="218.2" y="117" width="219.4" height="12" rx="2"/>
+<text class="pf-val" x="443.6" y="128.0" text-anchor="start">0.47</text>
+<rect class="pf-s3" x="218.2" y="132" width="125.4" height="12" rx="2"/>
+<text class="pf-val" x="349.6" y="143.0" text-anchor="start">0.27</text>
+<text class="pf-lab" x="206.2" y="176.0" text-anchor="end">옛 지시문, gemma4:e4b (0.85)</text>
+<rect class="pf-s2" x="218.2" y="158" width="469.8" height="12" rx="2"/>
+<text class="pf-val" x="694.0" y="169.0" text-anchor="start">1.00</text>
+<rect class="pf-s3" x="218.2" y="173" width="94.0" height="12" rx="2"/>
+<text class="pf-val" x="318.1" y="184.0" text-anchor="start">0.20</text>
+<text class="pf-lab" x="206.2" y="217.0" text-anchor="end">새 지시문, gpt-4o-mini (0.85)</text>
+<rect class="pf-s2" x="218.2" y="199" width="360.4" height="12" rx="2"/>
+<text class="pf-val" x="584.5" y="210.0" text-anchor="start">0.77</text>
+<rect class="pf-s3" x="218.2" y="214" width="109.5" height="12" rx="2"/>
+<text class="pf-val" x="333.6" y="225.0" text-anchor="start">0.23</text>
+<text class="pf-lab" x="206.2" y="258.0" text-anchor="end">새 지시문, gemma4:e2b (0.9)</text>
+<rect class="pf-s2" x="218.2" y="240" width="391.4" height="12" rx="2"/>
+<text class="pf-val" x="615.5" y="251.0" text-anchor="start">0.83</text>
+<rect class="pf-s3" x="218.2" y="255" width="94.0" height="12" rx="2"/>
+<text class="pf-val" x="318.1" y="266.0" text-anchor="start">0.20</text>
+<text class="pf-lab" x="206.2" y="299.0" text-anchor="end">새 지시문, gemma4:e4b (0.85)</text>
+<rect class="pf-s2" x="218.2" y="281" width="454.3" height="12" rx="2"/>
+<text class="pf-val" x="678.5" y="292.0" text-anchor="start">0.97</text>
+<rect class="pf-s3" x="218.2" y="296" width="94.0" height="12" rx="2"/>
+<text class="pf-val" x="318.1" y="307.0" text-anchor="start">0.20</text>
+<text class="pf-lab" x="206.2" y="340.0" text-anchor="end">decision tev1:0.8b (0.6)</text>
+<rect class="pf-s2" x="218.2" y="322" width="1.5" height="12" rx="2"/>
+<text class="pf-val" x="225.7" y="333.0" text-anchor="start">0.00</text>
+<rect class="pf-s3" x="218.2" y="337" width="1.5" height="12" rx="2"/>
+<text class="pf-val" x="225.7" y="348.0" text-anchor="start">0.00</text>
+<text class="pf-lab" x="206.2" y="381.0" text-anchor="end">decision tev1 (0.6)</text>
+<rect class="pf-s2" x="218.2" y="363" width="469.8" height="12" rx="2"/>
+<text class="pf-val" x="694.0" y="374.0" text-anchor="start">1.00</text>
+<rect class="pf-s3" x="218.2" y="378" width="140.9" height="12" rx="2"/>
+<text class="pf-val" x="365.1" y="389.0" text-anchor="start">0.30</text>
+<text class="pf-lab" x="206.2" y="422.0" text-anchor="end">decision nimble (0.6)</text>
+<rect class="pf-s2" x="218.2" y="404" width="469.8" height="12" rx="2"/>
+<text class="pf-val" x="694.0" y="415.0" text-anchor="start">1.00</text>
+<rect class="pf-s3" x="218.2" y="419" width="140.9" height="12" rx="2"/>
+<text class="pf-val" x="365.1" y="430.0" text-anchor="start">0.30</text>
+<line class="pf-grid" x1="218.2" y1="72" x2="218.2" y2="435"/>
+<text class="pf-axis" x="218.2" y="450.0" text-anchor="middle">0.0</text>
+<line class="pf-grid" x1="453.1" y1="72" x2="453.1" y2="435"/>
+<text class="pf-axis" x="453.1" y="450.0" text-anchor="middle">0.5</text>
+<line class="pf-grid" x1="688.0" y1="72" x2="688.0" y2="435"/>
+<text class="pf-axis" x="688.0" y="450.0" text-anchor="middle">1.0</text>
+<text class="pf-axis-title" x="453.1" y="468.0" text-anchor="middle">비율 (0~1)</text>
+<rect class="pf-panel" x="10" y="492" width="740" height="159" rx="8"/>
+<text class="pf-plabel" x="22" y="513">(b) 🔔 뒤 짧은 답 12개 × 3회 분류 정확도</text>
+<rect class="pf-s1" x="30" y="524" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="48.0" y="535.0" text-anchor="start">gemma4:e2b</text>
+<rect class="pf-s2" x="144.09" y="524" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="162.1" y="535.0" text-anchor="start">gemma4:e4b</text>
+<rect class="pf-s3" x="258.18" y="524" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="276.2" y="535.0" text-anchor="start">gpt-4o-mini</text>
+<text class="pf-lab" x="118.0" y="583.5" text-anchor="end">정확도</text>
+<rect class="pf-s1" x="130.0" y="558" width="558.0" height="12" rx="2"/>
+<text class="pf-val" x="694.0" y="569.0" text-anchor="start">1.00</text>
+<rect class="pf-s2" x="130.0" y="573" width="542.4" height="12" rx="2"/>
+<text class="pf-val" x="678.4" y="584.0" text-anchor="start">0.97</text>
+<rect class="pf-s3" x="130.0" y="588" width="511.7" height="12" rx="2"/>
+<text class="pf-val" x="647.7" y="599.0" text-anchor="start">0.92</text>
+<line class="pf-grid" x1="130.0" y1="554" x2="130.0" y2="604"/>
+<text class="pf-axis" x="130.0" y="619.0" text-anchor="middle">0.0</text>
+<line class="pf-grid" x1="409.0" y1="554" x2="409.0" y2="604"/>
+<text class="pf-axis" x="409.0" y="619.0" text-anchor="middle">0.5</text>
+<line class="pf-grid" x1="688.0" y1="554" x2="688.0" y2="604"/>
+<text class="pf-axis" x="688.0" y="619.0" text-anchor="middle">1.0</text>
+<text class="pf-axis-title" x="409.0" y="637.0" text-anchor="middle">정확도 (0~1)</text>
 </svg>

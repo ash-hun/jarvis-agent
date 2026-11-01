@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 266" class="pf-svg" role="img" aria-label="도구 파일을 고친 뒤 쓸 수 있을 때까지 걸린 시간">
+<defs><marker id="exp-extension-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-extension-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-extension-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-extension-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="10" y="10" width="740" height="246" rx="8"/>
+<text class="pf-plabel" x="22" y="31">반영까지 걸린 시간, 감시 30회, 재시작 10회</text>
+<rect class="pf-s2" x="30" y="42" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="48.0" y="53.0" text-anchor="start">p50</text>
+<rect class="pf-s3" x="94.68" y="42" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="112.7" y="53.0" text-anchor="start">p95</text>
+<text class="pf-lab" x="199.7" y="94.0" text-anchor="end">새 파일 (감시)</text>
+<rect class="pf-s2" x="211.7" y="76" width="106.7" height="12" rx="2"/>
+<text class="pf-val" x="324.4" y="87.0" text-anchor="start">90ms</text>
+<rect class="pf-s3" x="211.7" y="91" width="138.0" height="12" rx="2"/>
+<text class="pf-val" x="355.7" y="102.0" text-anchor="start">116ms</text>
+<text class="pf-lab" x="199.7" y="135.0" text-anchor="end">고친 파일 (감시)</text>
+<rect class="pf-s2" x="211.7" y="117" width="95.9" height="12" rx="2"/>
+<text class="pf-val" x="313.6" y="128.0" text-anchor="start">80ms</text>
+<rect class="pf-s3" x="211.7" y="132" width="107.0" height="12" rx="2"/>
+<text class="pf-val" x="324.7" y="143.0" text-anchor="start">90ms</text>
+<text class="pf-lab" x="199.7" y="176.0" text-anchor="end">재시작 (프로세스와 앱 조립만)</text>
+<rect class="pf-s2" x="211.7" y="158" width="344.8" height="12" rx="2"/>
+<text class="pf-val" x="562.5" y="169.0" text-anchor="start">290ms</text>
+<rect class="pf-s3" x="211.7" y="173" width="470.2" height="12" rx="2"/>
+<text class="pf-val" x="687.9" y="184.0" text-anchor="start">395ms</text>
+<line class="pf-grid" x1="211.7" y1="72" x2="211.7" y2="189"/>
+<text class="pf-axis" x="211.7" y="204.0" text-anchor="middle">0</text>
+<line class="pf-grid" x1="330.8" y1="72" x2="330.8" y2="189"/>
+<text class="pf-axis" x="330.8" y="204.0" text-anchor="middle">100</text>
+<line class="pf-grid" x1="449.8" y1="72" x2="449.8" y2="189"/>
+<text class="pf-axis" x="449.8" y="204.0" text-anchor="middle">200</text>
+<line class="pf-grid" x1="568.9" y1="72" x2="568.9" y2="189"/>
+<text class="pf-axis" x="568.9" y="204.0" text-anchor="middle">300</text>
+<line class="pf-grid" x1="688.0" y1="72" x2="688.0" y2="189"/>
+<text class="pf-axis" x="688.0" y="204.0" text-anchor="middle">400</text>
+<text class="pf-axis-title" x="449.8" y="222.0" text-anchor="middle">시간 (ms)</text>
+<text class="pf-note" x="30.0" y="242.0" text-anchor="start">#195 전에는 감시가 없어 새 도구가 5초 뒤에도 보이지 않았다(재시작 필요)</text>
+</svg>

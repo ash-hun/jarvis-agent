@@ -1,5 +1,6 @@
 """[core] 현재 세션 대화를 markdown 또는 json 파일로 내보내는 /export 핸들러 factory."""
 
+import re
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -8,8 +9,13 @@ from collections.abc import Awaitable, Callable
 if TYPE_CHECKING:
     from jarvis.agent_layer.session.session_protocol import SessionRepo
     from jarvis.model_layer.model_types import Message
+    from jarvis.memory.scope import MemoryScope
 
-Handler = Callable[[str], Awaitable[str]]
+DEFAULT_SESSION_ID = "default"
+# 세션 id 는 웹 쿼리에서 그대로 온다. 파일명에 쓰기 전에 경로 문자를 지운다
+_UNSAFE_FILENAME = re.compile(r"[^A-Za-z0-9_-]")
+
+ScopedHandler = Callable[[str, "MemoryScope"], Awaitable[str]]
 
 _USAGE = (
     "[Export] 사용법: /export [md|json]\n"
@@ -68,15 +74,15 @@ def conversation_to_json(messages: "list[Message]", session_id: str) -> str:
 
 def make_export_handler(
     session_repo: "SessionRepo",
-    session_id: str = "default",
     export_dir: str = "~/.jarvis/exports",
-) -> Handler:
-    """/export 핸들러 factory. 현재(기본) 세션 대화를 파일로 저장."""
+) -> ScopedHandler:
+    """/export 핸들러 factory. 명령을 친 세션 대화를 파일로 저장."""
 
-    async def handle(args: str) -> str:
+    async def handle(args: str, scope: "MemoryScope") -> str:
         fmt = (args.strip() or "md").lower()
         if fmt not in ("md", "markdown", "json"):
             return _USAGE
+        session_id = scope.session_id or DEFAULT_SESSION_ID
 
         messages = await session_repo.get_messages(session_id)
         if not messages:
@@ -91,7 +97,7 @@ def make_export_handler(
 
         out_dir = Path(export_dir).expanduser()
         out_dir.mkdir(parents=True, exist_ok=True)
-        path = out_dir / f"{session_id}.{ext}"
+        path = out_dir / f"{_UNSAFE_FILENAME.sub('_', session_id)}.{ext}"
         path.write_text(content, encoding="utf-8")
 
         return f"[Export] 대화를 내보냈습니다: {path} ({len(messages)}개 메시지)"

@@ -9,7 +9,7 @@ from jarvis.memory.scope import LOCAL_USER
 ANONYMOUS_ROLES: frozenset[str] = frozenset({"user"})
 ANY_GRANT: frozenset[str] = frozenset({"*"})
 # 도구 실행 결정. timeout 은 승인 요청에 사용자가 시간 안에 답하지 않은 거부다
-Decision = Literal["allow", "deny", "timeout"]
+Decision = Literal["allow", "deny", "timeout", "blocked"]
 
 # ── 파이프라인 데이터 타입 (불변) ─────────────────────────────────────────────
 

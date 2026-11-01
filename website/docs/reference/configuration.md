@@ -131,7 +131,7 @@ JARVIS_SECURITY__INPUT_MAX_LENGTH=10000
 JARVIS_SECURITY__APPROVALS_PATH=~/.jarvis/approvals.yaml        # 공용 규칙(사람이 고친다)
 JARVIS_SECURITY__AGENT_APPROVALS_DIR=~/.jarvis/approvals         # 에이전트별 규칙(<agent_id>.yaml, 항상 허용이 쌓인다)
 JARVIS_SECURITY__REQUIRE_APPROVAL_FOR=["bash","write_file","edit_file"]  # 실행 전 승인을 묻는 도구
-JARVIS_SECURITY__DANGEROUS_COMMANDS=[...]                          # 위험 명령 패턴. 지금은 도구 호출 경로에서 검사하지 않는다
+JARVIS_SECURITY__DANGEROUS_COMMANDS=[...]                          # 위험 명령 정규식. bash 의 command 에 걸리면 승인 없이 막는다. [] 이면 끈다
 ```
 
 `API_KEYS` 를 비우면 Web 인증이 꺼진다. 인증을 켜고 끄는 다른 스위치는 없다. `REQUIRE_AUTH` 와 `ALLOWED_ROLES` 는 설정에 있지만 읽는 코드가 없다. 실행 전 안전장치는 `REQUIRE_APPROVAL_FOR` 의 승인과 승인 규칙이다. TUI 는 설정과 상관없이 로컬 NoAuth 로 동작한다. 키가 곧 사용자 식별자이므로 길고 무작위인 값을 쓴다.
@@ -180,7 +180,7 @@ JARVIS_WEB_SEARCH__BRAVE_API_KEY=           # 비우면 web_search 가 DuckDuckG
 
 여기 없는 조정 값(메모리 반감기와 회상 개수, 외부 이벤트 한도 등)은 `src/jarvis/jarvis_config.py` 의 기본값을 따른다.
 
-`JARVIS_PLUGIN__WATCH_FILES` 는 설정에 있지만 현재 아무것도 감시하지 않는다. 파일을 더했으면 재시작한다.
+`JARVIS_PLUGIN__WATCH_FILES`(기본 `true`)는 기동 때 있던 도구, 스킬, 플러그인 디렉터리를 지켜보다 바뀐 디렉터리만 다시 읽는다. 지운 파일의 확장과 기동 뒤에 만든 디렉터리는 재시작해야 반영된다.
 
 ## 음성
 

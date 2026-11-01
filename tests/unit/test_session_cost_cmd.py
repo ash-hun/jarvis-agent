@@ -4,6 +4,7 @@ import pytest
 
 from jarvis.model_layer.model_types import AssistantMessage, TextContent, Usage, UserMessage
 from jarvis.core.slash.cost_cmd import cost_rate, estimate_cost, make_cost_handler
+from jarvis.memory.scope import MemoryScope
 
 
 def _assistant(model: str, inp: int, out: int) -> AssistantMessage:
@@ -35,15 +36,18 @@ def test_estimate_cost_uses_per_million_rates(model, inp, out, usd):
     assert estimate_cost(model, inp, out) == pytest.approx(usd)
 
 
-async def test_cost_aggregates_usage_per_model(jsonl_repo):
+async def test_cost_aggregates_usage_per_model_of_the_calling_session(jsonl_repo):
     await jsonl_repo.create(session_id="default")
-    await jsonl_repo.append("default", UserMessage(content="hi"))
-    await jsonl_repo.append("default", _assistant("claude-sonnet-4-5", 1000, 500))
-    await jsonl_repo.append("default", _assistant("claude-sonnet-4-5", 2000, 800))
-    await jsonl_repo.append("default", _assistant("gpt-4o-mini", 5000, 200))
+    await jsonl_repo.append("default", _assistant("claude-opus-4", 9000, 9000))
+    await jsonl_repo.create(session_id="work")
+    await jsonl_repo.append("work", UserMessage(content="hi"))
+    await jsonl_repo.append("work", _assistant("claude-sonnet-4-5", 1000, 500))
+    await jsonl_repo.append("work", _assistant("claude-sonnet-4-5", 2000, 800))
+    await jsonl_repo.append("work", _assistant("gpt-4o-mini", 5000, 200))
 
-    out = await make_cost_handler(jsonl_repo)("")
+    out = await make_cost_handler(jsonl_repo)("", MemoryScope(user_id="local", session_id="work"))
 
+    assert "세션 'work'" in out and "claude-opus-4" not in out
     assert "claude-sonnet-4-5" in out and "gpt-4o-mini" in out
     assert "3,000" in out  # sonnet 입력 1000+2000
     assert "$" in out and "합계" in out
@@ -52,6 +56,6 @@ async def test_cost_aggregates_usage_per_model(jsonl_repo):
 async def test_cost_reports_nothing_for_session_without_replies(jsonl_repo):
     await jsonl_repo.create(session_id="default")
 
-    out = await make_cost_handler(jsonl_repo)("")
+    out = await make_cost_handler(jsonl_repo)("", MemoryScope(user_id="local", session_id="default"))
 
     assert "집계할 사용량이 없습니다" in out

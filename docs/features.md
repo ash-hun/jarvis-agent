@@ -139,7 +139,7 @@
 |---|---|
 | `GET /api/agents` | 최상위 에이전트 목록(main 먼저) |
 | `GET /brand.js`, `GET /manifest.json` | main 에이전트의 워드마크, 명언, 색 |
-| ws `?agent=<id>`, `jarvis --agent <id>` | 그 에이전트가 맡는 새 세션. 모르는 에이전트면 ws 는 `4404` |
+| ws `?agent=<id>`, `jarvis --agent <id>` | 그 에이전트가 맡는 새 세션. 모르는 에이전트면 ws 는 `4404`, 화면은 재접속하지 않고 `default` 로 한 번 옮긴다 |
 | 루프 시작, 끝 | ws `agent_activity{active[]}` |
 
 **처리 흐름**: `agent_registry` 가 정의 파일을 읽어 에이전트마다 `AgentProfile` 과 `SessionBuilder` 를 들고, `agent_router` 와 `brand_router` 가 화면에 내주고, `agent_activity` 가 일하는 에이전트 변화를 방송하는 순.
@@ -181,8 +181,9 @@
 | 승인 필요 도구 호출 | ws `approval_request{id, command, reason, always_pattern}` 을 세션의 연결 전부에 보낸다 |
 | ws `approval_response{id, approved, always}` | 먼저 온 답 하나만 채택, `approval_resolved`. `always=true` 면 `approvals/<agent_id>.yaml` 에 패턴 저장 |
 | 120초 무응답 | 거부로 처리, `approval_resolved{timeout:true}` |
+| `command` 가 `security.dangerous_commands` 에 걸리는 호출 | 묻지 않고 막는다. "항상 허용" 규칙보다 먼저 본다. 스케줄 작업과 목표 차례도 같다 |
 
-**처리 흐름**: 도구 실행기에서 `sandbox.authorize` 로, `approval_rules` 대조, `SessionApprovals` 가 연결 전부에 요청, 첫 답 채택, `approval_rules` 저장 순.
+**처리 흐름**: 도구 실행기에서 `sandbox.decide` 로, 위험 명령 검사, `approval_rules` 대조, `SessionApprovals` 가 연결 전부에 요청, 첫 답 채택, `approval_rules` 저장 순.
 
 **구현 파일**
 
@@ -199,6 +200,7 @@
 |---|---|
 | 단위 | `tests/unit/test_approval_approval_rules.py` |
 | 단위 | `tests/unit/test_approval_approvals.py` |
+| 단위 | `tests/unit/test_policy_sandbox.py` |
 | 통합 | `tests/integ/test_approval.py` |
 
 **제약과 미구현**: 음성 승인 답에 부정어가 있으면 분류 없이 거부한다. 에어팟에서 승인 되읽기가 들리는지 실기기 확인 전이다(`TODO.md`).
@@ -741,8 +743,9 @@
 | 입력 | 결과 |
 |---|---|
 | `~/.jarvis/plugins/*.py` | 등록된 플러그인 훅이 턴과 도구 호출 앞뒤에서 돈다 |
+| `plugin.watch_files=true` 일 때 도구, 스킬, 플러그인 파일 변경 | 바뀐 디렉터리만 다시 읽는다. 같은 이름은 덮어써 하나로 남는다 |
 
-**처리 흐름**: `plugins_loader` 에서 `PluginRunner` 등록으로, `AgentSession` 이 훅 시점마다 `runner.emit_*` 순.
+**처리 흐름**: `plugins_loader` 에서 `PluginRunner` 등록으로, `AgentSession` 이 훅 시점마다 `runner.emit_*` 순. 파일 감시는 `InfraBuilder.build_extension_watcher` 가 만들고 Web 기동(`web_lifecycle`)과 TUI `on_mount` 가 켠다.
 
 **구현 파일**
 
@@ -751,17 +754,19 @@
 | `src/jarvis/core/plugins/plugins_protocol.py` | core | `JarvisPlugin` 기반 클래스와 `HookResult` |
 | `src/jarvis/core/plugins/plugins_loader.py` | core | 디렉터리에서 플러그인 클래스 찾기 |
 | `src/jarvis/core/plugins/runner.py` | core | 훅 실행(오류 격리, 체인) |
+| `src/jarvis/app/extension_watcher.py` | app | 확장 디렉터리 감시와 바뀐 디렉터리만 다시 읽기 |
 
 **테스트**
 
 | 종류 | 파일 |
 |---|---|
+| 단위 | `tests/unit/test_plugins_extension_watcher.py` |
 | 단위 | `tests/unit/test_plugins_plugins_loader.py` |
 | 단위 | `tests/unit/test_plugins_plugins_protocol.py` |
 | 단위 | `tests/unit/test_plugins_runner.py` |
-| 통합 | 없음. 실제 플러그인 파일을 두고 앱을 띄우는 시나리오가 아직 없다 |
+| 통합 | `tests/integ/test_tools.py`(파일 감시로 도구 싣기). 플러그인 파일을 두고 앱을 띄우는 시나리오는 아직 없다 |
 
-**제약과 미구현**: 없음.
+**제약과 미구현**: 파일을 지운 도구와 스킬은 재시작 전까지 남고, 기동 뒤에 만든 디렉터리는 감시하지 않는다(`# ponytail`).
 
 ---
 
@@ -803,7 +808,7 @@
 | 단위 | `tests/unit/test_policy_web_auth.py` |
 | 통합 | `tests/integ/test_policy.py` |
 
-**제약과 미구현**: 정적 셸(`/`, js, css)은 키 없이 항상 열려 있다(`docs/api_spec.md`).
+**제약과 미구현**: 정적 셸(`/`, js, css)은 키 없이 항상 열려 있다(`docs/api_spec.md`). 위험 명령은 `command` 인자만 보고 파일 내용은 보지 않는다.
 
 ---
 
@@ -820,7 +825,7 @@
 | 먼저 건넨 말 뒤의 첫 `user_message` | accept, dismiss, 약한 무시로 학습 |
 | ws `proactive_feedback{id, accepted}`, TUI `ctrl+y` / `ctrl+g` | 수락, 무시 학습(연결당 같은 `id` 한 번) |
 
-**처리 흐름**: `daemon` 이 `triggers` 를 기다려 `AgentSession.reflect` 로, 성찰 사고, `ProactivityCore` 의 `policy` 게이팅, `_emit_proactive`, `feedback` 학습 순. 요청 시점은 `ProactivityCore.dispatch_request` 가 Dual-Channel 로 filler 와 백그라운드 실행을 가른다.
+**처리 흐름**: `daemon` 이 `triggers` 를 기다려 `AgentSession.reflect` 로, 성찰 사고, `ProactivityCore` 의 `policy` 게이팅, `_emit_proactive`, `feedback` 학습 순. `_emit_proactive` 가 답하는 중이나 Focus 중이라 🔔 를 버리면 `policy.withdraw` 가 쿨다운과 응답 대기를 통과 전으로 되돌려, 버린 말은 무시로 세지 않는다. 요청 시점은 `ProactivityCore.dispatch_request` 가 Dual-Channel 로 filler 와 백그라운드 실행을 가른다.
 
 **구현 파일**
 
@@ -982,11 +987,11 @@
 |---|---|
 | `GET /api/sessions`, `/sessions` | 세션 목록 |
 | `POST /api/sessions {agent}`, TUI `ctrl+n` | 새 세션 |
-| `POST /api/sessions/{session_id}/branch`, `/branch [session_id]`, TUI `ctrl+f` | 분기 세션(에이전트 유지) |
-| `DELETE /api/sessions/{session_id}` | 삭제(그 세션의 장기 기억과 작업 기억도). 연결이 붙은 세션은 거절 |
+| `POST /api/sessions/{session_id}/branch`, `/branch [session_id]`, TUI `ctrl+f` | 분기 세션(에이전트 유지). `/branch` 인자가 없으면 명령을 친 세션 |
+| `DELETE /api/sessions/{session_id}` | 삭제(그 세션의 장기 기억과 작업 기억도). 연결이 붙은 세션은 거절. 연결 확인과 삭제는 세션 잠금 안에서 한다 |
 | `GET /api/sessions/{session_id}/messages` | 텍스트 이력 |
-| `/export md\|json` | 대화 파일 내보내기 |
-| `/cost` | 모델별 토큰 사용량과 추정 비용 |
+| `/export md\|json` | 명령을 친 세션의 대화 파일 내보내기 |
+| `/cost` | 명령을 친 세션의 모델별 토큰 사용량과 추정 비용 |
 | `/cleanup agents\|stm\|tests [confirm]` | 옛 데이터 현황, `confirm` 이 있을 때만 삭제(per_agent 세션은 보존) |
 
 **처리 흐름**: `session_router` 또는 슬래시 핸들러에서 `SessionRegistry` 와 세션 저장소(`JsonlSessionRepo`, `PostgresSessionRepo`)로, 메타와 메시지 append 순.
@@ -1184,7 +1189,7 @@
 | 단위 | `tests/unit/test_tools_write_file.py` |
 | 통합 | `tests/integ/test_tools.py` |
 
-**제약과 미구현**: `ToolLoader.watch`(파일이 바뀌면 다시 읽기)는 있지만 기동 경로에서 부르지 않아, 사용자 도구를 고치면 서버를 다시 띄워야 한다.
+**제약과 미구현**: 사용자 도구 파일은 `plugin.watch_files` 가 켜져 있을 때 다시 읽는다(plugins 기능). 에이전트 정의의 `tools` 로 골라 복사한 레지스트리는 재시작해야 새 도구를 본다.
 
 ---
 
@@ -1331,7 +1336,7 @@
 
 ### web_hud: Web HUD
 
-**설명**: FastAPI 앱이 정적 HUD 셸(리액터 캔버스, 입자 구, 카드, 입력 독)과 REST, WebSocket 라우터를 묶어 띄우고, 기동 때 첫 세션, 스케줄러, 성찰 daemon, 외부 폴러를 켠다.
+**설명**: FastAPI 앱이 정적 HUD 셸(리액터 캔버스, 입자 구, 카드, 입력 독)과 REST, WebSocket 라우터를 묶어 띄우고, 기동 때 첫 세션, 스케줄러, 성찰 daemon, 외부 폴러, 확장 파일 감시를 켠다.
 
 **입력과 결과**
 

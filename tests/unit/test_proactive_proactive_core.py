@@ -7,8 +7,9 @@ from jarvis.agent_layer.thought.thought_types import ProactiveAction, ThoughtFra
 
 
 def _core(emitted: list[ProactiveMessage], **kw) -> DefaultProactivityCore:
-    async def emit(message: ProactiveMessage) -> None:
+    async def emit(message: ProactiveMessage) -> bool:
         emitted.append(message)
+        return True
 
     return DefaultProactivityCore(emit_proactive=emit, **kw)
 
@@ -72,6 +73,21 @@ async def test_reflect_pushes_only_when_gated_pass(frame, speak, pushed):
 
     assert decision.speak is speak
     assert [(m.kind, m.text) for m in emitted] == pushed
+
+
+@pytest.mark.asyncio
+async def test_reflect_dropped_by_screen_releases_cooldown():
+    async def drop(_message: ProactiveMessage) -> bool:
+        return False
+
+    core = DefaultProactivityCore(emit_proactive=drop, policy=DefaultProactivityPolicy(confidence_threshold=0.5))
+    frame = ThoughtFrame(decision="ask", confidence=0.9, utterance="알림")
+
+    first = await core.reflect(frame, session_id="s1")
+    second = await core.reflect(frame, session_id="s1")
+
+    assert (first.speak, first.reason) == (False, "suppressed")
+    assert second.reason == "suppressed"
 
 
 @pytest.mark.asyncio

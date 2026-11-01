@@ -2,6 +2,7 @@
 
 import time
 import uuid
+import asyncio
 from typing import TYPE_CHECKING
 from collections.abc import Callable
 
@@ -50,6 +51,9 @@ class SessionRegistry:
         self._on_open: list[SessionOpened] = []
         # 최근 사용자 활동 시각(monotonic). 외부 이벤트를 어느 세션이 소비할지 정렬용
         self._last_activity: dict[str, float] = {}
+        # 세션 하나를 만들고 지우는 일은 한 번에 하나씩. 둘이 겹치면 지운 저장소 위에 살아 있는 세션이 남는다
+        # ponytail: 지운 세션의 잠금도 남는다(id 하나에 잠금 하나), 세션 id 가 수만 개 쌓이면 지울 때 함께 뺀다
+        self._locks: dict[str, asyncio.Lock] = {}
 
     def on_open(self, hook: SessionOpened) -> None:
         self._on_open.append(hook)
@@ -94,17 +98,18 @@ class SessionRegistry:
         에이전트는 세션을 처음 만들 때만 정한다. 저장소에 이미 있는 세션은 저장된 에이전트로 열고 agent_id 는 무시한다.
         peer 는 다른 에이전트가 부른 대화 세션이다. 처음 열 때만 의미가 있다.
         """
-        if session_id not in self._sessions:
-            agent = await self._resolve_agent(session_id, agent_id)
-            await self._ctx.session_repo.create(session_id=session_id, agent_id=agent)
-            services, sandbox = self._session_services(agent, peer)
-            session = self._agents.builder(agent).build(session_id, services, inherit_scope=peer)
-            self._sessions[session_id] = session
-            self._sandboxes[session_id] = sandbox
-            self._session_agents[session_id] = agent
-            for hook in self._on_open:
-                hook(session_id, agent, session)
-        return self._sessions[session_id], self._sandboxes[session_id]
+        async with self._lock(session_id):
+            if session_id not in self._sessions:
+                agent = await self._resolve_agent(session_id, agent_id)
+                await self._ctx.session_repo.create(session_id=session_id, agent_id=agent)
+                services, sandbox = self._session_services(agent, peer)
+                session = self._agents.builder(agent).build(session_id, services, inherit_scope=peer)
+                self._sessions[session_id] = session
+                self._sandboxes[session_id] = sandbox
+                self._session_agents[session_id] = agent
+                for hook in self._on_open:
+                    hook(session_id, agent, session)
+            return self._sessions[session_id], self._sandboxes[session_id]
 
     async def _resolve_agent(self, session_id: str, agent_id: str | None) -> str:
         meta = await self._ctx.session_repo.get_meta(session_id)
@@ -118,8 +123,23 @@ class SessionRegistry:
         await self.get_or_create(sid, agent_id)
         return sid
 
+    async def remove_if_idle(self, session_id: str, idle: Callable[[], bool]) -> bool:
+        """idle() 이 참일 때만 지운다. 확인과 삭제 사이에 같은 세션을 여는 연결이 끼어들지 못한다. 지웠으면 True."""
+        async with self._lock(session_id):
+            if not idle():
+                return False
+            await self._remove(session_id)
+            return True
+
     async def remove(self, session_id: str) -> None:
         """열린 세션, 세션 저장소, 그 세션의 장기 기억과 작업 기억을 지운다. 없는 세션도 같은 결과(전부 no-op)."""
+        async with self._lock(session_id):
+            await self._remove(session_id)
+
+    def _lock(self, session_id: str) -> asyncio.Lock:
+        return self._locks.setdefault(session_id, asyncio.Lock())
+
+    async def _remove(self, session_id: str) -> None:
         self._sessions.pop(session_id, None)
         self._sandboxes.pop(session_id, None)
         self._session_agents.pop(session_id, None)

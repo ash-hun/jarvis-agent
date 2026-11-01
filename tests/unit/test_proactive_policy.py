@@ -116,6 +116,33 @@ def test_decide_proactive_cooldown_blocks_until_elapsed():
     assert third.speak is True
 
 
+def test_withdraw_undoes_cooldown_and_awaiting_of_the_last_pass():
+    clock = _Clock()
+    policy = _policy(clock, cooldown_sec=300, ignore_after_sec=600)
+    policy.decide_proactive(ASK, session_id="s1")
+    policy.note_user_activity("s1")
+    clock.t += 400
+    policy.decide_proactive(ASK, session_id="s1")
+
+    policy.withdraw("s1")
+    policy.withdraw("s1")
+    clock.t += 700
+
+    assert policy.check_awaiting("s1") is None
+    assert policy.decide_proactive(ASK, session_id="s1").speak is True
+
+
+def test_withdraw_without_pass_keeps_cooldown():
+    policy = _policy(_Clock(), cooldown_sec=300)
+    policy.decide_proactive(ASK, session_id="s1")
+    policy.note_user_activity("s1")
+    policy.decide_proactive(ASK, session_id="s1")
+
+    policy.withdraw("s2")
+
+    assert policy.decide_proactive(ASK, session_id="s1").reason == "cooldown"
+
+
 def test_decide_proactive_cooldown_is_per_session():
     policy = _policy(_Clock(), cooldown_sec=300)
 

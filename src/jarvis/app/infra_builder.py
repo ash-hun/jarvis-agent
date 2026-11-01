@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from jarvis.core.skills.skills_registry import SkillRegistry
     from jarvis.core.multi_agent.factory import AgentDefinition
     from jarvis.core.procedures.learner import ProcedureLearner
+    from jarvis.app.extension_watcher import ExtensionWatcher
     from jarvis.core.notify.discord_voice import DiscordVoice
     from jarvis.core.tools.tools_registry import ToolRegistry
     from jarvis.memory.memory_service import MemoryService
@@ -130,6 +131,7 @@ class InfraBuilder:
         ctx.feedback_learner = feedback_learner
         ctx.external_inbox = external_inbox
         ctx.external_poller = external_poller
+        ctx.extension_watcher = self.build_extension_watcher(tool_registry, skill_registry, plugin_runner)
         ctx.memory = memory
         ctx.push_store = self.build_push_store()
         ctx.notifier = self.build_notifier(ctx.push_store)
@@ -345,6 +347,26 @@ class InfraBuilder:
             return load_agent_definitions(settings.agents.agents_dir)
         return []
 
+    def build_extension_watcher(
+        self, tool_registry: "ToolRegistry", skill_registry: "SkillRegistry", plugin_runner: "PluginRunner"
+    ) -> "ExtensionWatcher | None":
+        """plugin.watch_files 가 켜져 있으면 기동 때 있던 도구, 스킬, 플러그인 디렉터리를 지켜본다."""
+        pcfg = self._settings.plugin
+        if not pcfg.watch_files:
+            return None
+        from jarvis.core.plugins.plugins_loader import PluginLoader
+        from jarvis.app.extension_watcher import ExtensionWatcher
+        from jarvis.core.tools.tools_loader import ToolLoader
+
+        candidates = {
+            pcfg.tools_dir: ToolLoader(tool_registry).load_directory,
+            pcfg.skills_dir: skill_registry.load_directory,
+            pcfg.plugins_dir: PluginLoader(plugin_runner).load_directory,
+        }
+        # ponytail: 기동 뒤에 만든 디렉터리는 지켜보지 않는다, 필요해지면 부모 디렉터리를 지켜본다
+        reloaders = {d: fn for d, fn in candidates.items() if Path(d).expanduser().is_dir()}
+        return ExtensionWatcher(reloaders) if reloaders else None
+
     def build_scheduler(
         self,
         session_repo: "SessionRepo",
@@ -368,6 +390,7 @@ class InfraBuilder:
             schedules_dir=scfg.schedules_dir,
             plugin_runner=plugin_runner,
             skill_registry=skill_registry,
+            dangerous_patterns=self._settings.security.dangerous_commands,
         )
 
     def build_embedder(self) -> "Embedder | None":
@@ -694,7 +717,9 @@ class InfraBuilder:
         from jarvis.core.slash.cost_cmd import make_cost_handler
 
         dispatcher.register("sessions", make_sessions_handler(session_repo), "저장된 세션 목록 표시")
-        dispatcher.register("branch", make_branch_handler(session_repo), "[session_id] 세션을 분기")
+        dispatcher.register_scoped(
+            "branch", make_branch_handler(session_repo), "[session_id] 세션을 분기 (없으면 지금 세션)"
+        )
         dispatcher.register("tools", make_tools_handler(tool_registry), "사용 가능한 도구 목록 표시")
         dispatcher.register(
             "procedures",
@@ -724,8 +749,8 @@ class InfraBuilder:
                 make_orchestrate_handler(orchestration),
                 "<pattern> [--agents a,b] [--promote] <작업>: 서브 에이전트들을 패턴으로 조율",
             )
-        dispatcher.register("export", make_export_handler(session_repo), "현재 세션 대화 내보내기 (md | json)")
-        dispatcher.register("cost", make_cost_handler(session_repo), "현재 세션 토큰 사용량·추정 비용 리포트")
+        dispatcher.register_scoped("export", make_export_handler(session_repo), "현재 세션 대화 내보내기 (md | json)")
+        dispatcher.register_scoped("cost", make_cost_handler(session_repo), "현재 세션 토큰 사용량·추정 비용 리포트")
 
 
 def build_app(settings: "JarvisSettings") -> AppAssembly:

@@ -1,4 +1,4 @@
-"""approval 기능: 승인 도구가 있으면 세션 프롬프트에 규칙을 붙이고, 거부 결과가 도구를 다시 쓸 수 있다고 알린다."""
+"""approval 기능: 승인 규칙을 프롬프트에 붙이고, 거부 뒤에도 도구를 쓴다고 알리며, 위험 명령은 묻지 않고 막는다."""
 
 from typing import Any
 
@@ -62,3 +62,29 @@ async def test_no_rule_without_approval_tools(
     await _session(provider, permissive_pipeline, fx).prompt("안녕")
 
     assert "[도구 승인]" not in (provider.calls[-1].system_prompt or "")
+
+
+async def test_dangerous_command_is_blocked_without_asking_even_when_approved(
+    plugin_runner, session_memory, tool_registry, skill_registry, jsonl_repo
+) -> None:
+    asked: list[str] = []
+
+    async def approve(command: str, reason: str, always_pattern: str = "") -> bool:
+        asked.append(command)
+        return True
+
+    sandbox = DefaultSandbox(require_approval_for=["bash"])
+    sandbox.set_approval_callback(approve)
+    pipeline = SecurityPipeline(
+        validator=DefaultInputValidator(), authenticator=NoAuthAuthenticator(), policy=AllowAllPolicy(), sandbox=sandbox
+    )
+    provider = ScriptedProvider([tool_turn(("call-1", "bash", {"command": "sudo rm -rf /"})), text_turn("못 했어요")])
+    fx = {"plugin_runner": plugin_runner, "session_memory": session_memory, "tool_registry": tool_registry,
+          "skill_registry": skill_registry, "repo": jsonl_repo}
+    await jsonl_repo.create(session_id="approval-rule")
+
+    await _session(provider, pipeline, fx).prompt("디스크를 비워 줘")
+
+    result = next(m for m in await jsonl_repo.get_messages("approval-rule") if isinstance(m, ToolResultMessage))
+    assert asked == []
+    assert result.is_error and "dangerous_commands" in result.content[0].text

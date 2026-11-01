@@ -31,6 +31,26 @@ async def test_approve_blocks_dangerous_command(command):
         await DefaultSandbox().approve(ALL, command)
 
 
+async def test_decide_blocks_dangerous_command_before_always_rule(tmp_path):
+    rules = ApprovalRules(str(tmp_path / "a.yaml"))
+    rules.add(ApprovalRule(tool="bash", pattern="*"))
+    cb = _Recorder(True)
+    sandbox = DefaultSandbox(require_approval_for=["bash"], approval_callback=cb, approval_rules=rules)
+
+    assert await sandbox.decide("bash", {"command": "sudo rm -rf /"}) == "blocked"
+    assert await sandbox.decide("bash", {"command": "curl https://example.com -o a.txt"}) == "allow"
+    assert await sandbox.decide("write_file", {"path": "a.md", "content": "sudo rm -rf /"}) == "allow"
+    assert cb.calls == []
+
+
+@pytest.mark.parametrize(("patterns", "approval", "decision"), [([], [], "allow"), (None, [], "blocked")])
+async def test_empty_lists_mean_off_and_none_means_default(patterns, approval, decision):
+    sandbox = DefaultSandbox(dangerous_patterns=patterns, require_approval_for=approval)
+
+    assert await sandbox.decide("bash", {"command": "sudo reboot"}) == decision
+    assert sandbox.is_approval_required("bash") is False
+
+
 def test_approval_required_only_for_listed_tools():
     sandbox = DefaultSandbox()
 

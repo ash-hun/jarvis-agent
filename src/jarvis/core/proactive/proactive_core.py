@@ -11,8 +11,8 @@ from jarvis.model_layer.model_types import AssistantMessage
 
 # 메인 에이전트 턴 실행기(slow channel). 결과 메시지(or None)를 반환.
 RunMain = Callable[[], Awaitable[AssistantMessage | None]]
-# proactive 발화 운반(fast channel / push, B2). UI에 비동기 전달.
-EmitProactive = Callable[[ProactiveMessage], Awaitable[None]]
+# proactive 발화 운반(fast channel / push, B2). UI에 비동기 전달. 화면에 내보냈으면 True
+EmitProactive = Callable[[ProactiveMessage], Awaitable[bool]]
 # 저위험 자율 행동 실행기(E2). 실행 후 사람이 읽을 요약을 반환. 보안 게이트는 호출부 책임.
 ExecuteActions = Callable[[list[ProactiveAction]], Awaitable[str]]
 
@@ -105,8 +105,12 @@ class DefaultProactivityCore(ProactivityCore):
         text = decision.message
         if note:
             text = f"{text}\n{note}" if text else note
-        if text:
-            await self._emit(ProactiveMessage(text=text, kind="proactive"))
+        if not text:
+            return decision
+        if not await self._emit(ProactiveMessage(text=text, kind="proactive")):
+            # 답하는 중이거나 집중 중이라 버렸다. 낸 것으로 두면 쿨다운이 걸리고 무시로 세어 임계치가 오른다
+            self._policy.withdraw(session_id)
+            return ProactiveDecision(speak=False, reason="suppressed")
         return decision
 
     def check_awaiting(self, session_id: str = "default") -> ProactiveDecision | None:

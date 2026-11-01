@@ -28,6 +28,8 @@ const $agentSwitch  = document.getElementById('agent-switch');
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 10000;
 const WS_UNAUTHORIZED = 4401;  // 서버가 키 불일치로 끊을 때 쓰는 close code
+const WS_UNKNOWN_AGENT = 4404; // 세션의 에이전트가 정의에 없을 때. 다시 붙어도 같은 답이라 재시도하지 않는다
+const FALLBACK_SESSION_ID = 'default';
 
 let _currentSessionId = 'default';
 let _reconnectDelay = RECONNECT_MIN_MS;
@@ -213,6 +215,13 @@ export function connect(sessionId = _currentSessionId) {
         // 키 불일치 — 재시도 루프 대신 키를 묻고 바로 다시 연결한다
         if (askForToken()) connect(_currentSessionId);
         else { $connBanner.classList.remove('hidden'); logActivity('접근 키 없음', 'err'); }
+        return;
+      }
+      if (ev.code === WS_UNKNOWN_AGENT) {
+        logActivity(`에이전트 없음 · ${sessionId} · ${ev.reason || 'unknown agent'}`, 'err');
+        // 기본 세션으로 한 번만 옮긴다. 기본 세션마저 4404 면 배너만 남기고 멈춘다
+        if (sessionId !== FALLBACK_SESSION_ID) connect(FALLBACK_SESSION_ID);
+        else $connBanner.classList.remove('hidden');
         return;
       }
       $connBanner.classList.remove('hidden');

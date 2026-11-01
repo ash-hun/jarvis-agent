@@ -44,18 +44,19 @@ async def test_sessions_lists_every_session(jsonl_repo):
     assert "alpha" in out and "beta" in out
 
 
-async def test_branch_creates_child_of_default_session(jsonl_repo):
+async def test_branch_without_args_branches_the_calling_session(jsonl_repo):
     await jsonl_repo.create(session_id="default")
-    await jsonl_repo.append("default", UserMessage(content="hello"))
+    await jsonl_repo.create(session_id="work")
+    await jsonl_repo.append("work", UserMessage(content="hello"))
 
-    out = await make_branch_handler(jsonl_repo)("")
+    out = await make_branch_handler(jsonl_repo)("", SCOPE.with_session("work"))
 
-    assert "분기했습니다" in out
-    assert any(s.parent_id == "default" for s in await jsonl_repo.list(""))
+    assert "'work'에서 분기했습니다" in out
+    assert [s.parent_id for s in await jsonl_repo.list("") if s.parent_id] == ["work"]
 
 
 async def test_branch_unknown_parent_is_refused(jsonl_repo):
-    assert "찾을 수 없습니다" in await make_branch_handler(jsonl_repo)("ghost-session")
+    assert "찾을 수 없습니다" in await make_branch_handler(jsonl_repo)("ghost-session", SCOPE)
 
 
 async def test_tools_without_registered_tool_says_empty(tool_registry):

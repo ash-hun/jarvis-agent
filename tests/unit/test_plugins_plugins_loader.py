@@ -20,6 +20,22 @@ async def test_loads_duck_typed_and_subclass_plugins(tmp_path):
     assert sorted(loaded) == ["duck", "sub"]
 
 
+async def test_loading_twice_runs_the_hook_once(tmp_path):
+    (tmp_path / "duck.py").write_text(
+        "class Duck:\n    name = 'duck'\n    version = '0.1'\n\n"
+        "    async def before_agent_start(self, prompt, context):\n        context['hits'] += 1\n"
+    )
+    runner = PluginRunner()
+    loader = PluginLoader(runner)
+    context = {"hits": 0}
+
+    await loader.load_directory(str(tmp_path))
+    await loader.load_directory(str(tmp_path))
+    await runner.emit_before_agent_start("hi", context)
+
+    assert context["hits"] == 1
+
+
 async def test_broken_file_is_logged(tmp_path, capsys):
     (tmp_path / "bad.py").write_text("raise RuntimeError('nope')\n")
 

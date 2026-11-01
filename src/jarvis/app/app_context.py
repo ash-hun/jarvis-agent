@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from jarvis.core.slash.dispatcher import SlashCommandDispatcher
     from jarvis.core.procedures.learner import ProcedureLearner
     from jarvis.core.proactive.feedback import FeedbackLearner
+    from jarvis.app.extension_watcher import ExtensionWatcher
     from jarvis.core.tools.tools_registry import ToolRegistry
     from jarvis.memory.memory_service import MemoryService
     from jarvis.core.notify.webpush import PushStore
@@ -39,6 +40,8 @@ class AppContext:
     # 외부 이벤트 소스가 없으면 둘 다 None
     external_inbox: "ExternalEventInbox | None" = field(default=None)
     external_poller: "ExternalEventPoller | None" = field(default=None)
+    # plugin.watch_files 가 꺼져 있거나 지켜볼 디렉터리가 없으면 None
+    extension_watcher: "ExtensionWatcher | None" = field(default=None)
     # idle 공고화와 종료 요약이 쓴다
     memory: "MemoryService | None" = field(default=None)
     # 스케줄 결과와 proactive 발화를 받는 외부 채널(슬랙 등). 설정이 없으면 None

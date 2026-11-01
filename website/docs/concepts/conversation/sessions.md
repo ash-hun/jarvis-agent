@@ -33,7 +33,7 @@ import FigureSessions from '@site/src/figures/sessions.svg';
 
 ## 분기
 
-분기는 `/branch [session_id]`, TUI 의 `Ctrl+F`, Web 의 ⑂ 로 만든다. `/branch` 에 id 를 주지 않으면 지금 세션이 아니라 `default` 세션을 분기한다. 분기는 부모의 메시지를 전부 복사한 새 세션을 만들고 `parent_id` 를 남긴다. 포인터가 아니라 복사이므로 이후 변경은 서로 전파되지 않는다. `/branch` 는 jsonl 과 Postgres 모두에서 복사한다. Web 의 ⑂(`POST /api/sessions/{id}/branch`)는 jsonl 에서만 복사하고, 다른 저장소면 같은 에이전트의 빈 새 세션을 열고 `parent_id` 를 null 로 돌려준다.
+분기는 `/branch [session_id]`, TUI 의 `Ctrl+F`, Web 의 ⑂ 로 만든다. `/branch` 에 id 를 주지 않으면 명령을 친 세션을 분기한다. 분기는 부모의 메시지를 전부 복사한 새 세션을 만들고 `parent_id` 를 남긴다. 포인터가 아니라 복사이므로 이후 변경은 서로 전파되지 않는다. `/branch` 는 jsonl 과 Postgres 모두에서 복사한다. Web 의 ⑂(`POST /api/sessions/{id}/branch`)는 jsonl 에서만 복사하고, 다른 저장소면 같은 에이전트의 빈 새 세션을 열고 `parent_id` 를 null 로 돌려준다.
 
 Web 의 SESSIONS 카드는 지금 프로세스가 띄운 세션만 보여준다. 다른 세션은 `/sessions` 나 `jarvis --list-sessions` 로 본다.
 
@@ -54,7 +54,7 @@ flowchart LR
 Web 의 `DELETE /api/sessions/{id}` 는 메모리 세션, 샌드박스, 승인 브로커, 저장소, 그 세션의 장기 기억(턴 일화, 사고 로그)과 작업 기억을 같이 지운다. 그 세션에서 뽑힌 사용자 프로필 사실과 승인한 절차는 세션에 묶이지 않아 남는다. 붙어 있는 연결이 있으면 409 를 돌려준다. 없는 세션을 지워도 200 을 돌려준다.
 
 :::danger
-세션 삭제는 저장소의 기록과 그 세션의 장기 기억까지 지우므로 되돌릴 수 없다. 남겨 둘 대화는 먼저 `/export md|json` 으로 내보낸다.
+세션 삭제는 저장소의 기록과 그 세션의 장기 기억까지 지우므로 되돌릴 수 없다. 열린 연결이 있으면 409 로 거절한다. 연결 확인과 삭제는 그 세션의 잠금 안에서 하므로, 지우는 도중에 같은 세션으로 붙은 연결은 삭제가 끝난 뒤 빈 새 세션으로 열린다. 남겨 둘 대화는 먼저 `/export md|json` 으로 내보낸다.
 :::
 
 ## 서브 에이전트 세션
@@ -76,7 +76,7 @@ Web 의 `DELETE /api/sessions/{id}` 는 메모리 세션, 샌드박스, 승인 �
 - `/cleanup`: 옛 서브 에이전트 세션(`agent_<name>`, `per_agent` 정책 에이전트의 세션은 남긴다), 옛 STM 테이블(`jarvis_stm_messages`, Postgres), 시험 흔적을 보여주고, `agents confirm`, `stm confirm`, `tests confirm` 으로 지운다
 
 :::warning
-`/export`, `/cost`, 인자 없는 `/branch` 는 명령을 친 세션이 아니라 늘 `default` 세션을 대상으로 한다. 다른 세션을 내보내거나 비용을 보는 명령은 아직 없다.
+`/export`, `/cost`, 인자 없는 `/branch` 는 명령을 친 세션을 대상으로 한다. 다른 세션은 그 세션으로 옮긴 뒤 친다. 내보낸 파일 이름은 세션 id 에서 영문, 숫자, `_`, `-` 밖의 글자를 `_` 로 바꾼다.
 :::
 
 ## 시험 세션

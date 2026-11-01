@@ -79,10 +79,13 @@ def build_session_router(state: WebState) -> APIRouter:
         },
     )
     async def delete_session(session_id: str = Path(description=SESSION_ID_DOC, examples=["3f9a2c1e"])) -> JSONResponse:
-        broker = state.approvals.get(session_id)
-        if broker is not None and broker.connection_count > 0:
+        def idle() -> bool:
+            # 잠금 안에서 다시 본다. 확인한 뒤 지우기 전에 붙은 연결이 있으면 지우지 않는다
+            broker = state.approvals.get(session_id)
+            return broker is None or broker.connection_count == 0
+
+        if not await registry.remove_if_idle(session_id, idle):
             return JSONResponse({"error": "session has live connections"}, status_code=409)
-        await registry.remove(session_id)
         state.approvals.pop(session_id, None)
         return JSONResponse({"deleted": session_id})
 

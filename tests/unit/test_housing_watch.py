@@ -4,6 +4,7 @@ import asyncio
 
 from jarvis.core.tools.housing.watch import HousingWatchTool, SeenStore, watch_key
 from jarvis.core.tools.housing.profile import HousingProfile
+from jarvis.core.tools.tools_registry import ToolContext
 from jarvis.core.tools.housing.lh_notice import Notice
 from tests.fixtures.housing_board import TODAY
 
@@ -63,6 +64,35 @@ def test_tool_first_run_reports_what_is_open_then_only_new_notices_once(tmp_path
     # 다시 불러도 같은 공고는 오지 않는다
     assert _run(tool, {"regions": "강원", "quiet": True}) == ""
     assert "새로 알릴 공고가 없다" in _run(tool, {"regions": "강원"})
+
+
+def _run_later(tool: HousingWatchTool, params: dict) -> str:
+    result = asyncio.run(tool.execute("t", params, None, ToolContext(scope=None, settle_later=True)))
+    return result.content[0].text
+
+
+def test_scheduled_run_marks_new_notices_seen_only_after_delivery(tmp_path):
+    single = HousingProfile(married=False, income=36_000_000)
+    tool = HousingWatchTool(Board([RENTAL]), SeenStore(str(tmp_path)), lambda: TODAY, Profiles(single))
+
+    assert "태백철암1" in _run_later(tool, {"regions": "강원", "quiet": True})
+    tool.settle("t", delivered=False)
+    assert "태백철암1" in _run_later(tool, {"regions": "강원", "quiet": True})
+    tool.settle("t", delivered=True)
+    tool.settle("t", delivered=True)
+
+    assert _run(tool, {"regions": "강원", "quiet": True}) == ""
+
+
+def test_scheduled_run_with_nothing_to_report_marks_seen_at_once(tmp_path):
+    single = HousingProfile(married=False, income=36_000_000)
+    board = Board([NEWLYWED])
+    tool = HousingWatchTool(board, SeenStore(str(tmp_path)), lambda: TODAY, Profiles(single))
+
+    assert _run_later(tool, {"regions": "강원", "quiet": True}) == ""
+
+    board.notices = [NEWLYWED, LATER]
+    assert "새 공고 1건" in _run_later(tool, {"regions": "강원", "quiet": True})
 
 
 def test_watch_key_is_per_user_and_region_set_and_seen_store_saves_idempotently(tmp_path):

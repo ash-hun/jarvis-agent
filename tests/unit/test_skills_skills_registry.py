@@ -120,3 +120,14 @@ async def test_load_directory_skips_malformed_file_and_logs_it(tmp_path, capsys,
 
     assert loaded == ["ok"]
     assert f"[SkillRegistry] Failed to load {filename}" in capsys.readouterr().out
+
+
+def test_procedure_skill_is_found_and_expanded_only_for_its_agent():
+    registry = SkillRegistry()
+    registry.register(Skill("run-tests", "d", [], "절차 {{args}}", {"procedure": True, "agent": "karen"}))
+    registry.register(Skill("plain", "d", [], "보통 {{args}}", {"agent": "karen"}))
+
+    assert registry.get("run-tests", "karen") is not None and registry.get("run-tests", "main") is None
+    assert registry.expand("/run-tests x", "karen") == "절차 x"
+    assert registry.expand("/run-tests x", "main") == "/run-tests x"
+    assert registry.expand("/plain x", "main") == "보통 x"

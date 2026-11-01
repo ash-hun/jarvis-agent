@@ -2,6 +2,7 @@
 
 import pytest
 import asyncio
+from unittest.mock import MagicMock
 from collections.abc import AsyncIterator
 
 from jarvis.core.external import (
@@ -220,14 +221,49 @@ async def test_shared_inbox_is_consumed_by_first_reflecting_session(fx) -> None:
 
 
 @pytest.mark.asyncio
-async def test_reflect_stays_silent_on_low_confidence_event(fx) -> None:
+async def test_reflect_stays_silent_on_low_confidence_event_and_consumes_it(fx) -> None:
+    inbox = _inbox_with()
     engine = StubEngine(ThoughtFrame(decision="act", confidence=0.2))
-    session = await _build_session(fx, "s1", engine=engine, inbox=_inbox_with(), threshold=0.8)
+    session = await _build_session(fx, "s1", engine=engine, inbox=inbox, threshold=0.8)
     spoken = _collect(session)
 
     await session.reflect()
 
     assert spoken == []
+    assert len(inbox) == 0
+
+
+@pytest.mark.asyncio
+async def test_failed_thought_returns_events_so_the_next_session_tells_them(fx) -> None:
+    inbox = _inbox_with()
+    failing = StubEngine(None)
+    speaking = StubEngine(ThoughtFrame(decision="act", confidence=0.9, utterance="회의 임박"))
+    first = await _build_session(fx, "s1", engine=failing, inbox=inbox)
+    second = await _build_session(fx, "s2", engine=speaking, inbox=inbox)
+    spoken = _collect(second)
+
+    await first.reflect()
+    assert len(inbox) == 1
+
+    await second.reflect()
+    assert speaking.requests[0].external_events[0].startswith("[cal] 회의 30분 후")
+    assert [e.text for e in spoken] == ["회의 임박"]
+    assert len(inbox) == 0
+
+
+@pytest.mark.asyncio
+async def test_suppressed_message_keeps_events_in_inbox(fx) -> None:
+    inbox = _inbox_with()
+    engine = StubEngine(ThoughtFrame(decision="act", confidence=0.9, utterance="회의 임박"))
+    session = await _build_session(fx, "s1", engine=engine, inbox=inbox)
+    session.set_turn_hook(MagicMock())
+    spoken = _collect(session)
+
+    decision = await session.reflect()
+
+    assert decision is not None and decision.reason == "suppressed"
+    assert spoken == []
+    assert len(inbox) == 1
 
 
 @pytest.mark.asyncio

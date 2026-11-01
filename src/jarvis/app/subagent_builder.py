@@ -38,14 +38,16 @@ class SubagentBuilder:
             )
         else:
             model = self._services.model_config
+        # 다른 에이전트의 절차는 이름을 적어도 보이지 않는다
+        visible = self._main_registry.for_agent(definition.name)
         if definition.tools or definition.tools_only:
             registry = ToolRegistry()
             for tool_name in definition.tools:
-                tool = self._main_registry.get(tool_name)
+                tool = visible.get(tool_name)
                 if tool is not None:
                     registry.register(tool)
         else:
-            registry = self._main_registry
+            registry = visible
         return AgentSession(
             model=model,
             session_id=session_id,

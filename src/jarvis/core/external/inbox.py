@@ -33,6 +33,23 @@ class ExternalEventInbox:
             )
         return overflow
 
+    def put_back(self, events: list[ExternalEvent]) -> int:
+        """꺼냈지만 전하지 못한 이벤트를 꺼낸 순서대로 앞에 되돌리고 상한 초과로 버린 건수를 반환.
+
+        되돌린 쪽이 더 오래된 이벤트라 넘치면 그쪽부터 버린다(put 과 같은 규칙).
+        """
+        # ponytail: 되돌린 이벤트는 전할 때까지 성찰마다 다시 오른다, 오래 남는 이벤트가 보이면 되돌린 횟수에 상한
+        merged = [*events, *self._events]
+        overflow = max(0, len(merged) - self._maxlen)
+        self._events = deque(merged[overflow:], maxlen=self._maxlen)
+        if overflow:
+            self._dropped += overflow
+            logger.info(
+                f"[ExternalEventInbox] maxlen={self._maxlen} 초과, 되돌린 이벤트 {overflow}건 드롭"
+                f" (누적 {self._dropped}건)"
+            )
+        return overflow
+
     def drain(self, limit: int | None = None) -> list[ExternalEvent]:
         """적재된 이벤트를 꺼내 비운다. 두 번째 호출은 빈 목록(발화 1회 보장)."""
         if limit is None or limit >= len(self._events):

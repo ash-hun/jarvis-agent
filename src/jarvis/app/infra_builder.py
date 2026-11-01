@@ -721,7 +721,7 @@ class InfraBuilder:
             "branch", make_branch_handler(session_repo), "[session_id] 세션을 분기 (없으면 지금 세션)"
         )
         dispatcher.register("tools", make_tools_handler(tool_registry), "사용 가능한 도구 목록 표시")
-        dispatcher.register(
+        dispatcher.register_scoped(
             "procedures",
             make_procedures_handler(
                 procedure_store,
@@ -730,7 +730,7 @@ class InfraBuilder:
                 learner=services.procedure_learner,
                 session_repo=session_repo,
             ),
-            "학습된 절차 (approve <name> | reject <name> | show <name> | learn [session_id])",
+            "이 에이전트가 학습한 절차 (approve <name> | reject <name> | show <name> | learn [session_id])",
         )
         dispatcher.register_scoped(
             "compact", make_compact_handler(model_config, session_repo, memory), "현재 세션을 요약해 장기 기억에 저장"

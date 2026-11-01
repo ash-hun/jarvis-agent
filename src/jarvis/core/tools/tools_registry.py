@@ -19,6 +19,9 @@ class ToolContext:
     # 세션의 도구 실행기 (tool_call_id, 도구 이름, 인자). 권한, 플러그인, 승인 검사를 거친다.
     # 다른 도구를 부르는 도구(절차)는 레지스트리가 아니라 이것으로 불러야 검사를 건너뛰지 않는다
     call: Callable[[str, str, dict[str, Any]], Awaitable[ToolResultMessage]] | None = None
+    # 부른 쪽이 결과를 전한 뒤 도구의 settle(tool_call_id, delivered) 를 부른다(스케줄러).
+    # 알린 것으로 적는 도구는 그때 적어, 전달이 실패하면 다음 차례에 같은 것을 다시 낸다
+    settle_later: bool = False
 
 
 # 기반을 상속하지 않은 덕 타이핑 도구(사용자 디렉터리 도구, 테스트 더블)도 받으므로 Any
@@ -42,6 +45,8 @@ class JarvisTool:
     # 사용자만 정할 수 있는 값(돈, 조건 등)을 받는 인자. 사람이 없는 차례(목표, 스케줄 작업)에서는 모델이 지어낼 수
     # 있어 버리고 저장된 값으로 돈다
     user_only_params: tuple[str, ...] = ()
+    # 이 에이전트의 세션에만 보이는 도구(승인된 절차). None 이면 모든 에이전트가 쓴다
+    owner_agent: str | None = None
 
     async def execute(
         self,
@@ -73,6 +78,10 @@ class ToolRegistry:
 
     def list_all(self) -> list[JarvisTool]:
         return list(self._tools.values())
+
+    def for_agent(self, agent: str) -> "ToolRegistry":
+        """이 에이전트가 볼 수 있는 도구만 보이는 창. 다른 에이전트의 절차는 빠진다."""
+        return PickedToolRegistry((self,), (), prefixes=("",), agent=agent)
 
     def to_llm_tools(self) -> list[Tool]:
         return [
@@ -129,6 +138,7 @@ class PickedToolRegistry(ToolRegistry):
         names: tuple[str, ...],
         prefixes: tuple[str, ...] = (),
         exclude: tuple[str, ...] = (),
+        agent: str | None = None,
     ) -> None:
         super().__init__()
         self._sources = [s for s in sources if s is not None]
@@ -136,6 +146,7 @@ class PickedToolRegistry(ToolRegistry):
         self._prefixes = prefixes
         # 에이전트가 어디서도 쓰지 않는 도구(경계의 never). 고른 이름이나 접두어에 걸려도 보이지 않는다
         self._exclude = frozenset(exclude)
+        self._agent = agent
 
     def _picked(self) -> dict[str, JarvisTool]:
         found: dict[str, JarvisTool] = {}
@@ -150,7 +161,11 @@ class PickedToolRegistry(ToolRegistry):
                         found.setdefault(tool.name, tool)
         for name, tool in self._tools.items():
             found.setdefault(name, tool)
-        return {name: tool for name, tool in found.items() if name not in self._exclude}
+        return {name: tool for name, tool in found.items() if name not in self._exclude and self._owns(tool)}
+
+    def _owns(self, tool: JarvisTool) -> bool:
+        owner = getattr(tool, "owner_agent", None)
+        return self._agent is None or owner is None or owner == self._agent
 
     def get(self, name: str) -> JarvisTool | None:
         return self._picked().get(name)

@@ -154,7 +154,7 @@ def test_to_skill_carries_instruction_and_source():
 
     assert skill.name == "run-tests"
     assert skill.content == INSTRUCTION + "1. bash\n입력: {{args}}\n"
-    assert skill.metadata == {"procedure": True, "source": "s1#0"}
+    assert skill.metadata == {"procedure": True, "source": "s1#0", "agent": "main"}
 
 
 def test_register_twice_then_unregister_twice_leaves_nothing():

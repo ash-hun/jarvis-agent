@@ -41,3 +41,15 @@ def test_skill_registry_procedures_read_registry_live():
     assert [(p.name, p.description, p.aliases) for p in matched] == [("deploy", "", ("배포",))]
     assert [p.name for p in source.match("lint")] == ["lint"]
     assert SkillRegistryProcedures(object()).match("deploy") == []
+
+
+def test_skill_registry_procedures_hide_other_agents_learned_procedures():
+    skills = [
+        SimpleNamespace(name="deploy", description="d", metadata={"procedure": True, "agent": "karen"}),
+        SimpleNamespace(name="lint", description="d", metadata={"agent": "karen"}),
+    ]
+    source = SkillRegistryProcedures(SimpleNamespace(list_all=lambda: skills))
+
+    assert [p.name for p in source.match("deploy", "karen")] == ["deploy"]
+    assert source.match("deploy", "main") == []
+    assert [p.name for p in source.match("lint", "main")] == ["lint"]

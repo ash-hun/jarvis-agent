@@ -162,7 +162,10 @@ class SeenStore:
 
 
 class HousingWatchTool(JarvisTool):
-    """읽고 기록만 한다. 알림은 부른 쪽(스케줄러)이 보낸다."""
+    """읽고 기록만 한다. 알림은 부른 쪽(스케줄러)이 보낸다.
+
+    부른 쪽이 settle 을 약속하면(context.settle_later) 새 공고는 전한 뒤에야 본 것으로 적는다.
+    """
 
     name = TOOL_NAME
     description = TOOL_DESCRIPTION
@@ -184,6 +187,8 @@ class HousingWatchTool(JarvisTool):
         self._today = today
         self._profiles = profiles
         self._rules = rules
+        # 호출 id -> 전달 뒤에 본 것으로 적을 (키, 지역, 공고). 스케줄 호출 id 는 작업마다 같아 쌓이지 않는다
+        self._pending: dict[str, tuple[str, list[str], list[Notice]]] = {}
 
     async def execute(
         self,
@@ -216,9 +221,13 @@ class HousingWatchTool(JarvisTool):
         seen = self._seen.load(key)
         # 처음이면 본 것이 없으니 지금 공고중인 것이 모두 새 공고다
         picked = pick_new(notices, seen or [], self._rules(), profile)
-        # ponytail: 알리기 전에 본 것으로 적는다(알림이 실패하면 그 공고는 다시 오지 않는다),
-        # 놓친 알림이 보이면 알림이 간 뒤에 기록하도록 바꾼다
-        self._seen.save(key, regions, remember(seen or [], notices))
+        if picked and context is not None and context.settle_later:
+            # 알림이 실패하면 다음 차례에 같은 공고를 다시 알린다. 놓치는 것보다 두 번 알리는 편이 낫다
+            self._pending[tool_call_id] = (key, regions, notices)
+        else:
+            # ponytail: 대화에서 부르면 바로 본 것으로 적는다(답이 실패하면 그 공고는 다시 새 공고로 오지 않는다),
+            # 대화에서 놓친 공고가 보이면 턴이 끝난 뒤 settle 하는 길을 세션에 둔다
+            self._seen.save(key, regions, remember(seen or [], notices))
         if picked:
             text = render(regions, picked, today, first=seen is None)
             if seen is None:
@@ -226,6 +235,15 @@ class HousingWatchTool(JarvisTool):
         else:
             text = "" if params.get("quiet") else f"지난번 뒤로 새로 알릴 공고가 없다({', '.join(regions)})."
         return _result(tool_call_id, (text + sh_note).strip())
+
+    def settle(self, tool_call_id: str, delivered: bool) -> None:
+        """settle_later 로 부른 결과를 전했으면 그때 본 것으로 적는다. 못 전했으면 버려 다음 차례에 다시 고른다."""
+        pending = self._pending.pop(tool_call_id, None)
+        if pending is None or not delivered:
+            return
+        key, regions, notices = pending
+        # 그 사이 다른 차례가 적은 목록을 덮지 않게 지금 저장된 목록에 더한다
+        self._seen.save(key, regions, remember(self._seen.load(key) or [], notices))
 
     async def _sh_search(self, sh: ShNoticeTool) -> list[Notice]:
         found: list[Notice] = []

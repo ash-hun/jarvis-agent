@@ -18,6 +18,11 @@ class Skill:
         self.content = content
         self.metadata = metadata
 
+    def visible_to(self, agent: str | None) -> bool:
+        """승인된 절차의 스킬은 그 절차를 배운 에이전트에게만 보인다. agent 가 None 이면 거르지 않는다."""
+        owner = self.metadata.get("agent") if self.metadata.get("procedure") else None
+        return agent is None or owner is None or owner == agent
+
 
 class SkillRegistry:
     """Markdown/YAML 기반 스킬(명령 매크로) 레지스트리. Pi: skills.ts + prompt-templates.ts 패턴."""
@@ -37,21 +42,23 @@ class SkillRegistry:
             for alias in skill.aliases:
                 self._aliases.pop(alias, None)
 
-    def get(self, name_or_alias: str) -> Skill | None:
+    def get(self, name_or_alias: str, agent: str | None = None) -> Skill | None:
+        """agent 를 주면 그 에이전트에게 보이는 스킬만 찾는다."""
         name = self._aliases.get(name_or_alias, name_or_alias)
-        return self._skills.get(name)
+        skill = self._skills.get(name)
+        return skill if skill is not None and skill.visible_to(agent) else None
 
     def list_all(self) -> list[Skill]:
         return list(self._skills.values())
 
-    def expand(self, input_text: str) -> str:
-        """'/skill_name args' 형태의 입력을 스킬 내용으로 확장."""
+    def expand(self, input_text: str, agent: str | None = None) -> str:
+        """'/skill_name args' 형태의 입력을 스킬 내용으로 확장. agent 에게 보이지 않는 스킬은 확장하지 않는다."""
         if not input_text.startswith("/"):
             return input_text
         parts = input_text[1:].split(None, 1)
         command = parts[0]
         args = parts[1] if len(parts) > 1 else ""
-        skill = self.get(command)
+        skill = self.get(command, agent)
         if not skill:
             return input_text
         return skill.content.replace("{{args}}", args).replace("{{input}}", args)

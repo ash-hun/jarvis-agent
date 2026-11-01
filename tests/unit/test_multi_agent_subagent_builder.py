@@ -4,10 +4,12 @@ import pytest
 from typing import Any
 from unittest.mock import MagicMock
 
+from jarvis.core.procedures.procedures_store import STATUS_APPROVED, Procedure
 from jarvis.core.tools.builtin.read_file import ReadFileTool
 from jarvis.core.multi_agent.factory import AgentDefinition
 from jarvis.core.tools.tools_registry import ToolRegistry
 from jarvis.app.subagent_builder import SubagentBuilder
+from jarvis.core.procedures.tool import ProcedureTool
 from jarvis.core.tools.builtin.bash import BashTool
 from jarvis.jarvis_config import JarvisSettings
 from jarvis.app.app_context import AppContext
@@ -51,13 +53,16 @@ def test_build_session_with_tools_keeps_only_known_names(captured):
     assert captured["agent_name"] == "w" and captured["inherit_scope"] is True
 
 
-def test_build_session_without_tools_shares_main_registry(captured):
+def test_build_session_without_tools_sees_main_tools_but_not_other_agents_procedures(captured):
     main = _main_registry()
+    main.register(ProcedureTool(Procedure(name="mine", description="d", body="b", status=STATUS_APPROVED, agent="p")))
+    main.register(ProcedureTool(Procedure(name="other", description="d", body="b", status=STATUS_APPROVED)))
     builder, _ = _builder(main)
 
     builder.build_session(AgentDefinition(name="p", description="d"), "agent_p")
 
-    assert captured["tool_registry"] is main
+    names = sorted(t.name for t in captured["tool_registry"].list_all())
+    assert names == ["bash", "procedure_mine", "read_file"]
 
 
 def test_build_session_model_override_replaces_only_model_name(captured):

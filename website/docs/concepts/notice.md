@@ -5,9 +5,15 @@ title: Notice
 
 # Notice
 
-Jarvis-Agent의 기능을 정리하고 어떤 원칙으로 구현되었는지 소개한다.
+Jarvis-Agent의 기능을 정리하고 어떤 원칙으로 구현되었는지 소개한다. 사용자가 답을 기다리는 시간을 줄이고, 알아야 할 일은 묻기 전에 먼저 알리는 개인 비서 에이전트다.
 
-## 기능 목록
+## 서비스 기능
+
+### 풀려는 문제
+
+보통의 챗봇은 물어야만 답하고, 오래 걸리는 요청에는 빈 화면으로 기다리게 한다. 내일 마감인 일이 있어도 사용자가 먼저 묻기 전에는 말하지 않고, 지난주에 한 이야기는 잊는다. Jarvis-Agent 는 바로 반응하고, 필요할 때만 먼저 말하고, 위험한 실행은 사람에게 묻는 쪽을 목표로 한다.
+
+### 무엇을 하나
 
 | 기능 | 무엇을 하나 | 쓰는 곳 |
 |---|---|---|
@@ -27,9 +33,16 @@ Jarvis-Agent의 기능을 정리하고 어떤 원칙으로 구현되었는지 �
 | [Voice Interface](./conversation/voice.md) | 음성 입력과 읽기. Full-voice 는 응답, 승인, 🔔 피드백까지 말로 묻고 답한다 | 구체 클릭, 헤더 `FULL-VOICE` |
 | [공용 커맨드](../reference/slash-commands.md) | `/` 명령, 스킬, 플러그인 훅, 사용자 도구 | 입력창 `/` |
 
-## 구현 철학
+### 핵심 결과
 
-Jarvis-Agent는 구현 및 운영부문에 아래 원칙을 지킨다.
+- 응답 뒤에 생각하면(after) 로컬에서 첫 글자가 2.3초에 나온다. 응답 전에 생각하면(before) 15.6초다([Inner Thought](./architecture/inner-thought.md))
+- 먼저 건네는 말의 게이팅 정책은 11사례 모두 맞았다(precision 1.00, recall 1.00, 오경보 0)([Proactive Dialogue](./architecture/proactive.md))
+- 기억 기능 스위트 68사례가 모두 통과하고 다른 범위로 새는 비율은 0.00 이다([Memory Management](./memory.md))
+- 음성 승인 답 분류에서 세 모델 모두 위험한 허용이 0 이었다([Tool & Approve System](./conversation/tools-and-approval.md))
+
+## 세부 구현
+
+Jarvis-Agent는 구현 및 운영부문에 아래 원칙을 지킨다. 기능마다의 동작 흐름과 설계 결정은 위 표의 각 페이지에 있다.
 
 ### Proactive Dialogue를 지향하고, Lazy-Interaction을 최소화한다
 
@@ -58,3 +71,33 @@ Jarvis-Agent는 구현 및 운영부문에 아래 원칙을 지킨다.
 - `class` 는 유지할 상태나 주입할 의존성이 있을 때만 쓰고, 없으면 함수로 쓴다
 - 주석에는 왜(why)만 적는다. 설명이 코드보다 길면 설명을 지운다
 - 작업을 끝내기 전에 "이걸 지금 한 번 더 실행하면 어떻게 되나" 에 말로 답할 수 있어야 한다
+
+## 성능 비교실험
+
+기능 페이지마다 있는 실험의 핵심 숫자를 모았다. 질문, 설정, 해석, 한계, 재현 명령은 각 페이지의 성능 비교실험 절에 있다.
+
+| 기능 | 실험 | 핵심 숫자 |
+|---|---|---|
+| [Inner Thought](./architecture/inner-thought.md) | 사고 시점별 지연 | 로컬 첫 글자 after 2.3초, before 15.6초. 클라우드 after 0.9초 |
+| [Inner Thought](./architecture/inner-thought.md) | 사고 프레임 유효성 | gemma4:e2b, gemma4:e4b, gpt-4o-mini 모두 매번 유효 |
+| [Inner Thought](./architecture/inner-thought.md) | Thought Router 판정 | 실제 대화 30건에서 think 재현율 1.0, direct 재현율 0.68 |
+| [Proactive Dialogue](./architecture/proactive.md) | 게이팅 정책(LLM 없음) | 11사례 precision 1.00, recall 1.00, 오경보 0 |
+| [Proactive Dialogue](./architecture/proactive.md) | 말할지 정하기(블라인드) | 새 지시문 recall gpt-4o-mini 0.63 → 0.77, e2b 0.47 → 0.83. decision model tev1, nimble recall 1.00, 오경보 0.30 |
+| [Process Pattern Analysis](./architecture/proactive.md) | 짧은 답 분류 | 세 모델 모두 0.9 초과 |
+| [Open loop](./conversation/open-loop.md) | 같은 약속 가르기 | bge-m3 와 0.85 문턱에서 정확도 0.83, 잘못 합침 0. nomic-embed-text 0.61, 글자 규칙만 0.56 |
+| [Memory Management](./memory.md) | 기능 스위트 | 68사례 모두 통과, 다른 범위로 새는 비율 0.00. retention 컨텍스트 117,786자 → 14,129자 |
+| [Memory Management](./memory.md) | 오래된 큰 기억 회상 | 새 일화 40개 뒤에도 100%(이전 코드는 3개 뒤 0%). 회상 p50 2.3 ms → 7.3 ms |
+| [Memory Management](./memory.md) | 요약 언어 | 예전 지시문은 한국어 대화를 27번 중 20번 영어로 요약. 지금은 세 모델 모두 9번 다 한국어. 사실 보존 1.00 |
+| [Tool & Approve System](./conversation/tools-and-approval.md) | 거부 뒤 승인 흐름 | gpt-4o-mini, gemma4:e4b 모두 3번 중 3번 준수(프롬프트 규칙만일 때 거부 직후 문구 2번 중 0번) |
+| [Tool & Approve System](./conversation/tools-and-approval.md) | 음성 승인 답 분류 | 위험한 허용 0. 결정 정확도 e4b 1.0, e2b 0.917, gpt-4o-mini 0.75 |
+| [Multi agent Orchestration](./multi-agent-orchestration/index.md) | JARVIS 가 KAREN 에게 맡기기 | 두 모델 모두 세 번 다 위임. 끝까지 gemma4:e4b 36.48초, gpt-4o-mini 8.48초 |
+| [Focus Mode](./mode/focus-mode.md) | 첫 응답 시간 | gemma4:e4b 19.47~20.08초, gpt-4o-mini 2.77~2.89초 |
+| [Voice Interface](./conversation/voice.md) | 영어 답의 첫 소리 | 조각마다 1.2~2.2초, 한 번에 합성 2.6~7.8초 |
+| [Voice Interface](./conversation/voice.md) | Qwen3-TTS 복제 음성 품질 | UTMOS 4.07, WER 0.017, 화자 유사도 0.965(Piper 파인튜닝 2.6~2.9, 사람 녹음 4.1) |
+| [Architecture](./architecture/index.md) | 요청 한 번의 모델 밖 처리 시간 | 초반 턴 2.65ms, JSONL 기록 읽기가 200턴째 13.7ms 로 커짐(메모리 저장소 1.07ms) |
+| [Sessions](./conversation/sessions.md) | 삭제와 다시 열기가 겹칠 때 | 세션별 잠금 전 18.1% 가 기록 없이 세션만 남음, 잠금 뒤 0% |
+| [Scheduling](./conversation/scheduling.md) | 알림 실패 때 놓친 공고 | 알림 실패율 30% 에서 29.4% 가 0% 로, 두 번 알림 0건 |
+| [MCP Events](./conversation/mcp.md) | 전하지 못한 외부 이벤트 | 사고 실패율 50%, 주기마다 5건에서 48.3% 가 0% 로 |
+| [Orchestration Pattern](./multi-agent-orchestration/orchestration-pattern.md) | 패턴별 걸린 시간 | blackboard 0.201초, hierarchical 0.604초, 한 턴에 하나씩 부르는 감독자 1.819초 |
+| [Extension](./extension.md) | 도구 파일 반영 시간 | 새 파일 p50 89.6ms, 고친 파일 p50 80.5ms. 감시 전에는 재시작 필요 |
+

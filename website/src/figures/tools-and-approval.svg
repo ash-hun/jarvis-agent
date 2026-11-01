@@ -1,59 +1,80 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 352" class="pf-svg" role="img" aria-label="도구 호출 한 번이 지나는 검사와 승인">
-<defs><marker id="tools-and-approval-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="tools-and-approval-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="tools-and-approval-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="tools-and-approval-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
-<rect class="pf-panel" x="16" y="12" width="728" height="328" rx="8"/>
-<rect class="pf-box pf-box--io" x="24.0" y="36" width="104" height="50" rx="6"/>
-<text class="pf-t pf-t--io" x="76.0" y="57.0" text-anchor="middle">도구 호출</text>
-<text class="pf-s" x="76.0" y="74.0" text-anchor="middle">LLM 이 고름</text>
-<rect class="pf-gate" x="170.0" y="36" width="88" height="50" rx="25.0"/>
-<text class="pf-t" x="214.0" y="57.0" text-anchor="middle">허용 목록</text>
-<text class="pf-s" x="214.0" y="74.0" text-anchor="middle">정책</text>
-<rect class="pf-gate" x="287.5" y="36" width="137" height="50" rx="25.0"/>
-<text class="pf-t" x="356.0" y="57.0" text-anchor="middle">플러그인</text>
-<text class="pf-code" x="356.0" y="74.0" text-anchor="middle">before_tool_call</text>
-<rect class="pf-gate" x="442.0" y="36" width="140" height="50" rx="25.0"/>
-<text class="pf-t" x="512.0" y="65.5" text-anchor="middle">승인이 필요한 도구</text>
-<rect class="pf-gate" x="611.0" y="36" width="114" height="50" rx="25.0"/>
-<text class="pf-t" x="668.0" y="57.0" text-anchor="middle">규칙에 맞나</text>
-<text class="pf-s" x="668.0" y="74.0" text-anchor="middle">공용, 에이전트별</text>
-<path class="pf-edge pf-edge--accent" d="M128.0,61.0 L170.0,61.0" marker-end="url(#tools-and-approval-h-accent)"/>
-<path class="pf-edge pf-edge--accent" d="M258.0,61.0 L287.5,61.0" marker-end="url(#tools-and-approval-h-accent)"/>
-<path class="pf-edge pf-edge--accent" d="M424.5,61.0 L442.0,61.0" marker-end="url(#tools-and-approval-h-accent)"/>
-<path class="pf-edge pf-edge--accent" d="M582.0,61.0 L611.0,61.0" marker-end="url(#tools-and-approval-h-accent)"/>
-<rect class="pf-box pf-box--accent" x="390.0" y="156" width="80" height="50" rx="6"/>
-<text class="pf-t pf-t--accent" x="430.0" y="185.5" text-anchor="middle">실행</text>
-<path class="pf-edge pf-edge--accent" d="M512.0,86.0 L512.0,128.0 L444.0,128.0 L444.0,156.0" marker-end="url(#tools-and-approval-h-accent)"/>
-<text class="pf-elabel pf-elabel--accent" x="518.0" y="116.0" text-anchor="start">아니오</text>
-<path class="pf-edge pf-edge--accent" d="M628.0,86.0 L628.0,128.0 L444.0,128.0"/>
-<text class="pf-elabel pf-elabel--accent" x="634.0" y="116.0" text-anchor="start">맞음</text>
-<rect class="pf-box" x="608.0" y="156" width="120" height="50" rx="6"/>
-<text class="pf-t" x="668.0" y="177.0" text-anchor="middle">사람에게 묻기</text>
-<text class="pf-s" x="668.0" y="194.0" text-anchor="middle">120초</text>
-<path class="pf-edge" d="M688.0,86.0 L688.0,156.0" marker-end="url(#tools-and-approval-h)"/>
-<text class="pf-elabel" x="694.0" y="132.0" text-anchor="start">아니오</text>
-<path class="pf-edge pf-edge--accent" d="M608.0,181.0 L470.0,181.0" marker-end="url(#tools-and-approval-h-accent)"/>
-<text class="pf-elabel pf-elabel--accent" x="539.0" y="176.0" text-anchor="middle">ALLOW</text>
-<path class="pf-store" d="M548.0,241 a84.0,5 0 0,0 168,0 a84.0,5 0 0,0 -168,0 v48 a84.0,5 0 0,0 168,0 v-48"/>
-<text class="pf-t" x="632.0" y="264.0" text-anchor="middle">규칙 저장</text>
-<text class="pf-code" x="632.0" y="281.0" text-anchor="middle">approvals/&lt;agent&gt;.yaml</text>
-<path class="pf-edge" d="M668.0,206.0 L668.0,236.0" marker-end="url(#tools-and-approval-h)"/>
-<text class="pf-elabel" x="674.0" y="226.0" text-anchor="start">ALWAYS</text>
-<path class="pf-edge" d="M548.0,265.0 L430.0,265.0 L430.0,206.0" marker-end="url(#tools-and-approval-h)"/>
-<rect class="pf-box" x="211.0" y="156" width="130" height="50" rx="6"/>
-<text class="pf-t" x="276.0" y="185.5" text-anchor="middle">after_tool_call</text>
-<rect class="pf-box" x="25.0" y="156" width="150" height="50" rx="6"/>
-<text class="pf-t" x="100.0" y="177.0" text-anchor="middle">결과를 LLM 에</text>
-<text class="pf-s" x="100.0" y="194.0" text-anchor="middle">모두 final 이면 그 글이 답</text>
-<path class="pf-edge pf-edge--accent" d="M390.0,181.0 L341.0,181.0" marker-end="url(#tools-and-approval-h-accent)"/>
-<path class="pf-edge pf-edge--accent" d="M211.0,181.0 L175.0,181.0" marker-end="url(#tools-and-approval-h-accent)"/>
-<rect class="pf-box pf-box--deny" x="40.0" y="296" width="350" height="30" rx="6"/>
-<text class="pf-t pf-t--deny" x="215.0" y="315.5" text-anchor="middle">is_error 결과가 LLM 에 가고 루프는 이어진다</text>
-<rect class="pf-box pf-box--deny" x="406.0" y="296" width="236" height="30" rx="6"/>
-<text class="pf-t pf-t--deny" x="524.0" y="315.5" text-anchor="middle">모두 거부면 정해진 한 줄로 끝낸다</text>
-<path class="pf-edge pf-edge--deny" d="M214.0,86.0 L214.0,108.0 L193.0,108.0 L193.0,296.0" marker-end="url(#tools-and-approval-h-deny)"/>
-<text class="pf-elabel pf-elabel--deny" x="220.0" y="98.0" text-anchor="start">없음</text>
-<path class="pf-edge pf-edge--deny" d="M356.0,86.0 L356.0,118.0 L356.0,118.0 L356.0,296.0" marker-end="url(#tools-and-approval-h-deny)"/>
-<text class="pf-elabel pf-elabel--deny" x="362.0" y="112.0" text-anchor="start">block</text>
-<path class="pf-edge pf-edge--deny" d="M728.0,181.0 L738.0,181.0 L738.0,311.0 L642.0,311.0" marker-end="url(#tools-and-approval-h-deny)"/>
-<text class="pf-elabel pf-elabel--deny" x="733.0" y="327.0" text-anchor="end">DENY, 시간 초과</text>
-<path class="pf-edge pf-edge--deny" d="M100.0,296.0 L100.0,206.0" marker-end="url(#tools-and-approval-h-deny)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 426" class="pf-svg" role="img" aria-label="도구 호출 한 번이 지나는 검사와 승인">
+<defs><marker id="tools-and-approval-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="tools-and-approval-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="tools-and-approval-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="tools-and-approval-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="16" y="12" width="728" height="376" rx="8"/>
+<rect class="pf-box pf-box--io" x="28.0" y="34.0" width="93.625" height="58" rx="6"/>
+<text class="pf-t pf-t--io" x="74.8" y="60.0" text-anchor="middle">도구 호출</text>
+<text class="pf-s" x="74.8" y="78.0" text-anchor="middle">LLM 이 고름</text>
+<rect class="pf-gate" x="144.3" y="34.0" width="100.24400000000001" height="58" rx="29.0"/>
+<text class="pf-t" x="194.4" y="68.0" text-anchor="middle">허용 목록</text>
+<rect class="pf-gate" x="267.2" y="34.0" width="153.20000000000005" height="58" rx="29.0"/>
+<text class="pf-t" x="343.8" y="60.0" text-anchor="middle">플러그인</text>
+<text class="pf-code" x="343.8" y="78.0" text-anchor="middle">before_tool_call</text>
+<rect class="pf-gate" x="443.1" y="34.0" width="143.76800000000003" height="58" rx="29.0"/>
+<text class="pf-t" x="515.0" y="68.0" text-anchor="middle">승인이 필요한가</text>
+<rect class="pf-gate" x="609.5" y="34.0" width="126.5" height="58" rx="29.0"/>
+<text class="pf-t" x="672.8" y="60.0" text-anchor="middle">규칙에 맞나</text>
+<text class="pf-s" x="672.8" y="78.0" text-anchor="middle">공용, 에이전트별</text>
+<path class="pf-edge pf-edge--accent" d="M121.6,63.0 L144.3,63.0" marker-end="url(#tools-and-approval-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M244.5,63.0 L267.2,63.0" marker-end="url(#tools-and-approval-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M420.4,63.0 L443.1,63.0" marker-end="url(#tools-and-approval-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M586.8,63.0 L609.5,63.0" marker-end="url(#tools-and-approval-h-accent)"/>
+<rect class="pf-box pf-box--accent" x="446.0" y="172.0" width="76" height="50" rx="6"/>
+<text class="pf-t pf-t--accent" x="484.0" y="202.0" text-anchor="middle">실행</text>
+<path class="pf-edge pf-edge--accent" d="M515.0,92.0 L515.0,140.0 L498.0,140.0 L498.0,172.0" marker-end="url(#tools-and-approval-h-accent)"/>
+<text class="pf-elabel pf-elabel--accent" x="521.0" y="124.0" text-anchor="start">아니오</text>
+<path class="pf-edge pf-edge--accent" d="M632.8,92.0 L632.8,140.0 L498.0,140.0"/>
+<text class="pf-elabel pf-elabel--accent" x="638.8" y="124.0" text-anchor="start">맞음</text>
+<rect class="pf-box" x="610.8" y="168.0" width="124" height="58" rx="6"/>
+<text class="pf-t" x="672.8" y="194.0" text-anchor="middle">사람에게 묻기</text>
+<text class="pf-s" x="672.8" y="212.0" text-anchor="middle">120초</text>
+<path class="pf-edge" d="M696.8,92.0 L696.8,168.0" marker-end="url(#tools-and-approval-h)"/>
+<text class="pf-elabel" x="702.8" y="150.0" text-anchor="start">아니오</text>
+<path class="pf-edge pf-edge--accent" d="M610.8,197.0 L522.0,197.0" marker-end="url(#tools-and-approval-h-accent)"/>
+<text class="pf-elabel pf-elabel--accent" x="566.4" y="191.0" text-anchor="middle">ALLOW</text>
+<path class="pf-store" d="M552.8,257 a91.0,5 0 0,0 182,0 a91.0,5 0 0,0 -182,0 v56 a91.0,5 0 0,0 182,0 v-56"/>
+<text class="pf-t" x="643.8" y="285.0" text-anchor="middle">규칙 저장</text>
+<text class="pf-code" x="643.8" y="303.0" text-anchor="middle">approvals/&lt;agent&gt;.yaml</text>
+<path class="pf-edge" d="M672.8,226.0 L672.8,252.0" marker-end="url(#tools-and-approval-h)"/>
+<text class="pf-elabel" x="678.8" y="244.0" text-anchor="start">ALWAYS</text>
+<path class="pf-edge" d="M552.8,285.0 L484.0,285.0 L484.0,222.0" marker-end="url(#tools-and-approval-h)"/>
+<rect class="pf-box" x="270.0" y="172.0" width="150" height="50" rx="6"/>
+<text class="pf-t pf-tcode" x="345.0" y="202.0" text-anchor="middle">after_tool_call</text>
+<rect class="pf-box" x="28.0" y="168.0" width="206" height="58" rx="6"/>
+<text class="pf-t" x="131.0" y="194.0" text-anchor="middle">결과를 LLM 에</text>
+<text class="pf-s" x="131.0" y="212.0" text-anchor="middle">모두 final 이면 그 글이 답</text>
+<path class="pf-edge pf-edge--accent" d="M446.0,197.0 L420.0,197.0" marker-end="url(#tools-and-approval-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M270.0,197.0 L234.0,197.0" marker-end="url(#tools-and-approval-h-accent)"/>
+<rect class="pf-box pf-box--deny" x="28.0" y="336.0" width="402" height="36" rx="6"/>
+<text class="pf-t pf-t--deny" x="229.0" y="359.0" text-anchor="middle">is_error 결과가 LLM 에 가고 루프는 이어진다</text>
+<rect class="pf-box pf-box--deny" x="448.0" y="336.0" width="258" height="36" rx="6"/>
+<text class="pf-t pf-t--deny" x="577.0" y="359.0" text-anchor="middle">모두 거부면 정해진 한 줄로 끝낸다</text>
+<path class="pf-edge pf-edge--deny" d="M194.4,92.0 L194.4,112.0 L252.0,112.0 L252.0,336.0" marker-end="url(#tools-and-approval-h-deny)"/>
+<text class="pf-elabel pf-elabel--deny" x="200.4" y="106.0" text-anchor="start">없음</text>
+<path class="pf-edge pf-edge--deny" d="M343.8,92.0 L343.8,128.0 L436.0,128.0 L436.0,336.0" marker-end="url(#tools-and-approval-h-deny)"/>
+<text class="pf-elabel pf-elabel--deny" x="349.8" y="122.0" text-anchor="start">block</text>
+<path class="pf-edge pf-edge--deny" d="M734.8,197.0 L738.0,197.0 L738.0,354.0 L706.0,354.0" marker-end="url(#tools-and-approval-h-deny)"/>
+<text class="pf-elabel pf-elabel--deny" x="732.0" y="332.0" text-anchor="end">DENY, 시간 초과</text>
+<path class="pf-edge pf-edge--deny" d="M131.0,336.0 L131.0,226.0" marker-end="url(#tools-and-approval-h-deny)"/>
+<circle class="pf-badge" cx="161.7" cy="36.0" r="10"/>
+<text class="pf-badge-t" x="161.7" y="40.2" text-anchor="middle">1</text>
+<circle class="pf-badge" cx="284.6" cy="36.0" r="10"/>
+<text class="pf-badge-t" x="284.6" y="40.2" text-anchor="middle">2</text>
+<circle class="pf-badge" cx="460.5" cy="36.0" r="10"/>
+<text class="pf-badge-t" x="460.5" y="40.2" text-anchor="middle">3</text>
+<circle class="pf-badge" cx="626.9" cy="36.0" r="10"/>
+<text class="pf-badge-t" x="626.9" y="40.2" text-anchor="middle">4</text>
+<circle class="pf-badge" cx="612.8" cy="170.0" r="10"/>
+<text class="pf-badge-t" x="612.8" y="174.2" text-anchor="middle">5</text>
+<path class="pf-edge pf-edge--accent" d="M20.0,408 L50.0,408" marker-end="url(#tools-and-approval-h-accent)"/>
+<text class="pf-legend" x="58.0" y="412.5" text-anchor="start">주 경로</text>
+<path class="pf-edge" d="M118.25,408 L148.25,408" marker-end="url(#tools-and-approval-h)"/>
+<text class="pf-legend" x="156.2" y="412.5" text-anchor="start">흐름</text>
+<path class="pf-edge pf-edge--deny" d="M201.5,408 L231.5,408" marker-end="url(#tools-and-approval-h-deny)"/>
+<text class="pf-legend" x="239.5" y="412.5" text-anchor="start">거부, 실패</text>
+<rect class="pf-gate" x="315.125" y="400" width="30" height="16" rx="8"/>
+<text class="pf-legend" x="353.1" y="412.5" text-anchor="start">판단</text>
+<path class="pf-store" d="M398.4,402.5 a11.0,3.5 0 0,0 22,0 a11.0,3.5 0 0,0 -22,0 v11.0 a11.0,3.5 0 0,0 22,0 v-11.0"/>
+<text class="pf-legend" x="428.4" y="412.5" text-anchor="start">저장소</text>
+<rect class="pf-box pf-box--accent" x="485.25" y="400" width="28" height="16" rx="3"/>
+<text class="pf-legend" x="521.2" y="412.5" text-anchor="start">강조</text>
 </svg>

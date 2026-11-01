@@ -8,16 +8,78 @@ import FigureExpTeam from '@site/src/figures/exp-team.svg';
 
 # Multi agent Orchestration
 
+JARVIS 혼자 모든 분야를 맡으면 프롬프트, 도구, 기억이 한데 섞인다. Multi agent Orchestration 은 목적이 다른 최상위 에이전트를 JARVIS 와 같은 층에 정의 파일 하나로 더하고, 에이전트끼리 일을 맡기게 한다.
+
 <figure className="paper-fig">
   <FigureMultiAgentOrchestration />
   <figcaption><b>Figure 1.</b> 최상위 에이전트는 세션, 일화 기억과 작업 패턴, 목표와 약속(open loop), 승인 규칙, 경계(boundaries 의 ask, never 도구), 모델과 도구, 메인 색을 따로 갖고, 사용자 모델, 사용자에 대한 사실, 공용 승인 규칙, AGENDA 를 함께 쓴다. 서로 일을 맡길 때는 ask_agent 를 쓰고, 되묻기는 A → B → A 까지만 허용한다. 받은 일을 그 일을 보낸 에이전트에게 되돌리는 요청은 거절한다.</figcaption>
 </figure>
 
-Multi agent Orchestration 은 JARVIS 와 같은 층에 목적이 다른 최상위 에이전트를 더 두는 기능이다. 전체를 총괄하는 첫 에이전트가 JARVIS(id `main`)이고, 정보 수집을 맡는 KAREN(id `karen`)처럼 에이전트를 정의 파일 하나로 늘린다.
+## 서비스 기능
 
-최상위 에이전트는 [Orchestration Pattern](./orchestration-pattern.md)의 서브 에이전트와 다르다. 서브 에이전트는 부모 턴 안에서 잠깐 도는 도구이고, 최상위 에이전트는 자기 세션, 기억, 약속(open loop), 승인 규칙, 브랜드를 가진다. 구현은 `app/agent_registry.py` 에 있다.
+### 풀려는 문제
 
-## 지금 팀
+사용자가 JARVIS 에게 "KAREN 에게 서울 SH 청약 공고 최근 것 하나만 찾아 달라고 맡겨 줘" 라고 말한다. 청약 공고 조회 도구와 대출 계산은 정보 수집 담당에게만 필요하고, JARVIS 의 기본 대화에 섞이면 도구 목록과 기억이 불필요하게 커진다. 또 담당 에이전트가 답을 지어내거나, 두 에이전트가 같은 일을 서로 미루면 사용자는 답을 받지 못한다.
+
+### 무엇을 하나
+
+전체를 총괄하는 첫 에이전트가 JARVIS(id `main`)이고, 정보 수집을 맡는 KAREN(id `karen`)처럼 에이전트를 늘린다. 최상위 에이전트는 [Orchestration Pattern](./orchestration-pattern.md)의 서브 에이전트와 다르다. 서브 에이전트는 부모 턴 안에서 잠깐 도는 도구이고, 최상위 에이전트는 자기 세션, 기억, 약속(open loop), 승인 규칙, 브랜드를 가진다.
+
+| 상황 | 사용자가 보는 동작 |
+|---|---|
+| 에이전트를 바꾸고 싶다 | HUD 의 에이전트 칩을 누르면 그 에이전트의 세션으로 옮기고, 화면 전체가 그 에이전트 색으로 바뀐다 |
+| 다른 분야 일을 맡긴다 | JARVIS 가 담당 에이전트에게 맡기고, 받은 답을 정리해 돌려준다 |
+| 맡은 에이전트가 되묻는다 | 되묻기는 한 번까지 허용하고, 그보다 깊거나 받은 일을 되돌리면 거절한다 |
+| 두 에이전트가 함께 일한다 | 입자 구가 두 에이전트의 메인 색으로 섞이고, 일하는 에이전트 칩이 빛난다 |
+| 일정과 약속을 본다 | AGENDA 한 목록에 모든 에이전트의 항목이 에이전트 이름 라벨과 함께 보인다 |
+| 위임 중에 승인이 필요하다 | 승인 요청이 사용자가 보고 있는 세션 화면에 뜬다 |
+
+### 핵심 결과
+
+- gpt-4o-mini 와 gemma4:e4b 모두 세 번 다 JARVIS 가 KAREN 에게 위임했고, KAREN 이 도구로 답했다.
+- 여섯 번 모두 KAREN 이 도구를 먼저 부르고 도구 결과로 답했다. 요청 끝 규칙을 넣기 전의 "조회한 척" 답하는 문제가 이 조건에서는 나오지 않았다.
+- 위임 한 번에 LLM 호출이 최소 네 번 일어나, 끝까지 걸린 시간이 gemma4:e4b 에서 36.48초, gpt-4o-mini 에서 8.48초였다.
+
+## 세부 구현
+
+### 동작 흐름
+
+에이전트가 둘 이상이면 `ask_agent` 도구가 생긴다. 한 번의 위임은 다음 순서로 돈다.
+
+1. 사용자가 JARVIS 세션에 일을 말한다. JARVIS 의 LLM 은 `ask_agent` 도구 설명에 든 팀 명단을 보고 맡길 에이전트를 고른다.
+2. 받는 쪽은 에이전트 쌍마다 하나인 세션(`peer-<부른 쪽>-<받는 쪽>`)에서 요청을 받는다. 요청 끝에 규칙 한 줄(`PEER_REQUEST_RULE`)이 붙는다.
+3. 받는 쪽은 자기 도구를 부르고, 필요하면 부른 쪽에게 한 번 되묻는다.
+4. 받는 쪽 답이 `ask_agent` 의 도구 결과로 돌아오고, JARVIS 가 정리해 사용자에게 답한다.
+
+```mermaid
+sequenceDiagram
+  participant U as 사용자
+  participant J as JARVIS (default)
+  participant K as KAREN (peer-main-karen)
+  participant J2 as JARVIS (peer-karen-main)
+  U->>J: 카렌에게 AI 반도체 키워드 물어봐
+  J->>K: ask_agent(karen, ...)  "[J.A.R.V.I.S. 의 요청] ... (규칙)"
+  K->>J2: ask_agent(main, 관심 분야?)
+  J2-->>K: AI 반도체
+  K-->>J: [K.A.R.E.N. 의 답] ...
+  J-->>U: 정리
+```
+
+### 설계 결정
+
+#### 세션은 한 에이전트의 것
+
+에이전트를 고르는 단위를 세션으로 정했다. 세션은 만들 때 에이전트가 정해지고 바뀌지 않는다. 대화 중간에 에이전트를 바꾸게 하면 앞의 대화를 누구의 기억으로, 어떤 승인 규칙으로 다룰지가 모호해진다. 기존 세션은 모두 `main` 으로 이어지고, Postgres 에는 `agent_id` 칼럼을 `ADD COLUMN IF NOT EXISTS` 로 더해 재실행해도 안전하게 옮겼다.
+
+#### 맡긴 대화도 세션으로 남긴다
+
+`ask_agent` 의 받는 쪽은 에이전트 쌍마다 세션 하나(`peer-<부른 쪽>-<받는 쪽>`)에서 답한다. 맡길 때마다 새 세션을 만들면 KAREN 은 JARVIS 가 앞서 무엇을 물었는지 모른다. 쌍마다 이어지는 세션이라 앞 대화를 기억하고, HUD 세션 목록에서 그 대화를 사람이 열어 볼 수 있다. 받는 쪽 도구의 승인 요청은 받는 쪽이 아니라 부른 세션의 화면으로 보낸다. 사람이 보고 있는 곳이 그쪽이기 때문이다.
+
+#### 서로 미루기를 막는 두 규칙
+
+실서버에서 gemma4 두 에이전트가 같은 일을 서로에게 되돌려 맡기는 것을 봤다. 도구 설명에 "되돌리지 마라" 를 적어도 무시했다. 그래서 규칙을 도구 코드에 넣었다. 깊이는 A → B → A 까지만 허용하고, 받은 요청과 글자가 거의 같은 일(bigram Jaccard 0.4 이상)을 보낸 쪽에 다시 맡기면 도구가 거절한다. "관심 분야가 뭐야?" 같은 되묻기는 다른 질문이라 통과한다.
+
+### 지금 팀
 
 | id | 이름 | 맡은 일 | 메인 색 | 정의 |
 |---|---|---|---|---|
@@ -26,7 +88,7 @@ Multi agent Orchestration 은 JARVIS 와 같은 층에 목적이 다른 최상�
 
 메인 색(`palette.primary`)은 HUD 의 링, 입자 구, 패널, 에이전트 칩, 세션 표식, AGENDA 라벨에 쓰인다. 두 에이전트가 함께 일하면 입자 구가 두 메인 색(시안과 녹색)으로 섞인다. 세션을 다른 에이전트로 바꾸면 화면 전체가 약 0.9초에 걸쳐 그 에이전트 색으로 섞인다. 색을 바꾸려면 정의 파일의 `palette.primary` 를 고치고 서버를 다시 띄운다.
 
-## 정의 파일
+### 정의 파일
 
 `JARVIS_TEAM__DIR`(기본 `~/.jarvis/team`, docker 는 저장소의 `team/`)의 `<id>.yaml` 하나가 에이전트 하나다. 파일 이름이 id 이고, 비운 항목은 JARVIS 설정을 이어받는다.
 
@@ -52,7 +114,7 @@ memory:                       # 비우면 자기 기억만 읽는다
 - `memory.read` 는 층별로 더 읽을 에이전트를 적는다([Memory Management → 읽기 권한](../memory.md#읽기-권한)). 모르는 키가 있으면 그 파일을 건너뛴다
 - 사고 설정은 JARVIS 것을 같이 쓰고, proactive 피드백 학습기는 에이전트마다 따로 둔다
 
-## 무엇을 공유하나
+### 무엇을 공유하나
 
 | 항목 | 규칙 |
 |---|---|
@@ -64,7 +126,7 @@ memory:                       # 비우면 자기 기억만 읽는다
 
 범위를 도입하기 전의 옛 행은 Postgres 저장소가 열릴 때 main 행으로 채운다. 종류(kind)는 출처로 정한다. 저장소를 두 번 열어도 결과가 같다.
 
-## 세션은 한 에이전트의 것
+### 세션의 에이전트 정하기
 
 세션은 만들 때 에이전트가 정해지고 바뀌지 않는다(`jarvis_sessions.agent_id`, jsonl 은 `.meta.json` 의 `agent_id`). 에이전트가 정해지기 전에 만든 세션은 main 이다.
 
@@ -74,35 +136,21 @@ memory:                       # 비우면 자기 기억만 읽는다
 - 스케줄: 작업 YAML 의 `agent: karen` 이면 그 에이전트의 모델, 시스템 프롬프트, 기억 범위로 돈다. `/schedule` 로 만든 작업은 명령을 친 세션의 에이전트가 들어간다
 - 성찰 daemon 은 열린 세션 전부를 돈다. 정의 파일에 `proactive: false` 를 적은 에이전트의 세션은 성찰을 건너뛴다. KAREN 은 `proactive: true` 라 성찰한다
 
-## 승인 규칙은 두 겹
+### 승인 규칙은 두 겹
 
 공용 `~/.jarvis/approvals.yaml` 은 모든 에이전트가 읽고 사람이 고친다. 승인 화면의 **항상 허용** 은 그 세션 에이전트의 `~/.jarvis/approvals/<id>.yaml` 에만 쌓인다(`LayeredApprovalRules`). 에이전트를 나누기 전 `approvals.yaml` 에 쌓인 규칙은 그대로 공용이 된다. 대조 방식과 규칙 파일 형식은 [Tool & Approve System → 승인 기억](../conversation/tools-and-approval.md#승인-기억)에 있다.
 
-## AGENDA 는 모두의 것
+### AGENDA 는 모두의 것
 
 AGENDA 카드는 모든 에이전트의 스케줄과 약속을 한 목록에 보여주고, 항목마다 에이전트 이름 라벨을 그 에이전트의 primary 색으로 단다. 약속의 에이전트(`OpenLoop.agent_id`)는 약속을 감지한 세션의 에이전트이고, 스케줄의 에이전트는 작업의 `agent` 다. 약속을 닫는 판정(사고 프레임의 closed_loops, 취소하는 말)은 그 약속을 만든 세션에서만 한다.
 
-## HUD 에서 에이전트 고르기
+### HUD 에서 에이전트 고르기
 
 에이전트가 둘 이상이면 SESSIONS 카드 위에 에이전트 칩이 생긴다. 칩을 누르면 그 에이전트의 열린 세션으로 옮기고, 열린 세션이 없으면 새 세션을 만들어 옮긴다. 붙은 세션의 에이전트에 맞춰 워드마크, 명언, 링, 입자 구, 패널 색이 바뀐다. 세션 목록의 표식 색과 AGENDA 라벨 색도 에이전트의 primary 다. SYSTEM 의 TOOLS 는 그 에이전트가 쓰는 도구만 보여준다.
 
-## 에이전트끼리 대화
+### 에이전트끼리 대화
 
-에이전트가 둘 이상이면 `ask_agent` 도구가 생긴다(`app/agent_conversation.py`). 모든 에이전트가 쓰고, 정의의 `tools` 에 적지 않아도 붙는다. 도구 설명에 팀 명단(id, 이름, 설명, JARVIS 는 "팀 총괄")이 들어가 LLM 이 누구에게 맡길지 고른다.
-
-```mermaid
-sequenceDiagram
-  participant U as 사용자
-  participant J as JARVIS (default)
-  participant K as KAREN (peer-main-karen)
-  participant J2 as JARVIS (peer-karen-main)
-  U->>J: 카렌에게 AI 반도체 키워드 물어봐
-  J->>K: ask_agent(karen, ...)  "[J.A.R.V.I.S. 의 요청] ... (규칙)"
-  K->>J2: ask_agent(main, 관심 분야?)
-  J2-->>K: AI 반도체
-  K-->>J: [K.A.R.E.N. 의 답] ...
-  J-->>U: 정리
-```
+`ask_agent` 는 `app/agent_conversation.py` 에 있다. 모든 에이전트가 쓰고, 정의의 `tools` 에 적지 않아도 붙는다. 도구 설명에 팀 명단(id, 이름, 설명, JARVIS 는 "팀 총괄")이 들어가 LLM 이 누구에게 맡길지 고른다.
 
 - 받는 쪽은 에이전트 쌍마다 세션 하나(`peer-<부른 쪽>-<받는 쪽>`)에서 답한다. 같은 쌍은 앞 대화를 이어 가고, 그 세션은 HUD 세션 목록에 보인다
 - 받는 쪽 세션은 사용자를 부른 쪽 범위에서 받는다. 기억은 받는 쪽 에이전트 범위로 남는다
@@ -117,40 +165,18 @@ sequenceDiagram
 요청 끝 규칙과 되돌리기 금지는 실서버에서 관찰한 모델 한계 때문에 넣었다. gemma4:e4b 는 위임받은 세션에서만 도구를 부르지 않고 조회한 척 답했다. 또 도구 설명의 지시를 무시하고 받은 일을 그대로 되돌려 두 에이전트가 서로 미뤘다.
 :::
 
-## 함께 일할 때의 구체
+### 함께 일할 때의 구체
 
 서버는 세션마다 루프의 시작과 끝을 세어 일하는 에이전트가 바뀔 때 `agent_activity{active}` 를 열린 HUD 전부에 보낸다(`ui/web/agent_activity.py`). 둘 이상이 일하면 HUD 구체의 입자가 두 에이전트의 primary 로 흐르는 띠처럼 섞이고, 일하는 에이전트 칩이 빛난다. 끝나면 지금 에이전트 색으로 돌아온다.
 
-## 성능 실험
+### 한계
 
-### JARVIS 가 KAREN 에게 맡기기
+- 세션의 에이전트는 만들 때 정해지고 바꿀 수 없다. 다른 에이전트와 대화하려면 그 에이전트의 세션으로 옮긴다
+- 받는 쪽이 같은 쌍의 다른 질문에 답하는 중이면 새 요청은 오류 결과가 되고, 300초 안에 답이 없으면 시간 초과가 된다
+- 위임 한 번에 LLM 호출이 최소 네 번 일어나, 로컬 모델에서는 30초를 넘는다
+- 메인 색을 바꾸면 서버를 다시 띄워야 반영된다
 
-새 JARVIS 세션에 "KAREN 에게 서울 SH 청약 공고 최근 것 하나만 찾아 달라고 맡겨 줘" 를 보내, JARVIS 가 `ask_agent` 로 맡기는지, KAREN 이 자기 도구를 부르는지, 끝까지 얼마나 걸리는지 쟀다. 두 에이전트가 같은 모델을 쓴다. 재현: `uv run python -m scripts.experiments.agent_turns delegate --n 3`.
-
-<figure className="paper-fig">
-  <FigureExpTeam />
-  <figcaption><b>Figure 2.</b> 두 모델 모두 세 번 다 위임하고 KAREN 이 도구로 답했다. 위임 한 번에 LLM 호출이 최소 네 번 일어나 로컬 모델에서는 30초를 넘는다.</figcaption>
-</figure>
-
-- KAREN 의 도구 호출은 스크립트가 아니라 받는 쪽 세션(`peer-main-karen`) 기록을 직접 열어 확인했다. 여섯 번 모두 KAREN 이 도구를 먼저 부르고 도구 결과로 답했다. 요청 끝 규칙(`PEER_REQUEST_RULE`)을 넣기 전, gemma4:e4b 가 위임받은 세션에서 도구 없이 "조회한 척" 답하던 문제가 이 조건에서는 나오지 않았다
-- 같은 기록에서, 한 번은 KAREN 이 "청약" 이라는 제목 키워드로 걸러 결과가 0건이었고, 지어내지 않고 "조건에 맞는 공고가 없다" 고 답했다
-- LLM 호출 네 번은 JARVIS 판단, KAREN 판단, KAREN 정리, JARVIS 정리다
-
-## 설계 노트
-
-### 세션은 한 에이전트의 것
-
-에이전트를 고르는 단위를 세션으로 정했다. 세션은 만들 때 에이전트가 정해지고 바뀌지 않는다. 대화 중간에 에이전트를 바꾸게 하면 앞의 대화를 누구의 기억으로, 어떤 승인 규칙으로 다룰지가 모호해진다. 기존 세션은 모두 `main` 으로 이어지고, Postgres 에는 `agent_id` 칼럼을 `ADD COLUMN IF NOT EXISTS` 로 더해 재실행해도 안전하게 옮겼다.
-
-### 맡긴 대화도 세션으로 남긴다
-
-`ask_agent` 의 받는 쪽은 에이전트 쌍마다 세션 하나(`peer-<부른 쪽>-<받는 쪽>`)에서 답한다. 맡길 때마다 새 세션을 만들면 KAREN 은 JARVIS 가 앞서 무엇을 물었는지 모른다. 쌍마다 이어지는 세션이라 앞 대화를 기억하고, HUD 세션 목록에서 그 대화를 사람이 열어 볼 수 있다. 받는 쪽 도구의 승인 요청은 받는 쪽이 아니라 부른 세션의 화면으로 보낸다. 사람이 보고 있는 곳이 그쪽이기 때문이다.
-
-### 서로 미루기를 막는 두 규칙
-
-실서버에서 gemma4 두 에이전트가 같은 일을 서로에게 되돌려 맡기는 것을 봤다. 도구 설명에 "되돌리지 마라" 를 적어도 무시했다. 그래서 규칙을 도구 코드에 넣었다. 깊이는 A → B → A 까지만 허용하고, 받은 요청과 글자가 거의 같은 일(bigram Jaccard 0.4 이상)을 보낸 쪽에 다시 맡기면 도구가 거절한다. "관심 분야가 뭐야?" 같은 되묻기는 다른 질문이라 통과한다.
-
-## 구현 위치
+### 구현 위치
 
 왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
 
@@ -169,3 +195,25 @@ flowchart LR
 
 - 핵심 모듈: `app/agent_registry.py`, `app/agent_conversation.py`, `ui/web/agent_activity.py`
 - 저장: `team/`, `jarvis_sessions.agent_id`, `approvals/<agent_id>.yaml`
+
+## 성능 비교실험
+
+### JARVIS 가 KAREN 에게 맡기기
+
+- **질문**: JARVIS 가 `ask_agent` 로 맡기는지, KAREN 이 자기 도구를 부르는지, 끝까지 얼마나 걸리는지.
+- **설정**: 새 JARVIS 세션에 "KAREN 에게 서울 SH 청약 공고 최근 것 하나만 찾아 달라고 맡겨 줘" 를 보낸다. 두 에이전트가 같은 모델을 쓰고, 모델마다 세 번 돌린다.
+- **결과**:
+
+<figure className="paper-fig">
+  <FigureExpTeam />
+  <figcaption><b>Figure 2.</b> 두 모델 모두 세 번 다 위임하고 KAREN 이 도구로 답했다. 위임 한 번에 LLM 호출이 최소 네 번 일어나 로컬 모델에서는 30초를 넘는다.</figcaption>
+</figure>
+
+| 모델(두 에이전트 공통) | 끝까지 걸린 시간(중앙값) | `ask_agent` 사용 | KAREN 의 `sh_notice` 호출 |
+|---|---|---|---|
+| gemma4:e4b | 36.48초 | 3/3 | 3/3 |
+| gpt-4o-mini | 8.48초 | 3/3 | 3/3 |
+
+- **해석**: KAREN 의 도구 호출은 스크립트가 아니라 받는 쪽 세션(`peer-main-karen`) 기록을 직접 열어 확인했다. 여섯 번 모두 KAREN 이 도구를 먼저 부르고 도구 결과로 답했다. 요청 끝 규칙(`PEER_REQUEST_RULE`)을 넣기 전, gemma4:e4b 가 위임받은 세션에서 도구 없이 "조회한 척" 답하던 문제가 이 조건에서는 나오지 않았다. 같은 기록에서, 한 번은 KAREN 이 "청약" 이라는 제목 키워드로 걸러 결과가 0건이었고, 지어내지 않고 "조건에 맞는 공고가 없다" 고 답했다. LLM 호출 네 번은 JARVIS 판단, KAREN 판단, KAREN 정리, JARVIS 정리다.
+- **한계**: 질문 하나를 모델마다 세 번만 돌렸다. 되묻기, 되돌리기 거절, 시간 초과 경로는 이 실험에 들어 있지 않다.
+- **재현**: `uv run python -m scripts.experiments.agent_turns delegate --n 3`

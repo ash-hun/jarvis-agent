@@ -151,15 +151,17 @@ body {
   border-bottom: 1px solid var(--jv-hairline);
 }
 
-/* 금색(accent)은 "지금 여기" 두 곳에만 쓴다: h2 앞 눈금과 현재 목차 항목 */
+/* 금색(accent)은 "지금 여기" 두 곳에만 쓴다: h2 앞 세로 눈금과 현재 목차 항목.
+   기울인 사각형은 글자 기준선과 어긋나 보여 글자 높이에 맞춘 세로 막대로 둔다 */
 .markdown h2::before {
   content: '';
   display: inline-block;
-  width: 0.5rem;
-  height: 0.5rem;
-  margin-right: 0.6rem;
-  border: 1px solid var(--jv-accent);
-  transform: rotate(45deg) translateY(-0.12rem);
+  width: 3px;
+  height: 0.9em;
+  margin-right: 0.55rem;
+  border-radius: 2px;
+  background: var(--jv-accent);
+  vertical-align: -0.08em;
 }
 
 .table-of-contents__link--active {
@@ -364,10 +366,25 @@ pre,
   --pf-muted: #8a979d;
   --pf-panel-solid: #f5f9fa;
   margin: 0 0 2rem;
-  padding: 1rem 1rem 0.75rem;
+  padding: 0.75rem 0.6rem 0.75rem;
   border: 1px solid var(--jv-hairline);
   border-radius: 10px;
   background: var(--jv-surface);
+}
+
+/* 목차가 보이는 넓은 화면에서는 본문 칸 양옆의 여백(왼쪽 사이드바 쪽 17px, 목차 쪽 34px)까지 그림을 넓힌다.
+   그 여백 안에서만 넓히므로 가로 스크롤이 생기지 않는다 */
+@media (min-width: 997px) {
+  .paper-fig {
+    margin-left: -12px;
+    margin-right: -26px;
+  }
+}
+
+@media (max-width: 600px) {
+  .paper-fig {
+    padding: 0.5rem 0.35rem 0.6rem;
+  }
 }
 
 [data-theme='dark'] .paper-fig {
@@ -397,39 +414,41 @@ pre,
 }
 
 .pf-panel { fill: var(--pf-panel); }
-.pf-plabel { fill: var(--pf-ink-2); font-size: 11.5px; font-weight: 700; }
+.pf-plabel { fill: var(--pf-ink-2); font-size: 13.5px; font-weight: 700; }
 .pf-box { fill: var(--pf-surface); stroke: var(--pf-ink-2); stroke-width: 1; }
-.pf-box--io { stroke: var(--pf-ink); }
-.pf-box--accent { fill: var(--pf-accent-fill); stroke: var(--pf-accent); stroke-width: 1.4; }
+.pf-box--io { stroke: var(--pf-ink); stroke-width: 1.3; }
+.pf-box--accent { fill: var(--pf-accent-fill); stroke: var(--pf-accent); stroke-width: 1.8; }
 .pf-box--deny { fill: var(--pf-deny-fill); stroke: var(--pf-deny); }
 .pf-box--muted { stroke: var(--pf-muted); stroke-dasharray: 3 3; }
-.pf-gate { fill: var(--pf-surface); stroke: var(--pf-accent); stroke-width: 1.2; }
+.pf-gate { fill: var(--pf-surface); stroke: var(--pf-accent); stroke-width: 1.3; }
 .pf-store { fill: var(--pf-surface); stroke: var(--pf-ink-2); stroke-width: 1; }
-.pf-t { fill: var(--pf-ink); font-size: 13px; font-weight: 600; }
+.pf-t { fill: var(--pf-ink); font-size: 15px; font-weight: 600; }
+.pf-tcode { font-family: var(--ifm-font-family-monospace); font-size: 13px; }
 .pf-t--deny { fill: var(--pf-deny); }
 .pf-t--accent { fill: var(--pf-accent); }
-.pf-s { fill: var(--pf-ink-2); font-size: 11px; }
-.pf-code { fill: var(--pf-ink-2); font-size: 10.5px; font-family: var(--ifm-font-family-monospace); }
-.pf-note { fill: var(--pf-ink-2); font-size: 10.5px; font-style: italic; }
-.pf-edge { fill: none; stroke: var(--pf-ink-2); stroke-width: 1.1; }
-.pf-edge--accent { stroke: var(--pf-accent); stroke-width: 1.6; }
-.pf-edge--deny { stroke: var(--pf-deny); stroke-dasharray: 4 3; }
-.pf-edge--muted { stroke: var(--pf-muted); stroke-dasharray: 4 3; }
+.pf-s { fill: var(--pf-ink-2); font-size: 12.5px; }
+.pf-code { fill: var(--pf-ink-2); font-size: 12px; font-family: var(--ifm-font-family-monospace); }
+.pf-note { fill: var(--pf-ink-2); font-size: 12.5px; font-style: italic; }
+.pf-legend { fill: var(--pf-ink-2); font-size: 12.5px; }
+.pf-edge { fill: none; stroke: var(--pf-ink-2); stroke-width: 1.2; }
+.pf-edge--accent { stroke: var(--pf-accent); stroke-width: 2; }
+.pf-edge--deny { stroke: var(--pf-deny); stroke-width: 1.3; stroke-dasharray: 5 3; }
+.pf-edge--muted { stroke: var(--pf-muted); stroke-width: 1.3; stroke-dasharray: 5 3; }
 .pf-head { fill: var(--pf-ink-2); }
 .pf-head--accent { fill: var(--pf-accent); }
 .pf-head--deny { fill: var(--pf-deny); }
 .pf-head--muted { fill: var(--pf-muted); }
-.pf-elabel { fill: var(--pf-ink-2); font-size: 10.5px; paint-order: stroke; stroke: var(--pf-panel-solid); stroke-width: 4px; stroke-linejoin: round; }
+.pf-elabel { fill: var(--pf-ink-2); font-size: 12.5px; paint-order: stroke; stroke: var(--pf-panel-solid); stroke-width: 4px; stroke-linejoin: round; }
 .pf-elabel--deny { fill: var(--pf-deny); }
 .pf-elabel--accent { fill: var(--pf-accent); }
 .pf-badge { fill: var(--pf-accent); }
-.pf-badge-t { fill: var(--pf-surface); font-size: 10.5px; font-weight: 700; }
+.pf-badge-t { fill: var(--pf-surface); font-size: 12px; font-weight: 700; }
 .pf-box--jarvis { fill: color-mix(in srgb, var(--jv-agent-jarvis) 10%, var(--pf-surface)); stroke: var(--jv-agent-jarvis); stroke-width: 1.4; }
 .pf-box--karen { fill: color-mix(in srgb, var(--jv-agent-karen) 12%, var(--pf-surface)); stroke: var(--jv-agent-karen); stroke-width: 1.4; }
-.pf-chip { fill: var(--pf-ink); font-size: 10.5px; font-weight: 700; font-family: var(--ifm-font-family-monospace); }
+.pf-chip { fill: var(--pf-ink); font-size: 12.5px; font-weight: 700; font-family: var(--ifm-font-family-monospace); }
 .pf-bar { fill: var(--pf-surface); stroke: var(--pf-ink-2); stroke-width: 1; }
 .pf-bar--accent { fill: var(--pf-accent-fill); stroke: var(--pf-accent); }
-.pf-bar-t { fill: var(--pf-ink); font-size: 10.5px; }
+.pf-bar-t { fill: var(--pf-ink); font-size: 12.5px; }
 .pf-bar-t--accent { fill: var(--pf-accent); font-weight: 600; }
 /* 실험 그래프. 세 모델을 늘 같은 색으로 구분한다(로컬 e2b, 로컬 e4b, gpt-4o-mini) */
 :root { --pf-s1: #8fd0df; --pf-s2: #0e7490; --pf-s3: #d08a3e; --pf-grid: rgba(14, 116, 144, 0.14); }
@@ -439,9 +458,11 @@ pre,
 .pf-s3 { fill: var(--pf-s3); }
 .pf-grid { stroke: var(--pf-grid); stroke-width: 1; }
 .pf-ref { stroke: var(--pf-deny); stroke-width: 1.2; stroke-dasharray: 4 3; }
-.pf-ref-t { fill: var(--pf-deny); font-size: 10px; }
-.pf-val { fill: var(--pf-ink); font-size: 10.5px; font-variant-numeric: tabular-nums; }
-.pf-axis { fill: var(--pf-ink-2); font-size: 10px; font-variant-numeric: tabular-nums; }
+.pf-ref-t { fill: var(--pf-deny); font-size: 13px; }
+.pf-val { fill: var(--pf-ink); font-size: 13px; font-variant-numeric: tabular-nums; }
+.pf-axis { fill: var(--pf-ink-2); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.pf-axis-title { fill: var(--pf-ink-2); font-size: 13px; font-weight: 600; }
+.pf-lab { fill: var(--pf-ink-2); font-size: 13.5px; }
 .pf-dot-same { fill: var(--pf-s2); }
 .pf-dot-diff { fill: var(--pf-s3); }
 /* 준수표: 전부 지킴, 일부, 하나도 못 지킴. 모델 색과 겹치지 않게 따로 둔다 */
@@ -460,4 +481,4 @@ pre,
 .pf-hit { fill: transparent; }
 .pf-hero { fill: var(--pf-ink); font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .pf-mark { stroke: var(--pf-muted); stroke-width: 1; stroke-dasharray: 3 3; }
-.pf-mark-t { fill: var(--pf-ink-2); font-size: 10px; }
+.pf-mark-t { fill: var(--pf-ink-2); font-size: 13px; }

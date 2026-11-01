@@ -3,6 +3,7 @@ sidebar_position: 7
 title: Extension
 ---
 
+import InfoExtension from '@site/src/figures/info-extension.svg';
 import FigureExtension from '@site/src/figures/extension.svg';
 import FigureExpExtension from '@site/src/figures/exp-extension.svg';
 
@@ -10,9 +11,8 @@ import FigureExpExtension from '@site/src/figures/exp-extension.svg';
 
 JARVIS 를 쓰는 사람이 코드를 고치지 않고 자기 도구, 명령, 훅, 에이전트를 더하게 한다. `~/.jarvis/` 아래 폴더에 파일을 놓으면 JARVIS 가 읽어 자기 기능으로 쓴다.
 
-<figure className="paper-fig">
-  <FigureExtension />
-  <figcaption><b>Figure 1.</b> (a) ~/.jarvis 아래에 놓는 파일과 설정. (b) 기동 때 읽혀 도구 레지스트리, 슬래시 커맨드, 서브 에이전트 도구, 최상위 에이전트, 외부 이벤트 소스가 된다. 승인된 절차는 procedure_name 도구와 /name 스킬이 되고, 플러그인은 에이전트 루프의 네 훅에 걸린다. 기동 때 있던 tools, skills, plugins 디렉터리의 파일은 바꾸면 재시작 없이 다시 읽힌다. 새로 만든 디렉터리와 에이전트 정의는 재시작해야 반영된다.</figcaption>
+<figure className="info-fig">
+  <InfoExtension />
 </figure>
 
 ## 서비스 기능
@@ -43,6 +43,11 @@ JARVIS 를 쓰는 사람이 코드를 고치지 않고 자기 도구, 명령, �
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureExtension />
+  <figcaption><b>Figure 1.</b> (a) ~/.jarvis 아래에 놓는 파일과 설정. (b) 기동 때 읽혀 도구 레지스트리, 슬래시 커맨드, 서브 에이전트 도구, 최상위 에이전트, 외부 이벤트 소스가 된다. 승인된 절차는 procedure_name 도구와 /name 스킬이 되고, 플러그인은 에이전트 루프의 네 훅에 걸린다. 기동 때 있던 tools, skills, plugins 디렉터리의 파일은 바꾸면 재시작 없이 다시 읽힌다. 새로 만든 디렉터리와 에이전트 정의는 재시작해야 반영된다.</figcaption>
+</figure>
 
 도구, 스킬, 플러그인, 에이전트 정의는 기동할 때 읽는다. `JARVIS_PLUGIN__WATCH_FILES`(기본 켜짐)가 켜져 있으면 기동 때 있던 도구, 스킬, 플러그인 디렉터리를 지켜보다(`app/extension_watcher.py`) 바뀐 디렉터리만 다시 읽는다. 같은 이름은 덮어써서 몇 번 다시 읽어도 하나다. 파일을 지운 확장, 기동 뒤에 만든 디렉터리, 에이전트 정의는 재시작해야 반영된다.
 

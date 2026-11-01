@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 594" class="if-svg" role="img" aria-label="Focus Mode: 작업 하나에 sub-agent 넷을 붙여 매 지시를 분석하고, 조사하고, 기록하고, 진행률을 매긴다">
+<defs><marker id="info-focus-mode-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="if-head" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="if-title" x="287.8" y="14" width="184.3" height="50" rx="12"/>
+<text class="if-title-t" x="380.0" y="47.0" text-anchor="middle">Focus Mode</text>
+<text class="if-tagline" x="380.0" y="88.0" text-anchor="middle">작업 하나에 sub-agent 넷을 붙여 매 지시를 분석하고, 조사하고, 기록하고, 진행률을 매긴다</text>
+<circle class="if-dot" cx="380.0" cy="104.0" r="4"/>
+<path class="if-edge" d="M380.0,104.0 L380.0,122.0"/>
+<path class="if-edge" d="M80.0,136.0 Q80.0,122.0 94.0,122.0 L666.0,122.0 Q680.0,122.0 680.0,136.0"/>
+<path class="if-edge" d="M80.0,136.0 L80.0,144.0"/>
+<circle class="if-dot" cx="80.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="80.0" cy="183.0" r="35"/>
+<circle class="if-c-purple" cx="80.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(66.0,169.0) scale(1.167)"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/><path d="m16 16-1.9-1.9"/></g>
+<text class="if-feature" x="80.0" y="238.0" text-anchor="middle">정보 분석</text>
+<text class="if-feature-sub" x="80.0" y="256.0" text-anchor="middle">지시마다 다섯 항목</text>
+<path class="if-edge" d="M200.0,122.0 L200.0,144.0"/>
+<circle class="if-dot" cx="200.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="200.0" cy="183.0" r="35"/>
+<circle class="if-c-blue" cx="200.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(186.0,169.0) scale(1.167)"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></g>
+<text class="if-feature" x="200.0" y="238.0" text-anchor="middle">레퍼런스 조사</text>
+<text class="if-feature-sub" x="200.0" y="256.0" text-anchor="middle">선례 3개와 출처</text>
+<path class="if-edge" d="M320.0,122.0 L320.0,144.0"/>
+<circle class="if-dot" cx="320.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="320.0" cy="183.0" r="35"/>
+<circle class="if-c-teal" cx="320.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(306.0,169.0) scale(1.167)"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></g>
+<text class="if-feature" x="320.0" y="238.0" text-anchor="middle">작업 기록</text>
+<text class="if-feature-sub" x="320.0" y="256.0" text-anchor="middle">3인칭 서기</text>
+<path class="if-edge" d="M440.0,122.0 L440.0,144.0"/>
+<circle class="if-dot" cx="440.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="440.0" cy="183.0" r="35"/>
+<circle class="if-c-pink" cx="440.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(426.0,169.0) scale(1.167)"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></g>
+<text class="if-feature" x="440.0" y="238.0" text-anchor="middle">진행 현황</text>
+<text class="if-feature-sub" x="440.0" y="256.0" text-anchor="middle">3~8단계, 예상 시간</text>
+<path class="if-edge" d="M560.0,122.0 L560.0,144.0"/>
+<circle class="if-dot" cx="560.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="560.0" cy="183.0" r="35"/>
+<circle class="if-c-green" cx="560.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(546.0,169.0) scale(1.167)"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></g>
+<text class="if-feature" x="560.0" y="238.0" text-anchor="middle">네 영역 화면</text>
+<text class="if-feature-sub" x="560.0" y="256.0" text-anchor="middle">구체 둘레에 펼침</text>
+<path class="if-edge" d="M680.0,136.0 L680.0,144.0"/>
+<circle class="if-dot" cx="680.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="680.0" cy="183.0" r="35"/>
+<circle class="if-c-orange" cx="680.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(666.0,169.0) scale(1.167)"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></g>
+<text class="if-feature" x="680.0" y="238.0" text-anchor="middle">재시작 복구</text>
+<text class="if-feature-sub" x="680.0" y="256.0" text-anchor="middle">기록 파일이 정본</text>
+<rect class="if-bar" x="20" y="288" width="720" height="34" rx="8"/>
+<text class="if-bar-t" x="380.0" y="310.5" text-anchor="middle">처리 흐름</text>
+<rect class="if-t-blue if-s-blue" x="20.0" y="348.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-blue" x="20.0" y="348.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-blue" x="20.0" y="370.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(48.2,356.0) scale(0.625)"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></g>
+<text class="if-card-t" x="104.8" y="367.0" text-anchor="middle">/focus 작업</text>
+<text class="if-card-b" x="95.8" y="397.0" text-anchor="middle">음성 명령도 같다</text>
+<path class="if-edge" d="M171.5,377.5 L207.5,377.5" marker-end="url(#info-focus-mode-arrow)"/>
+<rect class="if-decision if-s-slate" x="209.5" y="358.0" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="285.2" y="378.0" text-anchor="middle">다른 작업이 없나?</text>
+<path class="if-edge" d="M361.0,377.5 L397.0,377.5" marker-end="url(#info-focus-mode-arrow)"/>
+<text class="if-yes" x="380.0" y="370.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M285.2,397.0 L285.2,425.0" marker-end="url(#info-focus-mode-arrow)"/>
+<text class="if-no" x="293.2" y="416.0" text-anchor="start">아니오</text>
+<rect class="if-t-red if-s-red if-chip" x="219.5" y="427.0" width="131.5" height="44.0" rx="7.0"/>
+<text class="if-chip-t" x="285.2" y="446.0" text-anchor="middle">지금 작업을 알리고</text>
+<text class="if-chip-t" x="285.2" y="462.0" text-anchor="middle">거절한다</text>
+<rect class="if-t-purple if-s-purple" x="399.0" y="348.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-purple" x="399.0" y="348.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-purple" x="399.0" y="370.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(422.9,356.0) scale(0.625)"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/><path d="m16 16-1.9-1.9"/></g>
+<text class="if-card-t" x="483.8" y="367.0" text-anchor="middle">첫 분석과 계획</text>
+<text class="if-card-b" x="474.8" y="397.0" text-anchor="middle">30초까지 기다린다</text>
+<path class="if-edge" d="M550.5,377.5 L586.5,377.5" marker-end="url(#info-focus-mode-arrow)"/>
+<rect class="if-t-blue if-s-blue" x="588.5" y="340.0" width="151.5" height="75.0" rx="9.0"/>
+<rect class="if-c-blue" x="588.5" y="340.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-blue" x="588.5" y="362.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(626.8,348.0) scale(0.625)"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></g>
+<text class="if-card-t" x="673.2" y="359.0" text-anchor="middle">지시 받기</text>
+<text class="if-card-b" x="664.2" y="389.0" text-anchor="middle">분석이 같이 돌고</text>
+<text class="if-card-b" x="664.2" y="405.0" text-anchor="middle">필요하면 조사</text>
+<path class="if-edge" d="M664.2,415.0 L664.2,499.0 L95.8,499.0 L95.8,515.0" marker-end="url(#info-focus-mode-arrow)"/>
+<rect class="if-t-purple if-s-purple" x="20.0" y="515.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-purple" x="20.0" y="515.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-purple" x="20.0" y="537.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(58.3,523.0) scale(0.625)"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></g>
+<text class="if-card-t" x="104.8" y="534.0" text-anchor="middle">메인 응답</text>
+<text class="if-card-b" x="95.8" y="564.0" text-anchor="middle">직전 분석과 조사 요약</text>
+<path class="if-edge" d="M171.5,544.5 L207.5,544.5" marker-end="url(#info-focus-mode-arrow)"/>
+<rect class="if-t-teal if-s-teal" x="209.5" y="515.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-teal" x="209.5" y="515.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-teal" x="209.5" y="537.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(241.5,523.0) scale(0.625)"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></g>
+<text class="if-card-t" x="294.2" y="534.0" text-anchor="middle">기록과 진행</text>
+<text class="if-card-b" x="285.2" y="564.0" text-anchor="middle">응답 뒤 서기와 진행률</text>
+<path class="if-edge" d="M361.0,544.5 L397.0,544.5" marker-end="url(#info-focus-mode-arrow)"/>
+<rect class="if-t-green if-s-green if-end" x="399.0" y="515.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-green" x="399.0" y="515.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-green" x="399.0" y="537.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(437.3,523.0) scale(0.625)"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></g>
+<text class="if-card-t" x="483.8" y="534.0" text-anchor="middle">화면 갱신</text>
+<text class="if-card-b" x="474.8" y="564.0" text-anchor="middle">네 영역에 전체 상태</text>
+</svg>

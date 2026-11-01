@@ -3,6 +3,7 @@ sidebar_position: 5
 title: Scheduling
 ---
 
+import InfoScheduling from '@site/src/figures/info-scheduling.svg';
 import FigureScheduling from '@site/src/figures/scheduling.svg';
 import FigureExpScheduling from '@site/src/figures/exp-scheduling.svg';
 
@@ -10,9 +11,8 @@ import FigureExpScheduling from '@site/src/figures/exp-scheduling.svg';
 
 JARVIS 는 정한 시각에 알림이나 작업을 돌린다. 사용자가 화면 앞에 없어도 결과가 대화나 알림으로 닿게 해서, "내일 9시에 알려줘" 를 잊지 않고 지키게 한다.
 
-<figure className="paper-fig">
-  <FigureScheduling />
-  <figcaption><b>Figure 1.</b> /schedule 문장(1)은 한 번(…에) 또는 마감까지 반복(…까지)으로 해석되어 작업 파일로 남는다(2). 대화 중에는 schedule 도구가 같은 길로 들어온다. cron 과 tool 작업은 파일에 직접 쓰고, goal 작업은 /goal 이 만든다. SchedulerService 가 10초마다 깨어나(3) 시각이 된 작업을 종류대로 처리한다. reminder 는 문장을 그대로, task 는 승인 없는 새 세션에서 실행한 답을, tool 은 도구 글을, goal 은 목표 한 차례의 결과를 낸다. `deliver: conversation` 이면 그 에이전트의 대화에 에이전트의 말로 건네고(4), 건네지 못하면 알림으로 보낸다. 알림은 열린 Web 연결 전부로 가고, 열린 연결이 없으면 놓친 알림으로 쌓이며, Web Push, Slack, Discord 가 설정돼 있으면 거기로도 간다.</figcaption>
+<figure className="info-fig">
+  <InfoScheduling />
 </figure>
 
 ## 서비스 기능
@@ -47,6 +47,11 @@ JARVIS 는 정한 시각에 알림이나 작업을 돌린다. 사용자가 화�
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureScheduling />
+  <figcaption><b>Figure 1.</b> /schedule 문장(1)은 한 번(…에) 또는 마감까지 반복(…까지)으로 해석되어 작업 파일로 남는다(2). 대화 중에는 schedule 도구가 같은 길로 들어온다. cron 과 tool 작업은 파일에 직접 쓰고, goal 작업은 /goal 이 만든다. SchedulerService 가 10초마다 깨어나(3) 시각이 된 작업을 종류대로 처리한다. reminder 는 문장을 그대로, task 는 승인 없는 새 세션에서 실행한 답을, tool 은 도구 글을, goal 은 목표 한 차례의 결과를 낸다. `deliver: conversation` 이면 그 에이전트의 대화에 에이전트의 말로 건네고(4), 건네지 못하면 알림으로 보낸다. 알림은 열린 Web 연결 전부로 가고, 열린 연결이 없으면 놓친 알림으로 쌓이며, Web Push, Slack, Discord 가 설정돼 있으면 거기로도 간다.</figcaption>
+</figure>
 
 ```mermaid
 sequenceDiagram

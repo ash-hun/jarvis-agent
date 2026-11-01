@@ -3,6 +3,7 @@ sidebar_position: 3
 title: Open Loop
 ---
 
+import InfoOpenLoop from '@site/src/figures/info-open-loop.svg';
 import FigureOpenLoop from '@site/src/figures/open-loop.svg';
 import FigureExpOpenLoop from '@site/src/figures/exp-open-loop.svg';
 
@@ -10,12 +11,11 @@ import FigureExpOpenLoop from '@site/src/figures/exp-open-loop.svg';
 
 JARVIS 는 대화에서 흘린 약속(open loop)과 미완 작업을 기억했다가 성찰 때 다시 보고, Web HUD 의 AGENDA 카드에 보여 준다. 사용자가 따로 할 일 목록을 적지 않아도 "내일까지 보내야 해" 같은 말이 챙길 일로 남는다.
 
-<figure className="paper-fig">
-  <FigureOpenLoop />
-  <figcaption><b>Figure 1.</b> (a) AGENDA 판단이 적은 약속은 입력 근거 검사(1), 같은 판단이 닫으라고 한 약속인지 검사(2), 같은 약속 검사(3)를 지나야 새로 저장된다. KAREN 의 `housing_budget` 은 추천 1순위 공고의 마감 약속을 이 검사 없이 바로 남기고, 사용자와 나눈 대화 세션에서만 남긴다. 같은 약속 판정의 임베딩은 저장소가 Ollama bge-m3 로 계산한다. (b) 열린 약속은 AGENDA 판단의 closed_loops 나 ✓ 로 done, 거두는 말이나 ✕ 로 dismissed, 기한이 지나면 expired 로 닫힌다. 닫힌 약속은 ↺ 로 다시 open 으로 되살린다.</figcaption>
-</figure>
-
 정한 시각에 도는 일은 [Scheduling](./scheduling.md), MCP 도구로 가져오는 외부 이벤트는 [MCP Events](./mcp.md) 에서 다룬다.
+
+<figure className="info-fig">
+  <InfoOpenLoop />
+</figure>
 
 ## 서비스 기능
 
@@ -42,6 +42,11 @@ JARVIS 는 대화에서 흘린 약속(open loop)과 미완 작업을 기억했�
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureOpenLoop />
+  <figcaption><b>Figure 1.</b> (a) AGENDA 판단이 적은 약속은 입력 근거 검사(1), 같은 판단이 닫으라고 한 약속인지 검사(2), 같은 약속 검사(3)를 지나야 새로 저장된다. KAREN 의 `housing_budget` 은 추천 1순위 공고의 마감 약속을 이 검사 없이 바로 남기고, 사용자와 나눈 대화 세션에서만 남긴다. 같은 약속 판정의 임베딩은 저장소가 Ollama bge-m3 로 계산한다. (b) 열린 약속은 AGENDA 판단의 closed_loops 나 ✓ 로 done, 거두는 말이나 ✕ 로 dismissed, 기한이 지나면 expired 로 닫힌다. 닫힌 약속은 ↺ 로 다시 open 으로 되살린다.</figcaption>
+</figure>
 
 ```mermaid
 flowchart LR

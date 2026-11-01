@@ -1,0 +1,107 @@
+{
+  "name": "architecture",
+  "title": "Architecture",
+  "tagline": "층을 한 방향으로 쌓아, 터미널과 브라우저가 같은 에이전트를 쓴다",
+  "features": [
+    {
+      "icon": "layers",
+      "label": "한 방향 의존",
+      "sub": "아래층이 위층 모름",
+      "color": "slate"
+    },
+    {
+      "icon": "monitor-smartphone",
+      "label": "두 화면, 한 배선",
+      "sub": "TUI, Web 공통",
+      "color": "blue"
+    },
+    {
+      "icon": "users",
+      "label": "에이전트 늘리기",
+      "sub": "정의 파일 하나씩",
+      "color": "purple"
+    },
+    {
+      "icon": "sliders-horizontal",
+      "label": "설정으로 교체",
+      "sub": "프로바이더, 저장소",
+      "color": "pink"
+    },
+    {
+      "icon": "shield-check",
+      "label": "보안 순서 고정",
+      "sub": "검증, 인증, 정책",
+      "color": "red"
+    },
+    {
+      "icon": "rotate-ccw",
+      "label": "재실행 복구",
+      "sub": "두 번 해도 같은 상태",
+      "color": "orange"
+    }
+  ],
+  "flow_title": "요청 한 번",
+  "per_row": 3,
+  "flow": [
+    {
+      "type": "step",
+      "icon": "message-circle",
+      "title": "화면에서 입력",
+      "body": "TUI 나 Web HUD",
+      "color": "blue"
+    },
+    {
+      "type": "decision",
+      "q": "보안 검사를 지났나?",
+      "no": "검증, 인증, 정책에서 막는다"
+    },
+    {
+      "type": "step",
+      "icon": "brain",
+      "title": "사고 엔진",
+      "body": "before, race, after 또는 router",
+      "color": "purple"
+    },
+    {
+      "type": "step",
+      "icon": "archive",
+      "title": "기억 주입",
+      "body": "최근 3턴 앞에 회상 블록",
+      "color": "teal"
+    },
+    {
+      "type": "step",
+      "icon": "sparkles",
+      "title": "LLM 스트림",
+      "body": "텍스트 또는 도구 호출",
+      "color": "purple"
+    },
+    {
+      "type": "decision",
+      "q": "도구가 허용됐나?",
+      "no": "거부를 결과로 돌려주고 계속",
+      "no_color": "orange"
+    },
+    {
+      "type": "step",
+      "icon": "wrench",
+      "title": "도구 실행",
+      "body": "결과를 다시 LLM 에, 최대 20턴",
+      "color": "red"
+    },
+    {
+      "type": "step",
+      "icon": "save",
+      "title": "기록",
+      "body": "세션 저장, 일화 기억 쓰기",
+      "color": "teal"
+    },
+    {
+      "type": "end",
+      "icon": "message-square-text",
+      "title": "스트리밍 응답",
+      "body": "두 화면에 같은 이벤트",
+      "color": "green"
+    }
+  ]
+}

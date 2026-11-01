@@ -1,0 +1,93 @@
+{
+  "name": "extension",
+  "title": "Extension",
+  "tagline": "~/.jarvis 에 파일을 놓으면 코드를 고치지 않고 도구, 명령, 훅, 에이전트가 늘어난다",
+  "features": [
+    {
+      "icon": "wrench",
+      "label": "도구",
+      "sub": "파이썬, YAML",
+      "color": "blue"
+    },
+    {
+      "icon": "plug",
+      "label": "MCP 서버",
+      "sub": "도구 자동 등록",
+      "color": "blue"
+    },
+    {
+      "icon": "square-slash",
+      "label": "슬래시 명령",
+      "sub": "프롬프트 매크로",
+      "color": "green"
+    },
+    {
+      "icon": "webhook",
+      "label": "플러그인 훅",
+      "sub": "호출 막기",
+      "color": "red"
+    },
+    {
+      "icon": "users",
+      "label": "서브 에이전트",
+      "sub": "YAML 선언",
+      "color": "purple"
+    },
+    {
+      "icon": "brain",
+      "label": "사고 프롬프트",
+      "sub": "요청과 성찰 때",
+      "color": "purple"
+    },
+    {
+      "icon": "refresh-cw",
+      "label": "바로 반영",
+      "sub": "다음 턴부터",
+      "color": "orange"
+    }
+  ],
+  "flow_title": "파일을 고친 뒤 반영되기까지",
+  "flow": [
+    {
+      "type": "step",
+      "icon": "power",
+      "title": "기동",
+      "body": "~/.jarvis 파일을 등록",
+      "color": "blue"
+    },
+    {
+      "type": "step",
+      "icon": "eye",
+      "title": "디렉터리 감시",
+      "body": "tools, skills, plugins",
+      "color": "slate"
+    },
+    {
+      "type": "step",
+      "icon": "file-pen",
+      "title": "파일 넣기, 고치기",
+      "body": "사용자가 저장한다",
+      "color": "blue"
+    },
+    {
+      "type": "decision",
+      "q": "감시하는 파일인가?",
+      "no": "에이전트, MCP 설정은 재시작해야 반영",
+      "no_color": "orange"
+    },
+    {
+      "type": "step",
+      "icon": "refresh-cw",
+      "title": "다시 읽기",
+      "body": "바뀐 디렉터리만",
+      "color": "teal"
+    },
+    {
+      "type": "end",
+      "icon": "circle-check",
+      "title": "다음 턴부터 사용",
+      "body": "세션이 매 턴 다시 읽는다",
+      "color": "green"
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "name": "notice",
+  "title": "Notice",
+  "tagline": "바로 반응하고, 필요할 때만 먼저 말하고, 위험한 실행은 사람에게 묻는 개인 비서",
+  "features": [
+    {
+      "icon": "brain",
+      "label": "Inner Thought",
+      "sub": "답과 따로 생각",
+      "color": "purple"
+    },
+    {
+      "icon": "bell-ring",
+      "label": "Proactive Dialogue",
+      "sub": "먼저 말 걸기",
+      "color": "green"
+    },
+    {
+      "icon": "database",
+      "label": "Memory",
+      "sub": "회상과 통합",
+      "color": "teal"
+    },
+    {
+      "icon": "shield-check",
+      "label": "Tool & Approve",
+      "sub": "위험하면 묻기",
+      "color": "red"
+    },
+    {
+      "icon": "calendar-clock",
+      "label": "Open loop, Scheduling",
+      "sub": "약속과 예약",
+      "color": "pink"
+    },
+    {
+      "icon": "radar",
+      "label": "MCP Events",
+      "sub": "외부 소식",
+      "color": "blue"
+    },
+    {
+      "icon": "network",
+      "label": "Multi agent",
+      "sub": "일 맡기기",
+      "color": "orange"
+    },
+    {
+      "icon": "mic",
+      "label": "Mode, Voice",
+      "sub": "음성과 Focus",
+      "color": "slate"
+    }
+  ],
+  "flow_title": "요청 한 번의 일생",
+  "per_row": 3,
+  "flow": [
+    {
+      "type": "step",
+      "icon": "message-circle",
+      "title": "사용자 입력",
+      "body": "글이나 음성, TUI 나 Web",
+      "color": "blue"
+    },
+    {
+      "type": "step",
+      "icon": "shield",
+      "title": "보안 검사",
+      "body": "검증, 인증, 정책",
+      "color": "red"
+    },
+    {
+      "type": "step",
+      "icon": "brain",
+      "title": "Inner Thought",
+      "body": "의도와 먼저 건넬 말",
+      "color": "purple"
+    },
+    {
+      "type": "decision",
+      "q": "금방 끝날 요청인가?",
+      "no": "💬 먼저 한마디, 답은 뒤에서",
+      "no_color": "orange"
+    },
+    {
+      "type": "step",
+      "icon": "database",
+      "title": "기억 회상",
+      "body": "최근 3턴과 장기 기억",
+      "color": "teal"
+    },
+    {
+      "type": "step",
+      "icon": "sparkles",
+      "title": "LLM 과 도구",
+      "body": "필요하면 도구를 부른다",
+      "color": "purple"
+    },
+    {
+      "type": "decision",
+      "q": "승인 없이 되는 도구인가?",
+      "no": "ALLOW, ALWAYS, DENY 로 묻는다",
+      "no_color": "orange"
+    },
+    {
+      "type": "step",
+      "icon": "save",
+      "title": "기록",
+      "body": "일화 기억, 약속은 AGENDA",
+      "color": "teal"
+    },
+    {
+      "type": "end",
+      "icon": "message-square-text",
+      "title": "답",
+      "body": "할 일이 생기면 나중에 🔔",
+      "color": "green"
+    }
+  ]
+}

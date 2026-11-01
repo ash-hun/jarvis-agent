@@ -3,6 +3,7 @@ sidebar_position: 1
 title: Inner Thought
 ---
 
+import InfoInnerThought from '@site/src/figures/info-inner-thought.svg';
 import FigureInnerThought from '@site/src/figures/inner-thought.svg';
 import FigureExpInnerThought from '@site/src/figures/exp-inner-thought.svg';
 
@@ -12,9 +13,8 @@ JARVIS 는 답하기 전에 따로 한 번 생각한다. 사용자 입력마다 
 
 사고 프레임은 [Proactive Dialogue](./proactive.md) 기능 전체의 입력이 된다. Inner Thought 는 도구를 부르지 않는다.
 
-<figure className="paper-fig">
-  <FigureInnerThought />
-  <figcaption><b>Figure 1.</b> (a) 사고 한 번. 다섯 가지 맥락과 페르소나를 템플릿에 채워(1) 도구 없이 사고 모델을 한 번 부르고(2), JSON 스키마로 받은 ThoughtFrame 을 나눠 쓴다(3). 성찰일 때는 외부 이벤트도 함께 넣는다. 스키마를 강제하는 것은 Ollama 뿐이고 다른 프로바이더는 파싱만 한다. 약속 저장과 닫기는 ThoughtFrame 이 아니라 AGENDA 판단이 맡는다. router 가 think 로 판정한 턴의 사고는 응답과 함께 돌고, 결과는 다음 턴에 한 번 들어간다. (b) 사고와 메인 응답의 순서. `router_model` 을 정하면 이 설정 대신 router 가 턴마다 정한다. before 는 해석이 이번 응답에 섞이고, race(기본)는 3초까지만 기다리며, after 는 같은 GPU 를 나눠 쓰는 로컬에서 가장 빠르다.</figcaption>
+<figure className="info-fig">
+  <InfoInnerThought />
 </figure>
 
 ## 서비스 기능
@@ -42,6 +42,11 @@ JARVIS 는 답하기 전에 따로 한 번 생각한다. 사용자 입력마다 
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureInnerThought />
+  <figcaption><b>Figure 1.</b> (a) 사고 한 번. 다섯 가지 맥락과 페르소나를 템플릿에 채워(1) 도구 없이 사고 모델을 한 번 부르고(2), JSON 스키마로 받은 ThoughtFrame 을 나눠 쓴다(3). 성찰일 때는 외부 이벤트도 함께 넣는다. 스키마를 강제하는 것은 Ollama 뿐이고 다른 프로바이더는 파싱만 한다. 약속 저장과 닫기는 ThoughtFrame 이 아니라 AGENDA 판단이 맡는다. router 가 think 로 판정한 턴의 사고는 응답과 함께 돌고, 결과는 다음 턴에 한 번 들어간다. (b) 사고와 메인 응답의 순서. `router_model` 을 정하면 이 설정 대신 router 가 턴마다 정한다. before 는 해석이 이번 응답에 섞이고, race(기본)는 3초까지만 기다리며, after 는 같은 GPU 를 나눠 쓰는 로컬에서 가장 빠르다.</figcaption>
+</figure>
 
 ```mermaid
 flowchart LR

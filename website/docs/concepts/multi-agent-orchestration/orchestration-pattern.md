@@ -3,6 +3,7 @@ sidebar_position: 1
 title: Orchestration Pattern
 ---
 
+import InfoOrchestrationPattern from '@site/src/figures/info-orchestration-pattern.svg';
 import FigureOrchestrationPattern from '@site/src/figures/orchestration-pattern.svg';
 import FigureExpOrchestration from '@site/src/figures/exp-orchestration.svg';
 
@@ -10,9 +11,8 @@ import FigureExpOrchestration from '@site/src/figures/exp-orchestration.svg';
 
 한 작업이 여러 전문가나 단계를 거쳐야 할 때, JARVIS 가 그 작업을 여러 서브 에이전트에게 나눠 맡기고 결과를 모은다. 나누는 방식은 네 가지 패턴 중에서 고르고, 패턴을 이어 붙여 파이프라인으로도 쓴다.
 
-<figure className="paper-fig">
-  <FigureOrchestrationPattern />
-  <figcaption><b>Figure 1.</b> 서브 에이전트에게 일을 나누는 네 패턴. (a) 감독자 LLM 이 도구 호출로 맡길 에이전트를 고른다. (b) 레벨 순서대로 돌고 같은 레벨은 병렬이다. (c) 작업 낱말과 이름, capabilities 가 겹친 수가 점수이고, 가장 높은 하나가 맡는다. 0 이면 입찰하지 않고, capabilities 가 없는 에이전트는 늘 입찰한다. (d) 에이전트들은 공유 보드의 스냅샷을 맥락으로 받아 병렬로 돌고, 오케스트레이터가 결과를 보드에 쓴다. 패턴을 쉼표로 이으면(`hierarchical,blackboard`) 앞 단계 결과가 다음 단계의 입력이 된다.</figcaption>
+<figure className="info-fig">
+  <InfoOrchestrationPattern />
 </figure>
 
 ## 서비스 기능
@@ -43,6 +43,11 @@ import FigureExpOrchestration from '@site/src/figures/exp-orchestration.svg';
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureOrchestrationPattern />
+  <figcaption><b>Figure 1.</b> 서브 에이전트에게 일을 나누는 네 패턴. (a) 감독자 LLM 이 도구 호출로 맡길 에이전트를 고른다. (b) 레벨 순서대로 돌고 같은 레벨은 병렬이다. (c) 작업 낱말과 이름, capabilities 가 겹친 수가 점수이고, 가장 높은 하나가 맡는다. 0 이면 입찰하지 않고, capabilities 가 없는 에이전트는 늘 입찰한다. (d) 에이전트들은 공유 보드의 스냅샷을 맥락으로 받아 병렬로 돌고, 오케스트레이터가 결과를 보드에 쓴다. 패턴을 쉼표로 이으면(`hierarchical,blackboard`) 앞 단계 결과가 다음 단계의 입력이 된다.</figcaption>
+</figure>
 
 `~/.jarvis/agents/*.yaml` 에 에이전트를 선언하면 각 에이전트가 `agent_<name>` 도구가 된다. 패턴을 고르는 `orchestrate` 도구와 `/orchestrate` 명령도 함께 생긴다. 구현은 `core/multi_agent/` 에 있다. 한 번의 오케스트레이션은 다음 순서로 돈다.
 

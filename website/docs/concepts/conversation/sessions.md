@@ -3,6 +3,7 @@ sidebar_position: 1
 title: Sessions
 ---
 
+import InfoSessions from '@site/src/figures/info-sessions.svg';
 import FigureSessions from '@site/src/figures/sessions.svg';
 import FigureExpSessions from '@site/src/figures/exp-sessions.svg';
 
@@ -10,9 +11,8 @@ import FigureExpSessions from '@site/src/figures/exp-sessions.svg';
 
 세션은 JARVIS 가 대화 한 줄기를 묶어 저장하는 단위다. 재접속하거나 서버를 다시 띄워도 같은 대화를 이어 가고, 대화를 갈라 다른 방향을 시험하고, 다 쓴 대화는 그 기억까지 함께 지운다.
 
-<figure className="paper-fig">
-  <FigureSessions />
-  <figcaption><b>Figure 1.</b> (a) 세션은 에이전트 하나의 대화 한 줄기다. 분기는 부모의 메시지(U 사용자, A 어시스턴트, T 도구)를 복사한 새 세션을 만든다. Web 의 ⑂ 는 jsonl 저장소에서만 복사하고, 다른 저장소면 parent_id 없는 빈 새 세션을 연다. 턴마다 그 턴이 일화 기억이 되고, 종료 때나 180초 넘게 조용할 때 통합이 일화에서 사실을 뽑고, 같은 종류 작업이 세 번 성공했으면 절차 초안을 만든다. (b) 사용자 메시지는 턴 시작 때 바로 저장되고(1), 에이전트 루프가 끝나면(2) 나머지 메시지가 한꺼번에 저장된다(3).</figcaption>
+<figure className="info-fig">
+  <InfoSessions />
 </figure>
 
 ## 서비스 기능
@@ -39,6 +39,11 @@ import FigureExpSessions from '@site/src/figures/exp-sessions.svg';
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureSessions />
+  <figcaption><b>Figure 1.</b> (a) 세션은 에이전트 하나의 대화 한 줄기다. 분기는 부모의 메시지(U 사용자, A 어시스턴트, T 도구)를 복사한 새 세션을 만든다. Web 의 ⑂ 는 jsonl 저장소에서만 복사하고, 다른 저장소면 parent_id 없는 빈 새 세션을 연다. 턴마다 그 턴이 일화 기억이 되고, 종료 때나 180초 넘게 조용할 때 통합이 일화에서 사실을 뽑고, 같은 종류 작업이 세 번 성공했으면 절차 초안을 만든다. (b) 사용자 메시지는 턴 시작 때 바로 저장되고(1), 에이전트 루프가 끝나면(2) 나머지 메시지가 한꺼번에 저장된다(3).</figcaption>
+</figure>
 
 세션은 만들 때 에이전트가 정해지고, 그 뒤로 바뀌지 않는다. 한 턴은 아래 순서로 저장된다(Figure 1 (b)).
 

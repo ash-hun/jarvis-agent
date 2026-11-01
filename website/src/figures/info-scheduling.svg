@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 586" class="if-svg" role="img" aria-label="Scheduling: 정한 시각에 알림이나 작업을 돌려, 화면이 닫혀 있어도 결과를 전한다">
+<defs><marker id="info-scheduling-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="if-head" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="if-title" x="291.2" y="14" width="177.5" height="50" rx="12"/>
+<text class="if-title-t" x="380.0" y="47.0" text-anchor="middle">Scheduling</text>
+<text class="if-tagline" x="380.0" y="88.0" text-anchor="middle">정한 시각에 알림이나 작업을 돌려, 화면이 닫혀 있어도 결과를 전한다</text>
+<circle class="if-dot" cx="380.0" cy="104.0" r="4"/>
+<path class="if-edge" d="M380.0,104.0 L380.0,122.0"/>
+<path class="if-edge" d="M71.4,136.0 Q71.4,122.0 85.4,122.0 L674.6,122.0 Q688.6,122.0 688.6,136.0"/>
+<path class="if-edge" d="M71.4,136.0 L71.4,144.0"/>
+<circle class="if-dot" cx="71.4" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="71.4" cy="183.0" r="35"/>
+<circle class="if-c-pink" cx="71.4" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(57.4,169.0) scale(1.167)"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/><path d="M6.38 18.7 4 21"/><path d="M17.64 18.67 20 21"/></g>
+<text class="if-feature" x="71.4" y="238.0" text-anchor="middle">한 번 예약</text>
+<text class="if-feature-sub" x="71.4" y="256.0" text-anchor="middle">정한 시각 한 번</text>
+<path class="if-edge" d="M174.3,122.0 L174.3,144.0"/>
+<circle class="if-dot" cx="174.3" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="174.3" cy="183.0" r="35"/>
+<circle class="if-c-pink" cx="174.3" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(160.3,169.0) scale(1.167)"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 2v3"/><path d="M3 9h18"/><path d="M8 2v3"/><path d="M17 13h-6"/><path d="M13 17H7"/><path d="M7 13h.01"/><path d="M17 17h.01"/></g>
+<text class="if-feature" x="174.3" y="238.0" text-anchor="middle">마감까지 반복</text>
+<text class="if-feature-sub" x="174.3" y="256.0" text-anchor="middle">마감 따라 주기</text>
+<path class="if-edge" d="M277.1,122.0 L277.1,144.0"/>
+<circle class="if-dot" cx="277.1" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="277.1" cy="183.0" r="35"/>
+<circle class="if-c-pink" cx="277.1" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(263.1,169.0) scale(1.167)"><path d="M16 14v2.2l1.6 1"/><path d="M16 2v3"/><path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"/><path d="M3 9h5.859"/><path d="M8 2v3"/><circle cx="16" cy="16" r="6"/></g>
+<text class="if-feature" x="277.1" y="238.0" text-anchor="middle">cron 주기</text>
+<text class="if-feature-sub" x="277.1" y="256.0" text-anchor="middle">작업 파일에 직접</text>
+<path class="if-edge" d="M380.0,122.0 L380.0,144.0"/>
+<circle class="if-dot" cx="380.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="380.0" cy="183.0" r="35"/>
+<circle class="if-c-blue" cx="380.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(366.0,169.0) scale(1.167)"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></g>
+<text class="if-feature" x="380.0" y="238.0" text-anchor="middle">도구 작업</text>
+<text class="if-feature-sub" x="380.0" y="256.0" text-anchor="middle">LLM 없이 실행</text>
+<path class="if-edge" d="M482.9,122.0 L482.9,144.0"/>
+<circle class="if-dot" cx="482.9" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="482.9" cy="183.0" r="35"/>
+<circle class="if-c-green" cx="482.9" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(468.9,169.0) scale(1.167)"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path d="M7 11h10"/><path d="M7 15h6"/><path d="M7 7h8"/></g>
+<text class="if-feature" x="482.9" y="238.0" text-anchor="middle">대화로 건넴</text>
+<text class="if-feature-sub" x="482.9" y="256.0" text-anchor="middle">에이전트의 말로</text>
+<path class="if-edge" d="M585.7,122.0 L585.7,144.0"/>
+<circle class="if-dot" cx="585.7" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="585.7" cy="183.0" r="35"/>
+<circle class="if-c-teal" cx="585.7" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(571.7,169.0) scale(1.167)"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></g>
+<text class="if-feature" x="585.7" y="238.0" text-anchor="middle">놓친 알림</text>
+<text class="if-feature-sub" x="585.7" y="256.0" text-anchor="middle">최근 20건 보관</text>
+<path class="if-edge" d="M688.6,136.0 L688.6,144.0"/>
+<circle class="if-dot" cx="688.6" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="688.6" cy="183.0" r="35"/>
+<circle class="if-c-orange" cx="688.6" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(674.6,169.0) scale(1.167)"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></g>
+<text class="if-feature" x="688.6" y="238.0" text-anchor="middle">건넨 뒤 기록</text>
+<text class="if-feature-sub" x="688.6" y="256.0" text-anchor="middle">실패하면 재시도</text>
+<rect class="if-bar" x="20" y="288" width="720" height="34" rx="8"/>
+<text class="if-bar-t" x="380.0" y="310.5" text-anchor="middle">처리 흐름</text>
+<rect class="if-t-blue if-s-blue" x="20.0" y="340.0" width="151.5" height="75.0" rx="9.0"/>
+<rect class="if-c-blue" x="20.0" y="340.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-blue" x="20.0" y="362.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(58.3,348.0) scale(0.625)"><path d="M12 19h8"/><path d="m4 17 6-6-6-6"/></g>
+<text class="if-card-t" x="104.8" y="359.0" text-anchor="middle">예약 해석</text>
+<text class="if-card-b" x="95.8" y="389.0" text-anchor="middle">/schedule 이나</text>
+<text class="if-card-b" x="95.8" y="405.0" text-anchor="middle">schedule 도구</text>
+<path class="if-edge" d="M171.5,377.5 L207.5,377.5" marker-end="url(#info-scheduling-arrow)"/>
+<rect class="if-t-teal if-s-teal" x="209.5" y="348.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-teal" x="209.5" y="348.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-teal" x="209.5" y="370.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(233.4,356.0) scale(0.625)"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></g>
+<text class="if-card-t" x="294.2" y="367.0" text-anchor="middle">작업 파일 저장</text>
+<text class="if-card-b" x="285.2" y="397.0" text-anchor="middle">~/.jarvis/schedules</text>
+<path class="if-edge" d="M361.0,377.5 L397.0,377.5" marker-end="url(#info-scheduling-arrow)"/>
+<rect class="if-t-pink if-s-pink" x="399.0" y="348.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-pink" x="399.0" y="348.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-pink" x="399.0" y="370.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(423.5,356.0) scale(0.625)"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></g>
+<text class="if-card-t" x="483.8" y="367.0" text-anchor="middle">10초마다 확인</text>
+<text class="if-card-b" x="474.8" y="397.0" text-anchor="middle">시각이 된 작업을 고른다</text>
+<path class="if-edge" d="M550.5,377.5 L586.5,377.5" marker-end="url(#info-scheduling-arrow)"/>
+<rect class="if-t-purple if-s-purple" x="588.5" y="348.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-purple" x="588.5" y="348.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-purple" x="588.5" y="370.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(620.5,356.0) scale(0.625)"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></g>
+<text class="if-card-t" x="673.2" y="367.0" text-anchor="middle">결과 만들기</text>
+<text class="if-card-b" x="664.2" y="397.0" text-anchor="middle">문장, 실행 답, 도구 글</text>
+<path class="if-edge" d="M664.2,407.0 L664.2,443.0 L95.8,443.0 L95.8,469.0" marker-end="url(#info-scheduling-arrow)"/>
+<rect class="if-decision if-s-slate" x="20.0" y="469.0" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="95.8" y="489.0" text-anchor="middle">열린 화면이 있나?</text>
+<path class="if-edge" d="M171.5,488.5 L207.5,488.5" marker-end="url(#info-scheduling-arrow)"/>
+<text class="if-yes" x="190.5" y="481.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M95.8,508.0 L95.8,536.0" marker-end="url(#info-scheduling-arrow)"/>
+<text class="if-no" x="103.8" y="527.0" text-anchor="start">아니오</text>
+<rect class="if-t-slate if-s-slate if-chip" x="30.0" y="538.0" width="131.5" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="95.8" y="557.0" text-anchor="middle">쌓아 두고 푸시는 보낸다</text>
+<rect class="if-t-green if-s-green" x="209.5" y="459.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-green" x="209.5" y="459.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-green" x="209.5" y="481.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(241.5,467.0) scale(0.625)"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></g>
+<text class="if-card-t" x="294.2" y="478.0" text-anchor="middle">결과 전하기</text>
+<text class="if-card-b" x="285.2" y="508.0" text-anchor="middle">대화나 열린 화면, 푸시</text>
+<path class="if-edge" d="M361.0,488.5 L397.0,488.5" marker-end="url(#info-scheduling-arrow)"/>
+<rect class="if-decision if-s-slate" x="399.0" y="469.0" width="151.5" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="474.8" y="489.0" text-anchor="middle">전하는 데 성공했나?</text>
+<path class="if-edge" d="M550.5,488.5 L586.5,488.5" marker-end="url(#info-scheduling-arrow)"/>
+<text class="if-yes" x="569.5" y="481.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M474.8,508.0 L474.8,536.0" marker-end="url(#info-scheduling-arrow)"/>
+<text class="if-no" x="482.8" y="527.0" text-anchor="start">아니오</text>
+<rect class="if-t-orange if-s-orange if-chip" x="409.0" y="538.0" width="131.5" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="474.8" y="557.0" text-anchor="middle">다음 차례에 다시 알린다</text>
+<rect class="if-t-teal if-s-teal if-end" x="588.5" y="459.0" width="151.5" height="59.0" rx="9.0"/>
+<rect class="if-c-teal" x="588.5" y="459.0" width="151.5" height="31.0" rx="9"/>
+<rect class="if-c-teal" x="588.5" y="481.0" width="151.5" height="9"/>
+<g class="if-icon" transform="translate(612.4,467.0) scale(0.625)"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></g>
+<text class="if-card-t" x="673.2" y="478.0" text-anchor="middle">건넨 것만 기록</text>
+<text class="if-card-b" x="664.2" y="508.0" text-anchor="middle">같은 공고는 한 번만</text>
+</svg>

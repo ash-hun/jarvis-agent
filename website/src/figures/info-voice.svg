@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 610" class="if-svg" role="img" aria-label="Voice Interface: 말로 묻고 소리로 들으며, 승인까지 손을 쓰지 않고 말로 끝낸다">
+<defs><marker id="info-voice-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="if-head" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="if-title" x="259.9" y="14" width="240.2" height="50" rx="12"/>
+<text class="if-title-t" x="380.0" y="47.0" text-anchor="middle">Voice Interface</text>
+<text class="if-tagline" x="380.0" y="88.0" text-anchor="middle">말로 묻고 소리로 들으며, 승인까지 손을 쓰지 않고 말로 끝낸다</text>
+<circle class="if-dot" cx="380.0" cy="104.0" r="4"/>
+<path class="if-edge" d="M380.0,104.0 L380.0,122.0"/>
+<path class="if-edge" d="M71.4,136.0 Q71.4,122.0 85.4,122.0 L674.6,122.0 Q688.6,122.0 688.6,136.0"/>
+<path class="if-edge" d="M71.4,136.0 L71.4,144.0"/>
+<circle class="if-dot" cx="71.4" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="71.4" cy="183.0" r="35"/>
+<circle class="if-c-blue" cx="71.4" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(57.4,169.0) scale(1.167)"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></g>
+<text class="if-feature" x="71.4" y="238.0" text-anchor="middle">웨이크워드</text>
+<text class="if-feature-sub" x="71.4" y="256.0" text-anchor="middle">Jarvis 로 깨움</text>
+<path class="if-edge" d="M174.3,122.0 L174.3,144.0"/>
+<circle class="if-dot" cx="174.3" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="174.3" cy="183.0" r="35"/>
+<circle class="if-c-blue" cx="174.3" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(160.3,169.0) scale(1.167)"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></g>
+<text class="if-feature" x="174.3" y="238.0" text-anchor="middle">STT 와 TTS</text>
+<text class="if-feature-sub" x="174.3" y="256.0" text-anchor="middle">브라우저, 서버</text>
+<path class="if-edge" d="M277.1,122.0 L277.1,144.0"/>
+<circle class="if-dot" cx="277.1" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="277.1" cy="183.0" r="35"/>
+<circle class="if-c-slate" cx="277.1" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(263.1,169.0) scale(1.167)"><path d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21"/><path d="m5.082 11.09 8.828 8.828"/></g>
+<text class="if-feature" x="277.1" y="238.0" text-anchor="middle">기호 지우기</text>
+<text class="if-feature-sub" x="277.1" y="256.0" text-anchor="middle">금액은 한글로</text>
+<path class="if-edge" d="M380.0,122.0 L380.0,144.0"/>
+<circle class="if-dot" cx="380.0" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="380.0" cy="183.0" r="35"/>
+<circle class="if-c-purple" cx="380.0" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(366.0,169.0) scale(1.167)"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></g>
+<text class="if-feature" x="380.0" y="238.0" text-anchor="middle">영어 음성</text>
+<text class="if-feature-sub" x="380.0" y="256.0" text-anchor="middle">소리로만 영어</text>
+<path class="if-edge" d="M482.9,122.0 L482.9,144.0"/>
+<circle class="if-dot" cx="482.9" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="482.9" cy="183.0" r="35"/>
+<circle class="if-c-pink" cx="482.9" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(468.9,169.0) scale(1.167)"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></g>
+<text class="if-feature" x="482.9" y="238.0" text-anchor="middle">Full-voice</text>
+<text class="if-feature-sub" x="482.9" y="256.0" text-anchor="middle">읽고 다시 듣기</text>
+<path class="if-edge" d="M585.7,122.0 L585.7,144.0"/>
+<circle class="if-dot" cx="585.7" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="585.7" cy="183.0" r="35"/>
+<circle class="if-c-red" cx="585.7" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(571.7,169.0) scale(1.167)"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g>
+<text class="if-feature" x="585.7" y="238.0" text-anchor="middle">음성 승인</text>
+<text class="if-feature-sub" x="585.7" y="256.0" text-anchor="middle">애매하면 거부</text>
+<path class="if-edge" d="M688.6,136.0 L688.6,144.0"/>
+<circle class="if-dot" cx="688.6" cy="144.0" r="3.5"/>
+<circle class="if-ring" cx="688.6" cy="183.0" r="35"/>
+<circle class="if-c-orange" cx="688.6" cy="183.0" r="31"/>
+<g class="if-icon" transform="translate(674.6,169.0) scale(1.167)"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></g>
+<text class="if-feature" x="688.6" y="238.0" text-anchor="middle">되묻기</text>
+<text class="if-feature-sub" x="688.6" y="256.0" text-anchor="middle">못 들었을 때</text>
+<rect class="if-bar" x="20" y="288" width="720" height="34" rx="8"/>
+<text class="if-bar-t" x="380.0" y="310.5" text-anchor="middle">처리 흐름</text>
+<rect class="if-t-blue if-s-blue" x="20.0" y="340.0" width="113.6" height="75.0" rx="9.0"/>
+<rect class="if-c-blue" x="20.0" y="340.0" width="113.6" height="31.0" rx="9"/>
+<rect class="if-c-blue" x="20.0" y="362.0" width="113.6" height="9"/>
+<g class="if-icon" transform="translate(39.4,348.0) scale(0.625)"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></g>
+<text class="if-card-t" x="85.8" y="359.0" text-anchor="middle">듣기 시작</text>
+<text class="if-card-b" x="76.8" y="389.0" text-anchor="middle">부르거나 구체를</text>
+<text class="if-card-b" x="76.8" y="405.0" text-anchor="middle">누름</text>
+<path class="if-edge" d="M133.6,377.5 L169.6,377.5" marker-end="url(#info-voice-arrow)"/>
+<rect class="if-t-blue if-s-blue" x="171.6" y="340.0" width="113.6" height="75.0" rx="9.0"/>
+<rect class="if-c-blue" x="171.6" y="340.0" width="113.6" height="31.0" rx="9"/>
+<rect class="if-c-blue" x="171.6" y="362.0" width="113.6" height="9"/>
+<g class="if-icon" transform="translate(191.0,348.0) scale(0.625)"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></g>
+<text class="if-card-t" x="237.4" y="359.0" text-anchor="middle">받아 적기</text>
+<text class="if-card-b" x="228.4" y="389.0" text-anchor="middle">브라우저나</text>
+<text class="if-card-b" x="228.4" y="405.0" text-anchor="middle">whisper</text>
+<path class="if-edge" d="M285.2,377.5 L321.2,377.5" marker-end="url(#info-voice-arrow)"/>
+<rect class="if-decision if-s-slate" x="323.2" y="358.0" width="113.6" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="380.0" y="378.0" text-anchor="middle">잘 알아들었나?</text>
+<path class="if-edge" d="M436.8,377.5 L472.8,377.5" marker-end="url(#info-voice-arrow)"/>
+<text class="if-yes" x="455.8" y="370.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M380.0,397.0 L380.0,425.0" marker-end="url(#info-voice-arrow)"/>
+<text class="if-no" x="388.0" y="416.0" text-anchor="start">아니오</text>
+<rect class="if-t-orange if-s-orange if-chip" x="333.2" y="427.0" width="93.6" height="44.0" rx="7.0"/>
+<text class="if-chip-t" x="380.0" y="446.0" text-anchor="middle">보내지 않고</text>
+<text class="if-chip-t" x="380.0" y="462.0" text-anchor="middle">되묻는다</text>
+<rect class="if-decision if-s-slate" x="474.8" y="358.0" width="113.6" height="39.0" rx="18.0"/>
+<text class="if-decision-t" x="531.6" y="378.0" text-anchor="middle">대화 요청인가?</text>
+<path class="if-edge" d="M588.4,377.5 L624.4,377.5" marker-end="url(#info-voice-arrow)"/>
+<text class="if-yes" x="607.4" y="370.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M531.6,397.0 L531.6,425.0" marker-end="url(#info-voice-arrow)"/>
+<text class="if-no" x="539.6" y="416.0" text-anchor="start">승인 창</text>
+<rect class="if-t-red if-s-red if-chip" x="484.8" y="427.0" width="93.6" height="44.0" rx="7.0"/>
+<text class="if-chip-t" x="531.6" y="446.0" text-anchor="middle">승인 답으로</text>
+<text class="if-chip-t" x="531.6" y="462.0" text-anchor="middle">해석한다</text>
+<rect class="if-t-purple if-s-purple" x="626.4" y="348.0" width="113.6" height="59.0" rx="9.0"/>
+<rect class="if-c-purple" x="626.4" y="348.0" width="113.6" height="31.0" rx="9"/>
+<rect class="if-c-purple" x="626.4" y="370.0" width="113.6" height="9"/>
+<g class="if-icon" transform="translate(639.5,356.0) scale(0.625)"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></g>
+<text class="if-card-t" x="692.2" y="367.0" text-anchor="middle">응답 만들기</text>
+<text class="if-card-b" x="683.2" y="397.0" text-anchor="middle">대화로 보낸다</text>
+<path class="if-edge" d="M683.2,407.0 L683.2,499.0 L76.8,499.0 L76.8,515.0" marker-end="url(#info-voice-arrow)"/>
+<rect class="if-t-slate if-s-slate" x="20.0" y="515.0" width="113.6" height="75.0" rx="9.0"/>
+<rect class="if-c-slate" x="20.0" y="515.0" width="113.6" height="31.0" rx="9"/>
+<rect class="if-c-slate" x="20.0" y="537.0" width="113.6" height="9"/>
+<g class="if-icon" transform="translate(33.1,523.0) scale(0.625)"><path d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21"/><path d="m5.082 11.09 8.828 8.828"/></g>
+<text class="if-card-t" x="85.8" y="534.0" text-anchor="middle">기호 지우기</text>
+<text class="if-card-b" x="76.8" y="564.0" text-anchor="middle">기호 빼고 금액은</text>
+<text class="if-card-b" x="76.8" y="580.0" text-anchor="middle">한글로</text>
+<path class="if-edge" d="M133.6,552.5 L169.6,552.5" marker-end="url(#info-voice-arrow)"/>
+<rect class="if-t-purple if-s-purple" x="171.6" y="523.0" width="113.6" height="59.0" rx="9.0"/>
+<rect class="if-c-purple" x="171.6" y="523.0" width="113.6" height="31.0" rx="9"/>
+<rect class="if-c-purple" x="171.6" y="545.0" width="113.6" height="9"/>
+<g class="if-icon" transform="translate(191.0,531.0) scale(0.625)"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></g>
+<text class="if-card-t" x="237.4" y="542.0" text-anchor="middle">영어 번역</text>
+<text class="if-card-b" x="228.4" y="572.0" text-anchor="middle">speak_english</text>
+<path class="if-edge" d="M285.2,552.5 L321.2,552.5" marker-end="url(#info-voice-arrow)"/>
+<rect class="if-t-green if-s-green if-end" x="323.2" y="515.0" width="113.6" height="75.0" rx="9.0"/>
+<rect class="if-c-green" x="323.2" y="515.0" width="113.6" height="31.0" rx="9"/>
+<rect class="if-c-green" x="323.2" y="537.0" width="113.6" height="9"/>
+<g class="if-icon" transform="translate(336.3,523.0) scale(0.625)"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></g>
+<text class="if-card-t" x="389.0" y="534.0" text-anchor="middle">소리로 읽기</text>
+<text class="if-card-b" x="380.0" y="564.0" text-anchor="middle">Full-voice 면</text>
+<text class="if-card-b" x="380.0" y="580.0" text-anchor="middle">다시 듣는다</text>
+</svg>

@@ -3,9 +3,15 @@ sidebar_position: 0
 title: Conversation
 ---
 
+import InfoConversation from '@site/src/figures/info-conversation.svg';
+
 # Conversation
 
 JARVIS 의 기본 기능인 Conversation 을 소개한다. 사용자와 대화하면서 속으로 생각하고(Inner Thought), 위험한 작업은 먼저 묻고(Tool & Approve System), 할 말이 있으면 먼저 말을 건다(Proactive Dialogue). 실행 방법은 [Quick Start](../../start/install.md)를 참고한다.
+
+<figure className="info-fig">
+  <InfoConversation />
+</figure>
 
 ## 서비스 기능
 

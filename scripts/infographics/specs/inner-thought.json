@@ -1,0 +1,100 @@
+{
+  "name": "inner-thought",
+  "title": "Inner Thought",
+  "tagline": "답과 따로 한 번 더 생각해, 의도와 먼저 건넬 말을 구조화해 남긴다",
+  "features": [
+    {
+      "icon": "brain",
+      "label": "따로 하는 사고",
+      "sub": "도구 없이 한 번 호출",
+      "color": "purple"
+    },
+    {
+      "icon": "file-braces",
+      "label": "사고 프레임",
+      "sub": "해석, 결정, 확신도",
+      "color": "teal"
+    },
+    {
+      "icon": "timer",
+      "label": "시점 선택",
+      "sub": "응답 전, 동시, 뒤",
+      "color": "pink"
+    },
+    {
+      "icon": "route",
+      "label": "Thought Router",
+      "sub": "필요한 요청만 생각",
+      "color": "orange"
+    },
+    {
+      "icon": "braces",
+      "label": "스키마 강제",
+      "sub": "Ollama 는 format",
+      "color": "slate"
+    },
+    {
+      "icon": "message-circle-more",
+      "label": "💭 한 줄",
+      "sub": "누르면 해석 전문",
+      "color": "green"
+    }
+  ],
+  "flow_title": "사고 한 번",
+  "flow": [
+    {
+      "type": "step",
+      "icon": "message-circle",
+      "title": "사용자 입력",
+      "body": "요청 하나",
+      "color": "blue"
+    },
+    {
+      "type": "decision",
+      "q": "생각이 필요한가?",
+      "no": "router 가 direct 면 바로 답한다",
+      "no_color": "slate"
+    },
+    {
+      "type": "step",
+      "icon": "search",
+      "title": "맥락 모으기",
+      "body": "회상 5건, 최근 8턴, 약속",
+      "color": "blue"
+    },
+    {
+      "type": "step",
+      "icon": "brain",
+      "title": "사고 모델 호출",
+      "body": "JSON 스키마로 받기",
+      "color": "purple"
+    },
+    {
+      "type": "decision",
+      "q": "프레임이 유효한가?",
+      "no": "프레임 없이 로그만, 대화는 계속",
+      "no_color": "slate"
+    },
+    {
+      "type": "step",
+      "icon": "file-braces",
+      "title": "ThoughtFrame",
+      "body": "결정, 확신도, 건넬 말",
+      "color": "teal"
+    },
+    {
+      "type": "step",
+      "icon": "split",
+      "title": "나눠 쓰기",
+      "body": "프롬프트, filler 판단",
+      "color": "purple"
+    },
+    {
+      "type": "end",
+      "icon": "message-circle-more",
+      "title": "표시와 기록",
+      "body": "💭 한 줄, 일화 기억",
+      "color": "green"
+    }
+  ]
+}

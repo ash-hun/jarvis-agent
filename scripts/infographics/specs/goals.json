@@ -1,0 +1,26 @@
+{
+  "name": "goals",
+  "title": "Goals",
+  "tagline": "한 번 맡긴 일을 정해진 때마다 한 단계씩 진행하고, 새 소식만 알린다",
+  "features": [
+    {"icon": "target", "label": "말로 맡기기", "sub": "/goal, 앞으로 ~", "color": "blue"},
+    {"icon": "clock", "label": "정해진 때마다", "sub": "9~21시 매시", "color": "pink"},
+    {"icon": "skip-forward", "label": "같으면 건너뜀", "sub": "모델 호출 0번", "color": "slate"},
+    {"icon": "funnel", "label": "새 항목만 알림", "sub": "코드가 거름", "color": "teal"},
+    {"icon": "message-circle-question-mark", "label": "한 번만 묻기", "sub": "사용자만 정할 값", "color": "purple"},
+    {"icon": "shield-check", "label": "경계 지키기", "sub": "ask, never 도구", "color": "red"},
+    {"icon": "send", "label": "건넨 뒤 기록", "sub": "놓치지 않음", "color": "green"}
+  ],
+  "flow_title": "목표 한 차례",
+  "flow": [
+    {"type": "step", "icon": "clock", "title": "때가 됨", "body": "스케줄러가 차례를 넘긴다", "color": "pink"},
+    {"type": "step", "icon": "repeat", "title": "도구 다시 부르기", "body": "같은 인자로, 모델 없이", "color": "blue"},
+    {"type": "decision", "q": "결과가 바뀌었나?", "no": "모델 없이 조용히 끝낸다", "no_color": "slate"},
+    {"type": "step", "icon": "bot", "title": "에이전트 한 단계", "body": "새 세션, 목표 문장과 기록", "color": "purple"},
+    {"type": "step", "icon": "list-checks", "title": "항목 모으기", "body": "도구가 지은 줄이 이긴다", "color": "teal"},
+    {"type": "decision", "q": "새 항목이 있나?", "no": "이미 알린 키는 거른다", "no_color": "slate"},
+    {"type": "step", "icon": "send", "title": "대화로 건네기", "body": "답하는 중이면 알림으로", "color": "green"},
+    {"type": "decision", "q": "건넸나?", "no": "다음 차례에 다시 알린다", "no_color": "orange"},
+    {"type": "end", "icon": "mail-check", "title": "알린 것으로 적기", "body": "다시 알리지 않는다", "color": "green"}
+  ]
+}

@@ -3,6 +3,7 @@ sidebar_position: 2
 title: Proactive Dialogue
 ---
 
+import InfoProactive from '@site/src/figures/info-proactive.svg';
 import FigureProactive from '@site/src/figures/proactive.svg';
 import FigureExpProactive from '@site/src/figures/exp-proactive.svg';
 
@@ -12,9 +13,8 @@ JARVIS 는 사고 프레임을 바탕으로 사용자가 묻기 전에 움직인
 
 가치가 분명하지 않으면 말하지 않는다. 고위험 행동은 스스로 실행하지 않는다.
 
-<figure className="paper-fig">
-  <FigureProactive />
-  <figcaption><b>Figure 1.</b> (a) 성찰 한 번이 먼저 말하기까지 지나는 게이트. 왼쪽 열은 사고 모델을 부를지 정한다(답을 기다리는 말, 사용자와 나눈 대화가 있는지, 말할 근거, 지난번과 같은 입력). 말할 근거는 기한이 없거나 30분 안으로 다가왔거나 지난 약속, 그리고 새 외부 이벤트다. 오른쪽 열은 사고 결과를 거르고(되풀이, 결정, 확신도, 문장, 쿨다운) 답하는 중이거나 Focus 중이면 보내지 않는다. 쿨다운을 지나면 저위험 자율 행동을 실행한다. 스케줄 결과와 목표 알림은 이 게이트를 거치지 않고 `say()` 로 대화에 건넨다. 건넨 말은 에이전트의 보통 말로 대화 기록에 남는다. 하나라도 막히면 침묵하고 이유만 로그에 남긴다. (b) 묻지 않고 그 뒤 첫 말로 확신도 임계치 θ 를 옮긴다. (c) 오래 걸릴 요청이면 filler 를 먼저 말하고 메인 응답은 뒤에서 돌린다. router 를 쓰거나 시점이 after 면 돌지 않는다.</figcaption>
+<figure className="info-fig">
+  <InfoProactive />
 </figure>
 
 ## 서비스 기능
@@ -47,6 +47,11 @@ JARVIS 는 사고 프레임을 바탕으로 사용자가 묻기 전에 움직인
 ## 세부 구현
 
 ### 동작 흐름
+
+<figure className="paper-fig">
+  <FigureProactive />
+  <figcaption><b>Figure 1.</b> (a) 성찰 한 번이 먼저 말하기까지 지나는 게이트. 왼쪽 열은 사고 모델을 부를지 정한다(답을 기다리는 말, 사용자와 나눈 대화가 있는지, 말할 근거, 지난번과 같은 입력). 말할 근거는 기한이 없거나 30분 안으로 다가왔거나 지난 약속, 그리고 새 외부 이벤트다. 오른쪽 열은 사고 결과를 거르고(되풀이, 결정, 확신도, 문장, 쿨다운) 답하는 중이거나 Focus 중이면 보내지 않는다. 쿨다운을 지나면 저위험 자율 행동을 실행한다. 스케줄 결과와 목표 알림은 이 게이트를 거치지 않고 `say()` 로 대화에 건넨다. 건넨 말은 에이전트의 보통 말로 대화 기록에 남는다. 하나라도 막히면 침묵하고 이유만 로그에 남긴다. (b) 묻지 않고 그 뒤 첫 말로 확신도 임계치 θ 를 옮긴다. (c) 오래 걸릴 요청이면 filler 를 먼저 말하고 메인 응답은 뒤에서 돌린다. router 를 쓰거나 시점이 after 면 돌지 않는다.</figcaption>
+</figure>
 
 기능은 세 경로로 나뉜다.
 

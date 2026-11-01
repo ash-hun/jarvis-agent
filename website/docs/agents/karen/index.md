@@ -40,8 +40,9 @@ title: KAREN
 |---|---|
 | `lh_notice`, `sh_notice` | LH, SH 청약 공고 조회 |
 | `housing_budget` | 현금과 월 여유자금으로 공고마다 대출 경우의 수(상품, 규제, 보증금 전환, 현금 투입)와 월 부담 계산 |
-| `housing_profile` | 대출 자격을 가르는 주거 프로필과 관심 지역 보기, 고치기 |
+| `housing_profile` | 대출 자격을 가르는 주거 프로필, 관심 지역, 보유 현금, 월 여유자금 보기, 고치기 |
 | `housing_watch` | 지난번 이후 새로 올라온 공고 알림(스케줄로 돈다) |
+| `goal` | "앞으로 ~ 나오면 알려줘" 같은 계속 챙길 일을 목표로 맡기, 목록, 멈추기([Goals](../../concepts/conversation/goals.md#karen-의-추천-공고-목표)) |
 | `schedule` | 알림 예약 |
 | `housing_loan` | 월, 연간 원리금 상환액과 이자 계산 |
 | `web_search`, `web_fetch` | 웹 검색과 페이지 읽기 |

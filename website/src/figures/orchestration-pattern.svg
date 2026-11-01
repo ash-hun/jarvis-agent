@@ -11,13 +11,13 @@
 <rect class="pf-box pf-box--accent" x="119.0" y="44" width="150" height="50" rx="6"/>
 <text class="pf-t pf-t--accent" x="194.0" y="65.0" text-anchor="middle">감독자 LLM</text>
 <text class="pf-s" x="194.0" y="82.0" text-anchor="middle">agent_* 도구를 든다</text>
-<rect class="pf-box" x="75.0" y="128" width="90" height="34" rx="6"/>
-<text class="pf-t" x="120.0" y="149.5" text-anchor="middle">agent a</text>
-<rect class="pf-box" x="223.0" y="128" width="90" height="34" rx="6"/>
-<text class="pf-t" x="268.0" y="149.5" text-anchor="middle">agent b</text>
-<path class="pf-edge" d="M164.0,94.0 L120.0,128.0" marker-end="url(#orchestration-pattern-h)"/>
+<rect class="pf-box" x="75.0" y="120" width="90" height="34" rx="6"/>
+<text class="pf-t" x="120.0" y="141.5" text-anchor="middle">agent a</text>
+<rect class="pf-box" x="223.0" y="120" width="90" height="34" rx="6"/>
+<text class="pf-t" x="268.0" y="141.5" text-anchor="middle">agent b</text>
+<path class="pf-edge" d="M164.0,94.0 L120.0,120.0" marker-end="url(#orchestration-pattern-h)"/>
 <text class="pf-note" x="194" y="174" text-anchor="middle">LLM 이 도구 호출로 맡길 에이전트를 고른다</text>
-<path class="pf-edge" d="M224.0,94.0 L268.0,128.0" marker-end="url(#orchestration-pattern-h)"/>
+<path class="pf-edge" d="M224.0,94.0 L268.0,120.0" marker-end="url(#orchestration-pattern-h)"/>
 <text class="pf-code" x="460" y="60" text-anchor="middle">level 0</text>
 <rect class="pf-box" x="423.0" y="72" width="74" height="32" rx="6"/>
 <text class="pf-t" x="460.0" y="92.5" text-anchor="middle">agent a</text>
@@ -46,18 +46,18 @@
 <text class="pf-t" x="222.0" y="312.5" text-anchor="middle">agent c</text>
 <path class="pf-edge pf-edge--muted" d="M115.0,265.0 L179.0,308.0" marker-end="url(#orchestration-pattern-h-muted)"/>
 <text class="pf-s" x="273.0" y="312.0" text-anchor="start">0, 입찰 안 함</text>
-<text class="pf-note" x="194" y="352" text-anchor="middle">작업 낱말과 겹친 capabilities 수가 가장 큰 하나가 맡는다</text>
+<text class="pf-note" x="194" y="352" text-anchor="middle">작업 낱말과 이름, capabilities 가 겹친 수가 가장 큰 하나가 맡는다</text>
 <path class="pf-store" d="M491.0,225 a75.0,5 0 0,0 150,0 a75.0,5 0 0,0 -150,0 v48 a75.0,5 0 0,0 150,0 v-48"/>
 <text class="pf-t" x="566.0" y="248.0" text-anchor="middle">공유 보드</text>
 <text class="pf-s" x="566.0" y="265.0" text-anchor="middle">오케스트레이터가 쓴다</text>
 <rect class="pf-box" x="417.0" y="300" width="86" height="32" rx="6"/>
 <text class="pf-t" x="460.0" y="320.5" text-anchor="middle">agent a</text>
-<path class="pf-edge" d="M546.0,278.0 L452.0,300.0" marker-end="url(#orchestration-pattern-h)"/>
+<path class="pf-edge" d="M546.0,278.0 L460.0,300.0" marker-end="url(#orchestration-pattern-h)"/>
 <rect class="pf-box" x="523.0" y="300" width="86" height="32" rx="6"/>
 <text class="pf-t" x="566.0" y="320.5" text-anchor="middle">agent b</text>
-<path class="pf-edge" d="M566.0,278.0 L558.0,300.0" marker-end="url(#orchestration-pattern-h)"/>
+<path class="pf-edge" d="M566.0,278.0 L566.0,300.0" marker-end="url(#orchestration-pattern-h)"/>
 <rect class="pf-box" x="629.0" y="300" width="86" height="32" rx="6"/>
 <text class="pf-t" x="672.0" y="320.5" text-anchor="middle">agent c</text>
-<path class="pf-edge" d="M586.0,278.0 L664.0,300.0" marker-end="url(#orchestration-pattern-h)"/>
+<path class="pf-edge" d="M586.0,278.0 L672.0,300.0" marker-end="url(#orchestration-pattern-h)"/>
 <text class="pf-note" x="566" y="352" text-anchor="middle">스냅샷을 받아 병렬로 돌고, 결과는 보드에 모인다</text>
 </svg>

@@ -18,7 +18,7 @@ JARVIS 가 읽는 설정을 영역별로 정리한다. 모든 설정은 환경�
 ## LLM
 
 ```bash
-JARVIS_LLM__PROVIDER=anthropic        # anthropic | openai | google | ollama | vllm
+JARVIS_LLM__PROVIDER=anthropic        # anthropic | openai | gemini | ollama | vllm
 JARVIS_LLM__MODEL=claude-sonnet-4-5
 JARVIS_LLM__API_KEY=
 JARVIS_LLM__BASE_URL=                 # Ollama, vLLM, OpenAI 호환 주소. OpenAI 는 비우면 기본 주소
@@ -33,6 +33,8 @@ JARVIS_LLM__TIMEOUT=120               # 초
 JARVIS_THOUGHT__ENABLED=true
 JARVIS_THOUGHT__MODEL=                     # 비우면 메인 모델. 사고 전용 모델을 따로 둘 때
 JARVIS_THOUGHT__PROVIDER=                  # 비우면 메인 provider 상속(api_key, base_url 도 같이)
+JARVIS_THOUGHT__API_KEY=                   # 사고 provider 를 따로 둘 때. 비우면 메인 키
+JARVIS_THOUGHT__BASE_URL=                  # 비우면 메인 base_url
 JARVIS_THOUGHT__REQUEST_TIMING=race        # before | race | after
 JARVIS_THOUGHT__WAIT_SEC=3.0               # race 에서 사고를 기다리는 상한
 JARVIS_THOUGHT__ROUTER_MODEL=              # 지정하면 REQUEST_TIMING 대신 router 가 요청마다 사고 여부를 정한다
@@ -98,10 +100,12 @@ JARVIS_FOCUS__READY_TIMEOUT_SEC=30     # 시작할 때 첫 분석과 단계 계�
 JARVIS_MEMORY__BACKEND=postgres            # in_memory | postgres
 JARVIS_MEMORY__POSTGRES_DSN=               # 비우면 SESSION__POSTGRES_DSN 을 쓴다
 JARVIS_MEMORY__STM_TURNS=3               # 모델에 넣는 최근 턴 수. 그 밖은 턴마다 쓴 일화에서 회상
-JARVIS_MEMORY__CONSOLIDATE_ON_IDLE=true    # daemon_trigger 가 idle 또는 both 일 때 일화에서 사실 추출
+JARVIS_MEMORY__CONSOLIDATE_ON_IDLE=true    # PROACTIVE__DAEMON_IDLE_SEC 넘게 조용한 daemon 틱마다 사실 추출과 절차 정제(트리거 종류 무관)
 JARVIS_MEMORY__EMBEDDING_PROVIDER=         # openai | ollama | vllm. 비우면 키워드 검색만. 약속 중복 판정도 이 설정을 쓴다
 JARVIS_MEMORY__EMBEDDING_MODEL=bge-m3      # 한국어는 bge-m3. 비우면 provider 기본값(ollama 는 nomic-embed-text)
 JARVIS_MEMORY__EMBEDDING_DIMENSIONS=1024   # bge-m3 는 1024. vllm 은 필수
+JARVIS_MEMORY__EMBEDDING_API_KEY=          # 비우면 LLM API 키
+JARVIS_MEMORY__EMBEDDING_BASE_URL=         # 비우면 provider 기본값
 
 JARVIS_SESSION__PERSISTENCE_BACKEND=jsonl  # jsonl | postgres
 JARVIS_SESSION__SESSIONS_DIR=~/.jarvis/sessions
@@ -113,7 +117,9 @@ JARVIS_OPENLOOP__POSTGRES_DSN=             # BACKEND=postgres 일 때. 비우면
 JARVIS_OPENLOOP__EXPIRE_AFTER_SEC=21600    # 기한 뒤 이만큼 지나면 expired 로 닫음(6시간)
 JARVIS_OPENLOOP__MAX_AGE_SEC=604800        # 기한 없는 약속의 수명(7일). 0 이면 닫지 않음
 JARVIS_USER_MODEL__ENABLED=true
+JARVIS_USER_MODEL__BACKEND=jsonl           # jsonl | in_memory
 JARVIS_USER_MODEL__PATH=~/.jarvis/user_model.json
+JARVIS_USER_MODEL__BUILD_SOURCE_LIMIT=30   # /usermodel build 가 증류에 쓰는 최근 기억 수
 ```
 
 ## 보안
@@ -125,10 +131,10 @@ JARVIS_SECURITY__INPUT_MAX_LENGTH=10000
 JARVIS_SECURITY__APPROVALS_PATH=~/.jarvis/approvals.yaml        # 공용 규칙(사람이 고친다)
 JARVIS_SECURITY__AGENT_APPROVALS_DIR=~/.jarvis/approvals         # 에이전트별 규칙(<agent_id>.yaml, 항상 허용이 쌓인다)
 JARVIS_SECURITY__REQUIRE_APPROVAL_FOR=["bash","write_file","edit_file"]  # 실행 전 승인을 묻는 도구
-JARVIS_SECURITY__DANGEROUS_COMMANDS=[...]                          # 승인과 무관하게 막는 명령 패턴
+JARVIS_SECURITY__DANGEROUS_COMMANDS=[...]                          # 위험 명령 패턴. 지금은 도구 호출 경로에서 검사하지 않는다
 ```
 
-`API_KEYS` 를 비우면 Web 인증이 꺼진다. 인증을 켜고 끄는 다른 스위치는 없다. TUI 는 설정과 상관없이 로컬 NoAuth 로 동작한다. 키가 곧 사용자 식별자이므로 길고 무작위인 값을 쓴다.
+`API_KEYS` 를 비우면 Web 인증이 꺼진다. 인증을 켜고 끄는 다른 스위치는 없다. `REQUIRE_AUTH` 와 `ALLOWED_ROLES` 는 설정에 있지만 읽는 코드가 없다. 실행 전 안전장치는 `REQUIRE_APPROVAL_FOR` 의 승인과 승인 규칙이다. TUI 는 설정과 상관없이 로컬 NoAuth 로 동작한다. 키가 곧 사용자 식별자이므로 길고 무작위인 값을 쓴다.
 
 ## MCP 서버
 
@@ -160,6 +166,7 @@ JARVIS_PLUGIN__PLUGINS_DIR=~/.jarvis/plugins
 
 JARVIS_AGENTS__ENABLED=true                 # 서브 에이전트(멀티 에이전트 패턴)
 JARVIS_AGENTS__AGENTS_DIR=~/.jarvis/agents
+JARVIS_AGENTS__SUPERVISOR_PROMPT=           # supervisor 패턴의 감독자 지시문. 문자열이나 파일 경로. 비우면 기본 문구
 JARVIS_TEAM__DIR=~/.jarvis/team             # 최상위 에이전트 정의(Docker 는 /app/team)
 
 JARVIS_SCHEDULER__ENABLED=true
@@ -171,7 +178,7 @@ JARVIS_EXTERNAL__SOURCES_DIR=~/.jarvis/external_sources
 JARVIS_WEB_SEARCH__BRAVE_API_KEY=           # 비우면 web_search 가 DuckDuckGo 결과 페이지를 읽는다
 ```
 
-여기 없는 조정 값(메모리 반감기, 사고 임계치, 외부 이벤트 한도 등)은 `src/jarvis/jarvis_config.py` 의 기본값을 따른다.
+여기 없는 조정 값(메모리 반감기와 회상 개수, 외부 이벤트 한도 등)은 `src/jarvis/jarvis_config.py` 의 기본값을 따른다.
 
 `JARVIS_PLUGIN__WATCH_FILES` 는 설정에 있지만 현재 아무것도 감시하지 않는다. 파일을 더했으면 재시작한다.
 
@@ -181,7 +188,9 @@ JARVIS_WEB_SEARCH__BRAVE_API_KEY=           # 비우면 web_search 가 DuckDuckG
 JARVIS_VOICE__STT_PROVIDER=browser      # browser | whisper
 JARVIS_VOICE__WHISPER_MODEL_SIZE=base   # tiny | base | small | medium. 클수록 정확하고 느리다. 운영은 small
 JARVIS_VOICE__TTS_PROVIDER=browser      # browser | supertonic
+JARVIS_VOICE__SUPERTONIC_MODEL=supertonic-3  # supertonic 패키지가 받는 모델 이름
 JARVIS_VOICE__TTS_LANG=ko
+JARVIS_VOICE__STT_LANG=ko-KR            # 브라우저 STT 언어(connected 메시지로 화면에 간다)
 JARVIS_VOICE__ENGLISH_TTS_PROVIDER=piper  # piper | qwen. 비우면 영어 문장도 TTS_PROVIDER 가 읽는다
 JARVIS_VOICE__QWEN_URL=http://host.docker.internal:8770  # qwen 합성 서버. 닿지 않으면 PIPER_MODEL 로 읽는다
 JARVIS_VOICE__SPEAK_ENGLISH=false         # true 면 JARVIS 가 소리 내는 한국어 글을 소리로만 영어로 옮겨 위 영어 TTS 로 읽는다
@@ -194,11 +203,11 @@ JARVIS_VOICE__TUI_ENABLED=false
 JARVIS_VOICE__TUI_RECORD_SECONDS=5
 ```
 
-영어 TTS 를 따로 두는 법은 [Voice Interface](../concepts/conversation/voice.md#영어-문장은-piper-음성으로) 에 있다. STT 언어 키는 설정 클래스에 있지만 whisper 가 읽지 않는다. whisper 는 한국어로 고정돼 있다. 모델 크기를 바꾸면 처음 인식할 때 모델을 새로 받는다.
+영어 TTS 를 따로 두는 법은 [Voice Interface](../concepts/conversation/voice.md#영어-문장은-piper-음성으로) 에 있다. `STT_LANG` 은 브라우저 STT 만 쓴다. whisper 는 이 값을 읽지 않고 한국어로 고정돼 있다. 모델 크기를 바꾸면 처음 인식할 때 모델을 새로 받는다.
 
 ## 화면과 브랜드
 
-TUI 와 Web 은 환경변수가 아니라 `--web` 플래그로 고른다. 바인딩할 주소와 포트는 `--host`, `--port` 로 정한다.
+TUI 와 Web 은 환경변수가 아니라 `--web` 플래그로 고른다. 바인딩할 주소와 포트는 `--host`, `--port` 로 정한다. `.env.example` 의 `JARVIS_UI__MODE`, `JARVIS_UI__THEME` 와 `JARVIS_UI__SHOW_THINKING` 은 설정에 있지만 읽는 코드가 없다.
 
 ```bash
 TZ=Asia/Seoul                           # 스케줄과 /schedule 마감 시각의 기준 (compose 기본값)
@@ -213,6 +222,15 @@ JARVIS_BRAND__PALETTE__NEBULA=["#3a5bff","#8a4dff","#ff6ad5"]
 ```
 
 브랜드 값은 Web HUD 의 워드마크, 명언, 링과 구체 색에 들어간다. 에이전트마다 다르게 두면 어느 비서와 말하고 있는지 색으로 알 수 있다.
+
+## 로그
+
+```bash
+JARVIS_LOG_LEVEL=INFO   # DEBUG | INFO | WARNING | ERROR
+LOG_FORMAT=console      # console(사람이 읽는 콘솔) | json(한 줄에 객체 하나)
+```
+
+두 값은 `src/jarvis/common/logger.py` 가 프로세스 환경변수에서 직접 읽는다. 설정 모델을 거치지 않으므로 로컬 실행에서 `.env` 에만 적으면 반영되지 않는다. 셸에서 `export` 하거나 Docker 처럼 `env_file` 로 컨테이너 환경에 넣는다. `LOG_FORMAT` 에는 `JARVIS_` 접두사가 없다. 로그는 stdout 으로 나가고, `password`, `token`, `api_key`, `authorization`, `cookie`, `secret` 같은 키의 값은 `***` 로 가린다. `JARVIS_DEBUG` 는 설정에 있지만 읽는 코드가 없다.
 
 ## 호스트 Ollama 팁
 

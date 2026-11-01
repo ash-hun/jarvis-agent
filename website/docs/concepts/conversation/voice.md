@@ -21,7 +21,7 @@ Web HUD 나 TUI 에서 JARVIS 에게 말로 묻고 응답을 소리로 듣는다
 | TTS | Web Speech API 가 합성 | `supertonic`: ONNX 합성 결과를 WAV 로 돌려준다 |
 | 영어 TTS | `TTS` 와 같은 프로바이더 | `piper`: Piper 음성 모델 하나로 영어 문장만 합성한다. `qwen`: Mac 호스트의 Qwen3-TTS 합성 서버에 맡긴다 |
 
-whisper 와 supertonic 을 쓰려면 `uv sync --extra voice` 로 설치한다. Docker 의 web 이미지에는 들어 있지 않다. piper 는 `--extra piper` 이고 web 이미지에 들어 있다.
+whisper 와 supertonic 은 `uv sync --extra voice`, piper 는 `--extra piper` 로 설치한다. Docker 의 web 이미지에는 둘 다 들어 있다.
 
 ## 영어 문장은 Piper 음성으로
 
@@ -244,8 +244,20 @@ JARVIS_VOICE__TUI_RECORD_SECONDS=5
 
 ## 알아 둘 것
 
-- `JARVIS_VOICE__WHISPER_MODEL_SIZE`, `SUPERTONIC_MODEL`, `STT_LANG` 은 설정에 있지만 현재 프로바이더가 읽지 않는다. whisper 언어는 한국어로 고정돼 있다
+- `JARVIS_VOICE__WHISPER_MODEL_SIZE`(기본 `base`)는 whisper 모델 크기로, `SUPERTONIC_MODEL`(기본 `supertonic-3`)은 supertonic 모델 이름으로 넘어간다. whisper 언어는 한국어로 고정돼 있다. `STT_LANG` 은 접속 때 화면에 보내지만 브라우저 인식은 이 값을 읽지 않고 `ko-KR` 로 듣는다
 - Full-voice 모드(헤더의 `FULL-VOICE`)는 응답, 승인 요청(아래쪽 띠), 먼저 건네는 말의 피드백 질문을 읽고 답을 듣는다. 승인은 음성으로 시작한 요청이면 Default 에서도 같다. 승인 답에 부정어가 있으면 거부하고, 분명한 긍정이면 허용한다. 그 밖의 말("그거 돌려")은 사고 모델에 물어 `allow`/`always` 일 때만 허용하고 나머지는 거부한다. gemma4:e2b 로 실측했을 때 승인 답 11문장 중 허용하면 안 되는 말을 허용한 경우는 0건이었다
+
+## 화면 밖으로
+
+화면이 소리 내어 읽은 말은 `spoken` 알림으로 Slack, Discord, Web Push 에도 간다(`JARVIS_NOTIFY__KINDS` 에 `spoken` 이 있을 때). 화면이 한 답을 문장 조각으로 나눠 읽으면 첫 조각에서 원문 전체로 한 번만 보낸다. 녹음 문구는 화면이 재생한 뒤 `voice_spoken` 으로 알려 오면 그 문장으로 보낸다. 🔔, 뒤로 넘긴 작업의 답, 스케줄 알림은 서버가 이미 따로 보내므로 읽어도 다시 보내지 않는다.
+
+디스코드 봇 토큰, 서버 id, 사용자 id(`JARVIS_NOTIFY__DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, `DISCORD_USER_ID`)가 모두 있으면, 사용자가 음성 채널에 있을 때 봇이 그 채널에 들어가 알림을 읽고 나간다(`core/notify/discord_voice.py`). 읽는 종류는 `JARVIS_NOTIFY__DISCORD_VOICE_KINDS`(기본 `reminder`, `proactive`)다. `spoken` 은 화면이 이미 읽은 말이라 글로만 보낸다.
+
+- 보낸 에이전트 이름, 제목, 본문 순으로 읽는다. 본문은 화면과 같은 `speech_text` 로 기호를 지운다
+- 300자를 넘으면 앞부분만 읽고 "나머지는 디스코드 글로 남겼어요." 를 붙인 뒤 전문을 글로도 보낸다
+- 한국어는 `JARVIS_NOTIFY__DISCORD_TTS_PROVIDER`(기본 `supertonic`)가, 영어 문장은 `ENGLISH_TTS_PROVIDER` 가 읽는다. `speak_english` 의 영어 옮기기는 하지 않는다
+- 사용자가 음성 채널에 없거나, 합성이나 재생이 실패하면 webhook 글로 보낸다. 알림은 한 번에 하나씩 읽는다
+- `uv sync --extra discord` 와 ffmpeg 가 필요하다. Docker 의 web 이미지에는 둘 다 들어 있다. discord.py 가 없으면 로그에 경고를 남기고 글로만 보낸다
 
 ## 성능 실험
 
@@ -320,7 +332,7 @@ Chrome 음성 인식(ko-KR)으로 Focus 를 켜고 끄려 한 실제 시도 다�
 
 ## 구현 위치
 
-- 구현: `services/qwen_tts/`(Mac 의 Qwen3-TTS 합성 서버와 launchd 등록), `ui/web/ws_tasks.py` 의 `run_tts`(옮기기, 문장 나누기, 조각 중계), `voice/`(서버 프로바이더, `service.py` 의 영어 판정, `speech_text.py` 의 기호 지우기, `wake.py` 의 웨이크워드 감지, `phrases.py` 의 읽기 문구), `ui/web/router/voice_router.py`(문구 wav), `ui/web/static/voice.js`(브라우저 상태 기계, 조각 예약 재생), `app/wake.js` 와 `wake-worklet.js`(마이크 캡처), `app/phrases.js`(문구 받기), `ui/tui/`(터미널)
+- 구현: `services/qwen_tts/`(Mac 의 Qwen3-TTS 합성 서버와 launchd 등록), `ui/web/ws_tasks.py` 의 `run_tts`(옮기기, 문장 나누기, 조각 중계), `voice/`(서버 프로바이더, `voice_service.py` 의 영어 판정, `english.py` 의 영어로 옮기기, `speech_text.py` 의 기호 지우기, `wake.py` 의 웨이크워드 감지, `phrases.py` 의 읽기 문구), `ui/web/router/voice_router.py`(문구 wav), `ui/web/static/voice.js`(브라우저 상태 기계, 조각 예약 재생), `app/wake.js` 와 `wake-worklet.js`(마이크 캡처), `app/phrases.js`(문구 받기), `ui/tui/`(터미널)
 
 왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
 

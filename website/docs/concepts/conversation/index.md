@@ -31,6 +31,7 @@ Approve System의 경우 120초 안에 승인여부에 대한 응답이 가야�
 
 ## 다음에 읽을 것
 
+- 이 절의 다른 문서: [Sessions](./sessions.md), [Open Loop](./open-loop.md), [MCP Events](./mcp.md), [Scheduling](./scheduling.md), [Goals](./goals.md), [Voice Interface](./voice.md)
 - [Proactive Dialogue](../architecture/proactive.md): 🔔 를 언제 보내고 언제 참는지
 - [Web HUD 사용가이드](../../start/web-hud.md): 카드, 입력, 세션 다루기
 - [전체 용어집](../../reference/glossary.md): 이 문서에 나오는 이름들

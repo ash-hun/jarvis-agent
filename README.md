@@ -1,6 +1,6 @@
 # Jarvis
 
-개인 AI 비서 에이전트. 터미널 TUI와 브라우저 Web HUD 두 가지 모드로 동작하며, 멀티프로바이더 LLM · 멀티 에이전트 오케스트레이션 · 장기 메모리에 더해, 요청에만 답하지 않고 스스로 사고하고 먼저 행동하는 **proactive agent** 기능을 지원한다.
+개인 AI 비서 에이전트. 터미널 TUI와 브라우저 Web HUD 두 가지 모드로 동작하며, 멀티프로바이더 LLM, 멀티 에이전트 오케스트레이션, 장기 메모리에 더해, 요청에만 답하지 않고 스스로 사고하고 먼저 행동하는 **proactive agent** 기능을 지원한다.
 
 <div align="center">
     <img src="./assets/hud-motion.gif" alt="Web HUD 모션그래픽 — 내적 사고, 마크다운 응답, 먼저 건네는 말, 승인 기억" />
@@ -18,17 +18,18 @@
 **요구사항:** Python 3.11+, [uv](https://docs.astral.sh/uv/)
 
 ```bash
-git clone https://github.com/ash-hun/jarvis.git
-cd jarvis
+git clone https://github.com/ash-hun/jarvis-agent.git
+cd jarvis-agent
 
 uv sync --extra web --extra scheduler
 cp .env.example .env
 # .env에서 최소 JARVIS_LLM__API_KEY 설정
-# .env.example 은 세션·메모리가 postgres 다. Docker 없이 띄우려면 jsonl / in_memory 로
+# .env.example 은 세션과 메모리가 postgres 다. Docker 없이 띄우려면 jsonl, in_memory 로
 
 jarvis                                   # TUI 실행
 jarvis --web                             # Web HUD 실행 (http://localhost:7777)
 jarvis --web --host 0.0.0.0 --port 8080  # 바인딩은 플래그로. 환경변수 없음
+jarvis -a karen                          # 그 에이전트의 기본 세션으로 TUI 시작
 ```
 
 <details>
@@ -38,7 +39,7 @@ jarvis --web --host 0.0.0.0 --port 8080  # 바인딩은 플래그로. 환경변�
 cp .env.example .env  # .env 설정
 
 # TUI (PostgreSQL 세션 포함)
-docker compose --profile app up jarvis
+docker compose --profile app run --rm jarvis
 
 # Web HUD 전체 스택 (nginx + backend + postgres)
 docker compose --profile web up
@@ -64,7 +65,7 @@ docker compose --profile web down
 |-----------|--------------------------|------------|
 | Anthropic (Claude) | `anthropic` | ✅ |
 | OpenAI (GPT) | `openai` | ✅ |
-| Google (Gemini) | `google` | ✅ |
+| Google (Gemini) | `gemini` | ✅ (`uv sync --extra gemini`) |
 | Ollama (로컬) | `ollama` | ❌ |
 | vLLM (로컬) | `vllm` | ❌ |
 
@@ -113,12 +114,15 @@ jarvis --list-sessions      # 세션 목록
 
 ### 스케줄러
 
-자연어 또는 cron 표현식으로 작업 예약:
+한국어 시각 표현으로 작업 예약:
 
 ```
-/schedule 매일 오전 9시에 날씨 알려줘
-/schedule 0 9 * * * date && uptime
+/schedule 내일 오전 9시에 날씨 알려줘
+/schedule 30분 뒤에 배포 로그 확인
+/schedule 2026.12.01 오전 9시까지 AI 뉴스 요약해줘
 ```
+
+cron 식으로 도는 작업은 `~/.jarvis/schedules/<name>.yaml` 에 `schedule: "0 9 * * *"` 로 적는다.
 
 정한 시각에 정한 일을 하는 일정과 달리, 목표는 에이전트가 차례마다 다음 한 단계를 스스로 정하고 새로 알릴 것만 대화로 건넨다. 에이전트 정의의 `boundaries`(`ask`, `never`)가 혼자 할 때 쓸 수 없는 도구를 정한다.
 
@@ -166,7 +170,7 @@ JARVIS_THOUGHT__ROUTER_BASE_URL=http://host.docker.internal:11435   # Docker 밖
 
 호스트 Ollama 하나로 메인과 사고를 같이 돌리면 성찰 중 사용자 요청이 줄을 선다. brew 서비스면 `launchctl setenv OLLAMA_NUM_PARALLEL 2 && brew services restart ollama` 로 동시 처리 수를 늘린다(재부팅하면 다시 설정).
 
-먼저 건네는 말이 나오지 않는 이유는 백엔드 로그 `[Thought] proactive silent: <이유>` 에 남는다. `awaiting reply`(먼저 건넨 말 뒤 사용자가 아직 아무 답도 하지 않음), `cooldown`(300초), `confidence … < 임계치`, `empty utterance`(모델이 건넬 말을 안 채움) 중 하나다. 답을 기다리는 동안은 성찰도 건너뛴다.
+먼저 건네는 말이 나오지 않는 이유는 백엔드 로그 `[Thought] proactive silent: <이유>` 에 남는다. 대표적인 이유는 `awaiting reply`(먼저 건넨 말 뒤 사용자가 아직 아무 답도 하지 않음), `cooldown`(300초), `confidence … < 임계치`, `empty utterance`(모델이 건넬 말을 안 채움), `nothing to tell`(챙길 약속도 새 외부 이벤트도 없음)이다. 전체 목록은 문서 사이트 FAQ 의 "먼저 건네는 말이 오지 않을 때" 에 있다. 답을 기다리는 동안은 성찰도 건너뛴다.
 
 | 피드백 | 동작 |
 |--------|------|
@@ -189,13 +193,13 @@ Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는�
 /procedures learn [session_id] # 그 세션의 도구 3회 이상 구간을 지금 바로 학습
 ```
 
-- 자연 키는 `<session_id>#<메시지 인덱스>`. 같은 구간은 두 번 배우지 않고, 세션 종료 훅을 다시 돌려도 파일이 늘지 않는다.
-- 실패한 도구 호출 뒤에 같은 도구가 성공했으면 회복으로 보고 성공한 경로만 배운다. 회복하지 못한 오류가 있거나 도구 호출이 `JARVIS_PROCEDURES__MIN_TOOL_CALLS`(기본 3) 미만이면 건너뛴다.
+- 자동 초안의 자연 키는 `edm:<에이전트>:<작업 종류>:<세대>` 다. 성공이 3번 쌓일 때마다 한 세대이고, 같은 세대는 다시 정제하지 않으므로 통합을 다시 돌려도 파일이 늘지 않는다.
+- `/procedures learn` 의 자연 키는 `<session_id>#<메시지 인덱스>` 다. 실패한 도구 호출 뒤에 같은 도구가 성공했으면 회복으로 보고 성공한 경로만 배운다. 회복하지 못한 오류가 있거나 도구 호출이 `JARVIS_PROCEDURES__MIN_TOOL_CALLS`(기본 3) 미만인 구간은 건너뛴다.
 - 입력만 채우면 다시 돌릴 수 있는 계획(`plan`)이 있으면 절차 도구가 단계를 차례로 실행한다. 단계마다 세션의 권한, 승인 검사를 그대로 거친다. 계획이 없거나 입력이 빠졌으면 레시피를 돌려주고 에이전트가 따른다.
 
 ### 승인 기억 (Approval Memory)
 
-`bash`, `write_file`, `edit_file` 은 실행 전 승인을 묻는다(`JARVIS_SECURITY__REQUIRE_APPROVAL_FOR`). 위험 명령 정규식 설정은 도구 호출 경로에서 검사되지 않으므로 안전장치는 이 승인과 규칙이다. 승인 화면에서 **항상 허용**(TUI `a`, Web `ALWAYS`)을 고르면 제안된 패턴이 `~/.jarvis/approvals.yaml` 에 규칙으로 남고, 그 패턴은 다시 묻지 않는다. 규칙은 사용자가 그 버튼을 눌렀을 때만 생긴다.
+`bash`, `write_file`, `edit_file` 은 실행 전 승인을 묻는다(`JARVIS_SECURITY__REQUIRE_APPROVAL_FOR`). 위험 명령 정규식 설정은 도구 호출 경로에서 검사되지 않으므로 안전장치는 이 승인과 규칙이다. 승인 화면에서 **항상 허용**(TUI `a`, Web `ALWAYS`)을 고르면 제안된 패턴이 그 에이전트의 규칙 파일 `~/.jarvis/approvals/<agent_id>.yaml`(JARVIS 는 `main.yaml`)에 남고, 그 패턴은 다시 묻지 않는다. 규칙은 사용자가 그 버튼을 눌렀을 때만 생긴다. 모든 에이전트에 적용할 규칙은 공용 파일 `~/.jarvis/approvals.yaml` 에 손으로 적는다.
 
 | 도구 | 제안 패턴 | 대조 방식 |
 |------|----------|----------|
@@ -204,7 +208,7 @@ Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는�
 | 그 외 | `*` | 도구 전체 |
 
 ```yaml
-# ~/.jarvis/approvals.yaml — 손으로 고쳐도 된다
+# ~/.jarvis/approvals.yaml (공용) 또는 ~/.jarvis/approvals/<agent_id>.yaml. 손으로 고쳐도 된다
 rules:
   - {tool: bash, pattern: uv run}
   - {tool: write_file, pattern: "docs/*"}
@@ -304,10 +308,10 @@ uv sync --extra voice                    # whisper/supertonic
 
 ### 보안 파이프라인
 
-모든 입력은 4단계를 순서대로 통과한다. 순서 변경·스킵 불가.
+입력은 앞의 세 단계를 차례로 지나고, 도구 호출은 Sandbox 가 실행 여부(승인 불필요, 기억된 규칙, 사용자에게 질문)를 정한다. PolicyEngine 은 지금 모두 허용(`AllowAllPolicy`)이다.
 
 ```
-InputValidator → Authenticator → PolicyEngine → Sandbox
+InputValidator → Authenticator → PolicyEngine → (도구 호출마다) Sandbox
 ```
 
 **Web HUD 접근 키.** `JARVIS_SECURITY__API_KEYS` 에 키 → 사용자(이름, roles)를 등록하면 `/ws` 와 `/api/*` 가 그 키를 요구한다. 키가 곧 식별자이므로 길고 무작위인 값을 쓴다. 브라우저는 처음 연결이 거부되면 키를 한 번 묻고 저장한다. 비워두면 web 인증이 꺼지고, TUI 는 설정과 무관하게 로컬 NoAuth 다.
@@ -322,15 +326,17 @@ JARVIS_SECURITY__API_KEYS='{"<long-random-key>": {"name": "jh", "roles": ["admin
 
 | 도구 | 주요 파라미터 | 설명 |
 |------|-------------|------|
-| `bash` | `command`, `timeout` | 셸 명령 실행. 위험 명령은 human-in-the-loop 승인 요청 |
+| `bash` | `command`, `timeout` | 셸 명령 실행. 실행 전 승인을 묻는다(`REQUIRE_APPROVAL_FOR`) |
 | `read_file` | `path`, `offset`, `limit` | 파일 읽기. 라인 번호 기반 범위 지정 가능 |
-| `write_file` | `path`, `content` | 파일 쓰기. 부모 디렉토리 자동 생성, 기존 파일 덮어쓰기 |
-| `edit_file` | `path`, `old_string`, `new_string`, `replace_all` | 파일 내 문자열 정밀 교체. 매칭 실패 시 에러 반환 |
+| `write_file` | `path`, `content`, `encoding` | 파일 쓰기. 부모 디렉토리 자동 생성, 기존 파일 덮어쓰기. 실행 전 승인 |
+| `edit_file` | `path`, `old_string`, `new_string`, `replace_all` | 파일 내 문자열 정밀 교체. 매칭 실패 시 에러 반환. 실행 전 승인 |
 | `glob` | `pattern`, `path`, `limit` | 글롭 패턴으로 파일 탐색 (`**/*.py`). 최근 수정순 정렬 |
-| `grep` | `pattern`, `path`, `glob`, `case_insensitive` | 파일 내용 정규식 검색. `path:line: text` 형식 반환, 바이너리 자동 스킵 |
+| `grep` | `pattern`, `path`, `glob`, `case_insensitive`, `max_results` | 파일 내용 정규식 검색. `path:line: text` 형식 반환, 바이너리 자동 스킵 |
 | `list_dir` | `path`, `all` | 디렉토리 나열. 타입(dir/file)·크기 표시 |
 | `web_search` | `query`, `max_results` | 웹 검색. Brave API 키 설정 시 Brave, 미설정 시 DuckDuckGo fallback |
 | `web_fetch` | `url`, `max_length` | URL 본문을 가져와 텍스트로 변환 (HTML 태그 제거) |
+
+이 밖에 `remember_task_pattern`, `recall_episodes`(기억)는 늘 붙고, 기능이 켜지면 `schedule`, `goal`(스케줄러), `orchestrate`(서브 에이전트 정의가 있을 때), `ask_agent`(최상위 에이전트가 둘 이상일 때), MCP 서버의 도구가 붙는다. 청약 도구(`lh_notice`, `sh_notice`, `housing_loan`, `housing_budget`, `housing_profile`, `housing_watch`)는 에이전트 정의의 `tools` 에 적은 에이전트만 쓴다.
 
 ---
 
@@ -338,28 +344,35 @@ JARVIS_SECURITY__API_KEYS='{"<long-random-key>": {"name": "jh", "roles": ["admin
 
 | 커맨드 | 별칭 | 설명 |
 |--------|------|------|
-| `/test` | `/t`, `/pytest` | 유닛 테스트 실행 및 결과 리포트 |
-| `/schedule` | — | 작업 예약 |
-| `/goal` | — | 목표 맡기기 (`<문장>` \| 목록 \| `stop <문장 일부>`) |
-| `/housing` | — | 주거 프로필 보기와 고치기 (`set 현금=7000만 월여유자금=150만` \| `clear`) |
-| `/remember` | — | 장기 기억 저장/검색/삭제 (`list` \| `search <키워드>` \| `forget <id>`) |
-| `/sessions` | — | 저장된 세션 목록 표시 |
-| `/branch` | — | `[session_id]` 세션을 특정 시점에서 분기 |
-| `/tools` | — | 현재 사용 가능한 도구 목록 표시 |
-| `/procedures` | — | 학습된 절차 (`approve <name>` \| `reject <name>` \| `show <name>` \| `learn [session_id]`) |
-| `/compact` | — | 명령을 친 세션을 요약해 장기 기억에 저장 |
-| `/export` | — | 현재 세션 대화를 파일로 내보내기 (`md` \| `json`, `~/.jarvis/exports/`) |
-| `/cost` | — | 현재 세션 토큰 사용량·추정 비용 리포트 (모델별 집계) |
-| `/openloop` | — | 추적 중인 약속/미완 작업 (`done <id>` \| `dismiss <id>`) — proactive |
-| `/usermodel` | — | 증류된 사용자 모델 표시 / `build`로 갱신 — proactive |
-| `/journal` | — | 자기 성찰 저널 표시 / `write`로 작성 — proactive |
+| `/test` | `/t`, `/pytest`, `/ut` | 유닛 테스트 실행 및 결과 리포트 (레포 `skills/test.md`, `JARVIS_PLUGIN__SKILLS_DIR=./skills` 일 때) |
+| `/schedule` | | 작업 예약 (`<시각>에 <내용>` 한 번 \| `<YYYY.MM.DD 시각>까지 <내용>` 마감까지 반복) |
+| `/goal` | | 목표 맡기기 (`<문장>` \| 목록 \| `stop <문장 일부>`) |
+| `/housing` | | 주거 프로필 보기와 고치기 (`set 현금=7000만 월여유자금=150만` \| `clear`) |
+| `/remember` | | 장기 기억 저장/검색/삭제 (`list` \| `search <키워드>` \| `forget <id>` \| `conflicts` \| `reembed`) |
+| `/patterns` | | 지금 에이전트의 작업 패턴 (`forget <이름>`) |
+| `/sessions` | | 저장된 세션 목록 표시 |
+| `/branch` | | `[session_id]` 세션을 특정 시점에서 분기 |
+| `/tools` | | 현재 사용 가능한 도구 목록 표시 |
+| `/procedures` | | 학습된 절차 (`approve <name>` \| `reject <name>` \| `show <name>` \| `learn [session_id]`) |
+| `/compact` | | 명령을 친 세션을 요약해 장기 기억에 저장 |
+| `/export` | | 현재 세션 대화를 파일로 내보내기 (`md` \| `json`, `~/.jarvis/exports/`) |
+| `/cost` | | 현재 세션 토큰 사용량과 추정 비용 리포트 (모델별 집계) |
+| `/openloop` | | 추적 중인 약속/미완 작업 (`done <id>` \| `dismiss <id>`). proactive |
+| `/usermodel` | | 증류된 사용자 모델 표시 / `build`로 갱신. proactive |
+| `/journal` | | 자기 성찰 저널 표시 / `write`로 작성. proactive |
+| `/orchestrate` | | 서브 에이전트를 패턴으로 조율 (`<pattern> [--agents a,b] [--promote] <작업>` \| `list`) |
+| `/cleanup` | | 옛 서브 에이전트 세션, 옛 STM 테이블, 시험 흔적 보기 (`agents` \| `stm` \| `tests` 뒤에 `confirm` 으로 삭제) |
+| `/focus` | | Focus 모드 (`<작업>` \| `stop` \| 현황). Web HUD 전용 |
+| `/exit` | | TUI 종료 |
 | `/help` | `/?` | 사용 가능한 명령 목록 표시 |
 
 ```
 /test                          # 전체 테스트
 /test -k "test_policy"         # 키워드 필터
-/test tests/unit/test_config.py
+/test tests/unit/test_session_jarvis_config.py
 ```
+
+전체 목록과 등록 조건은 문서 사이트의 "공용 커맨드" 에 있다.
 
 ---
 
@@ -369,23 +382,33 @@ JARVIS_SECURITY__API_KEYS='{"<long-random-key>": {"name": "jh", "roles": ["admin
 <summary>새 LLM 프로바이더 추가</summary>
 
 1. `src/jarvis/model_layer/providers/` 아래에 `my_provider.py` 생성
-2. `AsyncIterator[StreamEvent]`를 반환하는 `stream()` 함수 구현
-3. `ProviderRegistry`에 등록
+2. `Provider` 를 상속해 `provider_name` 과 `AsyncIterator[StreamEvent]` 를 내는 `stream()` 메서드 구현. 오류는 예외 대신 `ErrorEvent` 로 낸다
+3. `model_registry.py` 의 `build_default_registry()` 에 등록
 
 ```python
 # src/jarvis/model_layer/providers/my_provider.py
 from collections.abc import AsyncIterator
-from jarvis.model_layer.model_types import LLMContext, ModelConfig, StreamEvent
 
-async def stream(model: ModelConfig, ctx: LLMContext, options) -> AsyncIterator[StreamEvent]:
-    # SDK 호출 → StreamEvent yield
-    yield TextDeltaEvent(delta="Hello")
-    yield StopEvent(reason="stop", usage=Usage())
+from jarvis.model_layer.model_types import (
+    LLMContext, ModelConfig, StopEvent, StreamEvent, StreamOptions, TextDeltaEvent, Usage,
+)
+from jarvis.model_layer.providers.provider_base import Provider
+
+
+class MyProvider(Provider):
+    provider_name = "my-provider"
+
+    async def stream(
+        self, model: ModelConfig, context: LLMContext, options: StreamOptions | None = None
+    ) -> AsyncIterator[StreamEvent]:
+        # SDK 호출 → StreamEvent yield
+        yield TextDeltaEvent(delta="Hello")
+        yield StopEvent(reason="stop", usage=Usage())
 ```
 
 ```python
-# src/jarvis/model_layer/model_registry.py
-registry.register("my-provider", my_provider.stream)
+# src/jarvis/model_layer/model_registry.py 의 build_default_registry()
+registry.register(MyProvider())
 ```
 
 ```bash
@@ -397,9 +420,9 @@ JARVIS_LLM__PROVIDER=my-provider
 <details>
 <summary>새 도구(Tool) 추가</summary>
 
-`~/.jarvis/tools/` 에 파일을 놓고 재시작하면 등록된다. 같은 이름의 내장 도구를 덮어쓴다.
+`~/.jarvis/tools/`(`JARVIS_PLUGIN__TOOLS_DIR`)에 파일을 놓고 재시작하면 등록된다. 같은 이름의 내장 도구를 덮어쓴다.
 
-**방식 1 — Python 파일:**
+**방식 1, Python 파일:**
 
 ```python
 # ~/.jarvis/tools/my_tool.py
@@ -415,7 +438,7 @@ async def execute(tool_call_id: str, params: dict, **kwargs) -> dict:
     return {"content": f"결과: {params['query']}"}
 ```
 
-**방식 2 — YAML 선언:**
+**방식 2, YAML 선언과 같은 이름의 `.py`:** YAML 이 이름, 설명, 파라미터를 정하고 같은 이름의 `.py` 에 있는 `execute()` 가 실행한다. `.py` 가 없으면 등록되지 않는다.
 
 ```yaml
 # ~/.jarvis/tools/my_tool.yaml
@@ -464,7 +487,7 @@ parameters:
 <details>
 <summary>새 슬래시 커맨드(Skill) 추가</summary>
 
-`~/.jarvis/skills/` 에 Markdown 파일을 놓는다.
+`~/.jarvis/skills/`(`JARVIS_PLUGIN__SKILLS_DIR`)에 Markdown 파일을 놓고 재시작한다.
 
 ```markdown
 ---
@@ -477,16 +500,7 @@ aliases: [sum, tldr]
 {{args}}
 ```
 
-사용: `/summarize <텍스트>` 또는 `/sum <텍스트>`
-
-**고급 — Python 핸들러 연결:**
-
-```python
-# ~/.jarvis/skills/summarize.py  (같은 이름의 .py 파일)
-async def run(args: str, context) -> str:
-    # 커스텀 전처리 후 반환된 문자열이 LLM 프롬프트로 사용됨
-    return f"아래를 3줄로 요약:\n{args}"
-```
+사용: `/summarize <텍스트>` 또는 `/sum <텍스트>`. 본문의 `{{args}}`(또는 `{{input}}`)가 명령 뒤 글로 바뀌어 LLM 에 간다. 같은 필드를 가진 `.yaml`(본문은 `content` 키)도 읽는다.
 
 </details>
 
@@ -511,7 +525,7 @@ class MyPlugin:
         return messages  # 프로토콜에만 있고 아직 호출되지 않는다
 ```
 
-`JARVIS_PLUGIN__PLUGINS_DIR` (기본: `~/.jarvis/plugins/`) 를 기동 때 읽는다. 파일을 더했으면 재시작. 훅은 다섯 개를 다 두어야 빈 훅 오류 로그가 안 남는다.
+`JARVIS_PLUGIN__PLUGINS_DIR` (기본: `~/.jarvis/plugins/`) 를 기동 때 읽는다. 파일을 더했으면 재시작. `name` 과 `version` 을 가진 첫 클래스를 플러그인으로 쓴다. 상속하지 않으면 훅 다섯 개를 다 두어야 빈 훅 오류 로그가 안 남는다. `jarvis.core.plugins.plugins_protocol.JarvisPlugin` 을 상속하면 쓰지 않는 훅은 비워 둬도 된다.
 
 </details>
 
@@ -525,7 +539,6 @@ YAML 파일로 에이전트를 선언하고 `~/.jarvis/agents/` 에 배치한다
 ```yaml
 name: researcher
 description: "웹 검색과 문서 분석을 담당하는 에이전트"
-enabled: true
 tools:
   - web_search
   - read_file
@@ -533,6 +546,7 @@ system_prompt: |
   당신은 리서처 에이전트입니다.
   사용자의 질문에 답하기 위해 웹을 검색하고 문서를 분석합니다.
 model_override: null   # null이면 전역 설정 사용
+tools_only: false      # true 면 tools 에 적은 것만(비면 도구 없음). false 면 빈 tools 는 메인 도구 전체
 ```
 
 **여러 에이전트를 한 파일에 (list 형식):**
@@ -600,12 +614,13 @@ AgentEndEvent(session_id="...", agent_name="researcher", turns=3)
 
 ```bash
 # ── LLM ─────────────────────────────────────────────────────────────────────
-JARVIS_LLM__PROVIDER=anthropic        # anthropic | openai | google | ollama | vllm
+JARVIS_LLM__PROVIDER=anthropic        # anthropic | openai | gemini | ollama | vllm
 JARVIS_LLM__MODEL=claude-sonnet-4-5
 JARVIS_LLM__API_KEY=sk-ant-...
-JARVIS_LLM__BASE_URL=                 # Ollama/vLLM 전용
+JARVIS_LLM__BASE_URL=                 # Ollama, vLLM, OpenAI 호환 주소. OpenAI 는 비우면 기본 주소
 JARVIS_LLM__MAX_TOKENS=4096
 JARVIS_LLM__TEMPERATURE=0.7
+JARVIS_LLM__TIMEOUT=120               # 초
 
 # ── 메모리 ───────────────────────────────────────────────────────────────────
 JARVIS_MEMORY__BACKEND=postgres       # in_memory | postgres
@@ -687,7 +702,14 @@ JARVIS_OPENLOOP__MAX_AGE_SEC=604800       # 기한 없는 약속의 수명(7일)
 JARVIS_USER_MODEL__ENABLED=true
 JARVIS_USER_MODEL__BACKEND=jsonl          # jsonl | in_memory
 JARVIS_USER_MODEL__PATH=~/.jarvis/user_model.json
+
+# ── 로그 ─────────────────────────────────────────────────────────────────────
+# 프로세스 환경변수에서 직접 읽는다. 로컬 실행은 .env 가 아니라 export 로 준다(Docker 는 env_file 이 넣는다)
+JARVIS_LOG_LEVEL=INFO
+LOG_FORMAT=console                        # console | json
 ```
+
+음성, Focus, 브랜드, 외부 이벤트 등 나머지 설정은 문서 사이트의 "서비스 설정 값" 에 있다.
 
 </details>
 
@@ -697,11 +719,12 @@ JARVIS_USER_MODEL__PATH=~/.jarvis/user_model.json
 
 ```bash
 uv sync                          # 의존성 설치 (dev 포함)
-uv run pytest                    # 전체 테스트 (실 API 호출 없음, 920여 개)
+uv run pytest tests/unit         # 단위 테스트 (외부 API 는 mock)
+uv run pytest tests/integ        # 통합 테스트 (Postgres 경로는 testcontainers 로 Docker 필요)
 uv run pytest -k "test_policy"   # 특정 테스트
-uv run ruff check .              # 린트
-uv run ruff format .             # 포매팅
-uv run mypy src/                 # 타입 체크
+uv run ruff check src tests      # 린트
+uv run python scripts/sort_imports.py --check src tests scripts  # import 순서 (CLAUDE.md 규칙)
+uv run mypy                      # 타입 체크. 경로를 주지 않는다(pyproject 의 packages 로 본다)
 
 uv run python -m jarvis.memory.eval                     # 메모리 기능별 평가 (LLM 없음)
 uv run python -m jarvis.core.proactive.eval -v          # proactive 게이팅 평가 (정책만, LLM 없음)
@@ -718,25 +741,19 @@ proactive 평가는 `src/jarvis/core/proactive/eval/datasets/` 의 사례로 "�
 
 ```
 tests/
+├── conftest.py
+├── fixtures/                         테스트 도우미(faux_provider 등), 청약 게시판 HTML, 벤치마크 샘플
 ├── unit/
-│   ├── test_config.py           Pydantic Settings, env override
-│   ├── test_types.py            Message/StreamEvent 직렬화
-│   ├── test_stream.py           FauxProvider 스트리밍
-│   ├── test_policy.py           보안 파이프라인 4단계
-│   ├── test_tools.py            ToolRegistry, BashTool, ReadFileTool
-│   ├── test_skills.py           SkillRegistry, /command 확장
-│   ├── test_session.py          AgentSession 전체 플로우
-│   └── test_multi_agent/
-│       └── test_loader.py       YAML 에이전트 정의 로더
-└── integration/
-    └── test_postgres_session_repo.py   PostgreSQL 세션 repo (testcontainers)
+│   └── test_{기능}_{모듈}.py         기능 하나의 모듈 하나 (예: test_policy_sandbox.py, test_memory_memory_service.py)
+└── integ/
+    └── test_{기능}.py                기능 단위 흐름 (예: test_approval.py, test_session.py)
 ```
 
-**통합 테스트 실행 (Docker 필요):**
+**Postgres 통합 테스트 (Docker 필요):**
 
 ```bash
 uv sync  # testcontainers, asyncpg 포함
-uv run pytest tests/integration/ -v
+uv run pytest tests/integ/test_session.py tests/integ/test_memory.py tests/integ/test_openloop.py -v
 ```
 
 </details>

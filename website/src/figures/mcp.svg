@@ -16,14 +16,14 @@
 <path class="pf-edge" d="M175.0,65.0 L192.0,65.0" marker-end="url(#mcp-h)"/>
 <path class="pf-edge pf-edge--accent" d="M332.0,65.0 L355.0,65.0" marker-end="url(#mcp-h-accent)"/>
 <path class="pf-edge pf-edge--accent" d="M505.0,65.0 L541.0,65.0" marker-end="url(#mcp-h-accent)"/>
-<rect class="pf-gate" x="554.0" y="140" width="124" height="50" rx="25.0"/>
+<rect class="pf-gate" x="558.0" y="140" width="116" height="50" rx="25.0"/>
 <text class="pf-t" x="616.0" y="161.0" text-anchor="middle">처음 보는 항목</text>
 <text class="pf-s" x="616.0" y="178.0" text-anchor="middle">본 것은 7일 기억</text>
 <path class="pf-edge pf-edge--accent" d="M616.0,90.0 L616.0,140.0" marker-end="url(#mcp-h-accent)"/>
 <path class="pf-store" d="M355.0,141 a75.0,5 0 0,0 150,0 a75.0,5 0 0,0 -150,0 v48 a75.0,5 0 0,0 150,0 v-48"/>
 <text class="pf-t" x="430.0" y="164.0" text-anchor="middle">inbox</text>
 <text class="pf-s" x="430.0" y="181.0" text-anchor="middle">최대 200건</text>
-<path class="pf-edge pf-edge--accent" d="M554.0,165.0 L505.0,165.0" marker-end="url(#mcp-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M558.0,165.0 L505.0,165.0" marker-end="url(#mcp-h-accent)"/>
 <rect class="pf-box" x="190.0" y="140" width="144" height="50" rx="6"/>
 <text class="pf-t" x="262.0" y="161.0" text-anchor="middle">성찰 트리거</text>
 <text class="pf-s" x="262.0" y="178.0" text-anchor="middle">넣은 뒤 Poller 가 깨운다</text>

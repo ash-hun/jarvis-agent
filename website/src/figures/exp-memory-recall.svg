@@ -57,7 +57,7 @@
 <text class="pf-axis" x="627.0" y="261" text-anchor="middle">20</text>
 <text class="pf-axis" x="676.0" y="261" text-anchor="middle">40</text>
 <line class="pf-mark" x1="578.0" y1="92" x2="578.0" y2="246"/>
-<text class="pf-mark-t" x="584.0" y="175.0" text-anchor="start">이전 후보 풀 12개</text>
+<text class="pf-mark-t" x="584.0" y="166.0" text-anchor="start">이전 후보 풀 12개</text>
 <path class="pf-line--before" d="M431.0,98.0 L480.0,98.0 L529.0,98.0 L578.0,246.0 L627.0,246.0 L676.0,246.0"/>
 <g><title>이전 코드, 0개 뒤: 100%</title><circle class="pf-hit" cx="431.0" cy="98.0" r="11"/><circle class="pf-dot--before" cx="431.0" cy="98.0" r="4.5"/></g>
 <g><title>이전 코드, 4개 뒤: 100%</title><circle class="pf-hit" cx="480.0" cy="98.0" r="11"/><circle class="pf-dot--before" cx="480.0" cy="98.0" r="4.5"/></g>

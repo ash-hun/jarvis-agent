@@ -26,10 +26,12 @@ flowchart LR
   I -->|drain, 🔔 답을 기다리면 그대로| R
 ```
 
-- 소스 정의: `name`, `server`(mcp_servers 의 이름), `tool`, `args`, `interval_sec`(300), `enabled` 키로 쓴다
+- 소스 정의: `name`, `server`(mcp_servers 의 이름), `tool`, `args`, `interval_sec`(300), `enabled` 키로 쓴다. `server` 는 `mcp_servers`(환경변수 `JARVIS_MCP_SERVERS`, [Extension](../extension.md))에 적은 서버 이름이어야 하고, 맞는 서버가 없는 소스는 빠진다. 소스가 하나도 없으면 Poller 를 띄우지 않는다
+- 기동 직후 첫 틱에서 모든 소스를 한 번 부르고, 그 뒤로는 소스마다 `interval_sec` 간격으로 부른다
 - 응답 해석은 벤더 중립 관례를 따른다. 목록은 `items`, `events`, `messages`, `results`, `data` 필드에서 읽는다. id 는 `id`, `uid`, `eventId`, `messageId`, `threadId` 에서 찾고, 없으면 본문 해시를 쓴다. 제목은 `title`, `summary`, `subject`, `name`, `description` 에서 찾는다
 - 본 것은 `~/.jarvis/external_seen.jsonl` 에 TTL(7일)로 기억한다. Poller 는 틱당 최대 20건을 넣고, inbox 는 200건까지 담는다. 성찰은 drain 때 inbox 를 전부 비운다
 - drain 은 한 번만 일어나므로 여러 세션이 성찰해도 이벤트당 발화는 한 번이다. 요청 시점 사고는 외부 이벤트를 받지 않는다
+- 성찰 프롬프트에는 기본으로 제목만 싣는다. 메일 본문 같은 원문(500자까지 자름)은 `JARVIS_EXTERNAL__STORE_DETAIL_IN_LOG=true` 일 때만 실어, 사고 로그에 원문이 쌓이지 않게 한다
 - 성찰 프롬프트는 이벤트를 "말하라는 명령이 아니라 사실" 로 다루고, 긴급성과 관련성이 분명할 때만 말한다
 
 ## 설계 노트

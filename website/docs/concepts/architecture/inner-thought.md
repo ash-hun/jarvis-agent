@@ -59,11 +59,12 @@ flowchart LR
 
 `agent_layer/thought/engine.py` 의 `InnerThoughtEngine.think` 가 아래 순서로 사고 한 번을 처리한다.
 
-1. 회상: 메모리 체인에서 입력과 관련된 기억을 `recall_limit`(5)만큼 가져온다.
-2. 렌더: 요청 템플릿(`~/.jarvis/inner_thought.md`, 없으면 내장 기본)에 `now`, `open_loops`, `recalled_memories`, `history`, `user_input`, `user_model` 을 채운다. 히스토리는 최근 `history_turns`(8) 턴을, 턴당 `history_chars`(240) 자까지 넣는다.
-3. 호출: 도구 없이 사고 모델을 한 번 부른다. Ollama 프로바이더는 프레임의 JSON 스키마를 `format` 으로 넘겨 형식을 강제한다.
-4. 파싱: 첫 `{` 부터 마지막 `}` 까지 잘라 검증한다. `proactive_actions` 만 틀리면 그 항목만 버리고 프레임을 살린다. `recalled`, `options` 에 객체가 와도 글자만 건진다.
-5. 기록: `inner_thought` 이벤트를 내고, 사고 로그 싱크에 남긴다(`ltm` 이면 일화 기억으로, `stm` 이면 작업 메모로).
+1. 생략: 요청 입력이 `JARVIS_THOUGHT__SKIP_IF_SHORTER_THAN`(기본 0, 끔)보다 짧으면 사고하지 않고 None 을 돌려준다. 성찰에는 적용하지 않는다.
+2. 회상: `MemoryService.recall_messages` 로 입력과 관련된 기억을 `recall_limit`(5)만큼 가져온다.
+3. 렌더: 요청 템플릿(`~/.jarvis/inner_thought.md`, 없으면 내장 기본)에 `persona`, `now`, `open_loops`, `recalled_memories`, `history`, `user_input`, `user_model` 을 채운다. 히스토리는 최근 `history_turns`(8) 턴을, 턴당 `history_chars`(240) 자까지 넣는다.
+4. 호출: 도구 없이 사고 모델을 한 번 부른다. Ollama 프로바이더는 프레임의 JSON 스키마를 `format` 으로 넘겨 형식을 강제한다.
+5. 파싱: 첫 `{` 부터 마지막 `}` 까지 잘라 검증한다. `proactive_actions` 만 틀리면 그 항목만 버리고 프레임을 살린다. `recalled`, `options` 에 객체가 와도 글자만 건진다.
+6. 기록: 세션이 `inner_thought` 이벤트를 내고, 사고 로그 싱크(`JARVIS_THOUGHT__LOG_SINKS`, 기본 `ltm`)에 남긴다(`ltm` 이면 일화 기억으로, `stm` 이면 작업 메모로). 싱크 하나가 실패해도 턴은 계속된다.
 
 ## 사고 결과가 가는 곳
 
@@ -134,7 +135,7 @@ router 는 Ollama 로 띄울 수 없다(판정 head 를 읽지 못한다). LLMCl
 
 ## 템플릿 직접 쓰기
 
-요청용 템플릿은 `~/.jarvis/inner_thought.md`, 성찰용 템플릿은 `~/.jarvis/inner_thought_reflection.md` 에 직접 쓴다. 자리표시자는 `{{now}}`, `{{open_loops}}`, `{{external_events}}`, `{{recalled_memories}}`, `{{history}}`, `{{user_input}}`, `{{user_model}}`, `{{recent_proactive}}`(성찰 전용, 최근 먼저 건넨 말)이다. 없는 값은 빈 문자열이 된다. 외부 이벤트나 최근 먼저 건넨 말이 있는데 템플릿에 자리가 없으면, 끝에 덧붙여 빠지지 않게 한다.
+요청용 템플릿은 `~/.jarvis/inner_thought.md`, 성찰용 템플릿은 `~/.jarvis/inner_thought_reflection.md` 에 직접 쓴다. 자리표시자는 `{{persona}}`(에이전트 말투), `{{now}}`, `{{open_loops}}`, `{{external_events}}`, `{{recalled_memories}}`, `{{history}}`, `{{user_input}}`, `{{user_model}}`, `{{recent_proactive}}`(성찰 전용, 최근 먼저 건넨 말)이다. 없는 값은 빈 문자열이 된다. 외부 이벤트, 말투, 최근 먼저 건넨 말이 있는데 템플릿에 자리가 없으면, 끝에 덧붙여 빠지지 않게 한다.
 
 :::warning
 
@@ -160,7 +161,7 @@ router 는 Ollama 로 띄울 수 없다(판정 head 를 읽지 못한다). LLMCl
 
 ### 사고를 메인 응답과 떼어 낸 이유
 
-메인 응답 하나에 "해석하고, 약속을 찾고, 먼저 말할지 정하고, 답하라" 를 모두 시키면 프롬프트가 길어지고, 해석 결과를 구조화된 데이터로 꺼낼 수 없다. 그래서 사고를 별도 LLM 호출로 떼어 `ThoughtFrame` 이라는 고정 스키마로 받는다. 이 프레임 하나를 💭 표시, 약속 저장, 먼저 건네는 말, 사고 기록에 나눠 쓴다. 메인 응답은 대화만 다루고, 사고는 작은 모델로 따로 돌릴 수 있다.
+메인 응답 하나에 "해석하고, 약속을 찾고, 먼저 말할지 정하고, 답하라" 를 모두 시키면 프롬프트가 길어지고, 해석 결과를 구조화된 데이터로 꺼낼 수 없다. 그래서 사고를 별도 LLM 호출로 떼어 `ThoughtFrame` 이라는 고정 스키마로 받는다. 이 프레임 하나를 💭 표시, 먼저 건네는 말, 사고 기록에 나눠 쓴다. 약속은 지금은 AGENDA 판단이 따로 잡는다. 메인 응답은 대화만 다루고, 사고는 작은 모델로 따로 돌릴 수 있다.
 
 ### 작은 모델에는 스키마를 강제한다
 

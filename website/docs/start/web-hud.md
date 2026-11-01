@@ -7,7 +7,7 @@ title: Web HUD 사용가이드
 
 Web HUD 는 브라우저에서 JARVIS 와 대화하는 화면이다. `jarvis --web` 으로 서버를 띄우고 브라우저에서 http://localhost:7777 을 연다. Docker 로 띄울 때는 `docker compose --profile web up -d` 를 쓴다.
 
-nginx 가 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/`)을 서빙하고, `/api/*` 와 `/ws` 요청만 백엔드로 넘긴다. 화면은 하나이고, 세션을 바꾸면 WebSocket 을 다시 연결한다.
+Docker 에서는 nginx 가 정적 HTML 과 ES 모듈(`src/jarvis/ui/web/static/`)을 서빙하고, `/api/*`, `/ws`, `/brand.js`, `/manifest.json` 만 백엔드로 넘긴다. `jarvis --web` 으로 띄우면 백엔드가 정적 파일까지 직접 서빙한다. 화면은 하나이고, 세션을 바꾸면 WebSocket 을 다시 연결한다.
 
 :::note
 

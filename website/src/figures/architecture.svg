@@ -32,7 +32,7 @@
 <path class="pf-edge" d="M540.0,253.0 L560.0,253.0" marker-end="url(#architecture-h)"/>
 <rect class="pf-box pf-box--muted" x="560.0" y="30" width="168" height="50" rx="6"/>
 <text class="pf-t pf-t--muted" x="644.0" y="51.0" text-anchor="middle">common/</text>
-<text class="pf-s" x="644.0" y="68.0" text-anchor="middle">로거. 어느 층이든 쓴다</text>
+<text class="pf-s" x="644.0" y="68.0" text-anchor="middle">structlog 로거. 어느 층이든 쓴다</text>
 <rect class="pf-box pf-box--muted" x="560.0" y="294" width="168" height="50" rx="6"/>
 <text class="pf-t pf-t--muted" x="644.0" y="315.0" text-anchor="middle">프로바이더</text>
 <text class="pf-s" x="644.0" y="332.0" text-anchor="middle">anthropic, openai, gemini 외 2</text>

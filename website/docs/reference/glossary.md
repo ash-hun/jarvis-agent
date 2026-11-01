@@ -9,8 +9,8 @@ title: 전체 용어집
 
 | 이름 | 화면 기호 | 뜻 | 자세히 |
 |---|---|---|---|
-| 내적 사고 (Inner Thought) | 💭 | JARVIS 가 메인 응답과 따로 LLM 을 한 번 더 불러 판단을 만드는 일. 요청마다 한 번, 성찰 때 한 번 돈다 | [Inner Thought](../concepts/architecture/inner-thought.md) |
-| 사고 프레임 | | 내적 사고 한 번의 결과. 해석, 결정, 확신도, 먼저 할 말, 약속을 담은 구조화된 판단(`ThoughtFrame`) | [Inner Thought → 사고 프레임](../concepts/architecture/inner-thought.md#사고-프레임) |
+| 내적 사고 (Inner Thought) | 💭 | JARVIS 가 메인 응답과 따로 LLM 을 한 번 더 불러 판단을 만드는 일. 요청마다 한 번(Thought Router 가 direct 로 정하면 건너뛴다), 성찰 때 한 번 돈다 | [Inner Thought](../concepts/architecture/inner-thought.md) |
+| 사고 프레임 | | 내적 사고 한 번의 결과. 해석, 결정, 확신도, 먼저 할 말, 행동 후보를 담은 구조화된 판단(`ThoughtFrame`) | [Inner Thought → 사고 프레임](../concepts/architecture/inner-thought.md#사고-프레임) |
 | 사고 모델 | | 내적 사고에 쓰는 LLM. 메인 모델과 따로 작은 모델을 둘 수 있다 | [서비스 설정 값](./configuration.md) |
 | Dual channel | 💬 | 오래 걸릴 요청이면 짧은 말을 먼저 하고 메인 응답은 뒤에서 처리하는 방식 | [Dual channel](../concepts/architecture/proactive.md#dual-channel) |
 | filler | 💬 | Dual channel 에서 먼저 하는 짧은 말. "잠깐만요, 확인할게요" 같은 것 | [Dual channel](../concepts/architecture/proactive.md#dual-channel) |
@@ -25,7 +25,7 @@ title: 전체 용어집
 | 외부 이벤트 (MCP Events) | | MCP 도구를 주기적으로 불러 얻은 새 항목. 성찰의 재료가 된다 | [MCP Events](../concepts/conversation/mcp.md) |
 | 승인 | | 위험할 수 있는 도구를 실행하기 전에 사람에게 묻는 일 | [Tool & Approve System](../concepts/conversation/tools-and-approval.md) |
 | 승인 기억 | | 승인 화면의 `ALWAYS` 로 남긴 명령 패턴. 다음부터 같은 패턴은 묻지 않는다 | [Tool & Approve System → 승인 기억](../concepts/conversation/tools-and-approval.md#승인-기억) |
-| 절차 학습 | | 여러 도구로 성공한 작업을 다시 쓸 수 있는 절차 도구로 남기는 일 | [Tool & Approve System → 절차 학습](../concepts/conversation/tools-and-approval.md#절차-학습) |
+| 절차 학습 | | 같은 종류로 세 번 성공한 작업을 절차 초안으로 남기고, 승인하면 절차 도구로 쓰는 일 | [Tool & Approve System → 절차 학습](../concepts/conversation/tools-and-approval.md#절차-학습) |
 | 작업 패턴 | | 사용자가 알려 준 일하는 방식. 에이전트마다 따로 기억한다 | [Memory Management → 작업 패턴](../concepts/memory.md#작업-패턴) |
 | 사용자 모델 | | 기억에서 뽑은 사용자 성향. 모든 에이전트가 같이 읽는다 | [Memory Management → 사용자 모델과 저널](../concepts/memory.md#사용자-모델과-저널) |
 | 세션 (Sessions) | | 대화 한 줄기. 만들 때 에이전트가 정해지고 바뀌지 않는다 | [Sessions](../concepts/conversation/sessions.md) |

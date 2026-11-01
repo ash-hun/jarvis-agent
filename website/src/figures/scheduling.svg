@@ -26,19 +26,20 @@
 <path class="pf-edge" d="M344.0,161.0 L362.0,161.0 L362.0,125.0"/>
 <path class="pf-edge" d="M140.0,201.0 L362.0,201.0 L362.0,125.0"/>
 <path class="pf-edge" d="M362.0,125.0 L381.0,125.0" marker-end="url(#scheduling-h)"/>
-<rect class="pf-box pf-box--accent" x="552" y="30" width="186" height="114" rx="6"/>
+<rect class="pf-box pf-box--accent" x="552" y="30" width="186" height="130" rx="6"/>
 <text class="pf-t" x="645.0" y="51" text-anchor="middle">SchedulerService</text>
 <text class="pf-s" x="645.0" y="70" text-anchor="middle">10초마다 깨어남</text>
 <text class="pf-s" x="645.0" y="86" text-anchor="middle">reminder: 문장 그대로</text>
 <text class="pf-s" x="645.0" y="102" text-anchor="middle">task: 새 세션, 승인 없이</text>
 <text class="pf-s" x="645.0" y="118" text-anchor="middle">tool: 도구를 바로</text>
 <text class="pf-s" x="645.0" y="134" text-anchor="middle">goal: 목표 한 차례</text>
+<text class="pf-s" x="645.0" y="150" text-anchor="middle">마감 지난 반복은 끄고 저장</text>
 <path class="pf-edge pf-edge--accent" d="M531.0,125.0 L552.0,125.0" marker-end="url(#scheduling-h-accent)"/>
-<rect class="pf-box" x="580.0" y="190" width="160" height="50" rx="6"/>
+<rect class="pf-box" x="583.0" y="190" width="154" height="50" rx="6"/>
 <text class="pf-t" x="660.0" y="211.0" text-anchor="middle">에이전트의 말로</text>
 <text class="pf-code" x="660.0" y="228.0" text-anchor="middle">deliver: conversation</text>
-<path class="pf-edge pf-edge--accent" d="M660.0,144.0 L660.0,190.0" marker-end="url(#scheduling-h-accent)"/>
-<path class="pf-edge pf-edge--accent" d="M566.0,144.0 L566.0,290.0"/>
+<path class="pf-edge pf-edge--accent" d="M660.0,160.0 L660.0,190.0" marker-end="url(#scheduling-h-accent)"/>
+<path class="pf-edge pf-edge--accent" d="M566.0,160.0 L566.0,290.0"/>
 <text class="pf-elabel pf-elabel--accent" x="560.0" y="172.0" text-anchor="end">notice</text>
 <path class="pf-edge" d="M660.0,240.0 L660.0,290.0"/>
 <text class="pf-elabel" x="666.0" y="266.0" text-anchor="start">못 건네면</text>

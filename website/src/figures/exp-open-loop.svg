@@ -2,9 +2,9 @@
 <defs><marker id="exp-open-loop-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-open-loop-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-open-loop-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-open-loop-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
 <rect class="pf-panel" x="10" y="10" width="740" height="250" rx="8"/>
 <text class="pf-plabel" x="22" y="30">약속 18쌍의 코사인: 바꿔 말한 같은 약속(●)과 같은 주제의 다른 약속(◆)</text>
-<rect class="pf-dot-same" x="30" y="44" width="10" height="10" rx="2"/>
+<circle class="pf-dot-same" cx="35" cy="49" r="4"/>
 <text class="pf-s" x="45" y="53" text-anchor="start">같은 약속</text>
-<rect class="pf-dot-diff" x="106.89" y="44" width="10" height="10" rx="2"/>
+<rect class="pf-dot-diff" x="108.39" y="45.5" width="7" height="7" transform="rotate(45 111.89 49)"/>
 <text class="pf-s" x="121.89" y="53" text-anchor="start">다른 약속</text>
 <text class="pf-s" x="188" y="94" text-anchor="end">bge-m3</text>
 <text class="pf-axis" x="188" y="108" text-anchor="end">판정 정확도 0.83, 잘못 합침 0</text>

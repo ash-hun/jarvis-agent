@@ -43,7 +43,7 @@
 <path class="pf-edge" d="M138.0,228.0 L194.0,228.0" marker-end="url(#voice-h)"/>
 <text class="pf-elabel" x="166.0" y="223.0" text-anchor="middle">전사</text>
 <path class="pf-edge" d="M242.0,248.0 L242.0,330.0" marker-end="url(#voice-h)"/>
-<text class="pf-elabel" x="248.0" y="282.0" text-anchor="start">user_message</text>
+<text class="pf-elabel" x="236.0" y="282.0" text-anchor="end">user_message</text>
 <path class="pf-edge" d="M194.0,350.0 L138.0,350.0" marker-end="url(#voice-h)"/>
 <text class="pf-elabel" x="166.0" y="388.0" text-anchor="middle">응답, 승인 질문</text>
 <path class="pf-edge" d="M90.0,330.0 L90.0,248.0" marker-end="url(#voice-h)"/>
@@ -53,33 +53,33 @@
 <rect class="pf-box" x="372.0" y="198" width="190" height="44" rx="6"/>
 <text class="pf-t" x="467.0" y="216.0" text-anchor="middle">부정어</text>
 <text class="pf-s" x="467.0" y="233.0" text-anchor="middle">거부, 아니, 하지 마, 취소</text>
-<rect class="pf-box pf-box--deny" x="640.0" y="203" width="96" height="34" rx="6"/>
-<text class="pf-t pf-t--deny" x="688.0" y="224.5" text-anchor="middle">거부</text>
-<path class="pf-edge pf-edge--deny" d="M562.0,220.0 L640.0,220.0" marker-end="url(#voice-h-deny)"/>
+<rect class="pf-box pf-box--deny" x="596.0" y="203" width="140" height="34" rx="6"/>
+<text class="pf-t pf-t--deny" x="666.0" y="224.5" text-anchor="middle">거부</text>
+<path class="pf-edge pf-edge--deny" d="M562.0,220.0 L596.0,220.0" marker-end="url(#voice-h-deny)"/>
 <circle class="pf-badge" cx="354" cy="220" r="8.5"/>
 <text class="pf-badge-t" x="354" y="223.6" text-anchor="middle">1</text>
 <rect class="pf-box" x="372.0" y="248" width="190" height="44" rx="6"/>
 <text class="pf-t" x="467.0" y="266.0" text-anchor="middle">항상 키워드</text>
 <text class="pf-s" x="467.0" y="283.0" text-anchor="middle">패턴 제안이 있을 때</text>
-<rect class="pf-box" x="640.0" y="253" width="96" height="34" rx="6"/>
-<text class="pf-t" x="688.0" y="274.5" text-anchor="middle">항상 허용</text>
-<path class="pf-edge pf-edge--accent" d="M562.0,270.0 L640.0,270.0" marker-end="url(#voice-h-accent)"/>
+<rect class="pf-box" x="596.0" y="253" width="140" height="34" rx="6"/>
+<text class="pf-t" x="666.0" y="274.5" text-anchor="middle">항상 허용</text>
+<path class="pf-edge pf-edge--accent" d="M562.0,270.0 L596.0,270.0" marker-end="url(#voice-h-accent)"/>
 <circle class="pf-badge" cx="354" cy="270" r="8.5"/>
 <text class="pf-badge-t" x="354" y="273.6" text-anchor="middle">2</text>
 <rect class="pf-box" x="372.0" y="298" width="190" height="44" rx="6"/>
 <text class="pf-t" x="467.0" y="316.0" text-anchor="middle">허용 키워드</text>
 <text class="pf-s" x="467.0" y="333.0" text-anchor="middle">네, 응 단독 포함</text>
-<rect class="pf-box" x="640.0" y="303" width="96" height="34" rx="6"/>
-<text class="pf-t" x="688.0" y="324.5" text-anchor="middle">허용</text>
-<path class="pf-edge pf-edge--accent" d="M562.0,320.0 L640.0,320.0" marker-end="url(#voice-h-accent)"/>
+<rect class="pf-box" x="596.0" y="303" width="140" height="34" rx="6"/>
+<text class="pf-t" x="666.0" y="324.5" text-anchor="middle">허용</text>
+<path class="pf-edge pf-edge--accent" d="M562.0,320.0 L596.0,320.0" marker-end="url(#voice-h-accent)"/>
 <circle class="pf-badge" cx="354" cy="320" r="8.5"/>
 <text class="pf-badge-t" x="354" y="323.6" text-anchor="middle">3</text>
 <rect class="pf-box" x="372.0" y="348" width="190" height="44" rx="6"/>
 <text class="pf-t" x="467.0" y="366.0" text-anchor="middle">그 밖</text>
-<text class="pf-s" x="467.0" y="383.0" text-anchor="middle">사고 모델이 분류, 실패하면</text>
-<rect class="pf-box pf-box--deny" x="640.0" y="353" width="96" height="34" rx="6"/>
-<text class="pf-t pf-t--deny" x="688.0" y="374.5" text-anchor="middle">거부</text>
-<path class="pf-edge pf-edge--deny" d="M562.0,370.0 L640.0,370.0" marker-end="url(#voice-h-deny)"/>
+<text class="pf-s" x="467.0" y="383.0" text-anchor="middle">사고 모델이 분류</text>
+<rect class="pf-box" x="596.0" y="353" width="140" height="34" rx="6"/>
+<text class="pf-t" x="666.0" y="374.5" text-anchor="middle">그 답, 애매하면 거부</text>
+<path class="pf-edge pf-edge--accent" d="M562.0,370.0 L596.0,370.0" marker-end="url(#voice-h-accent)"/>
 <circle class="pf-badge" cx="354" cy="370" r="8.5"/>
 <text class="pf-badge-t" x="354" y="373.6" text-anchor="middle">4</text>
 </svg>

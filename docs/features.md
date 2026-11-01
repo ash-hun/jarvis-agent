@@ -218,7 +218,7 @@
 | `~/.jarvis/external_sources/*.yaml` | 소스별 주기 폴링, 이미 본 이벤트는 `~/.jarvis/external_seen.jsonl` 로 걸러 재발화 없음 |
 | 새 외부 이벤트 | 성찰 트리거가 깨어나고 세션이 inbox 를 한 번 비워 사고 요청에 싣는다 |
 
-**처리 흐름**: `external_loader` 에서 `poller` 로, `mcp_source.poll`, `dedup`, `inbox` 적재, `ExternalTrigger` 깨우기, `AgentSession.reflect` 의 `_drain_external_events` 순.
+**처리 흐름**: `external_loader` 에서 `poller` 로, `mcp_source.poll`, `dedup`(틱 상한 안의 것만 본 것으로 적는다), `inbox` 적재, `ExternalTrigger` 깨우기, `AgentSession.reflect` 의 `_drain_external_events` 순.
 
 **구현 파일**
 
@@ -245,7 +245,7 @@
 | 단위 | `tests/unit/test_external_poller.py` |
 | 통합 | `tests/integ/test_external.py` |
 
-**제약과 미구현**: 없음.
+**제약과 미구현**: 상한을 넘은 항목은 소스가 다음 조회 때 다시 줄 때만 들어온다. inbox 가 200건을 넘으면 오래된 것부터 버리고, 성찰이 inbox 를 비운 뒤 사고가 실패하면 그 이벤트는 다시 오지 않는다.
 
 ---
 

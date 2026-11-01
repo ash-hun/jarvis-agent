@@ -3,7 +3,17 @@
 import pytest
 from datetime import datetime, timedelta
 
-from jarvis.memory.memory_service import LTM_HEADER, PROCEDURES_HEADER, TURN_SOURCE, TURN_STEPS
+from jarvis.memory.memory_service import (
+    LTM_HEADER,
+    MAX_TURN_PARTS,
+    PROCEDURES_HEADER,
+    TURN_PART,
+    TURN_PART_SOURCE,
+    TURN_SOURCE,
+    TURN_STEPS,
+    answer_parts,
+    turn_contents,
+)
 from jarvis.memory.long_term.task_pattern import PATTERN_HEADER, SAVE_HINT_HEADER, TaskPattern
 from jarvis.model_layer.model_types import AssistantMessage, TextContent, UserMessage
 from tests.fixtures.procedures_helpers import EDM_SCOPE, edm_learner, record_turn
@@ -605,3 +615,113 @@ async def test_forget_pattern_removes_once(memory):
     assert await memory.forget_pattern(BUDGET.name, KAREN_LATER)
     assert await memory.task_patterns(KAREN) == []
     assert not await memory.forget_pattern(BUDGET.name, KAREN)
+
+
+# ── 출처 복원(MT-2)과 긴 답 조각(MT-3) ─────────────────────────────────────
+
+
+async def _turn_facts(memory: MemoryService) -> MemoryService:
+    async def extractor(text: str) -> list[Fact]:
+        return [Fact("알레르기", "땅콩", 0.9)]
+
+    mgr = MemoryService(memory.store, memory.working, extractor=extractor, fixed_facts=0)
+    await mgr.record_turn(1, "주말 계획 짜줘", "등산 어때요", U1_MAIN)
+    await mgr.record_turn(2, "나 땅콩 알레르기 있어. 식당 골라줘", "땅콩 없는 곳으로", U1_MAIN)
+    await mgr.consolidate(U1_MAIN)
+    return mgr
+
+
+async def test_consolidate_points_each_fact_at_the_turn_it_came_from(memory):
+    mgr = await _turn_facts(memory)
+
+    fact = (await mgr.recent(scope=U1_MAIN, kinds=[MemoryKind.SEMANTIC]))[0]
+    source = await mgr.get(fact.metadata["from_episode"])
+    assert "땅콩 알레르기" in source.content  # 첫 턴(묶음 맨 앞)이 아니라 사실 낱말이 나온 턴
+
+
+async def test_source_excerpt_is_the_matching_part_of_the_user_utterance(memory):
+    mgr = await _turn_facts(memory)
+    fact = (await mgr.recent(scope=U1_MAIN, kinds=[MemoryKind.SEMANTIC]))[0]
+
+    assert await mgr.source_excerpts([fact]) == {fact.id: "나 땅콩 알레르기 있어. 식당 골라줘"}
+
+
+async def test_recall_block_shows_only_the_fact_when_the_source_is_gone(memory):
+    mgr = await _turn_facts(memory)
+    fact = (await mgr.recent(scope=U1_MAIN, kinds=[MemoryKind.SEMANTIC]))[0]
+    await mgr.forget(fact.metadata["from_episode"])
+
+    assert await mgr.source_excerpts([fact]) == {}
+
+
+async def test_record_turn_keeps_the_rest_of_a_long_answer_as_part_episodes(memory):
+    answer = "앞부분 설명.\n" + "가" * 990 + "\n정답은 보라색 우산이다.\n" + "나" * 1500
+
+    await memory.record_turn(1, "우산 색 뭐였지", answer, U1_MAIN)
+
+    parts = [i for i in await memory.recent(scope=U1_MAIN, limit=10) if i.source == TURN_PART_SOURCE]
+    assert sorted(i.metadata[TURN_PART] for i in parts) == [1, 2]
+    assert any("보라색 우산" in i.content for i in parts)
+    assert all(i.content.startswith("사용자: 우산 색 뭐였지\n답(") for i in parts)
+
+
+async def test_record_turn_again_with_a_short_answer_removes_stale_parts(memory):
+    await memory.record_turn(1, "질문", "가" * 3000, U1_MAIN)
+    await memory.record_turn(1, "질문", "짧은 답", U1_MAIN)
+
+    items = await memory.recent(scope=U1_MAIN, limit=10)
+    assert [i.source for i in items] == [TURN_SOURCE]
+
+
+def test_answer_parts_is_empty_for_short_answers_or_when_disabled():
+    assert answer_parts("짧다") == []
+    assert answer_parts("가" * 3000, max_parts=0) == []
+    assert len(answer_parts("가" * 9000)) == MAX_TURN_PARTS
+
+
+def test_turn_contents_matches_what_record_turn_writes():
+    head, *parts = turn_contents("질문", "가" * 1500)
+    assert head == "사용자: 질문\n답: " + "가" * 1000 and len(parts) == 1
+
+
+async def test_recall_block_shows_facts_without_excerpts_by_default(memory):
+    mgr = await _turn_facts(memory)
+    # 두 턴이 아직 창 안이라 턴 일화는 회상 블록에서 빠지고 사실만 남는다
+    history = [_u("주말 계획 짜줘"), _a("등산 어때요"), _u("나 땅콩 알레르기 있어. 식당 골라줘"),
+               _a("땅콩 없는 곳으로"), _u("알레르기 뭐였지")]
+
+    out = await mgr.observe(history, CTX)
+
+    recall = next(m.content for m in out if isinstance(m.content, str) and m.content.startswith(LTM_HEADER))
+    assert "알레르기: 땅콩" in recall and "↳ 출처" not in recall
+
+
+async def test_recall_with_sources_adds_the_source_turn_and_reranks_by_relevance(memory):
+    mgr = await _turn_facts(memory)
+    fact = (await mgr.recent(scope=U1_MAIN, kinds=[MemoryKind.SEMANTIC]))[0]
+    other = MemoryScope(user_id="u1", agent_id="main", session_id="s2")
+
+    items = await mgr.recall_with_sources("땅콩 알레르기", other, limit=5)
+
+    assert fact.metadata["from_episode"] in {i.id for i in items}
+    assert "주말 계획" not in items[0].content  # 관련 없는 턴은 뒤로 간다
+
+
+async def test_recall_with_sources_skips_a_deleted_source(memory):
+    mgr = await _turn_facts(memory)
+    fact = (await mgr.recent(scope=U1_MAIN, kinds=[MemoryKind.SEMANTIC]))[0]
+    await mgr.forget(fact.metadata["from_episode"])
+
+    items = await mgr.recall_with_sources("알레르기", U1_MAIN, limit=5)
+
+    assert fact.id in {i.id for i in items} and fact.metadata["from_episode"] not in {i.id for i in items}
+
+
+async def test_observe_with_source_recall_brings_back_the_source_turn(memory):
+    mgr = await _turn_facts(memory)
+    on = MemoryService(mgr.store, mgr.working, fixed_facts=0, source_recall=True)
+    other = MemoryScope(user_id="u1", agent_id="main", session_id="s2")
+
+    recall = next(b for b in await observe(on, other, "땅콩 알레르기") if b.startswith(LTM_HEADER))
+
+    assert "나 땅콩 알레르기 있어" in recall

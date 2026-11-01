@@ -324,6 +324,8 @@ class ProcedureConfig(BaseModel):
     enabled: bool = True
     dir: str = "~/.jarvis/procedures"
     min_tool_calls: int = 3  # 이보다 적게 도구를 쓴 작업은 절차로 볼 가치가 없다
+    # 유휴 통합 때 실패한 턴을 반성해 절차 개정이나 작업 패턴 초안을 만든다. 끄면 LLM 반성 호출이 없다
+    reflect: bool = True
 
 
 class NotifyConfig(BaseModel):

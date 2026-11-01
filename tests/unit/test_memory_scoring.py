@@ -103,3 +103,16 @@ def test_salient_item_needs_a_clear_match_to_take_the_slot():
     recent = [_item(f"여행 계획 사진 {i}", kind=MemoryKind.EPISODIC, days_ago=1, importance=0.1) for i in range(5)]
     # 질의 토큰 셋 중 하나만 겹친다(1/3 < 0.5). 느슨한 연상으로 큰 사건이 끼어들지 않는다
     assert old not in rank([*recent, old], "여행 계획 사진", SCOPE, 3, now=NOW)
+
+
+def test_joint_rank_orders_any_kind_by_relevance_alone():
+    from jarvis.memory.memory_types import MemoryItem, MemoryKind
+    from jarvis.memory.retrieval.scoring import joint_rank
+    from jarvis.memory.scope import MemoryScope
+
+    scope = MemoryScope(user_id="u1", agent_id="main", session_id="s1")
+    fact = MemoryItem(content="취미: 등산", kind=MemoryKind.SEMANTIC, scope=scope, importance=1.0)
+    turn = MemoryItem(content="사용자: 땅콩 알레르기가 있어", kind=MemoryKind.EPISODIC, scope=scope)
+
+    assert joint_rank([fact, turn], "땅콩 알레르기", 2)[0] is turn
+    assert joint_rank([fact, turn], "땅콩", 0) == []

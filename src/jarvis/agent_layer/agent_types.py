@@ -51,6 +51,7 @@ class AgentEndEvent(BaseModel):
     final_message: AssistantMessage | None = None
     turns: int = 0
     agent_name: str | None = None
+    overflows: int = 0  # max_turns 를 다 쓰고도 도구를 부르던 횟수. 1 이면 이어가서 끝냈고 2 면 정리문이 답이다
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
 
 
@@ -170,3 +171,5 @@ class AgentLoopConfig(BaseModel):
     stream_options: StreamOptions = Field(default_factory=StreamOptions)
     tool_execution_mode: Literal["parallel", "sequential"] = "parallel"
     abort_on_error: bool = False
+    # max_turns 를 다 쓰고도 도구를 부르던 중이면 정리하고 절반만큼 이어간다. 끄면 예전처럼 그 자리에서 끊는다
+    overflow_resume: bool = True

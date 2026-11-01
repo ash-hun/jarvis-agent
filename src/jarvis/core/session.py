@@ -47,13 +47,14 @@ from jarvis.agent_layer.thought import (
     ThoughtRequest,
 )
 from jarvis.model_layer.model_types import AssistantMessage, ModelConfig, TextContent, ToolResultMessage, UserMessage
+from jarvis.agent_layer.thought.thought_types import ProactiveAction, SituationFact, ThoughtFrame
 from jarvis.core.policy.pipeline import AuthContext, PolicyDenied, PolicyResult, SecurityPipeline
 from jarvis.agent_layer.session.session_protocol import PROACTIVE_ACK_ENTRY, SessionRepo
-from jarvis.agent_layer.thought.thought_types import ProactiveAction, ThoughtFrame
 from jarvis.agent_layer.thought.router import RouteVerdict, ThoughtRouter
 from jarvis.core.tools.tools_registry import JarvisTool, ToolRegistry
 from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope
 from jarvis.core.external import ExternalEvent, ExternalEventInbox
+from jarvis.core.proactive.situation_facts import situation_facts
 from jarvis.agent_layer.openloop.openloop_types import same_loop
 from jarvis.agent_layer.thought.reply import ReplyClassifier
 from jarvis.core.skills.skills_registry import SkillRegistry
@@ -419,10 +420,16 @@ class AgentSession:
         # 사고 전에 남긴다. 사고가 실패해도 같은 입력으로 30초마다 다시 부르지 않는다
         self._reflect_key = key
         # 사고 기록과 자율 행동은 이 세션의 범위(memory_scope)를 인자로 받는다
+        # 남은 시간과 처리 신호는 코드가 계산해 decision model 에 붙인다(decision model 이 없으면 쓰이지 않는다)
+        now = datetime.now()
+        facts = situation_facts(
+            [(_loop_line(loop), _due_at(loop)) for loop in open_loops], external_events, now
+        )
         frame = await self._run_inner_thought(
             REFLECTION_SEED,
             mode="reflection",
             external_events=external_events,
+            facts=facts,
         )
         if frame is None:
             return None
@@ -678,6 +685,7 @@ class AgentSession:
         user_input: str,
         mode: ThoughtMode = "request",
         external_events: list[str] | None = None,
+        facts: list[SituationFact] | None = None,
     ) -> ThoughtFrame | None:
         """메타인지 1회. 요청 시점(expand 직후) 또는 daemon 성찰(mode="reflection").
 
@@ -702,6 +710,7 @@ class AgentSession:
                 user_model=await self._load_user_model(),
                 external_events=external_events or [],
                 recent_proactive=list(self._recent_proactive),
+                facts=facts or [],
                 mode=mode,
             )
         )
@@ -976,6 +985,11 @@ def _loop_line(loop: OpenLoop, now_ms: int | None = None) -> str:
         return f"{loop.description} (기한 {due})"
     # 작은 모델은 시각 두 개를 빼다 틀린다(4분 남은 기한을 "14분 남았습니다"). 계산은 코드가 한다
     return f"{loop.description} (기한 {due}, {_remaining(loop.due_ms - now_ms)})"
+
+
+def _due_at(loop: OpenLoop) -> datetime | None:
+    """약속 기한을 [지금] 과 같은 로컬 시각으로. 순수 함수."""
+    return None if loop.due_ms is None else datetime.fromtimestamp(loop.due_ms / 1000)
 
 
 def _due_soon(loop: OpenLoop, now_ms: float) -> bool:

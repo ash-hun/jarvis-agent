@@ -119,3 +119,18 @@ async def test_format_report_lists_skipped_cases():
     text = format_report(report, verbose=True)
 
     assert "policy" in text and "SKIP situation/" in text
+
+
+async def test_run_cases_with_facts_now_attaches_facts_and_records_label_and_confidence():
+    from datetime import datetime
+
+    engine = _ScriptedEngine(ThoughtFrame(decision="act", confidence=0.7, utterance="보고 상기"))
+    case = SITUATION_CASE.model_copy(
+        update={"situation": Situation(external_events=["[bank] 자동이체 오늘 10:00"]), "label": "must"}
+    )
+
+    report = await run_cases([case], engine=engine, facts_now=datetime(2026, 1, 1, 9, 0))
+
+    assert engine.requests[0].facts[0].minutes == 60
+    assert (report.results[0].label, report.results[0].confidence) == ("must", 0.7)
+    assert to_request(case.situation).facts == []

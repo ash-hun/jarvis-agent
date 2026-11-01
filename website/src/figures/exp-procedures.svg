@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 743" class="pf-svg" role="img" aria-label="절차 학습: 실패 반성의 held-out 정확도, 백본별 수정 종류, 절차 파일 수">
+<defs><marker id="exp-procedures-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-procedures-h-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--accent" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-procedures-h-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--deny" d="M0,1 L10,5 L0,9 z"/></marker><marker id="exp-procedures-h-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="pf-head pf-head--muted" d="M0,1 L10,5 L0,9 z"/></marker></defs>
+<rect class="pf-panel" x="10" y="10.0" width="740" height="181.0" rx="8"/>
+<text class="pf-plabel" x="22" y="31.0">(a) BBEH-mini held-out 184문항, train 46문항으로 학습</text>
+<rect class="pf-s3" x="30" y="42.0" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="48.0" y="53.0" text-anchor="start">gpt-4o-mini</text>
+<text class="pf-lab" x="182.3" y="86.5" text-anchor="end">반성 없음 (29/184)</text>
+<rect class="pf-s3" x="194.3" y="76.0" width="194.5" height="12" rx="2"/>
+<text class="pf-val" x="394.8" y="87.0" text-anchor="start">0.158</text>
+<text class="pf-lab" x="182.3" y="112.5" text-anchor="end">거름망 없는 반성 (30/184)</text>
+<rect class="pf-s3" x="194.3" y="102.0" width="201.2" height="12" rx="2"/>
+<text class="pf-val" x="401.5" y="113.0" text-anchor="start">0.163</text>
+<text class="pf-lab" x="182.3" y="138.5" text-anchor="end">거름망 있는 반성 (30/184)</text>
+<rect class="pf-s3" x="194.3" y="128.0" width="201.2" height="12" rx="2"/>
+<text class="pf-val" x="401.5" y="139.0" text-anchor="start">0.163</text>
+<line class="pf-grid" x1="194.3" y1="72.0" x2="194.3" y2="144.0"/>
+<text class="pf-axis" x="194.3" y="159.0" text-anchor="middle">0.0</text>
+<line class="pf-grid" x1="317.7" y1="72.0" x2="317.7" y2="144.0"/>
+<text class="pf-axis" x="317.7" y="159.0" text-anchor="middle">0.1</text>
+<line class="pf-grid" x1="441.1" y1="72.0" x2="441.1" y2="144.0"/>
+<text class="pf-axis" x="441.1" y="159.0" text-anchor="middle">0.2</text>
+<line class="pf-grid" x1="564.6" y1="72.0" x2="564.6" y2="144.0"/>
+<text class="pf-axis" x="564.6" y="159.0" text-anchor="middle">0.3</text>
+<line class="pf-grid" x1="688.0" y1="72.0" x2="688.0" y2="144.0"/>
+<text class="pf-axis" x="688.0" y="159.0" text-anchor="middle">0.4</text>
+<text class="pf-axis-title" x="441.1" y="177.0" text-anchor="middle">정확도</text>
+<rect class="pf-panel" x="10" y="201.0" width="740" height="264.0" rx="8"/>
+<text class="pf-plabel" x="22" y="222.0">(b) 실패 묶음마다 받아들인 수정 종류. 막대 끝은 묶음 수</text>
+<rect class="pf-s2" x="30" y="233.0" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="48.0" y="244.0" text-anchor="start">절차 개정</text>
+<rect class="pf-s1" x="125.86500000000001" y="233.0" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="143.9" y="244.0" text-anchor="start">작업 패턴</text>
+<rect class="pf-bar" x="221.73000000000002" y="233.0" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="239.7" y="244.0" text-anchor="start">기록 안 함</text>
+<rect class="pf-s3" x="321.24" y="233.0" width="12" height="12" rx="2"/>
+<text class="pf-lab" x="339.2" y="244.0" text-anchor="start">거부</text>
+<text class="pf-lab" x="180.3" y="281.0" text-anchor="end">gpt-4o-mini, 거름망 없음</text>
+<g><title>gpt-4o-mini, 거름망 없음, 절차 개정: 7</title><rect class="pf-s2" x="192.3" y="267.0" width="169.2" height="18" rx="2"/></g>
+<text class="pf-badge-t" x="276.9" y="280.0" text-anchor="middle">7</text>
+<g><title>gpt-4o-mini, 거름망 없음, 작업 패턴: 14</title><rect class="pf-s1" x="361.5" y="267.0" width="338.5" height="18" rx="2"/></g>
+<text class="pf-val" x="530.8" y="280.0" text-anchor="middle">14</text>
+<text class="pf-axis" x="708.0" y="280.0" text-anchor="start">21</text>
+<text class="pf-lab" x="180.3" y="313.0" text-anchor="end">gpt-4o-mini, 거름망 있음</text>
+<g><title>gpt-4o-mini, 거름망 있음, 절차 개정: 7</title><rect class="pf-s2" x="192.3" y="299.0" width="169.2" height="18" rx="2"/></g>
+<text class="pf-badge-t" x="276.9" y="312.0" text-anchor="middle">7</text>
+<g><title>gpt-4o-mini, 거름망 있음, 작업 패턴: 14</title><rect class="pf-s1" x="361.5" y="299.0" width="338.5" height="18" rx="2"/></g>
+<text class="pf-val" x="530.8" y="312.0" text-anchor="middle">14</text>
+<text class="pf-axis" x="708.0" y="312.0" text-anchor="start">21</text>
+<text class="pf-lab" x="180.3" y="345.0" text-anchor="end">gemma4:e2b, 거름망 없음</text>
+<g><title>gemma4:e2b, 거름망 없음, 절차 개정: 4</title><rect class="pf-s2" x="192.3" y="331.0" width="96.7" height="18" rx="2"/></g>
+<text class="pf-badge-t" x="240.6" y="344.0" text-anchor="middle">4</text>
+<g><title>gemma4:e2b, 거름망 없음, 작업 패턴: 4</title><rect class="pf-s1" x="289.0" y="331.0" width="96.7" height="18" rx="2"/></g>
+<text class="pf-val" x="337.3" y="344.0" text-anchor="middle">4</text>
+<g><title>gemma4:e2b, 거름망 없음, 기록 안 함: 10</title><rect class="pf-bar" x="385.7" y="331.0" width="241.8" height="18" rx="2"/></g>
+<text class="pf-val" x="506.6" y="344.0" text-anchor="middle">10</text>
+<g><title>gemma4:e2b, 거름망 없음, 거부: 3</title><rect class="pf-s3" x="627.5" y="331.0" width="72.5" height="18" rx="2"/></g>
+<text class="pf-badge-t" x="663.7" y="344.0" text-anchor="middle">3</text>
+<text class="pf-axis" x="708.0" y="344.0" text-anchor="start">21</text>
+<text class="pf-lab" x="180.3" y="377.0" text-anchor="end">gemma4:e2b, 거름망 있음</text>
+<g><title>gemma4:e2b, 거름망 있음, 절차 개정: 6</title><rect class="pf-s2" x="192.3" y="363.0" width="145.1" height="18" rx="2"/></g>
+<text class="pf-badge-t" x="264.8" y="376.0" text-anchor="middle">6</text>
+<g><title>gemma4:e2b, 거름망 있음, 작업 패턴: 3</title><rect class="pf-s1" x="337.3" y="363.0" width="72.5" height="18" rx="2"/></g>
+<text class="pf-val" x="373.6" y="376.0" text-anchor="middle">3</text>
+<g><title>gemma4:e2b, 거름망 있음, 기록 안 함: 10</title><rect class="pf-bar" x="409.9" y="363.0" width="241.8" height="18" rx="2"/></g>
+<text class="pf-val" x="530.8" y="376.0" text-anchor="middle">10</text>
+<g><title>gemma4:e2b, 거름망 있음, 거부: 2</title><rect class="pf-s3" x="651.6" y="363.0" width="48.4" height="18" rx="2"/></g>
+<text class="pf-badge-t" x="675.8" y="376.0" text-anchor="middle">2</text>
+<text class="pf-axis" x="708.0" y="376.0" text-anchor="start">21</text>
+<text class="pf-lab" x="180.3" y="409.0" text-anchor="end">gemma4:e4b, 거름망 없음</text>
+<g><title>gemma4:e4b, 거름망 없음, 절차 개정: 15</title><rect class="pf-s2" x="192.3" y="395.0" width="362.7" height="18" rx="2"/></g>
+<text class="pf-badge-t" x="373.6" y="408.0" text-anchor="middle">15</text>
+<g><title>gemma4:e4b, 거름망 없음, 작업 패턴: 5</title><rect class="pf-s1" x="554.9" y="395.0" width="120.9" height="18" rx="2"/></g>
+<text class="pf-val" x="615.4" y="408.0" text-anchor="middle">5</text>
+<g><title>gemma4:e4b, 거름망 없음, 거부: 1</title><rect class="pf-s3" x="675.8" y="395.0" width="24.2" height="18" rx="2"/></g>
+<text class="pf-badge-t" x="687.9" y="408.0" text-anchor="middle">1</text>
+<text class="pf-axis" x="708.0" y="408.0" text-anchor="start">21</text>
+<text class="pf-lab" x="180.3" y="441.0" text-anchor="end">gemma4:e4b, 거름망 있음</text>
+<g><title>gemma4:e4b, 거름망 있음, 절차 개정: 13</title><rect class="pf-s2" x="192.3" y="427.0" width="314.3" height="18" rx="2"/></g>
+<text class="pf-badge-t" x="349.4" y="440.0" text-anchor="middle">13</text>
+<g><title>gemma4:e4b, 거름망 있음, 작업 패턴: 5</title><rect class="pf-s1" x="506.6" y="427.0" width="120.9" height="18" rx="2"/></g>
+<text class="pf-val" x="567.0" y="440.0" text-anchor="middle">5</text>
+<g><title>gemma4:e4b, 거름망 있음, 거부: 3</title><rect class="pf-s3" x="627.5" y="427.0" width="72.5" height="18" rx="2"/></g>
+<text class="pf-badge-t" x="663.7" y="440.0" text-anchor="middle">3</text>
+<text class="pf-axis" x="708.0" y="440.0" text-anchor="start">21</text>
+<rect class="pf-panel" x="10" y="475.0" width="740" height="258.0" rx="8"/>
+<text class="pf-plabel" x="22" y="496.0">(c) 작업 종류 하나의 성공이 쌓일 때 절차 파일 수(LLM 없이 합성 일화)</text>
+<line class="pf-line--before" x1="30" y1="517.0" x2="56" y2="517.0"/>
+<circle class="pf-dot--before" cx="43" cy="517.0" r="4.5"/>
+<text class="pf-lab" x="64.0" y="521.5" text-anchor="start">세대 방식(이전)</text>
+<line class="pf-line--after" x1="175.075" y1="517.0" x2="201.075" y2="517.0"/>
+<circle class="pf-dot--after" cx="188.075" cy="517.0" r="4.5"/>
+<text class="pf-lab" x="209.1" y="521.5" text-anchor="start">수렴 방식(지금)</text>
+<line class="pf-grid" x1="68" y1="687.0" x2="610" y2="687.0"/>
+<text class="pf-axis" x="60.0" y="690.5" text-anchor="end">0</text>
+<line class="pf-grid" x1="68" y1="617.0" x2="610" y2="617.0"/>
+<text class="pf-axis" x="60.0" y="620.5" text-anchor="end">5</text>
+<line class="pf-grid" x1="68" y1="547.0" x2="610" y2="547.0"/>
+<text class="pf-axis" x="60.0" y="550.5" text-anchor="end">10</text>
+<text class="pf-axis" x="68.0" y="702.0" text-anchor="middle">0</text>
+<text class="pf-axis" x="122.2" y="702.0" text-anchor="middle">3</text>
+<text class="pf-axis" x="176.4" y="702.0" text-anchor="middle">6</text>
+<text class="pf-axis" x="230.6" y="702.0" text-anchor="middle">9</text>
+<text class="pf-axis" x="284.8" y="702.0" text-anchor="middle">12</text>
+<text class="pf-axis" x="339.0" y="702.0" text-anchor="middle">15</text>
+<text class="pf-axis" x="393.2" y="702.0" text-anchor="middle">18</text>
+<text class="pf-axis" x="447.4" y="702.0" text-anchor="middle">21</text>
+<text class="pf-axis" x="501.6" y="702.0" text-anchor="middle">24</text>
+<text class="pf-axis" x="555.8" y="702.0" text-anchor="middle">27</text>
+<text class="pf-axis" x="610.0" y="702.0" text-anchor="middle">30</text>
+<text class="pf-axis-title" x="339.0" y="720.0" text-anchor="middle">같은 작업 종류의 성공 횟수</text>
+<path class="pf-line--before" d="M68.0,687.0 L122.2,673.0 L176.4,659.0 L230.6,645.0 L284.8,631.0 L339.0,617.0 L393.2,603.0 L447.4,589.0 L501.6,575.0 L555.8,561.0 L610.0,547.0"/>
+<g><title>세대 방식, 성공 0번: 파일 0개</title><circle class="pf-hit" cx="68.0" cy="687.0" r="11"/><circle class="pf-dot--before" cx="68.0" cy="687.0" r="4.5"/></g>
+<g><title>세대 방식, 성공 3번: 파일 1개</title><circle class="pf-hit" cx="122.2" cy="673.0" r="11"/><circle class="pf-dot--before" cx="122.2" cy="673.0" r="4.5"/></g>
+<g><title>세대 방식, 성공 6번: 파일 2개</title><circle class="pf-hit" cx="176.4" cy="659.0" r="11"/><circle class="pf-dot--before" cx="176.4" cy="659.0" r="4.5"/></g>
+<g><title>세대 방식, 성공 9번: 파일 3개</title><circle class="pf-hit" cx="230.6" cy="645.0" r="11"/><circle class="pf-dot--before" cx="230.6" cy="645.0" r="4.5"/></g>
+<g><title>세대 방식, 성공 12번: 파일 4개</title><circle class="pf-hit" cx="284.8" cy="631.0" r="11"/><circle class="pf-dot--before" cx="284.8" cy="631.0" r="4.5"/></g>
+<g><title>세대 방식, 성공 15번: 파일 5개</title><circle class="pf-hit" cx="339.0" cy="617.0" r="11"/><circle class="pf-dot--before" cx="339.0" cy="617.0" r="4.5"/></g>
+<g><title>세대 방식, 성공 18번: 파일 6개</title><circle class="pf-hit" cx="393.2" cy="603.0" r="11"/><circle class="pf-dot--before" cx="393.2" cy="603.0" r="4.5"/></g>
+<g><title>세대 방식, 성공 21번: 파일 7개</title><circle class="pf-hit" cx="447.4" cy="589.0" r="11"/><circle class="pf-dot--before" cx="447.4" cy="589.0" r="4.5"/></g>
+<g><title>세대 방식, 성공 24번: 파일 8개</title><circle class="pf-hit" cx="501.6" cy="575.0" r="11"/><circle class="pf-dot--before" cx="501.6" cy="575.0" r="4.5"/></g>
+<g><title>세대 방식, 성공 27번: 파일 9개</title><circle class="pf-hit" cx="555.8" cy="561.0" r="11"/><circle class="pf-dot--before" cx="555.8" cy="561.0" r="4.5"/></g>
+<g><title>세대 방식, 성공 30번: 파일 10개</title><circle class="pf-hit" cx="610.0" cy="547.0" r="11"/><circle class="pf-dot--before" cx="610.0" cy="547.0" r="4.5"/></g>
+<text class="pf-val" x="622.0" y="551.0" text-anchor="start">세대 방식 10개</text>
+<path class="pf-line--after" d="M68.0,687.0 L122.2,673.0 L176.4,673.0 L230.6,673.0 L284.8,673.0 L339.0,673.0 L393.2,673.0 L447.4,673.0 L501.6,673.0 L555.8,673.0 L610.0,673.0"/>
+<g><title>수렴 방식, 성공 0번: 파일 0개</title><circle class="pf-hit" cx="68.0" cy="687.0" r="11"/><circle class="pf-dot--after" cx="68.0" cy="687.0" r="4.5"/></g>
+<g><title>수렴 방식, 성공 3번: 파일 1개</title><circle class="pf-hit" cx="122.2" cy="673.0" r="11"/><circle class="pf-dot--after" cx="122.2" cy="673.0" r="4.5"/></g>
+<g><title>수렴 방식, 성공 6번: 파일 1개</title><circle class="pf-hit" cx="176.4" cy="673.0" r="11"/><circle class="pf-dot--after" cx="176.4" cy="673.0" r="4.5"/></g>
+<g><title>수렴 방식, 성공 9번: 파일 1개</title><circle class="pf-hit" cx="230.6" cy="673.0" r="11"/><circle class="pf-dot--after" cx="230.6" cy="673.0" r="4.5"/></g>
+<g><title>수렴 방식, 성공 12번: 파일 1개</title><circle class="pf-hit" cx="284.8" cy="673.0" r="11"/><circle class="pf-dot--after" cx="284.8" cy="673.0" r="4.5"/></g>
+<g><title>수렴 방식, 성공 15번: 파일 1개</title><circle class="pf-hit" cx="339.0" cy="673.0" r="11"/><circle class="pf-dot--after" cx="339.0" cy="673.0" r="4.5"/></g>
+<g><title>수렴 방식, 성공 18번: 파일 1개</title><circle class="pf-hit" cx="393.2" cy="673.0" r="11"/><circle class="pf-dot--after" cx="393.2" cy="673.0" r="4.5"/></g>
+<g><title>수렴 방식, 성공 21번: 파일 1개</title><circle class="pf-hit" cx="447.4" cy="673.0" r="11"/><circle class="pf-dot--after" cx="447.4" cy="673.0" r="4.5"/></g>
+<g><title>수렴 방식, 성공 24번: 파일 1개</title><circle class="pf-hit" cx="501.6" cy="673.0" r="11"/><circle class="pf-dot--after" cx="501.6" cy="673.0" r="4.5"/></g>
+<g><title>수렴 방식, 성공 27번: 파일 1개</title><circle class="pf-hit" cx="555.8" cy="673.0" r="11"/><circle class="pf-dot--after" cx="555.8" cy="673.0" r="4.5"/></g>
+<g><title>수렴 방식, 성공 30번: 파일 1개</title><circle class="pf-hit" cx="610.0" cy="673.0" r="11"/><circle class="pf-dot--after" cx="610.0" cy="673.0" r="4.5"/></g>
+<text class="pf-val" x="622.0" y="677.0" text-anchor="start">수렴 방식 1개</text>
+</svg>

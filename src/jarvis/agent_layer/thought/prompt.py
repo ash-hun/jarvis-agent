@@ -91,6 +91,9 @@ silent 로 정했으면 confidence 는 "침묵이 맞다" 는 확신이 아니�
 - filler (string): 보통 빈 문자열
 """
 
+# 성찰에서 decision gate 가 고른 근거 항목. 건넬 말이 이 항목을 짚지 않으면 gate 가 침묵시킨다
+ANCHOR_LINE = "[먼저 꺼낼 항목] {anchor}\n건넬 말은 이 항목을 구체적으로(숫자, 이름, 시각) 인용한다.\n"
+
 # 템플릿이 채워야 하는 플레이스홀더 목록(렌더 시 누락 키는 빈 문자열로 치환).
 PLACEHOLDERS = (
     "persona",

@@ -6,6 +6,7 @@ title: Architecture
 import InfoArchitecture from '@site/src/figures/info-architecture.svg';
 import FigureArchitecture from '@site/src/figures/architecture.svg';
 import FigureExpArchitecture from '@site/src/figures/exp-architecture.svg';
+import FigureExpLoopOverflow from '@site/src/figures/exp-loop-overflow.svg';
 
 # Architecture
 
@@ -39,6 +40,12 @@ Architecture는 Jarvis-Agent의 뼈대가 되는 구조를 소개하는 페이�
 - 대안으로는 실패 지점마다 따로 복구 절차를 두는 방식이 있었다.
 - 같은 작업을 두 번 해도 한 번 한 것과 같아야, 중간에 프로세스가 죽었을 때 복구가 "다시 실행" 으로 끝난다. 일부러 이 원칙을 어긴 곳에는 `# idempotent:` 마커를, 일부러 단순하게 둔 곳에는 `# ponytail:` 마커를 남겨 나중에 모아 볼 수 있게 했다.
 
+#### 예산을 넘긴 차례는 정리하고 한 번 더 이어간다
+
+- 루프가 `max_turns` 를 다 쓰고도 도구를 부르는 중이면 그 자리에서 끊지 않는다. 도구 없이 한 것과 남은 단계를 한 번 정리하고, 그 정리를 붙여 원래 예산의 절반만큼 더 돈다. 또 넘치면 정리문을 답으로 돌려준다.
+- 대안으로는 예산을 그냥 늘리는 방식과, 넘칠 때마다 계속 이어가는 방식이 있었다.
+- 예산을 다 썼다는 것은 실패가 아니라 단계가 너무 컸다는 신호로 본다. 이 관점은 [EMMA: Structured Episodic Memory for Multi-Agent Workflow Synthesis](https://arxiv.org/abs/2610.35966) 의 overflow decomposition 에서 가져왔다. EMMA 는 컨트롤러가 넘친 단계를 작은 단계로 쪼개 계획에 끼워 넣지만, Jarvis 는 컨트롤러 없이 한 에이전트가 도는 루프라 "정리 한 번, 이어가기 한 번" 으로 줄였다. 예산만 늘리면 단계 크기는 그대로라 같은 곳에서 다시 헤매고, 끝없이 이어가면 호출 수의 상한이 사라진다. 넘친 턴은 턴 일화에 `overflow` 로 남겨, 같은 작업 종류가 자주 넘치면 실패 반성이 절차를 다시 쓸 근거가 된다.
+
 ## 세부 동작
 
 ### 한 눈에 보기
@@ -66,7 +73,7 @@ sequenceDiagram
   T-->>S: ThoughtFrame (💭 이벤트). 약속은 AGENDA 판단이 따로 남긴다
   S->>H: run(입력, 사고 블록)
   H->>H: 최근 3턴 창, 회상 블록 주입
-  loop 최대 20턴
+  loop 최대 20턴 (넘치면 정리 한 번 뒤 10턴 더)
     H->>L: stream(messages, tools)
     L-->>H: 텍스트 또는 도구 호출
     H->>X: 허용 목록, 플러그인, 승인
@@ -145,7 +152,7 @@ flowchart TB
 | `turn_start` | 루프의 매 반복 | `turn` |
 | `message_update` | 스트리밍 | `text_delta`, `thinking_delta` |
 | `tool_execution_start`, `tool_execution_end` | 도구 호출 전후 | `tool_name`, `args`, `is_error` |
-| `agent_end` | 루프 끝 | `final_message.usage`, `turns` |
+| `agent_end` | 루프 끝 | `final_message.usage`, `turns`, `overflows`(넘침 이어가기 횟수) |
 | `agent_error` | 프로바이더 오류 | `message` |
 | `inner_thought` | 사고 프레임이 나왔을 때 | `interpretation`, `decision`, `confidence`, `frame` |
 | `thought_route` | router 가 사고를 돌릴지 정했을 때 | `think`, `p_think` |
@@ -153,6 +160,31 @@ flowchart TB
 | `agenda_changed` | AGENDA 판단이 약속을 열거나 닫았을 때 | `session_id` |
 | `proactive_message` | filler, 먼저 건네는 말, 맡긴 일의 답 | `text`, `kind`(`filler`, `proactive`, `answer`), `message_id` |
 | `focus_state`, `focus_panel` | Focus 작업 상태나 패널이 바뀌었을 때 | `state`, `area`, `markdown`, `busy` |
+
+### 넘침 이어가기
+
+루프는 `max_turns`(기본 20) 차례 안에서 LLM 호출과 도구 실행을 반복한다. 마지막 차례까지 도구를 부르고 끝나 다음 차례를 기다리는 도구 결과로 기록이 끝나면, 넘친 것으로 본다.
+
+```mermaid
+flowchart TB
+  A[max_turns 차례를 다 쓰고도 도구 호출 중] --> B{중단 신호}
+  B -- 있음 --> E[끝]
+  B -- 없음 --> C[정리 호출 한 번<br/>도구 정의 없이 한 것, 남은 단계, 지금까지의 답]
+  C --> D{넘침이 처음인가}
+  D -- 예 --> F[정리를 기록에 남지 않는 지시로 붙여<br/>max_turns 절반만큼 더 돈다]
+  F --> G{또 넘쳤나}
+  G -- 아니오 --> H[모델의 답으로 끝]
+  G -- 예 --> C
+  D -- 아니오 --> I[두 번째 정리문을 답으로 돌려준다]
+```
+
+- **정리 호출**: 지금까지의 기록 끝에 "도구를 더 부르지 말고 한 것, 남은 단계, 지금까지의 답을 짧게 정리하라" 는 지시를 붙여 도구 정의 없이 한 번 부른다. 정리문은 2,000자에서 자르고, 화면에 흘리지 않으며 대화 기록에도 남기지 않는다. 호출이 실패하거나 빈 답이면 기록에서 부른 도구 이름을 모아 기본 정리문을 만든다
+- **이어가기**: 정리를 담은 지시(남은 단계만 작은 단위로, 한 일은 반복하지 말고, 도구는 몇 번 남았는지)를 이어가는 차례마다 LLM 호출 끝에 붙인다. 빈 답 재촉 문구와 마찬가지로 기록에는 남지 않는다. 이어갈 차례 수는 `max(1, max_turns // 2)` 다
+- **두 번째 넘침**: 다시 정리하고 그 정리문을 답으로 보낸다. 이 답만 `message_update` 로 화면에 가고 기록에 남는다
+- **상한**: 이어가기는 한 턴에 한 번뿐이다. 한 턴의 LLM 호출은 차례 `max_turns + max_turns // 2` 개(빈 답 재촉을 포함하면 차례당 최대 두 번)와 정리 두 번을 넘지 않는다. 기본값 20이면 차례 30개, 정리 2번이다
+- **중단과 예외**: 중단 신호는 정리 호출 전후에 확인하고, 켜져 있으면 이어가지 않는다. 승인 거부, `final` 도구 결과, 빈 답 재촉, provider 오류는 예전과 같은 자리에서 끝나 넘침과 상관없다
+- **기록**: `agent_end.overflows` 가 넘친 횟수(0, 1, 2)를 알린다. 하네스는 이 값을 보고 턴 일화 metadata 에 `overflow: true` 를 남긴다. 정리 호출의 도구 정의를 빼기 때문에, 도구 기록이 있으면 정의를 요구하는 provider(Anthropic)에서는 정리 호출이 오류가 나 기본 정리문을 쓴다
+- **끄기**: `AgentLoopConfig.overflow_resume=False` 면 예전처럼 `max_turns` 에서 끊는다
 
 ### 두 화면, 한 배선
 
@@ -247,3 +279,35 @@ flowchart LR
 - **해석**: 모델 호출이 초 단위인 것에 비해 프레임워크 비용은 무시할 만하다. 개선할 곳은 하나로 좁혀진다. 긴 세션에서 JSONL 기록을 매 턴 처음부터 읽는 비용이다. 세션이 수백 턴을 넘기는 사용이 늘면 최근 구간만 읽거나 Postgres 저장소로 옮긴다
 - **한계**: Postgres 저장소는 오프라인으로 잴 수 없어 빠졌다. 도구, 사고 엔진, Thought Router, 먼저 말하기, 승인은 돌리지 않았다. 한 대의 macOS 에서 잰 값이다
 - **재현**: `uv run python scripts/experiments/turn_overhead.py`
+
+### 넘침 이어가기 전후, KramaBench 데이터 분석 과제
+
+- **질문**: 도구를 여러 번 써야 하는 긴 과제에서 `max_turns` 를 다 쓴 루프를 정리 한 번 뒤 이어가게 하면, 그냥 끊을 때보다 답을 더 내고 더 맞히나. 그 대가로 LLM 호출은 얼마나 늘어나나
+- **설정**: [EMMA](https://arxiv.org/abs/2610.35966) 가 평가에 쓴 [KramaBench](https://huggingface.co/datasets/eugenie-y/KramaBench) 의 archeology(엑셀과 CSV 5개, 7.5MB)와 legal(CSV 132개, 1MB) 도메인에서, 공식 채점이 코드로 끝나는 유형(numeric_exact, string_exact, list_exact, numeric_approximate)만 seed 0 으로 도메인마다 10개씩 20개를 골랐다. 실제 `run_agent_loop` 에 도구 셋(`list_dir`, `read_file` 내장 도구와 실험용 `python` 도구)을 주었다. 도구는 과제마다 만든 데이터 임시 사본 안에서만 돈다. 경로는 사본 밖을 거부하고, 파이썬은 리스트 인자로 실행하고(셸 없음), 60초 제한을 두고, API 키 같은 환경변수는 넘기지 않는다. 승인은 자동 허용이다. 채점은 공식 `benchmark/metrics.py` 의 규칙(exact 는 success, 목록은 f1, 근사 수치는 rae_score)을 옮긴 어댑터가 하고, 모델 답의 마지막 `ANSWER:` 줄(정리문이면 `지금까지의 답:`)을 읽는다. 조건은 `max_turns=6` 에서 이어가기 없음, 이어가기(6차례 뒤 3차례 더), 참고용 `max_turns=20` 이다. 모델은 gpt-4o-mini(temperature 0)이고, gemma4:e4b 는 도메인마다 3개씩 6개만 돌렸다. 결과는 과제와 조건별로 캐시해 다시 돌리면 읽기만 한다
+- **결과**:
+
+<figure className="paper-fig">
+  <FigureExpLoopOverflow />
+  <figcaption><b>Figure 3.</b> gpt-4o-mini 는 6차례 안에 20개 중 18개에서 예산을 넘겼다. 이어가기는 모든 과제에서 답이나 정리문을 돌려주게 했지만, 넘친 과제를 맞힌 경우는 없었다. 20차례를 줘도 15개는 끝까지 도구를 부르다 끊겼다.</figcaption>
+</figure>
+
+| 조건 (gpt-4o-mini, 20과제) | 정답률(공식 점수 평균) | 맞힌 과제 | 답을 낸 비율 | 예산을 넘긴 비율 | 넘친 뒤 모델 답으로 끝냄 | 과제당 LLM 호출 | 정리 호출 합 |
+|---|---|---|---|---|---|---|---|
+| 이어가기 없음, 6차례 | 0.000 | 0 | 10% | 90% | 0% | 6.0 | 0 |
+| 넘침 이어가기, 6+3차례 | 0.075 | 1 | 100% | 95% | 5% (19개 중 1개) | 10.6 (최대 11) | 37 |
+| 참고: 20차례 | 0.100 | 2 | 20% | 75% | 0% | 16.9 | 0 |
+
+| 조건 (gemma4:e4b, 6과제) | 정답률 | 답을 낸 비율 | 예산을 넘긴 비율 | 과제당 LLM 호출 | provider 오류로 끝난 과제 |
+|---|---|---|---|---|---|
+| 이어가기 없음, 6차례 | 0.000 | 0% | 0% | 4.2 | 6 |
+| 넘침 이어가기, 6+3차례 | 0.000 | 33% | 33% | 7.3 | 4 |
+| 참고: 20차례 | 0.000 | 17% | 0% | 8.0 | 3 |
+
+- **해석**: 넘침은 실제로 흔하다. gpt-4o-mini 는 데이터 파일을 둘러보고 파이썬을 고쳐 돌리는 데 6차례를 거의 다 쓴다. 이어가기의 확실한 효과는 빈손으로 끝나지 않는다는 것이다. 답을 낸 비율이 10% 에서 100% 로 올랐고, 끊긴 턴에도 한 것과 남은 단계가 남아 사용자가 이어서 시킬 수 있다. 정답률은 0 에서 0.075 로 올랐지만 이어가기 덕은 아니다. 맞힌 1개(archeology-easy-6)는 이어가기 조건에서 넘치지 않고 6차례 안에 끝났고, 기준선은 같은 과제를 6차례 안에 끝냈지만 도시 대신 인구 수를 답했다(temperature 0 에서도 남는 비결정성). 넘친 19개 중 3차례 안에 모델 답으로 끝낸 것은 1개(legal-easy-3, 부분 점수 0.50)뿐이고, 나머지는 두 번째 넘침의 정리문이 답이 됐다. 20차례를 줘도 맞힌 과제는 2개라, 이 과제에서는 차례 수보다 모델의 분석 능력이 병목이다(KramaBench 저장소의 GPT-4o 기준선도 이 두 도메인에서 0%에서 17% 사이다). 비용은 과제당 평균 4.6번(정리 2번 포함)이 더 들었고, 관측한 최대는 11번(9차례와 정리 2번)이었다. 20차례 조건보다는 호출이 37% 적다. gemma4:e4b 는 넘치기 전에 provider 오류(긴 기록에서 Ollama 응답이 끊긴 것으로 보임)로 끝나는 과제가 많아 넘침 효과를 따로 볼 수 없었다
+- **한계**: 과제가 20개이고 맞힌 과제 수가 0에서 2개 사이라 정답률 차이는 통계적으로 의미가 없다. EMMA 의 overflow decomposition 은 컨트롤러가 단계를 다시 계획하지만, 여기서는 한 루프 안의 정리 한 번이라 그대로 비교할 수 없다. LLM 판정이 필요한 유형(string_approximate)과 하위 과제 채점은 뺐다. 실험용 `python` 도구는 작업 디렉터리만 사본으로 묶고 파일 시스템 접근 자체는 막지 않는다. gemma4:e4b 는 6개만 돌렸다
+- **재현**: KramaBench 의 `workload/<도메인>.json` 을 `~/.jarvis/benchmarks/kramabench/raw/` 에, `data/<도메인>/input/` 을 `~/.jarvis/benchmarks/kramabench/data/<도메인>/input/` 에 받은 뒤 `uv run python -m scripts.experiments.loop_overflow --model gpt-4o-mini --model gemma4:e4b --max-turns 6`
+
+## 참고 문헌
+
+- Niu et al. EMMA: Structured Episodic Memory for Multi-Agent Workflow Synthesis. 2026. https://arxiv.org/abs/2610.35966
+- Lai, Vitagliano, Zhang et al. KramaBench: Evaluating End-to-End Data-Science Agents. 2025. 데이터셋 https://huggingface.co/datasets/eugenie-y/KramaBench , 코드와 채점 https://github.com/mitdbg/Kramabench

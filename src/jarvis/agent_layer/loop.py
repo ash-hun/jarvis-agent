@@ -33,6 +33,15 @@ from jarvis.agent_layer.agent_types import (
     ToolExecutionStartEvent,
     TurnStartEvent,
 )
+from jarvis.agent_layer.loop_overflow import (
+    clip_summary,
+    exhausted,
+    fallback_summary,
+    overflow_action,
+    resume_budget,
+    resume_directive,
+    SUMMARY_PROMPT,
+)
 from jarvis.model_layer.stream import stream
 
 AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
@@ -55,45 +64,70 @@ async def run_agent_loop(
 ) -> AssistantMessage | None:
     """
     Pi: runAgentLoop() 패턴.
-    LLM 호출 → 툴 실행 → 반복. max_turns 초과 또는 stop 시 종료.
+    LLM 호출 → 툴 실행 → 반복. stop 이면 끝난다. max_turns 를 다 쓰고도 도구를 부르던 중이면
+    정리 호출 한 번 뒤 max_turns 절반만큼 한 번 더 이어가고, 또 넘치면 정리문을 답으로 낸다.
+    LLM 호출은 최대 max_turns + max_turns//2 차례(빈 답 재촉 포함 차례당 두 번)와 정리 두 번이다.
     """
     await emit(AgentStartEvent(session_id=context.session_id, prompt="", agent_name=agent_name))
     final_message: AssistantMessage | None = None
     turn = -1  # max_turns=0이면 루프가 한 번도 돌지 않는다: turns=0으로 보고
+    limit = config.max_turns
+    overflows = 0
+    directive: str | None = None
 
-    for turn in range(config.max_turns):
-        if signal and signal.is_set():
+    while True:
+        start = turn + 1
+        for turn in range(start, limit):
+            if signal and signal.is_set():
+                break
+
+            await emit(TurnStartEvent(turn=turn))
+
+            assistant_msg = await _stream_assistant(context, config, emit, signal, nudge=directive)
+            if _empty_after_tools(assistant_msg, context.messages) and not (signal and signal.is_set()):
+                nudge = EMPTY_REPLY_NUDGE if directive is None else f"{directive}\n\n{EMPTY_REPLY_NUDGE}"
+                assistant_msg = await _stream_assistant(context, config, emit, signal, nudge=nudge)
+            final_message = assistant_msg
+            if assistant_msg.error_message is not None:
+                # provider 에러: 빈 assistant 메시지를 히스토리에 남기면 다음 호출이 400으로 깨진다
+                break
+            context.messages.append(assistant_msg)
+
+            tool_calls = assistant_msg.tool_calls()
+            if not tool_calls or assistant_msg.stop_reason != "tool_use":
+                break
+
+            if tool_executor is None:
+                break
+
+            tool_results = await _execute_tools(tool_calls, tool_executor, config, emit, signal)
+            context.messages.extend(tool_results)
+            if tool_results and all(r.denied for r in tool_results):
+                final_message = _denied_reply(context, tool_results)
+            elif tool_results and all(r.final and not r.is_error for r in tool_results):
+                # 모델이 긴 표를 옮겨 적다 줄과 링크를 떨어뜨린다. 도구 글을 그대로 답으로 쓴다
+                final_message = _reply(context, "\n\n".join(_text(r) for r in tool_results))
+            else:
+                continue
+            await emit(MessageUpdateEvent(text_delta=final_message.text()))
+            context.messages.append(final_message)
             break
-
-        await emit(TurnStartEvent(turn=turn))
-
-        assistant_msg = await _stream_assistant(context, config, emit, signal)
-        if _empty_after_tools(assistant_msg, context.messages) and not (signal and signal.is_set()):
-            assistant_msg = await _stream_assistant(context, config, emit, signal, nudge=EMPTY_REPLY_NUDGE)
-        final_message = assistant_msg
-        if assistant_msg.error_message is not None:
-            # provider 에러: 빈 assistant 메시지를 히스토리에 남기면 다음 호출이 400으로 깨진다
-            break
-        context.messages.append(assistant_msg)
-
-        tool_calls = assistant_msg.tool_calls()
-        if not tool_calls or assistant_msg.stop_reason != "tool_use":
-            break
-
-        if tool_executor is None:
-            break
-
-        tool_results = await _execute_tools(tool_calls, tool_executor, config, emit, signal)
-        context.messages.extend(tool_results)
-        if tool_results and all(r.denied for r in tool_results):
-            final_message = _denied_reply(context, tool_results)
-        elif tool_results and all(r.final and not r.is_error for r in tool_results):
-            # 모델이 긴 표를 옮겨 적다 줄과 링크를 떨어뜨린다. 도구 글을 그대로 답으로 쓴다
-            final_message = _reply(context, "\n\n".join(_text(r) for r in tool_results))
         else:
-            continue
-        await emit(MessageUpdateEvent(text_delta=final_message.text()))
-        context.messages.append(final_message)
+            # 마지막 차례까지 도구를 부르고 끝났다. 끊지 않고 한 것과 남은 단계를 정리해 한 번 더 이어간다
+            ready = config.overflow_resume and turn >= 0 and exhausted(context.messages)
+            if ready and not (signal and signal.is_set()):
+                overflows += 1
+                summary = await _summarize(context, config, signal)
+                if signal and signal.is_set():
+                    break
+                if overflow_action(overflows - 1) == "resume":
+                    budget = resume_budget(config.max_turns)
+                    directive = resume_directive(summary, budget)
+                    limit = turn + 1 + budget
+                    continue
+                final_message = _reply(context, summary)
+                await emit(MessageUpdateEvent(text_delta=summary))
+                context.messages.append(final_message)
         break
 
     _close_dangling_tool_calls(context.messages)
@@ -103,8 +137,21 @@ async def run_agent_loop(
         final_message=final_message,
         turns=turn + 1,
         agent_name=agent_name,
+        overflows=overflows,
     ))
     return final_message
+
+
+async def _summarize(context: AgentContext, config: AgentLoopConfig, signal: asyncio.Event | None) -> str:
+    """도구 없이 한 것과 남은 단계를 정리한다. 정리문은 화면에 흘리지 않고 기록에도 남기지 않는다."""
+
+    async def _silent(_: AgentEvent) -> None:
+        return None
+
+    # ponytail: 정리 호출에 도구 정의가 없어 Anthropic 은 오류로 기본 정리문을 쓴다, 기본이 되면 tool_choice none 을
+    message = await _stream_assistant(context, config, _silent, signal, nudge=SUMMARY_PROMPT, with_tools=False)
+    text = message.text().strip() if message.error_message is None else ""
+    return clip_summary(text) if text else fallback_summary(context.messages)
 
 
 def _denied_reply(context: AgentContext, results: list[ToolResultMessage]) -> AssistantMessage:
@@ -181,11 +228,12 @@ async def _stream_assistant(
     emit: AgentEventSink,
     signal: asyncio.Event | None,
     nudge: str | None = None,
+    with_tools: bool = True,
 ) -> AssistantMessage:
     messages = context.messages if nudge is None else [*context.messages, UserMessage(content=nudge, timestamp=0)]
     llm_ctx = LLMContext(
         messages=messages,
-        tools=context.tools if context.tools else None,
+        tools=context.tools if context.tools and with_tools else None,
         system_prompt=_augment_system_prompt(context),
     )
 

@@ -14,8 +14,8 @@ from jarvis.model_layer.model_types import (
     UserMessage,
 )
 from jarvis.agent_layer.thought.thought_types import ProactiveAction, ThoughtFrame, ThoughtRequest
+from jarvis.agent_layer.thought.prompt import ANCHOR_LINE, ThoughtPromptTemplate
 from jarvis.agent_layer.thought.thought_protocol import RecallFn, ThoughtEngine
-from jarvis.agent_layer.thought.prompt import ThoughtPromptTemplate
 from jarvis.model_layer.stream import stream_to_message
 from jarvis.common.logger import get_logger
 
@@ -131,6 +131,8 @@ class InnerThoughtEngine(ThoughtEngine):
             rendered = f"{rendered}\n\n[말투] utterance 와 filler 는 이 말투로 쓴다\n{self._persona}"
         if recent and request.mode == "reflection" and not template.has_placeholder("recent_proactive"):
             rendered = f"{rendered}\n\n[최근에 먼저 건넨 말] 같은 취지면 다시 말하지 마라\n{recent}"
+        if request.anchor and request.mode == "reflection":
+            rendered = f"{rendered}\n\n{ANCHOR_LINE.format(anchor=request.anchor)}"
         return rendered
 
     async def _call_model(self, prompt: str) -> str:

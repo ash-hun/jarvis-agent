@@ -75,13 +75,16 @@ Jarvis-Agent는 원작자가 고안한 아래 구현 및 운영방침을 준수�
 | [Inner Thought](./conversation/inner-thought.md) | Thought Router 판정 | 실제 대화 30건에서 think 재현율 1.0, direct 재현율 0.68 |
 | [Proactive Dialogue](./conversation/proactive.md) | 게이팅 정책(LLM 없음) | 11사례 precision 1.00, recall 1.00, 오경보 0 |
 | [Proactive Dialogue](./conversation/proactive.md) | 말할지 정하기(블라인드) | 새 지시문 recall gpt-4o-mini 0.63 → 0.77, e2b 0.47 → 0.83. decision model tev1, nimble recall 1.00, 오경보 0.30 |
+| [Proactive Dialogue](./conversation/proactive.md) | 판정 먼저, 앵커, 사실 계산(3단 라벨) | 시험용 26사례 AUC 0.80 → 0.93, 오경보 0.42 → 0.33(recall 1.00 → 0.97), 사고 LLM 호출 1.13 → 0.77 |
 | [Process Pattern Analysis](./conversation/proactive.md) | 짧은 답 분류 | 세 모델 모두 0.9 초과 |
 | [Open loop](./conversation/open-loop.md) | 같은 약속 가르기 | bge-m3 와 0.85 문턱에서 정확도 0.83, 잘못 합침 0. nomic-embed-text 0.61, 글자 규칙만 0.56 |
 | [Memory Management](./memory.md) | 기능 스위트 | 68사례 모두 통과, 다른 범위로 새는 비율 0.00. retention 컨텍스트 117,786자 → 14,129자 |
 | [Memory Management](./memory.md) | 오래된 큰 기억 회상 | 새 일화 40개 뒤에도 100%(이전 코드는 3개 뒤 0%). 회상 p50 2.3 ms → 7.3 ms |
 | [Memory Management](./memory.md) | 요약 언어 | 예전 지시문은 한국어 대화를 27번 중 20번 영어로 요약. 지금은 세 모델 모두 9번 다 한국어. 사실 보존 1.00 |
+| [Memory Management](./memory.md) | 원문 검색(RAG) 대비 순이득 | LongMemEval-s 정답률 RAG 0.57, Jarvis 0.43(출처 회상 0.52). PersonaMem-v2, MINT-Eval 도 RAG 아래. 실서비스 조건 0.28 → 0.50 |
 | [Tool & Approve System](./conversation/tools-and-approval.md) | 거부 뒤 승인 흐름 | gpt-4o-mini, gemma4:e4b 모두 3번 중 3번 준수(프롬프트 규칙만일 때 거부 직후 문구 2번 중 0번) |
 | [Tool & Approve System](./conversation/tools-and-approval.md) | 음성 승인 답 분류 | 위험한 허용 0. 결정 정확도 e4b 1.0, e2b 0.917, gpt-4o-mini 0.75 |
+| [Tool & Approve System](./conversation/tools-and-approval.md) | 실패 반성(BBEH-mini), 절차 수렴 | held-out 0.158 → 0.163(잡음 범위). 성공 30회 뒤 절차 파일 10개 → 1개 |
 | [Multi agent Orchestration](./multi-agent-orchestration/index.md) | JARVIS 가 KAREN 에게 맡기기 | 두 모델 모두 세 번 다 위임. 끝까지 gemma4:e4b 36.48초, gpt-4o-mini 8.48초 |
 | [Focus Mode](./mode/focus-mode.md) | 첫 응답 시간 | gemma4:e4b 19.47~20.08초, gpt-4o-mini 2.77~2.89초 |
 | [Focus Mode](./mode/focus-mode.md) | 조사 형식 | 선례 3개 이하 gemma4:e4b 2/4, gpt-4o-mini 4/4. 번호 목록 없음 두 모델 모두 4/4 |
@@ -89,6 +92,7 @@ Jarvis-Agent는 원작자가 고안한 아래 구현 및 운영방침을 준수�
 | [Voice Interface](./conversation/voice.md) | 실제 전사 기록에서 Focus 키워드 해석 | 종료 시도 2번이 고친 뒤 모두 `/focus stop`(고치기 전 모두 대화로 감). 시작 시도 3번은 고친 뒤에도 시작으로 잡히지 않음 |
 | [Voice Interface](./conversation/voice.md) | Qwen3-TTS 복제 음성 품질 | UTMOS 4.07, WER 0.017, 화자 유사도 0.965(Piper 파인튜닝 2.6~2.9, 사람 녹음 4.1) |
 | [Architecture](./architecture.md) | 요청 한 번의 모델 밖 처리 시간 | 초반 턴 2.65ms, JSONL 기록 읽기가 200턴째 13.7ms 로 커짐(메모리 저장소 1.07ms) |
+| [Architecture](./architecture.md) | 넘침 이어가기(KramaBench) | 답을 낸 비율 10% → 100%, 정답률은 차이 없음(0.000 → 0.075, 넘치지 않은 과제 1건) |
 | [Sessions](./conversation/sessions.md) | 삭제와 다시 열기가 겹칠 때 | 세션별 잠금 전 18.1% 가 기록 없이 세션만 남음, 잠금 뒤 0% |
 | [Scheduling](./conversation/scheduling.md) | 알림 실패 때 놓친 공고 | 알림 실패율 30% 에서 29.4% 가 0% 로, 두 번 알림 0건 |
 | [MCP Events](./conversation/mcp.md) | 전하지 못한 외부 이벤트 | 사고 실패율 50%, 주기마다 5건에서 48.3% 가 0% 로 |

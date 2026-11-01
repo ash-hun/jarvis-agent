@@ -8,7 +8,7 @@ import TabItem from '@theme/TabItem';
 
 # Quick Start
 
-jarvis-agent 를 내려받아 TUI 나 Web HUD 로 띄운다. 로컬에서 uv 로 띄우는 방법과 Docker 로 전체 스택을 띄우는 방법이 있고, 둘 중 하나만 고르면 된다.
+처음 Jarvis-Agent를 접하는 사용자가 가장 빠르게 에이전트와 대화를 시작할 수 있도록 설치와 실행 방법을 정리한다. jarvis-agent 를 내려받아 TUI 나 Web HUD 로 띄우며, 로컬에서 uv 로 띄우는 방법과 Docker 로 전체 스택을 띄우는 방법 중 하나만 고르면 된다.
 
 ## 실행환경
 

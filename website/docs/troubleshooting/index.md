@@ -5,7 +5,7 @@ title: FAQ
 
 # FAQ
 
-JARVIS-Agent를 쓰면서 자주 묻는 질문과 증상별 runbook을 모았다.
+JARVIS-Agent를 쓰면서 자주 묻는 질문과 증상별 runbook을 모았다. 증상에 맞는 페이지를 골라 원인과 확인 순서를 따라가면 된다.
 
 - [먼저 건네는 말이 오지 않을 때](./proactive-silent.md)
 - [사고 프레임이 깨진다](./thought-frame.md)

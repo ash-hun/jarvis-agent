@@ -7,7 +7,7 @@ import InfoConversation from '@site/src/figures/info-conversation.svg';
 
 # Conversation
 
-JARVIS 의 기본 기능인 Conversation 을 소개한다. 사용자와 대화하면서 속으로 생각하고(Inner Thought), 위험한 작업은 먼저 묻고(Tool & Approve System), 할 말이 있으면 먼저 말을 건다(Proactive Dialogue). 실행 방법은 [Quick Start](../../start/install.md)를 참고한다.
+Jarvis-Agent의 가장 기본이 되는 기능인 Conversation을 소개한다. 단순히 묻고 답하는 창구가 아니라, 사용자와 대화하면서 속으로 생각하고(Inner Thought), 위험한 작업은 먼저 묻고(Tool & Approve System), 할 말이 있으면 먼저 말을 거는(Proactive Dialogue) 소통의 기반이다. 실행 방법은 [Quick Start](../../start/install.md)를 참고한다.
 
 <figure className="info-fig">
   <InfoConversation />
@@ -15,13 +15,13 @@ JARVIS 의 기본 기능인 Conversation 을 소개한다. 사용자와 대화�
 
 ## 서비스 기능
 
-### 풀려는 문제
+### Conversation이 주목한 점
 
-대화형 비서는 묻는 말에만 답하고, 위험한 명령도 그대로 실행하고, 사용자가 잊은 일을 대신 챙기지 않는다. JARVIS 의 Conversation 은 이 세 가지를 한 대화 안에서 함께 다룬다.
+기존의 대화형 Assistant는 묻는 말에만 답하고, 위험한 명령도 별다른 확인 없이 그대로 실행하며, 사용자가 잊은 일을 대신 챙기지 않는다. 이를 보완하려고 별도의 할 일 앱이나 권한 설정 화면을 덧붙이기도 하지만, 대화 바깥에 따로 떨어진 기능은 결국 사용자가 직접 챙겨야 하는 일이 하나 더 늘어날 뿐이다. Jarvis-Agent의 Conversation은 이러한 부분에서 착안하여 생각하기, 확인받기, 먼저 챙기기를 한 대화 안에서 함께 다룬다.
 
-### 무엇을 하나
+### 어떤 기능을 가지고 있나요?
 
-| 기능 | 사용자가 보는 동작 |
+| 기능 | 설명 |
 |---|---|
 | [Inner Thought](../architecture/inner-thought.md) | Conversation log 에 💭 표기가 보이면 Inner Thought 가 켜진 것이다 |
 | [Tool & Approve System](./tools-and-approval.md) | "지금 폴더에 무슨 파일이 있어?" 처럼 도구가 필요한 요청에서, 승인이 필요하면 먼저 묻는다. Claude Code 의 AskUserQuestion 승인 체계와 같다 |
@@ -44,12 +44,6 @@ JARVIS 의 기본 기능인 Conversation 을 소개한다. 사용자와 대화�
 :::danger
 `ALWAYS` 를 누르면 패턴이 지금 세션 에이전트의 승인 규칙 파일(`~/.jarvis/approvals/<agent_id>.yaml`)에 저장된다. 지우거나 덮어쓰는 명령에 누르면 그 뒤로는 묻지 않고 실행한다. 되돌리려면 그 파일에서 해당 줄을 지운다.
 :::
-
-### 핵심 결과
-
-- 승인을 거부하면 두 모델(gpt-4o-mini, gemma4:e4b) 모두 정해진 거부 문구로 턴을 끝내고, 재요청 때 다시 물었다(3번 중 3번)
-- 음성 승인 답 분류에서 세 모델 모두 위험한 허용이 0 이었다
-- 같은 약속 판정은 bge-m3 에서 정확도 0.83, 잘못 합침 0 이었다
 
 ## 세부 구현
 
@@ -76,9 +70,9 @@ JARVIS 의 기본 기능인 Conversation 을 소개한다. 사용자와 대화�
 - [Web HUD 사용가이드](../../start/web-hud.md): 카드, 입력, 세션 다루기
 - [전체 용어집](../../reference/glossary.md): 이 문서에 나오는 이름들
 
-## 성능 비교실험
+## Performance Experiments
 
-하위 페이지 실험의 핵심 숫자다. 설정과 한계는 각 페이지의 성능 비교실험 절에 있다.
+하위 페이지마다 있는 실험의 핵심 숫자를 한눈에 보기 쉽도록 모았다. 설정과 한계는 각 페이지의 Performance Experiments 절에 있다.
 
 | 페이지 | 실험 | 핵심 숫자 |
 |---|---|---|

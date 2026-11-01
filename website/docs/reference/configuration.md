@@ -5,9 +5,9 @@ title: 서비스 설정 값
 
 # 서비스 설정 값
 
-JARVIS 가 읽는 설정을 영역별로 정리한다. 코드를 고치지 않고 모델, 저장소, 음성, 화면을 바꿀 수 있도록 모든 설정은 환경변수로 준다.
+JARVIS 가 읽는 설정을 영역별로 정리한다. 바꾸려는 기능의 절(LLM, Inner Thought, 메모리, 음성 등)을 찾아 코드 블록에서 키를 고르면 되고, 줄 끝 주석이 값의 범위와 비웠을 때의 동작이다.
 
-이름은 `JARVIS_` 접두사로 시작하고, 중첩 단계는 `__` 로 구분한다. JARVIS 는 `.env` 파일을 읽되, 같은 이름의 환경변수가 있으면 환경변수를 쓴다.
+코드를 고치지 않고 모델, 저장소, 음성, 화면을 바꿀 수 있도록 모든 설정은 환경변수로 준다. 이름은 `JARVIS_` 접두사로 시작하고, 중첩 단계는 `__` 로 구분한다. JARVIS 는 `.env` 파일을 읽되, 같은 이름의 환경변수가 있으면 환경변수를 쓴다.
 
 :::note
 
@@ -81,7 +81,7 @@ JARVIS_PROACTIVE__DECISION_THRESHOLD=0.6   # decision model 을 쓸 때의 임�
 
 로컬 GPU 한 장에서 실측했을 때, `race` 는 두 모델이 GPU 를 나눠 써서 첫 글자가 21초 뒤에 나왔고 `after` 는 12.8초 뒤에 나왔다.
 
-`JARVIS_THOUGHT__ROUTER_MODEL` 을 지정하면 이 값 대신 [Thought Router](../concepts/architecture/inner-thought.md#thought-router) 가 요청마다 사고할지 정한다. 약속(open loop) 판단은 시점 설정과 상관없이 요청마다 사고와 따로 돈다.
+`JARVIS_THOUGHT__ROUTER_MODEL` 을 지정하면 이 값 대신 [Thought Router](../concepts/conversation/inner-thought.md#thought-router) 가 요청마다 사고할지 정한다. 약속(open loop) 판단은 시점 설정과 상관없이 요청마다 사고와 따로 돈다.
 
 ## Focus 모드
 

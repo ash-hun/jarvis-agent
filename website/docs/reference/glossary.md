@@ -5,18 +5,18 @@ title: 전체 용어집
 
 # 전체 용어집
 
-문서와 화면에서 반복해서 나오는 이름을 한눈에 찾아볼 수 있도록 정리한다. 화면에 기호로 나타나는 이름은 그 기호도 함께 적는다.
+문서와 화면에서 반복해서 나오는 이름을 한눈에 찾아볼 수 있도록 정리한다. 이름이나 화면에 보이는 기호(💭, 💬, 🔔)로 줄을 찾고, 더 알고 싶으면 마지막 칸의 문서로 넘어간다.
 
 | 이름 | 화면 기호 | 뜻 | 자세히 |
 |---|---|---|---|
-| 내적 사고 (Inner Thought) | 💭 | JARVIS 가 메인 응답과 따로 LLM 을 한 번 더 불러 판단을 만드는 일. 요청마다 한 번(Thought Router 가 direct 로 정하면 건너뛴다), 성찰 때 한 번 돈다 | [Inner Thought](../concepts/architecture/inner-thought.md) |
-| 사고 프레임 | | 내적 사고 한 번의 결과. 해석, 결정, 확신도, 먼저 할 말, 행동 후보를 담은 구조화된 판단(`ThoughtFrame`) | [Inner Thought → 사고 프레임](../concepts/architecture/inner-thought.md#사고-프레임) |
+| 내적 사고 (Inner Thought) | 💭 | JARVIS 가 메인 응답과 따로 LLM 을 한 번 더 불러 판단을 만드는 일. 요청마다 한 번(Thought Router 가 direct 로 정하면 건너뛴다), 성찰 때 한 번 돈다 | [Inner Thought](../concepts/conversation/inner-thought.md) |
+| 사고 프레임 | | 내적 사고 한 번의 결과. 해석, 결정, 확신도, 먼저 할 말, 행동 후보를 담은 구조화된 판단(`ThoughtFrame`) | [Inner Thought → 사고 프레임](../concepts/conversation/inner-thought.md#사고-프레임) |
 | 사고 모델 | | 내적 사고에 쓰는 LLM. 메인 모델과 따로 작은 모델을 둘 수 있다 | [서비스 설정 값](./configuration.md) |
-| Dual channel | 💬 | 오래 걸릴 요청이면 짧은 말을 먼저 하고 메인 응답은 뒤에서 처리하는 방식 | [Dual channel](../concepts/architecture/proactive.md#dual-channel) |
-| filler | 💬 | Dual channel 에서 먼저 하는 짧은 말. "잠깐만요, 확인할게요" 같은 것 | [Dual channel](../concepts/architecture/proactive.md#dual-channel) |
-| 성찰 | | 요청이 없는 시간에 주기적으로 도는 내적 사고. 먼저 말할 거리가 있는지 본다 | [Proactive Dialogue](../concepts/architecture/proactive.md) |
-| 먼저 건네는 말 | 🔔 | 성찰 끝에 가치가 분명할 때만 JARVIS 가 먼저 보내는 말 | [Proactive Dialogue](../concepts/architecture/proactive.md) |
-| 피드백 학습 (Process Pattern Analysis) | | 먼저 건네는 말에 대한 수락, 무시, 무응답으로 다음 발화 기준(임계치)을 움직이는 일 | [Process Pattern Analysis](../concepts/architecture/proactive.md#피드백-학습) |
+| Dual channel | 💬 | 오래 걸릴 요청이면 짧은 말을 먼저 하고 메인 응답은 뒤에서 처리하는 방식 | [Dual channel](../concepts/conversation/proactive.md#dual-channel) |
+| filler | 💬 | Dual channel 에서 먼저 하는 짧은 말. "잠깐만요, 확인할게요" 같은 것 | [Dual channel](../concepts/conversation/proactive.md#dual-channel) |
+| 성찰 | | 요청이 없는 시간에 주기적으로 도는 내적 사고. 먼저 말할 거리가 있는지 본다 | [Proactive Dialogue](../concepts/conversation/proactive.md) |
+| 먼저 건네는 말 | 🔔 | 성찰 끝에 가치가 분명할 때만 JARVIS 가 먼저 보내는 말 | [Proactive Dialogue](../concepts/conversation/proactive.md) |
+| 피드백 학습 (Process Pattern Analysis) | | 먼저 건네는 말에 대한 수락, 무시, 무응답으로 다음 발화 기준(임계치)을 움직이는 일 | [Process Pattern Analysis](../concepts/conversation/proactive.md#피드백-학습) |
 | Mode | | Web HUD 의 두 축. 음성 축(Default, Full-voice)과 작업 축(Focus)을 따로 고른다 | [Mode](../concepts/mode/index.md) |
 | Full-voice | | 응답, 승인, 🔔 피드백을 읽고 답을 듣는 음성 모드. 헤더 `FULL-VOICE` | [Voice Interface](../concepts/conversation/voice.md#full-voice) |
 | Focus | | 작업 하나에 조사, 기록, 분석, 진행 sub-agent 넷을 붙이는 모드. `/focus <작업>` | [Focus Mode](../concepts/mode/focus-mode.md) |

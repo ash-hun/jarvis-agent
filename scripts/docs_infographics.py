@@ -32,6 +32,8 @@ class Card:
     w: float = 0
     h: float = 0
     spec: dict[str, Any] = field(default_factory=dict)
+    # 아니오 카드를 오른쪽 빈 칸에 두었다. 줄바꿈 선은 그때 아래로 나간다
+    side_no: bool = False
 
     @property
     def cy(self) -> float:
@@ -256,7 +258,10 @@ def flow(f: Info, nodes: list[dict[str, Any]], top: float, per_row: int) -> floa
             turn = y - 16
             first = cards[0]
             end = [(first.x + first.w / 2, turn), (first.x + first.w / 2, first.y)]
-            if prev.kind == "decision":
+            if prev.kind == "decision" and prev.side_no:
+                f.edge([(prev.x + prev.w / 2, prev.y + prev.h), (prev.x + prev.w / 2, turn), *end])
+                f.text(prev.x + prev.w / 2 + 16, prev.y + prev.h + 17, prev.spec.get("yes_label", "예"), "if-yes")
+            elif prev.kind == "decision":
                 side = min(prev.x + prev.w + 14, WIDTH - 6)
                 f.edge([(prev.x + prev.w, prev.cy), (side, prev.cy), (side, turn), *end])
                 f.text(prev.x + prev.w + 7, prev.cy - 7, prev.spec.get("yes_label", "예"), "if-yes")
@@ -271,13 +276,25 @@ def flow(f: Info, nodes: list[dict[str, Any]], top: float, per_row: int) -> floa
                 f.edge([(c.x + c.w, row_center), (nxt.x - 2, row_center)])
                 if c.kind == "decision":
                     f.text(c.x + c.w + FLOW_GAP / 2, row_center - 7, c.spec.get("yes_label", "예"), "if-yes")
-            if c.kind == "decision" and c.spec.get("no"):
+            no_color = color_of({"color": c.spec.get("no_color", "red")}, "red")
+            if c.kind == "decision" and c.spec.get("no") and i == len(cards) - 1 and len(cards) < per_row:
+                # 줄 끝 판단 오른쪽 칸이 비어 있으면 아니오를 옆으로 낸다. 아래 빈 줄을 만들지 않는다
+                c.side_no = True
+                chip_lines = wrap(c.spec["no"], CARD_BODY_FS, w - 22)
+                chip_h = 12 + 16 * len(chip_lines)
+                chip_x = c.x + c.w + FLOW_GAP + 10
+                chip_y = row_center - chip_h / 2
+                f.edge([(c.x + c.w, row_center), (chip_x - 2, row_center)])
+                f.text(c.x + c.w + FLOW_GAP / 2, row_center - 7, c.spec.get("no_label", "아니오"), "if-no", "middle")
+                f.rect(f"if-t-{no_color} if-s-{no_color} if-chip", chip_x, chip_y, w - 20, chip_h, 7)
+                for j, line in enumerate(chip_lines):
+                    f.text(chip_x + (w - 20) / 2, chip_y + 19 + 16 * j, line, "if-chip-t")
+            elif c.kind == "decision" and c.spec.get("no"):
                 chip_lines = wrap(c.spec["no"], CARD_BODY_FS, c.w - 22)
                 chip_h = 12 + 16 * len(chip_lines)
                 chip_y = c.y + c.h + 30
                 f.edge([(c.x + c.w / 2, c.y + c.h), (c.x + c.w / 2, chip_y - 2)])
                 f.text(c.x + c.w / 2 + 8, c.y + c.h + 19, c.spec.get("no_label", "아니오"), "if-no", "start")
-                no_color = color_of({"color": c.spec.get("no_color", "red")}, "red")
                 f.rect(f"if-t-{no_color} if-s-{no_color} if-chip", c.x + 10, chip_y, c.w - 20, chip_h, 7)
                 for j, line in enumerate(chip_lines):
                     f.text(c.x + c.w / 2, chip_y + 19 + 16 * j, line, "if-chip-t")

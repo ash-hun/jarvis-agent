@@ -91,12 +91,12 @@
 <path class="if-edge" d="M361.0,528.5 L397.0,528.5" marker-end="url(#info-mcp-arrow)"/>
 <rect class="if-decision if-s-slate" x="399.0" y="509.0" width="151.5" height="39.0" rx="18.0"/>
 <text class="if-decision-t" x="474.8" y="529.0" text-anchor="middle">말할 만큼 급한가?</text>
-<path class="if-edge" d="M474.8,548.0 L474.8,576.0" marker-end="url(#info-mcp-arrow)"/>
-<text class="if-no" x="482.8" y="567.0" text-anchor="start">아니오</text>
-<rect class="if-t-slate if-s-slate if-chip" x="409.0" y="578.0" width="131.5" height="28.0" rx="7.0"/>
-<text class="if-chip-t" x="474.8" y="597.0" text-anchor="middle">말하지 않고 소비한다</text>
-<path class="if-edge" d="M550.5,528.5 L564.5,528.5 L564.5,650.0 L95.8,650.0 L95.8,676.0" marker-end="url(#info-mcp-arrow)"/>
-<text class="if-yes" x="557.5" y="521.5" text-anchor="middle">예</text>
+<path class="if-edge" d="M550.5,528.5 L596.5,528.5" marker-end="url(#info-mcp-arrow)"/>
+<text class="if-no" x="569.5" y="521.5" text-anchor="middle">아니오</text>
+<rect class="if-t-slate if-s-slate if-chip" x="598.5" y="514.5" width="131.5" height="28.0" rx="7.0"/>
+<text class="if-chip-t" x="664.2" y="533.5" text-anchor="middle">말하지 않고 소비한다</text>
+<path class="if-edge" d="M474.8,548.0 L474.8,650.0 L95.8,650.0 L95.8,676.0" marker-end="url(#info-mcp-arrow)"/>
+<text class="if-yes" x="490.8" y="565.0" text-anchor="middle">예</text>
 <rect class="if-decision if-s-slate" x="20.0" y="676.0" width="151.5" height="39.0" rx="18.0"/>
 <text class="if-decision-t" x="95.8" y="696.0" text-anchor="middle">게이트를 지났나?</text>
 <path class="if-edge" d="M171.5,695.5 L207.5,695.5" marker-end="url(#info-mcp-arrow)"/>

@@ -29,8 +29,7 @@ class Procedure:
     # 입력만 채우면 그대로 돌릴 수 있는 도구 호출 순서. 비면 본문(레시피)만 돌려준다
     inputs: tuple[str, ...] = ()
     plan: tuple[PlanStep, ...] = ()
-    # 정제한 에이전트. 비면 세션 구간에서 배운 절차다
-    # ponytail: 승인된 절차는 모든 에이전트의 도구가 된다(PDM 읽기 정책 밖), 에이전트별 절차가 갈리면 agent 로 거른다
+    # 절차를 배운 에이전트. 승인하면 이 에이전트의 세션에만 도구와 스킬로 보인다. 비면 main 이다
     agent: str = ""
 
     @property

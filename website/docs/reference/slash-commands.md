@@ -21,7 +21,7 @@ title: 공용 커맨드
 | `/sessions` | | 저장된 세션 목록 |
 | `/branch` | | `[session_id]` 세션을 분기. 인자가 없으면 명령을 친 세션 |
 | `/tools` | | 현재 사용 가능한 도구 목록 |
-| `/procedures` | | 학습된 절차 (`approve <name>`, `reject <name>`, `show <name>`, `learn [session_id]`) |
+| `/procedures` | | 이 에이전트가 학습한 절차 (`approve <name>`, `reject <name>`, `show <name>`, `learn [session_id]`) |
 | `/compact` | | 명령을 친 세션을 요약해 장기 기억에 저장 |
 | `/export` | | 명령을 친 세션 대화를 파일로 (`md`, `json`, `~/.jarvis/exports/`) |
 | `/cost` | | 명령을 친 세션의 토큰 사용량과 추정 비용, 모델별 집계 |
@@ -32,7 +32,7 @@ title: 공용 커맨드
 | `/focus` | | `<작업>` 으로 [Focus 모드](../concepts/mode/focus-mode.md) 시작, `stop` 으로 종료, 인자 없으면 현황. Web HUD 전용이고 디스패처보다 먼저 처리된다 |
 | `/cleanup` | | 옛 서브 에이전트 세션, 옛 STM 테이블, 시험 흔적(시험 세션과 그 세션이 남긴 장기, 작업 기억) 보기. `agents confirm`, `stm confirm`, `tests confirm` 으로 삭제 |
 | `/exit` | | TUI 종료 |
-| `/<절차 이름>` | | 승인된 절차마다 스킬 명령이 하나씩 생긴다 |
+| `/<절차 이름>` | | 승인된 절차마다 스킬 명령이 하나씩 생긴다. 그 절차를 배운 에이전트의 화면에서만 펼쳐진다 |
 
 사용 예는 다음과 같다.
 

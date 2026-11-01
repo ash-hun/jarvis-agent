@@ -8,6 +8,7 @@ from jarvis.core.procedures.procedures_store import Procedure, ProcedureStore
 from jarvis.model_layer.model_types import TextContent, ToolResultMessage
 from jarvis.core.skills.skills_registry import Skill, SkillRegistry
 from jarvis.core.procedures.plan import fill
+from jarvis.memory.scope import MAIN_AGENT
 
 TOOL_PREFIX = "procedure_"
 TOOL_PARAMETERS: dict[str, Any] = {
@@ -37,6 +38,7 @@ class ProcedureTool(JarvisTool):
         if procedure.parameters:
             self.description += f" 입력: {procedure.parameters}"
         self.parameters = _parameters(procedure)
+        self.owner_agent = owner_of(procedure)
 
     async def execute(
         self,
@@ -87,13 +89,18 @@ def _parameters(procedure: Procedure) -> dict[str, Any]:
     }
 
 
+def owner_of(procedure: Procedure) -> str:
+    """절차를 쓰는 에이전트. 비어 있으면 에이전트를 적기 전에 배운 절차라 main 의 것으로 본다."""
+    return procedure.agent or MAIN_AGENT
+
+
 def to_skill(procedure: Procedure) -> Skill:
     return Skill(
         name=procedure.name,
         description=procedure.description,
         aliases=[],
         content=INSTRUCTION + procedure.body,
-        metadata={"procedure": True, "source": procedure.source},
+        metadata={"procedure": True, "source": procedure.source, "agent": owner_of(procedure)},
     )
 
 

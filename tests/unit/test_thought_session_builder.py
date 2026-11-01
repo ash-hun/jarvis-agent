@@ -10,6 +10,7 @@ from jarvis.agent_layer.thought import (
     ThoughtFrame,
     ThoughtRequest,
 )
+from jarvis.core.procedures.procedures_store import STATUS_APPROVED, Procedure
 from jarvis.agent_layer.session.jsonl import JsonlSessionRepo
 from jarvis.core.tools.builtin.read_file import ReadFileTool
 from jarvis.memory.stores.in_memory import InMemoryItemStore
@@ -19,6 +20,7 @@ from jarvis.core.tools.tools_registry import ToolRegistry
 from jarvis.memory.memory_service import MemoryService
 from jarvis.model_layer.model_types import ModelConfig
 from jarvis.app.session_builder import SessionBuilder
+from jarvis.core.procedures.tool import ProcedureTool
 from jarvis.core.tools.builtin.glob import GlobTool
 from jarvis.core.tools.housing import housing_tools
 from tests.fixtures.thought_helpers import fake_llm
@@ -150,7 +152,7 @@ def test_main_session_keeps_main_scope_and_all_tools(tmp_path):
 
     assert session.memory_scope.agent_id == "main"
     assert session.agent_name is None
-    assert session.tool_registry is registry
+    assert [t.name for t in session.tool_registry.list_all()] == [t.name for t in registry.list_all()]
 
 
 def test_agent_session_uses_its_prompt_tools_and_scope(tmp_path):
@@ -183,8 +185,26 @@ def test_agent_session_picks_agent_only_tools_by_name(tmp_path):
 def test_main_session_does_not_see_agent_only_tools(tmp_path):
     session, registry = _agent_session({}, tmp_path, _housing_registry())
 
-    assert session.tool_registry is registry
+    assert session.tool_registry.get("lh_notice") is None
     assert registry.get("lh_notice") is None
+
+
+def _add_procedures(registry: ToolRegistry) -> None:
+    for name, agent in (("main-proc", ""), ("karen-proc", "karen")):
+        registry.register(
+            ProcedureTool(Procedure(name=name, description="d", body="b", status=STATUS_APPROVED, agent=agent))
+        )
+
+
+def test_each_agent_sees_only_its_own_approved_procedures(tmp_path):
+    main, main_app = _agent_session({}, tmp_path)
+    karen, karen_app = _agent_session({"agent_id": "karen", "tools": ("read_file",)}, tmp_path)
+    _add_procedures(main_app)
+    _add_procedures(karen_app)
+
+    assert sorted(t.name for t in main.tool_registry.list_all()) == ["glob", "procedure_main-proc", "read_file"]
+    assert karen.tool_registry.get("procedure_main-proc") is None
+    assert karen.tool_registry.get("procedure_karen-proc") is not None
 
 
 def test_agent_gets_task_pattern_tool_only_when_app_has_it(tmp_path):

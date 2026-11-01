@@ -405,6 +405,39 @@ async def test_tool_task_calls_agents_tool_and_skips_empty_text():
     assert tool.calls[0] == {"params": {"regions": "서울", "quiet": True}, "agent": "karen"}
 
 
+class _Settling(_Echo):
+    def __init__(self, texts: list[str]) -> None:
+        super().__init__(texts)
+        self.later: list[bool] = []
+        self.settled: list[tuple[str, bool]] = []
+
+    async def execute(self, tool_call_id, params, signal=None, context=None):
+        self.later.append(context.settle_later)
+        return await super().execute(tool_call_id, params, signal, context)
+
+    def settle(self, tool_call_id: str, delivered: bool) -> None:
+        self.settled.append((tool_call_id, delivered))
+
+
+async def test_tool_task_settles_the_tool_with_the_delivery_result():
+    tool = _Settling(["새 공고 1건", "새 공고 1건"])
+    svc, _ = _tool_service(tool)
+    outcomes: list[Exception | None] = [RuntimeError("down"), None]
+
+    async def notify(payload):
+        if (error := outcomes.pop(0)) is not None:
+            raise error
+
+    svc.set_notifier(notify)
+    task = ScheduledTask(name="watch", prompt="", kind="tool", tool="housing_watch", agent="karen")
+
+    await _run(svc, task)
+    await _run(svc, task)
+
+    assert tool.later == [True, True]
+    assert tool.settled == [("sched-watch", False), ("sched-watch", True)]
+
+
 async def test_tool_error_or_unknown_tool_is_a_failed_notice():
     svc, sent = _tool_service(_Echo(["LH 조회 실패"], error=True))
 

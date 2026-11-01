@@ -11,6 +11,8 @@ class Procedure:
     name: str
     description: str
     aliases: tuple[str, ...] = field(default_factory=tuple)
+    # 이 에이전트에게만 보이는 절차(승인된 학습 절차). None 이면 모두에게 보인다
+    agent: str | None = None
 
     def matches(self, query: str) -> bool:
         """질의 토큰에 이름이나 별칭이 그대로 들어 있을 때만. 부분 일치는 오탐이 많다."""
@@ -25,8 +27,12 @@ class ProceduralSource:
     def candidates(self) -> list[Procedure]:
         return []
 
-    def match(self, query: str) -> list[Procedure]:
-        return [p for p in self.candidates() if p.matches(query)]
+    def match(self, query: str, agent: str | None = None) -> list[Procedure]:
+        """agent 를 주면 다른 에이전트의 절차는 뺀다."""
+        return [
+            p for p in self.candidates()
+            if p.matches(query) and (agent is None or p.agent is None or p.agent == agent)
+        ]
 
 
 class InMemoryProcedures(ProceduralSource):
@@ -50,6 +56,15 @@ class SkillRegistryProcedures(ProceduralSource):
         # registry 를 object 로 받으므로 스킬 항목도 덕 타이핑으로 읽는다
         skills: list[Any] = getattr(self._registry, "list_all", lambda: [])()
         return [
-            Procedure(name=s.name, description=s.description or "", aliases=tuple(getattr(s, "aliases", ()) or ()))
+            Procedure(
+                name=s.name, description=s.description or "", aliases=tuple(getattr(s, "aliases", ()) or ()),
+                agent=_owner(getattr(s, "metadata", None) or {}),
+            )
             for s in skills
         ]
+
+
+def _owner(metadata: dict[str, Any]) -> str | None:
+    """승인된 절차의 스킬만 주인이 있다. 사용자가 둔 스킬은 모두의 것이다."""
+    owner = metadata.get("agent") if metadata.get("procedure") else None
+    return str(owner) if owner else None

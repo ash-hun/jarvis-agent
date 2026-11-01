@@ -105,8 +105,9 @@ class ProcedureLearner:
             written.append(name)
         return written
 
-    async def learn(self, session_id: str, messages: list[Message]) -> list[str]:
-        """새로 저장한 절차 이름. 이미 배운 구간(출처 동일)은 LLM 을 부르지 않고 건너뛴다."""
+    async def learn(self, session_id: str, messages: list[Message], agent: str = "") -> list[str]:
+        """새로 저장한 절차 이름. 이미 배운 구간(출처 동일)은 LLM 을 부르지 않고 건너뛴다.
+        agent 는 그 세션의 에이전트다. 승인하면 그 에이전트에만 보인다."""
         existing = {p.name: p.source for p in self._store.list()}
         sources = set(existing.values())
         written: list[str] = []
@@ -118,7 +119,7 @@ class ProcedureLearner:
             if draft is None:
                 continue
             name = unique_name(draft.name, source, existing)
-            self._store.save(build_procedure(draft, span, source, name))
+            self._store.save(replace(build_procedure(draft, span, source, name), agent=agent))
             existing[name] = source
             sources.add(source)
             written.append(name)

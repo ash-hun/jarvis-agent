@@ -216,9 +216,9 @@
 | 입력 | 결과 |
 |---|---|
 | `~/.jarvis/external_sources/*.yaml` | 소스별 주기 폴링, 이미 본 이벤트는 `~/.jarvis/external_seen.jsonl` 로 걸러 재발화 없음 |
-| 새 외부 이벤트 | 성찰 트리거가 깨어나고 세션이 inbox 를 한 번 비워 사고 요청에 싣는다 |
+| 새 외부 이벤트 | 성찰 트리거가 깨어나고 세션이 inbox 를 한 번 비워 사고 요청에 싣는다. 사고가 실패했거나 게이트(쿨다운, 답 대기, 화면에 못 보냄)에 막혔거나 사고가 지난 말을 되풀이하면 inbox 앞에 되돌린다 |
 
-**처리 흐름**: `external_loader` 에서 `poller` 로, `mcp_source.poll`, `dedup`(틱 상한 안의 것만 본 것으로 적는다), `inbox` 적재, `ExternalTrigger` 깨우기, `AgentSession.reflect` 의 `_drain_external_events` 순.
+**처리 흐름**: `external_loader` 에서 `poller` 로, `mcp_source.poll`, `dedup`(틱 상한 안의 것만 본 것으로 적는다), `inbox` 적재, `ExternalTrigger` 깨우기, `AgentSession.reflect` 의 `_drain_external_events`, 말하지 못하면 `inbox.put_back` 순.
 
 **구현 파일**
 
@@ -389,7 +389,7 @@
 | 단위 | `tests/unit/test_housing_watch.py` |
 | 통합 | `tests/integ/test_housing.py` |
 
-**제약과 미구현**: 공고 상세는 100건, 공고문 PDF 는 한 번에 60건까지만 연다. LH 전체 조회는 `MAX_PAGES` 쪽까지, `housing_watch` 는 게시판마다 첫 쪽(최신 10건)만 본다. SH 는 최근 `RECENT_DAYS` 안의 모집 글 `MAX_NOTICES` 건만 본다. 소득 기준은 1인 기준만 댄다. 단위 없는 '천'은 천만으로 읽는다. `housing_watch` 는 알리기 전에 본 것으로 적어 알림이 실패하면 그 공고는 다시 오지 않는다(모두 `# ponytail`).
+**제약과 미구현**: 공고 상세는 100건, 공고문 PDF 는 한 번에 60건까지만 연다. LH 전체 조회는 `MAX_PAGES` 쪽까지, `housing_watch` 는 게시판마다 첫 쪽(최신 10건)만 본다. SH 는 최근 `RECENT_DAYS` 안의 모집 글 `MAX_NOTICES` 건만 본다. 소득 기준은 1인 기준만 댄다. 단위 없는 '천'은 천만으로 읽는다. `housing_watch` 는 대화에서 부르면 바로 본 것으로 적어 답이 실패하면 그 공고는 다시 새 공고로 오지 않는다(모두 `# ponytail`). 스케줄 작업으로 부르면 알림이나 대화로 건넨 뒤에야 본 것으로 적어, 전달이 실패하면 다음 차례에 같은 공고를 다시 알린다.
 
 ---
 
@@ -895,9 +895,9 @@
 
 | 입력 | 결과 |
 |---|---|
-| `/procedures` | 학습된 절차 목록 |
-| `/procedures learn [session_id]` | 세션에서 절차 초안 학습(같은 출처는 한 번만) |
-| `/procedures approve <name>`, `reject <name>`, `show <name>` | 승인(도구와 스킬로 등록), 삭제, 본문 보기 |
+| `/procedures` | 명령을 친 에이전트가 학습한 절차 목록 |
+| `/procedures learn [session_id]` | 세션에서 절차 초안 학습(같은 출처는 한 번만). 절차는 명령을 친 에이전트의 것이 된다 |
+| `/procedures approve <name>`, `reject <name>`, `show <name>` | 승인(도구와 스킬로 등록), 삭제, 본문 보기. 다른 에이전트의 절차는 없는 절차로 답한다 |
 | 공고화 | 같은 종류 성공 일화가 쌓이면 정제 후보로 증류 |
 
 **처리 흐름**: `detect` 또는 `refine` 에서 `distill` (LLM) 로, `learner` 가 `procedures_store` 에 upsert, 승인 시 `tool` 이 도구와 스킬로 등록, 실행 계획은 `plan` 순.
@@ -928,7 +928,7 @@
 | 단위 | `tests/unit/test_procedures_tool.py` |
 | 통합 | 없음. 절차 학습은 `scripts/e2e/hud_flow.py` 의 e2e 시나리오로만 돈다 |
 
-**제약과 미구현**: 승인된 절차는 모든 에이전트의 도구가 된다(`# ponytail`).
+**에이전트 범위**: 승인된 절차는 그 절차를 배운 에이전트에게만 `procedure_<name>` 도구, `/<name>` 스킬, 기억의 절차 블록으로 보인다. `memory.read` 정책과 상관없다. 에이전트가 적히지 않은 예전 절차는 main 의 것으로 본다. 서브 에이전트와 스케줄 작업도 같은 규칙을 따른다.
 
 ---
 

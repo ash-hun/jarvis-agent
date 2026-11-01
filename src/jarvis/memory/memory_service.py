@@ -187,7 +187,7 @@ class MemoryService:
             ][: self._inject_limit]
             cued = [i for i in cued if i.id in fixed_ids] + recalled
             patterns = best_matches(await self.task_patterns(scope), cue, PATTERN_INJECT_LIMIT)
-        procedures = self.procedures(query) if query else []
+        procedures = self.procedures(query, scope.agent_id) if query else []
 
         blocks: list[Message] = []
         if fixed:
@@ -312,8 +312,9 @@ class MemoryService:
         await self._store.delete(item_id)
         return True
 
-    def procedures(self, query: str) -> list[Procedure]:
-        return self._procedures.match(query) if self._procedures is not None else []
+    def procedures(self, query: str, agent: str | None = None) -> list[Procedure]:
+        """agent 를 주면 그 에이전트에게 보이는 절차만."""
+        return self._procedures.match(query, agent) if self._procedures is not None else []
 
     # ── 작업 공유 메모리(오케스트레이션) ────────────────────────────────────
 

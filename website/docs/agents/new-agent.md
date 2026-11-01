@@ -58,7 +58,7 @@ proactive: false
 
 - `tools` 를 비우면 앱에 등록된 도구 전체를 쓴다. 역할이 좁은 에이전트는 필요한 도구만 적는다
 - `ask_agent`(다른 에이전트에게 맡기기), `remember_task_pattern`(작업 패턴 저장), `recall_episodes`(지난 일화 골라 읽기)는 적지 않아도 붙는다
-- 승인된 절차 도구(`procedure_<name>`)도 적지 않아도 보인다. 다만 절차의 단계는 이 에이전트의 도구로 돌므로 `tools` 에 없는 도구를 쓰는 단계에서 멈춘다
+- 이 에이전트가 배운 승인된 절차 도구(`procedure_<name>`)도 적지 않아도 보인다. 다른 에이전트가 배운 절차는 보이지 않는다. 다만 절차의 단계는 이 에이전트의 도구로 돌므로 `tools` 에 없는 도구를 쓰는 단계에서 멈춘다
 - KAREN 의 `lh_notice`, `sh_notice`, `housing_budget`, `housing_loan`, `housing_profile`, `housing_watch` 처럼 에이전트 전용 도구도 이름을 적으면 쓸 수 있다
 - `tools` 를 비우고 `boundaries.never` 만 적으면 앱의 도구 전체에서 그 도구만 뺀다
 - 새 전용 도구를 만들려면 코드가 필요하다. 도구를 구현해 `app/infra_builder.py` 의 `build_agent_tools` 에 등록한 뒤 정의 파일의 `tools` 에 이름을 적는다. 이 도구는 `tools` 가 빈 JARVIS 에게는 보이지 않는다
@@ -73,6 +73,6 @@ proactive: false
 :::note[Notes]
 
 - 칩이 보이지 않으면 로그에서 `[Team] skip '<파일명>'` 줄을 찾는다. id 규칙 위반이나 YAML 형식 오류가 그 줄에 적힌다. 잘못된 파일 하나만 건너뛰고 나머지 에이전트는 그대로 뜬다
-- 새 에이전트도 사용자 모델과 사용자 프로필(사용자에 대한 사실)은 JARVIS 와 공유한다. 턴마다 남는 일화 기억, 작업 패턴, **항상 허용** 승인 규칙은 그 에이전트에게만 쌓인다. 다른 에이전트의 일화와 절차는 `memory.read` 에 적은 것만 읽는다
+- 새 에이전트도 사용자 모델과 사용자 프로필(사용자에 대한 사실)은 JARVIS 와 공유한다. 턴마다 남는 일화 기억, 작업 패턴, **항상 허용** 승인 규칙은 그 에이전트에게만 쌓인다. 다른 에이전트의 일화와 작업 패턴은 `memory.read` 에 적은 것만 읽는다. 승인된 절차는 `memory.read` 와 상관없이 배운 에이전트만 쓴다
 
 :::

@@ -79,7 +79,7 @@ class SlashCommandDispatcher:
         remaining, commands = self._extract_commands(text)
         if not commands:
             return ParseResult(remaining_text=text)
-        if any(self._is_skill(name) for name, _ in commands):
+        if any(self._is_skill(name, scope.agent_id) for name, _ in commands):
             # 스킬은 세션의 SkillRegistry.expand 가 프롬프트로 바꾼다. 여기서 삼키면 LLM 에 닿지 않는다
             return ParseResult(remaining_text=text)
 
@@ -95,8 +95,10 @@ class SlashCommandDispatcher:
 
     # ── 내부 유틸 ──────────────────────────────────────────────────────────────
 
-    def _is_skill(self, name: str) -> bool:
-        return name.lower() not in self._handlers and self._skills is not None and self._skills.get(name) is not None
+    def _is_skill(self, name: str, agent: str) -> bool:
+        if name.lower() in self._handlers or self._skills is None:
+            return False
+        return self._skills.get(name, agent) is not None
 
     def _extract_commands(self, text: str) -> tuple[str, list[tuple[str, str]]]:
         """

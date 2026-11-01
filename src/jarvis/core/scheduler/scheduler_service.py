@@ -3,7 +3,9 @@
 import uuid
 import asyncio
 from datetime import datetime
+from functools import partial
 from dataclasses import dataclass
+from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any
 from collections.abc import Awaitable, Callable, Coroutine
 
@@ -31,6 +33,8 @@ Converse = Callable[[str, str], Awaitable[bool]]
 GOAL_TURN_EXCLUDED = (GOAL_TOOL, SCHEDULE_TOOL)
 # 루프 주기. 한 번 실행(run_at) 알림이 이만큼까지 늦을 수 있다.
 TICK_SEC = 10
+# 지금 실행(_run) 이 전달 뒤에 부를 도구 settle 목록. 실행 밖에서 부른 도구는 None 이라 바로 기록한다
+_settles: ContextVar[list[Callable[[bool], None]] | None] = ContextVar("jarvis_scheduler_settles", default=None)
 
 
 @dataclass(frozen=True)
@@ -271,8 +275,19 @@ class SchedulerService:
         await self._run(task, 0)
 
     async def _run(self, task: ScheduledTask, delay_sec: int) -> None:
-        text = await self._produce(task)
-        delivered = await self._deliver(task, text, delay_sec)
+        # 이번 실행에서 부른 도구 중 전달 뒤에 기록하는 것. 실행마다 따로라 같은 작업이 겹쳐 돌아도 섞이지 않는다
+        settles: list[Callable[[bool], None]] = []
+        token = _settles.set(settles)
+        try:
+            text = await self._produce(task)
+            delivered = await self._deliver(task, text, delay_sec)
+        finally:
+            _settles.reset(token)
+        for settle in settles:
+            try:
+                settle(delivered)
+            except Exception as exc:
+                logger.info(f"[Scheduler] settle failed for '{task.name}': {exc!r}")
         if task.kind == "goal" and self._goals is not None:
             # 목표 항목은 건넨 뒤에야 알린 것으로 적는다. 못 건넸으면 다음 차례에 다시 온다
             self._goals.settle(str(task.args.get("goal", "")), delivered)
@@ -433,7 +448,10 @@ class SchedulerService:
 
     def _registry_for(self, task: ScheduledTask, resolved: TaskAgent | None) -> "ToolRegistry":
         """그 에이전트의 도구에서 tools_allowed 만 고른 레지스트리(비어 있으면 전부)."""
-        base = resolved.tools if resolved is not None and resolved.tools is not None else self._tool_registry
+        # main 의 레지스트리에는 모든 에이전트의 절차가 있다. 그 에이전트의 것만 보이게 거른다
+        base = resolved.tools if resolved is not None and resolved.tools is not None else (
+            self._tool_registry.for_agent(task.agent)
+        )
         if not task.tools_allowed:
             return base
         from jarvis.core.tools.tools_registry import ToolRegistry
@@ -468,10 +486,18 @@ class SchedulerService:
         if await self._sandbox.decide(name, params) == "blocked":
             logger.info(f"[Scheduler] Tool task '{task.name}' blocked: dangerous command in '{name}'")
             return None
+        # 전달 결과를 받는 도구(settle)면 전한 뒤에 기록하게 한다. 감싼 도구는 settle 이 없어 지금처럼 바로 기록한다
+        settles = _settles.get()
+        settle = getattr(registry.get(name), "settle", None) if settles is not None else None
+        later = callable(settle)
         # 스케줄은 사람이 없는 실행이라 로컬 사용자의 범위로 부른다(대화 세션의 memory_scope 와 같은 기본값)
-        context = ToolContext(scope=MemoryScope(user_id=LOCAL_USER, agent_id=task.agent), session_id=call_id)
+        context = ToolContext(
+            scope=MemoryScope(user_id=LOCAL_USER, agent_id=task.agent), session_id=call_id, settle_later=later
+        )
         # 도구의 예외는 레지스트리가 오류 결과로 바꿔 준다
         result = await registry.execute(call_id, name, params, None, context)
+        if settles is not None and callable(settle):
+            settles.append(partial(settle, call_id))
         text = "\n".join(c.text for c in result.content if isinstance(c, TextContent))
         if result.is_error:
             logger.info(f"[Scheduler] Tool task '{task.name}' failed: {text[:200]}")

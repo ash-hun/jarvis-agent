@@ -53,6 +53,7 @@ from jarvis.agent_layer.thought.thought_types import ProactiveAction, ThoughtFra
 from jarvis.agent_layer.thought.router import RouteVerdict, ThoughtRouter
 from jarvis.core.tools.tools_registry import JarvisTool, ToolRegistry
 from jarvis.memory.scope import LOCAL_USER, MAIN_AGENT, MemoryScope
+from jarvis.core.external import ExternalEvent, ExternalEventInbox
 from jarvis.agent_layer.openloop.openloop_types import same_loop
 from jarvis.agent_layer.thought.reply import ReplyClassifier
 from jarvis.core.skills.skills_registry import SkillRegistry
@@ -60,7 +61,6 @@ from jarvis.agent_layer.openloop.judge import OpenLoopJudge
 from jarvis.agent_layer.usermodel import UserModelStore
 from jarvis.memory.memory_service import MemoryService
 from jarvis.agent_layer.harness import AgentHarness
-from jarvis.core.external import ExternalEventInbox
 from jarvis.core.plugins.runner import PluginRunner
 from jarvis.core.goals.tool import standing_rule
 from jarvis.common.logger import get_logger
@@ -125,6 +125,9 @@ RECENT_PROACTIVE_MAX = 3
 REPEAT_ANSWER_SEC = 600
 # 대화, 약속, 이벤트가 그대로면 성찰을 다시 하지 않는다. 기한이 다가오는 것은 이 간격마다 다시 본다
 REFLECT_REFRESH_SEC = 900
+# 말하지 못한 이유 중 꺼낸 외부 이벤트를 inbox 에 되돌리는 것. 게이트(쿨다운, 답 대기, 화면에 못 보냄)에 막혔거나
+# 사고가 이벤트 대신 지난 말을 골랐다. 모델이 말할 거리가 아니라고 본 경우(임계치 미달, 빈 말)는 버린다
+RETRY_REASONS = frozenset({"unchanged", "repeat", "cooldown", "awaiting reply", "suppressed"})
 # 에이전트가 먼저 꺼낼 말(스케줄 결과)을 답하는 중에 받으면 이만큼 답이 끝나길 기다린다
 SAY_WAIT_SEC = 120.0
 # 기한이 이만큼 안으로 다가온(또는 지난) 약속만 먼저 말할 근거다. 며칠 남은 약속으로는 미리 말을 걸지 않는다
@@ -304,7 +307,7 @@ class AgentSession:
         inherited = caller_scope if self._inherit_scope else None
         self._last_user_id = (inherited.user_id if inherited and inherited.user_id else None) or auth_ctx.user_id
 
-        expanded = self._skill_registry.expand(validated.sanitized)
+        expanded = self._skill_registry.expand(validated.sanitized, self._harness._agent_name or MAIN_AGENT)
 
         history = await self._session_repo.get_messages(self._session_id) if self._needs_history() else []
         route = await self._route(expanded, history)
@@ -374,8 +377,9 @@ class AgentSession:
         엔진/ proactivity가 없으면 no-op(None). 게이팅 통과 시 core.reflect가
         ProactiveMessageEvent를 push한다.
 
-        외부 이벤트(Phase 3)가 있으면 inbox를 여기서 drain해 사고에 먹인다.
-        drain-once이므로 여러 세션이 성찰해도 이벤트당 발화는 1회뿐이다.
+        외부 이벤트(Phase 3)가 있으면 inbox를 여기서 drain해 사고에 먹인다. 꺼낸 세션이 말했거나 모델이
+        말할 거리가 아니라고 보면 소비하고, 사고가 실패했거나 게이트에 막혔으면 inbox 앞에 되돌린다.
+        여러 세션이 성찰해도 이벤트당 발화는 1회뿐이다.
         """
         if self._thought_engine is None or self._proactivity is None:
             return None
@@ -386,7 +390,19 @@ class AgentSession:
             self._learn_ignored(awaiting)
             logger.info(f"[Thought] proactive silent: {awaiting.reason}")
             return awaiting
-        external_events = self._drain_external_events()
+        drained = self._drain_external_events()
+        decision: ProactiveDecision | None = None
+        try:
+            decision = await self._reflect_with([self._event_line(e) for e in drained])
+        finally:
+            # 말하지 못한 이벤트는 다음 성찰이 다시 본다. 꺼낸 채 버리면 소스가 다시 주지 않아 영영 잃는다
+            if drained and (decision is None or (not decision.speak and decision.reason in RETRY_REASONS)):
+                self._external_inbox_put_back(drained)
+        return decision
+
+    async def _reflect_with(self, external_events: list[str]) -> ProactiveDecision | None:
+        """꺼낸 외부 이벤트(한 줄씩)로 한 번 성찰한다. None 은 사고 실패다."""
+        assert self._thought_engine is not None and self._proactivity is not None
         if not self._user_spoke and not external_events:
             # 앱이나 화면이 새 세션을 열기만 했다. 대화가 없으면 작은 모델은 빈 인사("무엇을 도와드릴까요?")를 건넨다
             return ProactiveDecision(speak=False, reason="no conversation yet")
@@ -528,19 +544,20 @@ class AgentSession:
             return ""
         return "(미리 해둠) " + " / ".join(done)
 
-    def _drain_external_events(self) -> list[str]:
-        """외부 이벤트 inbox를 비워 사고 프롬프트용 한 줄 목록으로 변환.
-
-        inbox가 없으면(소스 미설정) 빈 목록. 기존 동작과 완전히 동일하다.
-        external_detail_in_prompt=False(기본)면 원문 대신 제목만 싣는다.
-        메일 본문 등이 사고 로그·LTM에 축적되는 것을 막는다.
-        """
+    def _drain_external_events(self) -> list[ExternalEvent]:
+        """외부 이벤트 inbox를 비운다. inbox가 없으면(소스 미설정) 빈 목록."""
         if self._external_inbox is None:
             return []
-        return [
-            event.as_line(include_detail=self._external_detail_in_prompt)
-            for event in self._external_inbox.drain()
-        ]
+        return self._external_inbox.drain()
+
+    def _external_inbox_put_back(self, events: list[ExternalEvent]) -> None:
+        if self._external_inbox is not None:
+            self._external_inbox.put_back(events)
+
+    def _event_line(self, event: ExternalEvent) -> str:
+        """사고 프롬프트용 한 줄. external_detail_in_prompt=False(기본)면 원문 대신 제목만 실어
+        메일 본문 등이 사고 로그와 LTM 에 쌓이지 않게 한다."""
+        return event.as_line(include_detail=self._external_detail_in_prompt)
 
     def set_turn_hook(self, hook: TurnHook | None) -> None:
         """턴 훅을 끼우거나(None 이면) 뺀다. 같은 훅을 두 번 끼워도 하나다."""

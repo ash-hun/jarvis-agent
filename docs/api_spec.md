@@ -200,7 +200,7 @@ $ curl -s http://localhost:7777/api/agenda
 
 ### GET /api/health
 
-백엔드가 떠 있는지와 패키지 버전. 데스크톱 셸(`desktop/backend_launcher.js`)이 백엔드를 띄울지 정하고, HUD 헤더가 버전을 보일 때 쓴다.
+백엔드가 떠 있는지와 패키지 버전. 데스크톱 셸(`desktop/backend_launcher.js`)이 백엔드를 띄울지 정할 때 쓴다.
 
 #### Endpoint
 
@@ -1114,7 +1114,7 @@ $ curl -s http://localhost:7777/api/slash-commands
 
 ### GET /api/tools
 
-등록된 도구 목록. SYSTEM 카드의 TOOLS 가 쓴다.
+등록된 도구 목록. SET 화면 SYSTEM 카드의 TOOLS 가 쓴다.
 
 #### Endpoint
 
@@ -1257,6 +1257,7 @@ GET /api/workflow
 |---|---|---|---|
 | `agents` | object[] | 아니오 | 최상위 에이전트 `{id, name, primary, main}`. main 이 첫 번째 |
 | `subagents` | string[] | 아니오 | 위임 도구(`agent_<이름>`)로 실린 sub-agent 이름순 |
+| `capabilities` | object[] | 아니오 | 도구마다 `{name, description, approval, agents}`. `agents` 는 그 도구를 세션에서 쓰는 최상위 에이전트 id(정의의 `tools`, `never` 를 거른 것, 에이전트 순서). 한 에이전트만 가진 도구가 먼저, 그다음 이름순. `agent_<이름>` 위임 도구는 빠진다. `description` 은 첫 줄 160자, `approval` 은 실행 전 승인이 필요한지 |
 | `edges` | `Delegation[]` | 아니오 | [Delegation](#delegation). 이 프로세스가 본 최근 200개, 오래된 것부터 |
 
 #### 응답 코드
@@ -1269,7 +1270,7 @@ GET /api/workflow
 
 ```bash
 $ curl -s http://localhost:7777/api/workflow
-{"agents":[{"id":"main","name":"J.A.R.V.I.S.","primary":"#5fc8e2","main":true}],"subagents":[],"edges":[{"edge_id":"default:call_1","kind":"ask","source":"main","target":"karen","label":"오늘 일정 정리","started_ms":1791613276663,"ended_ms":1791613279001,"ok":true}]}
+{"agents":[{"id":"main","name":"J.A.R.V.I.S.","primary":"#5fc8e2","main":true}],"subagents":[],"capabilities":[{"name":"bash","description":"셸 명령 실행","approval":true,"agents":["main"]}],"edges":[{"edge_id":"default:call_1","kind":"ask","source":"main","target":"karen","label":"오늘 일정 정리","started_ms":1791613276663,"ended_ms":1791613279001,"ok":true}]}
 ```
 
 #### 특이사항

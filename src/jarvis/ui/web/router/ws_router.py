@@ -121,7 +121,7 @@ def build_ws_router(state: WebState) -> APIRouter:
                     "stt_lang": settings.voice.stt_lang,
                     # 미리 녹음한 문구 이름. 화면은 이 이름만 /api/voice/phrases/{name} 으로 받는다
                     "phrases": sorted(state.phrases),
-                    # true 면 Full-voice 대기 중에 16kHz PCM 을 바이너리 프레임으로 보내고 voice_wake 를 기다린다
+                    # true 면 대기 중에 16kHz PCM 을 바이너리 프레임으로 보내고 voice_wake 를 기다린다
                     "wake": wake_on,
                 },
                 "reply_classifier": state.reply_classifier is not None,

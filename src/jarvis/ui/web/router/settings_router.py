@@ -49,7 +49,7 @@ def build_settings_router(state: WebState, overlay: SettingsOverlay) -> APIRoute
     @router.get(
         "/api/health",
         summary="백엔드 상태",
-        description="떠 있으면 200 과 패키지 버전. 데스크톱 셸이 백엔드를 띄울지 정하고, HUD 헤더가 버전을 보인다.",
+        description="떠 있으면 200 과 패키지 버전. 데스크톱 셸이 백엔드를 띄울지 정할 때 쓴다.",
         responses={200: {"content": {"application/json": {"example": {"ok": True, "version": "0.2.0"}}}}},
     )
     async def health() -> JSONResponse:

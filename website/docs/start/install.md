@@ -129,7 +129,7 @@ cd desktop && npm install && npm start
 
 ## 확인하기
 
-Web HUD 로 띄웠다면 브라우저에서 http://localhost:7777 을 연다. 헤더에 연결 상태와 `READY` 가 보이고, 메시지를 보내면 `THINKING` 자리표시 뒤에 응답이 스트리밍으로 나온다. 데스크톱 앱이라면 창이 같은 화면을 연다. 응답이 오지 않거나 설정이 반영되지 않는 것 같으면 [FAQ](../troubleshooting/index.md)에서 증상에 맞는 페이지를 찾는다.
+Web HUD 로 띄웠다면 브라우저에서 http://localhost:7777 을 연다. 헤더 이름 옆 점이 깜빡이면 연결된 것이고, 메시지를 보내면 `THINKING` 자리표시 뒤에 응답이 스트리밍으로 나온다. 데스크톱 앱이라면 창이 같은 화면을 연다. 응답이 오지 않거나 설정이 반영되지 않는 것 같으면 [FAQ](../troubleshooting/index.md)에서 증상에 맞는 페이지를 찾는다.
 
 ## 다음 할 일
 

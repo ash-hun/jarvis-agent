@@ -162,11 +162,12 @@
 
 | 파일 | 층 | 역할 |
 |---|---|---|
-| `src/jarvis/app/agent_registry.py` | app | 정의 파일을 읽어 에이전트별 프로필과 세션 빌더를 드는 레지스트리 |
+| `src/jarvis/app/agent_registry.py` | app | 정의 파일을 읽어 에이전트별 프로필과 세션 빌더를 드는 레지스트리. 에이전트별 도구 레지스트리(`tool_registry`)도 준다 |
 | `src/jarvis/ui/web/router/agent_router.py` | ui | `GET /api/agents` |
 | `src/jarvis/ui/web/router/brand_router.py` | ui | `GET /brand.js`, `GET /manifest.json` 브랜드 주입 |
 | `src/jarvis/ui/web/agent_activity.py` | ui | 일하는 에이전트 집계와 `agent_activity` 방송 |
-| `src/jarvis/ui/web/static/app/agents.js` | ui | 에이전트 칩, 세션 표식 색, AGENDA 라벨 |
+| `src/jarvis/ui/web/static/app/agents.js` | ui | 에이전트 목록, 전환 화살표의 일하는 중 표시, 세션 표식 색, AGENDA 라벨 |
+| `src/jarvis/ui/web/static/app/agent-nav.js` | ui | 구체 좌우 화살표와 구체 밀기로 에이전트 전환, 밀려 나가고 들어오는 애니메이션 |
 | `src/jarvis/ui/web/static/app/brand.js` | ui | 세션 에이전트의 이름, 명언, 색 적용 |
 
 **테스트**
@@ -1076,7 +1077,7 @@
 
 ### release: 브랜치와 릴리즈
 
-**설명**: 기능 PR 은 `develop`(기본 브랜치)으로 올려 squash 머지한다. 릴리즈는 `develop` 에서 `main` 으로 PR 을 올려 merge commit 으로 머지한다(squash 로 머지하면 두 브랜치 이력이 갈라져 다음 릴리즈 PR 이 충돌한다). `main` 에 들어가면 워크플로가 지난 태그 뒤 커밋 제목으로 다음 버전을 정해 릴리즈한다. 버전은 `pyproject.toml` 한 곳이 정본이고, CLI 와 HUD 는 설치된 패키지 버전을 읽는다.
+**설명**: 기능 PR 은 `develop`(기본 브랜치)으로 올려 squash 머지한다. 릴리즈는 `develop` 에서 `main` 으로 PR 을 올려 merge commit 으로 머지한다(squash 로 머지하면 두 브랜치 이력이 갈라져 다음 릴리즈 PR 이 충돌한다). `main` 에 들어가면 워크플로가 지난 태그 뒤 커밋 제목으로 다음 버전을 정해 릴리즈한다. 버전은 `pyproject.toml` 한 곳이 정본이고, CLI(`--version`)와 `GET /api/health` 는 설치된 패키지 버전을 읽는다.
 
 **입력과 결과**
 
@@ -1242,7 +1243,7 @@
 | `src/jarvis/core/slash/cost_cmd.py` | core | `/cost` 핸들러 |
 | `src/jarvis/core/slash/cleanup_cmd.py` | core | `/cleanup` 핸들러 |
 | `src/jarvis/ui/web/static/app/session.js` | ui | 세션 목록, 전환, 분기, 생성, 재연결 |
-| `src/jarvis/ui/web/static/app/usage.js` | ui | SYSTEM 카드 토큰, 비용 집계 |
+| `src/jarvis/ui/web/static/app/usage.js` | ui | SYSTEM 카드(SET 화면) 토큰, 비용 집계 |
 
 **테스트**
 
@@ -1444,7 +1445,7 @@
 | `src/jarvis/core/tools/builtin/web_fetch.py` | core | `web_fetch` |
 | `src/jarvis/core/tools/builtin/web_search.py` | core | `web_search`(Brave, 키 없으면 DuckDuckGo) |
 | `src/jarvis/core/tools/tools_loader.py` | core | 파일 기반 도구 로딩 |
-| `src/jarvis/ui/web/static/app/tools.js` | ui | SYSTEM 카드 도구 목록 |
+| `src/jarvis/ui/web/static/app/tools.js` | ui | SYSTEM 카드(SET 화면) 도구 목록 |
 | `scripts/experiments/gaia_bench.py` | scripts | GAIA 표본(레벨 비례 층화 40, seed), 웹 도구 실행기(사설 주소와 GAIA 사본 주소 차단, 검색 4 초 간격), 캐시, `run_vertex` |
 | `scripts/experiments/gaia_score.py` | scripts | GAIA 공식 `question_scorer` 이식(Apache-2.0)과 `FINAL ANSWER` 파싱(순수 함수) |
 
@@ -1518,7 +1519,7 @@
 | ws `voice_stt_submit{data, mime, sample_rate}` | `voice_stt_result`. 확신도가 낮으면 `unclear` 와 되묻는 말. whisper 는 한국어와 영어 중 감지한 언어로 받아 적고(그 밖으로 감지되면 둘 중 확률이 높은 쪽으로 다시), 말 끝 무음은 VAD 로 잘라 낸다 |
 | ws 바이너리 프레임(16kHz PCM) | 점수가 임계치 이상이면 `voice_wake{score}` |
 | `GET /api/voice/phrases/{name}` | 녹음 문구 wav |
-| Web HUD 구체 클릭, DEFAULT / FULL-VOICE, 데스크톱 전역 단축키 | 읽기 토글, 모드 전환, 음성 입력 |
+| Web HUD 구체 클릭, "Jarvis" 웨이크워드, 데스크톱 전역 단축키 | 음성 입력. 말로 시작하면 음성 대화가 열려 답을 읽고 다시 듣는다. 말이 없거나 타이핑하거나 읽기를 멈추면 끝난다 |
 | 설정 `voice.stt_fallback`(기본 `whisper`) | `stt_provider` 가 browser 일 때 브라우저 인식이 없거나 `network` 같은 오류로 끝나면 화면이 녹음해 서버 STT 로 보낸다. 모델은 처음 받아 적을 때 불러온다 |
 
 **처리 흐름**: `ws_tasks` 에서 `speech_text` 로 기호 제거와 금액 한글화, 필요하면 `english` 번역, `VoiceService` 가 `voice_registry` 로 고른 프로바이더 합성 또는 전사 순. 웨이크워드는 `ws_router` 에서 `WakeDetector` 순.
@@ -1541,11 +1542,10 @@
 | `src/jarvis/voice/providers/qwen.py` | voice | Qwen3-TTS, 실패하면 Piper |
 | `src/jarvis/ui/web/router/voice_router.py` | ui | 읽기 문구 wav REST |
 | `src/jarvis/ui/web/static/voice.js` | ui | `VoiceManager` |
-| `src/jarvis/ui/web/static/app/voice-ui.js` | ui | 음성 입출력 배선과 Full-voice 흐름 |
+| `src/jarvis/ui/web/static/app/voice-ui.js` | ui | 음성 입출력 배선과 음성 대화(말로 이어 가기) 흐름 |
 | `src/jarvis/ui/web/static/app/phrases.js` | ui | 읽기 문구 재생 |
 | `src/jarvis/ui/web/static/app/wake.js` | ui | 웨이크워드 오디오 송신 |
 | `src/jarvis/ui/web/static/wake-worklet.js` | ui | 80ms PCM 캡처 AudioWorklet |
-| `src/jarvis/ui/web/static/app/mode.js` | ui | DEFAULT, FULL-VOICE 모드 세그먼트 |
 
 **테스트**
 
@@ -1599,9 +1599,10 @@
 | `src/jarvis/ui/web/static/icons/` | ui | 앱 아이콘 |
 | `src/jarvis/ui/web/static/vendor/three/` | ui | three.js 벤더 파일 |
 | `src/jarvis/ui/web/static/app/main.js` | ui | HUD 진입점 |
-| `src/jarvis/ui/web/static/app/shell.js` | ui | 헤더, 캡션, ACTIVITY, 카드 접기, 드로어 |
+| `src/jarvis/ui/web/static/app/shell.js` | ui | 헤더 시각과 연결 점, 작업 상태, 캡션, ACTIVITY, 카드 접기, 드로어 |
+| `src/jarvis/ui/web/static/app/header.js` | ui | 헤더 가운데 묶음을 리액터 구체 중심에 맞춘다 |
 | `src/jarvis/ui/web/static/app/artifact.js` | ui | 큰 코드블록 아티팩트 패널 |
-| `src/jarvis/ui/web/static/app/view.js` | ui | `body[data-view]` 화면 전환 |
+| `src/jarvis/ui/web/static/app/view.js` | ui | `body[data-view]` 화면 전환과 카드가 빠지고 들어오는 전환 애니메이션 |
 
 **테스트**
 
@@ -1618,13 +1619,13 @@
 
 ### workflow: 에이전트 관계 그래프와 백그라운드 작업
 
-**설명**: HUD `FLOW` 화면. 위쪽은 최상위 에이전트(안쪽 원)와 sub-agent, Focus 영역, orchestrate(바깥 원)를 노드로, 위임을 (부른 쪽, 받는 쪽) 쌍마다 하나의 간선으로 그린다. 진행 중 위임은 흐르는 점선, 마지막 위임이 실패한 쌍은 빨간 선이다. 오른쪽은 최근 위임 목록, 아래는 스케줄, 성찰 daemon, 기억 정리, 외부 조회의 마지막 실행 표다.
+**설명**: HUD `FLOW` 화면. 위쪽은 에이전트 지식 그래프다. 최상위 에이전트를 허브로 두고, 그 에이전트만 가진 능력(세션이 쓰는 도구, 위임하는 sub-agent, Focus 영역, orchestrate)을 바깥쪽 잎으로, 여럿이 함께 쓰는 도구를 허브 사이에 두고 주인들과 잇는다. 위임은 (부른 쪽, 받는 쪽) 쌍마다 하나의 간선으로 그린다. 진행 중 위임은 흐르는 점선, 마지막 위임이 실패한 쌍은 빨간 선이다. 오른쪽은 최근 위임 목록, 아래는 스케줄, 성찰 daemon, 기억 정리, 외부 조회의 마지막 실행 표다.
 
 **입력과 결과**
 
 | 입력 | 결과 |
 |---|---|
-| `GET /api/workflow` | `agents`, `subagents`, `edges`(이 프로세스가 본 최근 위임 200개, 오래된 것부터) |
+| `GET /api/workflow` | `agents`, `subagents`, `capabilities`(도구마다 그 도구를 쓰는 에이전트, 한 에이전트만 가진 것이 먼저), `edges`(이 프로세스가 본 최근 위임 200개, 오래된 것부터) |
 | `GET /api/jobs` | `jobs`(스케줄은 돈 적 없는 것도, 그 뒤에 다른 작업), `daemon`(성찰 주기 설정) |
 | ws `workflow_changed{edge}` | 위임이 열리거나 닫힐 때 한 건 |
 | ws `job_changed{job}` | 작업이 시작하거나 끝날 때 한 건 |
@@ -1638,7 +1639,7 @@
 | `src/jarvis/core/workflow/workflow_types.py` | core | `DelegationEdge`, `JobRecord` |
 | `src/jarvis/core/workflow/workflow_tracker.py` | core | 세션 이벤트를 위임 간선으로 |
 | `src/jarvis/core/workflow/job_board.py` | core | 작업별 마지막 실행 기록과 변경 알림 |
-| `src/jarvis/ui/web/router/workflow_router.py` | ui | `GET /api/workflow`, `GET /api/jobs` |
+| `src/jarvis/ui/web/router/workflow_router.py` | ui | `GET /api/workflow`(에이전트별 능력 `capability_map` 포함), `GET /api/jobs` |
 | `src/jarvis/ui/web/static/app/workflow.js` | ui | SVG 그래프, 위임 목록, 작업 표 |
 
 **테스트**

@@ -2,7 +2,7 @@
 
 import pytest
 
-from jarvis.ui.web.router.workflow_router import merge_jobs
+from jarvis.ui.web.router.workflow_router import merge_jobs, capability_map
 from jarvis.core.workflow.workflow_types import JobRecord
 from jarvis.core.workflow.job_board import JobBoard
 
@@ -57,3 +57,22 @@ def test_merge_jobs_puts_schedules_first_including_never_run():
 
     assert [(j["job_id"], j["runs"]) for j in jobs] == [("schedule:a", 2), ("schedule:b", 0), ("external:poll", 1)]
     assert jobs[1]["agent"] == "karen" and "next_run" not in jobs[2]
+
+
+def test_capability_map_lists_own_tools_first_then_shared():
+    tools = {"main": ["bash", "web_search", "ask_agent"], "karen": ["lh_notice", "web_search", "ask_agent"]}
+
+    caps = capability_map(tools)
+
+    assert caps == [
+        {"name": "bash", "agents": ["main"]},
+        {"name": "lh_notice", "agents": ["karen"]},
+        {"name": "ask_agent", "agents": ["main", "karen"]},
+        {"name": "web_search", "agents": ["main", "karen"]},
+    ]
+
+
+def test_capability_map_skips_subagent_tools_and_duplicates():
+    caps = capability_map({"main": ["agent_researcher", "glob", "glob"]})
+
+    assert caps == [{"name": "glob", "agents": ["main"]}]

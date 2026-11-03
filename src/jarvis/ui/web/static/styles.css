@@ -91,8 +91,9 @@ body::after {
   top: 0; left: 0; right: 0;
   height: var(--header-h);
   z-index: 30;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* 가운데 묶음은 절대 위치라 흐름에는 좌우 둘만 남는다 */
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   padding: 0 18px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--bg-1) 78%, transparent), color-mix(in srgb, var(--bg-1) 35%, transparent));
@@ -122,91 +123,81 @@ body::after {
   display: flex; align-items: center; gap: 14px;
   color: var(--text-dim);
 }
-.header .left .corner {
-  display: inline-flex; align-items: center; gap: 8px;
-  color: var(--primary);
-}
-.dimtext { color: var(--text-faint); }
 
-.corner-bracket {
-  width: 18px; height: 18px;
-  border: 1px solid var(--primary);
-  position: relative;
-  display: inline-block;
-}
-.corner-bracket::before, .corner-bracket::after {
-  content: ""; position: absolute; background: var(--bg-0);
-}
-.corner-bracket::before { left: 6px; right: -1px; top: -1px; bottom: 6px; }
-.corner-bracket::after  { left: -1px; right: 6px; top: 6px; bottom: -1px; }
-
+/* 가운데 묶음: 이름과 그 밑의 날짜, 시각. 가로 위치는 리액터 구체의 중심(--reactor-cx, app/header.js).
+ * 연결 점은 이름 왼쪽에 띄워 두어 이름 글자만으로 가운데를 맞춘다 */
 .header .center {
-  display: flex; align-items: center; justify-content: center; gap: 14px;
+  position: absolute; top: 0; bottom: 0;
+  left: var(--reactor-cx, 50%);
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  white-space: nowrap;
+  pointer-events: none;
 }
+.brand-line { position: relative; display: flex; align-items: center; }
 .agent-name {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.42em;
   color: var(--pri-bright);
   text-shadow: 0 0 14px color-mix(in srgb, var(--pri-bright) 50%, transparent);
+  /* 글자 간격이 마지막 글자 뒤에도 붙는다. 같은 폭을 앞에 둬서 글자 묶음이 가운데에 온다 */
   padding-left: 0.42em;
 }
 
-.tick {
-  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+/* 연결 점: 붙어 있으면 숨 쉬듯 깜빡이고, 끊기면 빨갛게 멈춘다 */
+.link-tick {
+  position: absolute; right: 100%; top: 50%;
+  margin: -3px 12px 0 0;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--red) 60%, transparent);
+  transition: background .3s, box-shadow .3s;
+}
+body[data-link="online"] .link-tick {
   background: var(--pri-bright);
   box-shadow: 0 0 8px var(--pri-glow), 0 0 16px color-mix(in srgb, var(--pri-bright) 35%, transparent);
   animation: pulse 1.6s ease-in-out infinite;
 }
-.tick-sm {
-  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
-  background: var(--pri-bright);
-  box-shadow: 0 0 6px var(--pri-glow);
-  animation: pulse 1.6s ease-in-out infinite;
-}
 @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }
+@media (prefers-reduced-motion: reduce) { body[data-link="online"] .link-tick { animation: none; } }
+
+.clock {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  padding-left: 0.18em;
+}
 
 .header .right {
   display: flex; align-items: center; justify-content: flex-end; gap: 18px;
   color: var(--text-dim);
 }
-.status-pill {
-  display: inline-flex; align-items: center; gap: 8px;
-  border: 1px solid var(--primary);
-  color: var(--pri-bright);
-  padding: 4px 10px;
-  font-size: 10px;
-  background: color-mix(in srgb, var(--primary) 6%, transparent);
-  box-shadow: inset 0 0 12px color-mix(in srgb, var(--primary) 8%, transparent);
-  transition: border-color .2s, color .2s;
-}
-.status-pill.thinking { border-color: var(--pri-bright); }
-.status-pill.executing { border-color: var(--accent); color: var(--accent); }
-.status-pill.executing .tick-sm { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: none; }
-.status-pill.error { border-color: var(--red); color: var(--red); }
-.status-pill.error .tick-sm { background: var(--red); box-shadow: 0 0 6px var(--red); animation: none; }
 
-/* 모드 세그먼트 — 고른 쪽만 밝힌다. Full-voice 는 음성 상태색(보라)을 빌린다 */
-.mode-seg { display: inline-flex; border: 1px solid var(--primary); }
-.mode-seg button {
+/* 화면 탭: 고른 화면 아래에 밑줄 하나가 미끄러져 간다(--tab-x, --tab-w 는 view.js).
+ * 버튼 테두리를 두지 않아 가운데 이름보다 눈에 덜 띈다 */
+.view-tabs { position: relative; display: inline-flex; gap: 4px; }
+.view-tabs::after {
+  content: ""; position: absolute; left: 0; bottom: 0; height: 1px;
+  width: var(--tab-w, 0); translate: var(--tab-x, 0) 0;
+  background: var(--pri-bright);
+  box-shadow: 0 0 8px var(--pri-glow);
+  transition: translate .38s cubic-bezier(.7,0,.2,1), width .38s cubic-bezier(.7,0,.2,1);
+}
+.view-tabs button {
   background: transparent; border: 0; cursor: pointer;
-  color: var(--text-dim); font: inherit; font-size: 10px; letter-spacing: 0.12em;
-  padding: 4px 8px; white-space: nowrap;
+  color: var(--text-dim); font: inherit; font-size: 10px; letter-spacing: 0.16em;
+  padding: 6px 8px 5px;
+  transition: color .15s;
 }
-.mode-seg .seg-short { display: none; }
-.mode-seg button + button { border-left: 1px solid var(--primary); }
-.mode-seg button[aria-checked="true"] {
+.view-tabs button:hover { color: var(--text); }
+.view-tabs button[aria-checked="true"] {
   color: var(--pri-bright);
-  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--pri-bright) 45%, transparent);
 }
-body[data-mode="full-voice"] .mode-seg button[data-mode="full-voice"] { color: #e879f9; }
-
-.clock {
-  font-variant-numeric: tabular-nums;
-  color: var(--primary);
-  font-size: 12px;
-  letter-spacing: 0.18em;
-}
+@media (prefers-reduced-motion: reduce) { .view-tabs::after { transition: none; } }
+.view-tabs button:focus-visible { outline: 1px solid var(--pri-bright); outline-offset: 2px; }
 
 /* ── Stage — 중앙 리액터 + 좌우 HUD 열 ───────────────────────────────────────*/
 /* 데스크탑: 그리드는 열만 나눈다. 열 안은 세로 flex 라 카드를 접으면 아래 카드가 그 자리를 채운다.
@@ -321,28 +312,6 @@ body[data-mode="full-voice"] .mode-seg button[data-mode="full-voice"] { color: #
 .session.active .marker { background: var(--pri-bright); border-color: var(--pri-bright); box-shadow: 0 0 8px var(--pri-glow); }
 .session[data-agent]:not(.active) .marker { background: color-mix(in srgb, var(--agent-color) 35%, transparent); }
 
-/* 에이전트 전환. 칩 색은 그 에이전트의 primary */
-.agent-switch { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 2px 8px; }
-.agent-switch[hidden] { display: none; }
-.agent-chip {
-  --agent-color: var(--primary);
-  font: inherit; font-size: 9.5px; letter-spacing: 0.12em;
-  padding: 3px 8px; border-radius: 3px; cursor: pointer;
-  color: var(--agent-color); background: transparent;
-  border: 1px solid color-mix(in srgb, var(--agent-color) 45%, transparent);
-}
-.agent-chip:hover { background: color-mix(in srgb, var(--agent-color) 10%, transparent); }
-/* 일하는 에이전트 칩은 숨쉬듯 빛난다(서버 agent_activity) */
-.agent-chip.busy { animation: chip-busy 1.4s ease-in-out infinite; }
-@keyframes chip-busy {
-  0%, 100% { box-shadow: 0 0 0 color-mix(in srgb, var(--agent-color) 0%, transparent); }
-  50% { box-shadow: 0 0 12px color-mix(in srgb, var(--agent-color) 70%, transparent); }
-}
-@media (prefers-reduced-motion: reduce) { .agent-chip.busy { animation: none; outline: 1px dashed var(--agent-color); } }
-.agent-chip.active {
-  color: var(--bg-0); background: var(--agent-color); border-color: var(--agent-color);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--agent-color) 50%, transparent);
-}
 .session.active .title { color: var(--pri-bright); }
 .fork-btn {
   margin-left: auto; background: none; border: 1px solid var(--hairline);
@@ -787,6 +756,38 @@ body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
   z-index: 3;
 }
 
+/* 에이전트 전환 화살표. 구체 바깥 좌우에 반투명하게 두고, 올리면 다음 에이전트의 색으로 밝아진다.
+ * 그 에이전트가 지금 일하는 중이면(서버 agent_activity) 숨 쉬듯 빛난다 */
+.agent-nav {
+  --agent-color: var(--primary);
+  position: absolute; top: 50%; z-index: 4;
+  width: clamp(36px, 7cqw, 56px); aspect-ratio: 1;
+  margin-top: calc(clamp(36px, 7cqw, 56px) / -2);
+  display: grid; place-items: center;
+  background: transparent; border: 0; border-radius: 50%; cursor: pointer;
+  color: var(--text); opacity: .32;
+  transition: opacity .2s, color .2s, background .2s;
+}
+.agent-nav[hidden] { display: none; }
+.agent-nav.prev { left: calc(clamp(36px, 7cqw, 56px) * -1.1); }
+.agent-nav.next { right: calc(clamp(36px, 7cqw, 56px) * -1.1); }
+.agent-nav:hover, .agent-nav:focus-visible {
+  opacity: .9; color: var(--agent-color);
+  background: color-mix(in srgb, var(--agent-color) 10%, transparent);
+}
+.agent-nav:focus-visible { outline: 1px solid var(--agent-color); outline-offset: 2px; }
+.agent-nav .chevron {
+  width: 34%; aspect-ratio: 1;
+  border-top: 2px solid currentColor; border-left: 2px solid currentColor;
+}
+.agent-nav.prev .chevron { transform: translateX(18%) rotate(-45deg); }
+.agent-nav.next .chevron { transform: translateX(-18%) rotate(135deg); }
+.agent-nav.busy { animation: nav-busy 1.4s ease-in-out infinite; color: var(--agent-color); }
+@keyframes nav-busy { 0%, 100% { opacity: .32; } 50% { opacity: .85; } }
+@media (prefers-reduced-motion: reduce) { .agent-nav.busy { animation: none; opacity: .7; } }
+/* Focus 는 구체 둘레를 영역이 쓴다 */
+body[data-focus="on"] .agent-nav { display: none; }
+
 /* 원판 가운데 워드마크 — 크기는 리액터 폭(cqw)을 따라간다 */
 .sphere-wrap { container-type: inline-size; }
 .reactor-wordmark {
@@ -938,8 +939,9 @@ body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
 .btn-always.hidden { display: none; }
 
 /* ── Connection Banner ───────────────────────────────────────────────────────*/
+/* 헤더 바로 밑. 헤더를 덮으면 이름 옆 연결 점(끊기면 빨강)이 가려진다 */
 .connection-banner {
-  position: fixed; top: 0; left: 0; right: 0;
+  position: fixed; top: var(--header-h); left: 0; right: 0;
   background: rgba(26,10,0,0.9);
   border-bottom: 1px solid var(--accent);
   color: var(--accent); text-align: center;
@@ -1160,10 +1162,6 @@ body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
 }
 
 /* status pill 확장 — listening / speaking */
-.status-pill.listening { border-color: #4ade80; }
-.status-pill.listening #status-text { color: #4ade80; }
-.status-pill.speaking  { border-color: #e879f9; }
-.status-pill.speaking  #status-text { color: #e879f9; }
 
 /* ── PWA / 모바일 ────────────────────────────────────────────────────────────*/
 
@@ -1418,8 +1416,6 @@ body[data-focus="on"] .drawer-btn { visibility: hidden; }
 
   .drawer-btn { display: inline-flex; }
   .header { padding-left: 10px; padding-right: 10px; }
-  .header .center { display: none; }
-  .header .right .clock { display: none; }
 
   .stage {
     grid-template-columns: 1fr;
@@ -1465,10 +1461,11 @@ body[data-focus="on"] .drawer-btn { visibility: hidden; }
 /* 폰 세로 — 여백 축소 */
 @media (max-width: 560px) {
   :root { --header-h: 48px; }
-  .header .left .dimtext { display: none; }
-  .mode-seg button { padding: 4px 6px; letter-spacing: 0.06em; }
-  .mode-seg .seg-long { display: none; }
-  .mode-seg .seg-short { display: inline; }
+  /* 좁은 폭: 왼쪽 드로어 버튼과 오른쪽 탭 사이에 이름과 시각이 들어가게 줄인다 */
+  .agent-name { font-size: 12px; letter-spacing: 0.26em; padding-left: 0.26em; }
+  .clock { font-size: 9px; letter-spacing: 0.08em; padding-left: 0.08em; }
+  .view-tabs { gap: 0; }
+  .view-tabs button { padding: 6px 5px 5px; letter-spacing: 0.08em; }
   .header .right { gap: 10px; }
   .slash-popup { max-height: 40vh; }
 }
@@ -1514,7 +1511,6 @@ body[data-focus="on"] .drawer-btn { visibility: hidden; }
 
 /* ── Views — HUD 위에 겹치는 Workflow, Settings 화면 ─────────────────────────*/
 /* body[data-view] 가 정한다. HUD 가 아니면 스테이지를 감추고 같은 자리에 화면을 깐다. 입력 독은 그대로 둔다 */
-.view-seg { margin-left: 4px; }
 body:not([data-view="hud"]) .stage { visibility: hidden; }
 .view-panel {
   position: absolute;
@@ -1549,6 +1545,22 @@ body:not([data-view="hud"]) .stage { visibility: hidden; }
 .wf-graph .wf-node text { fill: var(--text); font-size: 11px; font-family: var(--mono); text-anchor: middle; }
 .wf-graph .wf-node .wf-node-initial { fill: var(--node-color, var(--primary)); font-size: 14px; }
 .wf-graph .wf-node .wf-node-sub { fill: var(--text-faint); font-size: 9px; }
+/* 지식 그래프: 에이전트에서 잎(그 에이전트만 가진 능력)으로, 공통 능력으로 이어지는 선과 점 */
+.wf-graph .wf-node.top circle { stroke-width: 2; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--node-color) 45%, transparent)); }
+.wf-graph .wf-cap-link { stroke: var(--node-color, var(--primary)); stroke-opacity: .38; stroke-width: 1; }
+.wf-graph .wf-cap-link.shared { stroke-opacity: .14; stroke-dasharray: 2 4; }
+.wf-graph .wf-leaf circle { fill: var(--node-color, var(--primary)); stroke: none; }
+.wf-graph .wf-leaf.sub circle { fill: var(--bg-1); stroke: var(--node-color, var(--primary)); stroke-width: 1.2; stroke-dasharray: 3 2; }
+.wf-graph .wf-leaf.shared circle { fill: var(--text-dim); }
+.wf-graph .wf-leaf.approval circle { fill: var(--bg-1); stroke: var(--accent); stroke-width: 1.4; }
+.wf-graph .wf-leaf-label {
+  fill: var(--text); font-size: 10.5px; font-family: var(--mono);
+  paint-order: stroke; stroke: var(--bg-0); stroke-width: 3px; stroke-linejoin: round;
+}
+.wf-graph .wf-leaf.shared .wf-leaf-label { fill: var(--text-dim); font-size: 9.5px; }
+.wf-graph .wf-leaf, .wf-graph .wf-cap-link, .wf-graph .wf-edge, .wf-graph .wf-node { transition: opacity .2s; }
+.wf-graph .wf-node.top { cursor: default; }
+.wf-graph.spotlight [data-owners]:not(.lit) { opacity: .12; }
 @keyframes wf-flow { to { stroke-dashoffset: -22; } }
 
 .wf-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; list-style: none; font-size: 10px; color: var(--text-dim); padding-top: 6px; }
@@ -1556,6 +1568,9 @@ body:not([data-view="hud"]) .stage { visibility: hidden; }
 .wf-legend .lg-sub { border-top-style: dashed; }
 .wf-legend .lg-live { border-top-color: var(--accent); border-top-style: dashed; }
 .wf-legend .lg-err { border-top-color: var(--red); }
+.wf-legend .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: middle; background: var(--primary); }
+.wf-legend .dot-shared { background: var(--text-dim); }
+.wf-legend .dot-approval { background: transparent; border: 1.4px solid var(--accent); }
 
 .wf-list { list-style: none; overflow: auto; flex: 1 1 auto; font-size: 11px; }
 .wf-list:empty::before, .wf-empty { content: attr(data-empty); color: var(--text-faint); font-size: 11px; }
@@ -1577,13 +1592,19 @@ body:not([data-view="hud"]) .stage { visibility: hidden; }
 .wf-jobs .st-err { color: var(--red); }
 .wf-jobs .st-off { color: var(--text-faint); }
 
+/* 왼쪽 열에 SYSTEM 과 (데스크톱 앱이면) DESKTOP, 오른쪽에 편집 폼, 아래 줄 전체에 적용값 */
 #view-settings {
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr);
+  grid-template-areas: "system settings" "desktop settings" "effective effective";
   align-content: start;
   align-items: start;
 }
+/* 카드의 min-height:0 이 그리드 줄 높이를 0 으로 끌어내리지 않게 내용 높이를 지킨다 */
+#view-settings .system-card { grid-area: system; min-height: auto; }
+#settings-form { grid-area: settings; }
+#desktop-card { grid-area: desktop; }
 .settings-card { gap: 10px; min-height: auto; }
-.effective-card { grid-column: 1 / -1; }
+.effective-card { grid-area: effective; }
 .settings-fields { display: grid; gap: 14px; }
 .settings-group { border: 0; display: grid; gap: 8px; }
 .settings-group legend { font-size: 10px; letter-spacing: 0.22em; color: var(--pri-dim); text-transform: uppercase; margin-bottom: 4px; }
@@ -1603,11 +1624,11 @@ body:not([data-view="hud"]) .stage { visibility: hidden; }
 .settings-effective { font-size: 10px; color: var(--text-dim); white-space: pre-wrap; overflow: auto; max-height: 40vh; }
 
 @media (max-width: 860px) {
-  .header .left .corner { display: none; }
-  .view-seg button { padding: 4px 6px; }
   #view-workflow { grid-template-columns: 1fr; grid-template-rows: auto; grid-template-areas: "graph" "edges" "jobs"; }
   .view-panel { padding: 12px 16px; }
   .settings-row { grid-template-columns: 1fr; gap: 4px; }
+  /* minmax(0, 1fr): 긴 설정 파일 경로가 열을 화면 밖으로 밀지 않게 */
+  #view-settings { grid-template-columns: minmax(0, 1fr); grid-template-areas: "system" "settings" "desktop" "effective"; }
 }
 .wf-graph .wf-arrow { fill: var(--pri-dim); }
 #settings-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: none; }

@@ -35,7 +35,7 @@ JARVIS 는 Web HUD 로 쓴다. 브라우저 탭으로 열어도 되고, 데스�
 
 | 화면 | 실행 | 특징 |
 |---|---|---|
-| Web HUD | `jarvis` 또는 `docker compose --profile web up` | http://localhost:7777. 리액터 구체를 가운데 두고 AGENDA, ACTIVITY, SYSTEM, SESSIONS, CONVERSATION 카드를 둘렀다. 구체를 누르면 음성 모드. 헤더에서 Full-voice, `/focus` 로 Focus 레이아웃 |
+| Web HUD | `jarvis` 또는 `docker compose --profile web up` | http://localhost:7777. 리액터 구체를 가운데 두고 AGENDA, ACTIVITY, SESSIONS, CONVERSATION 카드를 둘렀다. SYSTEM 과 설정은 SET 화면에 있다. 구체를 누르면 말로 대화를 시작하고, 답을 읽은 뒤 다시 듣는다. `/focus` 로 Focus 레이아웃 |
 | 데스크톱 앱 | `cd desktop && npm install && npm start` | HUD 를 창 하나로 연다. 트레이에 남아 OS 알림을 띄우고, `CommandOrControl+Shift+J` 로 창을 불러 바로 듣는다. 백엔드가 없으면 `web` 프로파일을 띄운다 |
 
 두 화면은 같은 백엔드에 붙어 같은 세션 저장소를 읽는다. 화면을 하나도 열지 않아도 스케줄 결과와 먼저 건네는 말을 Slack, Discord, 모바일 앱 Web Push 로 받을 수 있다.

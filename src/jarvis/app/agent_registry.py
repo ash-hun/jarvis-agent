@@ -15,6 +15,7 @@ from jarvis.common.logger import get_logger
 if TYPE_CHECKING:
     from jarvis.core.scheduler.scheduler_service import TaskAgent
     from jarvis.core.policy.approval_rules import ApprovalRules
+    from jarvis.core.tools.tools_registry import ToolRegistry
     from jarvis.app.app_services import AppServices
     from jarvis.app.app_context import AppContext
     from jarvis.core.session import AgentSession
@@ -140,6 +141,11 @@ class AgentRegistry:
     def get(self, agent_id: str) -> AgentProfile | None:
         builder = self._builders.get(agent_id)
         return builder.profile if builder is not None else None
+
+    def tool_registry(self, agent_id: str) -> "ToolRegistry | None":
+        """그 에이전트의 세션이 쓰는 도구 레지스트리(정의의 tools, never 를 거른 것). 모르는 에이전트면 None."""
+        builder = self._builders.get(agent_id)
+        return builder.tool_registry() if builder is not None else None
 
     def approval_rules(self, agent_id: str) -> "ApprovalRules":
         """공용 규칙 + 이 에이전트의 규칙 파일(agent_approvals_dir/<id>.yaml). 같은 id 면 같은 객체."""

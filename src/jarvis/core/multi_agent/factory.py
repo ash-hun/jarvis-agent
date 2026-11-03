@@ -17,9 +17,12 @@ STM_POLICIES: tuple[StmPolicy, ...] = ("per_parent_session", "per_task", "per_ag
 
 @dataclass(frozen=True)
 class AgentMemoryPolicy:
-    """에이전트 YAML 의 memory 블록. 지금은 작업 기억(세션) 축만 있다."""
+    """에이전트 YAML 의 memory 블록. 작업 기억(세션) 축과 장기 기억 사용 여부."""
 
     stm: StmPolicy = "per_parent_session"
+    # False 면 장기 기억을 읽지도 쓰지도 않는다. 입력이 요청에 다 들어 있는 일꾼(Focus 영역)이
+    # 사용자 프로필이나 지난 답에 끌려 지시와 다른 쪽으로 가지 않게 한다
+    ltm: bool = True
 
     def __post_init__(self) -> None:
         if self.stm not in STM_POLICIES:

@@ -351,7 +351,7 @@
 | `/focus` | 진행률과 단계 텍스트 |
 | 매 턴 | `focus_panel{area, markdown, busy}`, `focus_state{state}` |
 
-**처리 흐름**: `ws_router` 가 디스패처보다 먼저 `focus_types` 로 명령을 해석하고 `FocusService.handle` 로, `focus_store` 의 활성 표시 배타 생성, `prompts` 로 sub-agent 지시문 조립, 턴 훅(`before_turn`, `after_turn`)에서 sub-agent 실행, `focus_panel` / `focus_state` 전송 순.
+**처리 흐름**: `ws_router` 가 디스패처보다 먼저 `focus_types` 로 명령을 해석하고 `FocusService.handle` 로, `focus_store` 의 활성 표시 배타 생성, `prompts` 로 sub-agent 지시문 조립, 턴 훅(`before_turn`, `after_turn`)에서 sub-agent 실행, `focus_panel` / `focus_state` 전송 순. 영역 일꾼(REFERENCE, ANALYSIS, LOG, PROGRESS)은 장기 기억 없이(`AgentMemoryPolicy(ltm=False)`) 돈다. 요청에 작업과 지시가 다 들어 있고, 사용자 프로필 같은 고정 기억이 짧은 지시("레퍼런스 검색")를 엉뚱한 주제로 끌었기 때문이다.
 
 **구현 파일**
 
@@ -704,7 +704,7 @@
 | `src/jarvis/core/multi_agent/multi_agent_service.py` | core | 패턴 이름과 작업으로 조립해 실행하는 공통 뒷단 |
 | `src/jarvis/core/multi_agent/multi_agent_loader.py` | core | 에이전트 YAML 을 `AgentDefinition` 으로 |
 | `src/jarvis/core/multi_agent/multi_agent_protocol.py` | core | 노드, 토폴로지, 오케스트레이터 기반 클래스 |
-| `src/jarvis/core/multi_agent/factory.py` | core | 격리된 자식 세션 노드 생성과 `memory.stm` 수명 관리 |
+| `src/jarvis/core/multi_agent/factory.py` | core | 격리된 자식 세션 노드 생성과 `memory.stm` 수명 관리. `memory.ltm: false` 면 장기 기억을 읽지도 쓰지도 않는다 |
 | `src/jarvis/core/multi_agent/node.py` | core | `AgentNode`, `LazyAgentNode` |
 | `src/jarvis/core/multi_agent/task.py` | core | 같은 입력이면 같은 `task_id` 인 `AgentTask`, `AgentResult` |
 | `src/jarvis/core/multi_agent/tool.py` | core | `AgentNodeTool` |

@@ -4,9 +4,9 @@ import pytest
 from typing import Any
 from unittest.mock import MagicMock
 
+from jarvis.core.multi_agent.factory import AgentDefinition, AgentMemoryPolicy
 from jarvis.core.procedures.procedures_store import STATUS_APPROVED, Procedure
 from jarvis.core.tools.builtin.read_file import ReadFileTool
-from jarvis.core.multi_agent.factory import AgentDefinition
 from jarvis.core.tools.tools_registry import ToolRegistry
 from jarvis.app.subagent_builder import SubagentBuilder
 from jarvis.core.procedures.tool import ProcedureTool
@@ -92,3 +92,20 @@ def test_node_tool_uses_definition_name_and_description():
 
     assert tool.name == "agent_planner"
     assert tool.description == "계획 세우기"
+
+
+def test_build_session_keeps_long_term_memory_by_default(captured):
+    builder, services = _builder(_main_registry())
+
+    builder.build_session(AgentDefinition(name="w", description="d"), "agent_w")
+
+    assert captured["memory"] is services.memory
+
+
+def test_build_session_without_ltm_gets_no_memory(captured):
+    builder, _ = _builder(_main_registry())
+
+    definition = AgentDefinition(name="focus-analysis", description="d", memory=AgentMemoryPolicy(ltm=False))
+    builder.build_session(definition, "focus_t_analysis")
+
+    assert captured["memory"] is None

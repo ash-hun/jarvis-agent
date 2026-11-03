@@ -37,6 +37,8 @@ SPLITS = {"dev": DATASETS_DIR / "situation.jsonl", "test": DATASETS / "situation
 CACHE = Path("~/.jarvis/benchmarks/proactive_gate/cache.json").expanduser()
 PROACTIVEBENCH = Path("~/.jarvis/benchmarks/proactivebench/rm_test.jsonl").expanduser()
 JUDGE_SHEET = DATASETS / "utterance_label_review.csv"
+# 실제 발화는 7할이 concrete_notice 라 다른 라벨의 일치율을 잴 수 없다. 사람이 라벨마다 쓴 예시로 따로 잰다
+SYNTHETIC_SHEET = DATASETS / "utterance_label_synthetic.csv"
 ARMS = ("think_first", "decision_first", "anchor", "anchor_facts")
 ARM_NAMES = {
     "think_first": "현재(사고 뒤 decision)",
@@ -50,6 +52,7 @@ FIXED_THRESHOLD_ARMS = ("no_decision",)
 SWEEP = (0.3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9)
 SEED = 42
 SHEET_SIZE = 30
+MIN_LABELED = 20
 
 
 class Cache:
@@ -287,18 +290,31 @@ def write_sheet(items: list[dict[str, Any]]) -> None:
             writer.writerow([item["id"], item["utterance"], item["last_answer"], "", ""])
 
 
-def human_agreement(lookup: dict[str, str]) -> dict[str, Any]:
-    """시트에 사람 라벨이 있으면 판정자와 라벨별 일치율. 없으면 검증 전."""
-    if not JUDGE_SHEET.exists():
-        return {"status": "검증 전", "labeled": 0}
-    with JUDGE_SHEET.open(encoding="utf-8") as f:
-        rows = [r for r in csv.DictReader(f) if r["human_label"].strip() in LABELS]
-    if len(rows) < 20:
+def labeled_rows(path: Path) -> list[dict[str, str]]:
+    """시트에서 사람 라벨이 다섯 값 중 하나인 행. 시트가 없으면 빈 목록."""
+    if not path.exists():
+        return []
+    with path.open(encoding="utf-8", newline="") as f:
+        return [r for r in csv.DictReader(f) if (r.get("human_label") or "").strip() in LABELS]
+
+
+def human_agreement(rows: list[dict[str, str]], verdicts: list[UtteranceVerdict | None]) -> dict[str, Any]:
+    """사람 라벨과 판정자 라벨의 라벨별 일치율. MIN_LABELED 건보다 적으면 검증 전. 순수 함수."""
+    if len(rows) < MIN_LABELED:
         return {"status": "검증 전", "labeled": len(rows)}
     human = [r["human_label"].strip() for r in rows]
-    judged = [lookup.get(r["id"]) for r in rows]
+    judged = [v.label if v else None for v in verdicts]
     agree = utterance_judge.agreement_by_label(human, judged)  # type: ignore[arg-type]
-    return {"status": "검증됨", "labeled": len(rows), "agreement": {k: round(v, 3) for k, v in agree.items()}}
+    counts = {label: human.count(label) for label in LABELS if label in human}
+    return {"status": "검증됨", "labeled": len(rows), "human_labels": counts,
+            "agreement": {k: round(v, 3) for k, v in agree.items()}}
+
+
+async def sheet_agreement(path: Path, cache: Cache, model: str) -> dict[str, Any]:
+    """시트 행을 내용 그대로 판정자에 넣어 사람과 비교한다. 출처가 섞여도 맞고, 판정한 말은 캐시를 읽는다."""
+    rows = labeled_rows(path)
+    verdicts = await judge_all([(r["utterance"], r.get("last_answer") or "") for r in rows], cache, model)
+    return human_agreement(rows, verdicts)
 
 
 def spoken_rows(rows: list[dict[str, Any]]) -> Iterator[dict[str, Any]]:
@@ -347,13 +363,14 @@ async def run(
             result["arms"][arm]["leak_labels"] = distribution(mine)
         result["anchor_blocked"] = {"n": len(blocked), "labels": distribution(blocked_verdicts), "examples": [b["utterance"][:80] for b in blocked[:5]]}
         ids = {f"u{i:03d}": r for i, r in enumerate(spoken_items)}
-        lookup = {i: (v.label if v else "") for i, v in zip(ids, verdicts, strict=True)}
         rng = random.Random(SEED)
         unique = list({r["utterance"]: (i, r) for i, r in ids.items()}.values())
         sample = rng.sample(unique, min(SHEET_SIZE, len(unique)))
         if sheet:
             write_sheet([{"id": i, "utterance": r["utterance"], "last_answer": r["last_answer"]} for i, r in sorted(sample)])
-        result["judge"] = {"model": judge_model, "human": human_agreement(lookup), "proactivebench": await proactivebench_leniency(cache, judge_model)}
+        result["judge"] = {"model": judge_model, "human": await sheet_agreement(JUDGE_SHEET, cache, judge_model),
+                           "synthetic": await sheet_agreement(SYNTHETIC_SHEET, cache, judge_model),
+                           "proactivebench": await proactivebench_leniency(cache, judge_model)}
         cache.save()
         return result
     finally:
@@ -383,7 +400,7 @@ async def leniency_only(judge_model: str) -> dict[str, Any] | None:
 def save(result: dict[str, Any]) -> None:
     data = json.loads(RESULTS.read_text(encoding="utf-8"))
     data[KEY] = result
-    RESULTS.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    RESULTS.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
 def main() -> None:

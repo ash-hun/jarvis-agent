@@ -31,6 +31,7 @@ def load_agent_definitions(agents_dir: str) -> list[AgentDefinition]:
         model_override: null   # null이면 메인 모델 상속
         memory:
           stm: per_parent_session   # per_parent_session | per_task | per_agent
+          ltm: true                 # false 면 장기 기억을 읽지도 쓰지도 않는다
         level: 0                    # hierarchical 패턴에서의 레벨 (0 이 먼저)
 
     YAML 포맷 (리스트):

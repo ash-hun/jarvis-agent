@@ -95,7 +95,7 @@ sequenceDiagram
 
 ### 쓰는 법
 
-HUD 에서 KAREN 칩을 눌러 KAREN 세션에서 묻거나, JARVIS 에게 "카렌에게 ... 물어봐" 라고 말한다.
+HUD 에서 구체 옆 화살표로 KAREN 으로 넘겨 KAREN 세션에서 묻거나, JARVIS 에게 "카렌에게 ... 물어봐" 라고 말한다.
 
 | 물어볼 말 | KAREN 이 부르는 도구 |
 |---|---|

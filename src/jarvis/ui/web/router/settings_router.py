@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi import APIRouter, HTTPException
 
 from jarvis.app.settings_overlay import SettingsPatch, SettingsOverlay, mask_secrets, editable_fields, editable_values
+from jarvis.common.app_version import app_version
 from jarvis.ui.web.web_state import WebState
 
 SETTINGS_EXAMPLE = {
@@ -48,11 +49,11 @@ def build_settings_router(state: WebState, overlay: SettingsOverlay) -> APIRoute
     @router.get(
         "/api/health",
         summary="백엔드 상태",
-        description="떠 있으면 200. 데스크톱 셸이 백엔드를 띄울지 정할 때 쓴다.",
-        responses={200: {"content": {"application/json": {"example": {"ok": True}}}}},
+        description="떠 있으면 200 과 패키지 버전. 데스크톱 셸이 백엔드를 띄울지 정할 때 쓴다.",
+        responses={200: {"content": {"application/json": {"example": {"ok": True, "version": "0.2.0"}}}}},
     )
     async def health() -> JSONResponse:
-        return JSONResponse({"ok": True})
+        return JSONResponse({"ok": True, "version": app_version()})
 
     @router.get(
         "/api/settings",

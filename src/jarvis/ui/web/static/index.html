@@ -32,27 +32,21 @@
     <button class="drawer-btn" id="drawer-btn" type="button" aria-label="패널 열기" aria-expanded="false">
       <span class="bars"></span>
     </button>
-    <span class="corner"><span class="corner-bracket"></span> SYS:ONLINE</span>
-    <span class="dimtext">/ v0.1.0</span>
-    <div class="mode-seg view-seg" id="view-seg" role="radiogroup" aria-label="화면">
+  </div>
+  <!-- 가운데 묶음은 리액터 구체의 가로 중심에 맞춘다(app/header.js). 점은 백엔드 연결 상태 -->
+  <div class="center" id="header-center">
+    <div class="brand-line">
+      <span class="link-tick" id="link-tick" role="status" aria-label="연결 끊김" title="연결 끊김"></span>
+      <span class="agent-name" data-brand="name">J.A.R.V.I.S.</span>
+    </div>
+    <time class="clock" id="clock"></time>
+  </div>
+  <div class="right">
+    <div class="view-tabs" id="view-seg" role="radiogroup" aria-label="화면">
       <button type="button" role="radio" data-view="hud" aria-checked="true" title="대화와 상태 카드">HUD</button>
       <button type="button" role="radio" data-view="workflow" aria-checked="false" title="에이전트 관계 그래프와 백그라운드 작업">FLOW</button>
       <button type="button" role="radio" data-view="settings" aria-checked="false" title="설정 보기와 편집">SET</button>
     </div>
-  </div>
-  <div class="center">
-    <span class="tick" id="tick"></span>
-    <span class="agent-name" data-brand="name">J.A.R.V.I.S.</span>
-  </div>
-  <div class="right">
-    <div class="mode-seg" id="mode-seg" role="radiogroup" aria-label="모드">
-      <button type="button" role="radio" data-mode="default" aria-checked="true" title="응답은 화면으로, 음성은 구체를 눌렀을 때만"><span class="seg-long">DEFAULT</span><span class="seg-short">DEF</span></button>
-      <button type="button" role="radio" data-mode="full-voice" aria-checked="false" title="응답, 승인, 🔔 피드백을 읽고 답을 듣는다"><span class="seg-long">FULL-VOICE</span><span class="seg-short">VOICE</span></button>
-    </div>
-    <span class="status-pill" id="status-pill">
-      <span class="tick-sm" id="status-tick"></span><span id="status-text">READY</span>
-    </span>
-    <span class="clock" id="clock">--:--:--</span>
   </div>
 </header>
 
@@ -67,6 +61,9 @@
       <canvas id="hud-canvas" class="sphere-canvas"></canvas>
       <div class="reactor-wordmark" data-brand="name">J.A.R.V.I.S.</div>
       <div class="sphere-hit" id="sphere-hit" title="voice mode 토글"></div>
+      <!-- 에이전트 전환. 에이전트가 둘 이상일 때만 보인다. 구체를 좌우로 밀어도 같다(app/agent-nav.js) -->
+      <button class="agent-nav prev" id="agent-prev" type="button" hidden><span class="chevron" aria-hidden="true"></span></button>
+      <button class="agent-nav next" id="agent-next" type="button" hidden><span class="chevron" aria-hidden="true"></span></button>
       <!-- Focus 때 구체 둘레를 따라 그려지는 호. 구체와 같이 줄어든다 -->
       <svg class="focus-arcs" viewBox="-8 -8 116 116" aria-hidden="true">
         <path d="M 2.67 37.32 A 49 49 0 0 1 37.32 2.67 M 15.35 15.35 L 10.40 10.40" />
@@ -133,25 +130,6 @@
       <ol class="activity-log" id="activity-log"></ol>
     </section>
 
-    <section class="hud-card system-card">
-      <div class="panel-head"><span>System</span><span class="count" id="uptime">00:00:00</span></div>
-      <dl class="stat-grid">
-        <dt>Model</dt><dd id="sys-model">—</dd>
-        <dt>Session</dt><dd id="session-id-label">—</dd>
-        <dt>Tokens</dt><dd id="usage-total-tokens">0</dd>
-        <dt>Tools</dt>
-        <dd><button class="tools-toggle" id="tools-toggle" type="button" aria-expanded="false" aria-controls="tools-list">
-          <span id="tools-count">0</span> <span class="chev">▾</span>
-        </button></dd>
-        <dt class="sep">In</dt><dd class="sep" id="u-in">0</dd>
-        <dt>Out</dt><dd id="u-out">0</dd>
-        <dt>Cache↓</dt><dd id="u-cr">0</dd>
-        <dt>Cache↑</dt><dd id="u-cw">0</dd>
-        <dt>Cost</dt><dd class="cost-val" id="u-cost">$0.0000</dd>
-      </dl>
-      <ul class="tools-list" id="tools-list" hidden></ul>
-      <div class="usage-sparkline" id="usage-sparkline"></div>
-    </section>
   </div>
 
   <!-- 오른쪽 열 — Sessions · Conversation. 카드를 접으면 아래 카드가 자리를 채운다 -->
@@ -163,8 +141,6 @@
         <span class="count" id="session-count">01</span>
         <button class="icon-btn" id="new-session-btn" type="button" title="새 세션">+</button>
       </div>
-      <!-- 에이전트가 둘 이상일 때만 보인다. 누르면 그 에이전트의 세션으로 옮긴다 -->
-      <div class="agent-switch" id="agent-switch" role="tablist" aria-label="에이전트" hidden></div>
       <div class="session-list" id="session-list"></div>
     </section>
 
@@ -182,10 +158,12 @@
 <!-- WORKFLOW VIEW — 에이전트 관계 그래프, 최근 위임, 백그라운드 작업 -->
 <section class="view-panel" id="view-workflow" data-view-panel="workflow" aria-label="Workflow" hidden>
   <section class="hud-card wf-graph-card">
-    <div class="panel-head"><span>Agent graph</span><span class="count" id="wf-summary">—</span></div>
-    <svg class="wf-graph" id="wf-graph" viewBox="0 0 640 440" role="img" aria-label="에이전트 관계 그래프"></svg>
+    <div class="panel-head"><span>Agent knowledge graph</span><span class="count" id="wf-summary">—</span></div>
+    <svg class="wf-graph" id="wf-graph" viewBox="0 0 960 540" role="img" aria-label="에이전트와 능력 지식 그래프"></svg>
     <ul class="wf-legend" aria-hidden="true">
-      <li><i class="lg lg-top"></i>최상위 에이전트</li>
+      <li><i class="dot"></i>그 에이전트만 가진 능력</li>
+      <li><i class="dot dot-shared"></i>함께 쓰는 능력</li>
+      <li><i class="dot dot-approval"></i>승인 필요</li>
       <li><i class="lg lg-sub"></i>sub-agent, focus, orchestrate</li>
       <li><i class="lg lg-live"></i>진행 중 위임</li>
       <li><i class="lg lg-err"></i>마지막 위임 실패</li>
@@ -209,6 +187,26 @@
 
 <!-- SETTINGS VIEW — 허용 목록 편집, 데스크톱 설정, 적용값 -->
 <section class="view-panel" id="view-settings" data-view-panel="settings" aria-label="Settings" hidden>
+  <!-- 모델, 세션, 토큰, 비용, 도구 목록. 대화 중에 볼 일이 적어 HUD 에서 옮겼다 -->
+  <section class="hud-card system-card">
+    <div class="panel-head"><span>System</span><span class="count" id="uptime">00:00:00</span></div>
+    <dl class="stat-grid">
+      <dt>Model</dt><dd id="sys-model">—</dd>
+      <dt>Session</dt><dd id="session-id-label">—</dd>
+      <dt>Tokens</dt><dd id="usage-total-tokens">0</dd>
+      <dt>Tools</dt>
+      <dd><button class="tools-toggle" id="tools-toggle" type="button" aria-expanded="false" aria-controls="tools-list">
+        <span id="tools-count">0</span> <span class="chev">▾</span>
+      </button></dd>
+      <dt class="sep">In</dt><dd class="sep" id="u-in">0</dd>
+      <dt>Out</dt><dd id="u-out">0</dd>
+      <dt>Cache↓</dt><dd id="u-cr">0</dd>
+      <dt>Cache↑</dt><dd id="u-cw">0</dd>
+      <dt>Cost</dt><dd class="cost-val" id="u-cost">$0.0000</dd>
+    </dl>
+    <ul class="tools-list" id="tools-list" hidden></ul>
+    <div class="usage-sparkline" id="usage-sparkline"></div>
+  </section>
   <form class="hud-card settings-card" id="settings-form" novalidate>
     <div class="panel-head"><span>Settings</span><span class="count" id="settings-path">—</span></div>
     <div class="settings-fields" id="settings-fields"></div>

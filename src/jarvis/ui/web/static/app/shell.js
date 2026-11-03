@@ -2,8 +2,7 @@
 import { QUOTE } from './brand.js';
 
 const $clock       = document.getElementById('clock');
-const $statusText  = document.getElementById('status-text');
-const $statusPill  = document.getElementById('status-pill');
+const $linkTick    = document.getElementById('link-tick');
 const $uptime      = document.getElementById('uptime');
 const $caption     = document.getElementById('reactor-caption');
 const $activityLog = document.getElementById('activity-log');
@@ -18,9 +17,13 @@ const DRAWER_MAX_WIDTH = 860;  // styles.css 의 @media (max-width: 860px) 와 �
 const pad = (n) => String(n).padStart(2, '0');
 const _startTime = Date.now();
 
+const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
 function updateClock() {
   const d = new Date();
-  $clock.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  const date = `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}`;
+  $clock.textContent = `${date} ${WEEKDAYS[d.getDay()]} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  $clock.dateTime = d.toISOString();
 }
 function updateUptime() {
   const s = Math.floor((Date.now() - _startTime) / 1000);
@@ -31,12 +34,23 @@ setInterval(updateUptime, 1000);
 updateClock();
 updateUptime();
 
-// ── Status pill ───────────────────────────────────────────────────────────────
+// ── 상태 ──────────────────────────────────────────────────────────────────────
+// 헤더에 글로 보이지 않는다. 리액터 상태 줄과 음성 흐름이 지금 무엇을 하는지 판단할 때 읽는다
+let _status = 'READY';
 export function setStatus(label, cls = '') {
-  $statusText.textContent = label;
-  $statusPill.className   = 'status-pill' + (cls ? ' ' + cls : '');
+  _status = label;
+  document.body.dataset.status = cls || 'ready';
 }
-export function currentStatus() { return $statusText.textContent; }
+export function currentStatus() { return _status; }
+
+// 이름 옆 점이 백엔드 연결을 보인다. 세션이 붙으면 online, 소켓이 끊기면 offline
+export function setLinkState(online) {
+  document.body.dataset.link = online ? 'online' : 'offline';
+  const label = online ? '연결됨' : '연결 끊김';
+  $linkTick.setAttribute('aria-label', label);
+  $linkTick.title = label;
+}
+setLinkState(false);
 
 // ── Reactor caption ───────────────────────────────────────────────────────────
 // 쉴 때는 명언, 응답·proactive 메시지가 오면 그 한 줄. 잠시 뒤 명언으로 돌아간다.

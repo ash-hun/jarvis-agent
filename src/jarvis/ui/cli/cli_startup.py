@@ -110,6 +110,7 @@ async def _print_sessions(assembly: "AppAssembly") -> None:
 
 
 def main() -> None:
+    from jarvis.common.app_version import app_version
     from jarvis.app.infra_builder import build_app
     from jarvis.jarvis_config import get_settings
     from jarvis.ui.web.startup import run_web
@@ -119,7 +120,7 @@ def main() -> None:
         print(HELP_TEXT)
         return
     if plan.kind == "version":
-        print("jarvis 0.1.0")
+        print(f"jarvis {app_version()}")
         return
 
     assembly = build_app(get_settings())

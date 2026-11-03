@@ -35,9 +35,9 @@ Jarvis-Agent가 가지는 전체 기능을 정리하고 개발시 고려했던 �
 | [Memory Management](./memory.md) | 기본적인 4개 종류의 Memory 관리 방안을 기반으로 적재적소에 사용할 수 있도록 한다. | 사고와 응답의 맥락 |
 | [Tool & Approve System](./conversation/tools-and-approval.md) | 내장된 도구와 MCP, 실행 전 승인과 승인 기억, 반복 작업을 절차 도구로 변환하고 사용한다. | 승인 모달, `/procedures` |
 | [Sessions](./conversation/sessions.md) | 사용자와의 대화 단위 관리 시스템을 말한다. | SESSIONS 카드 |
-| [Multi agent Orchestration](./multi-agent-orchestration/index.md) | 메인 에이전트 외에도 각자의 목적을 가진 Agent를 확장하여 사용한다. 각각의 에이전트마다 세션, 기억, 승인 규칙, 메인 컬러를 따로 갖고 `ask_agent` 로 서로 일을 맡긴다 | 에이전트 칩, AGENDA 라벨, 구체 색 섞임 |
-| [Mode](./mode/index.md) | 작업을 수행하는 기본적인 모드전환 시스템을 탑재한다. | 헤더 `DEFAULT` / `FULL-VOICE`, `FOCUS` 표시 |
-| [Voice Interface](./conversation/voice.md) | VUI(voice user interface)를 지향하며, 각 에이전트를 전환하면서 작업할 수 있도록 한다. | 구체 클릭, 헤더 `FULL-VOICE` |
+| [Multi agent Orchestration](./multi-agent-orchestration/index.md) | 메인 에이전트 외에도 각자의 목적을 가진 Agent를 확장하여 사용한다. 각각의 에이전트마다 세션, 기억, 승인 규칙, 메인 컬러를 따로 갖고 `ask_agent` 로 서로 일을 맡긴다 | 구체 옆 에이전트 전환 화살표, AGENDA 라벨, 구체 색 섞임 |
+| [Mode](./mode/index.md) | 작업을 수행하는 기본적인 모드전환 시스템을 탑재한다. | `/focus`, 구체 둘레 네 영역 |
+| [Voice Interface](./conversation/voice.md) | VUI(voice user interface)를 지향하며, 각 에이전트를 전환하면서 작업할 수 있도록 한다. | 구체 클릭, "Jarvis" 웨이크워드 |
 | [공용 커맨드](../reference/slash-commands.md) | `/` 명령, 스킬, 플러그인 훅, 사용자 도구 등을 명시적으로 호출하여 사용할 수 있다. | 입력창 `/` |
 
 ## 개발 철학

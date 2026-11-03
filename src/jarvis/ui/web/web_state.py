@@ -103,8 +103,8 @@ class WebState:
         import uuid
         from datetime import datetime
 
+        from jarvis.core.multi_agent.factory import AgentDefinition, AgentMemoryPolicy
         from jarvis.core.focus.prompts import REFERENCE_TOOLS, SYSTEM_PROMPTS
-        from jarvis.core.multi_agent.factory import AgentDefinition
         from jarvis.core.focus.focus_service import FocusService
         from jarvis.app.subagent_builder import SubagentBuilder
         from jarvis.core.focus.focus_store import FocusStore
@@ -120,6 +120,8 @@ class WebState:
                 tools=REFERENCE_TOOLS if role == "reference" else [],
                 tools_only=True,
                 model_override=cfg.model or None,
+                # 영역 일꾼은 요청에 든 작업과 지시만 본다. 장기 기억의 사용자 프로필이 짧은 지시를 엉뚱한 쪽으로 끌었다
+                memory=AgentMemoryPolicy(ltm=False),
             )
             await ctx.session_repo.create(session_id=session_id)
             return builder.build_session(definition, session_id)

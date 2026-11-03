@@ -80,7 +80,7 @@ sequenceDiagram
 | `main` | J.A.R.V.I.S. | 전체 총괄. 사용자의 기본 대화 상대 | <span className="agent agent--jarvis">JARVIS</span> `#5fc8e2` | env(`JARVIS_BRAND__*`) |
 | `karen` | K.A.R.E.N. | 특정 분야 정보 수집과 출처 있는 요약. LH, SH 청약 공고 조회, 예산에 맞는 공고 추천, 대출 계산([청약 공고와 대출 계산](../../agents/karen/housing.md)) | <span className="agent agent--karen">KAREN</span> `#97BC62` | `team/karen.yaml` |
 
-메인 색(`palette.primary`)은 HUD 의 링, 입자 구, 패널, 에이전트 칩, 세션 표식, AGENDA 라벨에 쓰인다. 두 에이전트가 함께 일하면 입자 구가 두 메인 색(시안과 녹색)으로 섞인다. 세션을 다른 에이전트로 바꾸면 화면 전체가 약 0.9초에 걸쳐 그 에이전트 색으로 섞인다. 색을 바꾸려면 정의 파일의 `palette.primary` 를 고치고 서버를 다시 띄운다.
+메인 색(`palette.primary`)은 HUD 의 링, 입자 구, 패널, 에이전트 전환 화살표, 세션 표식, AGENDA 라벨에 쓰인다. 두 에이전트가 함께 일하면 입자 구가 두 메인 색(시안과 녹색)으로 섞인다. 세션을 다른 에이전트로 바꾸면 화면 전체가 약 0.9초에 걸쳐 그 에이전트 색으로 섞인다. 색을 바꾸려면 정의 파일의 `palette.primary` 를 고치고 서버를 다시 띄운다.
 
 ### 정의 파일
 
@@ -140,7 +140,7 @@ AGENDA 카드는 모든 에이전트의 스케줄과 약속을 한 목록에 보
 
 ### HUD 에서 에이전트 고르기
 
-에이전트가 둘 이상이면 SESSIONS 카드 위에 에이전트 칩이 생긴다. 칩을 누르면 그 에이전트의 열린 세션으로 옮기고, 열린 세션이 없으면 새 세션을 만들어 옮긴다. 붙은 세션의 에이전트에 맞춰 워드마크, 명언, 링, 입자 구, 패널 색이 바뀐다. 세션 목록의 표식 색과 AGENDA 라벨 색도 에이전트의 primary 다. SYSTEM 의 TOOLS 는 그 에이전트가 쓰는 도구만 보여준다.
+에이전트가 둘 이상이면 리액터 구체 양옆에 화살표가 생긴다. 화살표를 누르거나 구체를 좌우로 48px 이상 밀면 이전 또는 다음 에이전트로 넘어가고, 끝에서는 반대 끝으로 돈다. 옮겨 갈 곳은 그 에이전트의 열린 세션 중 맨 위(`peer-` 세션 제외)이고, 열린 세션이 없으면 새 세션을 만들어 옮긴다. 구체는 한쪽으로 밀려 나갔다가 새 에이전트 색으로 반대편에서 들어온다. 붙은 세션의 에이전트에 맞춰 워드마크, 명언, 링, 입자 구, 패널 색이 바뀐다. 세션 목록의 표식 색과 AGENDA 라벨 색도 에이전트의 primary 다. SET 화면 SYSTEM 카드의 TOOLS 는 그 에이전트가 쓰는 도구만 보여준다.
 
 ### 에이전트끼리 대화
 
@@ -161,7 +161,7 @@ AGENDA 카드는 모든 에이전트의 스케줄과 약속을 한 목록에 보
 
 ### 함께 일할 때의 구체
 
-서버는 세션마다 루프의 시작과 끝을 세어 일하는 에이전트가 바뀔 때 `agent_activity{active}` 를 열린 HUD 전부에 보낸다(`ui/web/agent_activity.py`). 둘 이상이 일하면 HUD 구체의 입자가 두 에이전트의 primary 로 흐르는 띠처럼 섞이고, 일하는 에이전트 칩이 빛난다. 끝나면 지금 에이전트 색으로 돌아온다.
+서버는 세션마다 루프의 시작과 끝을 세어 일하는 에이전트가 바뀔 때 `agent_activity{active}` 를 열린 HUD 전부에 보낸다(`ui/web/agent_activity.py`). 둘 이상이 일하면 HUD 구체의 입자가 두 에이전트의 primary 로 흐르는 띠처럼 섞이고, 그 에이전트로 가는 화살표가 맥박처럼 깜빡인다. 끝나면 지금 에이전트 색으로 돌아온다.
 
 ### 한계
 
@@ -182,7 +182,7 @@ flowchart LR
   SES --> ASK[ask_agent<br/>app/agent_conversation.py]
   ASK --> PEER[peer-부른쪽-받는쪽 세션]
   SES --> ACT[AgentActivity<br/>ui/web/agent_activity.py]
-  ACT -. agent_activity .-> HUD[HUD 칩, 구체 색 섞임]
+  ACT -. agent_activity .-> HUD[HUD 화살표, 구체 색 섞임]
   SES --> RULES[(approvals/id.yaml)]
   SES --> MEM[(장기 기억<br/>agent_id 범위)]
 ```

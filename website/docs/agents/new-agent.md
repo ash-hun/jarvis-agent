@@ -52,7 +52,7 @@ proactive: false
 | `name` | 필수 | | HUD 워드마크이자 다른 에이전트가 부르는 이름 |
 | `description` | | 빈 문자열 | 다른 에이전트가 누구에게 일을 맡길지 고를 때 읽는다. 맡은 일을 구체적으로 쓴다 |
 | `quote` | | 빈 문자열 | HUD 에 뜨는 명언 |
-| `palette` | | JARVIS 기본 색 | `primary` 는 링, 입자 구, 패널, 에이전트 칩, AGENDA 라벨 색 |
+| `palette` | | JARVIS 기본 색 | `primary` 는 링, 입자 구, 패널, 에이전트 전환 화살표, AGENDA 라벨 색 |
 | `persona` | | 개성 없음 | 말투와 성격. 대화 답변(시스템 프롬프트 맨 앞)과 먼저 건네는 말, filler 에 같이 쓰인다. JARVIS 의 개성은 이어받지 않는다 |
 | `system_prompt` | | 비움 | 이 에이전트의 역할과 규칙. 말투는 `persona` 에 둔다. 모든 에이전트의 시스템 프롬프트 끝에는 "답은 간결하게" 공통 규칙(`agent_profile.ANSWER_RULE`)이 붙는다 |
 | `model` | | JARVIS 모델 | 모델 이름만 바꾼다. 프로바이더, 키, 주소는 JARVIS 것을 쓴다 |
@@ -76,10 +76,10 @@ proactive: false
 
 1. 서버를 다시 띄운다. 정의 파일은 서버가 뜰 때 한 번 읽는다. Docker 는 `docker compose restart jarvis-backend` 로 반영한다
 2. 백엔드 로그에서 `[Team] N agent(s) loaded: ...` 줄에 새 id 가 있는지 본다
-3. Web HUD 의 SESSIONS 카드 위 에이전트 칩에 새 에이전트가 생겼는지 본다. 누르면 그 에이전트의 세션이 열리고 화면 색이 바뀐다
+3. Web HUD 리액터 구체 양옆의 화살표를 눌러 새 에이전트로 넘어가는지 본다. 넘어가면 그 에이전트의 세션이 열리고 화면 색이 바뀐다
 4. `jarvis --agent <id>` 로 띄우면 그 에이전트의 기본 세션(`default-<id>`)으로 HUD 가 열린다
 
-## 칩이 보이지 않을 때
+## 새 에이전트로 넘어가지 않을 때
 
 로그에서 `[Team] skip '<파일명>'` 줄을 찾는다. id 규칙 위반이나 YAML 형식 오류가 그 줄에 적힌다. 잘못된 파일 하나만 건너뛰고 나머지 에이전트는 그대로 뜬다.
 

@@ -22,7 +22,8 @@ def client(monkeypatch, tmp_path, settings_file):
 
 
 def test_health_and_settings_view_mask_secrets(client):
-    assert client.get("/api/health").json() == {"ok": True}
+    health = client.get("/api/health").json()
+    assert health["ok"] is True and health["version"].count(".") == 2
     body = client.get("/api/settings").json()
 
     assert "sk-hidden-42" not in str(body)

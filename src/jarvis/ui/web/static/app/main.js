@@ -8,6 +8,7 @@ import { restoreView } from './view.js';
 import './workflow.js';
 import './settings.js';
 import './desktop.js';
+import './header.js';
 
 setupCollapse('chat-toggle', 'chat-collapsed', 'hud.chatCollapsed', scrollToEnd);
 setupCollapse('sessions-toggle', 'sessions-collapsed', 'hud.sessionsCollapsed');
@@ -19,3 +20,4 @@ showQuote();
 setInputEnabled(false);
 connect('default');
 restoreView();
+

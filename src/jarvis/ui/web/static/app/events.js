@@ -8,10 +8,9 @@ import {
 import { updateUsage } from './usage.js';
 import { fetchAgenda, showNotice } from './agenda.js';
 import { fetchTools } from './tools.js';
-import { voice, isVoiceMode, clearVoiceMode, requestSpeech, speakWhenFree, takeSpeech, listenForApproval, cue } from './voice-ui.js';
+import { voice, isVoiceMode, isConversing, clearVoiceMode, requestSpeech, speakWhenFree, takeSpeech, listenForApproval, cue } from './voice-ui.js';
 import { showApproval, closeApproval, approvalSpeech } from './approval.js';
 import { setInputEnabled, endAwaitingReply } from './composer.js';
-import { isFullVoice } from './mode.js';
 import { onReplyClassified } from './reply.js';
 import { setActiveAgents } from './agents.js';
 import { onFocusState, onFocusPanel, isFocusOn, takeFocusCommand } from './focus.js';
@@ -97,8 +96,9 @@ export function handleMessage(msg) {
       fetchTools();   // /procedures approve 처럼 턴 안에서 도구가 늘었을 수 있다
       const usage = msg.final_message?.usage;
       if (usage) updateUsage(usage);
-      if ((isVoiceMode() || isFullVoice()) && lastStreamText()) {
-        requestSpeech(lastStreamText(), { thenListen: isFullVoice, source: _deferredReply ? 'answer' : 'reply' });
+      // 말로 시작한 요청이면 답을 읽고, 대화가 이어지는 동안 다시 듣는다
+      if (isVoiceMode() && lastStreamText()) {
+        requestSpeech(lastStreamText(), { thenListen: isConversing, source: _deferredReply ? 'answer' : 'reply' });
       } else {
         // 음성 요청에 말 없는 응답(도구만)이 오면 음성 처리 중 상태를 풀어 준다
         if (voice.state === 'processing') voice.setIdle();
@@ -199,14 +199,15 @@ export function handleMessage(msg) {
       appendAgentMsg(renderMarkdown(ptext));
       logActivity(`${isFiller ? '💬' : '🔔'} ${ptext}`, 'proactive');
       showLive(lastLine(ptext), CAPTION_HOLD_MS);
-      if (isFiller && (isFullVoice() || isVoiceMode()) && hasPhrase('horizontal_task')) {
+      const talking = isConversing() || isVoiceMode();
+      if (isFiller && talking && hasPhrase('horizontal_task')) {
         cue('horizontal_task');  // 오래 걸리는 일을 뒤로 넘겼다. 대기 문장 대신 녹음한 문구를 읽는다
       } else if (isFiller) {
-        if (isFullVoice() || isVoiceMode() || msg.speak) requestSpeech(ptext, { source: 'filler' });
-      } else if (isFullVoice()) {
-        // 말을 건넸으면 사람처럼 답을 기다린다. 말하거나 듣는 중이면 끊지 않고 끝난 뒤에 말한다
-        speakWhenFree(ptext, { thenListen: isFullVoice, source: 'proactive' });
-      } else if (isVoiceMode() || msg.speak) {
+        if (talking || msg.speak) requestSpeech(ptext, { source: 'filler' });
+      } else if (talking) {
+        // 말로 주고받는 중에 말을 건넸으면 사람처럼 답을 기다린다. 말하거나 듣는 중이면 끊지 않고 끝난 뒤에 말한다
+        speakWhenFree(ptext, { thenListen: isConversing, source: 'proactive' });
+      } else if (msg.speak) {
         speakWhenFree(ptext, { source: 'proactive' });
       }
       break;
@@ -217,8 +218,8 @@ export function handleMessage(msg) {
       break;
 
     case 'approval_request': {
-      // 음성으로 시작한 요청이면 Default 에서도 모달 대신 음성으로 되묻고 듣는다. 말로 일하던 중이다
-      const byVoice = isFullVoice() || isVoiceMode();
+      // 말로 주고받는 중이면 모달과 함께 음성으로 되묻고 듣는다
+      const byVoice = isConversing() || isVoiceMode();
       showApproval(msg.id, msg.command, msg.reason, msg.always_pattern, { voice: byVoice });
       logActivity(`⚡ approval · ${msg.command || ''}`, 'tool');
       if (byVoice) {

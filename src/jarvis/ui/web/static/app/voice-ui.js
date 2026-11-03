@@ -1,7 +1,6 @@
-// 음성 입출력 배선 — 구체 클릭으로 켜고, 전사는 입력창과 같은 길로 보낸다. Full-voice 면 읽은 뒤 다시 듣는다.
+// 음성 입출력 배선 — 구체 클릭으로 켜고, 전사는 입력창과 같은 길로 보낸다. 말로 시작한 대화는 읽은 뒤 다시 듣는다.
 import { sendUserText, setInputEnabled, updateHighlight } from './composer.js';
 import { setStatus, currentStatus, logActivity } from './shell.js';
-import { isFullVoice, onModeChange, setMode } from './mode.js';
 import { answerApprovalByVoice, isApprovalOpen } from './approval.js';
 import { escapeHtml } from './markdown.js';
 import { isAgentBusy } from './events.js';
@@ -21,6 +20,10 @@ const $sphereHit  = document.getElementById('sphere-hit');
 const $input      = document.getElementById('chat-input');
 
 let _voiceMode = false;    // 현재 요청이 음성으로 시작됐는지 — 응답을 읽어줄지 정한다
+// 말로 주고받는 중인지. 말로 요청하면 켜지고, 들었는데 말이 없거나, 타이핑하거나, 읽기를 멈추면 꺼진다.
+// 켜져 있는 동안 답을 읽은 뒤 다시 듣고, 먼저 건네는 말(🔔)도 읽는다
+let _conversing = false;
+let _listenPending = false; // 듣기를 시작했고 아직 전사를 받지 못했다
 let _thenListen = null;    // 마지막 읽기 요청이 끝났을 때 다시 들을지 묻는 함수
 let _speechSeq = 0;
 const _awaitingSpeech = new Set();  // 보냈지만 아직 오디오가 오지 않은 읽기 요청 id
@@ -29,6 +32,12 @@ let _held = null;          // 사용자가 말하거나 듣는 중이라 미뤄 
 
 export function isVoiceMode() { return _voiceMode; }
 export function clearVoiceMode() { _voiceMode = false; }
+export function isConversing() { return _conversing; }
+
+function endConversation() {
+  _conversing = false;
+  _listenPending = false;
+}
 
 function showUser(text) {
   $input.value = text;   // 인식된 텍스트를 잠깐 입력창에 비춘다
@@ -41,6 +50,7 @@ function showUser(text) {
 export const voice = new VoiceManager({
   async onTranscript(transcript, alternatives = []) {
     if (!transcript.trim()) return;
+    _listenPending = false;
     // 승인 모달이 열려 있으면 이 답은 승인이다. 메시지로 보내지 않는다.
     if (isApprovalOpen()) {
       showUser(transcript);
@@ -52,6 +62,7 @@ export const voice = new VoiceManager({
       return;
     }
     _voiceMode = true;
+    _conversing = true;
     showUser(transcript);
     // "포커스 모드 <작업>", "포커스 모드 종료" 는 /focus 명령으로 보낸다
     const command = [transcript, ...alternatives].map(focusCommandFromSpeech).find(Boolean);
@@ -62,6 +73,7 @@ export const voice = new VoiceManager({
     if (state !== 'idle') $sphereWrap.classList.add(`voice-${state}`);
 
     if (state === 'listening') {
+      _listenPending = true;
       setStatus('LISTENING', 'listening');
       HUD.setState('listening');
     } else if (state === 'speaking') {
@@ -70,6 +82,8 @@ export const voice = new VoiceManager({
     } else if (state === 'processing') {
       // 에이전트 처리 중 — 기존 UI가 담당
     } else {
+      // 들었는데 말이 없었다(무음, 못 알아들음, 다시 눌러 취소). 대화를 끝낸다. 음성 승인을 기다리는 중이면 이어 듣는다
+      if (_listenPending && !isApprovalOpen()) endConversation();
       // idle: TTS 종료 or 오류. 에이전트가 아직 일하는 중이면(승인 되읽기 등) 입력을 열지 않는다.
       if (isAgentBusy()) {
         setStatus('THINKING', 'thinking');
@@ -108,10 +122,10 @@ export const voice = new VoiceManager({
 });
 window.voiceManager = voice;
 
-// 미리 녹음한 문구를 읽는다. 음성으로 일하는 중(Full-voice, 음성 요청)일 때만, always 면 늘.
+// 미리 녹음한 문구를 읽는다. 말로 주고받는 중일 때만, always 면 늘.
 // 문구가 없거나 받지 못하면 false 를 돌려 부른 쪽이 원래대로(합성) 하게 한다
 export async function cue(name, { always = false } = {}) {
-  if (!hasPhrase(name) || !(always || isFullVoice() || _voiceMode)) return false;
+  if (!hasPhrase(name) || !(always || _conversing || _voiceMode)) return false;
   const wav = await phraseWav(name);
   if (!wav) return false;
   send({ type: 'voice_spoken', phrase: name });  // 서버가 이 문구의 문장을 밖에 알린다
@@ -164,8 +178,9 @@ export function isSpeechActive() {
   return voice.state === 'speaking' || _awaitingSpeech.size > 0;
 }
 
-// 읽던 것과 기다리던 읽기를 모두 멈춘다. 멈춘 뒤엔 Full-voice 라도 다시 듣지 않는다
+// 읽던 것과 기다리던 읽기를 모두 멈춘다. 멈추면 말로 주고받던 대화도 끝나 다시 듣지 않는다
 export function stopSpeech() {
+  endConversation();
   _held = null;
   _awaitingSpeech.clear();
   _thenListen = null;
@@ -191,23 +206,5 @@ export function listenNow() {
 
 $sphereHit.addEventListener('click', listenNow);
 
-// Full-voice 동안은 마이크를 잡아 둔다. 듣기와 읽기를 오갈 때마다 블루투스 프로필이 바뀌면 연결이 흔들린다.
-voice.setHoldMic(isFullVoice());
-
-// Full-voice 로 바꾼 클릭이 사용자 제스처라 그때 마이크를 연다. 되돌리면 듣던 것을 멈추고 마이크를 놓는다.
-onModeChange((mode) => {
-  if (mode === 'full-voice') {
-    if (!voice.supported) {
-      appendMsg('SYS', 'err', UNSUPPORTED_MSG);
-      setMode('default');
-      return;
-    }
-    voice.setHoldMic(true);
-    voice.start();
-  } else {
-    _thenListen = null;
-    _approvalListens = 0;
-    voice.setHoldMic(false);
-    voice.stop();
-  }
-});
+// 타이핑해서 보내면 말로 주고받던 대화는 끝난다. 답은 화면에만 보인다
+document.getElementById('composer').addEventListener('submit', endConversation);

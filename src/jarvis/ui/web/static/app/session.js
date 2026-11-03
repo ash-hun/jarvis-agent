@@ -2,7 +2,7 @@
 import { apiFetch, getToken, askForToken } from './api.js';
 import { openSocket } from './ws.js';
 import { escapeHtml } from './markdown.js';
-import { setStatus, logActivity, showQuote } from './shell.js';
+import { setStatus, setLinkState, logActivity, showQuote } from './shell.js';
 import { appendMsg, appendHistory, resetMessages } from './messages.js';
 import { resetFocus } from './focus.js';
 import { setModel, resetUsage } from './usage.js';
@@ -16,14 +16,14 @@ import { setWakeEnabled } from './wake.js';
 import { handleMessage, resetAgentStack, resetBackgroundThought } from './events.js';
 import { setReplyClassifier } from './reply.js';
 import { applyBrand, AGENT_ID } from './brand.js';
-import { loadAgents, agents, agentById, isTeam, setActiveAgents } from './agents.js';
+import { renderAgentNav, setAgentSwitcher } from './agent-nav.js';
+import { loadAgents, agentById, isTeam, setActiveAgents } from './agents.js';
 
 const $list         = document.getElementById('session-list');
 const $count        = document.getElementById('session-count');
 const $idLabel      = document.getElementById('session-id-label');
 const $sysModel     = document.getElementById('sys-model');
 const $connBanner   = document.getElementById('connection-banner');
-const $agentSwitch  = document.getElementById('agent-switch');
 
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 10000;
@@ -109,31 +109,17 @@ document.getElementById('new-session-btn').addEventListener('click', async () =>
 // 에이전트끼리의 대화 세션(peer-부른쪽-받는쪽). 사용자가 직접 말을 거는 세션이 아니다
 const PEER_PREFIX = 'peer-';
 
-// 에이전트 전환: 그 에이전트의 열린 세션(대화 세션 제외)이 있으면 가장 위의 것으로, 없으면 새로 만든다
+// 에이전트 전환: 그 에이전트의 열린 세션(대화 세션 제외)이 있으면 가장 위의 것으로, 없으면 새로 만든다.
+// 옮겼으면 true. 구체 밀기 애니메이션(agent-nav.js)이 옮기지 못한 경우를 되돌린다
 async function switchAgent(agentId) {
-  if (agentId === AGENT_ID) return;
+  if (agentId === AGENT_ID) return false;
   const sid = Object.keys(_sessionAgents)
     .find((s) => _sessionAgents[s] === agentId && !s.startsWith(PEER_PREFIX)) || await createSession(agentId);
-  if (sid) connect(sid);
+  if (!sid) return false;
+  connect(sid);
+  return true;
 }
-
-function renderAgentSwitch() {
-  $agentSwitch.hidden = !isTeam();
-  $agentSwitch.innerHTML = '';
-  for (const a of agents()) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = `agent-chip${a.id === AGENT_ID ? ' active' : ''}`;
-    b.setAttribute('role', 'tab');
-    b.setAttribute('aria-selected', String(a.id === AGENT_ID));
-    b.style.setProperty('--agent-color', a.palette.primary);
-    b.dataset.agent = a.id;
-    b.textContent = a.name;
-    b.title = a.description || a.name;
-    b.addEventListener('click', () => switchAgent(a.id));
-    $agentSwitch.appendChild(b);
-  }
-}
+setAgentSwitcher(switchAgent);
 
 async function fetchAndRenderHistory(sessionId) {
   try {
@@ -169,7 +155,7 @@ async function onConnected(msg) {
     if (_connectedOnce) cue(`persona_${msg.agent.main ? 'jarvis' : msg.agent.id}`);
   }
   _connectedOnce = true;
-  renderAgentSwitch();
+  renderAgentNav();
   setActiveAgents(msg.active_agents || []);
   const sid = msg.session_id || '—';
   const model = msg.model || '—';
@@ -188,6 +174,7 @@ async function onConnected(msg) {
   setWakeEnabled(!!(msg.voice && msg.voice.wake));
   setReplyClassifier(msg.reply_classifier);
   setStatus('READY');
+  setLinkState(true);
   setInputEnabled(true);
   // 다른 세션(또는 끊기기 전)의 사고가 끝났는지는 알 수 없다
   resetBackgroundThought();
@@ -212,6 +199,7 @@ export function connect(sessionId = _currentSessionId) {
     },
     onClose(ev) {
       setInputEnabled(false);
+      setLinkState(false);
       if (ev.code === WS_UNAUTHORIZED) {
         // 키 불일치 — 재시도 루프 대신 키를 묻고 바로 다시 연결한다
         if (askForToken()) connect(_currentSessionId);

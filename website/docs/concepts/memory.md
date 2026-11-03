@@ -200,7 +200,7 @@ sequenceDiagram
 5. 같은 작업 종류의 성공 턴이 3회 쌓였으면 절차 초안으로 정제한다([Tool & Approve System → 절차 학습](./conversation/tools-and-approval.md#절차-학습)). 승인하면 PDM 절차가 된다
 6. 작업 기억의 되뇌기 횟수를 항목으로 옮기고 비운다
 
-통합은 세션 종료(TUI 종료, Web 셧다운) 때 항상 돈다. 유휴 때는 `JARVIS_MEMORY__CONSOLIDATE_ON_IDLE`(기본 켜짐)이고 사용자가 `JARVIS_PROACTIVE__DAEMON_IDLE_SEC`(180초)보다 오래 조용하면, 성찰 daemon 틱마다 성찰 뒤에 돈다. 트리거 종류(`interval`, `idle`, `both`)와는 상관없고, 답하는 중인 세션은 건너뛴다. daemon 이 꺼져 있으면 유휴 통합도 돌지 않는다.
+통합은 세션 종료(Web 셧다운) 때 항상 돈다. 유휴 때는 `JARVIS_MEMORY__CONSOLIDATE_ON_IDLE`(기본 켜짐)이고 사용자가 `JARVIS_PROACTIVE__DAEMON_IDLE_SEC`(180초)보다 오래 조용하면, 성찰 daemon 틱마다 성찰 뒤에 돈다. 트리거 종류(`interval`, `idle`, `both`)와는 상관없고, 답하는 중인 세션은 건너뛴다. daemon 이 꺼져 있으면 유휴 통합도 돌지 않는다.
 
 ### 임베딩
 

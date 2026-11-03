@@ -3,13 +3,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-PROFILE="app"
+PROFILE="web"
 
 cd "$PROJECT_DIR"
 
-# --web 플래그: Web HUD 모드 (backend + frontend 동시 실행)
+# --web 플래그: 예전 호출을 깨지 않으려고 받기만 한다. 프로파일은 web 하나뿐이다
 if [[ "${1:-}" == "--web" ]]; then
-  PROFILE="web"
   shift
 fi
 
@@ -23,9 +22,5 @@ if [[ "${1:-}" == "--build" ]]; then
 fi
 
 echo "[restart] Starting profile=$PROFILE..."
-if [[ "$PROFILE" == "web" ]]; then
-  # backend + frontend 동시 기동, 로그 스트리밍
-  exec docker compose --profile web up --remove-orphans
-else
-  exec docker compose --profile app run --rm jarvis
-fi
+# backend + frontend 동시 기동, 로그 스트리밍
+exec docker compose --profile "$PROFILE" up --remove-orphans

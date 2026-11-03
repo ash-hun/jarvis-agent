@@ -111,6 +111,13 @@ body::after {
   opacity: 0.6;
 }
 
+/* 데스크톱 앱: 기본 제목 표시줄이 없어서 헤더를 잡고 창을 끈다. 눌러야 하는 것만 끌기에서 뺀다 */
+.desktop-app .header { -webkit-app-region: drag; }
+.desktop-app .header :is(button, a, input, select, [role="radio"]) { -webkit-app-region: no-drag; }
+/* 신호등 버튼(macOS)과 창 버튼 덧그림(그 밖)이 차지하는 자리 */
+.desktop-darwin .header { padding-left: 92px; }
+.desktop-win32 .header, .desktop-linux .header { padding-right: 150px; }
+
 .header .left {
   display: flex; align-items: center; gap: 14px;
   color: var(--text-dim);
@@ -1504,3 +1511,103 @@ body[data-focus="on"] .drawer-btn { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ── Views — HUD 위에 겹치는 Workflow, Settings 화면 ─────────────────────────*/
+/* body[data-view] 가 정한다. HUD 가 아니면 스테이지를 감추고 같은 자리에 화면을 깐다. 입력 독은 그대로 둔다 */
+.view-seg { margin-left: 4px; }
+body:not([data-view="hud"]) .stage { visibility: hidden; }
+.view-panel {
+  position: absolute;
+  inset: var(--header-h) 0 var(--dock-h) 0;
+  z-index: 6;
+  padding: var(--gutter);
+  display: grid;
+  gap: 14px;
+  overflow: auto;
+  animation: view-in .28s ease-out;
+}
+.view-panel[hidden], .view-panel [hidden] { display: none; }
+@keyframes view-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+#view-workflow {
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr);
+  grid-template-rows: minmax(300px, 1fr) minmax(180px, auto);
+  grid-template-areas: "graph edges" "jobs jobs";
+}
+.wf-graph-card { grid-area: graph; }
+.wf-edges-card { grid-area: edges; }
+.wf-jobs-card  { grid-area: jobs; }
+
+.wf-graph { width: 100%; flex: 1 1 auto; min-height: 240px; }
+.wf-graph .wf-edge { fill: none; stroke: var(--hairline-strong); stroke-width: 1.2; }
+.wf-graph .wf-edge.live { stroke: var(--accent); stroke-dasharray: 6 5; animation: wf-flow 1s linear infinite; }
+.wf-graph .wf-edge.err { stroke: var(--red); }
+.wf-graph .wf-edge-count { fill: var(--text-dim); font-size: 10px; font-family: var(--mono); }
+.wf-graph .wf-node circle { fill: var(--bg-1); stroke: var(--node-color, var(--primary)); stroke-width: 1.5; }
+.wf-graph .wf-node.sub circle { stroke-dasharray: 3 3; }
+.wf-graph .wf-node.busy circle { fill: color-mix(in srgb, var(--node-color, var(--primary)) 22%, var(--bg-1)); }
+.wf-graph .wf-node text { fill: var(--text); font-size: 11px; font-family: var(--mono); text-anchor: middle; }
+.wf-graph .wf-node .wf-node-initial { fill: var(--node-color, var(--primary)); font-size: 14px; }
+.wf-graph .wf-node .wf-node-sub { fill: var(--text-faint); font-size: 9px; }
+@keyframes wf-flow { to { stroke-dashoffset: -22; } }
+
+.wf-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; list-style: none; font-size: 10px; color: var(--text-dim); padding-top: 6px; }
+.wf-legend .lg { display: inline-block; width: 14px; height: 0; border-top: 2px solid var(--primary); margin-right: 6px; vertical-align: middle; }
+.wf-legend .lg-sub { border-top-style: dashed; }
+.wf-legend .lg-live { border-top-color: var(--accent); border-top-style: dashed; }
+.wf-legend .lg-err { border-top-color: var(--red); }
+
+.wf-list { list-style: none; overflow: auto; flex: 1 1 auto; font-size: 11px; }
+.wf-list:empty::before, .wf-empty { content: attr(data-empty); color: var(--text-faint); font-size: 11px; }
+.wf-list li { padding: 6px 0; border-bottom: 1px solid var(--hairline); display: grid; gap: 2px; }
+.wf-list .wf-route { color: var(--primary); }
+.wf-list .wf-route .wf-kind { color: var(--text-faint); margin-left: 6px; }
+.wf-list .wf-label { color: var(--text-dim); overflow-wrap: anywhere; }
+.wf-list .wf-meta { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.wf-list .err .wf-meta { color: var(--red); }
+.wf-list .live .wf-meta { color: var(--accent); }
+
+.wf-jobs-wrap { overflow: auto; }
+.wf-jobs { width: 100%; border-collapse: collapse; font-size: 11px; font-variant-numeric: tabular-nums; }
+.wf-jobs th { text-align: left; color: var(--text-faint); font-weight: 400; letter-spacing: 0.12em; padding: 4px 8px 6px 0; }
+.wf-jobs td { padding: 5px 8px 5px 0; border-top: 1px solid var(--hairline); color: var(--text-dim); white-space: nowrap; }
+.wf-jobs td:first-child { color: var(--text); white-space: normal; }
+.wf-jobs .st-run { color: var(--accent); }
+.wf-jobs .st-ok { color: var(--primary); }
+.wf-jobs .st-err { color: var(--red); }
+.wf-jobs .st-off { color: var(--text-faint); }
+
+#view-settings {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-content: start;
+  align-items: start;
+}
+.settings-card { gap: 10px; min-height: auto; }
+.effective-card { grid-column: 1 / -1; }
+.settings-fields { display: grid; gap: 14px; }
+.settings-group { border: 0; display: grid; gap: 8px; }
+.settings-group legend { font-size: 10px; letter-spacing: 0.22em; color: var(--pri-dim); text-transform: uppercase; margin-bottom: 4px; }
+.settings-row { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(0, 1.2fr); align-items: center; gap: 10px; font-size: 11px; }
+.settings-row label { color: var(--text-dim); }
+.settings-row.pending label::after { content: " · 재시작 대기"; color: var(--accent); }
+.settings-row input, .settings-row select {
+  width: 100%; background: var(--bg-1); color: var(--text); border: 1px solid var(--hairline-strong);
+  font: inherit; font-size: 11px; padding: 4px 6px;
+}
+.settings-row input[type="checkbox"] { width: auto; justify-self: start; accent-color: var(--primary); }
+.settings-row input:focus-visible, .settings-row select:focus-visible { outline: 1px solid var(--primary); outline-offset: 1px; }
+.settings-actions { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.settings-status { margin-right: auto; font-size: 11px; color: var(--text-dim); }
+.settings-status.err { color: var(--red); }
+.settings-status.warn { color: var(--accent); }
+.settings-effective { font-size: 10px; color: var(--text-dim); white-space: pre-wrap; overflow: auto; max-height: 40vh; }
+
+@media (max-width: 860px) {
+  .header .left .corner { display: none; }
+  .view-seg button { padding: 4px 6px; }
+  #view-workflow { grid-template-columns: 1fr; grid-template-rows: auto; grid-template-areas: "graph" "edges" "jobs"; }
+  .view-panel { padding: 12px 16px; }
+  .settings-row { grid-template-columns: 1fr; gap: 4px; }
+}
+.wf-graph .wf-arrow { fill: var(--pri-dim); }
+#settings-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: none; }

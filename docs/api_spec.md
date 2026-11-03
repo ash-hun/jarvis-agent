@@ -2,7 +2,7 @@
 
 | 항목 | 값 |
 |---|---|
-| Last Updated | 2026-11-01 |
+| Last Updated | 2026-11-03 |
 | Base URL | `http://localhost:7777` (Docker `web` 프로파일, nginx 가 `/api/`, `/ws`, `/brand.js`, `/manifest.json` 을 백엔드로 프록시하고 `/m/` 에서 모바일 앱 빌드 결과를 서빙. 포트는 127.0.0.1 에만 열리고 밖에서는 `tailscale serve` 로 들어온다) |
 | 데이터 포맷 | JSON (UTF-8) |
 | 인증 | 기본 없음. `JARVIS_SECURITY__API_KEYS` 가 비어 있지 않으면 `/api/*` 와 `/ws` 가 키를 요구한다 |
@@ -19,6 +19,8 @@
 3. [세부 API 명세](#세부-api-명세)
    - [GET /api/agents](#get-apiagents)
    - [GET /api/agenda](#get-apiagenda)
+   - [GET /api/health](#get-apihealth)
+   - [GET /api/jobs](#get-apijobs)
    - [POST /api/openloops/{loop_id}](#post-apiopenloopsloop_id)
    - [GET /api/push/vapid](#get-apipushvapid)
    - [PUT /api/push/subscriptions](#put-apipushsubscriptions)
@@ -29,9 +31,12 @@
    - [GET /api/sessions/{session_id}/messages](#get-apisessionssession_idmessages)
    - [DELETE /api/sessions/{session_id}](#delete-apisessionssession_id)
    - [POST /api/sessions/{session_id}/branch](#post-apisessionssession_idbranch)
+   - [GET /api/settings](#get-apisettings)
+   - [PUT /api/settings](#put-apisettings)
    - [GET /api/slash-commands](#get-apislash-commands)
    - [GET /api/tools](#get-apitools)
    - [GET /api/voice/phrases/{name}](#get-apivoicephrasesname)
+   - [GET /api/workflow](#get-apiworkflow)
    - [GET /brand.js](#get-brandjs)
    - [GET /manifest.json](#get-manifestjson)
    - [WS /ws](#ws-ws)
@@ -41,9 +46,9 @@
 
 ## 개요
 
-Web HUD(`src/jarvis/ui/web/static/`)가 쓰는 백엔드 인터페이스다. 대화는 전부 WebSocket `/ws` 로 오가고, REST 는 화면 옆 카드(세션 목록, AGENDA, 도구 목록)를 채우거나 상태를 바꾸는 데만 쓴다. 정본은 백엔드의 세션 저장소(Postgres 또는 jsonl), 스케줄러, open loop 저장소이고 이 API 는 그 투영이다. 변경 알림 이벤트가 따로 없어서 프론트는 접속 직후, 응답이 끝날 때, 조작 직후, 그리고 1분마다 REST 를 다시 부른다.
+Web HUD(`src/jarvis/ui/web/static/`)가 쓰는 백엔드 인터페이스다. 대화는 전부 WebSocket `/ws` 로 오가고, REST 는 화면 옆 카드(세션 목록, AGENDA, 도구 목록)를 채우거나 상태를 바꾸는 데만 쓴다. 정본은 백엔드의 세션 저장소(Postgres 또는 jsonl), 스케줄러, open loop 저장소이고 이 API 는 그 투영이다. 카드는 변경 알림 이벤트가 따로 없어서 프론트가 접속 직후, 응답이 끝날 때, 조작 직후, 그리고 1분마다 REST 를 다시 부른다. Workflow 화면만 ws `workflow_changed`, `job_changed` 로 바뀐 한 건씩을 받는다.
 
-소스: 앱 조립과 인증 미들웨어 `src/jarvis/ui/web/server.py`, 접근 키 확인 `web_auth.py`, 요청 본문 모델 `web_schema.py`, REST 라우터 `router/agent_router.py`, `agenda_router.py`, `brand_router.py`, `push_router.py`, `session_router.py`, `tool_router.py`, `voice_router.py`, WebSocket 라우터 `router/ws_router.py`(메시지가 띄우는 작업은 `ws_tasks.py`, 이벤트 전송은 `adapter.py`, 승인은 `approvals.py`). 경로는 모두 `src/jarvis/ui/web/` 아래다.
+소스: 앱 조립과 인증 미들웨어 `src/jarvis/ui/web/server.py`, 접근 키 확인 `web_auth.py`, 요청 본문 모델 `web_schema.py`, REST 라우터 `router/agent_router.py`, `agenda_router.py`, `brand_router.py`, `push_router.py`, `session_router.py`, `settings_router.py`, `tool_router.py`, `voice_router.py`, `workflow_router.py`, WebSocket 라우터 `router/ws_router.py`(메시지가 띄우는 작업은 `ws_tasks.py`, 이벤트 전송은 `adapter.py`, 승인은 `approvals.py`). 경로는 모두 `src/jarvis/ui/web/` 아래다.
 
 ---
 
@@ -65,7 +70,7 @@ Web HUD(`src/jarvis/ui/web/static/`)가 쓰는 백엔드 인터페이스다. 대
 | 400 | 본문 값이 허용 범위 밖 (`status`, `enabled`) |
 | 401 | 인증이 켜져 있는데 키가 없거나 틀림 (`/api/*`). 본문 `{"error": "unauthorized"}` |
 | 404 | 대상 없음 (open loop, 스케줄, 읽기 문구) |
-| 422 | 본문 모델이 있는 엔드포인트(`POST /api/openloops/{loop_id}`, `POST /api/schedules/{name}`, `POST /api/sessions`)에서 FastAPI 가 본문을 JSON 으로 못 읽거나, 본문이 필수인데 없음 |
+| 422 | 본문 모델이 있는 엔드포인트(`POST /api/openloops/{loop_id}`, `POST /api/schedules/{name}`, `POST /api/sessions`, `PUT /api/settings`)에서 FastAPI 가 본문을 JSON 으로 못 읽거나, 본문이 필수인데 없음 |
 
 **인증**: `JARVIS_SECURITY__API_KEYS` 에 키가 등록돼 있을 때만. `Authorization: Bearer <key>` 헤더 또는 `?token=<key>` 쿼리. `/ws` 는 쿼리만 받고 틀리면 close code `4401` 로 끊는다. 정적 셸(`/`, js, css)은 항상 열려 있다.
 
@@ -190,6 +195,118 @@ $ curl -s http://localhost:7777/api/agenda
 **재호출**: 응답 전에 기한이 지난 open loop 를 `expired` 로 닫는다. 기한 뒤 `JARVIS_OPENLOOP__EXPIRE_AFTER_SEC`(기본 6시간)가 지났거나, 기한 없이 `JARVIS_OPENLOOP__MAX_AGE_SEC`(기본 7일)보다 오래된 것이다. 이미 닫힌 건 다시 보지 않으므로 몇 번 불러도 결과가 같다. 그 밖의 상태는 바꾸지 않는다. `next_run` 은 호출 시각 기준으로 계산하므로 같은 요청이라도 값이 흘러간다.
 
 `next_run`, `run_until` 은 서버 로컬 시간대 오프셋이 붙은 ISO 8601 이다. 컨테이너의 `TZ` 를 따른다.
+
+---
+
+### GET /api/health
+
+백엔드가 떠 있는지. 데스크톱 셸(`desktop/backend_launcher.js`)이 백엔드를 띄울지 정할 때 쓴다.
+
+#### Endpoint
+
+```
+GET /api/health
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | 설정 시 필요 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `ok` | boolean | 아니오 | 늘 `true` |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+| `401` | 인증이 켜져 있는데 키가 없음 | `{"error": "unauthorized"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s http://localhost:7777/api/health
+{"ok":true}
+```
+
+#### 특이사항
+
+**재호출**: 상태를 바꾸지 않는다. 셸은 401 도 떠 있는 것으로 본다(응답이 왔으므로).
+
+---
+
+### GET /api/jobs
+
+백그라운드 작업(스케줄, 성찰 daemon, 기억 정리, 외부 조회)의 마지막 실행. Workflow 화면의 표가 쓴다.
+
+#### Endpoint
+
+```
+GET /api/jobs
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | 설정 시 필요 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `jobs` | `Job[]` | 아니오 | [Job](#job). 스케줄이 먼저(이름순, 돈 적 없는 것도 `runs: 0` 으로), 그 뒤 다른 작업(`job_id` 순) |
+| `daemon` | object | 아니오 | `enabled`, `trigger`(`interval`/`idle`/`both`), `interval_sec`, `idle_sec`. 성찰 주기 설정 |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+
+#### 호출 예시
+
+```bash
+$ curl -s http://localhost:7777/api/jobs
+{"jobs":[{"job_id":"schedule:morning","kind":"schedule","label":"아침 브리핑","runs":3,"running":false,"last_started_ms":1791613276663,"last_ended_ms":1791613281000,"last_ok":true,"last_error":"","enabled":true,"next_run":"2026-11-04T09:00:00+09:00","agent":"main"}],"daemon":{"enabled":true,"trigger":"interval","interval_sec":120,"idle_sec":180}}
+```
+
+#### 특이사항
+
+**재호출**: 상태를 바꾸지 않는다. 실행 기록은 프로세스 메모리라 서버가 재시작되면 `runs` 가 0 부터 다시 세고 `last_*` 가 null 이 된다. 성찰과 기억 정리는 세션이 여럿이어도 작업 하나(`proactive:reflect`, `memory:consolidate`)로 센다. 외부 조회는 실제로 조회할 소스가 있을 때만 센다.
 
 ---
 
@@ -816,6 +933,129 @@ $ curl -s -X POST http://localhost:7777/api/sessions/nope/branch
 
 ---
 
+### GET /api/settings
+
+설정 화면 내용. 고칠 수 있는 항목의 정의와 적용값, 저장했지만 아직 반영되지 않은 값, 비밀값을 가린 전체 적용값.
+
+#### Endpoint
+
+```
+GET /api/settings
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | 설정 시 필요 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `path` | string | 아니오 | 저장 파일 경로(`JARVIS_SETTINGS_FILE`, 기본 `~/.jarvis/settings.yaml`) |
+| `fields` | object | 아니오 | 섹션(`voice`, `proactive`, `thought`, `focus`) → 필드 → `{title, type, enum?, minimum?, maximum?, pattern?}`. 편집 허용 목록(`SettingsPatch`)에서 유도한다 |
+| `editable` | object | 아니오 | `fields` 와 같은 모양으로 지금 프로세스의 적용값 |
+| `pending` | object | 아니오 | settings.yaml 에 있지만 적용값과 다른 값. 비어 있지 않으면 백엔드를 다시 띄워야 반영된다 |
+| `effective` | object | 아니오 | 전체 설정. 이름이 `key`, `token`, `secret`, `password`, `dsn` 으로 끝나거나(`_` 구분) `webhook` 이 든 값은 `***`(빈 값은 그대로) |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+
+#### 호출 예시
+
+```bash
+$ curl -s http://localhost:7777/api/settings
+{"path":"/root/.jarvis/settings.yaml","fields":{"voice":{"wake_threshold":{"title":"Wake Threshold","type":"number","minimum":0.05,"maximum":0.99},...}},"editable":{"voice":{"wake_threshold":0.5,...}},"pending":{},"effective":{"llm":{"provider":"anthropic","api_key":"***",...}}}
+```
+
+#### 특이사항
+
+**재호출**: 상태를 바꾸지 않는다. 비밀값은 어떤 경로로도 내보내지 않는다.
+
+---
+
+### PUT /api/settings
+
+허용 목록 안의 설정을 settings.yaml 에 저장한다. 다음 기동부터 반영된다. 이 파일은 설정 원천 중 가장 앞이라 `.env` 와 compose 환경변수를 이긴다.
+
+#### Endpoint
+
+```
+PUT /api/settings
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `PUT` |
+| 인증 | 설정 시 필요 |
+| 요청 Content-Type | `application/json` |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+| 필드 | 타입 | 필수 | 제약 |
+|---|---|---|---|
+| `voice` | object | 아니오 | `stt_provider`(`browser`/`whisper`), `stt_fallback`(`""`/`whisper`), `tts_provider`(`browser`/`supertonic`), `whisper_model_size`(`tiny`/`base`/`small`/`medium`), `stt_lang`(`ko-KR` 꼴), `tts_lang`(`ko` 꼴), `wake_threshold`(0.05~0.99) |
+| `proactive` | object | 아니오 | `enabled`, `daemon_enabled`(boolean), `daemon_trigger`(`interval`/`idle`/`both`), `daemon_interval_sec`, `daemon_idle_sec`(30~3600), `confidence_threshold`(0~1), `cooldown_sec`(0~86400) |
+| `thought` | object | 아니오 | `enabled`(boolean), `router_threshold`(0~1) |
+| `focus` | object | 아니오 | `enabled`(boolean) |
+
+모르는 섹션이나 필드는 422 다. 비운 섹션과 필드는 건드리지 않는다.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `changed` | boolean | 아니오 | 파일 내용이 바뀌었는지 |
+| (나머지) | | | [GET /api/settings](#get-apisettings) 와 같다. 저장 뒤의 `pending` |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+| `422` | 허용 목록 밖 필드, 범위 밖 값, 본문 JSON 오류 | FastAPI 기본 모양 |
+
+#### 호출 예시
+
+```bash
+$ curl -s -X PUT http://localhost:7777/api/settings -H 'Content-Type: application/json' -d '{"voice":{"wake_threshold":0.7}}'
+{"changed":true,"path":"/root/.jarvis/settings.yaml",...,"pending":{"voice":{"wake_threshold":0.7}},...}
+```
+
+#### 특이사항
+
+**재호출**: 같은 본문을 다시 보내면 `changed: false` 이고 파일을 건드리지 않는다. 저장은 합친 결과가 설정 모델로 읽히는지 본 뒤 임시 파일을 바꿔 끼우므로, 쓰다 죽어도 이전 파일이 남는다. 반영하려면 `docker compose restart jarvis-backend`(데스크톱 앱은 SET 화면의 RESTART BACKEND).
+
+---
+
 ### GET /api/slash-commands
 
 슬래시 명령 목록. 입력창 자동완성용. 같은 목록이 WS `connected` 메시지에도 들어 있어 HUD 는 이 엔드포인트를 쓰지 않는다.
@@ -980,6 +1220,63 @@ $ curl -s -o wake_up.wav -w '%{http_code} %{content_type}\n' http://localhost:77
 
 ---
 
+### GET /api/workflow
+
+에이전트 관계 그래프. Workflow 화면이 처음 열릴 때 받고, 그 뒤는 ws `workflow_changed` 로 한 건씩 더한다.
+
+#### Endpoint
+
+```
+GET /api/workflow
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | 설정 시 필요 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `agents` | object[] | 아니오 | 최상위 에이전트 `{id, name, primary, main}`. main 이 첫 번째 |
+| `subagents` | string[] | 아니오 | 위임 도구(`agent_<이름>`)로 실린 sub-agent 이름순 |
+| `edges` | `Delegation[]` | 아니오 | [Delegation](#delegation). 이 프로세스가 본 최근 200개, 오래된 것부터 |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+
+#### 호출 예시
+
+```bash
+$ curl -s http://localhost:7777/api/workflow
+{"agents":[{"id":"main","name":"J.A.R.V.I.S.","primary":"#5fc8e2","main":true}],"subagents":[],"edges":[{"edge_id":"default:call_1","kind":"ask","source":"main","target":"karen","label":"오늘 일정 정리","started_ms":1791613276663,"ended_ms":1791613279001,"ok":true}]}
+```
+
+#### 특이사항
+
+**재호출**: 상태를 바꾸지 않는다. 간선은 프로세스 메모리라 재시작하면 빈다. sub-agent 세션 안에서 다시 맡긴 위임은 없다.
+
+---
+
 ### GET /brand.js
 
 에이전트 정체성(이름, 명언, 팔레트)을 `window.BRAND` 에 넣는 스크립트. 정적 셸은 에이전트와 무관하고 정체성은 이 라우트로만 들어간다.
@@ -1124,7 +1421,7 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `reply_classify` | `kind`(`feedback`/`approval`), `id`, `text`, `context`, `has_always` | 키워드로 판정이 안 되는 짧은 답을 사고 모델로 분류. `feedback` 이면 `id` 는 🔔 의 `message_id`, `context` 는 🔔 본문. `approval` 이면 `id` 는 승인 요청 id, `context` 는 명령, `has_always` 는 항상 허용 패턴이 있는지. 결과는 `reply_classified`. 🔔 가 `accept`/`dismiss` 로 판정되면 서버가 바로 학습기에 반영한다(같은 `id` 는 한 번만). 승인은 판정만 돌려주고 승인 자체는 화면이 `approval_response` 로 보낸다 |
 | `voice_tts_request` | `text`, `lang?`, `id?`, `source?`, `part?`, `full_text?`, `stream?` | 음성 합성. 서버가 마크다운 기호(제목, 강조, 목록, 표, 인라인 코드)를 지우고, 코드 블록과 URL 은 빼고, 링크는 글자만 남기고, 원, 만, 억 앞의 금액 숫자(`70,000,000원`)는 한글(`칠천만원`)로 바꾼 뒤 읽는다. 서버 TTS 가 없거나 읽을 글자가 없으면 `voice_tts_audio{data:"", text}` 로 되돌려 브라우저가 읽게 한다. `id` 는 결과에 그대로 돌아온다. `source`(reply, answer, filler, proactive, reminder, approval, approval_answer)는 무엇을 읽는지이고, 서버는 읽을 글을 외부 알림 채널(`spoken`)에도 보낸다. 서버가 이미 따로 보낸 `proactive`, `reminder`, `answer` 는 보내지 않는다. 같은 세션의 같은 글은 10초 안에 다시 와도(화면을 여럿 열었거나 재요청) 한 번만 보낸다. 화면이 글을 문장 조각으로 나눠 보내면 조각마다 `part`(0부터)와 따로 된 `id` 를 붙이고, `part` 0 에만 나누기 전 원문 `full_text` 를 붙인다. 서버는 조각마다 `voice_tts_audio` 를 하나씩 돌려주고, 외부 알림은 `part` 0 에서 `full_text` 로 한 번만 보낸다. `stream: true` 면 서버가 소리를 나오는 대로 조각으로 같은 `id` 의 `voice_tts_audio` 에 실어 보낸다(조각 길이는 TTS 프로바이더가 정한다). 영어 글은 문장마다 따로 합성한다. 조각으로 못 내는 TTS 는 문장마다 한 조각이다 |
 | `voice_spoken` | `phrase` | 화면이 녹음 문구를 재생했다. 서버가 그 문구의 문장(`phrases.json` 의 `text`)을 외부 알림 채널에 보낸다. 같은 세션의 같은 문장은 10초 안에 한 번만. 모르는 이름이면 무시 |
-| `voice_stt_submit` | `data`(base64), `mime`, `sample_rate`(기본 16000) | 서버 STT. `mime` 은 받기만 하고 쓰지 않는다. 서버 STT 가 없거나 `data` 가 비면 무시. 결과는 `voice_stt_result` |
+| `voice_stt_submit` | `data`(base64), `mime`, `sample_rate`(기본 16000) | 서버 STT. `stt_provider` 가 browser 면 `stt_fallback` 으로 받아 적는다(처음 한 번 모델을 스레드에서 불러온다). `mime` 은 받기만 하고 쓰지 않는다. 서버 STT 가 없거나 `data` 가 비면 무시. 결과는 `voice_stt_result` |
 | `abort` | 없음 | 진행 중인 에이전트 루프 중단. 도는 루프가 없으면 아무 일도 없다 |
 | (바이너리 프레임) | 16kHz mono int16 LE PCM | 웨이크워드 감지. `connected.voice.wake` 가 true 일 때만 받고, 아니면 버린다. 프레임 경계는 자유롭다(서버가 80ms 단위로 이어 붙인다). 화면은 모드와 상관없이 기다리는 동안(듣기, 읽기, 응답, 승인 중이 아닐 때) 보낸다 |
 
@@ -1132,7 +1429,7 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 
 | `type` | 필드 | 언제 |
 |---|---|---|
-| `connected` | `session_id`, `agent`, `user`, `model`, `sessions[]`, `session_agents`, `active_agents[]`, `slash_commands[]`, `voice{stt_mode, stt_lang, phrases[], wake}`, `reply_classifier` | 접속 직후 한 번. 그 뒤 쌓여 있던 `reminder` 를 `missed: true` 로 보내고, 진행 중인 Focus 작업이 있으면 `focus_state`, `focus_panel` 을 보낸다. `user` 는 인증이 켜져 있을 때 키의 사용자 이름, 아니면 null. `voice.stt_mode` 는 `browser`(Web Speech API) 또는 `server`(녹음을 `voice_stt_submit` 으로). `voice.phrases` 는 [읽기 문구](#get-apivoicephrasesname) 이름, `voice.wake` 는 웨이크워드 오디오를 받는지. `agent` 는 이 세션의 [Agent](#agent), `session_agents` 는 세션 id → 에이전트 id, `active_agents` 는 지금 루프가 도는 에이전트 id. `reply_classifier` 는 사고가 켜져 있어 `reply_classify` 를 쓸 수 있는지 |
+| `connected` | `session_id`, `agent`, `user`, `model`, `sessions[]`, `session_agents`, `active_agents[]`, `slash_commands[]`, `voice{stt_mode, stt_lang, server_stt, phrases[], wake}`, `reply_classifier` | 접속 직후 한 번. 그 뒤 쌓여 있던 `reminder` 를 `missed: true` 로 보내고, 진행 중인 Focus 작업이 있으면 `focus_state`, `focus_panel` 을 보낸다. `user` 는 인증이 켜져 있을 때 키의 사용자 이름, 아니면 null. `voice.stt_mode` 는 `browser`(Web Speech API) 또는 `server`(녹음을 `voice_stt_submit` 으로). `voice.server_stt` 는 브라우저 인식이 실패했을 때 녹음을 보내도 받아 적을 수 있는지(`stt_provider` 가 server 거나 `stt_fallback` 이 있을 때). `voice.phrases` 는 [읽기 문구](#get-apivoicephrasesname) 이름, `voice.wake` 는 웨이크워드 오디오를 받는지. `agent` 는 이 세션의 [Agent](#agent), `session_agents` 는 세션 id → 에이전트 id, `active_agents` 는 지금 루프가 도는 에이전트 id. `reply_classifier` 는 사고가 켜져 있어 `reply_classify` 를 쓸 수 있는지 |
 | `agent_start` | `session_id`, `prompt`, `agent_name`, `timestamp` | 루프 시작. `prompt` 는 늘 빈 문자열이다. `agent_name` 은 main 이 아닌 에이전트의 세션과 서브 에이전트에서 이름이 오고, main 세션의 루트 루프는 null. 슬래시 명령과 `/focus` 안내를 감싸는 `agent_start`, `agent_end` 는 `type` (과 `continues`)만 있다 |
 | `turn_start` | `turn`, `timestamp` | 루프 안에서 LLM 호출 한 번이 시작될 때(0부터). 화면은 쓰지 않는다 |
 | `message_update` | `text_delta`, `thinking_delta`, `timestamp` | 스트리밍 조각 |
@@ -1156,6 +1453,8 @@ GET /ws?session_id=<id>&agent=<agent_id>&token=<key>   (Upgrade: websocket)
 | `agent_activity` | `active[]` | 어느 세션이든 루프가 시작하거나 끝나 일하는 에이전트 목록이 바뀔 때. 열린 연결 전부에 보내고 쌓아 두지 않는다. 먼저 시작한 순서, 같은 에이전트는 한 번 |
 | `focus_state` | `session_id`, `state` | Focus 작업 상태 전체. `state.active=false` 면 Focus 종료(이때 `state` 는 `active`, `task_id` 뿐). 켜져 있으면 `task_id`, `task`, `steps[{title, done}]`, `progress`(0~1), `eta_sec`(완료 단계가 없으면 null), `elapsed_sec`. 접속 직후 진행 중인 작업이 있으면 한 번 보낸다 |
 | `focus_panel` | `session_id`, `area`(`reference`/`log`/`analysis`), `markdown`, `busy` | 한 영역의 마크다운 전체. `busy=true` 는 sub-agent 가 갱신 중. 접속 직후 진행 중인 작업이 있으면 세 영역을 한 번씩 보낸다 |
+| `workflow_changed` | `edge` | 위임이 열리거나 닫힐 때. `edge` 는 [Delegation](#delegation). 열린 연결 전부에 보내고 쌓아 두지 않는다 |
+| `job_changed` | `job` | 백그라운드 작업이 시작하거나 끝날 때. `job` 은 [Job](#job) 에서 `enabled`, `next_run`, `agent` 가 빠진 모양 |
 | `error` | `message` | 에이전트에 넘긴 요청이 실패했다(앞 요청이 3초 안에 끝나지 않아 거절한 `이전 요청을 아직 처리 중입니다. …` 포함), `Focus 오류: …`, `TTS 오류: …` |
 
 #### 호출 예시
@@ -1236,3 +1535,30 @@ Focus 동안 매 턴 앞에서 분석 sub-agent 가, 뒤에서 기록과 진행 
 | `name` | string | 아니오 | 도구 이름 |
 | `description` | string | 아니오 | 첫 줄 160자 |
 | `approval` | boolean | 아니오 | 실행 전 승인 필요 |
+
+### Delegation
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `edge_id` | string | 아니오 | `<부른 세션 id>:<tool_call_id>`, Focus 는 `<세션 id>:focus-<영역>` |
+| `kind` | `"ask" \| "subagent" \| "orchestrate" \| "focus"` | 아니오 | `ask_agent`, `agent_<이름>`, `orchestrate` 도구, Focus sub-agent |
+| `source` | string | 아니오 | 맡긴 에이전트 id(부른 세션의 에이전트) |
+| `target` | string | 아니오 | 받은 쪽. 최상위 에이전트 id, sub-agent 이름, `orchestrate:<패턴>`, `focus-<영역>` |
+| `label` | string | 아니오 | 맡긴 일 앞 80자 |
+| `started_ms` | integer | 아니오 | epoch ms |
+| `ended_ms` | integer | 예 | 끝나지 않았으면 null |
+| `ok` | boolean | 예 | 도구 결과가 오류가 아니었는지. 끝나지 않았으면 null |
+
+### Job
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `job_id` | string | 아니오 | `schedule:<이름>`, `proactive:reflect`, `memory:consolidate`, `external:poll` |
+| `kind` | `"schedule" \| "proactive" \| "consolidate" \| "external"` | 아니오 | 작업 종류 |
+| `label` | string | 아니오 | 사람에게 보일 이름(스케줄은 설명, 외부 조회는 이번에 조회한 소스 이름) |
+| `runs` | integer | 아니오 | 이 프로세스에서 시작한 횟수 |
+| `running` | boolean | 아니오 | 지금 도는 중 |
+| `last_started_ms`, `last_ended_ms` | integer | 예 | 마지막 시작과 끝(epoch ms) |
+| `last_ok` | boolean | 예 | 마지막 실행이 성공했는지. 스케줄은 결과를 만들어 건넸는지 |
+| `last_error` | string | 아니오 | 실패 이유 앞 200자 |
+| `enabled`, `next_run`, `agent` | | | 스케줄만. [Schedule](#schedule) 의 같은 필드 |

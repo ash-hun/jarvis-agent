@@ -77,7 +77,7 @@ proactive: false
 1. 서버를 다시 띄운다. 정의 파일은 서버가 뜰 때 한 번 읽는다. Docker 는 `docker compose restart jarvis-backend` 로 반영한다
 2. 백엔드 로그에서 `[Team] N agent(s) loaded: ...` 줄에 새 id 가 있는지 본다
 3. Web HUD 의 SESSIONS 카드 위 에이전트 칩에 새 에이전트가 생겼는지 본다. 누르면 그 에이전트의 세션이 열리고 화면 색이 바뀐다
-4. TUI 에서는 `jarvis --agent <id>` 로 시작한다
+4. `jarvis --agent <id>` 로 띄우면 그 에이전트의 기본 세션(`default-<id>`)으로 HUD 가 열린다
 
 ## 칩이 보이지 않을 때
 

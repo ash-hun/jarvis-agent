@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from jarvis.core.tools.tools_registry import ToolRegistry
     from jarvis.model_layer.model_types import ModelConfig
     from jarvis.core.plugins.runner import PluginRunner
+    from jarvis.core.workflow.job_board import JobBoard
     from jarvis.core.goals.runner import GoalRunner
 
 
@@ -97,12 +98,17 @@ class SchedulerService:
         self._converse: Converse | None = None
         self._agent_resolver: AgentResolver | None = None
         self._goals: GoalRunner | None = None
+        self._jobs: JobBoard | None = None
         self._last_run: dict[str, datetime] = {}  # cron 작업별 마지막으로 실행한 cron 슬롯
         self._bg: set[asyncio.Task[None]] = set()
 
     def set_agent_resolver(self, resolver: AgentResolver | None) -> None:
         """main 이 아닌 작업의 에이전트를 찾는 함수. 에이전트 레지스트리를 만든 뒤 조립 층이 단다."""
         self._agent_resolver = resolver
+
+    def set_job_board(self, board: "JobBoard | None") -> None:
+        """실행마다 시작과 끝, 전달 여부를 적을 곳. Web 이 Workflow 화면을 위해 단다."""
+        self._jobs = board
 
     def set_goal_runner(self, runner: "GoalRunner | None") -> None:
         """kind: goal 작업을 진행할 러너. 조립 층이 단다."""
@@ -278,11 +284,17 @@ class SchedulerService:
         # 이번 실행에서 부른 도구 중 전달 뒤에 기록하는 것. 실행마다 따로라 같은 작업이 겹쳐 돌아도 섞이지 않는다
         settles: list[Callable[[bool], None]] = []
         token = _settles.set(settles)
+        job_id = f"schedule:{task.name}"
+        if self._jobs is not None:
+            await self._jobs.start(job_id, "schedule", task.description or task.name)
+        delivered = False
         try:
             text = await self._produce(task)
             delivered = await self._deliver(task, text, delay_sec)
         finally:
             _settles.reset(token)
+            if self._jobs is not None:
+                await self._jobs.finish(job_id, delivered, "" if delivered else "결과를 만들거나 건네지 못했다")
         for settle in settles:
             try:
                 settle(delivered)

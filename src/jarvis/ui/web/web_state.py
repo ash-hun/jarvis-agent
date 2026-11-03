@@ -7,11 +7,14 @@ from typing import TYPE_CHECKING
 from collections.abc import Callable
 
 from jarvis.core.notify.dedupe import SPOKEN_DEDUPE_SEC, RecentOnce
+from jarvis.core.workflow.workflow_tracker import WorkflowTracker
 from jarvis.voice.phrases import load_phrase_texts, load_phrases
 from jarvis.voice.english import Translate, make_llm_translator
 from jarvis.ui.web.session_registry import SessionRegistry
+from jarvis.core.workflow.workflow_types import JobRecord
 from jarvis.ui.web.agent_activity import AgentActivity
 from jarvis.ui.web.approvals import SessionApprovals
+from jarvis.core.workflow.job_board import JobBoard
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
@@ -29,6 +32,12 @@ logger = get_logger(__name__)
 
 # 열린 HUD 가 없을 때 쌓아 두는 스케줄 알림 수. 프로세스 메모리라 재시작하면 사라진다
 PENDING_NOTICE_MAX = 20
+WORKFLOW_EVENT = "workflow_changed"
+JOB_EVENT = "job_changed"
+
+
+def _now_ms() -> int:
+    return int(time.time() * 1000)
 
 
 async def _focus_outside_ws(_args: str) -> str:
@@ -67,6 +76,10 @@ class WebState:
         # 어느 에이전트가 일하는지. 둘 이상이면 HUD 구체가 색을 섞는다
         self.activity = AgentActivity(self.broadcast_live)
         self.registry.on_open(self.activity.watch)
+        # Workflow 화면: 에이전트 사이 위임과 백그라운드 작업 실행. 바뀔 때마다 열린 HUD 전부에 한 건씩 보낸다
+        self.workflow = WorkflowTracker(_now_ms)
+        self.jobs = JobBoard(_now_ms, self._broadcast_job)
+        self.registry.on_open(self._watch_workflow)
         # 에이전트끼리 묻는 도구가 받는 쪽 세션을 이 화면의 세션 목록에 열게 한다
         from jarvis.app.agent_conversation import ASK_AGENT_TOOL, AskAgentTool
 
@@ -132,6 +145,8 @@ class WebState:
                 tts_options=v.tts_options(),
                 english_tts_provider=v.english_tts_provider,
                 english_tts_options=v.english_tts_options(),
+                stt_fallback=v.stt_fallback,
+                stt_fallback_options=v.stt_fallback_options(),
             )
         except Exception as exc:
             logger.warning(f"[Voice] 서버 음성 비활성화, 브라우저 음성만 쓴다 (초기화 실패): {exc}")
@@ -175,6 +190,17 @@ class WebState:
         """
         session = await self.registry.conversation_of(agent_id)
         return await session.say(text)
+
+    def _watch_workflow(self, session_id: str, agent_id: str, session: "AgentSession") -> None:
+        async def on_event(event: object) -> None:
+            edge = self.workflow.observe(session_id, agent_id, event)
+            if edge is not None:
+                await self.broadcast_live({"type": WORKFLOW_EVENT, "edge": edge.to_dict()})
+
+        session.subscribe(on_event)
+
+    async def _broadcast_job(self, record: JobRecord) -> None:
+        await self.broadcast_live({"type": JOB_EVENT, "job": record.to_dict()})
 
     async def broadcast_live(self, payload: dict[str, object]) -> None:
         """열린 HUD 에만 보낸다. 지금 상태를 알리는 것이라 아무도 없으면 버린다."""

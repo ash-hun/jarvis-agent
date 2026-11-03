@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <title>Jarvis</title>
+  <style>
+    :root { --bg: #02060c; --fg: #cfeef6; --dim: #6f8a93; --pri: #5fc8e2; --err: #f05f5f; }
+    body { margin: 0; height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--fg);
+           font: 13px/1.6 ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: .04em; }
+    main { max-width: 520px; padding: 0 16px; text-align: center; }
+    h1 { font-size: 12px; letter-spacing: .3em; color: var(--pri); font-weight: 500; }
+    p { color: var(--dim); white-space: pre-wrap; overflow-wrap: anywhere; }
+    p.err { color: var(--err); }
+    .ring { width: 48px; height: 48px; margin: 0 auto 20px; border: 1px solid var(--pri); border-top-color: transparent;
+            border-radius: 50%; animation: spin 1.2s linear infinite; }
+    .ring.stop { animation: none; border-color: var(--err); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .ring { animation: none; } }
+    /* 제목 표시줄이 없는 창이라 위쪽 띠를 잡고 끈다 */
+    .drag { position: fixed; top: 0; left: 0; right: 0; height: 52px; -webkit-app-region: drag; }
+  </style>
+</head>
+<body>
+  <div class="drag"></div>
+  <main>
+    <div class="ring" id="ring"></div>
+    <h1>J.A.R.V.I.S.</h1>
+    <p id="msg">백엔드에 연결하는 중…</p>
+  </main>
+  <script>
+    // 셸이 ?error= 로 넘긴 글은 textContent 로만 넣는다
+    const err = new URLSearchParams(location.search).get('error');
+    if (err) {
+      const msg = document.getElementById('msg');
+      msg.textContent = err;
+      msg.className = 'err';
+      document.getElementById('ring').classList.add('stop');
+    }
+  </script>
+</body>
+</html>

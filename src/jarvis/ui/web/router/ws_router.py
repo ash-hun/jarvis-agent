@@ -116,6 +116,8 @@ def build_ws_router(state: WebState) -> APIRouter:
                 "voice": {
                     # server: 브라우저가 녹음해 백엔드 STT 로 보낸다. browser: Web Speech API 가 인식까지
                     "stt_mode": "browser" if stt_browser else "server",
+                    # browser 일 때 인식이 실패하면 화면이 녹음해 보내도 되는지(서버 폴백 STT 가 있는지)
+                    "server_stt": voice_service is not None and voice_service.server_stt_available,
                     "stt_lang": settings.voice.stt_lang,
                     # 미리 녹음한 문구 이름. 화면은 이 이름만 /api/voice/phrases/{name} 으로 받는다
                     "phrases": sorted(state.phrases),

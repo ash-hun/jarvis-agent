@@ -8,13 +8,14 @@ import TabItem from '@theme/TabItem';
 
 # Quick Start
 
-처음 Jarvis-Agent 를 접하는 사용자가 가장 빠르게 에이전트와 대화를 시작할 수 있도록 설치와 실행 방법을 정리한다. 저장소를 내려받고, LLM 을 하나 고르고, TUI 나 Web HUD 로 띄우면 된다. 실행 방법은 로컬에서 uv 로 띄우는 방법과 Docker 로 전체 스택을 띄우는 방법 중 하나만 고른다.
+처음 Jarvis-Agent 를 접하는 사용자가 가장 빠르게 에이전트와 대화를 시작할 수 있도록 설치와 실행 방법을 정리한다. 저장소를 내려받고, LLM 을 하나 고르고, Web HUD 를 띄우면 된다. 실행 방법은 로컬에서 uv 로 띄우는 방법과 Docker 로 전체 스택을 띄우는 방법 중 하나만 고른다.
 
 ## 준비물
 
 - Python 3.11 이상과 [uv](https://docs.astral.sh/uv/)
 - LLM 하나. 클라우드 API 키가 있거나 로컬에 Ollama, vLLM 이 떠 있어야 한다
 - Docker(선택). Web HUD 전체 스택(nginx, 백엔드, Postgres)을 한 번에 띄울 때만 쓴다
+- Node.js(선택). 데스크톱 앱을 쓸 때만 필요하다
 
 ## LLM Provider 고르기
 
@@ -76,15 +77,14 @@ JARVIS_LLM__MODEL=gemma4:e4b
 
    `.env.example` 은 세션과 메모리 백엔드를 `postgres` 로 둔다. Docker 없이 띄우려면 두 줄을 `jsonl` 과 `in_memory` 로 바꾼다. 그러면 세션이 `~/.jarvis/sessions/` 에 JSONL 로 쌓인다.
 
-3. 화면을 골라 띄운다.
+3. 백엔드를 띄운다. 예전처럼 `--web` 을 붙여도 같다.
 
    ```bash
-   jarvis                                  # TUI
-   jarvis --web                            # Web HUD, http://localhost:7777
-   jarvis --web --host 0.0.0.0 --port 8080 # 바인딩 바꾸기
+   jarvis                            # Web HUD, http://localhost:7777
+   jarvis --host 0.0.0.0 --port 8080 # 바인딩 바꾸기
    ```
 
-기존 세션을 이어 가려면 `jarvis -s <session_id>` 를 쓰고, 세션 목록은 `jarvis --list-sessions` 로 본다. `jarvis -a karen` 처럼 `-a` 로 에이전트를 고르면 그 에이전트의 기본 세션으로 TUI 를 연다. 모든 옵션은 `jarvis -h` 로 본다.
+기존 세션을 이어 가려면 `jarvis -s <session_id>` 를 쓰고, 세션 목록은 `jarvis --list-sessions` 로 본다. `jarvis -a karen` 처럼 `-a` 로 에이전트를 고르면 그 에이전트의 기본 세션(`default-karen`)을 연다. 모든 옵션은 `jarvis -h` 로 본다.
 
 </TabItem>
 <TabItem value="docker" label="Docker">
@@ -95,17 +95,15 @@ JARVIS_LLM__MODEL=gemma4:e4b
    cp .env.example .env
    ```
 
-2. 프로파일을 골라 띄운다. 끌 때는 `down` 을 쓴다.
+2. `web` 프로파일로 띄운다. 끌 때는 `down` 을 쓴다.
 
    ```bash
-   docker compose --profile app run --rm jarvis  # TUI + Postgres
-   docker compose --profile web up -d            # nginx + 백엔드 + Postgres, http://localhost:7777
+   docker compose --profile web up -d  # nginx + 백엔드 + Postgres, http://localhost:7777
    docker compose --profile web down
    ```
 
 | 프로파일 | 서비스 | 접속 |
 |---|---|---|
-| `app` | jarvis TUI, postgres | 터미널 |
 | `web` | nginx, jarvis-backend, postgres | http://localhost:7777 |
 
 `web` 백엔드 이미지는 `web`, `scheduler`, `voice`, `piper`, `wake`, `discord` extra 와 ffmpeg 를 넣어 빌드하므로 따로 설치할 것이 없다. 저장소의 `team/`(최상위 에이전트 정의)과 `models/`(음성 모델)는 읽기 전용으로 마운트한다.
@@ -121,9 +119,17 @@ JARVIS_LLM__MODEL=gemma4:e4b
 </TabItem>
 </Tabs>
 
+## 데스크톱 앱으로 쓰기
+
+`desktop/` 의 Electron 앱은 HUD 를 창 하나로 연다. 백엔드가 떠 있지 않으면 `docker compose --profile web up -d` 를 대신 실행하고, 창을 닫아도 트레이에 남아 먼저 건네는 말과 알림을 OS 알림으로 띄운다. 단축키 `CommandOrControl+Shift+J` 를 누르면 창이 앞으로 오고 바로 듣기 시작한다.
+
+```bash
+cd desktop && npm install && npm start
+```
+
 ## 확인하기
 
-Web HUD 로 띄웠다면 브라우저에서 http://localhost:7777 을 연다. 헤더에 연결 상태와 `READY` 가 보이고, 메시지를 보내면 `THINKING` 자리표시 뒤에 응답이 스트리밍으로 나온다. TUI 라면 입력창에 말을 걸어 응답이 오는지 본다. 응답이 오지 않거나 설정이 반영되지 않는 것 같으면 [FAQ](../troubleshooting/index.md)에서 증상에 맞는 페이지를 찾는다.
+Web HUD 로 띄웠다면 브라우저에서 http://localhost:7777 을 연다. 헤더에 연결 상태와 `READY` 가 보이고, 메시지를 보내면 `THINKING` 자리표시 뒤에 응답이 스트리밍으로 나온다. 데스크톱 앱이라면 창이 같은 화면을 연다. 응답이 오지 않거나 설정이 반영되지 않는 것 같으면 [FAQ](../troubleshooting/index.md)에서 증상에 맞는 페이지를 찾는다.
 
 ## 다음 할 일
 

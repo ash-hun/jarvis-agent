@@ -1,6 +1,6 @@
 # Jarvis
 
-개인 AI 비서 에이전트. 터미널 TUI와 브라우저 Web HUD 두 가지 모드로 동작하며, 멀티프로바이더 LLM, 멀티 에이전트 오케스트레이션, 장기 메모리에 더해, 요청에만 답하지 않고 스스로 사고하고 먼저 행동하는 **proactive agent** 기능을 지원한다.
+개인 AI 비서 에이전트. 브라우저 Web HUD 와 그 HUD 를 창 하나로 띄우는 데스크톱 앱(Electron)으로 쓰며, 멀티프로바이더 LLM, 멀티 에이전트 오케스트레이션, 장기 메모리에 더해, 요청에만 답하지 않고 스스로 사고하고 먼저 행동하는 **proactive agent** 기능을 지원한다.
 
 <div align="center">
     <img src="./assets/hud-motion.gif" alt="Web HUD 모션그래픽 — 내적 사고, 마크다운 응답, 먼저 건네는 말, 승인 기억" />
@@ -26,10 +26,19 @@ cp .env.example .env
 # .env에서 최소 JARVIS_LLM__API_KEY 설정
 # .env.example 은 세션과 메모리가 postgres 다. Docker 없이 띄우려면 jsonl, in_memory 로
 
-jarvis                                   # TUI 실행
-jarvis --web                             # Web HUD 실행 (http://localhost:7777)
-jarvis --web --host 0.0.0.0 --port 8080  # 바인딩은 플래그로. 환경변수 없음
-jarvis -a karen                          # 그 에이전트의 기본 세션으로 TUI 시작
+jarvis                                   # Web HUD 백엔드 실행 (http://localhost:7777)
+jarvis --host 0.0.0.0 --port 8080        # 바인딩은 플래그로. 환경변수 없음
+jarvis -a karen                          # 그 에이전트의 기본 세션으로 연다
+jarvis --list-sessions                   # 저장된 세션 목록
+```
+
+**데스크톱 앱.** `desktop/` 의 Electron 셸이 HUD 를 창 하나로 띄운다. 백엔드는 아래 Docker `web` 프로파일 그대로이고, 떠 있지 않으면 셸이 `docker compose --profile web up -d` 로 띄운다. 창을 닫으면 트레이에 남아 먼저 건네는 말과 리마인더를 OS 알림으로 받고, 전역 단축키(기본 `Cmd/Ctrl+Shift+J`)로 창을 불러 듣기를 연다. 단축키, 자동 실행, 백엔드 주소는 HUD 의 `SET` 화면에서 고친다.
+
+```bash
+cd desktop
+npm install      # electron 버전은 package-lock.json 이 고정
+npm start
+npm test         # 셸 설정 검증과 백엔드 기동 로직
 ```
 
 <details>
@@ -37,9 +46,6 @@ jarvis -a karen                          # 그 에이전트의 기본 세션으�
 
 ```bash
 cp .env.example .env  # .env 설정
-
-# TUI (PostgreSQL 세션 포함)
-docker compose --profile app run --rm jarvis
 
 # Web HUD 전체 스택 (nginx + backend + postgres)
 docker compose --profile web up
@@ -50,7 +56,6 @@ docker compose --profile web down
 
 | 프로파일 | 포함 서비스 | 접속 |
 |----------|------------|------|
-| `app` | jarvis TUI + postgres | 터미널 |
 | `web` | nginx + jarvis-backend + postgres | http://localhost:7777 |
 
 7777 은 루프백(127.0.0.1)에만 열린다. 같은 네트워크의 다른 기기나 집 밖에서는 `tailscale serve --bg 7777` 로 들어온다. 공개 포트(`tailscale funnel`)는 쓰지 않는다. 에이전트가 `bash`, `write_file` 도구를 갖고 있어서다.
@@ -138,7 +143,7 @@ cron 식으로 도는 작업은 `~/.jarvis/schedules/<name>.yaml` 에 `schedule:
 
 | 계층 | 설명 |
 |------|------|
-| **Inner Thought** | 매 요청 시 메인 응답과 분리된 별도 LLM 호출로 구조화된 사고(`ThoughtFrame`) 생성 → 컨텍스트 증강 + 사고 로그·이벤트 노출 (TUI 💭 / Web 은 💭 한 줄로 접혀 있고 클릭하면 해석 전문) |
+| **Inner Thought** | 매 요청 시 메인 응답과 분리된 별도 LLM 호출로 구조화된 사고(`ThoughtFrame`) 생성 → 컨텍스트 증강 + 사고 로그·이벤트 노출 (Web 은 💭 한 줄로 접혀 있고 클릭하면 해석 전문) |
 | **Dual-Channel** | 오래 걸릴 작업이면 filler("잠깐만요, 확인할게요")를 **즉시 발화**(voice는 TTS)하고 메인 루프는 백그라운드 수행 — 대기 체감 감소 |
 | **Proactivity Daemon** | 요청 없이 주기(기본 120초)/idle 시점에 성찰해, 게이팅을 통과하면 **먼저 말 검**. 건네는 말은 사고 프레임의 `utterance` 이고 비어 있으면 침묵한다(해석문을 대신 내보내지 않는다). 저위험 읽기 작업은 자율로 미리 처리(이중 안전 게이트) |
 | **Thought Router** | router decision model 이 요청마다 사고가 필요한지(think) 아닌지(direct) 정한다. 어느 쪽이든 바로 답하고, think 일 때만 사고를 응답과 함께 돌려 그 결과를 다음 턴에 넣는다. 끄면(기본) 아래 `REQUEST_TIMING` 대로 매 요청 사고한다 |
@@ -174,8 +179,8 @@ JARVIS_THOUGHT__ROUTER_BASE_URL=http://host.docker.internal:11435   # Docker 밖
 
 | 피드백 | 동작 |
 |--------|------|
-| `Ctrl+Y` (TUI) / `네`, `좋아`, `고마워` 로 답 (Web, 음성) | Proactive Dialogue "도움됨" |
-| `Ctrl+G` (TUI) / `아니오`, `됐어`, `무시` 로 답 (Web, 음성) | Proactive Dialogue "무시" |
+| `네`, `좋아`, `고마워` 로 답 (Web, 음성) | Proactive Dialogue "도움됨" |
+| `아니오`, `됐어`, `무시` 로 답 (Web, 음성) | Proactive Dialogue "무시" |
 
 Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는다. "응 그걸로 해줘" 처럼 키워드가 아닌 40자 이하 답은 사고 모델이 수락/무시/다른 말로 분류한다(사고가 켜져 있을 때). 다른 말이면 보통 메시지로 흘러가고 질문은 닫힌다. 음성 승인 답(Full-voice, 또는 Default 에서 음성으로 시작한 요청)도 같은 분류기를 쓰되, 허용이 분명할 때만 허용한다.
 
@@ -199,7 +204,7 @@ Web 에서 짧은 답은 피드백으로만 쓰이고 LLM 으로 가지 않는�
 
 ### 승인 기억 (Approval Memory)
 
-`bash`, `write_file`, `edit_file` 은 실행 전 승인을 묻는다(`JARVIS_SECURITY__REQUIRE_APPROVAL_FOR`). 위험 명령 정규식 설정은 도구 호출 경로에서 검사되지 않으므로 안전장치는 이 승인과 규칙이다. 승인 화면에서 **항상 허용**(TUI `a`, Web `ALWAYS`)을 고르면 제안된 패턴이 그 에이전트의 규칙 파일 `~/.jarvis/approvals/<agent_id>.yaml`(JARVIS 는 `main.yaml`)에 남고, 그 패턴은 다시 묻지 않는다. 규칙은 사용자가 그 버튼을 눌렀을 때만 생긴다. 모든 에이전트에 적용할 규칙은 공용 파일 `~/.jarvis/approvals.yaml` 에 손으로 적는다.
+`bash`, `write_file`, `edit_file` 은 실행 전 승인을 묻는다(`JARVIS_SECURITY__REQUIRE_APPROVAL_FOR`). 위험 명령 정규식 설정은 도구 호출 경로에서 검사되지 않으므로 안전장치는 이 승인과 규칙이다. 승인 화면에서 **항상 허용**(`ALWAYS`)을 고르면 제안된 패턴이 그 에이전트의 규칙 파일 `~/.jarvis/approvals/<agent_id>.yaml`(JARVIS 는 `main.yaml`)에 남고, 그 패턴은 다시 묻지 않는다. 규칙은 사용자가 그 버튼을 눌렀을 때만 생긴다. 모든 에이전트에 적용할 규칙은 공용 파일 `~/.jarvis/approvals.yaml` 에 손으로 적는다.
 
 | 도구 | 제안 패턴 | 대조 방식 |
 |------|----------|----------|
@@ -216,7 +221,7 @@ rules:
 
 ### 외부 알림 (Slack, Discord)
 
-열린 화면이 없어도 스케줄 결과와 Proactive Dialogue가 닿도록 슬랙 incoming webhook 이나 디스코드 채널 webhook 으로 보낸다. 둘 다 설정하면 둘 다 보낸다. TUI, Web 둘 다 같은 채널을 쓴다.
+열린 화면이 없어도 스케줄 결과와 Proactive Dialogue가 닿도록 슬랙 incoming webhook 이나 디스코드 채널 webhook 으로 보낸다. 둘 다 설정하면 둘 다 보낸다. 브라우저와 데스크톱 앱 모두 같은 채널을 쓴다.
 
 ```bash
 JARVIS_NOTIFY__SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
@@ -285,26 +290,7 @@ JARVIS 전용 음성 모델(TTS, 읽기 문구 9개, "Jarvis" 웨이크워드)�
 
 서버 STT 모드에서는 `connected` 메시지의 `voice.stt_mode=server`를 받아, 브라우저가 `MediaRecorder`로 녹음한 오디오를 `voice_stt_submit`으로 전송하고 백엔드가 `voice_stt_result`로 전사 결과를 돌려준다.
 
-### 음성 (TUI)
-
-터미널 TUI에서도 음성 입출력이 가능하다. 브라우저 API가 없으므로 **서버 프로바이더(whisper/supertonic) + 시스템 오디오 도구**를 사용한다.
-
-```bash
-JARVIS_VOICE__TUI_ENABLED=true
-JARVIS_VOICE__STT_PROVIDER=whisper       # 음성 입력(Ctrl+R)
-JARVIS_VOICE__TTS_PROVIDER=supertonic    # 음성 출력(Ctrl+T)
-JARVIS_VOICE__TUI_RECORD_SECONDS=5       # Ctrl+R 녹음 길이(초)
-
-uv sync --extra voice                    # whisper/supertonic
-# 시스템 오디오 도구: 재생 afplay(macOS)/paplay/aplay/ffplay, 녹음 sox 또는 arecord
-```
-
-| 단축키 | 동작 |
-|--------|------|
-| `Ctrl+T` | 응답 음성 출력(TTS) 토글 |
-| `Ctrl+R` | 마이크 녹음 → 전사 → 입력창에 채움 (자동 전송 안 함, 검토 후 Enter) |
-
-프로바이더가 `browser`이거나 오디오 도구가 없으면 안내 메시지와 함께 비활성화된다.
+브라우저 인식(Web Speech API)이 없거나 실패하면(Electron 은 Google 키가 없어 `network` 로 끝난다) `JARVIS_VOICE__STT_FALLBACK`(기본 `whisper`, `voice` extra 필요)으로 녹음을 서버에서 받아 적는다. 모델은 처음 받아 적을 때 불러온다.
 
 ### 보안 파이프라인
 
@@ -314,7 +300,7 @@ uv sync --extra voice                    # whisper/supertonic
 InputValidator → Authenticator → PolicyEngine → (도구 호출마다) Sandbox
 ```
 
-**Web HUD 접근 키.** `JARVIS_SECURITY__API_KEYS` 에 키 → 사용자(이름, roles)를 등록하면 `/ws` 와 `/api/*` 가 그 키를 요구한다. 키가 곧 식별자이므로 길고 무작위인 값을 쓴다. 브라우저는 처음 연결이 거부되면 키를 한 번 묻고 저장한다. 비워두면 web 인증이 꺼지고, TUI 는 설정과 무관하게 로컬 NoAuth 다.
+**Web HUD 접근 키.** `JARVIS_SECURITY__API_KEYS` 에 키 → 사용자(이름, roles)를 등록하면 `/ws` 와 `/api/*` 가 그 키를 요구한다. 키가 곧 식별자이므로 길고 무작위인 값을 쓴다. 브라우저는 처음 연결이 거부되면 키를 한 번 묻고 저장한다. 비워두면 web 인증이 꺼진다.
 
 ```bash
 JARVIS_SECURITY__API_KEYS='{"<long-random-key>": {"name": "jh", "roles": ["admin"]}}'
@@ -363,7 +349,6 @@ JARVIS_SECURITY__API_KEYS='{"<long-random-key>": {"name": "jh", "roles": ["admin
 | `/orchestrate` | | 서브 에이전트를 패턴으로 조율 (`<pattern> [--agents a,b] [--promote] <작업>` \| `list`) |
 | `/cleanup` | | 옛 서브 에이전트 세션, 옛 STM 테이블, 시험 흔적 보기 (`agents` \| `stm` \| `tests` 뒤에 `confirm` 으로 삭제) |
 | `/focus` | | Focus 모드 (`<작업>` \| `stop` \| 현황). Web HUD 전용 |
-| `/exit` | | TUI 종료 |
 | `/help` | `/?` | 사용 가능한 명령 목록 표시 |
 
 ```
@@ -635,7 +620,7 @@ JARVIS_SESSION__SESSIONS_DIR=~/.jarvis/sessions
 JARVIS_SESSION__POSTGRES_DSN=postgresql://user:pw@host:5432/db
 
 # ── 보안 ─────────────────────────────────────────────────────────────────────
-JARVIS_SECURITY__API_KEYS=            # Web HUD 접근 키 → 사용자 JSON. 비우면 web 인증 없음 (TUI는 항상 NoAuth)
+JARVIS_SECURITY__API_KEYS=            # Web HUD 접근 키 → 사용자 JSON. 비우면 web 인증 없음
 JARVIS_SECURITY__APPROVALS_PATH=~/.jarvis/approvals.yaml   # "항상 허용" 규칙 파일
 
 # ── 절차 학습 / 외부 알림 ────────────────────────────────────────────────────
@@ -663,7 +648,7 @@ JARVIS_AGENTS__AGENTS_DIR=~/.jarvis/agents
 # 위 디렉토리는 기동 때 읽는다. 파일 감시(WATCH_FILES)는 아직 아무것도 감시하지 않는다
 
 # ── Web HUD ──────────────────────────────────────────────────────────────────
-# 호스트와 포트는 환경변수가 아니라 `jarvis --web --host 0.0.0.0 --port 7777` 플래그다
+# 호스트와 포트는 환경변수가 아니라 `jarvis --host 0.0.0.0 --port 7777` 플래그다
 
 # ── Proactive: Inner Thought (Tier 0) ────────────────────────────────────────
 JARVIS_THOUGHT__ENABLED=true             # 기본 ON

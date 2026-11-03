@@ -65,7 +65,7 @@ import FigureExpSessions from '@site/src/figures/exp-sessions.svg';
 ```mermaid
 flowchart LR
   C[생성: 접속, +, /branch] --> A[대화]
-  A --> E[종료: TUI 종료, Web 셧다운]
+  A --> E[종료: Web 셧다운]
   A --> T[턴마다 그 턴을 일화 기억으로]
   A --> I[유휴: 조용한 daemon 틱]
   E --> S2[통합: 일화에서 사실 추출]
@@ -91,7 +91,7 @@ flowchart LR
 
 ### 분기
 
-분기는 `/branch [session_id]`, TUI 의 `Ctrl+F`, Web 의 ⑂ 로 만든다. `/branch` 에 id 를 주지 않으면 명령을 친 세션을 분기한다. 분기는 부모의 메시지를 전부 복사한 새 세션을 만들고 `parent_id` 를 남긴다. 포인터가 아니라 복사이므로 이후 변경은 서로 전파되지 않는다. `/branch` 는 jsonl 과 Postgres 모두에서 복사한다. Web 의 ⑂(`POST /api/sessions/{id}/branch`)는 jsonl 에서만 복사하고, 다른 저장소면 같은 에이전트의 빈 새 세션을 열고 `parent_id` 를 null 로 돌려준다.
+분기는 `/branch [session_id]` 나 Web 의 ⑂ 로 만든다. `/branch` 에 id 를 주지 않으면 명령을 친 세션을 분기한다. 분기는 부모의 메시지를 전부 복사한 새 세션을 만들고 `parent_id` 를 남긴다. 포인터가 아니라 복사이므로 이후 변경은 서로 전파되지 않는다. `/branch` 는 jsonl 과 Postgres 모두에서 복사한다. Web 의 ⑂(`POST /api/sessions/{id}/branch`)는 jsonl 에서만 복사하고, 다른 저장소면 같은 에이전트의 빈 새 세션을 열고 `parent_id` 를 null 로 돌려준다.
 
 Web 의 SESSIONS 카드는 지금 프로세스가 띄운 세션만 보여준다. 다른 세션은 `/sessions` 나 `jarvis --list-sessions` 로 본다.
 

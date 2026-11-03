@@ -35,7 +35,6 @@ title: 공용 커맨드
 | `/orchestrate` | | 멀티 에이전트 호출 (`<pattern> <task>`, `list`) |
 | `/focus` | | `<작업>` 으로 [Focus 모드](../concepts/mode/focus-mode.md) 시작, `stop` 으로 종료, 인자 없으면 현황. Web HUD 전용이고 디스패처보다 먼저 처리된다 |
 | `/cleanup` | | 옛 서브 에이전트 세션, 옛 STM 테이블, 시험 흔적(시험 세션과 그 세션이 남긴 장기, 작업 기억) 보기. `agents confirm`, `stm confirm`, `tests confirm` 으로 삭제 |
-| `/exit` | | TUI 종료 |
 | `/<절차 이름>` | | 승인된 절차마다 스킬 명령이 하나씩 생긴다. 그 절차를 배운 에이전트의 화면에서만 펼쳐진다 |
 
 ## 사용 예
@@ -56,4 +55,4 @@ title: 공용 커맨드
 
 ## 등록 조건
 
-`/openloop`, `/usermodel`, `/journal` 은 Inner Thought 가 켜져 있을 때만 등록되고, `/usermodel` 은 `JARVIS_USER_MODEL__ENABLED` 도 켜져 있어야 한다. `/goal` 은 스케줄러가 켜져 있을 때만, `/orchestrate` 는 `JARVIS_AGENTS__ENABLED` 가 켜져 있고 서브 에이전트 정의가 하나 이상 실렸을 때만 등록된다. `/exit` 는 TUI 입력창이 직접 처리하고, `/focus` 는 Web HUD 에만 있다.
+`/openloop`, `/usermodel`, `/journal` 은 Inner Thought 가 켜져 있을 때만 등록되고, `/usermodel` 은 `JARVIS_USER_MODEL__ENABLED` 도 켜져 있어야 한다. `/goal` 은 스케줄러가 켜져 있을 때만, `/orchestrate` 는 `JARVIS_AGENTS__ENABLED` 가 켜져 있고 서브 에이전트 정의가 하나 이상 실렸을 때만 등록된다. `/focus` 는 Web HUD 에만 있다.

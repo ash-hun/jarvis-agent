@@ -134,7 +134,7 @@ JARVIS_SECURITY__REQUIRE_APPROVAL_FOR=["bash","write_file","edit_file"]  # 실�
 JARVIS_SECURITY__DANGEROUS_COMMANDS=[...]                          # 위험 명령 정규식. bash 의 command 에 걸리면 승인 없이 막는다. [] 이면 끈다
 ```
 
-`API_KEYS` 를 비우면 Web 인증이 꺼진다. 인증을 켜고 끄는 다른 스위치는 없다. `REQUIRE_AUTH` 와 `ALLOWED_ROLES` 는 설정에 있지만 읽는 코드가 없다. 실행 전 안전장치는 `REQUIRE_APPROVAL_FOR` 의 승인과 승인 규칙이다. TUI 는 설정과 상관없이 로컬 NoAuth 로 동작한다. 키가 곧 사용자 식별자이므로 길고 무작위인 값을 쓴다.
+`API_KEYS` 를 비우면 Web 인증이 꺼진다. 인증을 켜고 끄는 다른 스위치는 없다. `REQUIRE_AUTH` 와 `ALLOWED_ROLES` 는 설정에 있지만 읽는 코드가 없다. 실행 전 안전장치는 `REQUIRE_APPROVAL_FOR` 의 승인과 승인 규칙이다. 키가 곧 사용자 식별자이므로 길고 무작위인 값을 쓴다.
 
 ## MCP 서버
 
@@ -199,15 +199,14 @@ JARVIS_VOICE__PIPER_NOISE_SCALE=0.4  # 낮을수록 음정 떨림이 줄고 말�
 JARVIS_VOICE__PHRASES_DIR=             # 미리 녹음한 읽기 문구(phrases.json 과 wav). 비우면 끈다. Docker 는 /app/models/tts/phrases
 JARVIS_VOICE__WAKE_MODEL_DIR=          # "Jarvis" 웨이크워드 모델 폴더. 비우면 끈다. Docker 는 /app/models/wakeword
 JARVIS_VOICE__WAKE_THRESHOLD=0.5
-JARVIS_VOICE__TUI_ENABLED=false
-JARVIS_VOICE__TUI_RECORD_SECONDS=5
+JARVIS_VOICE__STT_FALLBACK=whisper     # whisper | 빈 값. 브라우저 STT 가 없거나 실패하면(데스크톱 앱 포함) HUD 가 녹음하고 서버가 whisper 로 받아 적는다
 ```
 
 영어 TTS 를 따로 두는 법은 [Voice Interface](../concepts/conversation/voice.md#영어-문장은-piper-음성으로) 에 있다. `STT_LANG` 은 브라우저 STT 만 쓴다. whisper 는 이 값을 읽지 않고 한국어로 고정돼 있다. 모델 크기를 바꾸면 처음 인식할 때 모델을 새로 받는다.
 
 ## 화면과 브랜드
 
-TUI 와 Web 은 환경변수가 아니라 `--web` 플래그로 고른다. 바인딩할 주소와 포트는 `--host`, `--port` 로 정한다. `.env.example` 의 `JARVIS_UI__MODE`, `JARVIS_UI__THEME` 와 `JARVIS_UI__SHOW_THINKING` 은 설정에 있지만 읽는 코드가 없다.
+`jarvis` 는 플래그 없이 Web HUD 백엔드를 띄운다(`--web` 을 붙여도 같다). 바인딩할 주소와 포트는 `--host`, `--port` 로 정한다. `.env.example` 의 `JARVIS_UI__MODE`, `JARVIS_UI__THEME` 와 `JARVIS_UI__SHOW_THINKING` 은 설정에 있지만 읽는 코드가 없다.
 
 ```bash
 TZ=Asia/Seoul                           # 스케줄과 /schedule 마감 시각의 기준 (compose 기본값)

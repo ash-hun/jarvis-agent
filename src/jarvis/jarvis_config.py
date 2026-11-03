@@ -1,10 +1,16 @@
-"""[config] JarvisSettings: env 와 .env 에서 읽는 전체 설정 모델."""
+"""[config] JarvisSettings: settings.yaml, env, .env 에서 읽는 전체 설정 모델."""
 
+import os
 import re
+from pathlib import Path
 from typing import Annotated, Any, Literal
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource, YamlConfigSettingsSource
 
+
+# 화면(Settings)에서 고친 값이 쌓이는 파일. 테스트와 다른 설치는 JARVIS_SETTINGS_FILE 로 바꾼다
+SETTINGS_FILE_ENV = "JARVIS_SETTINGS_FILE"
+DEFAULT_SETTINGS_FILE = "~/.jarvis/settings.yaml"
 
 # 정규식이다. "curl | bash" 처럼 쓰면 | 가 "또는" 이 되어 curl 이 든 명령을 전부 막는다
 DEFAULT_DANGEROUS_COMMANDS: tuple[str, ...] = (
@@ -119,7 +125,6 @@ class SessionConfig(BaseModel):
 class UIConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    mode: Literal["tui", "web"] = "tui"
     theme: str = "dark"
     show_thinking: bool = True
 
@@ -370,6 +375,9 @@ class VoiceConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     stt_provider: str = "browser"    # browser | whisper
+    # 브라우저 인식(Web Speech API)이 없거나 실패할 때 화면이 녹음해 보낼 서버 STT. 비우면 폴백 없음.
+    # 모델은 처음 받아 적을 때 불러온다. faster-whisper(voice extra)가 없으면 화면에 알리지 않는다
+    stt_fallback: Literal["", "whisper"] = "whisper"
     tts_provider: str = "browser"    # browser | supertonic
     whisper_model_size: str = "base"
     supertonic_model: str = "supertonic-3"  # supertonic 패키지가 받는 모델 이름(HuggingFace 경로가 아니다)
@@ -387,12 +395,14 @@ class VoiceConfig(BaseModel):
     wake_model_dir: str = ""
     wake_threshold: float = 0.5
     stt_lang: str = "ko-KR"
-    tui_enabled: bool = False        # TUI 음성 입출력 활성화 (whisper/supertonic + 시스템 오디오 도구 필요)
-    tui_record_seconds: float = 5.0  # TUI 음성 입력(Ctrl+R) 녹음 길이(초)
 
     def stt_options(self) -> dict[str, object]:
         """stt_provider 팩토리에 넘길 생성 옵션."""
         return {"model_size": self.whisper_model_size} if self.stt_provider == "whisper" else {}
+
+    def stt_fallback_options(self) -> dict[str, object]:
+        """stt_fallback 팩토리에 넘길 생성 옵션."""
+        return {"model_size": self.whisper_model_size} if self.stt_fallback == "whisper" else {}
 
     def tts_options(self, provider: str = "") -> dict[str, object]:
         """provider(비우면 tts_provider) 팩토리에 넘길 생성 옵션."""
@@ -444,6 +454,24 @@ class JarvisSettings(BaseSettings):
     mcp_servers: list[MCPServerConfig] = Field(default_factory=list)
     debug: bool = False
     log_level: str = "INFO"
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        # compose 는 .env 를 컨테이너 환경변수로 넣는다. 화면에서 고친 값이 이기려면 yaml 이 env 보다 앞이어야 한다
+        yaml_source = YamlConfigSettingsSource(settings_cls, yaml_file=settings_file_path())
+        return (init_settings, yaml_source, env_settings, dotenv_settings, file_secret_settings)
+
+
+def settings_file_path() -> Path:
+    """화면에서 고친 설정을 읽고 쓰는 yaml 경로."""
+    return Path(os.environ.get(SETTINGS_FILE_ENV) or DEFAULT_SETTINGS_FILE).expanduser()
 
 
 _settings: JarvisSettings | None = None

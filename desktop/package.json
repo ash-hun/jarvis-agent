@@ -1,0 +1,14 @@
+{
+  "name": "jarvis-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Jarvis Web HUD 를 띄우는 Electron 셸. 백엔드는 docker compose 의 jarvis-backend 다.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "devDependencies": {
+    "electron": "44.7.2"
+  }
+}

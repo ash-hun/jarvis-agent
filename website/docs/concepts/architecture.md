@@ -10,7 +10,7 @@ import FigureExpLoopOverflow from '@site/src/figures/exp-loop-overflow.svg';
 
 # Architecture
 
-Architecture는 Jarvis-Agent의 뼈대가 되는 구조를 소개하는 페이지다. LLM 추상화, 기억, 에이전트 런타임, 오케스트레이션, 조립, 화면을 layer로 쌓고, 아래 layer가 위 layer를 모르도록 설계했다. 덕분에 TUI 와 Web 두 화면은 같은 조립 결과를 받아 쓰고 화면만 다르게 그리며, Conversation, Memory 같은 다른 기능들은 모두 이 구조 위에서 동작한다.
+Architecture는 Jarvis-Agent의 뼈대가 되는 구조를 소개하는 페이지다. LLM 추상화, 기억, 에이전트 런타임, 오케스트레이션, 조립, 화면을 layer로 쌓고, 아래 layer가 위 layer를 모르도록 설계했다. 덕분에 Web HUD 는 브라우저 탭이든 데스크톱 앱 창이든 같은 조립 결과를 받아 쓰고 화면만 그리며, Conversation, Memory 같은 다른 기능들은 모두 이 구조 위에서 동작한다.
 
 <figure className="info-fig">
   <InfoArchitecture />
@@ -18,21 +18,21 @@ Architecture는 Jarvis-Agent의 뼈대가 되는 구조를 소개하는 페이�
 
 ## Architecture가 주목한 점
 
-사용자는 같은 JARVIS 를 터미널(TUI)에서도, 브라우저(Web HUD)에서도 쓰고, 때로는 브라우저 탭을 여러 개 열어 둔다. 일반적인 Agent 애플리케이션은 화면마다 에이전트를 따로 조립하는 경우가 많은데, 이렇게 되면 한쪽에서 고친 동작이 다른 쪽에는 빠지고, 에이전트를 여럿 두려 할수록 조립 코드가 화면 수만큼 늘어난다. 프로세스가 중간에 죽었을 때의 복구 절차마저 화면과 실패 지점마다 달라진다. 화면별 코드를 공통 함수로 묶는 우회도 가능하지만, 층끼리 서로 import 하는 구조가 남아 있으면 결국 한 곳을 고칠 때 다른 곳이 흔들린다. Jarvis-Agent는 조립을 한 곳에 모으고 화면은 그 결과를 받아 그리기만 하도록 layer를 나누었다. 또한 같은 작업을 다시 실행하면 한 번 한 것과 같은 상태가 되도록 만들어, 사람이 손으로 상태를 맞출 일이 없도록 했다.
+사용자는 같은 JARVIS 를 브라우저(Web HUD)에서도, 데스크톱 앱 창에서도 쓰고, 때로는 브라우저 탭을 여러 개 열어 둔다. 일반적인 Agent 애플리케이션은 화면마다 에이전트를 따로 조립하는 경우가 많은데, 이렇게 되면 한쪽에서 고친 동작이 다른 쪽에는 빠지고, 에이전트를 여럿 두려 할수록 조립 코드가 화면 수만큼 늘어난다. 프로세스가 중간에 죽었을 때의 복구 절차마저 화면과 실패 지점마다 달라진다. 화면별 코드를 공통 함수로 묶는 우회도 가능하지만, 층끼리 서로 import 하는 구조가 남아 있으면 결국 한 곳을 고칠 때 다른 곳이 흔들린다. Jarvis-Agent는 조립을 한 곳에 모으고 화면은 그 결과를 받아 그리기만 하도록 layer를 나누었다. 또한 같은 작업을 다시 실행하면 한 번 한 것과 같은 상태가 되도록 만들어, 사람이 손으로 상태를 맞출 일이 없도록 했다.
 
 ### 어떤 기능을 가지고 있나요?
 
 #### 조립 층을 따로 둔다
 
 - 조립만 하는 `app/` 층(AgentProfile, SessionBuilder, SubagentBuilder 등)을 따로 만들었다. 정의 파일 하나로 최상위 에이전트를 늘리고, 에이전트마다 브랜드, 모델, 사고 설정을 따로 가진다.
-- 대안으로는 에이전트가 하나일 때처럼 TUI 시작 코드와 Web 서버가 각자 객체를 조립하는 방식이 있었다.
+- 대안으로는 에이전트가 하나일 때처럼 시작 코드와 Web 서버가 각자 객체를 조립하는 방식이 있었다.
 - 최상위 에이전트를 여럿 받으려면 "에이전트 한 명분의 설정" 이 단위가 되어야 한다. 이 정리는 동작을 하나도 바꾸지 않는 것을 조건으로 했다. 테스트는 1053개에서 단위 1167개와 통합 82개로 늘었고, mypy 오류는 777개에서 0개가 됐다.
 
 #### 의존은 한 방향
 
 - `model_layer` 는 `core` 를 모르고, `agent_layer` 는 화면을 모르고, 화면은 `UIAdapter` 로만 이벤트를 받는다.
 - 대안으로는 층끼리 서로 import 하는 구조가 있었다.
-- 의존이 한 방향이어야 같은 세션이 TUI 와 Web 에 똑같이 붙고, 테스트에서는 실제 LLM 대신 각본 프로바이더(FauxProvider)를 꽂을 수 있다. 보안 파이프라인(검증, 인증, 정책, 샌드박스)은 단계마다 구현만 바꿀 수 있고 순서는 바꿀 수 없어서, 입력이 위험하거나 도구가 거부되어도 어느 단계도 건너뛰지 않는다.
+- 의존이 한 방향이어야 같은 세션이 어느 연결에든 똑같이 붙고, 테스트에서는 실제 LLM 대신 각본 프로바이더(FauxProvider)를 꽂을 수 있다. 보안 파이프라인(검증, 인증, 정책, 샌드박스)은 단계마다 구현만 바꿀 수 있고 순서는 바꿀 수 없어서, 입력이 위험하거나 도구가 거부되어도 어느 단계도 건너뛰지 않는다.
 
 #### 재실행해도 같은 결과
 
@@ -52,7 +52,7 @@ Architecture는 Jarvis-Agent의 뼈대가 되는 구조를 소개하는 페이�
 
 <figure className="paper-fig">
   <FigureArchitecture />
-  <figcaption><b>Figure 1.</b> 계층 구조. 화살표는 의존 방향이다. 아래층은 위층을 모르고, TUI 와 Web 은 app 이 조립한 같은 결과를 받아 화면만 다르게 그린다. memory 는 core 와 agent_layer 가 쓰고, voice 는 ui 와 app 이 쓰며, common 의 로거는 어느 층이든 쓴다.</figcaption>
+  <figcaption><b>Figure 1.</b> 계층 구조. 화살표는 의존 방향이다. 아래층은 위층을 모르고, Web 은 app 이 조립한 결과를 받아 화면만 그린다. memory 는 core 와 agent_layer 가 쓰고, voice 는 ui 와 app 이 쓰며, common 의 로거는 어느 층이든 쓴다.</figcaption>
 </figure>
 
 요청 한 번은 화면에서 `AgentSession` 으로 들어와 보안 파이프라인, 사고 엔진, 하네스와 루프를 차례로 지난다.
@@ -96,7 +96,7 @@ sequenceDiagram
 ```mermaid
 flowchart TB
   subgraph UI["ui/  화면"]
-    TUI["tui/  Textual 터미널, startup.py 진입점"]
+    CLI["cli/  cli_startup.py 진입점, 백엔드 기동"]
     WEB["web/  server.py, router/, session_registry.py, 정적 HUD"]
   end
   subgraph APP["app/  조립"]
@@ -139,12 +139,12 @@ flowchart TB
 - **agent_layer**: 에이전트 루프(`run_agent_loop`), 세션 저장소, 내적 사고 엔진, 열린 약속(AGENDA 판단)을 가진다. 메모리는 별도 패키지 `memory/` 의 `MemoryService` 이고 하네스가 턴 앞뒤에 부른다. 벤더를 모른다
 - **core**: `AgentSession` 이 한 턴을 지휘한다. 보안, 도구, 승인, proactive 정책, 슬래시, 절차 학습, 멀티 에이전트, 스케줄러가 이 층에 있다
 - **app**: 조립 층. `InfraBuilder` 가 설정 하나로 도구, 메모리, 저장소, 보안, 스케줄러, proactive, 슬래시 명령을 만들고, `AgentProfile`(에이전트 한 명분 설정과 피드백 학습기)과 `SessionBuilder` 가 세션을 만든다
-- **ui**: TUI 와 Web 이 있다. 둘 다 `app` 의 조립 결과(`AppAssembly`)를 받아 화면만 담당한다
+- **ui**: `cli/` 와 `web/` 이 있다. `cli/cli_startup.py` 는 인자를 읽고 Web 서버를 띄우는 진입점이고, `web/` 은 `app` 의 조립 결과(`AppAssembly`)를 받아 화면만 담당한다
 - **memory**: `MemoryService` 가 작업 기억(되뇌기 횟수, 메모)과 장기 기억(의미, 일화, 절차)을 가진다. 모델에는 최근 3턴만 넣고 그 밖은 회상으로 되찾는다
 
 ### 이벤트
 
-하네스는 한 턴 동안 아래 이벤트를 구독자에게 보낸다. Web 은 이벤트를 그대로 WebSocket 으로 흘리고, TUI 는 화면 동작으로 번역한다.
+하네스는 한 턴 동안 아래 이벤트를 구독자에게 보낸다. Web 은 이벤트를 그대로 WebSocket 으로 흘리고, HUD 가 화면 동작으로 번역한다.
 
 | type | 언제 | 주요 필드 |
 |---|---|---|
@@ -186,9 +186,9 @@ flowchart TB
 - **기록**: `agent_end.overflows` 가 넘친 횟수(0, 1, 2)를 알린다. 하네스는 이 값을 보고 턴 일화 metadata 에 `overflow: true` 를 남긴다. 정리 호출의 도구 정의를 빼기 때문에, 도구 기록이 있으면 정의를 요구하는 provider(Anthropic)에서는 정리 호출이 오류가 나 기본 정리문을 쓴다
 - **끄기**: `AgentLoopConfig.overflow_resume=False` 면 예전처럼 `max_turns` 에서 끊는다
 
-### 두 화면, 한 배선
+### 여러 화면, 한 배선
 
-TUI 와 Web 모두 `app/infra_builder.py` 의 `build_app`(도구, 스케줄러, 알림, 서브 에이전트, 디스패처)과 `app/session_builder.py` 의 `SessionBuilder`(사고 엔진, proactive 코어, open loop, 사용자 모델)를 쓴다. 에이전트마다 달라질 수 있는 값(브랜드, 모델, 사고와 proactive 설정, 피드백 학습기)은 `AgentProfile` 에 모여 있다. `main`(JARVIS) 말고도 `~/.jarvis/team/<id>.yaml` 파일 하나마다 최상위 에이전트가 하나 생기고, `AgentRegistry` 가 에이전트마다 `AgentProfile` 과 `SessionBuilder` 를 들고 있다. Web 은 세션마다 샌드박스와 보안 파이프라인을 따로 두고, 승인은 세션 단위 브로커가 모든 연결에 방송하므로, 브라우저 탭을 여러 개 열어도 같은 세션에 붙은 모든 화면이 승인 요청을 함께 받는다. 차이는 화면과 승인 입력 방식뿐이다.
+Web 서버는 `app/infra_builder.py` 의 `build_app`(도구, 스케줄러, 알림, 서브 에이전트, 디스패처)과 `app/session_builder.py` 의 `SessionBuilder`(사고 엔진, proactive 코어, open loop, 사용자 모델)를 쓴다. 에이전트마다 달라질 수 있는 값(브랜드, 모델, 사고와 proactive 설정, 피드백 학습기)은 `AgentProfile` 에 모여 있다. `main`(JARVIS) 말고도 `~/.jarvis/team/<id>.yaml` 파일 하나마다 최상위 에이전트가 하나 생기고, `AgentRegistry` 가 에이전트마다 `AgentProfile` 과 `SessionBuilder` 를 들고 있다. Web 은 세션마다 샌드박스와 보안 파이프라인을 따로 두고, 승인은 세션 단위 브로커가 모든 연결에 방송하므로, 브라우저 탭을 여러 개 열어도 같은 세션에 붙은 모든 화면이 승인 요청을 함께 받는다. 데스크톱 앱 창도 같은 HUD 를 여는 연결 하나라서 따로 배선하지 않는다.
 
 ### 저장 위치
 
@@ -220,7 +220,7 @@ Docker 에서는 `~/.jarvis` 가 `jarvis_data` 볼륨이다.
 flowchart LR
   subgraph UI[화면]
     HUD[Web HUD<br/>app/composer.js]
-    TUI[TUI app.py]
+    DESK[데스크톱 앱<br/>desktop/main.js]
     WS["ui/web/router/ws_router.py<br/>ws /ws"]
   end
   subgraph APP[app 조립]
@@ -239,8 +239,8 @@ flowchart LR
     PROV[providers<br/>anthropic, openai, gemini, ollama, vllm]
   end
   REPO[(세션 저장소<br/>jsonl, Postgres)]
+  DESK -. HUD 를 띄움 .-> HUD
   HUD --> WS --> SES
-  TUI --> SES
   SB -. 세션 조립 .-> SES
   SES --> SEC
   SES --> HAR --> LOOP --> PROV

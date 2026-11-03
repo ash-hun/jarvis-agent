@@ -2,7 +2,7 @@
 
 | 항목 | 값 |
 |---|---|
-| Last Updated | 2026-11-01 |
+| Last Updated | 2026-11-03 |
 
 > `Last Updated` 는 문서 내용이 실제로 바뀐 날만 적는다. 시각은 적지 않는다.
 
@@ -10,7 +10,7 @@
 
 ## 서비스 개요
 
-한 사용자를 위한 개인 비서 에이전트다. 터미널(TUI)과 브라우저(Web HUD)에서 같은 백엔드로 대화하고, 에이전트는 도구를 쓰고, 장기 기억과 약속(open loop)을 쌓고, 요청이 없어도 먼저 말을 건네고, 스케줄과 목표를 대화 밖에서 돌린다. 최상위 에이전트(JARVIS, 정의 파일로 더하는 KAREN 같은 에이전트)가 서로 일을 맡기고 묻는다.
+한 사용자를 위한 개인 비서 에이전트다. 브라우저(Web HUD)와 그 HUD 를 창 하나로 띄우는 데스크톱 앱(Electron)에서 같은 백엔드로 대화하고, 에이전트는 도구를 쓰고, 장기 기억과 약속(open loop)을 쌓고, 요청이 없어도 먼저 말을 건네고, 스케줄과 목표를 대화 밖에서 돌린다. 최상위 에이전트(JARVIS, 정의 파일로 더하는 KAREN 같은 에이전트)가 서로 일을 맡기고 묻는다.
 
 범위 밖: 여러 사용자의 계정 관리, 모바일 앱 빌드 결과(`/m/`)의 소스는 이 저장소의 `src/` 에 없다.
 
@@ -23,9 +23,11 @@
 | 기능 ID | 기능 | 진입점 | 상태 |
 |---|---|---|---|
 | `agent_conversation` | 최상위 에이전트끼리 일을 맡기고 되묻는 대화 | `ask_agent` 도구 | 구현됨 |
-| `agent_loop` | 한 턴의 LLM 호출과 도구 실행 반복 | ws `user_message`, TUI 입력창 | 구현됨 |
+| `agent_loop` | 한 턴의 LLM 호출과 도구 실행 반복 | ws `user_message` | 구현됨 |
 | `agent_registry` | 정의 파일로 최상위 에이전트를 더하고 화면 브랜드를 바꾼다 | `GET /api/agents`, `GET /brand.js`, `jarvis --agent <id>` | 구현됨 |
-| `approval` | 위험한 도구 실행 전 사용자 승인과 "항상 허용" 규칙 | ws `approval_request` / `approval_response`, TUI 승인 모달 | 구현됨 |
+| `approval` | 위험한 도구 실행 전 사용자 승인과 "항상 허용" 규칙 | ws `approval_request` / `approval_response` | 구현됨 |
+| `cli` | `jarvis` 명령으로 Web HUD 백엔드를 띄우고 시작 세션을 고른다 | `jarvis [--session <id>] [--agent <id>] [--host] [--port]`, `jarvis --list-sessions` | 구현됨 |
+| `desktop` | HUD 를 창 하나로 띄우고 트레이 상주, 전역 단축키, OS 알림, 백엔드 기동을 맡는 Electron 셸 | `cd desktop && npm start`, 트레이 메뉴, 전역 단축키 | 구현됨 |
 | `external` | 캘린더, 메일 같은 외부 변화를 주기적으로 읽어 성찰에 먹인다 | `~/.jarvis/external_sources/*.yaml` | 구현됨 |
 | `focus` | 한 작업을 네 sub-agent 의 도움으로 끝까지 수행하는 모드 | `/focus <작업>` (Web HUD) | 구현됨 |
 | `goal` | 맡긴 목표를 대화 밖에서 한 단계씩 진행하고 알릴 것만 알린다 | `/goal`, `goal` 도구 | 구현됨 |
@@ -39,20 +41,21 @@
 | `openloop` | 대화에서 흘린 약속과 미완 작업을 추적하는 AGENDA | `GET /api/agenda`, `POST /api/openloops/{loop_id}`, `/openloop` | 구현됨 |
 | `plugins` | 턴과 도구 호출 앞뒤에 끼우는 플러그인 훅 | `~/.jarvis/plugins/*.py` | 구현됨 |
 | `policy` | 입력 검증, 인증, 정책, 샌드박스 4단계 보안 파이프라인과 접근 키 | `/api/*`, `/ws` 의 `Authorization` 헤더 또는 `token` 쿼리 | 구현됨 |
-| `proactive` | 요청 없이 성찰해 먼저 말을 건네고 반응으로 임계치를 학습 | ws `proactive_message`, `proactive_feedback`, TUI `ctrl+y` / `ctrl+g` | 구현됨 |
+| `proactive` | 요청 없이 성찰해 먼저 말을 건네고 반응으로 임계치를 학습 | ws `proactive_message`, `proactive_feedback` | 구현됨 |
 | `proactive_eval` | "먼저 말해야 했나" 사례로 proactive 정책을 잰다 | `uv run python -m jarvis.core.proactive.eval` | 구현됨 |
 | `procedures` | 성공한 작업을 작업 종류당 절차 하나로 증류하고 실패는 반성해 개정 초안으로 고치며, 승인된 절차를 도구와 스킬로 노출 | `/procedures` | 구현됨 |
 | `scheduler` | cron 반복 작업과 한 번 실행 작업을 돌리고 결과를 알린다 | `/schedule`, `schedule` 도구, `POST /api/schedules/{name}`, ws `reminder` | 구현됨 |
 | `session` | 세션 목록, 만들기, 분기, 삭제, 이력, 내보내기, 비용 보고, 옛 데이터 정리 | `GET /api/sessions`, `POST /api/sessions`, `POST /api/sessions/{session_id}/branch`, `DELETE /api/sessions/{session_id}`, `GET /api/sessions/{session_id}/messages`, `/sessions`, `/branch`, `/export`, `/cost`, `/cleanup` | 구현됨 |
+| `settings` | 화면에서 고칠 수 있는 설정 허용 목록을 settings.yaml 에 저장하고 비밀값을 가려 적용값을 보인다 | `GET /api/settings`, `PUT /api/settings`, `GET /api/health`, HUD `SET` 화면 | 구현됨 |
 | `skills` | Markdown/YAML 명령 매크로를 `/스킬 인자` 로 펼친다 | `/<스킬 이름> <인자>`, `~/.jarvis/skills/*.md` | 구현됨 |
 | `scorecard` | 벤치마크 9개를 모델별로 돌려 레이더 그림 하나로 Jarvis 성능을 보인다 | `uv run python -m scripts.experiments.jarvis_scorecard --polygon <id>` | 구현됨 |
 | `task_pattern` | 사용자가 알려 준 일하는 방식을 그 에이전트만 기억한다 | `remember_task_pattern` 도구, `/patterns` | 구현됨 |
 | `thought` | 요청 시점과 성찰 시점의 inner thought, router 판정, 짧은 답 분류 | ws `inner_thought`, `thought_route`, `thought_end`, `reply_classify` | 구현됨 |
 | `tools` | 파일, 셸, 검색, 웹 내장 도구와 파일 기반 사용자 도구 | `GET /api/tools`, `/tools`, `~/.jarvis/tools/` | 구현됨 |
-| `tui` | Textual 터미널 화면 | `jarvis`, `jarvis --session <id>`, `jarvis --list-sessions` | 구현됨 |
 | `usermodel` | 누적 기억에서 사용자 모델을 증류한다 | `/usermodel` | 구현됨 |
-| `voice` | 서버와 브라우저 STT/TTS, 읽기 문구, "Jarvis" 웨이크워드 | ws `voice_tts_request`, `voice_stt_submit`, 바이너리 프레임, `GET /api/voice/phrases/{name}`, TUI `ctrl+t` / `ctrl+r` | 구현됨 |
-| `web_hud` | 브라우저 HUD 화면 셸과 FastAPI 앱 기동 | `jarvis --web`, `/` 화면 | 구현됨 |
+| `voice` | 서버와 브라우저 STT/TTS, 읽기 문구, "Jarvis" 웨이크워드 | ws `voice_tts_request`, `voice_stt_submit`, 바이너리 프레임, `GET /api/voice/phrases/{name}` | 구현됨 |
+| `web_hud` | 브라우저 HUD 화면 셸, 화면 전환(HUD, FLOW, SET), FastAPI 앱 기동 | `jarvis`, `/` 화면 | 구현됨 |
+| `workflow` | 에이전트 사이 위임을 관계 그래프로, 백그라운드 작업의 마지막 실행을 표로 보인다 | `GET /api/workflow`, `GET /api/jobs`, ws `workflow_changed`, `job_changed`, HUD `FLOW` 화면 | 구현됨 |
 
 ---
 
@@ -68,7 +71,7 @@
 |---|---|
 | `ask_agent` 도구 호출(받는 에이전트, 질문) | 받는 쪽의 `peer-<부른 쪽>-<받는 쪽>` 세션에서 한 턴을 돌린 답. Web HUD 에서는 그 세션이 세션 목록에 열린다 |
 
-**처리 흐름**: `agent_conversation.AskAgentTool` 에서 받을 수 있는 질문 규칙과 깊이 제한을 확인하고, 쌍 세션을 열어(Web 은 `WebState.open_peer_session`, TUI 와 스케줄은 `AgentRegistry.open_peer_session`) 받는 쪽 `AgentSession.prompt` 순.
+**처리 흐름**: `agent_conversation.AskAgentTool` 에서 받을 수 있는 질문 규칙과 깊이 제한을 확인하고, 쌍 세션을 열어(Web 은 `WebState.open_peer_session`, 스케줄은 `AgentRegistry.open_peer_session`) 받는 쪽 `AgentSession.prompt` 순.
 
 **구현 파일**
 
@@ -95,7 +98,7 @@
 
 | 입력 | 결과 |
 |---|---|
-| ws `user_message{text}`, TUI 입력 | `agent_start`, `message_update`, `tool_execution_start`, `tool_execution_end`, `agent_end` 이벤트와 세션에 저장된 메시지 |
+| ws `user_message{text}` | `agent_start`, `message_update`, `tool_execution_start`, `tool_execution_end`, `agent_end` 이벤트와 세션에 저장된 메시지 |
 | ws `abort`, `ctrl+k` | 진행 중인 루프 중단 |
 
 **처리 흐름**: `ws_router` 에서 `AgentSession.prompt` 로, 보안 파이프라인, 스킬 확장, router 판정, 사고와 AGENDA 판단 띄우기, `AgentHarness.run`, `run_agent_loop`, `model_layer.stream`, 도구 실행기 순. 프로바이더나 저장소가 예외를 던져도 `AgentHarness.run` 이 `finally` 에서 실행 표시(`is_running`)를 풀어, 다음 턴이 실행 중으로 막히지 않는다.
@@ -201,7 +204,6 @@
 |---|---|---|
 | `src/jarvis/core/policy/approval_rules.py` | core | "항상 허용" 규칙 YAML 저장과 대조 |
 | `src/jarvis/ui/web/approvals.py` | ui | 세션 하나의 승인 요청을 연결 전부에 보내고 먼저 온 답을 쓴다 |
-| `src/jarvis/ui/tui/components/approval_dialog.py` | ui | TUI 승인 모달 |
 | `src/jarvis/ui/web/static/app/approval.js` | ui | 승인 모달과 음성 답 해석(`parseApprovalAnswer`) |
 
 **테스트**
@@ -214,6 +216,81 @@
 | 통합 | `tests/integ/test_approval.py` |
 
 **제약과 미구현**: 음성 승인 답에 부정어가 있으면 분류 없이 거부한다. 에어팟에서 승인 되읽기가 들리는지 실기기 확인 전이다(`TODO.md`).
+
+---
+
+### cli: 명령줄 진입점
+
+**설명**: `jarvis` 명령 인자를 `StartupPlan` 하나로 정규화하고, 시작 세션을 고른 뒤 Web HUD 백엔드(uvicorn)를 띄운다. 화면은 브라우저나 데스크톱 앱이 연다.
+
+**입력과 결과**
+
+| 입력 | 결과 |
+|---|---|
+| `jarvis [--host] [--port]` | Web HUD 백엔드 기동(기본 `127.0.0.1:7777`). 예전 플래그 `--web` 도 받는다 |
+| `jarvis --session <id>` | 그 세션으로 연다. 세션을 만든 에이전트로 열린다 |
+| `jarvis --agent <id>` | 그 에이전트의 기본 세션(`default-<id>`, main 은 `default`)으로 연다. 모르는 에이전트면 목록을 출력하고 끝낸다 |
+| `jarvis --list-sessions` | 저장된 세션 목록 출력 |
+| `jarvis --help`, `jarvis --version` | 도움말, 버전 |
+
+**처리 흐름**: `cli_startup.parse_startup_plan` 에서 `build_app` 으로, `resolve_start_session` 이 세션 메타를 만들거나 읽고(`repo.create` 는 있으면 그대로), `web.startup.run_web` 순. 두 번 실행해도 같은 세션에 붙는다.
+
+**구현 파일**
+
+| 파일 | 층 | 역할 |
+|---|---|---|
+| `src/jarvis/ui/cli/cli_startup.py` | ui | 인자 정규화, 시작 세션 결정, 백엔드 기동 |
+| `src/jarvis/ui/web/startup.py` | ui | uvicorn 실행 |
+
+**테스트**
+
+| 종류 | 파일 |
+|---|---|
+| 단위 | `tests/unit/test_cli_cli_startup.py` |
+| 통합 | 없음. 기동은 `tests/integ/test_web_hud.py` 의 앱 조립이 대신 본다 |
+
+**제약과 미구현**: 터미널 화면(TUI)은 없앴다. 터미널에서 대화하려면 브라우저나 데스크톱 앱을 쓴다.
+
+---
+
+### desktop: 데스크톱 앱
+
+**설명**: Electron 셸이 Web HUD 를 창 하나로 띄운다. 백엔드는 그대로 docker compose 의 `jarvis-backend` 이고, 셸은 떠 있는지 보고 없으면 `docker compose --profile web up -d` 로 띄운다. 창을 닫으면 트레이로 숨어 ws 를 열어 둬서 🔔 와 리마인더를 OS 알림으로 받는다. 전역 단축키로 창을 앞으로 가져와 듣기를 연다.
+
+**입력과 결과**
+
+| 입력 | 결과 |
+|---|---|
+| `cd desktop && npm install && npm start` | 백엔드 확인(필요하면 기동) 후 HUD 창. 두 번째 실행은 첫 창을 앞으로 가져온다 |
+| 전역 단축키(기본 `CommandOrControl+Shift+J`) | 창을 앞으로, HUD 로 돌아가 듣기 토글 |
+| 트레이 메뉴 | 열기, 듣기 시작, 백엔드 다시 띄우기(`docker compose restart jarvis-backend`), 종료 |
+| HUD `SET` 화면의 Desktop 카드 | 단축키, 로그인 때 자동 실행, 백엔드 자동 기동, 백엔드 주소(루프백만) 저장 |
+| HUD `SET` 화면의 RESTART BACKEND | 저장했지만 반영되지 않은 설정이 있을 때 백엔드 재시작 |
+
+**처리 흐름**: `main.js` 에서 `BackendLauncher.ensure`(`/api/health` 확인, 없으면 compose up, 뜰 때까지 기다림)로, `BrowserWindow` 가 백엔드 주소를 열고 `preload.js` 가 `window.jarvisDesktop` 만 넘기는 순. 화면 쪽은 `desktop.js` 가 단축키 신호를 `voice-ui.listenNow` 로 잇는다.
+
+**구현 파일**
+
+| 파일 | 층 | 역할 |
+|---|---|---|
+| `desktop/main.js` | desktop | 창, 트레이, 단일 인스턴스, 전역 단축키, 권한(마이크와 알림은 백엔드 출처만), 이동 제한 |
+| `desktop/preload.js` | desktop | `window.jarvisDesktop` 브리지(contextIsolation, sandbox) |
+| `desktop/backend_launcher.js` | desktop | 백엔드 확인, compose up, restart |
+| `desktop/desktop_settings.js` | desktop | 셸 설정 검증과 원자적 저장(`userData/settings.json`) |
+| `desktop/loading.html` | desktop | 연결 중, 실패 안내 화면 |
+| `desktop/icons/icon.svg`(원본), `icon.png`, `tray.png` | desktop | 앱(Dock)과 트레이 아이콘. HUD 리액터를 작은 크기에서도 보이게 굵게 다시 그리고 가운데 글자만 AGENT |
+| `desktop/package.json`, `desktop/package-lock.json` | desktop | Electron 버전 고정 |
+| `src/jarvis/ui/web/static/app/desktop.js` | ui | 브리지가 있을 때만 단축키를 듣기로 잇는다 |
+
+**테스트**
+
+| 종류 | 파일 |
+|---|---|
+| 단위 | `desktop/test/desktop_settings.test.js` (`npm test`) |
+| 단위 | `desktop/test/backend_launcher.test.js` (`npm test`) |
+| 통합 | 없음. 창, 트레이, 단축키는 손으로 확인한다 |
+
+**제약과 미구현**: 저장소 안에서 `npm start` 로만 띄운다. 앱 번들, 서명, 공증은 없다. Web Push(서비스 워커)는 Electron 에서 돌지 않아 앱이 떠 있을 때만 알림을 받는다. Electron 의 브라우저 음성 인식은 Google 키가 없어 `network` 오류로 끝나고, 그때 서버 STT 로 넘어간다(`voice`). 이동 제한 때문에 창 안의 바깥 링크는 기본 브라우저로 열린다.
 
 ---
 
@@ -293,7 +370,7 @@
 | 단위 | `tests/unit/test_focus_focus_types.py` |
 | 통합 | `tests/integ/test_focus.py` |
 
-**제약과 미구현**: Web HUD 에서만 쓸 수 있다(TUI 에서는 안내만 돌려준다). Focus 동안 🔔 는 보내지 않는다. 분석 결과는 이번 응답이 아니라 다음 응답에 들어간다(첫 지시만 기다린다).
+**제약과 미구현**: Web HUD 에서만 쓸 수 있다(ws 밖의 디스패처는 안내만 돌려준다). Focus 동안 🔔 는 보내지 않는다. 분석 결과는 이번 응답이 아니라 다음 응답에 들어간다(첫 지시만 기다린다).
 
 ---
 
@@ -771,7 +848,7 @@
 | `~/.jarvis/plugins/*.py` | 등록된 플러그인 훅이 턴과 도구 호출 앞뒤에서 돈다 |
 | `plugin.watch_files=true` 일 때 도구, 스킬, 플러그인 파일 변경 | 바뀐 디렉터리만 다시 읽는다. 같은 이름은 덮어써 하나로 남는다 |
 
-**처리 흐름**: `plugins_loader` 에서 `PluginRunner` 등록으로, `AgentSession` 이 훅 시점마다 `runner.emit_*` 순. 파일 감시는 `InfraBuilder.build_extension_watcher` 가 만들고 Web 기동(`web_lifecycle`)과 TUI `on_mount` 가 켠다.
+**처리 흐름**: `plugins_loader` 에서 `PluginRunner` 등록으로, `AgentSession` 이 훅 시점마다 `runner.emit_*` 순. 파일 감시는 `InfraBuilder.build_extension_watcher` 가 만들고 Web 기동(`web_lifecycle`)이 켠다.
 
 **구현 파일**
 
@@ -849,7 +926,7 @@
 | 트리거 깨움 | ws `proactive_message{kind:"proactive"}`, 세션 기록에 assistant 메시지 |
 | 오래 걸리는 요청 | `proactive_message{kind:"filler"}` 뒤 끝나면 `kind:"answer"` |
 | 먼저 건넨 말 뒤의 첫 `user_message` | accept, dismiss, 약한 무시로 학습 |
-| ws `proactive_feedback{id, accepted}`, TUI `ctrl+y` / `ctrl+g` | 수락, 무시 학습(연결당 같은 `id` 한 번) |
+| ws `proactive_feedback{id, accepted}` | 수락, 무시 학습(연결당 같은 `id` 한 번) |
 
 **처리 흐름**: `daemon` 이 `triggers` 를 기다려 `AgentSession.reflect` 로, `situation_facts` 가 약속과 외부 이벤트마다 남은 시간과 처리 신호를 계산해 요청에 붙이고, 성찰 사고, `ProactivityCore` 의 `policy` 게이팅, `_emit_proactive`, `feedback` 학습 순. `_emit_proactive` 가 답하는 중이나 Focus 중이라 🔔 를 버리면 `policy.withdraw` 가 쿨다운과 응답 대기를 통과 전으로 되돌려, 버린 말은 무시로 세지 않는다. 요청 시점은 `ProactivityCore.dispatch_request` 가 Dual-Channel 로 filler 와 백그라운드 실행을 가른다.
 
@@ -1049,8 +1126,8 @@
 | 입력 | 결과 |
 |---|---|
 | `GET /api/sessions`, `/sessions` | 세션 목록 |
-| `POST /api/sessions {agent}`, TUI `ctrl+n` | 새 세션 |
-| `POST /api/sessions/{session_id}/branch`, `/branch [session_id]`, TUI `ctrl+f` | 분기 세션(에이전트 유지). `/branch` 인자가 없으면 명령을 친 세션 |
+| `POST /api/sessions {agent}` | 새 세션 |
+| `POST /api/sessions/{session_id}/branch`, `/branch [session_id]` | 분기 세션(에이전트 유지). `/branch` 인자가 없으면 명령을 친 세션 |
 | `DELETE /api/sessions/{session_id}` | 삭제(그 세션의 장기 기억과 작업 기억도). 연결이 붙은 세션은 거절. 연결 확인과 삭제는 세션 잠금 안에서 한다 |
 | `GET /api/sessions/{session_id}/messages` | 텍스트 이력 |
 | `/export md\|json` | 명령을 친 세션의 대화 파일 내보내기 |
@@ -1090,35 +1167,44 @@
 
 ---
 
-### skills: 스킬(명령 매크로)
+### settings: 설정 화면
 
-**설명**: Markdown/YAML 스킬 파일을 읽어 이름과 별칭으로 찾고, `/스킬 인자` 입력을 프롬프트로 펼친다. 승인된 절차도 스킬로 등록된다.
+**설명**: 화면에서 고칠 수 있는 설정(voice, proactive, thought, focus 의 일부)을 `~/.jarvis/settings.yaml` 에 저장한다. 이 파일은 설정 원천 중 가장 앞(yaml, 환경변수, `.env` 순)이라 compose 가 넣은 환경변수도 이긴다. 저장한 값은 백엔드를 다시 띄워야 반영된다. 전체 적용값은 이름이 비밀값처럼 보이는 항목(`*_key`, `*_token`, `*_dsn`, `*webhook*` 등)을 `***` 로 가려 보인다.
 
 **입력과 결과**
 
 | 입력 | 결과 |
 |---|---|
-| `~/.jarvis/skills/*.md`, `*.yaml` | 스킬 등록 |
-| `/<스킬 이름> <인자>` | 스킬 본문으로 펼친 프롬프트가 에이전트에 들어간다 |
+| `GET /api/settings` | `fields`(고칠 수 있는 항목의 형식과 범위), `editable`(그 항목의 적용값), `pending`(저장했지만 아직 반영되지 않은 값), `effective`(가린 전체 적용값), `path` |
+| `PUT /api/settings {voice?, proactive?, thought?, focus?}` | 허용 목록 밖 필드와 범위 밖 값은 422. 바뀐 게 있으면 yaml 을 원자적으로 쓰고 `changed: true` |
+| `GET /api/health` | `{ok: true}`. 데스크톱 셸이 백엔드 확인에 쓴다 |
+| HUD `SET` 화면 | 폼을 `fields` 로 그리고 바뀐 값만 보낸다. 재시작 대기 항목에 표시 |
 
-**처리 흐름**: `AgentSession._prompt` 에서 `SkillRegistry.expand` 로, 이름과 별칭 조회, 인자 치환 순.
+**처리 흐름**: `settings_router` 에서 `SettingsPatch` 검증으로, `SettingsOverlay.apply` 가 저장된 yaml 위에 patch 를 얹고(`merge_patch`), 합친 결과가 `JarvisSettings` 로 읽히는지 본 뒤 임시 파일을 바꿔 끼우는 순. 기동 때는 `JarvisSettings.settings_customise_sources` 가 yaml 을 읽는다.
 
 **구현 파일**
 
 | 파일 | 층 | 역할 |
 |---|---|---|
-| `src/jarvis/core/skills/skills_registry.py` | core | 스킬 로드, 조회, 입력 확장 |
+| `src/jarvis/app/settings_overlay.py` | app | 허용 목록(`SettingsPatch`), 필드 정의 유도, 비밀값 가림, yaml 읽기와 쓰기 |
+| `src/jarvis/jarvis_config.py` | config | yaml 원천(`JARVIS_SETTINGS_FILE`, 기본 `~/.jarvis/settings.yaml`) |
+| `src/jarvis/ui/web/router/settings_router.py` | ui | `GET /api/settings`, `PUT /api/settings`, `GET /api/health` |
+| `src/jarvis/ui/web/static/app/settings.js` | ui | 설정 폼, 데스크톱 카드, 재시작 버튼 |
 
 **테스트**
 
 | 종류 | 파일 |
 |---|---|
-| 단위 | `tests/unit/test_skills_skills_registry.py` |
-| 통합 | `tests/integ/test_skills.py` |
+| 단위 | `tests/unit/test_settings_settings_overlay.py` |
+| 통합 | `tests/integ/test_settings.py` |
 
 ### scorecard: 성능 스코어카드
 
-**설명**: 벤치마크 9개를 꼭짓점으로, 능력 축 6개를 바깥 호로, 메인 LLM 마다 다각형 하나를 그리는 레이더 그림으로 Jarvis 의 대표 성능을 보인다. 꼭짓점 실험은 기존 실험과 이식한 벤치마크를 그대로 부르는 얇은 층이고, 모든 다각형이 같은 표본, 같은 판정자(gpt-4o), 같은 기억 생성 모델(gpt-4o-mini)을 쓴다.
+---
+
+### skills: 스킬(명령 매크로)
+
+**설명**: Markdown/YAML 스킬 파일을 읽어 이름과 별칭으로 찾고, `/스킬 인자` 입력을 프롬프트로 펼친다. 승인된 절차도 스킬로 등록된다.
 
 **입력과 결과**
 
@@ -1316,48 +1402,6 @@
 
 ---
 
-### tui: 터미널 화면
-
-**설명**: Textual 기반 터미널 화면에서 채팅, 사이드바(세션과 도구), 상태 줄, 슬래시 명령 자동완성, 승인 모달, 음성 입출력을 제공한다.
-
-**입력과 결과**
-
-| 입력 | 결과 |
-|---|---|
-| `jarvis`, `jarvis --session <id>`, `jarvis --agent <id>` | TUI 기동 |
-| `jarvis --list-sessions` | 세션 목록 출력 |
-| `/exit`, `ctrl+c` | 종료 |
-| `ctrl+b` | 사이드바 토글 |
-| `/` 입력 | 슬래시 명령 팝업 |
-
-**처리 흐름**: `startup.parse_startup_plan` 에서 `build_app` 으로, `JarvisTUI` 가 `AgentSession` 이벤트를 `EventBridge` 로 `UIAction` 으로 바꿔 `components` 에 그리는 순.
-
-**구현 파일**
-
-| 파일 | 층 | 역할 |
-|---|---|---|
-| `src/jarvis/ui/tui/app.py` | ui | Textual 앱과 키 바인딩 |
-| `src/jarvis/ui/tui/bridge.py` | ui | 에이전트 이벤트를 `UIAction` 으로 |
-| `src/jarvis/ui/tui/state.py` | ui | 렌더링 불변 상태 |
-| `src/jarvis/ui/tui/components/chat_history.py` | ui | 채팅 영역 |
-| `src/jarvis/ui/tui/components/sidebar.py` | ui | 세션, 도구 사이드바 |
-| `src/jarvis/ui/tui/components/slash_picker.py` | ui | 슬래시 명령 자동완성 팝업 |
-| `src/jarvis/ui/tui/components/status_bar.py` | ui | 하단 상태 줄 |
-
-**테스트**
-
-| 종류 | 파일 |
-|---|---|
-| 단위 | `tests/unit/test_tui_bridge.py` |
-| 단위 | `tests/unit/test_tui_sidebar.py` |
-| 단위 | `tests/unit/test_tui_startup.py` |
-| 단위 | `tests/unit/test_tui_ui_protocol.py` |
-| 통합 | 없음. 터미널 화면을 띄워 입력을 흘리는 시나리오가 아직 없다 |
-
-**제약과 미구현**: `/focus` 를 쓸 수 없다. TUI 화면 명세가 `docs/view_spec.md` 에 없다(`TODO.md`).
-
----
-
 ### usermodel: 사용자 모델
 
 **설명**: 누적 기억을 LLM 으로 증류해 안정적인 사용자 모델을 만들고, 사고 프롬프트에 블록으로 싣는다.
@@ -1404,12 +1448,13 @@
 | 입력 | 결과 |
 |---|---|
 | ws `voice_tts_request{text, id, source, part, full_text, stream}` | `voice_tts_audio`(조각 스트림 가능). 서버 TTS 가 없으면 빈 `data` 로 브라우저가 읽는다 |
-| ws `voice_stt_submit{data, mime, sample_rate}` | `voice_stt_result`. 확신도가 낮으면 `unclear` 와 되묻는 말 |
+| ws `voice_stt_submit{data, mime, sample_rate}` | `voice_stt_result`. 확신도가 낮으면 `unclear` 와 되묻는 말. whisper 는 한국어와 영어 중 감지한 언어로 받아 적고(그 밖으로 감지되면 둘 중 확률이 높은 쪽으로 다시), 말 끝 무음은 VAD 로 잘라 낸다 |
 | ws 바이너리 프레임(16kHz PCM) | 점수가 임계치 이상이면 `voice_wake{score}` |
 | `scripts/experiments/gaia_bench.py` | scripts | GAIA 표본(레벨 비례 층화 40, seed), 웹 도구 실행기(사설 주소와 GAIA 사본 주소 차단, 검색 4 초 간격), 캐시, `run_vertex` |
 | `scripts/experiments/gaia_score.py` | scripts | GAIA 공식 `question_scorer` 이식(Apache-2.0)과 `FINAL ANSWER` 파싱(순수 함수) |
 | `GET /api/voice/phrases/{name}` | 녹음 문구 wav |
-| Web HUD 구체 클릭, DEFAULT / FULL-VOICE, TUI `ctrl+t` / `ctrl+r` | 읽기 토글, 모드 전환, 음성 입력 |
+| Web HUD 구체 클릭, DEFAULT / FULL-VOICE, 데스크톱 전역 단축키 | 읽기 토글, 모드 전환, 음성 입력 |
+| 설정 `voice.stt_fallback`(기본 `whisper`) | `stt_provider` 가 browser 일 때 브라우저 인식이 없거나 `network` 같은 오류로 끝나면 화면이 녹음해 서버 STT 로 보낸다. 모델은 처음 받아 적을 때 불러온다 |
 
 **처리 흐름**: `ws_tasks` 에서 `speech_text` 로 기호 제거와 금액 한글화, 필요하면 `english` 번역, `VoiceService` 가 `voice_registry` 로 고른 프로바이더 합성 또는 전사 순. 웨이크워드는 `ws_router` 에서 `WakeDetector` 순.
 
@@ -1431,7 +1476,6 @@
 | `src/jarvis/voice/providers/supertonic.py` | voice | Supertonic-3 TTS |
 | `src/jarvis/voice/providers/qwen.py` | voice | Qwen3-TTS, 실패하면 Piper |
 | `src/jarvis/ui/web/router/voice_router.py` | ui | 읽기 문구 wav REST |
-| `src/jarvis/ui/tui/voice.py` | ui | TUI 음성 컨트롤러 |
 | `src/jarvis/ui/web/static/voice.js` | ui | `VoiceManager` |
 | `src/jarvis/ui/web/static/app/voice-ui.js` | ui | 음성 입출력 배선과 Full-voice 흐름 |
 | `src/jarvis/ui/web/static/app/phrases.js` | ui | 읽기 문구 재생 |
@@ -1449,7 +1493,6 @@
 | 단위 | `tests/unit/test_voice_qwen.py` |
 | 단위 | `tests/unit/test_voice_speech_text.py` |
 | 단위 | `tests/unit/test_voice_supertonic.py` |
-| 단위 | `tests/unit/test_voice_voice.py` |
 | 단위 | `tests/unit/test_voice_voice_protocol.py` |
 | 단위 | `tests/unit/test_voice_voice_registry.py` |
 | 단위 | `tests/unit/test_voice_voice_service.py` |
@@ -1469,11 +1512,12 @@
 
 | 입력 | 결과 |
 |---|---|
-| `jarvis --web [--host] [--port]` | uvicorn 으로 Web HUD 기동(기본 `127.0.0.1:7777`) |
+| `jarvis [--host] [--port]` | uvicorn 으로 Web HUD 기동(기본 `127.0.0.1:7777`, `cli`) |
+| 헤더 `HUD` / `FLOW` / `SET`, `Esc` | 화면 전환. 고른 화면은 이 브라우저에 기억한다. `Esc` 는 HUD 로 |
 | `/` 화면 | HUD 셸, 접속하면 `default` 세션(JARVIS) |
 | 종료 | 세션마다 공고화와 저장 |
 
-**처리 흐름**: `startup` 에서 `build_app` 과 `server.create_app` 으로, `web_lifecycle` 기동, 라우터 등록, `StaticFiles` 셸 서빙 순.
+**처리 흐름**: `cli_startup` 에서 `build_app` 과 `server.create_app` 으로, `web_lifecycle` 기동, 라우터 등록, `StaticFiles` 셸 서빙 순.
 
 **구현 파일**
 
@@ -1493,6 +1537,7 @@
 | `src/jarvis/ui/web/static/app/main.js` | ui | HUD 진입점 |
 | `src/jarvis/ui/web/static/app/shell.js` | ui | 헤더, 캡션, ACTIVITY, 카드 접기, 드로어 |
 | `src/jarvis/ui/web/static/app/artifact.js` | ui | 큰 코드블록 아티팩트 패널 |
+| `src/jarvis/ui/web/static/app/view.js` | ui | `body[data-view]` 화면 전환 |
 
 **테스트**
 
@@ -1507,13 +1552,50 @@
 
 ---
 
+### workflow: 에이전트 관계 그래프와 백그라운드 작업
+
+**설명**: HUD `FLOW` 화면. 위쪽은 최상위 에이전트(안쪽 원)와 sub-agent, Focus 영역, orchestrate(바깥 원)를 노드로, 위임을 (부른 쪽, 받는 쪽) 쌍마다 하나의 간선으로 그린다. 진행 중 위임은 흐르는 점선, 마지막 위임이 실패한 쌍은 빨간 선이다. 오른쪽은 최근 위임 목록, 아래는 스케줄, 성찰 daemon, 기억 정리, 외부 조회의 마지막 실행 표다.
+
+**입력과 결과**
+
+| 입력 | 결과 |
+|---|---|
+| `GET /api/workflow` | `agents`, `subagents`, `edges`(이 프로세스가 본 최근 위임 200개, 오래된 것부터) |
+| `GET /api/jobs` | `jobs`(스케줄은 돈 적 없는 것도, 그 뒤에 다른 작업), `daemon`(성찰 주기 설정) |
+| ws `workflow_changed{edge}` | 위임이 열리거나 닫힐 때 한 건 |
+| ws `job_changed{job}` | 작업이 시작하거나 끝날 때 한 건 |
+
+**처리 흐름**: 위임은 `SessionRegistry.on_open` 이 세션마다 구독한 이벤트를 `WorkflowTracker.observe` 가 읽는다. `ask_agent`, `agent_<이름>`, `orchestrate` 도구 호출의 시작과 끝, Focus `focus_panel` 의 busy 신호가 간선이 된다. 작업은 `SchedulerService._run`, `ExternalEventPoller.tick`(조회할 소스가 있을 때만), `web_lifecycle` 의 daemon 대상(성찰, 기억 정리)이 `JobBoard` 에 시작과 끝을 적는다. 바뀔 때마다 `WebState.broadcast_live` 로 열린 HUD 전부에 보낸다.
+
+**구현 파일**
+
+| 파일 | 층 | 역할 |
+|---|---|---|
+| `src/jarvis/core/workflow/workflow_types.py` | core | `DelegationEdge`, `JobRecord` |
+| `src/jarvis/core/workflow/workflow_tracker.py` | core | 세션 이벤트를 위임 간선으로 |
+| `src/jarvis/core/workflow/job_board.py` | core | 작업별 마지막 실행 기록과 변경 알림 |
+| `src/jarvis/ui/web/router/workflow_router.py` | ui | `GET /api/workflow`, `GET /api/jobs` |
+| `src/jarvis/ui/web/static/app/workflow.js` | ui | SVG 그래프, 위임 목록, 작업 표 |
+
+**테스트**
+
+| 종류 | 파일 |
+|---|---|
+| 단위 | `tests/unit/test_workflow_workflow_tracker.py` |
+| 단위 | `tests/unit/test_workflow_job_board.py` |
+| 통합 | `tests/integ/test_workflow.py` |
+
+**제약과 미구현**: 위임과 실행 기록은 프로세스 메모리에만 있어 재시작하면 비고 `runs` 가 0 부터 다시 센다(`# ponytail`). sub-agent 세션 안에서 다시 맡긴 위임은 보이지 않는다(그 세션은 Web 세션 목록 밖에서 만든다). 그래프 배치는 원 두 개에 이름순이라 노드가 많으면 글자가 겹친다. `goal` 은 스케줄(`goal-<id>`)로만 보인다.
+
+---
+
 ## 공통 모듈
 
 여러 기능이 함께 쓰는 파일.
 
 | 파일 | 역할 | 쓰는 기능 |
 |---|---|---|
-| `src/jarvis/jarvis_config.py` | env 와 `.env` 에서 읽는 전체 설정 | 전체 |
+| `src/jarvis/jarvis_config.py` | `settings.yaml`, env, `.env` 에서 읽는 전체 설정 | 전체 |
 | `src/jarvis/common/logger.py` | structlog 로거 설정. 출력 형식은 `LOG_FORMAT`(`console` 기본, `json`), 레벨은 `JARVIS_LOG_LEVEL`(기본 `INFO`) | 전체 |
 | `src/jarvis/core/session.py` | `AgentSession`: 보안, 플러그인, 스킬, 사고, proactive 를 묶어 한 턴과 성찰 실행 | 전체 |
 | `src/jarvis/agent_layer/agent_types.py` | 루프 이벤트, 실행 컨텍스트, 루프 설정 | 전체 |
@@ -1536,9 +1618,8 @@
 | `src/jarvis/model_layer/providers/ollama.py` | Ollama NDJSON 스트리밍. id 없이 온 도구 호출에는 `{이름}_{순번}` id 를 붙여, 같은 도구를 두 번 불러도 호출이 합쳐지지 않는다 | agent_loop |
 | `src/jarvis/model_layer/providers/vllm.py` | vLLM SSE 스트리밍 | agent_loop |
 | `src/jarvis/model_layer/embeddings.py` | 임베딩 프로바이더 | memory, openloop |
-| `src/jarvis/ui/ui_protocol.py` | 화면이 이벤트, 스트림, 승인, 오류를 받는 기본 어댑터 | tui, web_hud |
-| `src/jarvis/ui/tui/startup.py` | `jarvis` 명령 인자를 `StartupPlan` 으로 정규화하고 TUI 나 Web 을 띄운다 | tui, web_hud |
-| `src/jarvis/ui/web/web_state.py` | Web 라우터가 같이 보는 실행 상태 | web_hud, focus, voice, notify, agent_conversation, thought |
+| `src/jarvis/ui/ui_protocol.py` | 화면이 이벤트, 스트림, 승인, 오류를 받는 기본 어댑터 | web_hud |
+| `src/jarvis/ui/web/web_state.py` | Web 라우터가 같이 보는 실행 상태 | web_hud, focus, voice, notify, agent_conversation, thought, workflow |
 | `src/jarvis/ui/web/router/ws_router.py` | `/ws` 연결 수명과 메시지 분기 | agent_loop, approval, focus, proactive, thought, voice, notify |
 | `src/jarvis/ui/web/ws_tasks.py` | ws 메시지가 띄우는 프롬프트, STT, TTS, 분류 작업 | agent_loop, voice, thought, proactive |
 | `src/jarvis/ui/web/adapter.py` | 에이전트 이벤트를 연결 하나로 보내는 어댑터 | web_hud 의 모든 ws 이벤트 |

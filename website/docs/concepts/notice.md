@@ -24,7 +24,7 @@ Jarvis-Agent가 가지는 전체 기능을 정리하고 개발시 고려했던 �
 
 | 기능 | 설명 | 표현방식 |
 |---|---|---|
-| [Basic Conversation](./conversation/index.md) | 사용자의 요청을 받아 에이전트와 자연스러운 소통을 하게 한다. | 입력창, 음성, TUI |
+| [Basic Conversation](./conversation/index.md) | 사용자의 요청을 받아 에이전트와 자연스러운 소통을 하게 한다. | 입력창, 음성 |
 | [Inner Thought](./conversation/inner-thought.md) | 사용자의 요청을 내재적으로 분석하여 적절히 대응할 수 있게 한다. | 💭 한 줄 |
 | [Dual channel](./conversation/proactive.md#dual-channel) | 작업이 오래 걸리는 경우 우선적인 응답을 먼저 한 후(ex, "잠깐만요") background에서 작업을 병렬수행한다. | 💬 filler |
 | [Proactive Dialogue](./conversation/proactive.md#성찰과-먼저-건네는-말) | 별도의 사용자 요청이 없더라도 주기적으로 모니터링과정을 거쳐 사용자에게 필요하다 판단되는 요소는 먼저 정보를 제공하도록 한다. | 🔔, Web Push, Slack, Discord |
@@ -34,7 +34,7 @@ Jarvis-Agent가 가지는 전체 기능을 정리하고 개발시 고려했던 �
 | [MCP Events](./conversation/mcp.md) | 외부 MCP 도구를 주기적으로 불러 사용한다. | 🔔 |
 | [Memory Management](./memory.md) | 기본적인 4개 종류의 Memory 관리 방안을 기반으로 적재적소에 사용할 수 있도록 한다. | 사고와 응답의 맥락 |
 | [Tool & Approve System](./conversation/tools-and-approval.md) | 내장된 도구와 MCP, 실행 전 승인과 승인 기억, 반복 작업을 절차 도구로 변환하고 사용한다. | 승인 모달, `/procedures` |
-| [Sessions](./conversation/sessions.md) | 사용자와의 대화 단위 관리 시스템을 말한다. | SESSIONS 카드, TUI 사이드바 |
+| [Sessions](./conversation/sessions.md) | 사용자와의 대화 단위 관리 시스템을 말한다. | SESSIONS 카드 |
 | [Multi agent Orchestration](./multi-agent-orchestration/index.md) | 메인 에이전트 외에도 각자의 목적을 가진 Agent를 확장하여 사용한다. 각각의 에이전트마다 세션, 기억, 승인 규칙, 메인 컬러를 따로 갖고 `ask_agent` 로 서로 일을 맡긴다 | 에이전트 칩, AGENDA 라벨, 구체 색 섞임 |
 | [Mode](./mode/index.md) | 작업을 수행하는 기본적인 모드전환 시스템을 탑재한다. | 헤더 `DEFAULT` / `FULL-VOICE`, `FOCUS` 표시 |
 | [Voice Interface](./conversation/voice.md) | VUI(voice user interface)를 지향하며, 각 에이전트를 전환하면서 작업할 수 있도록 한다. | 구체 클릭, 헤더 `FULL-VOICE` |

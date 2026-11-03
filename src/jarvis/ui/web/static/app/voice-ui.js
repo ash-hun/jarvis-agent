@@ -98,6 +98,9 @@ export const voice = new VoiceManager({
     _approvalListens = 0;  // 권한 거부 같은 인식 오류에서 듣기를 되풀이하지 않는다
     appendMsg('SYS', 'err', escapeHtml(msg));
   },
+  onFallback(reason) {
+    logActivity(`voice · 브라우저 인식 불가(${reason}) → 서버 인식`, 'sys');
+  },
   onAudioCaptured(base64, mime) {
     // 서버 STT 모드: 녹음된 오디오를 백엔드로 전송 → voice_stt_result 수신
     send({ type: 'voice_stt_submit', data: base64, mime, sample_rate: 16000 });
@@ -176,15 +179,17 @@ document.addEventListener('keydown', (e) => {
   stopSpeech();
 });
 
-// 구체 클릭 → voice mode 토글
-$sphereHit.addEventListener('click', () => {
-  if (isSpeechActive()) { stopSpeech(); return; }  // 읽는 중의 클릭은 멈춤
+// 구체 클릭과 데스크톱 전역 단축키 → 듣기 토글. 읽는 중이면 멈춘다
+export function listenNow() {
+  if (isSpeechActive()) { stopSpeech(); return; }
   if (!voice.supported) {
     appendMsg('SYS', 'err', UNSUPPORTED_MSG);
     return;
   }
   voice.toggle();
-});
+}
+
+$sphereHit.addEventListener('click', listenNow);
 
 // Full-voice 동안은 마이크를 잡아 둔다. 듣기와 읽기를 오갈 때마다 블루투스 프로필이 바뀌면 연결이 흔들린다.
 voice.setHoldMic(isFullVoice());

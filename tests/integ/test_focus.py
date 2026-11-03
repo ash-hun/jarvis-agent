@@ -117,3 +117,17 @@ async def test_base_turn_hook_adds_nothing_and_does_nothing() -> None:
     await hook.after_turn("x", "y")
 
     assert hook.system_addendum() is None
+
+
+def test_focus_workers_run_without_long_term_memory(monkeypatch, tmp_path) -> None:
+    pytest.importorskip("fastapi")
+    from tests.fixtures.web_hud_helpers import web_assembly
+    from jarvis.ui.web.web_state import WebState
+
+    state = WebState(web_assembly(monkeypatch, tmp_path, FOCUS__DIR=str(tmp_path / "focus")))
+    assert state.focus is not None
+
+    worker = asyncio.run(state.focus.make_agent("analysis", "focus_t_analysis"))
+
+    assert state.assembly.services.memory is not None
+    assert worker._harness._memory is None

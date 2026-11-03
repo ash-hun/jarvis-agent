@@ -34,6 +34,7 @@ os.environ.update(
         "JARVIS_PLUGIN__PLUGINS_DIR": str(WORK / "plugins"),
         "JARVIS_OPENLOOP__BACKEND": "in_memory",
         "JARVIS_USER_MODEL__BACKEND": "in_memory",
+        "JARVIS_SETTINGS_FILE": str(WORK / "settings.yaml"),
     }
 )
 
@@ -109,7 +110,7 @@ class ScriptedProvider:
 
 get_default_registry().register(ScriptedProvider())
 
-from jarvis.ui.tui.startup import main  # noqa: E402
+from jarvis.ui.cli.cli_startup import main  # noqa: E402
 
 sys.argv = ["jarvis", "--web", "--port", "7799"]
 main()

@@ -28,14 +28,25 @@ const MIC_RELEASE_TIMEOUT_MS = 1500;
 const TTS_START_TIMEOUT_MS = 1500;
 const TTS_RETRY_GAP_MS = 150;
 const STT_ALTERNATIVES = 3;
+// 브라우저 인식이 이 오류로 끝나면 서버 STT 로 넘어간다. Electron 은 Google 키가 없어 network 로 끝난다
+const STT_FALLBACK_ERRORS = new Set(['network', 'service-not-allowed', 'language-not-supported']);
+// 서버 녹음은 브라우저 인식처럼 말 끝을 알려 주지 않는다. 음량으로 말 끝을 정해 녹음을 닫는다.
+// ponytail: 음량 기준이라 시끄러운 곳에서는 말 끝을 늦게 잡는다, 오탐이 잦으면 서버 VAD 스트리밍으로 바꾼다
+const END_SILENCE_MS = 1200;   // 말소리가 나온 뒤 이만큼 조용하면 말이 끝난 것
+const NO_SPEECH_MS   = 8000;   // 이 안에 말소리가 없으면 보내지 않고 닫는다
+const MAX_RECORD_MS  = 30000;
+const LEVEL_TICK_MS  = 100;
+const SPEECH_RMS_MIN = 0.02;   // 블루투스 통화 모드의 바닥 소음보다 높게
+const SPEECH_OVER_FLOOR = 3;   // 바닥 소음의 몇 배를 말소리로 볼지
 
 class VoiceManager {
-  constructor({ onTranscript, onStateChange, onError, onAudioCaptured, lang = 'ko-KR' } = {}) {
+  constructor({ onTranscript, onStateChange, onError, onAudioCaptured, onFallback, lang = 'ko-KR' } = {}) {
     this._state         = 'idle';
     this._onTranscript  = onTranscript    || (() => {});
     this._onState       = onStateChange   || (() => {});
     this._onError       = onError         || (() => {});
     this._onAudioCaptured = onAudioCaptured || (() => {});
+    this._onFallback    = onFallback      || (() => {});
     this._lang          = lang;
     this._audioCtx      = null;
     this._source        = null;   // 재생 중인 서버 TTS 오디오. 멈출 때 끊는다
@@ -54,8 +65,12 @@ class VoiceManager {
 
     // ── 서버 STT 모드용 녹음 상태 ───────────────────────────────────────────────
     this._sttMode       = 'browser';
+    this._serverStt     = false;  // 브라우저 인식이 안 될 때 녹음을 서버로 보내도 되는지(connected 의 voice.server_stt)
     this._mediaRecorder = null;
     this._mediaStream   = null;
+    this._levelCtx      = null;  // 서버 녹음의 말 끝 감지(음량 측정)
+    this._levelTimer    = null;
+    this._discardRecording = false;
     this._chunks        = [];
 
     // ── STT: Web Speech API ───────────────────────────────────────────────────
@@ -92,6 +107,10 @@ class VoiceManager {
       this._recognition.onerror = (e) => {
         this._markMicReleased();
         this._setState('idle');
+        if (STT_FALLBACK_ERRORS.has(e.error) && this._fallbackToServer(e.error)) {
+          this._startServerRecording();
+          return;
+        }
         if (e.error !== 'no-speech' && e.error !== 'aborted') {
           this._onError(`STT 오류: ${e.error}`);
         }
@@ -105,9 +124,20 @@ class VoiceManager {
     if (this._sttMode === 'server') {
       return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
     }
-    return !!this._recognition;
+    return !!this._recognition || (this._serverStt && !!window.MediaRecorder);
   }
   get state() { return this._state; }
+
+  /** 서버 STT 폴백이 있는지. 없으면 브라우저 인식이 실패해도 서버로 넘어가지 않는다. */
+  setServerSttAvailable(on) { this._serverStt = !!on; }
+
+  /** 브라우저 인식을 버리고 서버 STT 로 바꾼다. 바꿨으면 true. 이 연결이 끝날 때까지 서버 STT 를 쓴다. */
+  _fallbackToServer(reason) {
+    if (this._sttMode === 'server' || !this._serverStt) return false;
+    this._sttMode = 'server';
+    this._onFallback(reason);
+    return true;
+  }
 
   /** STT 처리 위치 설정 — 'browser' | 'server' (백엔드 connected 메시지로 결정) */
   setSttMode(mode) { this._sttMode = (mode === 'server') ? 'server' : 'browser'; }
@@ -125,6 +155,10 @@ class VoiceManager {
       return;
     }
     if (!this._recognition) {
+      if (this._fallbackToServer('unsupported')) {
+        this._startServerRecording();
+        return;
+      }
       this._onError('이 브라우저는 Web Speech API를 지원하지 않습니다. Chrome을 사용해 주세요.');
       return;
     }
@@ -351,10 +385,49 @@ class VoiceManager {
     this._mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) this._chunks.push(e.data); };
     this._mediaRecorder.onstop = () => this._finalizeRecording();
     this._mediaRecorder.start();
+    this._watchSpeechEnd(this._mediaStream);
     this._setState('listening');
   }
 
-  _stopServerRecording() {
+  /** 녹음 음량을 LEVEL_TICK_MS 마다 재서 말이 끝났거나 말이 없으면 녹음을 닫는다. */
+  _watchSpeechEnd(stream) {
+    const ctx = new AudioContext();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    ctx.createMediaStreamSource(stream).connect(analyser);
+    const buf = new Float32Array(analyser.fftSize);
+    const startedAt = performance.now();
+    let floor = Infinity;
+    let heard = false;
+    let lastVoiceAt = startedAt;
+    this._levelCtx = ctx;
+    this._levelTimer = setInterval(() => {
+      analyser.getFloatTimeDomainData(buf);
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+      const rms = Math.sqrt(sum / buf.length);
+      const now = performance.now();
+      floor = Math.min(floor, rms);
+      if (rms > Math.max(SPEECH_RMS_MIN, floor * SPEECH_OVER_FLOOR)) {
+        heard = true;
+        lastVoiceAt = now;
+      }
+      if (heard && now - lastVoiceAt >= END_SILENCE_MS) this._stopServerRecording();
+      else if (!heard && now - startedAt >= NO_SPEECH_MS) this._stopServerRecording({ discard: true });
+      else if (now - startedAt >= MAX_RECORD_MS) this._stopServerRecording();
+    }, LEVEL_TICK_MS);
+  }
+
+  _unwatchSpeechEnd() {
+    clearInterval(this._levelTimer);
+    this._levelTimer = null;
+    this._levelCtx?.close().catch(() => {});
+    this._levelCtx = null;
+  }
+
+  _stopServerRecording({ discard = false } = {}) {
+    this._unwatchSpeechEnd();
+    this._discardRecording = discard;
     if (this._mediaRecorder && this._mediaRecorder.state !== 'inactive') {
       this._mediaRecorder.stop();  // onstop → _finalizeRecording
     }
@@ -368,7 +441,8 @@ class VoiceManager {
     const mime = this._mediaRecorder?.mimeType || 'audio/webm';
     const blob = new Blob(this._chunks, { type: mime });
     this._chunks = [];
-    if (!blob.size) { this._setState('idle'); return; }
+    // 말소리가 없던 녹음은 보내지 않는다. 무음을 받아 적으면 whisper 가 없는 말을 지어낸다
+    if (!blob.size || this._discardRecording) { this._setState('idle'); return; }
     this._setState('processing');  // 백엔드 전사 대기
     try {
       const b64 = await this._blobToBase64(blob);

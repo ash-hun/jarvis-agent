@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- 앱 아이콘 원본. HUD 리액터(바깥 링, 눈금 호, 안쪽 링, 입자 구, 워드마크)를 Dock 크기에서도 보이게 굵고 밝게 다시 그렸다 -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="70%">
+      <stop offset="0" stop-color="#123c52"/>
+      <stop offset="0.55" stop-color="#0a2333"/>
+      <stop offset="1" stop-color="#041019"/>
+    </radialGradient>
+    <radialGradient id="core" cx="50%" cy="42%" r="60%">
+      <stop offset="0" stop-color="#1f5f78"/>
+      <stop offset="1" stop-color="#0b2433"/>
+    </radialGradient>
+    <pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse">
+      <circle cx="9" cy="9" r="3.2" fill="#7fdcf2" opacity="0.55"/>
+    </pattern>
+    <radialGradient id="dotFade" cx="50%" cy="50%" r="50%">
+      <stop offset="0.55" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0.15"/>
+    </radialGradient>
+    <mask id="dotMask"><circle cx="512" cy="512" r="196" fill="url(#dotFade)"/></mask>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="textGlow" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="tile"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#bg)"/>
+
+    <!-- 바깥 링: 가장 굵고 밝다. 작은 크기에서 윤곽을 맡는다 -->
+    <circle cx="512" cy="512" r="338" fill="none" stroke="#5fc8e2" stroke-width="40" filter="url(#glow)"/>
+    <!-- 오른쪽 아래 밝은 호(HUD 의 진행 호) -->
+    <path d="M 760 724 A 338 338 0 0 1 640 825" fill="none" stroke="#c8f3ff" stroke-width="14" stroke-linecap="round"/>
+
+    <!-- 눈금 호: 위와 아래 -->
+    <g fill="none" stroke="#5fc8e2" stroke-opacity="0.85" stroke-width="30" stroke-dasharray="7 13">
+      <path d="M 281 350 A 282 282 0 0 1 743 350"/>
+      <path d="M 743 674 A 282 282 0 0 1 281 674"/>
+    </g>
+
+    <!-- 안쪽 링과 입자 구 -->
+    <circle cx="512" cy="512" r="236" fill="#0b2433" stroke="#5fc8e2" stroke-width="10"/>
+    <circle cx="512" cy="512" r="196" fill="url(#core)"/>
+    <circle cx="512" cy="512" r="196" fill="url(#dots)" mask="url(#dotMask)"/>
+
+    <!-- 워드마크 -->
+    <text x="512" y="550" text-anchor="middle" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+          font-size="112" font-weight="700" letter-spacing="8" fill="#f2fdff" filter="url(#textGlow)">AGENT</text>
+  </g>
+</svg>

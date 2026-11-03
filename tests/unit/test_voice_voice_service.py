@@ -115,3 +115,28 @@ def test_from_config_passes_options_only_to_their_factory(monkeypatch, options, 
     VoiceService.from_config("fake", "fake", **options)
 
     assert seen == expected
+
+
+async def test_browser_stt_uses_lazy_fallback_built_once():
+    from jarvis.voice.providers.browser import BrowserSTTProvider
+
+    built: list[_FakeSTT] = []
+
+    def factory() -> _FakeSTT:
+        built.append(_FakeSTT())
+        return built[-1]
+
+    service = VoiceService(BrowserSTTProvider(), TTSProvider(), stt_fallback=factory)
+
+    assert service.server_stt_available and built == []
+    assert await service.transcribe(b"a") == "전사된 텍스트"
+    assert (await service.transcribe_scored(b"b")).text == "전사된 텍스트"
+    assert len(built) == 1 and built[0].calls == [(b"a", 16000), (b"b", 16000)]
+
+
+def test_from_config_skips_fallback_when_module_missing(monkeypatch):
+    monkeypatch.setattr("jarvis.voice.voice_service.importlib.util.find_spec", lambda name: None)
+
+    service = VoiceService.from_config("browser", "browser", stt_fallback="whisper")
+
+    assert service.stt_is_browser and not service.server_stt_available

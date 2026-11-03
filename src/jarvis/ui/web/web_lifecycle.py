@@ -22,6 +22,7 @@ class WebLifecycle:
 
             # 화면 방송 + 외부 채널(있으면). 둘 중 하나가 실패해도 다른 쪽은 받는다
             ctx.scheduler.set_notifier(fan_out(state.broadcast_notice, ctx.notifier))
+            ctx.scheduler.set_job_board(state.jobs)
             # deliver: conversation 작업(새 공고 등)은 그 에이전트의 대화 세션에 에이전트의 말로 건넨다
             ctx.scheduler.set_conversation(state.converse)
 
@@ -42,12 +43,19 @@ class WebLifecycle:
 
             def targets() -> list[Callable[[], Awaitable[object]]]:
                 sessions = state.registry.sessions_by_recency()
-                reflects: list[Callable[[], Awaitable[object]]] = [s.reflect for s in sessions]
+                jobs = state.jobs
+                reflects: list[Callable[[], Awaitable[object]]] = [
+                    jobs.wrap("proactive:reflect", "proactive", "먼저 말할지 성찰", s.reflect) for s in sessions
+                ]
                 # 성찰 뒤에 공고화. 같은 틱에서 먼저 말할지 정한 다음 조용히 기억을 정리한다
                 if not consolidate:
                     return reflects
                 idle_for = services.activity_clock.idle_seconds()
-                return reflects + consolidation_targets(services.memory, sessions, idle_for, pcfg.daemon_idle_sec)
+                consolidations = [
+                    jobs.wrap("memory:consolidate", "consolidate", "조용할 때 기억 정리", c)
+                    for c in consolidation_targets(services.memory, sessions, idle_for, pcfg.daemon_idle_sec)
+                ]
+                return reflects + consolidations
 
             self._daemon = ProactivityDaemon(
                 targets, interval_sec=pcfg.daemon_interval_sec, trigger=ctx.reflection_trigger
@@ -56,6 +64,7 @@ class WebLifecycle:
 
         # 외부 이벤트 폴러. 소스 YAML 이 없으면 None
         if ctx.external_poller is not None:
+            ctx.external_poller.set_job_board(state.jobs)
             await ctx.external_poller.start()
         if ctx.extension_watcher is not None:
             await ctx.extension_watcher.start()

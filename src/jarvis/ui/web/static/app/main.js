@@ -4,6 +4,10 @@ import { scrollToEnd } from './messages.js';
 import { setInputEnabled } from './composer.js';
 import { connect } from './session.js';
 import { handleMessage } from './events.js';
+import { restoreView } from './view.js';
+import './workflow.js';
+import './settings.js';
+import './desktop.js';
 
 setupCollapse('chat-toggle', 'chat-collapsed', 'hud.chatCollapsed', scrollToEnd);
 setupCollapse('sessions-toggle', 'sessions-collapsed', 'hud.sessionsCollapsed');
@@ -14,3 +18,4 @@ window.jarvisDebug = { handleMessage };
 showQuote();
 setInputEnabled(false);
 connect('default');
+restoreView();

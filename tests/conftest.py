@@ -15,6 +15,8 @@ os.environ.setdefault("JARVIS_MEMORY__BACKEND", "in_memory")
 os.environ.setdefault("JARVIS_SECURITY__REQUIRE_AUTH", "false")
 # 개발자의 ~/.jarvis/team 이 테스트 앱에 에이전트를 더하지 않게. 팀 테스트는 monkeypatch 로 디렉터리를 준다
 os.environ.setdefault("JARVIS_TEAM__DIR", str(Path(__file__).parent / "fixtures" / "no-team"))
+# 개발자의 ~/.jarvis/settings.yaml 이 테스트 설정을 덮지 않게. 없는 파일을 가리킨다
+os.environ.setdefault("JARVIS_SETTINGS_FILE", str(Path(__file__).parent / "fixtures" / "no-settings.yaml"))
 
 # 개발자의 로컬 .env 가 테스트 기본값을 덮지 않게. 테스트는 환경변수와 monkeypatch 로만 설정을 바꾼다
 from jarvis.jarvis_config import JarvisSettings  # noqa: E402

@@ -235,3 +235,6 @@ docs/*
 
 # 학습한 음성 모델(TTS, 문구, 웨이크워드). 비상업 라이선스라 저장소에 올리지 않는다. 받는 법은 website/docs/concepts/conversation/voice.md
 /models/
+
+# Electron 셸 의존성. desktop/package-lock.json 이 정본이다
+desktop/node_modules/

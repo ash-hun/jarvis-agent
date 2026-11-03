@@ -22,7 +22,7 @@
   <!-- 에이전트 브랜드(이름·명언·색). 동기 로드 — 첫 페인트 전에 CSS 변수를 채운다. -->
   <script src="brand.js"></script>
 </head>
-<body>
+<body data-view="hud">
 
 <canvas class="starfield" id="starfield" aria-hidden="true"></canvas>
 
@@ -34,6 +34,11 @@
     </button>
     <span class="corner"><span class="corner-bracket"></span> SYS:ONLINE</span>
     <span class="dimtext">/ v0.1.0</span>
+    <div class="mode-seg view-seg" id="view-seg" role="radiogroup" aria-label="화면">
+      <button type="button" role="radio" data-view="hud" aria-checked="true" title="대화와 상태 카드">HUD</button>
+      <button type="button" role="radio" data-view="workflow" aria-checked="false" title="에이전트 관계 그래프와 백그라운드 작업">FLOW</button>
+      <button type="button" role="radio" data-view="settings" aria-checked="false" title="설정 보기와 편집">SET</button>
+    </div>
   </div>
   <div class="center">
     <span class="tick" id="tick"></span>
@@ -173,6 +178,59 @@
     </section>
   </div>
 </main>
+
+<!-- WORKFLOW VIEW — 에이전트 관계 그래프, 최근 위임, 백그라운드 작업 -->
+<section class="view-panel" id="view-workflow" data-view-panel="workflow" aria-label="Workflow" hidden>
+  <section class="hud-card wf-graph-card">
+    <div class="panel-head"><span>Agent graph</span><span class="count" id="wf-summary">—</span></div>
+    <svg class="wf-graph" id="wf-graph" viewBox="0 0 640 440" role="img" aria-label="에이전트 관계 그래프"></svg>
+    <ul class="wf-legend" aria-hidden="true">
+      <li><i class="lg lg-top"></i>최상위 에이전트</li>
+      <li><i class="lg lg-sub"></i>sub-agent, focus, orchestrate</li>
+      <li><i class="lg lg-live"></i>진행 중 위임</li>
+      <li><i class="lg lg-err"></i>마지막 위임 실패</li>
+    </ul>
+  </section>
+  <section class="hud-card wf-edges-card">
+    <div class="panel-head"><span>Delegations</span><span class="count" id="wf-edge-count">0</span></div>
+    <ol class="wf-list" id="wf-edges" data-empty="이 프로세스가 본 위임이 아직 없습니다"></ol>
+  </section>
+  <section class="hud-card wf-jobs-card">
+    <div class="panel-head"><span>Background jobs</span><span class="count" id="wf-daemon">—</span></div>
+    <div class="wf-jobs-wrap">
+      <table class="wf-jobs">
+        <thead><tr><th>작업</th><th>상태</th><th>실행</th><th>마지막</th><th>다음</th></tr></thead>
+        <tbody id="wf-jobs"></tbody>
+      </table>
+      <p class="wf-empty" id="wf-jobs-empty" hidden>등록된 백그라운드 작업이 없습니다</p>
+    </div>
+  </section>
+</section>
+
+<!-- SETTINGS VIEW — 허용 목록 편집, 데스크톱 설정, 적용값 -->
+<section class="view-panel" id="view-settings" data-view-panel="settings" aria-label="Settings" hidden>
+  <form class="hud-card settings-card" id="settings-form" novalidate>
+    <div class="panel-head"><span>Settings</span><span class="count" id="settings-path">—</span></div>
+    <div class="settings-fields" id="settings-fields"></div>
+    <div class="settings-actions">
+      <span class="settings-status" id="settings-status" role="status"></span>
+      <button class="art-btn" type="button" id="settings-restart" hidden>RESTART BACKEND</button>
+      <button class="art-btn" type="submit" id="settings-save">SAVE</button>
+    </div>
+  </form>
+  <section class="hud-card settings-card" id="desktop-card" hidden>
+    <div class="panel-head"><span>Desktop</span><span class="count">앱 전용</span></div>
+    <div class="settings-fields" id="desktop-fields"></div>
+    <div class="settings-actions">
+      <span class="settings-status" id="desktop-status" role="status"></span>
+      <button class="art-btn" type="button" id="desktop-save">SAVE</button>
+    </div>
+  </section>
+  <section class="hud-card settings-card effective-card">
+    <div class="panel-head"><span>Effective config</span><span class="count">비밀값 ***</span></div>
+    <pre class="settings-effective" id="settings-effective"></pre>
+  </section>
+</section>
 
 <!-- COMPOSER DOCK -->
 <form class="composer" id="composer">

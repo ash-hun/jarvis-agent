@@ -13,7 +13,8 @@
   ```js
   ({ innerWidth, clientWidth: document.documentElement.clientWidth, stageRight: document.querySelector('.stage').getBoundingClientRect().right, headerRight: document.querySelector('header').getBoundingClientRect().right, dpr: devicePixelRatio, zoom: Math.round(outerWidth / innerWidth * 100) })
   ```
-- **TUI 화면 명세 없음.** `docs/view_spec.md` 는 Web HUD 만 다룬다. TUI 도 넣으려면 `src/jarvis/ui/tui/` 를 읽어 같은 형식으로.
+- **데스크톱 앱 음성 확인.** Electron 에서 브라우저 인식이 `network` 로 끝나 서버 STT 로 넘어가는 경로는 코드로만 만들었다. 실제 마이크로 말해 보고 whisper 정확도와 지연을 잰 뒤 모델 크기(`JARVIS_VOICE__WHISPER_MODEL_SIZE`)를 정한다.
+- **데스크톱 앱 번들.** 지금은 저장소 안에서 `npm start` 로만 띄운다. 매일 쓰게 되면 electron-builder 로 .app 을 만들고 서명과 공증을 붙인다.
 
 ## 문서·자산
 

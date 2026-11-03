@@ -125,7 +125,7 @@ memory:                       # 비우면 자기 기억만 읽는다
 세션은 만들 때 에이전트가 정해지고 바뀌지 않는다(`jarvis_sessions.agent_id`, jsonl 은 `.meta.json` 의 `agent_id`). 에이전트가 정해지기 전에 만든 세션은 main 이다.
 
 - Web: `POST /api/sessions {"agent": "karen"}` 이나 `/ws?session_id=..&agent=karen` 으로 에이전트를 정한다. 이미 있는 세션은 저장된 에이전트로 열리고 `agent` 는 무시한다. 모르는 에이전트를 주면 400 을 돌려주고, ws 는 close `4404` 로 닫는다
-- TUI: `jarvis --agent karen` 은 `default-karen` 세션으로 시작한다. `--session ID` 는 그 세션을 만든 에이전트로 연다
+- CLI: `jarvis --agent karen` 은 `default-karen` 세션으로 HUD 를 연다. `--session ID` 는 그 세션을 만든 에이전트로 연다
 - 분기한 세션은 부모와 같은 에이전트를 쓴다
 - 스케줄: 작업 YAML 의 `agent: karen` 이면 그 에이전트의 모델, 시스템 프롬프트, 기억 범위로 돈다. `/schedule` 로 만든 작업은 명령을 친 세션의 에이전트가 들어간다
 - 성찰 daemon 은 열린 세션 전부를 돈다. 정의 파일에 `proactive: false` 를 적은 에이전트의 세션은 성찰을 건너뛴다. KAREN 은 `proactive: true` 라 성찰한다

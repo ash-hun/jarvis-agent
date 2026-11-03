@@ -9,7 +9,7 @@ import FigureExpVoice from '@site/src/figures/exp-voice.svg';
 
 # Voice Interface
 
-Voice Interface는 Web HUD 나 TUI 에서 JARVIS 에게 말로 묻고 응답을 소리로 듣게 하는 VUI(Voice User Interface)다. 부르기, 듣기, 되묻기, 승인, 화면 밖으로 전하기까지 대화의 각 단계에 소리로 드나드는 입구를 붙여, 화면을 보지 않고 손을 쓰지 않는 상황에서도 묻고, 듣고, 승인까지 말로 끝낼 수 있게 하는 것을 지향한다.
+Voice Interface는 Web HUD 와 데스크톱 앱에서 JARVIS 에게 말로 묻고 응답을 소리로 듣게 하는 VUI(Voice User Interface)다. 부르기, 듣기, 되묻기, 승인, 화면 밖으로 전하기까지 대화의 각 단계에 소리로 드나드는 입구를 붙여, 화면을 보지 않고 손을 쓰지 않는 상황에서도 묻고, 듣고, 승인까지 말로 끝낼 수 있게 하는 것을 지향한다.
 
 <figure className="info-fig">
   <InfoVoice />
@@ -25,7 +25,7 @@ Voice Interface는 Web HUD 나 TUI 에서 JARVIS 에게 말로 묻고 응답을 
 
 - 마크다운 기호를 읽지 않게 하는 정리는 화면이 아니라 서버의 `speech_text` 한 함수가 한다. 함수는 두 번 거쳐도 결과가 같게 만들었다.
 - 대안으로는 화면이 읽기 직전에 기호를 지우는 방식이 있었다.
-- 음성은 서버 합성(Supertonic, Piper)과 브라우저 합성 두 길로 나가고, TUI 도 따로 읽는다. 화면에서 지우면 TUI 와 서버 합성이 빠진다.
+- 음성은 서버 합성(Supertonic, Piper)과 브라우저 합성 두 길로 나가고, 디스코드 음성 채널로도 나간다. 화면에서 지우면 서버 합성과 디스코드 음성이 빠진다.
 
 #### 멈춤은 "지금 재생" 과 "오는 중" 을 함께 끊는다
 
@@ -89,7 +89,7 @@ stateDiagram-v2
 - 기다리는 동안 "Jarvis" 라고 부르면 "At your service, sir." 로 답하고 바로 듣는다([웨이크워드](#웨이크워드))
 - 구체를 클릭하면 음성 모드가 켜지고 꺼진다. 읽는 중에 클릭하면 읽기만 멈춘다. 켜져 있으면 응답과 먼저 건네는 말, 스케줄 알림을 읽어 준다. 놓친 알림은 읽지 않는다
 - 서버 TTS 는 `voice_tts_request` 로 요청하고 `voice_tts_audio` 로 받는다. `data` 가 비어 오면 브라우저가 직접 읽는다
-- 읽기 전에 서버가 마크다운 기호를 지운다. `**`, `#`, 목록 기호, 표의 `|` 는 읽지 않고, 코드 블록과 URL 은 건너뛰고, 링크는 글자만 읽는다. 원, 만, 억 앞의 금액 숫자는 한글로 바꿔 `70,000,000원` 을 "칠천만원" 으로 읽는다(단위 없는 숫자는 그대로). TUI 도 같은 함수를 거친다
+- 읽기 전에 서버가 마크다운 기호를 지운다. `**`, `#`, 목록 기호, 표의 `|` 는 읽지 않고, 코드 블록과 URL 은 건너뛰고, 링크는 글자만 읽는다. 원, 만, 억 앞의 금액 숫자는 한글로 바꿔 `70,000,000원` 을 "칠천만원" 으로 읽는다(단위 없는 숫자는 그대로)
 - 읽는 중에 `Esc` 를 누르거나 구체를 클릭하면 멈춘다. 합성을 기다리는 중이어도 멈추고, 늦게 도착한 오디오는 버린다. Full-voice 라도 멈춘 뒤에는 다시 듣지 않는다
 - `포커스 모드 <작업>`, `포커스 종료` 는 `/focus` 명령으로 보낸다. 인식이 키워드를 틀리거나 앞을 잘라도 받는 규칙은 [Focus Mode](../mode/focus-mode.md#켜고-끄기) 에 있다
 
@@ -149,23 +149,9 @@ whisper 로 인식할 때 결과가 비었거나, 말소리가 없다는 확률(
 
 판정 값은 `voice/voice_service.py` 의 `NO_SPEECH_MAX`, `AVG_LOGPROB_MIN` 이다. 백엔드 로그의 `[Voice] stt` 줄에 두 값과 판정이 남는다.
 
-### TUI
+### 브라우저 인식이 없을 때
 
-TUI 에서 음성을 쓰려면 다음 환경변수를 설정한다.
-
-```bash
-JARVIS_VOICE__TUI_ENABLED=true
-JARVIS_VOICE__STT_PROVIDER=whisper
-JARVIS_VOICE__TTS_PROVIDER=supertonic
-JARVIS_VOICE__TUI_RECORD_SECONDS=5
-```
-
-| 키 | 동작 |
-|---|---|
-| `Ctrl+T` | 응답 읽어 주기 토글 |
-| `Ctrl+R` | 녹음 → 전사 → 입력창에 채움. 자동 전송하지 않는다 |
-
-시스템 오디오 도구가 필요하다. 재생에는 afplay, paplay, aplay, ffplay 중 하나가, 녹음에는 sox 나 arecord 가 있어야 한다. 없으면 안내 메시지를 띄우고 음성이 꺼진다.
+`JARVIS_VOICE__STT_PROVIDER=browser` 인데 브라우저에 Web Speech API 가 없거나 인식이 실패하면, `JARVIS_VOICE__STT_FALLBACK`(기본 `whisper`)에 따라 HUD 가 직접 녹음하고 서버가 whisper 로 받아 적는다. 데스크톱 앱(Electron)은 Web Speech API 가 `network` 오류로 실패하므로 늘 이 길로 간다. whisper 모델은 처음 쓸 때 읽고, `voice` extra 가 있어야 한다.
 
 ### 화면 밖으로
 
@@ -325,7 +311,7 @@ TTS 와 읽기 문구는 영화 속 인물의 목소리를 흉내 낸 모델이�
 
 ### 구현 위치
 
-- 구현: `services/qwen_tts/`(Mac 의 Qwen3-TTS 합성 서버와 launchd 등록), `ui/web/ws_tasks.py` 의 `run_tts`(옮기기, 문장 나누기, 조각 중계), `voice/`(서버 프로바이더, `voice_service.py` 의 영어 판정, `english.py` 의 영어로 옮기기, `speech_text.py` 의 기호 지우기, `wake.py` 의 웨이크워드 감지, `phrases.py` 의 읽기 문구), `ui/web/router/voice_router.py`(문구 wav), `ui/web/static/voice.js`(브라우저 상태 기계, 조각 예약 재생), `app/wake.js` 와 `wake-worklet.js`(마이크 캡처), `app/phrases.js`(문구 받기), `ui/tui/`(터미널)
+- 구현: `services/qwen_tts/`(Mac 의 Qwen3-TTS 합성 서버와 launchd 등록), `ui/web/ws_tasks.py` 의 `run_tts`(옮기기, 문장 나누기, 조각 중계), `voice/`(서버 프로바이더, `voice_service.py` 의 영어 판정, `english.py` 의 영어로 옮기기, `speech_text.py` 의 기호 지우기, `wake.py` 의 웨이크워드 감지, `phrases.py` 의 읽기 문구), `ui/web/router/voice_router.py`(문구 wav), `ui/web/static/voice.js`(브라우저 상태 기계, 조각 예약 재생), `app/wake.js` 와 `wake-worklet.js`(마이크 캡처), `app/phrases.js`(문구 받기)
 
 왼쪽이 사용자와 화면, 가운데가 코드 모듈, 오른쪽이 저장소다. 화살표는 호출이나 데이터의 방향이다.
 

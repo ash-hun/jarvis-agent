@@ -17,6 +17,7 @@ import { setActiveAgents } from './agents.js';
 import { onFocusState, onFocusPanel, isFocusOn, takeFocusCommand } from './focus.js';
 import { hasPhrase } from './phrases.js';
 import { onWake } from './wake.js';
+import { onWorkflowEdge, onJobChanged } from './workflow.js';
 
 const ERROR_FLASH_MS = 3000;
 // thought_end 가 오지 않으면(연결 끊김 등) 이만큼 뒤에 사고 중 표시를 푼다
@@ -250,6 +251,12 @@ export function handleMessage(msg) {
 
     case 'agent_activity':
       setActiveAgents(msg.active);
+      break;
+    case 'workflow_changed':
+      onWorkflowEdge(msg.edge);
+      break;
+    case 'job_changed':
+      onJobChanged(msg.job);
       break;
     case 'reply_classified':
       onReplyClassified(msg);

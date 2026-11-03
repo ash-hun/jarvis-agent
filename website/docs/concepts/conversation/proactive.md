@@ -149,7 +149,7 @@ flowchart TD
   M --> N[화면, 음성, Web Push, Slack, Discord]
 ```
 
-- **daemon** (`daemon.py`): 트리거를 먼저 기다린 뒤 tick 한다. 그래서 기동 직후에는 말하지 않는다. Web 은 최근 활동 순으로 모든 세션을 성찰하고, TUI 는 현재 세션만 성찰한다
+- **daemon** (`daemon.py`): 트리거를 먼저 기다린 뒤 tick 한다. 그래서 기동 직후에는 말하지 않는다. 최근 활동 순으로 모든 세션을 성찰한다
 - **트리거** (`triggers.py`): `interval`(기본 120초), `idle`(마지막 입력 뒤 180초, 한 번 울리면 다음 활동까지 재장전), `both` 중 하나를 고른다. 외부 소스가 있으면 새 외부 이벤트도 트리거가 된다
 - **응답 대기** (`policy.py`, `check_awaiting`): 먼저 건네는 말을 낸 세션은 사용자가 메시지나 피드백을 보낼 때까지 다시 말하지 않는다. 성찰 자체를 건너뛰므로 사고 모델도 부르지 않고, 외부 이벤트도 꺼내지 않고 남겨 둔다. 먼저 건넨 말과 그 말에 준 피드백은 세션 저장소에 남아서, 재시작한 뒤에도 그 말 이후에 사용자 메시지나 피드백이 없으면 대기 상태가 다시 걸린다
 - **성찰 프롬프트**: 사용자 입력 자리가 없고, 대신 `[외부 이벤트]` 와 `[최근에 먼저 건넨 말]`(세션의 최근 먼저 건넨 말 3개)이 있다. 프롬프트는 "지금 말하면 도움이 되는가" 와 그 확신도만 정직하게 내라고 하고, 말할 때의 기준(기한 임박, 사용자 일에 영향을 주는 이벤트)과 침묵할 때의 기준(한참 남은 일, 끝난 일, 무관한 알림, 이미 한 말)을 준다. 거르기는 정책의 임계치가 한다
@@ -249,7 +249,7 @@ sequenceDiagram
 - 앱에 하나인 `FeedbackLearner` 를 모든 세션의 정책이 공유한다
 - 판단은 먼저 건넨 말 뒤 첫 말 하나만 한다. 분류는 사고 모델에 한 번 묻고(`agent_layer/thought/reply.py`, 6초 제한), 답을 늦추지 않게 뒤에서 돈다. 분류기는 gemma4:e2b 로 잰 실측에서 11문장을 모두 맞혔고 중앙값은 0.3초였다
 - 딴 얘기를 약한 무시로 보는 것은 판단이다. 먼저 건넨 말을 듣고도 다른 것을 물었다면 그 말이 지금 필요하지 않았다고 본다
-- 입력: TUI 는 `Ctrl+Y`(도움됨), `Ctrl+G`(무시)로도 받는다. 옛 화면이 보내는 `proactive_feedback`, `reply_classify` 도 받으며, 받으면 다음 말로 다시 학습하지 않는다
+- 입력: 옛 화면이 보내는 `proactive_feedback`, `reply_classify` 도 받으며, 받으면 다음 말로 다시 학습하지 않는다
 
 :::warning
 
@@ -379,7 +379,7 @@ flowchart TD
 - **판정자 관대함**: ProactiveBench 의 reward 시험 데이터 중 과제를 제안한 60건(사람이 수락 30, 거절 30)을 같은 판정자에 넣으면, 수락한 제안의 70%, 거절한 제안의 73% 를 "구체 알림" 으로 봤다. 이 판정자의 라벨은 "구체적인가" 를 가를 뿐 "도움이 되는가" 를 가르지 않는다는 뜻이고, [Proactive Agent](https://arxiv.org/abs/2410.12361) 가 기성 LLM 판정자에서 본 것과 같은 방향이다. 라벨의 뜻이 달라 이 수치는 보조 점검으로만 쓴다
 
 - **해석**: 판정 먼저는 결과를 바꾸지 않고 호출만 줄이므로 그대로 쓴다. 앵커는 결정은 바꾸지 않고 인사와 분석문이 🔔 로 나가는 것을 막았다. 사실 계산은 순위(AUC)를 가장 크게 올렸지만, 임계치를 정하는 개발용 사례가 쉬워(네 비교군 모두 개발용 recall 1.00, 오경보 0) 임계치 선택이 시험용에 맞게 일반화되지 않았다. 운영 기본 `DECISION_THRESHOLD` 는 0.6 그대로 두었고, 이 구성에서 0.6 은 recall 0.97, 오경보 0.33 이다.
-- **한계**: 시험용이 26사례로 작고, 사례와 3단 라벨 모두 LLM 에이전트가 만들었다. 사람 검수 시트(`scripts/experiments/datasets/situation_label_review.csv`, 42건)와 🔔 누출 라벨 시트(`scripts/experiments/datasets/utterance_label_review.csv`, 30건)는 아직 비어 있어, 3단 라벨과 판정자 수치는 검증 전이다. decision model 은 tev1 하나만 쟀다. 사례당 시간은 캐시에 남긴 첫 실행의 시간이다.
+- **한계**: 시험용이 26사례로 작고, 사례와 3단 라벨 모두 LLM 에이전트가 만들었다. 사람 검수 시트(`scripts/experiments/datasets/situation_label_review.csv`, 42건)는 아직 비어 있어 3단 라벨은 검증 전이다. 🔔 누출 라벨 시트(`scripts/experiments/datasets/utterance_label_review.csv`, 30건)는 사람 라벨이 concrete_notice 29건, greeting_only 1건이고, 판정자와 29건이 같았다(0.967). concrete_notice 는 30건 모두 맞혔지만 greeting_only 1건("필요한 자료가 있다면 말씀해 주세요")은 concrete_notice 로 보았다. 실제 발화가 한 라벨에 몰려 다른 라벨의 판정은 사람이 라벨마다 쓴 예시 시트(`utterance_label_synthetic.csv`)로 따로 잰다(작성 중). decision model 은 tev1 하나만 쟀다. 사례당 시간은 캐시에 남긴 첫 실행의 시간이다.
 - **재현**: `uv run python -m scripts.experiments.proactive_decision_first [--arms think_first decision_first anchor anchor_facts] [--repeat 3]`. 캐시는 `~/.jarvis/benchmarks/proactive_gate/cache.json` 이고, ProactiveBench 점검은 `~/.jarvis/benchmarks/proactivebench/rm_test.jsonl`([thunlp/ProactiveAgent](https://github.com/thunlp/ProactiveAgent) 의 reward test 데이터)이 있을 때만 돈다. Ollama 없이 판정자 점검만 하려면 `--leniency-only`.
 
 ### 짧은 답 분류

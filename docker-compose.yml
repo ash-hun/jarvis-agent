@@ -35,7 +35,7 @@ services:
     command: ["uv", "run", "pytest", "-v", "--no-header", "--tb=long", "-s"]
 
   # ── PostgreSQL (세션 영속성) ──────────────────────────────────────────────────
-  # app/web 프로파일에서 자동 기동. 외부 DB를 쓸 때는 JARVIS_SESSION__POSTGRES_DSN을
+  # web 프로파일에서 자동 기동. 외부 DB를 쓸 때는 JARVIS_SESSION__POSTGRES_DSN을
   # .env에 설정하면 해당 DSN이 우선 적용된다.
   postgres:
     image: pgvector/pgvector:pg16  # postgres 16 + pgvector. 메모리 의미 검색용
@@ -52,27 +52,7 @@ services:
       retries: 10
       start_period: 10s
     restart: unless-stopped
-    profiles: ["app", "web"]
-
-  # ── TUI 실행 ─────────────────────────────────────────────────────────────────
-  jarvis:
-    build:
-      context: .
-      target: runtime
-    env_file:
-      - .env
-    environment:
-      # postgres가 기본. 외부 DSN이 .env에 있으면 그쪽을 사용한다.
-      JARVIS_SESSION__PERSISTENCE_BACKEND: postgres
-      JARVIS_SESSION__POSTGRES_DSN: ${JARVIS_SESSION__POSTGRES_DSN:-postgresql://jarvis:jarvis@postgres:5432/jarvis}
-    volumes:
-      - jarvis_data:/root/.jarvis
-    stdin_open: true
-    tty: true
-    depends_on:
-      postgres:
-        condition: service_healthy
-    profiles: ["app"]
+    profiles: ["web"]
 
   # ── Web HUD 백엔드 (FastAPI + WebSocket + Agent) ───────────────────────────
   jarvis-backend:

@@ -51,5 +51,5 @@ JARVIS 는 정의 파일 대신 환경 변수가 정본이다. `team/` 에 `main
 
 ## 부르는 방법
 
-- TUI 는 `jarvis`, Web HUD 는 `jarvis --web` 으로 띄우면 JARVIS 와 대화한다
+- `jarvis` 로 띄우고 Web HUD 나 데스크톱 앱을 열면 JARVIS 와 대화한다
 - 에이전트가 둘 이상이면 Web HUD 의 SESSIONS 카드 위 에이전트 칩에서 J.A.R.V.I.S. 를 눌러 돌아온다

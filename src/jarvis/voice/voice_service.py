@@ -1,7 +1,10 @@
 """[voice] STT 와 TTS 프로바이더를 묶어 하나의 음성 파이프라인으로 제공한다."""
 
 import re
-from collections.abc import AsyncIterator
+import asyncio
+import functools
+import importlib.util
+from collections.abc import AsyncIterator, Callable
 
 from jarvis.voice.voice_protocol import DEFAULT_LANG, DEFAULT_SAMPLE_RATE, STTProvider, Transcript, TTSProvider
 
@@ -12,6 +15,8 @@ AVG_LOGPROB_MIN = -1.0
 # 한글, 가나, 한자가 한 글자라도 있으면 영어 음성 모델이 읽지 못한다
 _NON_LATIN_SCRIPT = re.compile(r"[\u1100-\u11ff\u3040-\u30ff\u3130-\u318f\u4e00-\u9fff\uac00-\ud7a3]")
 _LATIN_LETTER = re.compile(r"[A-Za-z]")
+# 폴백 STT 이름 → 있어야 하는 모듈. 없으면 폴백을 만들지 않는다
+FALLBACK_MODULES = {"whisper": "faster_whisper"}
 
 
 def is_english(text: str) -> bool:
@@ -27,18 +32,44 @@ def is_unclear(t: Transcript) -> bool:
 class VoiceService:
     """STT + TTS 프로바이더를 통합해 음성 파이프라인을 제공한다. english_tts 가 있으면 영어 문장은 그쪽이 읽는다."""
 
-    def __init__(self, stt: STTProvider, tts: TTSProvider, english_tts: TTSProvider | None = None) -> None:
+    def __init__(
+        self,
+        stt: STTProvider,
+        tts: TTSProvider,
+        english_tts: TTSProvider | None = None,
+        stt_fallback: Callable[[], STTProvider] | None = None,
+    ) -> None:
         self._stt = stt
         self._tts = tts
         self._english_tts = english_tts
+        # 브라우저 STT 일 때 화면이 녹음을 보내면 이걸로 받아 적는다. 무거운 모델이라 처음 쓸 때 만든다
+        self._fallback_factory = stt_fallback
+        self._fallback: STTProvider | None = None
+        self._fallback_lock = asyncio.Lock()
+
+    @property
+    def server_stt_available(self) -> bool:
+        """화면이 녹음을 보내면 서버가 받아 적을 수 있는가."""
+        return not self.stt_is_browser or self._fallback_factory is not None
+
+    async def _server_stt(self) -> STTProvider:
+        if not self.stt_is_browser or self._fallback_factory is None:
+            return self._stt
+        async with self._fallback_lock:
+            if self._fallback is None:
+                # 모델 적재는 수 초 걸리는 동기 호출이다. 이벤트 루프를 막지 않게 스레드에서 만든다
+                self._fallback = await asyncio.to_thread(self._fallback_factory)
+        return self._fallback
 
     async def transcribe(self, audio_bytes: bytes, sample_rate: int = DEFAULT_SAMPLE_RATE) -> str:
-        return await self._stt.transcribe(audio_bytes, sample_rate)
+        stt = await self._server_stt()
+        return await stt.transcribe(audio_bytes, sample_rate)
 
     async def transcribe_scored(self, audio_bytes: bytes, sample_rate: int = DEFAULT_SAMPLE_RATE) -> Transcript:
-        scored = getattr(self._stt, "transcribe_scored", None)
+        stt = await self._server_stt()
+        scored = getattr(stt, "transcribe_scored", None)
         if scored is None:
-            return Transcript(await self._stt.transcribe(audio_bytes, sample_rate))
+            return Transcript(await stt.transcribe(audio_bytes, sample_rate))
         result: Transcript = await scored(audio_bytes, sample_rate)
         return result
 
@@ -79,13 +110,21 @@ class VoiceService:
         tts_options: dict[str, object] | None = None,
         english_tts_provider: str = "",
         english_tts_options: dict[str, object] | None = None,
+        stt_fallback: str = "",
+        stt_fallback_options: dict[str, object] | None = None,
     ) -> "VoiceService":
         """프로바이더 이름과 각자의 생성 옵션으로 만든다. 옵션은 그 프로바이더 팩토리에만 넘긴다."""
         from jarvis.voice.voice_registry import make_stt, make_tts
 
         english_tts = make_tts(english_tts_provider, **(english_tts_options or {})) if english_tts_provider else None
+        fallback: Callable[[], STTProvider] | None = None
+        module = FALLBACK_MODULES.get(stt_fallback)
+        if module is not None and importlib.util.find_spec(module) is not None:
+            fallback = functools.partial(make_stt, stt_fallback, **(stt_fallback_options or {}))
+
         return cls(
             stt=make_stt(stt_provider, **(stt_options or {})),
             tts=make_tts(tts_provider, **(tts_options or {})),
             english_tts=english_tts,
+            stt_fallback=fallback,
         )

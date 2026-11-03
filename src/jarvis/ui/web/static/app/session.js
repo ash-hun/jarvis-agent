@@ -184,6 +184,7 @@ async function onConnected(msg) {
   if (msg.sessions) renderSessions(msg.sessions, msg.session_agents);
   if (msg.slash_commands) setSlashCommands(msg.slash_commands);
   if (msg.voice && msg.voice.stt_mode) voice.setSttMode(msg.voice.stt_mode);
+  voice.setServerSttAvailable(!!(msg.voice && msg.voice.server_stt));
   setWakeEnabled(!!(msg.voice && msg.voice.wake));
   setReplyClassifier(msg.reply_classifier);
   setStatus('READY');

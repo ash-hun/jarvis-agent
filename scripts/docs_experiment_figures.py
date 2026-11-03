@@ -2,6 +2,7 @@
 
 import sys
 import json
+import math
 from pathlib import Path
 from scripts.docs_figures import OUT_DIR, WIDTH, Fig, text_width
 
@@ -1035,6 +1036,99 @@ def exp_proactive_gate(r: dict) -> Fig:
     return finish(fig, y)
 
 
+# 스코어카드 레이더. 레이아웃은 사용자가 승인한 시안(docs/jarvis-scorecard-mock.py)을 760 폭에 맞춘 것이다
+SC_R = 145  # 100 점 반지름
+SC_ARC_R = 252  # 축 호 반지름. 꼭짓점 이름과 겹치지 않게 차트에서 띄운다
+SC_ARC_W = 13
+SC_LABEL_GAP = 20  # 꼭짓점 점에서 벤치마크 이름까지
+SC_NUDGE = {"LongMemEval-s": 12}
+SC_BENCH_FS = 11.5  # 꼭짓점 이름 글자 크기(.pf-sc-bench). 760 폭에서 호와 겹치지 않는 크기  # 옆 꼭짓점 이름이 호에 닿지 않게 안쪽으로 당긴다
+SC_WRAP = {"Custom Scenario Test": ["Custom Scenario", "Test"]}
+
+
+def _sc_point(cx: float, cy: float, angle: float, radius: float) -> tuple[float, float]:
+    return cx + radius * math.sin(angle), cy - radius * math.cos(angle)
+
+
+def _sc_arc(cx: float, cy: float, a0: float, a1: float, radius: float) -> str:
+    x0, y0 = _sc_point(cx, cy, a0, radius)
+    x1, y1 = _sc_point(cx, cy, a1, radius)
+    return f"M{x0:.1f},{y0:.1f} A{radius},{radius} 0 {1 if a1 - a0 > math.pi else 0} 1 {x1:.1f},{y1:.1f}"
+
+
+def exp_scorecard(r: dict) -> Fig:
+    d = r["scorecard"]
+    cfg, polygons = d["config"], d["polygons"]
+    vertices = cfg["vertices"]
+    axes: list[tuple[str, list[str]]] = []
+    for v in vertices:
+        if not axes or axes[-1][0] != v["axis"]:
+            axes.append((v["axis"], []))
+        axes[-1][1].append(v["label"])
+    n = len(vertices)
+    step = 2 * math.pi / n
+    cx, cy = WIDTH / 2, SC_ARC_R + 46
+    fig = Fig("exp-scorecard", 0, "Jarvis 스코어카드: 벤치마크 꼭짓점, 축 호, 모델별 다각형")
+    for level in (20, 40, 60, 80, 100):
+        ring = " ".join(f"{x:.1f},{y:.1f}" for x, y in (_sc_point(cx, cy, i * step, SC_R * level / 100)
+                                                        for i in range(n)))
+        fig.parts.append(f'<polygon class="pf-grid" fill="none" points="{ring}"/>')
+        x, y = _sc_point(cx, cy, 0, SC_R * level / 100)
+        fig.text(x + 4, y - 3, str(level), "pf-axis")
+    for i in range(n):
+        x, y = _sc_point(cx, cy, i * step, SC_R)
+        fig.parts.append(f'<line class="pf-grid" x1="{cx:.1f}" y1="{cy:.1f}" x2="{x:.1f}" y2="{y:.1f}"/>')
+    i = 0
+    for (name, labels), color in zip(axes, cfg["axis_colors"], strict=True):
+        a0, a1 = (i - 0.5) * step + 0.05, (i + len(labels) - 0.5) * step - 0.05
+        fig.parts.append(f'<path d="{_sc_arc(cx, cy, a0, a1, SC_ARC_R)}" fill="none" stroke="{color}" '
+                         f'stroke-opacity="0.55" stroke-width="{SC_ARC_W}"/>')
+        mid = (a0 + a1) / 2
+        x, y = _sc_point(cx, cy, mid, SC_ARC_R + 22)
+        anchor = "middle" if abs(math.sin(mid)) < 0.3 else ("start" if math.sin(mid) > 0 else "end")
+        fig.text(x, y + 5, name, "pf-axis-title", anchor)
+        i += len(labels)
+    for i, v in enumerate(vertices):
+        x, y = _sc_point(cx, cy, i * step, SC_R + SC_LABEL_GAP)
+        sa = math.sin(i * step)
+        anchor = "middle" if abs(sa) < 0.3 else ("start" if sa > 0 else "end")
+        x += SC_NUDGE.get(v["label"], 0)
+        lines = SC_WRAP.get(v["label"], [v["label"]])
+        if len(lines) > 1:
+            # 두 줄은 가운데 맞춤하고, 블록 왼쪽 끝을 한 줄 이름의 시작 자리에 둔다
+            x, anchor = x + max(text_width(t, SC_BENCH_FS) for t in lines) / 2 - 14, "middle"
+        for k, line in enumerate(lines):
+            fig.text(x, y + 4 - 7 * (len(lines) - 1) + 14 * k, line, "pf-sc-bench", anchor)
+    legend_x = 30.0
+    for p in cfg["polygons"]:
+        entries = polygons.get(p["id"], {})
+        pts = [(_sc_point(cx, cy, i * step, SC_R * entries[v["id"]]["score"] / 100) if v["id"] in entries else None)
+               for i, v in enumerate(vertices)]
+        known = [pt for pt in pts if pt]
+        if len(known) == n:
+            poly = " ".join(f"{x:.1f},{y:.1f}" for x, y in known)
+            fig.parts.append(f'<polygon points="{poly}" fill="{p["color"]}" fill-opacity="0.22" '
+                             f'stroke="{p["color"]}" stroke-width="2"/>')
+        else:
+            # 비어 있는 꼭짓점은 선을 끊는다. 이웃한 두 점이 모두 있을 때만 잇는다
+            for a, b in zip(pts, pts[1:] + pts[:1], strict=True):
+                if a and b:
+                    fig.parts.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" '
+                                     f'stroke="{p["color"]}" stroke-width="2"/>')
+        for x, y in known:
+            fig.parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3.5" fill="{p["color"]}" '
+                             f'stroke="var(--pf-panel-solid)" stroke-width="1.2"/>')
+        if known:
+            fig.parts.append(f'<rect x="{legend_x}" y="{cy + SC_ARC_R + 46}" width="12" height="12" rx="2" '
+                             f'fill="{p["color"]}"/>')
+            fig.text(legend_x + 18, cy + SC_ARC_R + 57, p["main"], "pf-lab")
+            legend_x += 18 + text_width(p["main"], LABEL_FS) + 28
+    for i in range(n):
+        x, y = _sc_point(cx, cy, i * step, SC_R)
+        fig.parts.append(f'<circle class="pf-sc-vertex" cx="{x:.1f}" cy="{y:.1f}" r="2.5"/>')
+    return finish(fig, cy + SC_ARC_R + 72)
+
+
 FIGURES = [
     exp_mcp,
     exp_scheduling,
@@ -1055,6 +1149,7 @@ FIGURES = [
     exp_team,
     exp_focus,
     exp_procedures,
+    exp_scorecard,
 ]
 
 

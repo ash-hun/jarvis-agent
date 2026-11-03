@@ -4,6 +4,7 @@ title: Notice
 ---
 
 import InfoNotice from '@site/src/figures/info-notice.svg';
+import FigureExpScorecard from '@site/src/figures/exp-scorecard.svg';
 
 # Notice
 
@@ -66,6 +67,40 @@ Jarvis-Agent는 원작자가 고안한 아래 구현 및 운영방침을 준수�
 
 ## Performance Experiments Index
 
+### Jarvis Scorecard
+
+Jarvis-Agent 의 대표 성능을 벤치마크 9개로 잰다. 꼭짓점 하나가 벤치마크 하나이고, 바깥 호가 능력 축이며, 다각형 하나가 메인 LLM 하나다. 모든 다각형은 같은 표본, 같은 seed, 같은 판정자(gpt-4o), 같은 기억 생성 모델(gpt-4o-mini), 같은 임베딩(bge-m3)을 쓰고, 바뀌는 것은 메인 LLM 과 같은 계열의 사고 모델뿐이다.
+
+<figure className="paper-fig">
+  <FigureExpScorecard />
+  <figcaption><b>Figure 1.</b> 점수는 모두 0~100 이다. 면적과 합산 점수는 꼭짓점 순서에 따라 바뀌므로 내지 않는다.</figcaption>
+</figure>
+
+| 축 | 꼭짓점 | 점수 | claude-sonnet-5-5 | gpt-4o-mini | gemma4:e4b | 표본 |
+|---|---|---|---|---|---|---|
+| Personalization | PersonaMem-v2 | 정확도 | 46.7 (34.6~59.1) | 31.7 (21.3~44.2) | 18.3 (10.6~29.9) | 60 |
+| Proactivity | ProactiveBench | (recall + 1 − 오경보) / 2 | 50.0 (40.4~59.6) | 69.0 (59.4~77.2) | 69.9 (60.3~78.0) | 100 |
+| Proactivity | Custom Scenario Test | (recall + 1 − 오경보) / 2 | 100.0 (86.2~100.0) | 88.9 (70.7~96.4) | 66.6 (46.7~82.0) | 24 × 3회 |
+| Tool Use | τ²-bench | pass^1 | 87.5 (73.9~94.5) | 32.5 (20.1~48.0) | 35.0 (22.1~50.5) | 40 |
+| Tool Use | GAIA | 정답 일치율 | 70.0 (54.6~81.9) | 37.5 (24.2~53.0) | 25.0 (14.2~40.2) | 40 |
+| Long-Horizon | KramaBench | 공식 채점 평균 | 55.0 (34.2~74.2) | 15.0 (5.2~36.0) | 7.6 (1.8~27.1) | 20 |
+| Self-Evolving | BBEH-mini | 반성 뒤 held-out 정확도 | 57.1 (49.8~64.0) | 16.3 (11.7~22.3) | 17.9 (13.1~24.1) | 184 |
+| Memory Performance | LongMemEval-s | 판정 정확도 | 53.3 (40.9~65.4) | 51.7 (39.3~63.8) | 48.3 (36.2~60.7) | 60 |
+| Memory Performance | MINT-Eval | 정확도 | 5.0 (1.4~16.5) | 7.5 (2.6~19.9) | 15.0 (7.1~29.1) | 40 |
+
+괄호는 Wilson 95% 구간이다. 반복 측정(Custom Scenario Test)도 구간의 n 은 사례 수로 잡았다.
+
+- **설정**: 사고 모델은 claude-haiku-5-5, gpt-4o-mini, gemma4:e2b 다. Proactivity 두 꼭짓점은 사고 모델이 decision model 없이 직접 정하는 기본 구성이다. ProactiveBench 는 확신도 눈금이 모델마다 달라, 시험 표본에 들지 않은 32 사건으로 모델마다 임계치를 골라 썼다(gpt-4o-mini, gemma4:e2b 0.8, claude-haiku-5-5 0.9). Custom Scenario Test 는 운영 기본 0.85 다. 기억 꼭짓점 셋은 실서비스 조건(핵심 사실과 회상 각 3개, 출처 회상 켬)이다. τ²-bench, GAIA, KramaBench 는 운영 에이전트 루프(기본 max_turns, 넘침 이어가기 켬)로 풀었다. τ²-bench 의 사용자 역할도 gpt-4o 가 맡는다
+- **결과**: Claude 다각형은 gemma 보다 6 꼭짓점(PersonaMem-v2, Custom Scenario Test, τ²-bench, GAIA, KramaBench, BBEH-mini)에서 구간이 겹치지 않게 높고, ProactiveBench 에서는 gemma 가 구간이 겹치지 않게 높다. gpt-4o-mini 와 비교하면 τ²-bench, GAIA, BBEH-mini 에서만 구간이 겹치지 않는다. gpt-4o-mini 와 gemma 사이에는 구간이 겹치지 않는 꼭짓점이 없다. LongMemEval-s 는 세 모델이 48~53 으로 거의 같다
+- **해석**: ProactiveBench 에서 claude-haiku-5-5 는 100 사건 모두 침묵을 골랐고 확신도도 0.1~0.3 이었다. 임계치를 낮춰도 말하지 않아 50점은 "늘 침묵" 의 값이다. 고정 임계치 0.85 에서는 gpt-4o-mini 도 50점이었지만(말하겠다고 한 41건의 확신도가 가장 높아도 0.8), 보정 뒤 69.0 이 되었다. 한국어로 만든 Custom Scenario Test 에서는 Claude 가 3회 모두 말할 때 말하고 참을 때 참았다. BBEH-mini 의 반성 효과는 모델마다 작다. claude-sonnet-5-5 는 반성 전 55.4 에서 57.1(새로 맞힌 11, 놓친 8), gemma4:e4b 는 22.3 에서 17.9(새로 맞힌 4, 놓친 12)였다
+- **판정자 편향**: 판정 LLM 을 쓰는 LongMemEval-s, MINT-Eval 의 답을 다른 계열인 claude-sonnet-5-5 로 다시 채점했다. 두 판정의 일치율은 93~100%, Cohen's kappa 는 0.63~1.00 이었다. Claude 판정자가 세 모델 모두에 조금 더 엄격했고(0~3.3점 낮음) 순위는 그대로였다. gpt-4o 가 같은 계열인 gpt-4o-mini 를 봐준다는 근거는 보이지 않았다. τ²-bench 의 사용자 역할(gpt-4o)은 다시 돌려야 해서 확인하지 않았다
+- **한계**: 표본이 20~60 이라 구간이 넓다. 모델 등급이 같지 않아(상위 모델, 소형 모델, 로컬 소형 모델) 이 그림은 회사 사이가 아니라 세 구성 사이의 비교다. Anthropic SDK 가 temperature 를 받지 않아 Claude 만 temperature 0 이 아니다(결과는 캐시해 재실행은 같다). ProactiveBench 는 공식 보상 모델이 공개되지 않아 사람 라벨로 "말할지" 만 채점한다. Custom Scenario Test 의 라벨은 아직 사람이 검수하지 않았다. τ²-bench 는 정보 전달 여부를 공식의 문자열 포함 옵션으로 본다. GAIA 는 DuckDuckGo 검색이라 검색 결과가 실행마다 다를 수 있다. GAIA 문항과 정답은 이용 조건에 따라 저장소에 두지 않는다
+- **넘침 문구 수정**: 넘침 정리 문구가 한국어라 영어 요청에도 한국어 답이 나왔다(캐시에서 GAIA 8건, KramaBench 52건). 정리와 이어가기 지시가 원래 요청의 언어와 답 형식을 따르게 고친 뒤, 넘쳤던 풀이만 다시 풀었다. GAIA 는 gpt-4o-mini 가 32.5 → 37.5, claude-sonnet-5-5 가 60.0 → 70.0 이 되었다(Claude 는 요청 제한으로 캐시되지 않았던 4문항도 다시 풀었다)
+- **비용**: claude-sonnet-5-5 다각형이 Anthropic 에서 낸 비용은 다시 잰 것까지 모두 약 $38 이다(BBEH-mini $13.38, 첫 GAIA $11.71, 다시 푼 GAIA $6.09, τ²-bench $2.98, KramaBench $1.47, 나머지 $2.3). 견적은 gpt-4o-mini 실측 토큰으로 냈다. 에이전트 루프는 프롬프트 캐시 덕에 견적보다 적게 썼고(KramaBench), 출력이 긴 BBEH-mini 는 견적보다 많이 썼다
+- **재현**: `uv run python -m scripts.experiments.jarvis_scorecard --polygon gpt gemma claude`, 판정자 편향은 `uv run python -m scripts.experiments.scorecard_judge_bias`. 꼭짓점 결과는 `~/.jarvis/benchmarks/scorecard/` 에 캐시해 다시 돌리면 읽기만 한다. 설정은 `scripts/experiments/scorecard_config.json`
+
+### 기능별 실험
+
 각 기능별 페이지마다 있는 실험의 핵심 숫자를 한눈에 보기 쉽도록 모았다.
 
 | 기능 | 실험 | 핵심 숫자 |
@@ -99,3 +134,16 @@ Jarvis-Agent는 원작자가 고안한 아래 구현 및 운영방침을 준수�
 | [Orchestration Pattern](./multi-agent-orchestration/orchestration-pattern.md) | 패턴별 걸린 시간 | blackboard 0.201초, hierarchical 0.604초, 한 턴에 하나씩 부르는 감독자 1.829초 |
 | [Extension](./extension.md) | 도구 파일 반영 시간 | 새 파일 p50 77.1ms, 고친 파일 p50 78.0ms. 감시 전에는 재시작 필요 |
 
+## 참고 문헌
+
+스코어카드가 쓰는 벤치마크다.
+
+- Bowen Jiang, Yuan Yuan, Maohao Shen, et al. 2025. PersonaMem-v2: Towards Personalized Intelligence via Learning Implicit User Personas and Agentic Memory. [arXiv:2512.06688](https://arxiv.org/abs/2512.06688)
+- Yaxi Lu 외. Proactive Agent: Shifting LLM Agents from Reactive Responses to Active Assistance. [arXiv:2410.12361](https://arxiv.org/abs/2410.12361). ProactiveBench: [thunlp/ProactiveAgent](https://github.com/thunlp/ProactiveAgent)
+- τ²-bench: [sierra-research/tau2-bench](https://github.com/sierra-research/tau2-bench)
+- GAIA: [gaia-benchmark/GAIA](https://huggingface.co/datasets/gaia-benchmark/GAIA)
+- KramaBench: [eugenie-y/KramaBench](https://huggingface.co/datasets/eugenie-y/KramaBench)
+- Kazemi 외. 2025. BIG-Bench Extra Hard. [arXiv:2502.19187](https://arxiv.org/abs/2502.19187)
+- Di Wu, Hongwei Wang, Wenhao Yu, Yuwei Zhang, Kai-Wei Chang, Dong Yu. 2025. LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory. [arXiv:2410.10813](https://arxiv.org/abs/2410.10813)
+- Hyunji Lee, Justin Chih-Yao Chen, Joykirat Singh, Zaid Khan, Elias Stengel-Eskin, Mohit Bansal. 2026. MINTEval: Evaluating Memory under Multi-Target Interference in Long-Horizon Agent Systems. [arXiv:2605.18565](https://arxiv.org/abs/2605.18565)
+- Xuan He, Sining Zhoubian, Ruozhen Yang, et al. 2026. Memory Tax: Dissecting the Net Value of Agent Memory. [arXiv:2610.34073](https://arxiv.org/abs/2610.34073). 모델 비교의 판정자와 기억 생성을 고정한 근거

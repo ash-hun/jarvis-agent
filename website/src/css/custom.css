@@ -465,6 +465,9 @@ pre,
 .pf-lab { fill: var(--pf-ink-2); font-size: 13.5px; }
 .pf-dot-same { fill: var(--pf-s2); }
 .pf-dot-diff { fill: var(--pf-s3); }
+/* 스코어카드 레이더의 꼭짓점 점. 다크 모드에서도 보이게 글자 색을 따른다 */
+.pf-sc-vertex { fill: var(--pf-ink); }
+.pf-sc-bench { fill: var(--pf-ink-2); font-size: 11.5px; }
 /* 준수표: 전부 지킴, 일부, 하나도 못 지킴. 모델 색과 겹치지 않게 따로 둔다 */
 .pf-ok { fill: var(--pf-ink); }
 .pf-part { fill: var(--pf-surface); stroke: var(--pf-ink); stroke-width: 1.4; }

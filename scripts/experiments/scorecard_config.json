@@ -1,0 +1,30 @@
+{
+  "seed": 0,
+  "judge_model": "gpt-4o",
+  "extract_model": "gpt-4o-mini",
+  "embedder": "bge-m3",
+  "reference_polygon": "gpt",
+  "budget": {"provider": "anthropic", "cap_usd": 70.0, "estimate_margin": 2.0,
+             "fallback_quotes_usd": {"custom_scenario": 0.5, "bbeh": 5.0}},
+  "prices_per_mtok": {
+    "claude-sonnet-5-5": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
+    "claude-haiku-5-5": {"input": 1.0, "output": 5.0, "cache_read": 0.1, "cache_write": 1.25}
+  },
+  "axis_colors": ["#F7DC8B", "#A9CFEA", "#A6DDB8", "#F5C59F", "#D9C2E6", "#F2B5B0"],
+  "polygons": [
+    {"id": "claude", "main": "claude-sonnet-5-5", "thought": "claude-haiku-5-5", "color": "#F08A7E"},
+    {"id": "gpt", "main": "gpt-4o-mini", "thought": "gpt-4o-mini", "color": "#5CB8A6"},
+    {"id": "gemma", "main": "gemma4:e4b", "thought": "gemma4:e2b-it-qat", "color": "#9A8AD8"}
+  ],
+  "vertices": [
+    {"id": "personamem_v2", "label": "PersonaMem-v2", "axis": "Personalization", "role": "main"},
+    {"id": "proactivebench", "label": "ProactiveBench", "axis": "Proactivity", "role": "thought"},
+    {"id": "custom_scenario", "label": "Custom Scenario Test", "axis": "Proactivity", "role": "thought"},
+    {"id": "tau2", "label": "τ²-bench", "axis": "Tool Use", "role": "main"},
+    {"id": "gaia", "label": "GAIA", "axis": "Tool Use", "role": "main"},
+    {"id": "kramabench", "label": "KramaBench", "axis": "Long-Horizon", "role": "main"},
+    {"id": "bbeh", "label": "BBEH-mini", "axis": "Self-Evolving", "role": "main"},
+    {"id": "longmemeval_s", "label": "LongMemEval-s", "axis": "Memory Performance", "role": "main"},
+    {"id": "minteval", "label": "MINT-Eval", "axis": "Memory Performance", "role": "main"}
+  ]
+}

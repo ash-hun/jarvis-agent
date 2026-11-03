@@ -46,11 +46,11 @@ class AnthropicProvider(Provider):
         _inject_cache_breakpoint(messages)
         tools = [t.to_llm_schema() for t in context.tools] if context.tools else []
 
+        # 설치된 SDK(anthropic 1.x)의 messages.stream 은 temperature 를 받지 않는다. 넘기면 호출마다 TypeError 다
         kwargs: dict[str, Any] = {
             "model": model.model,
             "max_tokens": model.max_tokens,
             "messages": messages,
-            "temperature": model.temperature,
         }
         if context.system_prompt:
             kwargs["system"] = [{"type": "text", "text": context.system_prompt, "cache_control": {"type": "ephemeral"}}]
@@ -58,7 +58,6 @@ class AnthropicProvider(Provider):
             kwargs["tools"] = tools
         if opts.enable_thinking:
             kwargs["thinking"] = {"type": "enabled", "budget_tokens": opts.thinking_budget}
-            kwargs.pop("temperature", None)
 
         try:
             async with client.messages.stream(**kwargs) as stream_ctx:

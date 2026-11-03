@@ -200,7 +200,7 @@ $ curl -s http://localhost:7777/api/agenda
 
 ### GET /api/health
 
-백엔드가 떠 있는지. 데스크톱 셸(`desktop/backend_launcher.js`)이 백엔드를 띄울지 정할 때 쓴다.
+백엔드가 떠 있는지와 패키지 버전. 데스크톱 셸(`desktop/backend_launcher.js`)이 백엔드를 띄울지 정하고, HUD 헤더가 버전을 보일 때 쓴다.
 
 #### Endpoint
 
@@ -233,6 +233,7 @@ GET /api/health
 | 필드 | 타입 | 널 허용 | 설명 |
 |---|---|---|---|
 | `ok` | boolean | 아니오 | 늘 `true` |
+| `version` | string | 아니오 | 설치된 `jarvis` 패키지 버전(`pyproject.toml`). 설치하지 않고 돌리면 `0.0.0` |
 
 #### 응답 코드
 
@@ -245,7 +246,7 @@ GET /api/health
 
 ```bash
 $ curl -s http://localhost:7777/api/health
-{"ok":true}
+{"ok":true,"version":"0.2.0"}
 ```
 
 #### 특이사항

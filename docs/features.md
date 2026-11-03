@@ -905,7 +905,8 @@
 | `src/jarvis/core/proactive/eval/datasets/` | core | `policy`, `situation`(개발용, 3단 라벨) 사례 jsonl |
 | `scripts/experiments/datasets/situation_test.jsonl` | scripts | 시험용 사례(블라인드, 3단 라벨) |
 | `scripts/experiments/datasets/situation_label_review.csv` | scripts | 3단 라벨 사람 검수 시트 |
-| `scripts/experiments/datasets/utterance_label_review.csv` | scripts | 🔔 누출 라벨 사람 검수 시트 |
+| `scripts/experiments/datasets/utterance_label_review.csv` | scripts | 🔔 누출 라벨 사람 검수 시트(실제 발화 30건) |
+| `scripts/experiments/datasets/utterance_label_synthetic.csv` | scripts | 사람이 라벨마다 쓴 발화 예시. 실제 발화는 7할이 concrete_notice 라 다른 라벨의 일치율을 여기서 따로 잰다 |
 | `scripts/experiments/proactive_decision_first.py` | scripts | 성찰 순서, 앵커, 사실 계산 비교 실험 |
 
 **테스트**

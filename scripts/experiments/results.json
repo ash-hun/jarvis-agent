@@ -4484,6 +4484,19 @@
   "judge": {
    "model": "gpt-4o-mini",
    "human": {
+    "status": "검증됨",
+    "labeled": 30,
+    "human_labels": {
+     "greeting_only": 1,
+     "concrete_notice": 29
+    },
+    "agreement": {
+     "greeting_only": 0.0,
+     "concrete_notice": 1.0,
+     "all": 0.967
+    }
+   },
+   "synthetic": {
     "status": "검증 전",
     "labeled": 0
    },

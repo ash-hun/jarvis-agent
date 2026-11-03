@@ -46,11 +46,11 @@ export function blendColors(active, currentId) {
   return ordered.map((id) => agentById(id)?.palette.primary).filter(Boolean);
 }
 
-// 서버가 알려 준 활동을 칩 표시와 구체(sphere.js 의 'jarvis:activity')에 반영한다. 세션 에이전트가 바뀌어도 다시 부른다
+// 서버가 알려 준 활동을 전환 화살표 표시와 구체(sphere.js 의 'jarvis:activity')에 반영한다. 세션 에이전트가 바뀌어도 다시 부른다
 export function setActiveAgents(active = _active) {
   const wasTeam = _active.length > 1;
   _active = active || [];
-  document.querySelectorAll('.agent-chip').forEach((b) => b.classList.toggle('busy', _active.includes(b.dataset.agent)));
+  document.querySelectorAll('.agent-nav').forEach((b) => b.classList.toggle('busy', _active.includes(b.dataset.agent)));
   const colors = blendColors(_active, AGENT_ID);
   window.dispatchEvent(new CustomEvent('jarvis:activity', { detail: { active: _active, colors } }));
   if (_active.length > 1 && !wasTeam) {

@@ -35,5 +35,5 @@ Jarvis-Agent의 가장 기본이 되는 기능인 Conversation을 소개한다. 
 | [MCP Events](./mcp.md) | MCP 도구를 주기적으로 불러 새 항목을 성찰의 재료로 넣는 방식 |
 | [Scheduling](./scheduling.md) | `/schedule` 을 이용해 정한 시각에 알림이나 작업을 돌리고, 화면 앞에 없어도 결과를 전한다. |
 | [Goals](./goals.md) | 한 번 맡긴 일을 대화가 없는 동안에도 차례마다 진행한다 |
-| [Voice Interface](./voice.md) | STT, TTS, 영어 음성, Full-voice, 음성 승인 |
+| [Voice Interface](./voice.md) | STT, TTS, 영어 음성, 말로 이어 가는 대화, 음성 승인 |
 

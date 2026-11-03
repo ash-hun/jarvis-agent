@@ -58,6 +58,6 @@ KAREN 은 저장소의 `team/karen.yaml` 정의 파일 하나로 설정한다. �
 
 ## 부르는 방법
 
-- Web HUD 의 SESSIONS 카드 위 에이전트 칩에서 KAREN 을 누른다
+- Web HUD 리액터 구체 양옆의 화살표를 누르거나 구체를 좌우로 밀어 KAREN 으로 넘긴다
 - `jarvis --agent karen` 으로 띄우면 `default-karen` 세션으로 HUD 가 열린다
 - JARVIS 에게 청약 질문을 하면 JARVIS 가 `ask_agent` 로 KAREN 에게 맡긴다

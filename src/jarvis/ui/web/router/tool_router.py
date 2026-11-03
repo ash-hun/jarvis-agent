@@ -8,6 +8,11 @@ from jarvis.ui.web.web_state import WebState
 TOOL_DESCRIPTION_CHARS = 160
 
 
+
+def short_description(text: str | None) -> str:
+    """도구 설명의 첫 줄 앞 TOOL_DESCRIPTION_CHARS 자. 목록 화면이 한 줄로 보인다."""
+    return (text or "").strip().split("\n")[0][:TOOL_DESCRIPTION_CHARS]
+
 def build_tool_router(state: WebState) -> APIRouter:
     router = APIRouter(tags=["tools"])
     ctx = state.ctx
@@ -43,7 +48,7 @@ def build_tool_router(state: WebState) -> APIRouter:
         tools = [
             {
                 "name": tool.name,
-                "description": (tool.description or "").strip().split("\n")[0][:TOOL_DESCRIPTION_CHARS],
+                "description": short_description(tool.description),
                 "approval": tool.name in needs_approval,
             }
             for tool in sorted(registry.list_all(), key=lambda t: t.name)

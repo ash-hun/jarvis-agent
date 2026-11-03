@@ -46,6 +46,12 @@ def test_ask_agent_turn_becomes_delegation_edges(team_assembly):
     done = [(e["source"], e["target"], e["ok"]) for e in graph["edges"]]
     assert ("main", "karen", True) in done and ("karen", "main", True) in done
     assert all(e["ended_ms"] >= e["started_ms"] for e in graph["edges"])
+    caps = graph["capabilities"]
+    assert {"name", "description", "approval", "agents"} <= set(caps[0])
+    assert all(set(c["agents"]) <= {"main", "karen"} for c in caps)
+    shared = next(c for c in caps if c["name"] == "ask_agent")
+    assert shared["agents"] == ["main", "karen"]
+    assert [len(c["agents"]) > 1 for c in caps] == sorted(len(c["agents"]) > 1 for c in caps)
 
 
 def test_jobs_list_schedules_before_and_after_a_run(monkeypatch, tmp_path):

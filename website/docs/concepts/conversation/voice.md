@@ -63,22 +63,22 @@ Voice Interface는 Web HUD 와 데스크톱 앱에서 JARVIS 에게 말로 묻�
 
 <figure className="paper-fig">
   <FigureVoice />
-  <figcaption><b>Figure 1.</b> (a) STT 와 TTS 는 브라우저가 기본이고 서버(faster-whisper, supertonic)로 바꿀 수 있다. 읽기 전에 서버가 마크다운 기호를 지우고 금액 숫자를 한글로 바꾼다. 영어 문장은 Piper 나 qwen 합성 서버로 따로 읽게 할 수 있고, `speak_english` 를 켜면 JARVIS 가 내는 한국어 글을 소리로만 영어로 옮겨 문장마다 읽는다. (b) Full-voice 는 듣기, 처리, 생각, 말하기를 돈다. (c) 음성 승인 답은 번호 순서로 해석하고, 애매하면 거부한다.</figcaption>
+  <figcaption><b>Figure 1.</b> (a) STT 와 TTS 는 브라우저가 기본이고 서버(faster-whisper, supertonic)로 바꿀 수 있다. 읽기 전에 서버가 마크다운 기호를 지우고 금액 숫자를 한글로 바꾼다. 영어 문장은 Piper 나 qwen 합성 서버로 따로 읽게 할 수 있고, `speak_english` 를 켜면 JARVIS 가 내는 한국어 글을 소리로만 영어로 옮겨 문장마다 읽는다. (b) 말로 시작한 대화는 듣기, 처리, 생각, 말하기를 돈다. (c) 음성 승인 답은 번호 순서로 해석하고, 애매하면 거부한다.</figcaption>
 </figure>
 
-Web HUD 의 기본 상태는 아래와 같다. Full-voice 의 상태 기계는 [Full-voice](#full-voice) 에 있다.
+Web HUD 의 기본 상태는 아래와 같다. 말로 시작한 뒤의 상태 기계는 [말로 이어 가는 대화](#말로-이어-가는-대화) 에 있다.
 
 ```mermaid
 stateDiagram-v2
   [*] --> idle
-  idle --> listening: 구체 클릭 또는 "Jarvis"
+  idle --> listening: 구체 클릭, "Jarvis", 전역 단축키
   listening --> processing: 전사
-  processing --> idle: user_message 전송
-  idle --> speaking: 응답 또는 🔔 도착
+  processing --> idle: user_message 전송 (대화가 열린다)
+  idle --> speaking: 스케줄 알림, speak 표시된 🔔
   speaking --> idle
 ```
 
-1. 기다리는 동안 웨이크워드("Jarvis")나 구체 클릭으로 듣기를 연다
+1. 기다리는 동안 웨이크워드("Jarvis"), 구체 클릭, 데스크톱 전역 단축키로 듣기를 연다
 2. 브라우저(Web Speech API)나 서버(whisper)가 받아 적는다. 서버 인식은 잘 못 들었으면 되묻고 멈춘다
 3. 받아 적은 말을 `user_message` 로 보낸다. 승인 창이 열려 있으면 대화가 아니라 승인 답으로 쓴다
 4. 응답이 오면 `voice_tts_request` 로 읽기를 요청한다. 서버가 기호를 지우고, `speak_english` 면 영어로 옮긴다
@@ -87,10 +87,10 @@ stateDiagram-v2
 ### Web HUD
 
 - 기다리는 동안 "Jarvis" 라고 부르면 "At your service, sir." 로 답하고 바로 듣는다([웨이크워드](#웨이크워드))
-- 구체를 클릭하면 음성 모드가 켜지고 꺼진다. 읽는 중에 클릭하면 읽기만 멈춘다. 켜져 있으면 응답과 먼저 건네는 말, 스케줄 알림을 읽어 준다. 놓친 알림은 읽지 않는다
+- 구체를 클릭하면 듣기를 시작하고, 듣는 중에 다시 누르면 취소한다. 읽는 중에 클릭하면 읽기만 멈춘다. 말로 시작한 요청은 응답을 읽어 주고, 대화 중에는 먼저 건네는 말도 읽는다. 스케줄 알림은 늘 읽고, 놓친 알림은 읽지 않는다
 - 서버 TTS 는 `voice_tts_request` 로 요청하고 `voice_tts_audio` 로 받는다. `data` 가 비어 오면 브라우저가 직접 읽는다
 - 읽기 전에 서버가 마크다운 기호를 지운다. `**`, `#`, 목록 기호, 표의 `|` 는 읽지 않고, 코드 블록과 URL 은 건너뛰고, 링크는 글자만 읽는다. 원, 만, 억 앞의 금액 숫자는 한글로 바꿔 `70,000,000원` 을 "칠천만원" 으로 읽는다(단위 없는 숫자는 그대로)
-- 읽는 중에 `Esc` 를 누르거나 구체를 클릭하면 멈춘다. 합성을 기다리는 중이어도 멈추고, 늦게 도착한 오디오는 버린다. Full-voice 라도 멈춘 뒤에는 다시 듣지 않는다
+- 읽는 중에 `Esc` 를 누르거나 구체를 클릭하면 멈춘다. 합성을 기다리는 중이어도 멈추고, 늦게 도착한 오디오는 버린다. 멈추면 대화도 끝나 다시 듣지 않는다
 - `포커스 모드 <작업>`, `포커스 종료` 는 `/focus` 명령으로 보낸다. 인식이 키워드를 틀리거나 앞을 잘라도 받는 규칙은 [Focus Mode](../mode/focus-mode.md#켜고-끄기) 에 있다
 
 :::note
@@ -99,25 +99,27 @@ stateDiagram-v2
 
 :::
 
-#### Full-voice
+#### 말로 이어 가는 대화
 
-헤더에서 `FULL-VOICE` 를 고르면 응답, 승인 요청(아래쪽 띠), 먼저 건네는 말의 피드백 질문을 읽어 주고 답을 듣는다. 마이크 스트림은 Default 로 돌아갈 때까지 잡아 둔다. 듣기와 읽기 사이에 블루투스 헤드셋이 프로필을 바꾸지 않게 하려는 것이다.
+음성에는 모드 전환이 없다. 타이핑한 요청은 화면으로만 답한다. 구체 클릭, "Jarvis" 웨이크워드, 데스크톱 전역 단축키처럼 말로 시작한 요청은 대화를 연다. 대화 중에는 응답을 읽어 준 뒤 다시 듣고, 먼저 건네는 말(🔔)도 읽은 뒤 답을 듣는다. 대화 중이 아니면 🔔 는 서버가 `speak` 로 표시한 것만 읽는다.
+
+대화는 세 경우에 끝난다. 들었는데 말이 없을 때(서버 녹음은 약 8초 동안 말소리가 없을 때, 브라우저 인식은 말 없이 끝났을 때), 입력창에 적어 보냈을 때, 읽는 중에 `Esc` 나 구체 클릭으로 멈췄을 때다. 듣기 사이에 마이크를 잡아 두지 않으므로 블루투스 헤드셋은 실제로 듣는 동안에만 통화 음질로 바뀐다.
 
 ```mermaid
 stateDiagram-v2
-  [*] --> listening: FULL-VOICE 선택
+  [*] --> listening: 구체 클릭, "Jarvis", 전역 단축키
   listening --> processing: 전사
-  listening --> idle: 말 없음
+  listening --> [*]: 말 없음
   processing --> thinking: user_message
   thinking --> speaking: 응답 끝
   thinking --> speaking: 승인 요청 (명령 X 를 실행할까요)
-  speaking --> listening: 응답, 승인 질문, 🔔 질문을 다 읽음
+  thinking --> [*]: 입력창으로 보냄
+  speaking --> listening: 응답, 승인 질문, 🔔 를 다 읽음
   speaking --> thinking: 승인 되읽기 뒤 (작업 계속)
-  idle --> speaking: 🔔 도착
-  idle --> listening: 구체 클릭 또는 "Jarvis"
+  speaking --> [*]: Esc 또는 구체 클릭
 ```
 
-Default 모드라도 음성으로 시작한 요청에서 승인이 필요하면 똑같이 되묻고 듣는다. 음성으로 묻는 동안은 화면을 가리는 모달 대신 아래쪽에 작은 띠로 명령과 버튼을 보여 준다. 승인 창이 열려 있을 때 들은 말은 대화로 보내지 않고 승인 답으로 쓴다. 브라우저 인식은 몇 초 말이 없으면 끝나기 때문에, 답을 들을 때까지 다시 듣는다(최대 20번). 읽는 동안에는 듣지 않는다.
+대화 중이거나 말로 시작한 요청에서 승인이 필요하면 되묻고 듣는다. 음성으로 묻는 동안은 화면을 가리는 모달 대신 아래쪽에 작은 띠로 명령과 버튼을 보여 준다. 승인 창이 열려 있을 때 들은 말은 대화로 보내지 않고 승인 답으로 쓴다. 브라우저 인식은 몇 초 말이 없으면 끝나기 때문에, 답을 들을 때까지 다시 듣는다(최대 20번). 승인을 기다리는 동안에는 말 없이 끝난 듣기가 대화를 끝내지 않는다. 읽는 동안에는 듣지 않는다.
 
 음성으로 받은 승인 답은 애매하면 거부 쪽으로 해석한다. 부정어가 있으면 거부하고, 분명한 긍정이면 허용한다. 그 밖의 말("그거 돌려")은 사고 모델에 물어 `allow`/`always` 일 때만 허용하고 나머지는 거부한다. gemma4:e2b 로 실측했을 때 승인 답 11문장 중 허용하면 안 되는 말을 허용한 경우는 0건이었다. 분류기 실험은 [Tools and Approval](./tools-and-approval.md) 에 있다.
 
@@ -245,7 +247,7 @@ JARVIS 전용으로 학습한 모델 세 가지를 레포의 `models/` 폴더에
 |---|---|---|
 | TTS | `models/tts/voice.onnx`, `voice.onnx.json` | 영어 문장을 JARVIS 목소리로 읽는다. Piper 음성이라 위의 `PIPER_MODEL` 로 지정한다. `qwen` 을 쓰면 서버에 닿지 않을 때만 읽는다 |
 | 읽기 문구 | `models/tts/phrases/phrases.json`, wav 9개 | 정해진 순간에 합성 대신 녹음한 문구를 읽는다 |
-| 웨이크워드 | `models/wakeword/jarvis.onnx`, `melspectrogram.onnx`, `embedding_model.onnx` | 모드와 상관없이 기다리는 동안 "Jarvis" 를 들으면 듣기를 연다 |
+| 웨이크워드 | `models/wakeword/jarvis.onnx`, `melspectrogram.onnx`, `embedding_model.onnx` | 기다리는 동안 "Jarvis" 를 들으면 듣기를 연다 |
 
 학습 결과 폴더에서 체크포인트(`model.ckpt`, 846MB)만 빼고 복사한다. `rsync -a` 라 다시 실행해도 같은 상태가 된다.
 
@@ -267,7 +269,7 @@ JARVIS_VOICE__WAKE_THRESHOLD=0.5
 
 #### 읽기 문구
 
-음성으로 일하는 중(Full-voice, 또는 음성으로 시작한 요청)에만 읽는다.
+말로 이어 가는 대화 중이거나 음성으로 시작한 요청에서만 읽는다. 웨이크워드를 들었을 때의 문구는 늘 읽는다.
 
 | 순간 | 문구 |
 |---|---|
@@ -277,13 +279,13 @@ JARVIS_VOICE__WAKE_THRESHOLD=0.5
 | 💬 filler(오래 걸리는 요청을 뒤로 넘김) | Processing Long Task. filler 문장은 화면에만 쓰고 읽지 않는다 |
 | `/focus` 로 Focus 를 켜고 끔 | Activate Focus mode. / Deactivate Focus mode. |
 | Focus 분석 갱신 시작 | Target. Analysis. |
-| 에이전트 칩으로 KAREN, JARVIS 전환 | Change to KAREN. / Change to JARVIS. |
+| 구체 옆 화살표나 밀기로 KAREN, JARVIS 전환 | Change to KAREN. / Change to JARVIS. |
 
 접속할 때 서버가 되살리는 Focus 는 문구를 읽지 않는다. 사용자가 보낸 `/focus` 로 바뀐 경우만 읽는다. wav 는 `GET /api/voice/phrases/{name}` 으로 처음 읽을 때 한 번 받는다.
 
 #### 웨이크워드
 
-Default, Full-voice 모두 기다리는 동안 브라우저가 마이크 소리를 16kHz PCM 으로 WebSocket 바이너리 프레임에 실어 보낸다. 서버는 연결마다 openWakeWord 감지기를 하나 두고 80ms 마다 점수를 매긴다. 점수가 임계치를 넘으면 `voice_wake` 를 보내고, 화면은 "At your service, sir." 를 읽은 뒤 바로 듣는다. 듣기, 읽기, 응답, 승인 중에는 보내지 않는다. Default 에서 깨워 보낸 요청은 응답을 읽어 주고, 다 읽은 뒤 다시 듣지는 않는다.
+기다리는 동안 브라우저가 마이크 소리를 16kHz PCM 으로 WebSocket 바이너리 프레임에 실어 보낸다. 서버는 연결마다 openWakeWord 감지기를 하나 두고 80ms 마다 점수를 매긴다. 점수가 임계치를 넘으면 `voice_wake` 를 보내고, 화면은 "At your service, sir." 를 읽은 뒤 바로 듣는다. 듣기, 읽기, 응답, 승인 중에는 보내지 않는다. 깨워 보낸 요청은 말로 시작한 요청이라 대화가 열리고, 응답을 다 읽은 뒤 다시 듣는다.
 
 이름 끝 무렵 여러 프레임이 연달아 임계치를 넘으므로, 첫 프레임에서 한 번 깨고 그 뒤 1초는 무시한다.
 
@@ -303,7 +305,7 @@ TTS 와 읽기 문구는 영화 속 인물의 목소리를 흉내 낸 모델이�
 
 - Qwen 합성 서버는 Apple silicon Mac 에서만 된다. 리눅스 서버로 옮기면 이 방식은 쓸 수 없다
 - 재시작 직후 첫 번역은 모델 연결을 여느라 8초를 넘길 수 있다. 그때는 "Sir, I've put it on your screen." 이 나온다
-- 웨이크워드가 켜져 있으면 Default 에서도 마이크가 계속 열려 있어 브라우저의 녹음 표시가 꺼지지 않는다. 닫으려면 `JARVIS_VOICE__WAKE_MODEL_DIR` 를 비운다
+- 웨이크워드가 켜져 있으면 기다리는 동안에도 마이크가 계속 열려 있어 브라우저의 녹음 표시가 꺼지지 않는다. 닫으려면 `JARVIS_VOICE__WAKE_MODEL_DIR` 를 비운다
 - 웨이크워드는 영어 발음 "Jarvis" 만 알아듣는다. 한국어로 "자비스" 라고 부르면 깨지 않는다
 - 웨이크워드 모델은 합성 음성으로만 학습했다. "Jars", "Garbage" 처럼 비슷한 소리에 깨어날 수 있다
 - 브라우저 STT 는 Chrome 계열에서 동작한다. 지원하지 않는 브라우저에서는 SYS 에러가 한 줄 뜬다
@@ -317,7 +319,7 @@ TTS 와 읽기 문구는 영화 속 인물의 목소리를 흉내 낸 모델이�
 
 ```mermaid
 flowchart LR
-  MODE[헤더 모드<br/>app/mode.js] --> VUI[app/voice-ui.js]
+  EVT[app/events.js<br/>응답, 🔔, 승인] --> VUI[app/voice-ui.js<br/>말로 이어 가는 대화]
   VUI --> VM[VoiceManager<br/>voice.js]
   VM --> SR[Web Speech 인식<br/>또는 MediaRecorder]
   VM --> TTS[speechSynthesis<br/>또는 voice_tts_audio]

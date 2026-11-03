@@ -84,3 +84,19 @@ def _text(text: str, cache: bool = False) -> dict[str, Any]:
 )
 async def test_stream_caches_history_up_to_previous_message(monkeypatch, messages, expected):
     assert await _sent_messages(monkeypatch, messages) == expected
+
+
+async def test_stream_does_not_send_temperature_the_sdk_rejects(monkeypatch: pytest.MonkeyPatch) -> None:
+    sent: dict[str, Any] = {}
+
+    def stream(**kwargs: Any) -> _FakeStream:
+        sent.update(kwargs)
+        return _FakeStream()
+
+    client = SimpleNamespace(messages=SimpleNamespace(stream=stream))
+    monkeypatch.setattr(anthropic_mod.anthropic, "AsyncAnthropic", lambda **_kw: client)
+    model = ModelConfig(provider="anthropic", model="claude", api_key="k", temperature=0.0)
+
+    [ev async for ev in AnthropicProvider().stream(model, LLMContext(messages=[UserMessage(content="hi")]))]
+
+    assert "temperature" not in sent and sent["model"] == "claude"

@@ -4499,5 +4499,1418 @@
     }
    }
   }
+ },
+ "scorecard": {
+  "config": {
+   "seed": 0,
+   "judge_model": "gpt-4o",
+   "extract_model": "gpt-4o-mini",
+   "embedder": "bge-m3",
+   "reference_polygon": "gpt",
+   "budget": {
+    "provider": "anthropic",
+    "cap_usd": 70.0,
+    "estimate_margin": 2.0,
+    "fallback_quotes_usd": {
+     "custom_scenario": 0.5,
+     "bbeh": 5.0
+    }
+   },
+   "prices_per_mtok": {
+    "claude-sonnet-5-5": {
+     "input": 3.0,
+     "output": 15.0,
+     "cache_read": 0.3,
+     "cache_write": 3.75
+    },
+    "claude-haiku-5-5": {
+     "input": 1.0,
+     "output": 5.0,
+     "cache_read": 0.1,
+     "cache_write": 1.25
+    }
+   },
+   "axis_colors": [
+    "#F7DC8B",
+    "#A9CFEA",
+    "#A6DDB8",
+    "#F5C59F",
+    "#D9C2E6",
+    "#F2B5B0"
+   ],
+   "polygons": [
+    {
+     "id": "claude",
+     "main": "claude-sonnet-5-5",
+     "thought": "claude-haiku-5-5",
+     "color": "#F08A7E"
+    },
+    {
+     "id": "gpt",
+     "main": "gpt-4o-mini",
+     "thought": "gpt-4o-mini",
+     "color": "#5CB8A6"
+    },
+    {
+     "id": "gemma",
+     "main": "gemma4:e4b",
+     "thought": "gemma4:e2b-it-qat",
+     "color": "#9A8AD8"
+    }
+   ],
+   "vertices": [
+    {
+     "id": "personamem_v2",
+     "label": "PersonaMem-v2",
+     "axis": "Personalization",
+     "role": "main"
+    },
+    {
+     "id": "proactivebench",
+     "label": "ProactiveBench",
+     "axis": "Proactivity",
+     "role": "thought"
+    },
+    {
+     "id": "custom_scenario",
+     "label": "Custom Scenario Test",
+     "axis": "Proactivity",
+     "role": "thought"
+    },
+    {
+     "id": "tau2",
+     "label": "τ²-bench",
+     "axis": "Tool Use",
+     "role": "main"
+    },
+    {
+     "id": "gaia",
+     "label": "GAIA",
+     "axis": "Tool Use",
+     "role": "main"
+    },
+    {
+     "id": "kramabench",
+     "label": "KramaBench",
+     "axis": "Long-Horizon",
+     "role": "main"
+    },
+    {
+     "id": "bbeh",
+     "label": "BBEH-mini",
+     "axis": "Self-Evolving",
+     "role": "main"
+    },
+    {
+     "id": "longmemeval_s",
+     "label": "LongMemEval-s",
+     "axis": "Memory Performance",
+     "role": "main"
+    },
+    {
+     "id": "minteval",
+     "label": "MINT-Eval",
+     "axis": "Memory Performance",
+     "role": "main"
+    }
+   ]
+  },
+  "polygons": {
+   "claude": {
+    "personamem_v2": {
+     "score": 46.7,
+     "raw": 0.4667,
+     "n": 60,
+     "ci95": [
+      34.6,
+      59.1
+     ],
+     "detail": {
+      "condition": "service turns+src",
+      "n": 60,
+      "session_recall": 0.36538461538461536,
+      "turn_recall": 0.25,
+      "accuracy": 0.4666666666666667,
+      "mean_items": 6.0,
+      "mean_chars": 2201.1
+     },
+     "model": "claude-sonnet-5-5",
+     "usage": {
+      "claude-sonnet-5-5": {
+       "input": 83791,
+       "output": 8875,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 60
+      }
+     },
+     "seconds": 82.6,
+     "budget_usd": 0.384
+    },
+    "proactivebench": {
+     "score": 50.0,
+     "raw": 0.5,
+     "n": 100,
+     "ci95": [
+      40.4,
+      59.6
+     ],
+     "detail": {
+      "recall": 0.0,
+      "false_alarm": 0.0,
+      "threshold": 0.9,
+      "labels": {
+       "must": 66,
+       "must_not": 34
+      },
+      "pool_labels": {
+       "must": 87,
+       "can": 101,
+       "must_not": 45
+      },
+      "by_category": {
+       "code": {
+        "n": 50,
+        "recall": 0.0,
+        "false_alarm": 0.0
+       },
+       "writing": {
+        "n": 50,
+        "recall": 0.0,
+        "false_alarm": 0.0
+       }
+      },
+      "llm_per_item": 1,
+      "input_tokens_per_item": 1809.8,
+      "output_tokens_per_item": 715.4,
+      "fresh_calls": 0,
+      "calibration": {
+       "n": 32,
+       "labels": {
+        "must": 21,
+        "must_not": 11
+       },
+       "failed": 0,
+       "rule": "max(recall - false_alarm) over SWEEP on the calibration split, ties to the higher threshold"
+      },
+      "fixed_threshold": {
+       "threshold": 0.85,
+       "score": 50.0,
+       "recall": 0.0,
+       "false_alarm": 0.0
+      },
+      "errors": 0
+     },
+     "model": "claude-haiku-5-5",
+     "usage": {
+      "claude-haiku-5-5": {
+       "input": 58948,
+       "output": 22590,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 32
+      }
+     },
+     "seconds": 17.2,
+     "budget_usd": 0.172
+    },
+    "custom_scenario": {
+     "score": 100.0,
+     "raw": 1.0,
+     "n": 24,
+     "ci95": [
+      86.2,
+      100.0
+     ],
+     "detail": {
+      "threshold": 0.85,
+      "recall": 1.0,
+      "false_alarm": 0.0,
+      "recall_range": [
+       1.0,
+       1.0
+      ],
+      "false_alarm_range": [
+       0.0,
+       0.0
+      ],
+      "repeat": 3
+     },
+     "model": "claude-haiku-5-5",
+     "usage": {
+      "claude-haiku-5-5": {
+       "input": 187671,
+       "output": 116700,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 126
+      },
+      "gpt-4o": {
+       "input": 12044,
+       "output": 2335,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 37
+      }
+     },
+     "seconds": 1271.8,
+     "budget_usd": 0.771
+    },
+    "tau2": {
+     "score": 87.5,
+     "raw": 0.875,
+     "n": 40,
+     "ci95": [
+      73.9,
+      94.5
+     ],
+     "detail": {
+      "airline": {
+       "pass^1": 0.85,
+       "n": 20
+      },
+      "retail": {
+       "pass^1": 0.9,
+       "n": 20
+      },
+      "per_task": {
+       "agent": {
+        "calls": 9.4,
+        "input": 1509.0,
+        "output": 1849.4
+       },
+       "user": {
+        "calls": 5.9,
+        "input": 5201.3,
+        "output": 171.8
+       }
+      },
+      "terminations": {
+       "user_stop": 40
+      },
+      "errors": 0
+     },
+     "model": "claude-sonnet-5-5",
+     "usage": {
+      "gpt-4o": {
+       "input": 208053,
+       "output": 6874,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 235
+      },
+      "claude-sonnet-5-5": {
+       "input": 60358,
+       "output": 73976,
+       "cache_read": 3091890,
+       "cache_write": 203717,
+       "calls": 378
+      }
+     },
+     "seconds": 304.0,
+     "budget_usd": 2.982
+    },
+    "gaia": {
+     "score": 70.0,
+     "raw": 0.7,
+     "n": 40,
+     "ci95": [
+      54.6,
+      81.9
+     ],
+     "detail": {
+      "accuracy": 0.7,
+      "by_level": {
+       "1": {
+        "n": 16,
+        "accuracy": 0.875
+       },
+       "2": {
+        "n": 24,
+        "accuracy": 0.5833
+       }
+      },
+      "answered": 0.975,
+      "mean_llm_calls": 8.85,
+      "mean_input_tokens": 8468.6,
+      "mean_output_tokens": 3424.68,
+      "mean_web_requests": 12.35,
+      "mean_tool_calls": {
+       "fetch": 0.05,
+       "fetch_placeholder": 0.07,
+       "web_fetch": 7.72,
+       "web_search": 4.62
+      },
+      "total_tool_calls": 499,
+      "overflowed": 5,
+      "rate_limited": 0,
+      "empty_search": 80,
+      "seed": 0,
+      "max_turns": 20,
+      "search_interval_sec": 4.0,
+      "scoring": "GAIA official question_scorer",
+      "cached": 27,
+      "errors": 0
+     },
+     "model": "claude-sonnet-5-5",
+     "usage": {
+      "claude-sonnet-5-5": {
+       "input": 197708,
+       "output": 87920,
+       "cache_read": 4294960,
+       "cache_write": 769312,
+       "calls": 223
+      }
+     },
+     "seconds": 1124.9,
+     "budget_usd": 6.085
+    },
+    "kramabench": {
+     "score": 55.0,
+     "raw": 0.55,
+     "n": 20,
+     "ci95": [
+      34.2,
+      74.2
+     ],
+     "detail": {
+      "accuracy": 0.55,
+      "solved": 11,
+      "answered": 1.0,
+      "overflow_rate": 0.0,
+      "completed_after_overflow": null,
+      "accuracy_overflowed": null,
+      "mean_llm_calls": 8.15,
+      "summary_calls": 0,
+      "max_llm_calls": 15,
+      "max_turns": 20
+     },
+     "model": "claude-sonnet-5-5",
+     "usage": {
+      "claude-sonnet-5-5": {
+       "input": 88574,
+       "output": 41285,
+       "cache_read": 502128,
+       "cache_write": 114519,
+       "calls": 163
+      }
+     },
+     "seconds": 237.7,
+     "budget_usd": 1.465
+    },
+    "bbeh": {
+     "score": 57.1,
+     "raw": 0.5707,
+     "n": 184,
+     "ci95": [
+      49.8,
+      64.0
+     ],
+     "detail": {
+      "before_reflection": 0.5543,
+      "gained": 11,
+      "lost": 8
+     },
+     "model": "claude-sonnet-5-5",
+     "usage": {
+      "claude-sonnet-5-5": {
+       "input": 700868,
+       "output": 751810,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 367
+      }
+     },
+     "seconds": 1782.9,
+     "budget_usd": 13.38
+    },
+    "longmemeval_s": {
+     "score": 53.3,
+     "raw": 0.5333,
+     "n": 60,
+     "ci95": [
+      40.9,
+      65.4
+     ],
+     "detail": {
+      "condition": "service turns+src",
+      "n": 60,
+      "session_recall": 0.9166666666666666,
+      "turn_recall": 0.8148148148148148,
+      "accuracy": 0.5333333333333333,
+      "mean_items": 6.0,
+      "mean_chars": 2210.7
+     },
+     "model": "claude-sonnet-5-5",
+     "usage": {
+      "claude-sonnet-5-5": {
+       "input": 57503,
+       "output": 6932,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 60
+      },
+      "gpt-4o": {
+       "input": 5070,
+       "output": 38,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 38
+      }
+     },
+     "seconds": 354.3,
+     "budget_usd": 0.276
+    },
+    "minteval": {
+     "score": 5.0,
+     "raw": 0.05,
+     "n": 40,
+     "ci95": [
+      1.4,
+      16.5
+     ],
+     "detail": {
+      "condition": "service turns+src",
+      "n": 40,
+      "session_recall": null,
+      "turn_recall": null,
+      "accuracy": 0.05,
+      "mean_items": 5.75,
+      "mean_chars": 1242.1
+     },
+     "model": "claude-sonnet-5-5",
+     "usage": {
+      "claude-sonnet-5-5": {
+       "input": 28283,
+       "output": 4683,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 40
+      },
+      "gpt-4o": {
+       "input": 1403,
+       "output": 15,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 15
+      }
+     },
+     "seconds": 53.8,
+     "budget_usd": 0.155
+    }
+   },
+   "gpt": {
+    "personamem_v2": {
+     "score": 31.7,
+     "raw": 0.3167,
+     "n": 60,
+     "ci95": [
+      21.3,
+      44.2
+     ],
+     "detail": {
+      "condition": "service turns+src",
+      "n": 60,
+      "session_recall": 0.36538461538461536,
+      "turn_recall": 0.25,
+      "accuracy": 0.31666666666666665,
+      "mean_items": 6.0,
+      "mean_chars": 2201.1
+     },
+     "model": "gpt-4o-mini",
+     "usage": {
+      "gpt-4o-mini": {
+       "input": 51631,
+       "output": 108,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 60
+      }
+     },
+     "seconds": 33.0,
+     "budget_usd": 0
+    },
+    "proactivebench": {
+     "score": 69.0,
+     "raw": 0.6898,
+     "n": 100,
+     "ci95": [
+      59.4,
+      77.2
+     ],
+     "detail": {
+      "recall": 0.4090909090909091,
+      "false_alarm": 0.029411764705882353,
+      "threshold": 0.8,
+      "labels": {
+       "must": 66,
+       "must_not": 34
+      },
+      "pool_labels": {
+       "must": 87,
+       "can": 101,
+       "must_not": 45
+      },
+      "by_category": {
+       "code": {
+        "n": 50,
+        "recall": 0.4634146341463415,
+        "false_alarm": 0.1111111111111111
+       },
+       "writing": {
+        "n": 50,
+        "recall": 0.32,
+        "false_alarm": 0.0
+       }
+      },
+      "llm_per_item": 1,
+      "input_tokens_per_item": 1066.9,
+      "output_tokens_per_item": 183.5,
+      "fresh_calls": 0,
+      "calibration": {
+       "n": 32,
+       "labels": {
+        "must": 21,
+        "must_not": 11
+       },
+       "failed": 0,
+       "rule": "max(recall - false_alarm) over SWEEP on the calibration split, ties to the higher threshold"
+      },
+      "fixed_threshold": {
+       "threshold": 0.85,
+       "score": 50.0,
+       "recall": 0.0,
+       "false_alarm": 0.0
+      },
+      "errors": 0
+     },
+     "model": "gpt-4o-mini",
+     "usage": {
+      "gpt-4o-mini": {
+       "input": 34772,
+       "output": 5282,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 32
+      }
+     },
+     "seconds": 10.5,
+     "budget_usd": 0
+    },
+    "custom_scenario": {
+     "score": 88.9,
+     "raw": 0.889,
+     "n": 24,
+     "ci95": [
+      70.7,
+      96.4
+     ],
+     "detail": {
+      "threshold": 0.85,
+      "recall": 0.889,
+      "false_alarm": 0.111,
+      "recall_range": [
+       0.833,
+       0.917
+      ],
+      "false_alarm_range": [
+       0.083,
+       0.167
+      ],
+      "repeat": 3
+     },
+     "model": "gpt-4o-mini",
+     "usage": {
+      "gpt-4o": {
+       "input": 28907,
+       "output": 3350,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 99
+      }
+     },
+     "seconds": 82.8,
+     "budget_usd": 0
+    },
+    "tau2": {
+     "score": 32.5,
+     "raw": 0.325,
+     "n": 40,
+     "ci95": [
+      20.1,
+      48.0
+     ],
+     "detail": {
+      "airline": {
+       "pass^1": 0.3,
+       "n": 20
+      },
+      "retail": {
+       "pass^1": 0.35,
+       "n": 20
+      },
+      "per_task": {
+       "agent": {
+        "calls": 11.4,
+        "input": 53611.4,
+        "output": 991.5
+       },
+       "user": {
+        "calls": 7.4,
+        "input": 7213.9,
+        "output": 214.3
+       }
+      },
+      "terminations": {
+       "user_stop": 40
+      },
+      "errors": 0
+     },
+     "model": "gpt-4o-mini",
+     "usage": {
+      "gpt-4o": {
+       "input": 259204,
+       "output": 7630,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 261
+      },
+      "gpt-4o-mini": {
+       "input": 1915581,
+       "output": 35432,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 401
+      }
+     },
+     "seconds": 248.7,
+     "budget_usd": 0
+    },
+    "gaia": {
+     "score": 37.5,
+     "raw": 0.375,
+     "n": 40,
+     "ci95": [
+      24.2,
+      53.0
+     ],
+     "detail": {
+      "accuracy": 0.375,
+      "by_level": {
+       "1": {
+        "n": 16,
+        "accuracy": 0.5625
+       },
+       "2": {
+        "n": 24,
+        "accuracy": 0.25
+       }
+      },
+      "answered": 1.0,
+      "mean_llm_calls": 6.3,
+      "mean_input_tokens": 27079.95,
+      "mean_output_tokens": 307.93,
+      "mean_web_requests": 5.95,
+      "mean_tool_calls": {
+       "web_fetch": 1.8,
+       "web_search": 4.15
+      },
+      "total_tool_calls": 238,
+      "overflowed": 2,
+      "rate_limited": 2,
+      "empty_search": 5,
+      "seed": 0,
+      "max_turns": 20,
+      "search_interval_sec": 4.0,
+      "scoring": "GAIA official question_scorer",
+      "cached": 33,
+      "errors": 0
+     },
+     "model": "gpt-4o-mini",
+     "usage": {
+      "gpt-4o-mini": {
+       "input": 696136,
+       "output": 4321,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 106
+      }
+     },
+     "seconds": 480.8,
+     "budget_usd": 0
+    },
+    "kramabench": {
+     "score": 15.0,
+     "raw": 0.15,
+     "n": 20,
+     "ci95": [
+      5.2,
+      36.0
+     ],
+     "detail": {
+      "accuracy": 0.15,
+      "solved": 3,
+      "answered": 1.0,
+      "overflow_rate": 0.65,
+      "completed_after_overflow": 0.0,
+      "accuracy_overflowed": 0.077,
+      "mean_llm_calls": 23.75,
+      "summary_calls": 26,
+      "max_llm_calls": 32,
+      "max_turns": 20
+     },
+     "model": "gpt-4o-mini",
+     "usage": {
+      "gpt-4o-mini": {
+       "input": 4038418,
+       "output": 57295,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 422
+      }
+     },
+     "seconds": 1761.0,
+     "budget_usd": 0
+    },
+    "bbeh": {
+     "score": 16.3,
+     "raw": 0.163,
+     "n": 184,
+     "ci95": [
+      11.7,
+      22.3
+     ],
+     "detail": {
+      "before_reflection": 0.1576,
+      "gained": 4,
+      "lost": 3
+     },
+     "model": "gpt-4o-mini",
+     "usage": {},
+     "seconds": 0.2,
+     "budget_usd": 0
+    },
+    "longmemeval_s": {
+     "score": 51.7,
+     "raw": 0.5167,
+     "n": 60,
+     "ci95": [
+      39.3,
+      63.8
+     ],
+     "detail": {
+      "condition": "service turns+src",
+      "n": 60,
+      "session_recall": 0.9166666666666666,
+      "turn_recall": 0.8148148148148148,
+      "accuracy": 0.5166666666666667,
+      "mean_items": 6.0,
+      "mean_chars": 2210.7
+     },
+     "model": "gpt-4o-mini",
+     "usage": {
+      "gpt-4o-mini": {
+       "input": 36060,
+       "output": 431,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 60
+      },
+      "gpt-4o": {
+       "input": 2480,
+       "output": 27,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 26
+      }
+     },
+     "seconds": 165.3,
+     "budget_usd": 0
+    },
+    "minteval": {
+     "score": 7.5,
+     "raw": 0.075,
+     "n": 40,
+     "ci95": [
+      2.6,
+      19.9
+     ],
+     "detail": {
+      "condition": "service turns+src",
+      "n": 40,
+      "session_recall": null,
+      "turn_recall": null,
+      "accuracy": 0.075,
+      "mean_items": 5.75,
+      "mean_chars": 1242.1
+     },
+     "model": "gpt-4o-mini",
+     "usage": {
+      "gpt-4o-mini": {
+       "input": 18134,
+       "output": 101,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 40
+      },
+      "gpt-4o": {
+       "input": 864,
+       "output": 10,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 10
+      }
+     },
+     "seconds": 21.9,
+     "budget_usd": 0
+    }
+   },
+   "gemma": {
+    "personamem_v2": {
+     "score": 18.3,
+     "raw": 0.1833,
+     "n": 60,
+     "ci95": [
+      10.6,
+      29.9
+     ],
+     "detail": {
+      "condition": "service turns+src",
+      "n": 60,
+      "session_recall": 0.36538461538461536,
+      "turn_recall": 0.25,
+      "accuracy": 0.18333333333333332,
+      "mean_items": 6.0,
+      "mean_chars": 2201.1
+     },
+     "model": "gemma4:e4b",
+     "usage": {
+      "gemma4:e4b": {
+       "input": 53272,
+       "output": 144,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 60
+      }
+     },
+     "seconds": 102.6,
+     "budget_usd": 0
+    },
+    "proactivebench": {
+     "score": 69.9,
+     "raw": 0.6992,
+     "n": 100,
+     "ci95": [
+      60.3,
+      78.0
+     ],
+     "detail": {
+      "recall": 0.5454545454545454,
+      "false_alarm": 0.14705882352941177,
+      "threshold": 0.8,
+      "labels": {
+       "must": 66,
+       "must_not": 34
+      },
+      "pool_labels": {
+       "must": 87,
+       "can": 101,
+       "must_not": 45
+      },
+      "by_category": {
+       "code": {
+        "n": 50,
+        "recall": 0.5365853658536586,
+        "false_alarm": 0.1111111111111111
+       },
+       "writing": {
+        "n": 50,
+        "recall": 0.56,
+        "false_alarm": 0.16
+       }
+      },
+      "llm_per_item": 1,
+      "input_tokens_per_item": 1096.6,
+      "output_tokens_per_item": 444.8,
+      "fresh_calls": 0,
+      "calibration": {
+       "n": 32,
+       "labels": {
+        "must": 21,
+        "must_not": 11
+       },
+       "failed": 0,
+       "rule": "max(recall - false_alarm) over SWEEP on the calibration split, ties to the higher threshold"
+      },
+      "fixed_threshold": {
+       "threshold": 0.85,
+       "score": 68.36,
+       "recall": 0.48484848484848486,
+       "false_alarm": 0.11764705882352941
+      },
+      "errors": 0
+     },
+     "model": "gemma4:e2b-it-qat",
+     "usage": {
+      "gemma4:e2b-it-qat": {
+       "input": 35759,
+       "output": 14724,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 32
+      }
+     },
+     "seconds": 213.7,
+     "budget_usd": 0
+    },
+    "custom_scenario": {
+     "score": 66.6,
+     "raw": 0.6665,
+     "n": 24,
+     "ci95": [
+      46.7,
+      82.0
+     ],
+     "detail": {
+      "threshold": 0.85,
+      "recall": 0.889,
+      "false_alarm": 0.556,
+      "recall_range": [
+       0.75,
+       1.0
+      ],
+      "false_alarm_range": [
+       0.5,
+       0.583
+      ],
+      "repeat": 3
+     },
+     "model": "gemma4:e2b-it-qat",
+     "usage": {
+      "gemma4:e2b-it-qat": {
+       "input": 108639,
+       "output": 53286,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 126
+      },
+      "gpt-4o": {
+       "input": 17925,
+       "output": 2499,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 58
+      }
+     },
+     "seconds": 945.0,
+     "budget_usd": 0
+    },
+    "tau2": {
+     "score": 35.0,
+     "raw": 0.35,
+     "n": 40,
+     "ci95": [
+      22.1,
+      50.5
+     ],
+     "detail": {
+      "airline": {
+       "pass^1": 0.3,
+       "n": 20
+      },
+      "retail": {
+       "pass^1": 0.4,
+       "n": 20
+      },
+      "per_task": {
+       "agent": {
+        "calls": 13.2,
+        "input": 86642.6,
+        "output": 1689.9
+       },
+       "user": {
+        "calls": 8.7,
+        "input": 12131.5,
+        "output": 279.2
+       }
+      },
+      "terminations": {
+       "user_stop": 40
+      },
+      "errors": 0
+     },
+     "model": "gemma4:e4b",
+     "usage": {
+      "gpt-4o": {
+       "input": 485261,
+       "output": 11169,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 348
+      },
+      "gemma4:e4b": {
+       "input": 3465704,
+       "output": 67596,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 528
+      }
+     },
+     "seconds": 3073.4,
+     "budget_usd": 0
+    },
+    "gaia": {
+     "score": 25.0,
+     "raw": 0.25,
+     "n": 40,
+     "ci95": [
+      14.2,
+      40.2
+     ],
+     "detail": {
+      "accuracy": 0.25,
+      "by_level": {
+       "1": {
+        "n": 16,
+        "accuracy": 0.3125
+       },
+       "2": {
+        "n": 24,
+        "accuracy": 0.2083
+       }
+      },
+      "answered": 0.875,
+      "mean_llm_calls": 4.05,
+      "mean_input_tokens": 6550.7,
+      "mean_output_tokens": 1402.7,
+      "mean_web_requests": 2.92,
+      "mean_tool_calls": {
+       "web_fetch": 0.6,
+       "web_search": 2.33
+      },
+      "total_tool_calls": 117,
+      "overflowed": 0,
+      "rate_limited": 0,
+      "empty_search": 12,
+      "seed": 0,
+      "max_turns": 20,
+      "search_interval_sec": 4.0,
+      "scoring": "GAIA official question_scorer",
+      "cached": 39,
+      "errors": 0
+     },
+     "model": "gemma4:e4b",
+     "usage": {
+      "gemma4:e4b": {
+       "input": 1507,
+       "output": 2585,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 2
+      }
+     },
+     "seconds": 62.4,
+     "budget_usd": 0
+    },
+    "kramabench": {
+     "score": 7.6,
+     "raw": 0.076,
+     "n": 20,
+     "ci95": [
+      1.8,
+      27.1
+     ],
+     "detail": {
+      "accuracy": 0.076,
+      "solved": 1,
+      "answered": 0.45,
+      "overflow_rate": 0.0,
+      "completed_after_overflow": null,
+      "accuracy_overflowed": null,
+      "mean_llm_calls": 6.4,
+      "summary_calls": 0,
+      "max_llm_calls": 12,
+      "max_turns": 20
+     },
+     "model": "gemma4:e4b",
+     "usage": {},
+     "seconds": 0.0,
+     "budget_usd": 0
+    },
+    "bbeh": {
+     "score": 17.9,
+     "raw": 0.1793,
+     "n": 184,
+     "ci95": [
+      13.1,
+      24.1
+     ],
+     "detail": {
+      "before_reflection": 0.2228,
+      "gained": 4,
+      "lost": 12
+     },
+     "model": "gemma4:e4b",
+     "usage": {
+      "gemma4:e4b": {
+       "input": 607122,
+       "output": 877140,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 413
+      }
+     },
+     "seconds": 20808.6,
+     "budget_usd": 0
+    },
+    "longmemeval_s": {
+     "score": 48.3,
+     "raw": 0.4833,
+     "n": 60,
+     "ci95": [
+      36.2,
+      60.7
+     ],
+     "detail": {
+      "condition": "service turns+src",
+      "n": 60,
+      "session_recall": 0.9166666666666666,
+      "turn_recall": 0.8148148148148148,
+      "accuracy": 0.48333333333333334,
+      "mean_items": 6.0,
+      "mean_chars": 2210.7
+     },
+     "model": "gemma4:e4b",
+     "usage": {
+      "gemma4:e4b": {
+       "input": 37819,
+       "output": 292,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 60
+      },
+      "gpt-4o": {
+       "input": 2698,
+       "output": 31,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 31
+      }
+     },
+     "seconds": 173.0,
+     "budget_usd": 0
+    },
+    "minteval": {
+     "score": 15.0,
+     "raw": 0.15,
+     "n": 40,
+     "ci95": [
+      7.1,
+      29.1
+     ],
+     "detail": {
+      "condition": "service turns+src",
+      "n": 40,
+      "session_recall": null,
+      "turn_recall": null,
+      "accuracy": 0.15,
+      "mean_items": 5.75,
+      "mean_chars": 1242.1
+     },
+     "model": "gemma4:e4b",
+     "usage": {
+      "gemma4:e4b": {
+       "input": 19446,
+       "output": 230,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 40
+      },
+      "gpt-4o": {
+       "input": 1681,
+       "output": 19,
+       "cache_read": 0,
+       "cache_write": 0,
+       "calls": 19
+      }
+     },
+     "seconds": 48.4,
+     "budget_usd": 0
+    }
+   }
+  }
+ },
+ "scorecard_judge_bias": {
+  "original_judge": "gpt-4o",
+  "grader": "claude-sonnet-5-5",
+  "vertices": {
+   "longmemeval_s": {
+    "claude": {
+     "original": {
+      "score": 53.3,
+      "raw": 0.5333,
+      "n": 60,
+      "ci95": [
+       40.9,
+       65.4
+      ],
+      "detail": {}
+     },
+     "regraded": {
+      "score": 50.0,
+      "raw": 0.5,
+      "n": 60,
+      "ci95": [
+       37.7,
+       62.3
+      ],
+      "detail": {}
+     },
+     "llm_judged": 38,
+     "agreement": 0.947,
+     "kappa": 0.89,
+     "yes_to_no": 2,
+     "no_to_yes": 0
+    },
+    "gpt": {
+     "original": {
+      "score": 51.7,
+      "raw": 0.5167,
+      "n": 60,
+      "ci95": [
+       39.3,
+       63.8
+      ],
+      "detail": {}
+     },
+     "regraded": {
+      "score": 50.0,
+      "raw": 0.5,
+      "n": 60,
+      "ci95": [
+       37.7,
+       62.3
+      ],
+      "detail": {}
+     },
+     "llm_judged": 26,
+     "agreement": 0.962,
+     "kappa": 0.866,
+     "yes_to_no": 1,
+     "no_to_yes": 0
+    },
+    "gemma": {
+     "original": {
+      "score": 48.3,
+      "raw": 0.4833,
+      "n": 60,
+      "ci95": [
+       36.2,
+       60.7
+      ],
+      "detail": {}
+     },
+     "regraded": {
+      "score": 46.7,
+      "raw": 0.4667,
+      "n": 60,
+      "ci95": [
+       34.6,
+       59.1
+      ],
+      "detail": {}
+     },
+     "llm_judged": 31,
+     "agreement": 0.968,
+     "kappa": 0.928,
+     "yes_to_no": 1,
+     "no_to_yes": 0
+    }
+   },
+   "minteval": {
+    "claude": {
+     "original": {
+      "score": 5.0,
+      "raw": 0.05,
+      "n": 40,
+      "ci95": [
+       1.4,
+       16.5
+      ],
+      "detail": {}
+     },
+     "regraded": {
+      "score": 2.5,
+      "raw": 0.025,
+      "n": 40,
+      "ci95": [
+       0.4,
+       12.9
+      ],
+      "detail": {}
+     },
+     "llm_judged": 15,
+     "agreement": 0.933,
+     "kappa": 0.634,
+     "yes_to_no": 1,
+     "no_to_yes": 0
+    },
+    "gpt": {
+     "original": {
+      "score": 7.5,
+      "raw": 0.075,
+      "n": 40,
+      "ci95": [
+       2.6,
+       19.9
+      ],
+      "detail": {}
+     },
+     "regraded": {
+      "score": 7.5,
+      "raw": 0.075,
+      "n": 40,
+      "ci95": [
+       2.6,
+       19.9
+      ],
+      "detail": {}
+     },
+     "llm_judged": 10,
+     "agreement": 1.0,
+     "kappa": 1.0,
+     "yes_to_no": 0,
+     "no_to_yes": 0
+    },
+    "gemma": {
+     "original": {
+      "score": 15.0,
+      "raw": 0.15,
+      "n": 40,
+      "ci95": [
+       7.1,
+       29.1
+      ],
+      "detail": {}
+     },
+     "regraded": {
+      "score": 12.5,
+      "raw": 0.125,
+      "n": 40,
+      "ci95": [
+       5.5,
+       26.1
+      ],
+      "detail": {}
+     },
+     "llm_judged": 19,
+     "agreement": 0.947,
+     "kappa": 0.872,
+     "yes_to_no": 1,
+     "no_to_yes": 0
+    }
+   }
+  },
+  "budget_usd": 0.099
  }
 }

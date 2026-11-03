@@ -281,7 +281,10 @@ async def evaluate(llm: CachedLLM, held: list[dict[str, str]], learned: dict[str
     }
 
 
-async def emma2(backbones: list[str], eval_backbone: str) -> dict[str, Any]:
+async def emma2(
+    backbones: list[str], eval_backbone: str, arms: tuple[str, ...] = ("unguarded", "guarded")
+) -> dict[str, Any]:
+    """arms 는 반성 학습 비교군. 스코어카드는 운영 구성인 guarded 만 돌려 held-out 호출을 줄인다."""
     train, held = split()
     out: dict[str, Any] = {"train": len(train), "heldout": len(held), "seed": SEED, "backbones": {}}
     # 실패 궤적은 평가 백본 하나로 고정하고 reflector 백본만 바꾼다. 같은 실패를 보고 어떤 수정을 고르는지가
@@ -295,8 +298,8 @@ async def emma2(backbones: list[str], eval_backbone: str) -> dict[str, Any]:
         llm = solver if name == eval_backbone else CachedLLM(name, concurrency=1)
         row: dict[str, Any] = {}
         learned: dict[str, dict[str, Any]] = {}
-        for guard in (False, True):
-            arm = "guarded" if guard else "unguarded"
+        for arm in arms:
+            guard = arm == "guarded"
             learned[arm] = await learn(llm, train, answers, guard)
             row[arm] = {**summarize(learned[arm]["outcomes"]), "ticks": learned[arm]["ticks"],
                         "approved": len(learned[arm]["store"].list())}
@@ -304,13 +307,11 @@ async def emma2(backbones: list[str], eval_backbone: str) -> dict[str, Any]:
                 row[arm]["would_refuse"] = violations(learned[arm]["outcomes"], train, answers)
             print(f"[{name}] {arm}: {row[arm]['kinds']}", file=sys.stderr)
         if name == eval_backbone:
-            row["heldout"] = {
-                "none": await evaluate(llm, held, None),
-                "unguarded": await evaluate(llm, held, learned["unguarded"]),
-                "guarded": await evaluate(llm, held, learned["guarded"]),
-            }
+            row["heldout"] = {"none": await evaluate(llm, held, None)}
+            for arm in arms:
+                row["heldout"][arm] = await evaluate(llm, held, learned[arm])
             base = row["heldout"]["none"].pop("hits")
-            for arm in ("unguarded", "guarded"):
+            for arm in arms:
                 hits = row["heldout"][arm].pop("hits")
                 # 같은 문항을 짝지어 본다(McNemar). 반성 뒤에만 맞힌 수와 반성 뒤에만 틀린 수
                 row["heldout"][arm]["gained"] = sum(h and not b for h, b in zip(hits, base, strict=True))
@@ -421,6 +422,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--part", choices=["emma1", "emma2", "all"], default="all")
     parser.add_argument("--backbones", nargs="*", default=BACKBONES)
+    # 스코어카드는 푸는 모델과 반성하는 모델을 같게 둔다(--solver M --backbones M)
+    parser.add_argument("--solver", default=EVAL_BACKBONE, help="실패 궤적과 held-out 을 푸는 모델")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     print(f"jarvis from {jarvis.__file__}", file=sys.stderr)
@@ -430,7 +433,7 @@ def main() -> None:
     if args.part in ("emma2", "all"):
         if not DATA.exists():
             raise SystemExit(f"BBEH 데이터가 없다: {DATA} (HF BBEH/bbeh 의 bbeh_data.json)")
-        result["emma2"] = asyncio.run(emma2(args.backbones, EVAL_BACKBONE))
+        result["emma2"] = asyncio.run(emma2(args.backbones, args.solver))
     print(json.dumps(result, ensure_ascii=False, default=str)[:3000])
     if not args.dry_run:
         write(result)

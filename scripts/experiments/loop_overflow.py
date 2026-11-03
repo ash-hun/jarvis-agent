@@ -29,6 +29,7 @@ from jarvis.model_layer.model_types import (
     UserMessage,
 )
 from jarvis.agent_layer.agent_types import AgentContext, AgentEndEvent, AgentEvent, AgentLoopConfig
+from jarvis.agent_layer.loop_overflow import RESUME_DIRECTIVE, SUMMARY_PROMPT
 from jarvis.model_layer.model_registry import get_default_registry
 from jarvis.model_layer.providers.provider_base import Provider
 from jarvis.core.tools.builtin.read_file import ReadFileTool
@@ -66,6 +67,9 @@ PY_TOOL = Tool(
     },
 )
 UV_PYTHON = ["uv", "run", "--no-project", "--quiet", "--with", "pandas", "--with", "openpyxl", "python", "-I"]
+
+# 넘친 풀이만 정리, 이어가기 문구를 본다. 문구가 바뀌면 그 풀이만 다시 풀고, 넘치지 않은 풀이는 캐시를 그대로 쓴다
+OVERFLOW_PROMPT = hashlib.sha1((SUMMARY_PROMPT + RESUME_DIRECTIVE).encode()).hexdigest()[:8]
 
 _calls: contextvars.ContextVar[list[int]] = contextvars.ContextVar("loop_overflow_calls")
 
@@ -253,6 +257,11 @@ def counted(model: str) -> ModelConfig:
 
 # ── 한 과제 ──
 
+def reusable(hit: dict[str, Any]) -> bool:
+    """넘치지 않았거나 지금 문구로 넘친 캐시면 다시 쓴다."""
+    return not hit.get("overflows") or hit.get("overflow_prompt") == OVERFLOW_PROMPT
+
+
 def cache_path(model: str, condition: str, task_id: str, max_turns: int) -> Path:
     key = hashlib.sha1(f"{model}|{condition}|{task_id}|{max_turns}|{SYSTEM}".encode()).hexdigest()[:16]
     return CACHE / f"{task_id}_{condition}_{key}.json"
@@ -262,7 +271,8 @@ async def run_task(task: dict[str, Any], model: str, condition: str, max_turns: 
     cached = cache_path(model, condition, task["id"], max_turns)
     if cached.exists():
         hit: dict[str, Any] = json.loads(cached.read_text(encoding="utf-8"))
-        return hit
+        if reusable(hit):
+            return hit
     workdir = Path(tempfile.mkdtemp(prefix=f"krama_{task['id']}_")).resolve()
     shutil.copytree(ROOT / "data" / task["domain"] / "input", workdir, dirs_exist_ok=True)
     _calls.set([])
@@ -292,7 +302,7 @@ async def run_task(task: dict[str, Any], model: str, condition: str, max_turns: 
     predicted = parse_answer(text)
     row = {
         "id": task["id"], "domain": task["domain"], "answer_type": task["answer_type"], "condition": condition,
-        "turns": end.turns, "overflows": end.overflows, "cut_at_budget": cut,
+        "turns": end.turns, "overflows": end.overflows, "overflow_prompt": OVERFLOW_PROMPT, "cut_at_budget": cut,
         "llm_calls": len(_calls.get()), "predicted": predicted, "target": task["answer"],
         "score": score(predicted, task), "answer_text": text[-600:],
         "error": final.error_message if isinstance(final, AssistantMessage) else None,

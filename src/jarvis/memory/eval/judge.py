@@ -39,7 +39,10 @@ JUDGE_PROMPT = """\
 """
 
 
-def llm_judge(model: ModelConfig) -> Judge:
+def llm_judge(model: ModelConfig, judge_model: ModelConfig | None = None) -> Judge:
+    """model 이 답하고 judge_model(없으면 model)이 판정한다. 모델끼리 비교할 때는 판정자를 하나로 고정한다."""
+    grader = judge_model or model
+
     async def judge(question: BenchmarkQuestion, retrieved: list[str]) -> tuple[str, bool]:
         from jarvis.model_layer.stream import stream_to_message
 
@@ -61,7 +64,7 @@ def llm_judge(model: ModelConfig) -> Judge:
             ))],
             tools=None,
         )
-        verdict = (await stream_to_message(model, judge_ctx, StreamOptions())).text().strip().lower()
+        verdict = (await stream_to_message(grader, judge_ctx, StreamOptions())).text().strip().lower()
         return predicted, verdict.startswith("y")
 
     return judge

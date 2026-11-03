@@ -32,6 +32,8 @@ K = 5
 # 노출 예산(글자). RAG 조각 k=5 개(조각 최대 1,024자)와 같은 양이다. 비교군마다 k 를 이 예산으로 정한다
 BUDGET = 5 * 1024
 JUDGE_MODEL = "gpt-4o-mini"
+# 기억을 만드는 사실 추출은 답하는 모델과 무관하게 이 모델로 고정한다(모델 비교에서 기억 내용을 같게 둔다)
+EXTRACT_MODEL = "gpt-4o-mini"
 EMBED_MODEL = "bge-m3"
 ARMS = ("rag", "raw", "turns", "turns+src")
 # 실서비스 회상(핵심 사실 3건 + 회상 3건, 예산 없음)을 흉내 낸 조건. 출처 회상을 실서비스에서 켤지 이 조건으로 정한다
@@ -93,10 +95,17 @@ async def run_arm(
     embedder: CachedEmbedder,
     parts: int = MAX_TURN_PARTS,
     service: bool = False,
+    answer_model: str = JUDGE_MODEL,
+    judge_model: str = JUDGE_MODEL,
 ) -> BenchmarkReport:
-    model = model_config(JUDGE_MODEL).model_copy(update={"temperature": 0.0})
-    extractor = cached_extractor(llm_fact_extractor(model), JsonlCache(CACHE / "extract.jsonl"), JUDGE_MODEL)
-    judge = cached_judge(llm_judge(model), JsonlCache(CACHE / "judge.jsonl"), JUDGE_MODEL)
+    extract = model_config(EXTRACT_MODEL).model_copy(update={"temperature": 0.0})
+    answer = model_config(answer_model).model_copy(update={"temperature": 0.0})
+    grader = model_config(judge_model).model_copy(update={"temperature": 0.0})
+    # 예전 캐시(답과 판정 모두 JUDGE_MODEL)는 이름공간을 그대로 둬 다시 사지 않는다
+    pair = (answer_model, judge_model)
+    namespace = JUDGE_MODEL if pair == (JUDGE_MODEL, JUDGE_MODEL) else f"answer={answer_model}|judge={judge_model}"
+    extractor = cached_extractor(llm_fact_extractor(extract), JsonlCache(CACHE / "extract.jsonl"), EXTRACT_MODEL)
+    judge = cached_judge(llm_judge(answer, grader), JsonlCache(CACHE / "judge.jsonl"), namespace)
 
     def factory() -> MemoryService:
         return MemoryService(InMemoryItemStore(), extractor=extractor, embedder=embedder, answer_parts=parts)
@@ -106,10 +115,24 @@ async def run_arm(
         budget=None if service else BUDGET, warm=embedder.warm, concurrency=CONCURRENCY, fixed=service,
     )
     tag = ".service" if service else ""
+    if namespace != JUDGE_MODEL:
+        tag += "." + namespace.replace(":", "_").replace("|", ".")
     dump = CACHE / "reports" / f"{name}.{mode}.parts{parts}{tag}.json"
     dump.parent.mkdir(parents=True, exist_ok=True)
     dump.write_text(json.dumps(report.to_dict(), ensure_ascii=False, indent=1), encoding="utf-8")
     return report
+
+
+async def service_report(name: str, answer_model: str, judge_model: str) -> BenchmarkReport:
+    """실서비스 조건(핵심 사실과 회상, 출처 회상 켬)에서 한 모델의 정답률. 스코어카드 꼭짓점이 부른다."""
+    embedder = CachedEmbedder(
+        OllamaEmbedder(model=EMBED_MODEL, dimensions=1024, base_url=OLLAMA_URL), CACHE / "embeddings.sqlite"
+    )
+    try:
+        return await run_arm(name, BENCHMARKS[name](), "turns+src", embedder, service=True,
+                             answer_model=answer_model, judge_model=judge_model)
+    finally:
+        embedder.close()
 
 
 def arm_entry(report: BenchmarkReport) -> dict[str, Any]:

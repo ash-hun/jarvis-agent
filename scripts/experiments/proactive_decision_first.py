@@ -28,6 +28,7 @@ from jarvis.core.proactive.eval.__main__ import FIXED_CLOCK
 from jarvis.core.proactive.eval import utterance_judge
 from jarvis.model_layer.decision import DecisionModel
 from jarvis.model_layer import stream as stream_mod
+from jarvis.jarvis_config import ProactiveConfig
 
 RESULTS = Path(__file__).resolve().parent / "results.json"
 KEY = "proactive_decision_first"
@@ -42,7 +43,10 @@ ARM_NAMES = {
     "decision_first": "판정 먼저",
     "anchor": "판정 먼저 + 앵커",
     "anchor_facts": "판정 먼저 + 앵커 + 사실과 Boolean",
+    "no_decision": "decision model 없음(기본 구성)",
 }
+# decision model 없이 사고 모델이 확신도를 내는 기본 구성. 임계치를 고르지 않고 운영 기본값을 쓴다(스코어카드 꼭짓점)
+FIXED_THRESHOLD_ARMS = ("no_decision",)
 SWEEP = (0.3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9)
 SEED = 42
 SHEET_SIZE = 30
@@ -150,6 +154,8 @@ class Recorder(ThoughtEngine):
 
 def build(arm: str, model: str, decision: DecisionModel) -> ThoughtEngine:
     inner = thought_engine(model)
+    if arm == "no_decision":
+        return inner
     utterance_model = model_config(model)
     if arm == "think_first":
         helper = decision_gate.DecisionGatedEngine(inner, decision, utterance_model, clock=lambda: FIXED_CLOCK)
@@ -323,7 +329,7 @@ async def run(
         spoken_items: list[dict[str, Any]] = []
         for arm in arms:
             dev = await run_split(arm, cases["dev"], model, decision_name, cache, repeat)
-            threshold = pick_threshold(dev)
+            threshold = ProactiveConfig().confidence_threshold if arm in FIXED_THRESHOLD_ARMS else pick_threshold(dev)
             test = await run_split(arm, cases["test"], model, decision_name, cache, repeat)
             spoken = [r for r in spoken_rows(test) if would_speak(r["frame"], threshold)]
             spoken_items += [{"arm": arm, **r} for r in spoken]
@@ -386,7 +392,7 @@ def main() -> None:
     parser.add_argument("--decision", default="tev1")
     parser.add_argument("--judge", default="gpt-4o-mini")
     parser.add_argument("--repeat", type=int, default=3)
-    parser.add_argument("--arms", nargs="*", default=list(ARMS))
+    parser.add_argument("--arms", nargs="*", default=list(ARMS), choices=list(ARM_NAMES))
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--leniency-only", action="store_true", help="Ollama 없이 ProactiveBench 관대함 점검만")
     args = parser.parse_args()

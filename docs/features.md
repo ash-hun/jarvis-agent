@@ -45,6 +45,7 @@
 | `scheduler` | cron 반복 작업과 한 번 실행 작업을 돌리고 결과를 알린다 | `/schedule`, `schedule` 도구, `POST /api/schedules/{name}`, ws `reminder` | 구현됨 |
 | `session` | 세션 목록, 만들기, 분기, 삭제, 이력, 내보내기, 비용 보고, 옛 데이터 정리 | `GET /api/sessions`, `POST /api/sessions`, `POST /api/sessions/{session_id}/branch`, `DELETE /api/sessions/{session_id}`, `GET /api/sessions/{session_id}/messages`, `/sessions`, `/branch`, `/export`, `/cost`, `/cleanup` | 구현됨 |
 | `skills` | Markdown/YAML 명령 매크로를 `/스킬 인자` 로 펼친다 | `/<스킬 이름> <인자>`, `~/.jarvis/skills/*.md` | 구현됨 |
+| `scorecard` | 벤치마크 9개를 모델별로 돌려 레이더 그림 하나로 Jarvis 성능을 보인다 | `uv run python -m scripts.experiments.jarvis_scorecard --polygon <id>` | 구현됨 |
 | `task_pattern` | 사용자가 알려 준 일하는 방식을 그 에이전트만 기억한다 | `remember_task_pattern` 도구, `/patterns` | 구현됨 |
 | `thought` | 요청 시점과 성찰 시점의 inner thought, router 판정, 짧은 답 분류 | ws `inner_thought`, `thought_route`, `thought_end`, `reply_classify` | 구현됨 |
 | `tools` | 파일, 셸, 검색, 웹 내장 도구와 파일 기반 사용자 도구 | `GET /api/tools`, `/tools`, `~/.jarvis/tools/` | 구현됨 |
@@ -99,7 +100,8 @@
 
 **처리 흐름**: `ws_router` 에서 `AgentSession.prompt` 로, 보안 파이프라인, 스킬 확장, router 판정, 사고와 AGENDA 판단 띄우기, `AgentHarness.run`, `run_agent_loop`, `model_layer.stream`, 도구 실행기 순. 프로바이더나 저장소가 예외를 던져도 `AgentHarness.run` 이 `finally` 에서 실행 표시(`is_running`)를 풀어, 다음 턴이 실행 중으로 막히지 않는다.
 
-**넘침 이어가기**: `max_turns` 의 마지막 차례까지 도구를 부르고 끝나면(다음 차례를 기다리는 도구 결과로 끝남) 루프가 바로 끊지 않는다. 도구 정의 없이 "한 것, 남은 단계, 지금까지의 답" 을 정리하는 LLM 호출을 한 번 하고, 그 정리를 기록에 남지 않는 지시로 매 호출 끝에 붙여 `max(1, max_turns // 2)` 차례를 더 돈다. 이어간 구간에서도 또 넘치면 두 번째 정리문을 답으로 돌려준다. 정리문은 화면에 흘리지 않고(두 번째만 답으로 보냄), 정리 호출이 실패하거나 비면 부른 도구 이름으로 만든 기본 정리문을 쓴다. 중단 신호는 정리 호출 뒤에도 확인한다. 한 턴의 LLM 호출은 차례 `max_turns + max_turns // 2` 개(빈 답 재촉 포함 차례당 최대 두 번)와 정리 두 번이 상한이다. `agent_end.overflows` 가 넘친 횟수를 알리고, 하네스는 넘친 턴의 턴 일화 metadata 에 `overflow: true` 를 남긴다(실패 반성의 근거). `AgentLoopConfig.overflow_resume=False` 면 예전처럼 그 자리에서 끊는다. EMMA(arXiv 2610.35966) 의 overflow decomposition 을 한 에이전트 루프에 맞게 줄였다.
+| `uv run python -m scripts.experiments.tau2_bench --model M [--judge-model J] [--limit N] [--seed S]` | τ²-bench(airline, retail) 점수(스코어카드 Tool Use 꼭짓점). `run_vertex()` 가 `{score, n, raw, detail, errors}` 를 돌려주고 CLI 는 출력만 한다. 같은 (모델, 시뮬레이터, 과제, 설정)은 `~/.jarvis/benchmarks/tau2/cache/` 를 읽어 다시 부르지 않는다 |
+**넘침 이어가기**: `max_turns` 의 마지막 차례까지 도구를 부르고 끝나면(다음 차례를 기다리는 도구 결과로 끝남) 루프가 바로 끊지 않는다. 도구 정의 없이 "한 것, 남은 단계, 지금까지의 답" 을 정리하는 LLM 호출을 한 번 하고, 그 정리를 기록에 남지 않는 지시로 매 호출 끝에 붙여 `max(1, max_turns // 2)` 차례를 더 돈다. 이어간 구간에서도 또 넘치면 두 번째 정리문을 답으로 돌려준다. 정리문은 화면에 흘리지 않고(두 번째만 답으로 보냄), 정리 호출이 실패하거나 비면 부른 도구 이름으로 만든 기본 정리문을 쓴다. 정리와 이어가기 지시는 항목 이름(한 것, 남은 단계, 지금까지의 답)만 고정하고, 내용과 답은 원래 요청의 언어와 답 형식을 따르게 한다(두 번째 정리문이 그대로 답이 되므로, 예전 문구로는 영어 요청에도 한국어 답이 나왔다). 중단 신호는 정리 호출 뒤에도 확인한다. 한 턴의 LLM 호출은 차례 `max_turns + max_turns // 2` 개(빈 답 재촉 포함 차례당 최대 두 번)와 정리 두 번이 상한이다. `agent_end.overflows` 가 넘친 횟수를 알리고, 하네스는 넘친 턴의 턴 일화 metadata 에 `overflow: true` 를 남긴다(실패 반성의 근거). `AgentLoopConfig.overflow_resume=False` 면 예전처럼 그 자리에서 끊는다. EMMA(arXiv 2610.35966) 의 overflow decomposition 을 한 에이전트 루프에 맞게 줄였다.
 
 **구현 파일**
 
@@ -132,6 +134,9 @@
 
 **제약과 미구현**: 메인 모델의 프롬프트 처리 시간이 첫 글자 지연의 대부분이라 시스템 프롬프트와 도구 목록 크기를 줄이는 일이 남아 있다(`TODO.md`).
 
+| 실험 | `scripts/experiments/tau2_bench.py`, `tau2_score.py`, `tau2_tools.py`(τ²-bench 꼭짓점). 단위 테스트 `tests/unit/test_scorecard_tau2.py` |
+
+**τ²-bench 꼭짓점**: sierra-research/tau2-bench v2.0.0(MIT) 의 airline, retail 데이터(DB, 과제, 정책)를 `~/.jarvis/benchmarks/tau2/src/tau2-bench-main/` 에 받는다(공식 저장소 tarball 에서 `data/tau2/domains/{airline,retail}` 과 `src/tau2` 만 풀었다). 표본은 공식 test split(airline 20, retail 40)에서 도메인마다 id 순 정렬 뒤 `random.Random(seed).sample` 로 20 개를 고르고 도메인을 번갈아 늘어놓는다(`--limit` 은 앞에서 자른다). 도메인 도구 30 개는 공식 코드를 평가 전용으로 옮긴 것이고(`tau2_tools.py`, 운영 도구 목록에는 없다), 큰 DB 를 과제마다 복사하지 않으려고 공유 DB 위에 바뀐 레코드만 복사하는 덮어쓰기 층에서 돈다. 에이전트는 운영 루프(`run_agent_loop`, `AgentLoopConfig()` 기본값, 넘침 이어가기 켬)에 공식 에이전트 지시문과 정책을 시스템 프롬프트로 주고, 사용자 시뮬레이터는 `judge_model`(기본 gpt-4o, temperature 0)이 공식 텍스트 지시문으로 말한다. 대화는 공식 첫 인사로 시작해 사용자가 `###STOP###`, `###TRANSFER###`, `###OUT-OF-SCOPE###` 를 말하면 끝나고, 공식 상한(200 단계, 도구 오류 10 회)에 닿으면 0 점이다. 보상은 공식처럼 끝난 DB 와 정답 행동을 적용한 DB 의 일치에 필요한 값의 전달을 곱한다. 공식과 다른 점은 셋이다. 전달 여부를 공식 기본(의미 판정 LLM) 대신 공식이 함께 두는 substring 방식으로 본다. retail 의 NL_ASSERTION(LLM 판정)은 짝을 이룬 `communicate_info` 값의 substring 으로 대신 본다. 시뮬레이터에 v2 언어 팩의 persona 문구를 넣지 않는다. score = pass^1 × 100, `detail` 에 도메인별 pass^1 과 문항당 LLM 호출 수, 입력, 출력 토큰(메인 모델과 시뮬레이터 따로)을 둔다.
 ---
 
 ### agent_registry: 최상위 에이전트 등록
@@ -565,7 +570,7 @@
 | `src/jarvis/memory/eval/net_value.py` | memory | RAG 대비 benefit, tax, net |
 | `src/jarvis/memory/eval/turn_loss.py` | memory | 정답 턴의 턴 일화 구성 손실 |
 | `src/jarvis/memory/eval/eval_cache.py` | memory | 임베딩(sqlite), 사실 추출, 판정(jsonl) 캐시 |
-| `src/jarvis/memory/eval/judge.py` | memory | 회상 증거로 답 생성과 정답 판정(객관식은 기호 일치) |
+| `src/jarvis/memory/eval/judge.py` | memory | 회상 증거로 답 생성과 정답 판정(객관식은 기호 일치). 답하는 모델과 판정 모델을 따로 줄 수 있다 |
 | `src/jarvis/memory/eval/probe.py` | memory | LLM 호출 횟수 계측 |
 | `src/jarvis/memory/eval/adapters/locomo.py` | memory | LoCoMo 어댑터 |
 | `src/jarvis/memory/eval/adapters/longmemeval.py` | memory | LongMemEval 어댑터 |
@@ -961,6 +966,7 @@
 | 단위 | `tests/unit/test_procedures_procedures_cmd.py` |
 | 단위 | `tests/unit/test_procedures_procedures_store.py` |
 | 단위 | `tests/unit/test_procedures_reflect.py` |
+| `uv run python -m scripts.experiments.proactivebench_vertex --model M [--limit N] [--seed S]` | ProactiveBench 시험 세트 점수(스코어카드 Proactivity 꼭짓점). `run_vertex()` 가 `{score, n, raw, detail, errors}` 를 돌려주고 CLI 는 출력만 한다. 같은 (모델, 프롬프트)는 `~/.jarvis/benchmarks/proactivebench/cache/` 를 읽어 다시 부르지 않는다 |
 | 단위 | `tests/unit/test_procedures_refine.py` |
 | 단위 | `tests/unit/test_procedures_tool.py` |
 | 단위 | `tests/unit/test_procedures_update_guard.py` |
@@ -978,6 +984,8 @@
 
 **설명**: cron 반복 작업과 정한 시각 한 번 실행 작업을 새 세션에서 돌리고 결과를 열린 화면, 대화 세션, 외부 알림 채널로 알린다.
 
+| `src/jarvis/core/proactive/eval/proactivebench.py` | core | ProactiveBench 사건을 성찰 요청(외부 이벤트)과 3단 라벨로 바꾸고, (장면 종류, 라벨) 층화 표본과 꼭짓점 점수를 계산한다 |
+| `scripts/experiments/proactivebench_vertex.py` | scripts | 시험 세트 받기(없을 때만), decision model 없는 기본 구성(`build("no_decision")`, 임계치 `ProactiveConfig().confidence_threshold`)으로 실행, 캐시, 채점 |
 **입력과 결과**
 
 | 입력 | 결과 |
@@ -988,10 +996,23 @@
 | `~/.jarvis/schedules/*.yaml` | cron 작업 정의. `kind` 는 `reminder`(문구 그대로), `task`(에이전트 실행), `tool`(도구를 `args` 로 바로 부르기), `goal`(목표 한 차례) 중 하나이고, `agent` 가 작업을 돌릴 최상위 에이전트다 |
 | `POST /api/schedules/{name}` `{enabled}` | 켜기, 끄기 |
 | 실행 시각 | ws `reminder`, 열린 화면이 없으면 최근 20건을 다음 접속 때 `missed:true` 로. `deliver: conversation` 이면 최근 대화 세션에 `proactive_message` |
+| 단위 | `tests/unit/test_scorecard_proactivebench.py` |
 
 **처리 흐름**: `schedule_cmd` 또는 `tool` 에서 `classify` 로, `scheduler_loader` 저장, `SchedulerService` 루프가 때가 된 `ScheduledTask` 를 새 세션에서 실행, 알림 순. `run_until` 이 지난 작업은 `set_enabled` 로 꺼서 저장 파일에도 남기므로 재시작해도 다시 켜지지 않는다.
 
 **구현 파일**
+**ProactiveBench 시험 세트**: thunlp/ProactiveAgent(Apache-2.0) `dataset/test_data/` 의 12 개 흐름, 233 사건(코딩 6, 글쓰기 6. 일상은 학습 세트에만 있다)을 `~/.jarvis/benchmarks/proactivebench/test_data/` 에 받는다. 사건 하나를 그 흐름 처음부터 그 사건까지의 영문 이벤트 로그(지금 기준 몇 초 전)로 바꿔 `external_events` 에 넣고, 최근 대화와 열린 약속은 비운다. 라벨 대응은 다음과 같다.
+
+| 원래 라벨 | 3단 라벨 | 이유 |
+|---|---|---|
+| `task_status` 참 | must | 사람이 도움이 필요하다고 보고 제안을 받아들였다 |
+| `task_status` 거짓, `candidate_task` 있음 | must_not | 사람 셋이 제안을 보고 모두 거절했다 |
+| `task_status` 거짓, `candidate_task` 비었음 | can | 사람 판정이 없는 사건이다. 점수에서 뺀다 |
+
+표본은 must 와 must_not 사건(132 건)에서만 (장면 종류, 라벨) 층에 비례해 최대 100 건을 seed 로 고른다. 점수는 (must recall + (1 − must_not 오경보율)) / 2 × 100 이고, 실패한 문항은 오답(must 는 침묵, must_not 은 발화)으로 센다. 공식 채점은 공개되지 않은 보상 모델이 제안마다 수락을 판정하지만, 여기서는 사람 라벨로 말할지만 잰다. 제안 내용의 질은 재지 않는다. 보상 모델 시험 데이터(`rm_test.jsonl`)는 라벨 뜻이 달라 쓰지 않는다.
+
+**임계치 보정**: 확신도의 눈금이 모델마다 달라(gpt-4o-mini 는 가장 높아도 0.8) 운영 기본 0.85 로 고정하면 판단력이 아니라 눈금이 맞는지를 재게 된다. 그래서 시험 표본에 들지 않은 나머지 must, must_not 사건(32 건)을 보정 분할로 돌려, `SWEEP` 임계치 가운데 recall 빼기 오경보가 가장 큰 값(같으면 높은 쪽)을 그 모델의 임계치로 정하고 시험 표본 100 건에 적용한다. 보정 분할에 두 라벨이 다 없으면 0.85 를 쓴다. `detail.calibration` 에 보정 분할 크기와 규칙, `detail.fixed_threshold` 에 0.85 로 잰 점수를 함께 남긴다.
+
 
 | 파일 | 층 | 역할 |
 |---|---|---|
@@ -1094,6 +1115,62 @@
 |---|---|
 | 단위 | `tests/unit/test_skills_skills_registry.py` |
 | 통합 | `tests/integ/test_skills.py` |
+
+### scorecard: 성능 스코어카드
+
+**설명**: 벤치마크 9개를 꼭짓점으로, 능력 축 6개를 바깥 호로, 메인 LLM 마다 다각형 하나를 그리는 레이더 그림으로 Jarvis 의 대표 성능을 보인다. 꼭짓점 실험은 기존 실험과 이식한 벤치마크를 그대로 부르는 얇은 층이고, 모든 다각형이 같은 표본, 같은 판정자(gpt-4o), 같은 기억 생성 모델(gpt-4o-mini)을 쓴다.
+
+**입력과 결과**
+
+| 입력 | 결과 |
+|---|---|
+| `--polygon gpt gemma` | 그 다각형의 꼭짓점을 돌리고 `~/.jarvis/benchmarks/scorecard/<다각형>/<꼭짓점>.json` 에 점수, 원래 지표, Wilson 95% 구간, 모델별 토큰 사용량, 예산 비용을 남긴다. 이미 있는 꼭짓점은 캐시를 읽는다 |
+| `--vertex <id>...` | 그 꼭짓점만 |
+| `--quote --polygon claude` | 돌리지 않고 기준 다각형(gpt) 실측 토큰을 Claude 단가로 옮긴 꼭짓점별 견적 |
+| 인자 없음 | 꼭짓점 기록을 모아 `results.json` 의 `scorecard` 키에 쓴다 |
+
+**꼭짓점과 축**
+
+| 축 | 꼭짓점 | 모델 역할 | 점수 |
+|---|---|---|---|
+| Personalization | PersonaMem-v2 | 메인 | 실서비스 조건(turns+src) 정확도 |
+| Proactivity | ProactiveBench, Custom Scenario Test | 사고 | (must recall + (1 − must_not 오경보율)) / 2. decision model 없는 기본 구성. ProactiveBench 는 모델별 보정 임계치, Custom Scenario Test 는 0.85 |
+| Tool Use | τ²-bench, GAIA | 메인 | pass^1, 정답 일치율 |
+| Long-Horizon | KramaBench | 메인 | 공식 채점 평균. 운영 기본 max_turns, 넘침 이어가기 |
+| Self-Evolving | BBEH-mini | 메인 | 실패 반성(guarded) 뒤 held-out 정확도 |
+| Memory Performance | LongMemEval-s, MINT-Eval | 메인 | 실서비스 조건(turns+src) 정확도 |
+
+**예산**: Anthropic 호출만 상한(`scorecard_config.json` 의 `budget.cap_usd`)이 있다. 예산 provider 의 다각형은 꼭짓점마다 기준 다각형의 실측 토큰으로 견적을 내(캐시 할인 없이, 여유 배율을 곱해) 누적 비용과 더해 상한을 넘으면 그 꼭짓점을 건너뛴다. 꼭짓점 도중 실제 비용이 상한에 닿으면 `BudgetExhausted` 로 멈추고 그 꼭짓점은 기록하지 않는다(실험의 `except Exception` 에 삼켜져 오답으로 캐시되지 않게 `BaseException` 을 잇는다).
+
+**넘침 문구와 캐시**: GAIA 와 KramaBench 의 문항 캐시는 넘친 풀이에 넘침 문구의 해시(`OVERFLOW_PROMPT`)를 남긴다. 문구가 바뀌면 넘친 풀이만 다시 풀고, 넘치지 않은 풀이는 그 문구를 본 적이 없어 캐시를 그대로 쓴다.
+
+**판정자 편향 확인**: `uv run python -m scripts.experiments.scorecard_judge_bias` 는 판정 LLM 을 쓰는 꼭짓점(LongMemEval-s, MINT-Eval)의 답을 다른 계열 판정자(claude-sonnet-5-5)로 다시 채점해, 다각형마다 두 판정의 정답률, 일치율, Cohen's kappa, 뒤집힌 수를 `results.json` 의 `scorecard_judge_bias` 키에 쓴다. 객관식과 기권은 코드가 채점해 다시 부르지 않고, 새 판정은 `~/.jarvis/benchmarks/cache/judge_bias.jsonl` 에 캐시해 다시 돌리면 읽기만 한다. 스코어카드와 같은 Anthropic 상한을 쓴다. τ²-bench 의 사용자 시뮬레이터(gpt-4o)는 다시 돌려야 해서 이 확인에 넣지 않았다.
+
+**구현 파일**
+
+| 파일 | 층 | 역할 |
+|---|---|---|
+| `scripts/experiments/jarvis_scorecard.py` | scripts | 꼭짓점 실행, 캐시, 예산 판정, results.json 쓰기 |
+| `scripts/experiments/scorecard_points.py` | scripts | 점수 변환, Wilson 구간, 비용과 견적, 예산 판정, 두 판정의 비교와 kappa(순수 함수) |
+| `scripts/experiments/scorecard_judge_bias.py` | scripts | 기억 꼭짓점 답을 다른 계열 판정자로 다시 채점 |
+| `scripts/experiments/scorecard_meter.py` | scripts | provider 스트림 끝에서 모델별 토큰 사용량 계량 |
+| `scripts/experiments/scorecard_config.json` | scripts | 다각형(메인, 사고 모델, 색), 꼭짓점, 축 색, 판정자, 단가, 예산 |
+| `scripts/experiments/models.py` | scripts | 모델 이름으로 provider 와 키 선택(Claude 는 `ANTHROPIC_API_KEY`) |
+| `scripts/docs_experiment_figures.py` | scripts | `exp_scorecard` 레이더 그림 |
+
+**테스트**
+
+| 종류 | 파일 |
+|---|---|
+| 단위 | `tests/unit/test_scorecard_points.py` |
+| 단위 | `tests/unit/test_scorecard_proactivebench.py` |
+| 단위 | `tests/unit/test_scorecard_tau2.py` |
+| 단위 | `tests/unit/test_scorecard_gaia.py` |
+| 통합 | `tests/integ/test_scorecard.py` |
+
+**제약과 미구현**: 단가는 설정 파일의 가정값이다. 견적은 기준 다각형과 모델별 호출 수가 같다고 보므로, 차례를 더 쓰는 모델은 견적보다 많이 쓸 수 있다. decision model 별 Proactivity 비교는 아직 없다.
+
+---
 
 **제약과 미구현**: 없음.
 
@@ -1235,7 +1312,7 @@
 | 단위 | `tests/unit/test_tools_write_file.py` |
 | 통합 | `tests/integ/test_tools.py` |
 
-**제약과 미구현**: 사용자 도구 파일은 `plugin.watch_files` 가 켜져 있을 때 다시 읽는다(plugins 기능). 에이전트 정의의 `tools` 로 골라 복사한 레지스트리는 재시작해야 새 도구를 본다.
+**제약과 미구현**: 사용자 도구 파일은 `plugin.watch_files` 가 켜져 있을 때 다시 읽는다(plugins 기능). 에이전트 정의의 `tools` 로 골라 복사한 레지스트리는 재시작해야 새 도구를 본다. GAIA 데이터는 Hugging Face `gaia-benchmark/GAIA` 의 `2023/validation/metadata.parquet`(접근 승인 필요)를 받아 `uvx --with pyarrow` 로 `~/.jarvis/benchmarks/gaia/validation.jsonl` 로 바꾼다. 데이터셋 조건(공개 웹에 다시 올리지 않기)에 따라 문항과 정답은 저장소, 문서, 로그에 남기지 않는다. DuckDuckGo 는 연속 검색 7 번쯤에서 막혀(202, 이어서 403) 검색을 한 줄로 세우고 4 초 간격을 둔다.
 
 ---
 
@@ -1310,6 +1387,7 @@
 | 단위 | `tests/unit/test_usermodel_builder.py` |
 | 단위 | `tests/unit/test_usermodel_usermodel_cmd.py` |
 | 단위 | `tests/unit/test_usermodel_usermodel_store.py` |
+| `uv run python -m scripts.experiments.gaia_bench --model M [--limit N] [--seed S] [--concurrency C]` | GAIA validation 점수(스코어카드 Tool Use 꼭짓점). 첨부 없는 Level 1, 2 문항을 `web_search`, `web_fetch` 만 준 운영 루프(`max_turns` 20, 넘침 이어가기)로 풀고 공식 scorer 로 채점한다. `run_vertex()` 가 `{score, n, raw, detail, errors}` 를 돌려주고 CLI 는 점수만 출력한다(문항과 정답은 찍지 않는다). 같은 (모델, 문항, 설정)은 `~/.jarvis/benchmarks/gaia/cache/` 를 읽어 다시 부르지 않는다 |
 | 단위 | `tests/unit/test_usermodel_usermodel_types.py` |
 | 통합 | `tests/integ/test_usermodel.py` |
 
@@ -1328,6 +1406,8 @@
 | ws `voice_tts_request{text, id, source, part, full_text, stream}` | `voice_tts_audio`(조각 스트림 가능). 서버 TTS 가 없으면 빈 `data` 로 브라우저가 읽는다 |
 | ws `voice_stt_submit{data, mime, sample_rate}` | `voice_stt_result`. 확신도가 낮으면 `unclear` 와 되묻는 말 |
 | ws 바이너리 프레임(16kHz PCM) | 점수가 임계치 이상이면 `voice_wake{score}` |
+| `scripts/experiments/gaia_bench.py` | scripts | GAIA 표본(레벨 비례 층화 40, seed), 웹 도구 실행기(사설 주소와 GAIA 사본 주소 차단, 검색 4 초 간격), 캐시, `run_vertex` |
+| `scripts/experiments/gaia_score.py` | scripts | GAIA 공식 `question_scorer` 이식(Apache-2.0)과 `FINAL ANSWER` 파싱(순수 함수) |
 | `GET /api/voice/phrases/{name}` | 녹음 문구 wav |
 | Web HUD 구체 클릭, DEFAULT / FULL-VOICE, TUI `ctrl+t` / `ctrl+r` | 읽기 토글, 모드 전환, 음성 입력 |
 
@@ -1344,6 +1424,7 @@
 | `src/jarvis/voice/english.py` | voice | 한국어 글을 짧은 영어 구어체로 |
 | `src/jarvis/voice/phrases.py` | voice | 읽기 문구 폴더 로드 |
 | `src/jarvis/voice/wake.py` | voice | 웨이크워드 감지기 |
+| 단위 | `tests/unit/test_scorecard_gaia.py` |
 | `src/jarvis/voice/providers/browser.py` | voice | 브라우저 위임 프로바이더 |
 | `src/jarvis/voice/providers/whisper.py` | voice | faster-whisper STT |
 | `src/jarvis/voice/providers/piper.py` | voice | Piper TTS |

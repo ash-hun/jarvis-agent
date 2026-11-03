@@ -1,0 +1,72 @@
+name: Release
+
+# develop 을 main 에 머지하면 지난 태그 뒤 커밋 제목으로 다음 버전을 정해 릴리즈한다.
+# Feat 은 minor, Fix 같은 나머지는 patch, `!` 는 major. Docs, Test, Chore 만 있으면 릴리즈하지 않는다.
+# 버전 파일을 올린 커밋과 태그를 main 에 올리고, GitHub Release 를 만들고, main 을 develop 에 되돌려 합친다.
+# 다시 돌려도 새 커밋이 없으면 올릴 버전이 없어 아무것도 하지 않는다.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# 릴리즈가 겹치면 같은 버전을 두 번 만들 수 있다. 뒤의 것이 기다린다
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # 이 워크플로가 올린 릴리즈 커밋은 GITHUB_TOKEN 푸시라 다시 트리거되지 않지만, 손으로 올린 경우를 막는다
+    if: ${{ !startsWith(github.event.head_commit.message, 'Release:') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+
+      - name: Plan version
+        id: plan
+        run: |
+          last=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)
+          version=$(uv run --no-project python scripts/release_version.py plan --since "$last")
+          echo "last=$last" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "지난 태그: ${last:-없음}, 다음 버전: ${version:-없음}"
+
+      - name: Bump, tag, push
+        if: steps.plan.outputs.version != ''
+        env:
+          VERSION: ${{ steps.plan.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          uv run --no-project python scripts/release_version.py apply "$VERSION"
+          git add pyproject.toml uv.lock desktop/package.json desktop/package-lock.json
+          git commit -m "Release: v$VERSION"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin HEAD:main "v$VERSION"
+
+      - name: GitHub Release
+        if: steps.plan.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.plan.outputs.version }}
+          LAST: ${{ steps.plan.outputs.last }}
+        run: |
+          range="${LAST:+$LAST..}v$VERSION"
+          git log --no-merges --format='- %s' "$range" | grep -v '^- Release:' > notes.md
+          gh release create "v$VERSION" --title "v$VERSION" --notes-file notes.md
+
+      - name: Sync develop
+        if: steps.plan.outputs.version != ''
+        run: |
+          git fetch origin develop
+          git checkout -B develop origin/develop
+          git merge --no-edit main
+          git push origin develop

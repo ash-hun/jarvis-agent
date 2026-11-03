@@ -44,6 +44,7 @@
 | `proactive` | 요청 없이 성찰해 먼저 말을 건네고 반응으로 임계치를 학습 | ws `proactive_message`, `proactive_feedback` | 구현됨 |
 | `proactive_eval` | "먼저 말해야 했나" 사례로 proactive 정책을 잰다 | `uv run python -m jarvis.core.proactive.eval` | 구현됨 |
 | `procedures` | 성공한 작업을 작업 종류당 절차 하나로 증류하고 실패는 반성해 개정 초안으로 고치며, 승인된 절차를 도구와 스킬로 노출 | `/procedures` | 구현됨 |
+| `release` | develop 을 main 에 머지하면 커밋 제목으로 다음 버전을 정해 버전 파일, 태그, GitHub Release 를 만든다 | develop 에서 main 으로 PR 머지, `uv run python scripts/release_version.py plan \| apply <버전>` | 구현됨 |
 | `scheduler` | cron 반복 작업과 한 번 실행 작업을 돌리고 결과를 알린다 | `/schedule`, `schedule` 도구, `POST /api/schedules/{name}`, ws `reminder` | 구현됨 |
 | `scorecard` | 벤치마크 9개를 모델별로 돌려 레이더 그림 하나로 Jarvis 성능을 보인다 | `uv run python -m scripts.experiments.jarvis_scorecard --polygon <id>` | 구현됨 |
 | `session` | 세션 목록, 만들기, 분기, 삭제, 이력, 내보내기, 비용 보고, 옛 데이터 정리 | `GET /api/sessions`, `POST /api/sessions`, `POST /api/sessions/{session_id}/branch`, `DELETE /api/sessions/{session_id}`, `GET /api/sessions/{session_id}/messages`, `/sessions`, `/branch`, `/export`, `/cost`, `/cleanup` | 구현됨 |
@@ -1070,6 +1071,42 @@
 **멱등**: 출처 `edm:<에이전트>:<작업 종류>` 가 자연 키라 같은 (에이전트, 작업 종류)는 파일 하나이고, 이미 다룬 세대(`generation`, 대기 중인 개정 포함)는 LLM 을 부르지 않는다. 반성한 실패 일화에는 `reflected` 표시가 남아 다시 반성하지 않는다. 옛 출처 `edm:<에이전트>:<작업 종류>:<세대>` 파일은 통합 때 하나로 모으고 밀려난 파일은 `~/.jarvis/procedures/.archive/` 로 옮긴다(지우지 않는다). 다 모은 저장소에서는 아무것도 바꾸지 않는다.
 
 **제약과 미구현**: EMMA 의 routing, missing_capability 범위(컨트롤러 기억, 새 에이전트 생성)와 에이전트 프롬프트 자동 수정은 없다. agent_behavior 는 프롬프트 대신 작업 패턴 초안으로 간다. 실서비스의 실패 신호는 도구나 모델 오류뿐이라 답이 틀린 턴은 실패로 남지 않는다. 같은 작업 종류의 반성이 두 번 잇달아 거부되면 그 종류는 새 성공이 올 때까지 반성하지 않는다. 개정 초안 칸은 하나라 새 개정이 옛 개정을 덮는다. 세션 구간 학습(`/procedures learn`)은 여전히 구간마다 파일이다.
+
+---
+
+### release: 브랜치와 릴리즈
+
+**설명**: 기능 PR 은 `develop`(기본 브랜치)으로 올려 squash 머지한다. 릴리즈는 `develop` 에서 `main` 으로 PR 을 올려 merge commit 으로 머지한다(squash 로 머지하면 두 브랜치 이력이 갈라져 다음 릴리즈 PR 이 충돌한다). `main` 에 들어가면 워크플로가 지난 태그 뒤 커밋 제목으로 다음 버전을 정해 릴리즈한다. 버전은 `pyproject.toml` 한 곳이 정본이고, CLI 와 HUD 는 설치된 패키지 버전을 읽는다.
+
+**입력과 결과**
+
+| 입력 | 결과 |
+|---|---|
+| `main` push(develop 머지) | 다음 버전이 있으면 `pyproject.toml`, `uv.lock`, `desktop/package.json`, `desktop/package-lock.json` 을 올린 `Release: vX.Y.Z` 커밋, `vX.Y.Z` 태그, GitHub Release(커밋 제목 목록), main 을 develop 에 되돌려 합침 |
+| 커밋 제목 머리말 | `Feat` 은 minor, `Fix`, `Refactor` 같은 나머지와 머리말 없는 제목은 patch, `Feat!:` 처럼 `!` 나 `BREAKING CHANGE` 는 major. `Docs`, `Test`, `Chore`, `CI`, `Style`, `Build`, `Release` 만 있으면 릴리즈하지 않는다. 대소문자는 가리지 않는다 |
+| `scripts/release_version.py plan [--since <태그>]` | 다음 버전. 올릴 게 없으면 빈 줄 |
+| `scripts/release_version.py apply <버전>` | 버전 파일을 그 버전으로 맞추고 바뀐 파일을 출력. 이미 그 버전이면 아무 파일도 쓰지 않는다 |
+
+**처리 흐름**: `release.yml` 에서 `git describe` 로 지난 태그를 찾고, `release_version.plan` 이 그 뒤 커밋 제목(머지 커밋 제외)으로 버전을 정하고, `apply`, 커밋, 태그, push, `gh release create`, develop 동기화 순. 새 커밋이 없으면 올릴 버전이 없어 아무것도 하지 않는다.
+
+**구현 파일**
+
+| 파일 | 층 | 역할 |
+|---|---|---|
+| `scripts/release_version.py` | scripts | 커밋 제목에서 다음 버전 계산, 버전 파일 맞추기 |
+| `.github/workflows/release.yml` | ci | main push 에서 버전, 태그, Release, develop 동기화 |
+| `.github/workflows/ci.yml` | ci | develop, main push 와 모든 PR 에서 검사 |
+| `src/jarvis/common/app_version.py` | common | 설치된 패키지 버전(CLI `--version`, `GET /api/health`) |
+
+**테스트**
+
+| 종류 | 파일 |
+|---|---|
+| 단위 | `tests/unit/test_release_release_version.py` |
+| 단위 | `tests/unit/test_common_app_version.py` |
+| 통합 | 없음. 워크플로는 첫 릴리즈에서 확인한다. 버전 응답은 `tests/integ/test_settings.py` 가 본다 |
+
+**제약과 미구현**: 문서 사이트는 `main` push 때만 배포해 develop 에 쌓인 문서는 릴리즈 뒤에 공개된다. 릴리즈 커밋과 develop 동기화는 `GITHUB_TOKEN` 으로 올려 그 push 에서는 CI 가 다시 돌지 않는다. develop 이 그사이 버전 파일을 고쳤으면 동기화 머지가 충돌하고 워크플로가 실패한다.
 
 ---
 

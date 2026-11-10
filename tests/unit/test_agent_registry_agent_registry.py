@@ -4,7 +4,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from jarvis.app.agent_registry import AgentRegistry, load_agent_specs, profile_from_spec
+from jarvis.app.agent_registry import AgentRegistry, agent_model, load_agent_specs, profile_from_spec
 from jarvis.app.agent_profile import ANSWER_RULE, MAIN_AGENT_ID, AgentProfile
 from jarvis.core.policy.approval_rules import ApprovalRule, ApprovalRules
 from tests.fixtures.agent_registry_helpers import app_tools
@@ -177,3 +177,17 @@ def test_task_agent_carries_ask_tools(tmp_path):
     agent = _bounded_registry(tmp_path).task_agent("karen")
 
     assert agent is not None and agent.ask_tools == ("housing_profile",)
+
+
+def test_agent_model_other_provider_drops_main_key_and_address():
+    main = ModelConfig(provider="anthropic", model="claude", api_key="sk-ant", base_url="http://a", max_tokens=99)
+    model = agent_model(main, "openai", "gpt-4o")
+    assert (model.provider, model.model, model.api_key, model.base_url, model.max_tokens) == (
+        "openai", "gpt-4o", None, None, 99
+    )
+
+
+def test_agent_model_same_or_no_provider_only_renames():
+    assert agent_model(MAIN, "ollama", "gemma-small") == MAIN.model_copy(update={"model": "gemma-small"})
+    assert agent_model(MAIN, None, None) is MAIN
+

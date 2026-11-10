@@ -8,8 +8,8 @@ from dataclasses import dataclass, replace
 from collections.abc import Awaitable, Callable
 
 from jarvis.core.goals.goals_types import (
-    ASK_PREFIX, Goal, Step, advance, compose, fingerprint, mark_reported, new_items, parse_step, with_tool_items,
-    worth_noting,
+    ASK_PREFIX, Goal, Step, advance, compose, fingerprint, mark_reported, new_items, parse_step, with_done_question,
+    with_tool_items, worth_noting,
 )
 from jarvis.core.tools.tools_registry import JarvisTool, ToolContext, ToolRegistry
 from jarvis.model_layer.model_types import TextContent, ToolResultMessage
@@ -45,7 +45,7 @@ PROMPT = """\
 항목: [<그것을 가리키는, 다음에도 바뀌지 않는 키>] <사용자에게 건넬 한 줄>
 (항목은 알릴 것마다 한 줄씩 씁니다)
 기록: <다음 차례를 위해 남길 진행 메모 한 줄>
-완료: <목표를 다 이뤄 더 할 일이 없으면 예, 아니면 아니오>"""
+완료: <목표를 다 이뤄 더 할 일이 없으면 예, 아니면 아니오. 계속 지켜보고 알리라는 목표는 늘 아니오>"""
 
 logger = get_logger(__name__)
 
@@ -171,7 +171,7 @@ class GoalRunner:
             retry = build_prompt(goal, auto, ask, now, notes=False) + RECHECK
             reply = await run(retry, lambda base: step_registry(base, exclude, calls=calls))
         texts = [c.text for c in calls]
-        step = with_tool_items(parse_step(reply) if reply is not None else Step(), texts)
+        step = with_done_question(with_tool_items(parse_step(reply) if reply is not None else Step(), texts))
         if not worth_noting(step, bool(calls)):
             step = replace(step, note="")
         # 알렸는지는 모델이 아니라 키로 가린다. 모델은 이미 알린 것을 거르다 새 것까지 빼거나 엉뚱한 것을 물었다(실측)

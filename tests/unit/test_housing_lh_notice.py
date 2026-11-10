@@ -257,3 +257,10 @@ def test_tool_search_without_region_uses_each_home_region(lh_board):
     lh_board.calls.clear()
     asyncio.run(tool.execute("t1", {"category": "임대", "region": "부산", "limit": 1}, None, context))
     assert [form["cnpCd"] for _, form in lh_board.calls] == ["26"]
+
+
+def test_search_without_board_table_names_the_page_it_got():
+    board = FakeBoard({"selectWrtancList.do": "<html><title>서비스 점검 안내</title>잠시 후 이용</html>"})
+    query = Query("임대", "", "", "", "", None, 10)
+    with pytest.raises(ValueError, match="서비스 점검 안내"):
+        asyncio.run(LhNoticeTool(board, lambda: TODAY).search([query], TODAY))

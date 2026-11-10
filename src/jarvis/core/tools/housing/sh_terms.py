@@ -11,6 +11,7 @@ from jarvis.core.tools.housing.fetch import Fetch, FetchBytes, FetchError
 from jarvis.core.tools.housing.notice_pdf import pdf_text
 from jarvis.core.tools.housing.sh_notice import view_url
 from jarvis.core.tools.housing.lh_notice import Notice
+from jarvis.core.tools.housing.markup import page_hint
 
 SH_ID_PREFIX = "sh-"
 SH_REGION = "서울특별시"
@@ -169,9 +170,10 @@ async def collect(
     async def listing(category: str, page: int) -> list[Notice]:
         board = BOARDS[category]
         async with gate:
-            parsed = parse_list(await fetch(list_url(board), list_query(board, "", "제목", page)))
+            body = await fetch(list_url(board), list_query(board, "", "제목", page))
+        parsed = parse_list(body)
         if parsed is None:
-            raise FetchError("SH 게시판이 목록 표를 주지 않았다")
+            raise FetchError(f"SH 게시판이 목록 표를 주지 않았다({page_hint(body)})")
         return recruiting(parsed[1], category, today)
 
     found: dict[str, Notice] = {}

@@ -1,6 +1,7 @@
 """[agent_layer] LLM 호출과 툴 실행을 max_turns 안에서 반복하는 에이전트 루프 본체."""
 
 import json
+import time
 import asyncio
 from typing import Any, cast
 from collections.abc import Awaitable, Callable
@@ -42,7 +43,11 @@ from jarvis.agent_layer.loop_overflow import (
     resume_directive,
     SUMMARY_PROMPT,
 )
+from jarvis.agent_layer.prompt_measure import measure_prompt
 from jarvis.model_layer.stream import stream
+from jarvis.common.logger import get_logger
+
+logger = get_logger(__name__)
 
 AgentEventSink = Callable[[AgentEvent], Awaitable[None]]
 
@@ -236,6 +241,10 @@ async def _stream_assistant(
         tools=context.tools if context.tools and with_tools else None,
         system_prompt=_augment_system_prompt(context),
     )
+    # 지연이 프롬프트 어느 부분에서 오는지 보려고 호출마다 부분별 크기와 첫 출력까지의 시간을 남긴다
+    sizes = measure_prompt(llm_ctx, str(context.metadata.get("inner_thought_prompt") or ""))
+    started = time.monotonic()
+    first_output_sec: float | None = None
 
     text_buffer = ""
     thinking_buffer = ""
@@ -246,6 +255,8 @@ async def _stream_assistant(
     async for event in stream(context.model, llm_ctx, config.stream_options):
         if signal and signal.is_set():
             break
+        if first_output_sec is None and isinstance(event, (TextDeltaEvent, ThinkingDeltaEvent, ToolCallDeltaEvent)):
+            first_output_sec = time.monotonic() - started
 
         if isinstance(event, TextDeltaEvent):
             text_buffer += event.delta
@@ -273,6 +284,15 @@ async def _stream_assistant(
                 error_message=event.message,
             )
 
+    logger.info(
+        "[Loop] llm call",
+        model=context.model.model,
+        first_output_sec=None if first_output_sec is None else round(first_output_sec, 2),
+        total_sec=round(time.monotonic() - started, 2),
+        input_tokens=usage.input,
+        cache_read=usage.cache_read,
+        prompt_chars=sizes,
+    )
     content: list[TextContent | ThinkingContent | ToolCall] = []
     if thinking_buffer:
         content.append(ThinkingContent(thinking=thinking_buffer))

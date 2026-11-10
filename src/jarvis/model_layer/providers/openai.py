@@ -69,9 +69,13 @@ class OpenAIProvider(Provider):
                 async for chunk in stream_ctx:
                     if not chunk.choices:
                         if chunk.usage:
+                            # prompt_tokens 는 캐시 적중분을 포함한다. Anthropic 처럼 input 과 cache_read 를 나눠 둔다
+                            details = getattr(chunk.usage, "prompt_tokens_details", None)
+                            cached = getattr(details, "cached_tokens", 0) or 0
                             usage = Usage(
-                                input=chunk.usage.prompt_tokens,
+                                input=chunk.usage.prompt_tokens - cached,
                                 output=chunk.usage.completion_tokens,
+                                cache_read=cached,
                             )
                         continue
 

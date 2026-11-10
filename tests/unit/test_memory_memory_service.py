@@ -754,3 +754,19 @@ async def test_entities_over_time_limit_falls_back_to_none():
     assert await mgr.entities("Emma") == []
     assert await MemoryService(InMemoryItemStore()).entities("Emma") == []
 
+
+async def test_observe_adds_timeline_only_for_aggregate_questions():
+    store = InMemoryItemStore()
+    seed = MemoryService(store)
+    for day, text in ((1, "Emma 와 카페"), (5, "Emma 와 등산"), (9, "Emma 생일 저녁")):
+        await seed.remember(text, source="manual_compact", scope=U1_MAIN, created_at=datetime(2026, 1, day))
+    mgr = MemoryService(store, coverage=_coverage(["Emma"]), timeline=True)
+    ctx = {"user_id": "u1", "agent_id": "main", "session_id": "s2"}
+
+    asked = await mgr.observe([UserMessage(content="Emma 랑 몇 번 만났지?", timestamp=0)], ctx)
+    plain = await mgr.observe([UserMessage(content="Emma 는 뭘 좋아해?", timestamp=0)], ctx)
+
+    block = next(m.content for m in asked if str(m.content).startswith("[대상 타임라인]"))
+    assert block.startswith("[대상 타임라인] Emma: 언급 3건")
+    assert not any(str(m.content).startswith("[대상 타임라인]") for m in plain)
+

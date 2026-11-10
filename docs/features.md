@@ -569,6 +569,8 @@
 
 **커버리지 재검색**(`memory.coverage_recall`, 기본 꺼짐): 회상 블록을 고를 때 사고 모델이 질문에서 기억으로 찾을 대상(사람, 장소, 물건, 일)을 최대 4개 뽑는다. 1차 회상과 함께 돌고 1.5초를 넘기거나 실패하면 1차 결과만 쓴다. 대상 이름이 회상 항목 글에 없고 벡터 유사도도 0.6 미만이면 빠진 것으로 보고, 빠진 대상마다 그 이름으로 한 번 더 찾아 창 안의 턴과 이미 보인 항목을 거른 첫 항목을 1차 결과의 뒷순위와 바꾼다. 회상 개수는 늘지 않고 1차 1순위는 늘 남는다. NVIDIA auto-ontology 의 entity coverage(질문 대상 추출, 후보 검색, 덮였는지 채점)를 옮겼고, 채점은 LLM 대신 글자와 벡터로 한다. 실서비스 조건(k=3, 답과 판정 gpt-4o-mini)에서 기준선(`turns+src`) 대비 이김과 짐은 LongMemEval-s 1 대 0, PersonaMem-v2 7 대 4(p=0.55), MINT-Eval 0 대 0 이다. 노린 multi-session(0.11)과 multi-hop(0.12)은 그대로라 기본은 꺼 둔다(`memory_net_value --coverage`, results.json `memory_net_value.coverage`).
 
+**대상 타임라인**(`memory.timeline_recall`, 기본 꺼짐, 커버리지 재검색이 켜져 있어야 돈다): 질문이 세기, 순서, 기간, n번째를 물으면(`is_aggregate`, 정규식) 커버리지가 뽑은 대상마다 그 이름이 글자로 나오는 일화만 모아 날짜, 세션 안 턴 번호, 조각 번호 순으로 늘어놓은 `[대상 타임라인] 이름: 언급 n건` 블록을 회상 블록 뒤에 붙인다. 개수는 코드가 세고, 대상 하나에 40줄(줄마다 이름 둘레 100자)을 넘으면 최근 것만 남기고 그렇다고 적는다. 벡터로만 비슷한 일화는 넣지 않는다(세는 질문에 다른 대상이 섞이지 않게). 별칭("엄마"와 "어머니")은 합치지 않는다(`# ponytail`). 저장소에서 읽은 시각은 로컬(naive)로 되돌린다. 예전에는 UTC 로 돌려 회상 블록의 날짜가 9시간 앞당겨졌다.
+
 **구현 파일**
 
 | 파일 | 층 | 역할 |
@@ -587,6 +589,7 @@
 | `src/jarvis/memory/retrieval/cues.py` | memory | 단서 겹침 점수 |
 | `src/jarvis/memory/retrieval/coverage_extract.py` | memory | 질문에서 기억으로 찾을 대상을 뽑는 LLM 경계 |
 | `src/jarvis/memory/retrieval/coverage_grade.py` | memory | 대상이 회상 항목에 덮였는지 가리기, 같은 개수 안에 섞기(순수 함수) |
+| `src/jarvis/memory/retrieval/timeline_build.py` | memory | 집계형 질문 가리기, 대상별 일화 시간순 블록(순수 함수) |
 | `src/jarvis/memory/retrieval/scoring.py` | memory | recency, importance, relevance 합성 점수 |
 | `src/jarvis/memory/stores/store_protocol.py` | memory | 장기 기억 저장소 기본 클래스 |
 | `src/jarvis/memory/stores/in_memory.py` | memory | 프로세스 메모리 저장소 |
@@ -607,6 +610,7 @@
 | 단위 | `tests/unit/test_memory_compaction.py` |
 | 단위 | `tests/unit/test_memory_coverage_extract.py` |
 | 단위 | `tests/unit/test_memory_coverage_grade.py` |
+| 단위 | `tests/unit/test_memory_timeline_build.py` |
 | 단위 | `tests/unit/test_memory_cues.py` |
 | 단위 | `tests/unit/test_memory_deixis.py` |
 | 단위 | `tests/unit/test_memory_embeddings.py` |
@@ -626,7 +630,7 @@
 | 단위 | `tests/unit/test_memory_state.py` |
 | 단위 | `tests/unit/test_memory_store_protocol.py` |
 | 단위 | `tests/unit/test_memory_window.py` |
-| 통합 | `tests/integ/test_memory.py`(커버리지 재검색이 1차 회상에서 빠진 대상의 기억을 되찾음 포함) |
+| 통합 | `tests/integ/test_memory.py`(커버리지 재검색이 1차 회상에서 빠진 대상의 기억을 되찾음, 타임라인이 대상의 모든 언급을 시간순으로 늘어놓음 포함) |
 
 **제약과 미구현**: 항목 낱말이 답에 절반 넘게 나와야 쓰였다고 본다. 이력이 줄어 턴 번호를 다시 세면 옛 턴 일화를 덮는다. 조사 목록 휴리스틱으로 명사를 자른다. main 에이전트는 정의 파일이 없어 기본 정책(자기 것만)이다. 긴 답은 조각 2개(약 3,000자)까지만 남긴다. 출처 회상을 켜면 회상 블록이 최근성과 중요도를 쓰지 않는다(모두 `# ponytail`). 출처 회상은 `MemoryService(source_recall=...)` 로 끄고 켜며 기본은 켜짐이다(LongMemEval-s 실서비스 블록 조건 정답률 0.28 → 0.50). Memory Tax(He et al. 2026)의 recursive memory 와 미래 수요 예측은 범위 밖이다.
 

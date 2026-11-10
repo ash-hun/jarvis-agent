@@ -30,12 +30,13 @@ from jarvis.memory.long_term.fact_source import (
 )
 from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, joint_rank, rank, relevance
 from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
+from jarvis.memory.memory_types import REFERENT, TURN_INDEX, TURN_PART, MemoryItem, MemoryKind
+from jarvis.memory.retrieval.timeline_build import is_aggregate, mentions, render_timeline
 from jarvis.memory.scope import MemoryScope, current_task, scope_from_context, task_scope
 from jarvis.memory.stores.store_protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore
 from jarvis.memory.retrieval.coverage_grade import merge_coverage, uncovered
 from jarvis.memory.long_term.refine import CHAT_TASK, Candidate, candidates
 from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
-from jarvis.memory.memory_types import REFERENT, MemoryItem, MemoryKind
 from jarvis.memory.consolidation.semantic_extract import FactExtractor
 from jarvis.memory.retrieval.coverage_extract import EntityExtractor
 from jarvis.memory.working.state import WorkingState, WorkingStore
@@ -56,14 +57,12 @@ PROCEDURES_HEADER = "[절차 기억]"  # 질의가 가리키는 스킬
 TASK_HEADER = "[작업 공유 메모리]"  # 같은 오케스트레이션 작업의 다른 에이전트가 남긴 결과
 CONSOLIDATED = "consolidated"  # 의미 추출을 마친 일화에 남기는 metadata 키
 TURN_SOURCE = "turn"  # 턴 끝에 남기는 EDM 일화
-TURN_INDEX = "turn"  # 턴 일화 metadata 의 세션 안 턴 번호(1부터)
 TURN_CHARS = 1000  # 턴 일화에 남기는 발화와 답의 최대 글자 수. 도구 결과는 남기지 않는다
 USER_PREFIX = "사용자: "
 TURN_USER_CHARS = "user_chars"  # 턴 일화 content 에서 사용자 발화가 차지하는 글자 수(접두어 뒤)
 # 긴 답의 TURN_CHARS 뒤를 문단 단위로 나눠 남기는 조각 일화. 자르면 그 뒤의 증거는 구성 단계에서 사라져
 # 검색으로 되찾을 수 없다(Memory Tax, He et al. 2026). 공고화와 절차 정제는 본 턴 일화만 본다
 TURN_PART_SOURCE = "turn_part"
-TURN_PART = "part"  # 조각 일화 metadata 의 조각 번호(1부터)
 TURN_PARTS = "parts"  # 턴 일화 metadata 의 조각 수. 다시 쓸 때 줄어든 조각을 지우는 데 쓴다
 # 답 약 3,000자까지. LongMemEval-s 정답 턴은 조각 1개로 보존율 92% 가 100% 가 됐다. 2개는 더 긴 답의 여유이고
 # 일화 수는 조각 없을 때의 2.18배다(4개면 2.29배)
@@ -106,6 +105,8 @@ RECALL_KINDS = (MemoryKind.EPISODIC, MemoryKind.SEMANTIC)
 RECALL_FILTER = ItemFilter(exclude_sources=frozenset({"thought"}))
 # 대상 뽑기는 1차 회상과 함께 돌고 이 시간을 넘기면 버린다. 첫 글자 지연에 더해지는 상한이다
 COVERAGE_TIMEOUT_SEC = 1.5
+# 타임라인을 지을 때 대상 하나로 받는 일화 후보 수. 이름이 글자로 나오는 것만 남긴다
+TIMELINE_CANDIDATES = 120
 # 빠진 대상 하나로 다시 찾을 때 받는 후보 수. 창 안의 턴과 이미 보인 항목을 거르고 첫 하나만 쓴다
 COVERAGE_CANDIDATES = 3
 TURN_STEPS = "steps"  # 턴 일화 metadata: 성공한 도구 호출 [{name, args}]. 절차 정제의 재료
@@ -144,11 +145,14 @@ class MemoryService:
         source_recall: bool = True,
         coverage: EntityExtractor | None = None,
         coverage_timeout: float = COVERAGE_TIMEOUT_SEC,
+        timeline: bool = False,
     ) -> None:
         self._store = store
         # 회상이 질문의 대상을 다 덮지 못하면 빠진 대상으로 다시 찾는다(NVIDIA auto-ontology 의 entity coverage)
         self._coverage = coverage
         self._coverage_timeout = coverage_timeout
+        # 세기, 순서, 기간을 묻는 질문이면 대상별 일화를 시간순으로 붙인다. 대상은 coverage 가 뽑는다
+        self._timeline = timeline
         self._working: WorkingStore = working or InMemoryWorkingStore()
         self._extractor = extractor
         self._procedures = procedures
@@ -224,6 +228,7 @@ class MemoryService:
         cued: list[MemoryItem] = []
         recalled: list[MemoryItem] = []
         patterns: list[TaskPattern] = []
+        timelines: list[str] = []
         if cue:
             # 대상 뽑기(LLM)를 1차 회상과 함께 돌려 지연을 겹친다
             names = asyncio.create_task(self.entities(cue))
@@ -235,10 +240,13 @@ class MemoryService:
             recalled = [
                 i for i in cued if i.id not in fixed_ids and not _in_window(i, scope, first_in_window)
             ][: self._inject_limit]
+            targets = await names
             recalled = await self.cover(
-                await names, recalled, scope, self._inject_limit, exclude=fixed_ids,
+                targets, recalled, scope, self._inject_limit, exclude=fixed_ids,
                 keep=lambda i: not _in_window(i, scope, first_in_window),
             )
+            if self._timeline and is_aggregate(query):
+                timelines = await self.timelines(targets, scope)
             cued = [i for i in cued if i.id in fixed_ids] + recalled
             patterns = best_matches(await self.task_patterns(scope), cue, PATTERN_INJECT_LIMIT)
         procedures = self.procedures(query, scope.agent_id) if query else []
@@ -248,6 +256,8 @@ class MemoryService:
             blocks.append(_block(FACTS_HEADER, fixed))
         if recalled:
             blocks.append(_block(LTM_HEADER, recalled))
+        for text in timelines:
+            blocks.append(UserMessage(content=text, timestamp=int(time.time() * 1000)))
         if procedures:
             blocks.append(_procedures_block(procedures))
         if patterns:
@@ -542,6 +552,19 @@ class MemoryService:
                 extra.append(pick)
         logger.info("[Memory] coverage", entities=len(names), uncovered=len(missing), added=len(extra))
         return merge_coverage(items, extra, limit)
+
+    async def timelines(self, names: Sequence[str], scope: MemoryScope) -> list[str]:
+        """대상마다 그 이름이 글자로 나오는 일화를 시간순으로 늘어놓은 블록. 나온 일화가 없는 대상은 뺀다."""
+        out: list[str] = []
+        for name in names:
+            found = await self.recall(
+                name, scope, kinds=[MemoryKind.EPISODIC], limit=TIMELINE_CANDIDATES, where=RECALL_FILTER
+            )
+            text = render_timeline(name, mentions(name, found))
+            if text:
+                out.append(text)
+        logger.info("[Memory] timeline", entities=len(names), blocks=len(out))
+        return out
 
     async def _embed_names(self, names: Sequence[str]) -> list[list[float] | None]:
         if self._embedder is None:

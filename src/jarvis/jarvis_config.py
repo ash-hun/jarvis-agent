@@ -102,6 +102,8 @@ class MemoryConfig(BaseModel):
     recall_limit: int = 3  # 질의로 회상해 넣는 항목 수(회상 블록)
     # 회상이 질문의 대상(사람, 장소, 물건)을 다 덮지 못하면 빠진 대상으로 다시 찾는다. 사고 모델로 대상을 뽑는다
     coverage_recall: bool = False
+    # 세기, 순서, 기간을 묻는 질문이면 대상별 일화를 시간순으로 붙인다. coverage_recall 이 켜져 있어야 돈다
+    timeline_recall: bool = False
     importance_threshold: float = 0.5  # 의미 추출 결과 중 이 값 미만은 버린다
     recency_half_life_hours: float = 168.0  # 검색 점수의 recency 반감기(일주일)
     importance_half_life_days: float = 90.0  # 되뇌기 없는 항목의 importance 반감기. 0 이면 감쇠 없음

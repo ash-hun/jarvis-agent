@@ -113,11 +113,11 @@ async def run_arm(
 
     coverage = cached_entity_extractor(
         llm_entity_extractor(extract), JsonlCache(CACHE / "entities.jsonl"), EXTRACT_MODEL
-    ) if mode == "turns+src+cov" else None
+    ) if mode.startswith("turns+src+cov") else None
 
     def factory() -> MemoryService:
         return MemoryService(InMemoryItemStore(), extractor=extractor, embedder=embedder, answer_parts=parts,
-                             coverage=coverage, coverage_timeout=60.0)
+                             coverage=coverage, coverage_timeout=60.0, timeline=mode.endswith("+tl"))
 
     report = await run_benchmark(
         name, questions, factory, k=SERVICE_K if service else K, mode=mode, judge=judge, embedder=embedder,
@@ -214,8 +214,11 @@ def wilson(correct: int, n: int, z: float = 1.96) -> list[float]:
     return [round(centre - half, 4), round(centre + half, 4)]
 
 
-async def coverage(names: list[str]) -> dict[str, Any]:
-    """실서비스 조건(k=3, 핵심 사실, 출처 회상)에서 커버리지 재검색 전후. 평가 캐시를 그대로 쓴다."""
+async def coverage(names: list[str], arms: tuple[str, ...] = ("turns+src", "turns+src+cov")) -> dict[str, Any]:
+    """실서비스 조건(k=3, 핵심 사실, 출처 회상)에서 비교군들을 첫 비교군과 맞댄다. 평가 캐시를 그대로 쓴다.
+
+    net 은 마지막 비교군을 첫 비교군과, net_prev 는 바로 앞 비교군과 맞댄 것이다(셋 이상일 때).
+    """
     embedder = CachedEmbedder(
         OllamaEmbedder(model=EMBED_MODEL, dimensions=1024, base_url=OLLAMA_URL), CACHE / "embeddings.sqlite"
     )
@@ -223,11 +226,13 @@ async def coverage(names: list[str]) -> dict[str, Any]:
     try:
         for name in names:
             questions = BENCHMARKS[name]()
-            base = await run_arm(name, questions, "turns+src", embedder, service=True)
-            cov = await run_arm(name, questions, "turns+src+cov", embedder, service=True)
-            nv = net_value(base, cov)
+            reports = {arm: await run_arm(name, questions, arm, embedder, service=True) for arm in arms}
+            nv = net_value(reports[arms[0]], reports[arms[-1]])
             entry: dict[str, Any] = {"n": len(questions), "net": {**nv.rates(), "p": sign_test(nv.benefit, nv.tax)}}
-            for label, report in (("turns+src", base), ("turns+src+cov", cov)):
+            if len(arms) > 2:
+                prev = net_value(reports[arms[-2]], reports[arms[-1]])
+                entry["net_prev"] = {**prev.rates(), "p": sign_test(prev.benefit, prev.tax)}
+            for label, report in reports.items():
                 judged = [r for r in report.results if r.correct is not None]
                 right = sum(1 for r in judged if r.correct)
                 entry[label] = {**arm_entry(report), "ci95": wilson(right, len(judged))}
@@ -257,13 +262,17 @@ def main() -> None:
     parser.add_argument("--only", nargs="*", choices=list(BENCHMARKS), help="이 벤치마크만(기본은 셋 다)")
     parser.add_argument("--dry-run", action="store_true", help="results.json 에 쓰지 않고 출력만")
     parser.add_argument("--coverage", action="store_true", help="실서비스 조건에서 커버리지 재검색 전후만 잰다")
+    parser.add_argument("--timeline", action="store_true", help="실서비스 조건에서 커버리지와 타임라인을 더한 전후")
     args = parser.parse_args()
     names = args.only or list(BENCHMARKS)
-    if args.coverage:
-        found = asyncio.run(coverage(names))
-        print(json.dumps({n: e["net"] for n, e in found.items()}, ensure_ascii=False))
+    if args.coverage or args.timeline:
+        key, arms = ("timeline", ("turns+src", "turns+src+cov", "turns+src+cov+tl")) if args.timeline else (
+            "coverage", ("turns+src", "turns+src+cov"))
+        found = asyncio.run(coverage(names, arms))
+        print(json.dumps({n: {"net": e["net"], "net_prev": e.get("net_prev")} for n, e in found.items()},
+                         ensure_ascii=False))
         if not args.dry_run:
-            write({"coverage": {"config": {"k": SERVICE_K, "judge": JUDGE_MODEL, "extract": EXTRACT_MODEL}, **found}})
+            write({key: {"config": {"k": SERVICE_K, "judge": JUDGE_MODEL, "extract": EXTRACT_MODEL}, **found}})
         return
     result: dict[str, Any] = {
         "config": {"seed": SEED, "k": K, "budget_chars": BUDGET, "judge": JUDGE_MODEL, "embedder": EMBED_MODEL,

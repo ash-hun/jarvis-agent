@@ -3,7 +3,7 @@
 import json
 import asyncio
 from typing import Any
-from datetime import UTC, datetime
+from datetime import datetime
 
 from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.scope import LOCAL_USER, MemoryScope
@@ -60,7 +60,7 @@ class PostgresWorkingStore(WorkingStore):
         rehearsal, notes = row["rehearsal"], row["notes"]
         updated = row["updated_at"]
         if updated.tzinfo is not None:
-            updated = updated.astimezone(UTC).replace(tzinfo=None)
+            updated = updated.astimezone().replace(tzinfo=None)
         return WorkingState(
             scope=scope,
             rehearsal=json.loads(rehearsal) if isinstance(rehearsal, str) else dict(rehearsal or {}),

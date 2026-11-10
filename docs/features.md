@@ -567,7 +567,7 @@
 
 **처리 흐름**: `MemoryService.observe` 에서 `working.window` 와 `deixis` 로 창과 지칭을 정하고, `scope` 와 `access` 로 읽을 범위를 계산해 `stores` 조회, `retrieval.scoring` 과 `cues` 로 순위, `remember` 쓰기는 `long_term` 정책 적용, 공고화는 `consolidation.idle` 에서 `semantic_extract` 순.
 
-**커버리지 재검색**(`memory.coverage_recall`, 기본 꺼짐): 회상 블록을 고를 때 사고 모델이 질문에서 기억으로 찾을 대상(사람, 장소, 물건, 일)을 최대 4개 뽑는다. 1차 회상과 함께 돌고 1.5초를 넘기거나 실패하면 1차 결과만 쓴다. 대상 이름이 회상 항목 글에 없고 벡터 유사도도 0.6 미만이면 빠진 것으로 보고, 빠진 대상마다 그 이름으로 한 번 더 찾아 창 안의 턴과 이미 보인 항목을 거른 첫 항목을 1차 결과의 뒷순위와 바꾼다. 회상 개수는 늘지 않고 1차 1순위는 늘 남는다. NVIDIA auto-ontology 의 entity coverage(질문 대상 추출, 후보 검색, 덮였는지 채점)를 옮겼고, 채점은 LLM 대신 글자와 벡터로 한다.
+**커버리지 재검색**(`memory.coverage_recall`, 기본 꺼짐): 회상 블록을 고를 때 사고 모델이 질문에서 기억으로 찾을 대상(사람, 장소, 물건, 일)을 최대 4개 뽑는다. 1차 회상과 함께 돌고 1.5초를 넘기거나 실패하면 1차 결과만 쓴다. 대상 이름이 회상 항목 글에 없고 벡터 유사도도 0.6 미만이면 빠진 것으로 보고, 빠진 대상마다 그 이름으로 한 번 더 찾아 창 안의 턴과 이미 보인 항목을 거른 첫 항목을 1차 결과의 뒷순위와 바꾼다. 회상 개수는 늘지 않고 1차 1순위는 늘 남는다. NVIDIA auto-ontology 의 entity coverage(질문 대상 추출, 후보 검색, 덮였는지 채점)를 옮겼고, 채점은 LLM 대신 글자와 벡터로 한다. 실서비스 조건(k=3, 답과 판정 gpt-4o-mini)에서 기준선(`turns+src`) 대비 이김과 짐은 LongMemEval-s 1 대 0, PersonaMem-v2 7 대 4(p=0.55), MINT-Eval 0 대 0 이다. 노린 multi-session(0.11)과 multi-hop(0.12)은 그대로라 기본은 꺼 둔다(`memory_net_value --coverage`, results.json `memory_net_value.coverage`).
 
 **구현 파일**
 

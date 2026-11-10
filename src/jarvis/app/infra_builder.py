@@ -272,6 +272,7 @@ class InfraBuilder:
             coverage=llm_entity_extractor(
                 thought_model_config(settings.thought, model_config).model_copy(update={"temperature": 0.0})
             ) if mcfg.coverage_recall else None,
+            timeline=mcfg.timeline_recall,
         )
 
     def build_session_repo(self) -> "SessionRepo":

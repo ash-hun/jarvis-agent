@@ -10,6 +10,8 @@ from jarvis.memory.scope import MemoryScope
 
 # 상대 지칭("그거", "아까 그 방법")으로 쓴 항목이 가리킨 대화. 검색과 임베딩, 회상 표시에 같이 쓴다
 REFERENT = "referent"
+TURN_INDEX = "turn"  # 턴 일화 metadata 의 세션 안 턴 번호(1부터)
+TURN_PART = "part"  # 조각 일화 metadata 의 조각 번호(1부터)
 
 
 class MemoryKind(StrEnum):

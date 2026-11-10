@@ -10,6 +10,7 @@ from collections.abc import Awaitable, Callable, Sequence
 from jarvis.memory.memory_service import MemoryService, turn_contents, turn_item_id
 from jarvis.memory.long_term.fact_source import SOURCE_EPISODE, with_source
 from jarvis.memory.eval.rag_baseline import RagIndex, chunk_sessions
+from jarvis.memory.retrieval.timeline_build import is_aggregate
 from jarvis.model_layer.embeddings import Embedder
 from jarvis.memory.memory_types import MemoryItem
 from jarvis.memory.scope import MemoryScope
@@ -23,8 +24,9 @@ USER = "benchmark"
 #   turns+src: turns 와 같은 메모리에서 추출 사실의 출처 턴을 후보에 더해 질의 관련도 하나로 다시 매긴다(src-aug)
 #   turns+excerpt: 처음 시도한 방식. 추출 사실 아래 출처 턴의 해당 부분(최대 300자)을 붙인다
 #   turns+src+cov: turns+src 의 회상 k 개가 질문의 대상을 다 덮지 못하면 빠진 대상으로 다시 찾아 k 개 안에 섞는다
+#   turns+src+cov+tl: turns+src+cov 에 더해 세기, 순서, 기간을 묻는 질문이면 대상별 일화 타임라인을 k 밖에 붙인다
 # 증거 재현율은 LLM 없이 계산하고, 정답 여부(accuracy)는 judge 를 줄 때만 판정한다.
-MODES = ("rag", "raw", "turns", "turns+src", "turns+excerpt", "turns+src+cov")
+MODES = ("rag", "raw", "turns", "turns+src", "turns+excerpt", "turns+src+cov", "turns+src+cov+tl")
 # 노출 예산으로 자르기 전에 받는 후보 수. 짧은 사실이 많은 비교군도 예산을 채우게 넉넉히 받는다. 예산이 없으면 k 개만
 CANDIDATES = 150
 
@@ -231,6 +233,7 @@ class Retrieved:
     text: str
     session_id: str | None
     turn_ids: frozenset[str]
+    pinned: bool = False  # 실서비스처럼 회상 k 개와 따로 붙는 블록(타임라인). k 로 자르지 않는다
 
 
 def _item_turns(item: MemoryItem) -> frozenset[str]:
@@ -245,13 +248,16 @@ async def recall_items(
     k 는 핵심 사실을 뺀 회상 자리 수다. turns+src+cov 는 실서비스처럼 그 k 개 안에서 커버리지를 맞춘다.
     """
     scope = MemoryScope(user_id=USER, agent_id="main")
-    if mode == "turns+src+cov":
+    pinned: list[Retrieved] = []
+    if mode in ("turns+src+cov", "turns+src+cov+tl"):
         found = await memory.recall_with_sources(question.question, scope, limit=limit)
         fixed_ids = {f.id for f in await memory.fixed_facts(scope)}
         pool = [i for i in found if i.id not in fixed_ids][: k or limit]
-        covered = await memory.cover(await memory.entities(question.question), pool, scope, k or limit,
-                                     exclude=fixed_ids)
+        names = await memory.entities(question.question)
+        covered = await memory.cover(names, pool, scope, k or limit, exclude=fixed_ids)
         items = [i for i in found if i.id in fixed_ids] + covered
+        if mode.endswith("+tl") and is_aggregate(question.question):
+            pinned = [Retrieved(text, None, frozenset(), pinned=True) for text in await memory.timelines(names, scope)]
     elif mode == "turns+src":
         items = await memory.recall_with_sources(question.question, scope, limit=limit)
     else:
@@ -264,7 +270,7 @@ async def recall_items(
             origin = await memory.get(str(item.metadata[SOURCE_EPISODE])) or item
         out.append(Retrieved(with_source(item.content, excerpts.get(item.id)), origin.scope.session_id,
                              _item_turns(origin)))
-    return out
+    return out + pinned
 
 
 async def _with_fixed(memory: MemoryService, found: list[Retrieved], k: int) -> list[Retrieved]:
@@ -272,7 +278,8 @@ async def _with_fixed(memory: MemoryService, found: list[Retrieved], k: int) -> 
     facts = await memory.fixed_facts(MemoryScope(user_id=USER, agent_id="main"))
     texts = {f.content for f in facts}
     head = [Retrieved(f.content, None, frozenset()) for f in facts]
-    return head + [r for r in found if r.text not in texts][:k]
+    recalled = [r for r in found if not r.pinned and r.text not in texts][:k]
+    return head + recalled + [r for r in found if r.pinned]
 
 
 def fit_budget(retrieved: Sequence[Retrieved], k: int, budget: int | None) -> list[Retrieved]:

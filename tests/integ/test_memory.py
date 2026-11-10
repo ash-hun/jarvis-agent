@@ -432,3 +432,30 @@ async def test_observe_with_coverage_brings_back_the_missed_entity(ltm):
     shown = block(await covered.observe(question, ctx))
     assert "치과" in shown and "Emma" in shown
 
+
+async def test_observe_with_timeline_lists_every_mention_in_time_order(ltm):
+    from datetime import datetime
+
+    from jarvis.memory.memory_service import MemoryService
+    from jarvis.model_layer.model_types import UserMessage
+
+    scope = MemoryScope(user_id="tl", agent_id="main", session_id="old")
+    for day, text in ((3, "Mary moved to the garden"), (1, "Mary moved to the office"), (7, "John slept"),
+                      (5, "Mary moved to the kitchen")):
+        await ltm.remember(text, source="manual_compact", scope=scope, created_at=datetime(2026, 1, day))
+
+    async def extract(question: str) -> list[str]:
+        return ["Mary"]
+
+    memory = MemoryService(ltm.store, inject_limit=1, fixed_facts=0, coverage=extract, timeline=True)
+    out = await memory.observe([UserMessage(content="How many times has Mary moved?", timestamp=0)],
+                               {"user_id": "tl", "agent_id": "main", "session_id": "new"})
+
+    block = next(m.content for m in out if str(m.content).startswith("[대상 타임라인]"))
+    assert block.splitlines() == [
+        "[대상 타임라인] Mary: 언급 3건, 오래된 것부터",
+        "- [2026-01-01] Mary moved to the office",
+        "- [2026-01-03] Mary moved to the garden",
+        "- [2026-01-05] Mary moved to the kitchen",
+    ]
+

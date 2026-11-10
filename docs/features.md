@@ -105,6 +105,8 @@
 
 **처리 흐름**: `ws_router` 에서 `AgentSession.prompt` 로, 보안 파이프라인, 스킬 확장, router 판정, 사고와 AGENDA 판단 띄우기, `AgentHarness.run`, `run_agent_loop`, `model_layer.stream`, 도구 실행기 순. 프로바이더나 저장소가 예외를 던져도 `AgentHarness.run` 이 `finally` 에서 실행 표시(`is_running`)를 풀어, 다음 턴이 실행 중으로 막히지 않는다.
 
+**호출 측정**: 루프는 LLM 호출마다 `[Loop] llm call` 로그 한 줄을 남긴다. 필드는 모델, 첫 출력(글자, 생각, 도구 호출 조각)까지 걸린 초 `first_output_sec`, 전체 초 `total_sec`, `input_tokens`, `cache_read`, 부분별 글자 수 `prompt_chars` 다. `prompt_chars` 는 프롬프트에 놓이는 순서대로 `system`, `inner_thought`, `tools`, 메모리가 붙인 블록(`[핵심 사실]`, `[장기 기억]` 같은 첫 줄 머리말), role(`user`, `assistant`, `tool_result`)이다. OpenAI 는 `prompt_tokens` 에서 캐시 적중분(`prompt_tokens_details.cached_tokens`)을 빼 `input` 에, 적중분을 `cache_read` 에 둔다(Anthropic 과 같은 뜻).
+
 **넘침 이어가기**: `max_turns` 의 마지막 차례까지 도구를 부르고 끝나면(다음 차례를 기다리는 도구 결과로 끝남) 루프가 바로 끊지 않는다. 도구 정의 없이 "한 것, 남은 단계, 지금까지의 답" 을 정리하는 LLM 호출을 한 번 하고, 그 정리를 기록에 남지 않는 지시로 매 호출 끝에 붙여 `max(1, max_turns // 2)` 차례를 더 돈다. 이어간 구간에서도 또 넘치면 두 번째 정리문을 답으로 돌려준다. 정리문은 화면에 흘리지 않고(두 번째만 답으로 보냄), 정리 호출이 실패하거나 비면 부른 도구 이름으로 만든 기본 정리문을 쓴다. 정리와 이어가기 지시는 항목 이름(한 것, 남은 단계, 지금까지의 답)만 고정하고, 내용과 답은 원래 요청의 언어와 답 형식을 따르게 한다(두 번째 정리문이 그대로 답이 되므로, 예전 문구로는 영어 요청에도 한국어 답이 나왔다). 중단 신호는 정리 호출 뒤에도 확인한다. 한 턴의 LLM 호출은 차례 `max_turns + max_turns // 2` 개(빈 답 재촉 포함 차례당 최대 두 번)와 정리 두 번이 상한이다. `agent_end.overflows` 가 넘친 횟수를 알리고, 하네스는 넘친 턴의 턴 일화 metadata 에 `overflow: true` 를 남긴다(실패 반성의 근거). `AgentLoopConfig.overflow_resume=False` 면 예전처럼 그 자리에서 끊는다. EMMA(arXiv 2610.35966) 의 overflow decomposition 을 한 에이전트 루프에 맞게 줄였다.
 
 **구현 파일**
@@ -113,6 +115,7 @@
 |---|---|---|
 | `src/jarvis/agent_layer/loop.py` | agent_layer | LLM 호출과 툴 실행을 반복하는 루프 본체 |
 | `src/jarvis/agent_layer/loop_overflow.py` | agent_layer | 넘침 판단, 이어갈 예산, 정리 지시와 기본 정리문(순수 함수) |
+| `src/jarvis/agent_layer/prompt_measure.py` | agent_layer | LLM 호출 입력을 시스템, 사고, 도구, 메모리 블록, role 별 글자 수로 나눔(순수 함수) |
 | `src/jarvis/agent_layer/harness.py` | agent_layer | 세션 이력, 작업 기억 변환, 이벤트 구독을 묶어 한 턴을 돌리는 래퍼 |
 
 **테스트**
@@ -129,6 +132,7 @@
 | 단위 | `tests/unit/test_agent_loop_model_types.py` |
 | 단위 | `tests/unit/test_agent_loop_ollama.py` |
 | 단위 | `tests/unit/test_agent_loop_openai.py` |
+| 단위 | `tests/unit/test_agent_loop_prompt_measure.py` |
 | 단위 | `tests/unit/test_agent_loop_provider_base.py` |
 | 단위 | `tests/unit/test_agent_loop_session.py` |
 | 단위 | `tests/unit/test_agent_loop_stream.py` |
@@ -139,7 +143,7 @@
 
 **τ²-bench 꼭짓점**: sierra-research/tau2-bench v2.0.0(MIT) 의 airline, retail 데이터(DB, 과제, 정책)를 `~/.jarvis/benchmarks/tau2/src/tau2-bench-main/` 에 받는다(공식 저장소 tarball 에서 `data/tau2/domains/{airline,retail}` 과 `src/tau2` 만 풀었다). 표본은 공식 test split(airline 20, retail 40)에서 도메인마다 id 순 정렬 뒤 `random.Random(seed).sample` 로 20 개를 고르고 도메인을 번갈아 늘어놓는다(`--limit` 은 앞에서 자른다). 도메인 도구 30 개는 공식 코드를 평가 전용으로 옮긴 것이고(`tau2_tools.py`, 운영 도구 목록에는 없다), 큰 DB 를 과제마다 복사하지 않으려고 공유 DB 위에 바뀐 레코드만 복사하는 덮어쓰기 층에서 돈다. 에이전트는 운영 루프(`run_agent_loop`, `AgentLoopConfig()` 기본값, 넘침 이어가기 켬)에 공식 에이전트 지시문과 정책을 시스템 프롬프트로 주고, 사용자 시뮬레이터는 `judge_model`(기본 gpt-4o, temperature 0)이 공식 텍스트 지시문으로 말한다. 대화는 공식 첫 인사로 시작해 사용자가 `###STOP###`, `###TRANSFER###`, `###OUT-OF-SCOPE###` 를 말하면 끝나고, 공식 상한(200 단계, 도구 오류 10 회)에 닿으면 0 점이다. 보상은 공식처럼 끝난 DB 와 정답 행동을 적용한 DB 의 일치에 필요한 값의 전달을 곱한다. 공식과 다른 점은 셋이다. 전달 여부를 공식 기본(의미 판정 LLM) 대신 공식이 함께 두는 substring 방식으로 본다. retail 의 NL_ASSERTION(LLM 판정)은 짝을 이룬 `communicate_info` 값의 substring 으로 대신 본다. 시뮬레이터에 v2 언어 팩의 persona 문구를 넣지 않는다. score = pass^1 × 100, `detail` 에 도메인별 pass^1 과 문항당 LLM 호출 수, 입력, 출력 토큰(메인 모델과 시뮬레이터 따로)을 둔다.
 
-**제약과 미구현**: 메인 모델의 프롬프트 처리 시간이 첫 글자 지연의 대부분이라 시스템 프롬프트와 도구 목록 크기를 줄이는 일이 남아 있다(`TODO.md`).
+**제약과 미구현**: 첫 글자 지연을 줄이는 조치(캐시가 맞게 고정 부분을 앞에 두기, 큰 동적 블록 줄이기)는 호출 측정 결과를 보고 정한다(`TODO.md`). `/cost` 는 `cache_read` 를 비용에 넣지 않는다.
 
 ---
 

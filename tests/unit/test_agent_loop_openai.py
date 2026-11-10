@@ -107,6 +107,19 @@ async def test_usage_after_finish_reaches_stop_event(monkeypatch: pytest.MonkeyP
     assert isinstance(events[-1], StopEvent)
 
 
+async def test_cached_prompt_tokens_split_into_cache_read(monkeypatch: pytest.MonkeyPatch) -> None:
+    details = SimpleNamespace(cached_tokens=100)
+    usage_chunk = SimpleNamespace(
+        choices=[], usage=SimpleNamespace(prompt_tokens=120, completion_tokens=30, prompt_tokens_details=details)
+    )
+    _install_fake_client(monkeypatch, [_chunk(content="hi"), _chunk(finish="stop"), usage_chunk], {})
+    model = ModelConfig(provider="openai", model="gpt", api_key="k", timeout=5.0)
+    events = [ev async for ev in OpenAIProvider().stream(model, LLMContext(messages=[UserMessage(content="hi")]))]
+
+    stop = [e for e in events if isinstance(e, StopEvent)][0]
+    assert (stop.usage.input, stop.usage.cache_read, stop.usage.output) == (20, 100, 30)
+
+
 async def test_stream_without_tools_omits_tool_choice(monkeypatch: pytest.MonkeyPatch) -> None:
     sent: dict[str, Any] = {}
     _install_fake_client(monkeypatch, [_chunk(finish="weird")], sent)

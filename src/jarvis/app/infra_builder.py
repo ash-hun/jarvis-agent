@@ -219,7 +219,9 @@ class InfraBuilder:
     def build_memory(self, model_config: "ModelConfig", skill_registry: "SkillRegistry") -> "MemoryService":
         """임베딩, 항목과 작업 기억 저장소(in_memory 또는 Postgres), 요약과 사실 추출을 단 메모리 서비스."""
         from jarvis.memory.consolidation.semantic_extract import llm_fact_extractor
+        from jarvis.memory.retrieval.coverage_extract import llm_entity_extractor
         from jarvis.memory.long_term.procedural import SkillRegistryProcedures
+        from jarvis.app.agent_profile import thought_model_config
         from jarvis.app.agent_registry import load_agent_specs
         from jarvis.memory.memory_service import MemoryService
         from jarvis.memory.retrieval import ScoringParams
@@ -267,6 +269,9 @@ class InfraBuilder:
             interference_threshold=mcfg.interference_threshold,
             embedder=embedder,
             min_similarity=mcfg.min_similarity,
+            coverage=llm_entity_extractor(
+                thought_model_config(settings.thought, model_config).model_copy(update={"temperature": 0.0})
+            ) if mcfg.coverage_recall else None,
         )
 
     def build_session_repo(self) -> "SessionRepo":

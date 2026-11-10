@@ -10,6 +10,7 @@ from pathlib import Path
 from collections.abc import Sequence
 
 from jarvis.memory.consolidation.semantic_extract import Fact, FactExtractor
+from jarvis.memory.retrieval.coverage_extract import EntityExtractor
 from jarvis.memory.eval.benchmark import BenchmarkQuestion, Judge
 from jarvis.model_layer.embeddings import Embedder
 
@@ -115,6 +116,16 @@ def cached_extractor(extractor: FactExtractor, cache: JsonlCache, namespace: str
         if key not in cache:
             cache.put(key, [[f.key, f.value, f.importance] for f in await extractor(text)])
         return [Fact(key=k, value=v, importance=float(i)) for k, v, i in cache.get(key)]
+
+    return extract
+
+
+def cached_entity_extractor(extractor: EntityExtractor, cache: JsonlCache, namespace: str) -> EntityExtractor:
+    async def extract(question: str) -> list[str]:
+        key = cache_key("entities", namespace, question)
+        if key not in cache:
+            cache.put(key, await extractor(question))
+        return [str(name) for name in cache.get(key)]
 
     return extract
 

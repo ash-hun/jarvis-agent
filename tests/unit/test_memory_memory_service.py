@@ -1,6 +1,7 @@
 """memory 기능의 MemoryService: 쓰기 규칙, 범위 격리, 턴 전 주입과 되뇌기, 턴 일화, 공고화, 임베딩, 작업 패턴."""
 
 import pytest
+import asyncio
 from datetime import datetime, timedelta
 
 from jarvis.memory.memory_service import (
@@ -725,3 +726,31 @@ async def test_observe_with_source_recall_brings_back_the_source_turn(memory):
     recall = next(b for b in await observe(on, other, "땅콩 알레르기") if b.startswith(LTM_HEADER))
 
     assert "나 땅콩 알레르기 있어" in recall
+
+
+def _coverage(names: list[str], delay: float = 0.0):  # type: ignore[no-untyped-def]
+    async def extract(question: str) -> list[str]:
+        await asyncio.sleep(delay)
+        return names
+
+    return extract
+
+
+async def test_cover_adds_item_for_entity_the_first_recall_missed():
+    store = InMemoryItemStore()
+    seed = MemoryService(store)
+    await seed.remember("Emma 와 북한산에 갔다", source="explicit", scope=U1_MAIN)
+    await seed.remember("치과 예약은 금요일", source="explicit", scope=U1_MAIN)
+    mgr = MemoryService(store, coverage=_coverage(["Emma", "치과"]))
+    first = await mgr.recall("Emma", U1_MAIN, limit=2)
+
+    covered = await mgr.cover(await mgr.entities("Emma 랑 치과"), first, U1_MAIN, 2)
+
+    assert [i.content for i in covered] == ["Emma 와 북한산에 갔다", "치과 예약은 금요일"]
+
+
+async def test_entities_over_time_limit_falls_back_to_none():
+    mgr = MemoryService(InMemoryItemStore(), coverage=_coverage(["Emma"], delay=0.2), coverage_timeout=0.01)
+    assert await mgr.entities("Emma") == []
+    assert await MemoryService(InMemoryItemStore()).entities("Emma") == []
+

@@ -34,11 +34,12 @@ from jarvis.memory.memory_types import REFERENT, TURN_INDEX, TURN_PART, MemoryIt
 from jarvis.memory.retrieval.timeline_build import is_aggregate, mentions, render_timeline
 from jarvis.memory.scope import MemoryScope, current_task, scope_from_context, task_scope
 from jarvis.memory.stores.store_protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore
+from jarvis.memory.consolidation.semantic_extract import Fact, FactExtractor
 from jarvis.memory.retrieval.coverage_grade import merge_coverage, uncovered
 from jarvis.memory.long_term.refine import CHAT_TASK, Candidate, candidates
 from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
-from jarvis.memory.consolidation.semantic_extract import FactExtractor
 from jarvis.memory.retrieval.coverage_extract import EntityExtractor
+from jarvis.memory.long_term.correction_detect import is_correction
 from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.access import MemoryPolicy, Readable, resolve
 from jarvis.memory.working.in_memory import InMemoryWorkingStore
@@ -296,12 +297,15 @@ class MemoryService:
         """
         scope = scope_from_context(context)
         turn = self._pending_turn.pop(scope, None)
+        cued = self._pending_recall.pop(scope, [])
         if turn is not None:
-            await self.record_turn(
+            turn_id = await self.record_turn(
                 turn[0], turn[1], answer, scope, task_type=tools[0] if tools else CHAT_TASK, failed=failed,
                 tools=tools, steps=steps, overflow=overflow,
             )
-        cued = self._pending_recall.pop(scope, [])
+            prior = [item for item in cued if item.kind is MemoryKind.SEMANTIC]
+            if prior and is_correction(turn[1]):
+                await self.fold_correction(turn_id, prior, scope)
         used = [item.id for item in cued if answer and relevance(item.content, answer) >= USED_OVERLAP]
         if used:
             state = await self._working.load(scope)
@@ -352,6 +356,24 @@ class MemoryService:
             for number in range(len(parts) + 1, int(previous.metadata.get(TURN_PARTS, 0)) + 1):
                 await self._store.delete(turn_item_id(scope, index, number))
         return stored
+
+    async def fold_correction(self, episode_id: str, prior: Sequence[MemoryItem], scope: MemoryScope) -> int:
+        """정정한 턴에서 바로 사실을 뽑아 같은 주제의 옛 사실을 대체한다. 돌려주는 값은 새로 쓴 사실 수.
+
+        공고화(조용한 틱)까지 기다리면 그사이 틀린 사실이 계속 회상된다. 추출기에 정정 전 사실을 함께 보여
+        같은 주제 이름을 쓰게 한다(remember 는 같은 주제면 대체한다).
+        뽑은 턴은 추출 완료로 표시해 공고화가 다시 뽑지 않는다.
+        """
+        episode = await self._store.get(episode_id)
+        if self._extractor is None or episode is None:
+            return 0
+        before = "\n".join(f"- {item.content}" for item in prior)
+        facts = await self._extractor(f"[정정 전 사실]\n{before}\n\n{_extraction_text(episode)}")
+        written = await self._write_facts(facts, [episode], scope)
+        episode.metadata[CONSOLIDATED] = True
+        await self._store.store(episode)
+        logger.info("[Memory] correction folded", prior=len(prior), facts=written)
+        return written
 
     async def fixed_facts(self, scope: MemoryScope) -> list[MemoryItem]:
         """질의와 무관하게 항상 넣는 의미 사실. 중요도와 최근성으로 고른다."""
@@ -711,6 +733,28 @@ class MemoryService:
 
     # ── 공고화 ──────────────────────────────────────────────────────────────
 
+    async def _write_facts(self, facts: Sequence[Fact], group: Sequence[MemoryItem], scope: MemoryScope) -> int:
+        """중요도 임계를 넘은 사실을 사용자 프로필로 쓰고 출처 턴을 단다. 같은 주제의 옛 사실은 remember 가 대체한다."""
+        written = 0
+        for fact in facts:
+            if fact.importance < self._importance_threshold:
+                continue
+            # 출처는 사실 낱말이 가장 많이 나온 턴이다. 회상 때 그 턴의 해당 부분을 사실 아래 붙인다
+            source = pick_source(fact.content, list(group), source_text)
+            if source is None and len(group) > 1:
+                vector = await self._embed_query(fact.content)
+                source = nearest_episode(vector, list(group)) if vector else None
+            source = source or group[0]
+            await self.remember(
+                fact.content,
+                source="extracted",
+                scope=scope.with_session(None),
+                importance=fact.importance,
+                metadata={SOURCE_EPISODE: source.id},
+            )
+            written += 1
+        return written
+
     async def consolidate(self, scope: MemoryScope) -> int:
         """세션 종료와 사용자가 조용한 daemon 틱에 부른다. 돌려주는 값은 새로 쓴 의미 사실 수.
 
@@ -733,23 +777,7 @@ class MemoryService:
             ]
             for group in _extraction_groups(pending):
                 facts = await self._extractor("\n\n".join(_extraction_text(e) for e in group))
-                for fact in facts:
-                    if fact.importance < self._importance_threshold:
-                        continue
-                    # 출처는 사실 낱말이 가장 많이 나온 턴이다. 회상 때 그 턴의 해당 부분을 사실 아래 붙인다
-                    source = pick_source(fact.content, group, source_text)
-                    if source is None and len(group) > 1:
-                        vector = await self._embed_query(fact.content)
-                        source = nearest_episode(vector, group) if vector else None
-                    source = source or group[0]
-                    await self.remember(
-                        fact.content,
-                        source="extracted",
-                        scope=resolved.with_session(None),
-                        importance=fact.importance,
-                        metadata={SOURCE_EPISODE: source.id},
-                    )
-                    written += 1
+                written += await self._write_facts(facts, group, resolved)
                 # 추출 중에 죽으면 표시하지 않은 묶음은 다음 호출에서 다시 뽑는다. 같은 주제 사실은 remember 가 대체한다
                 for episode in group:
                     episode.metadata[CONSOLIDATED] = True

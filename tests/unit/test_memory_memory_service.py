@@ -770,3 +770,38 @@ async def test_observe_adds_timeline_only_for_aggregate_questions():
     assert block.startswith("[대상 타임라인] Emma: 언급 3건")
     assert not any(str(m.content).startswith("[대상 타임라인]") for m in plain)
 
+
+async def test_correction_turn_supersedes_recalled_fact_right_away(memory):
+    seen: list[str] = []
+
+    async def extractor(text: str) -> list[Fact]:
+        seen.append(text)
+        return [Fact(key="거주지", value="부산", importance=0.9)]
+
+    mgr = MemoryService(memory.store, memory.working, extractor=extractor)
+    old = await mgr.remember("거주지: 서울", source="explicit", scope=U1_MAIN)
+    history = [_u("아니, 거주지 서울 아니고 이제 부산이야")]
+    await mgr.observe(history, CTX)
+    await mgr.reinforce("알겠어요, 부산으로 기억할게요.", CTX)
+
+    assert (await mgr.get(old)).superseded_by is not None
+    facts = await mgr.recall("거주지", scope=U1_MAIN, kinds=[MemoryKind.SEMANTIC])
+    assert [i.content for i in facts] == ["거주지: 부산"]
+    assert seen[0].startswith("[정정 전 사실]\n- 거주지: 서울")
+    assert await mgr.consolidate(U1_MAIN) == 0
+
+
+async def test_plain_turn_waits_for_consolidation(memory):
+    calls: list[str] = []
+
+    async def extractor(text: str) -> list[Fact]:
+        calls.append(text)
+        return []
+
+    mgr = MemoryService(memory.store, memory.working, extractor=extractor)
+    await mgr.remember("거주지: 서울", source="explicit", scope=U1_MAIN)
+    await mgr.observe([_u("거주지 근처 맛집 알려줘")], CTX)
+    await mgr.reinforce("근처 맛집은 …", CTX)
+
+    assert calls == []
+

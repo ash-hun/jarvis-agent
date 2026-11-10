@@ -459,3 +459,24 @@ async def test_observe_with_timeline_lists_every_mention_in_time_order(ltm):
         "- [2026-01-05] Mary moved to the kitchen",
     ]
 
+
+async def test_correction_turn_replaces_fact_before_consolidation(ltm):
+    from jarvis.memory.consolidation.semantic_extract import Fact
+    from jarvis.memory.memory_service import MemoryService
+    from jarvis.model_layer.model_types import UserMessage
+    from jarvis.memory import MemoryKind
+
+    async def extractor(text: str) -> list[Fact]:
+        return [Fact(key="거주지", value="부산", importance=0.9)] if "부산" in text else []
+
+    scope = MemoryScope(user_id="fix", agent_id="main", session_id="s1")
+    memory = MemoryService(ltm.store, extractor=extractor)
+    old = await memory.remember("거주지: 서울", source="explicit", scope=scope)
+    ctx = {"user_id": "fix", "agent_id": "main", "session_id": "s1"}
+    await memory.observe([UserMessage(content="아니, 거주지는 이제 부산이야", timestamp=0)], ctx)
+    await memory.reinforce("부산으로 기억할게요.", ctx)
+
+    facts = await memory.recall("거주지", scope=scope, kinds=[MemoryKind.SEMANTIC])
+    assert [f.content for f in facts] == ["거주지: 부산"]
+    assert (await memory.get(old)).superseded_by == facts[0].id
+

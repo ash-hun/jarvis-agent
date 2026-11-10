@@ -571,6 +571,8 @@
 
 **대상 타임라인**(`memory.timeline_recall`, 기본 꺼짐, 커버리지 재검색이 켜져 있어야 돈다): 질문이 세기, 순서, 기간, n번째를 물으면(`is_aggregate`, 정규식) 커버리지가 뽑은 대상마다 그 이름이 글자로 나오는 일화만 모아 날짜, 세션 안 턴 번호, 조각 번호 순으로 늘어놓은 `[대상 타임라인] 이름: 언급 n건` 블록을 회상 블록 뒤에 붙인다. 개수는 코드가 세고, 대상 하나에 40줄(줄마다 이름 둘레 100자)을 넘으면 최근 것만 남기고 그렇다고 적는다. 벡터로만 비슷한 일화는 넣지 않는다(세는 질문에 다른 대상이 섞이지 않게). 별칭("엄마"와 "어머니")은 합치지 않는다(`# ponytail`). 저장소에서 읽은 시각은 로컬(naive)로 되돌린다. 예전에는 UTC 로 돌려 회상 블록의 날짜가 9시간 앞당겨졌다. 커버리지 재검색 대비 이김과 짐은 LongMemEval-s 1 대 0, PersonaMem-v2 1 대 0, MINT-Eval 1 대 1 이고 temporal-reasoning(0.0), counting(0.0), ordering(0.0)은 그대로라 기본은 꺼 둔다. 타임라인이 붙은 문항은 LongMemEval-s 60 중 19, MINT-Eval 40 중 12 다. MINT-Eval 순서 문항은 뽑은 대상 이름이 일화 글과 맞지 않아 블록이 비었고, LongMemEval-s 시간 문항은 블록이 붙어도 답 모델이 날짜 계산을 못 해 "모름" 으로 답했다(`memory_net_value --timeline`, results.json `memory_net_value.timeline`).
 
+**정정 되먹이기**: 턴이 끝날 때 사용자 발화가 정정 표현("아니", "그게 아니라", "틀렸어", "이제는", "actually", "no," 등, `is_correction`)이고 이번 턴에 의미 사실이 회상돼 있었으면, 그 턴만 바로 사실 추출에 넣는다. 추출기에 `[정정 전 사실]` 을 함께 보여 같은 주제 이름을 쓰게 하고, `remember` 의 같은 주제 대체로 옛 사실을 `superseded_by` 로 잇는다. 뽑은 턴은 추출 완료로 표시해 공고화가 다시 뽑지 않는다. 예전에는 조용한 틱의 공고화까지 틀린 사실이 계속 회상됐다. auto-ontology 의 "certified corrections fold back" 을 옮겼다.
+
 **구현 파일**
 
 | 파일 | 층 | 역할 |
@@ -584,6 +586,7 @@
 | `src/jarvis/memory/consolidation/semantic_extract.py` | memory | 일화에서 사실 추출 |
 | `src/jarvis/memory/long_term/episodic.py` | memory | 일화 기억 정책 |
 | `src/jarvis/memory/long_term/semantic.py` | memory | 의미 기억 대체와 간섭 후보 |
+| `src/jarvis/memory/long_term/correction_detect.py` | memory | 사용자 발화가 사실을 바로잡는 말인지 가리기(순수 함수) |
 | `src/jarvis/memory/long_term/fact_source.py` | memory | 추출 사실의 출처 턴 고르기와 출처 발췌(발췌는 평가 비교군만, 순수 함수) |
 | `src/jarvis/memory/long_term/procedural.py` | memory | 스킬 파일을 읽기 전용 절차 기억으로 노출 |
 | `src/jarvis/memory/retrieval/cues.py` | memory | 단서 겹침 점수 |
@@ -608,6 +611,7 @@
 |---|---|
 | 단위 | `tests/unit/test_memory_access.py` |
 | 단위 | `tests/unit/test_memory_compaction.py` |
+| 단위 | `tests/unit/test_memory_correction_detect.py` |
 | 단위 | `tests/unit/test_memory_coverage_extract.py` |
 | 단위 | `tests/unit/test_memory_coverage_grade.py` |
 | 단위 | `tests/unit/test_memory_timeline_build.py` |
@@ -630,7 +634,7 @@
 | 단위 | `tests/unit/test_memory_state.py` |
 | 단위 | `tests/unit/test_memory_store_protocol.py` |
 | 단위 | `tests/unit/test_memory_window.py` |
-| 통합 | `tests/integ/test_memory.py`(커버리지 재검색이 1차 회상에서 빠진 대상의 기억을 되찾음, 타임라인이 대상의 모든 언급을 시간순으로 늘어놓음 포함) |
+| 통합 | `tests/integ/test_memory.py`(커버리지 재검색이 1차 회상에서 빠진 대상의 기억을 되찾음, 타임라인이 대상의 모든 언급을 시간순으로 늘어놓음, 정정한 턴이 공고화 전에 옛 사실을 대체함 포함) |
 
 **제약과 미구현**: 항목 낱말이 답에 절반 넘게 나와야 쓰였다고 본다. 이력이 줄어 턴 번호를 다시 세면 옛 턴 일화를 덮는다. 조사 목록 휴리스틱으로 명사를 자른다. main 에이전트는 정의 파일이 없어 기본 정책(자기 것만)이다. 긴 답은 조각 2개(약 3,000자)까지만 남긴다. 출처 회상을 켜면 회상 블록이 최근성과 중요도를 쓰지 않는다(모두 `# ponytail`). 출처 회상은 `MemoryService(source_recall=...)` 로 끄고 켜며 기본은 켜짐이다(LongMemEval-s 실서비스 블록 조건 정답률 0.28 → 0.50). Memory Tax(He et al. 2026)의 recursive memory 와 미래 수요 예측은 범위 밖이다.
 

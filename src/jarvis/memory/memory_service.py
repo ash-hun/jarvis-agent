@@ -2,6 +2,7 @@
 
 import re
 import time
+import asyncio
 import hashlib
 from typing import Any
 from datetime import datetime
@@ -31,10 +32,12 @@ from jarvis.memory.retrieval.scoring import DEFAULT_PARAMS, ScoringParams, joint
 from jarvis.memory.long_term.semantic import mark_interference, prepare_fact, supersede_conflicts
 from jarvis.memory.scope import MemoryScope, current_task, scope_from_context, task_scope
 from jarvis.memory.stores.store_protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore
+from jarvis.memory.retrieval.coverage_grade import merge_coverage, uncovered
 from jarvis.memory.long_term.refine import CHAT_TASK, Candidate, candidates
 from jarvis.memory.long_term.procedural import ProceduralSource, Procedure
 from jarvis.memory.memory_types import REFERENT, MemoryItem, MemoryKind
 from jarvis.memory.consolidation.semantic_extract import FactExtractor
+from jarvis.memory.retrieval.coverage_extract import EntityExtractor
 from jarvis.memory.working.state import WorkingState, WorkingStore
 from jarvis.memory.access import MemoryPolicy, Readable, resolve
 from jarvis.memory.working.in_memory import InMemoryWorkingStore
@@ -43,6 +46,9 @@ from jarvis.model_layer.model_types import Message, UserMessage
 from jarvis.memory.long_term.episodic import prepare_episode
 from jarvis.memory.working.deixis import retrieval_query
 from jarvis.model_layer.embeddings import Embedder
+from jarvis.common.logger import get_logger
+
+logger = get_logger(__name__)
 
 FACTS_HEADER = "[핵심 사실]"  # 고정 블록: 질의와 무관하게 항상 넣는 상위 의미 사실
 LTM_HEADER = "[장기 기억]"  # 회상 블록: 이번 질의로 떠오른 항목
@@ -98,6 +104,10 @@ PATTERN_SCAN_LIMIT = 100
 RECALL_KINDS = (MemoryKind.EPISODIC, MemoryKind.SEMANTIC)
 # 사고 로그는 매 턴 사용자 말을 다시 적어 같은 낱말로 턴 일화보다 많이, 더 최근에 걸린다. 회상 자리를 빼앗지 않게 뺀다
 RECALL_FILTER = ItemFilter(exclude_sources=frozenset({"thought"}))
+# 대상 뽑기는 1차 회상과 함께 돌고 이 시간을 넘기면 버린다. 첫 글자 지연에 더해지는 상한이다
+COVERAGE_TIMEOUT_SEC = 1.5
+# 빠진 대상 하나로 다시 찾을 때 받는 후보 수. 창 안의 턴과 이미 보인 항목을 거르고 첫 하나만 쓴다
+COVERAGE_CANDIDATES = 3
 TURN_STEPS = "steps"  # 턴 일화 metadata: 성공한 도구 호출 [{name, args}]. 절차 정제의 재료
 MAX_TURN_STEPS = 10
 MAX_STEP_ARG_CHARS = 200  # 파일 본문 같은 긴 인자는 잘라도 절차는 읽힌다
@@ -132,8 +142,13 @@ class MemoryService:
         stm_turns: int = STM_TURNS,
         answer_parts: int = MAX_TURN_PARTS,
         source_recall: bool = True,
+        coverage: EntityExtractor | None = None,
+        coverage_timeout: float = COVERAGE_TIMEOUT_SEC,
     ) -> None:
         self._store = store
+        # 회상이 질문의 대상을 다 덮지 못하면 빠진 대상으로 다시 찾는다(NVIDIA auto-ontology 의 entity coverage)
+        self._coverage = coverage
+        self._coverage_timeout = coverage_timeout
         self._working: WorkingStore = working or InMemoryWorkingStore()
         self._extractor = extractor
         self._procedures = procedures
@@ -210,6 +225,8 @@ class MemoryService:
         recalled: list[MemoryItem] = []
         patterns: list[TaskPattern] = []
         if cue:
+            # 대상 뽑기(LLM)를 1차 회상과 함께 돌려 지연을 겹친다
+            names = asyncio.create_task(self.entities(cue))
             # 고정 블록에 이미 있는 항목도 질의에 걸리면 떠올린 것이다. 회상 블록에는 겹치지 않게 뺀다
             # 창 안의 턴은 아래에서 빼므로 그만큼 더 받아야 회상 자리가 줄지 않는다
             extra = len(fixed) + self._stm_turns
@@ -218,6 +235,10 @@ class MemoryService:
             recalled = [
                 i for i in cued if i.id not in fixed_ids and not _in_window(i, scope, first_in_window)
             ][: self._inject_limit]
+            recalled = await self.cover(
+                await names, recalled, scope, self._inject_limit, exclude=fixed_ids,
+                keep=lambda i: not _in_window(i, scope, first_in_window),
+            )
             cued = [i for i in cued if i.id in fixed_ids] + recalled
             patterns = best_matches(await self.task_patterns(scope), cue, PATTERN_INJECT_LIMIT)
         procedures = self.procedures(query, scope.agent_id) if query else []
@@ -482,6 +503,53 @@ class MemoryService:
         if exclude:
             candidates = [c for c in candidates if c.id not in exclude]
         return rank(candidates, query, resolved, limit, params=self._scoring, query_embedding=query_embedding)
+
+    async def entities(self, query: str) -> list[str]:
+        """질문에서 기억으로 찾을 대상. 추출기가 없거나, 상한 시간을 넘기거나, 실패하면 빈 목록."""
+        if self._coverage is None or not query.strip():
+            return []
+        try:
+            return await asyncio.wait_for(self._coverage(query), self._coverage_timeout)
+        except Exception as exc:  # 대상 뽑기는 덧붙이는 단계다. 실패하면 1차 회상만 쓴다
+            logger.info("[Memory] coverage extract skipped", reason=type(exc).__name__)
+            return []
+
+    async def cover(
+        self,
+        names: Sequence[str],
+        items: Sequence[MemoryItem],
+        scope: MemoryScope,
+        limit: int,
+        *,
+        exclude: set[str] | None = None,
+        keep: Callable[[MemoryItem], bool] | None = None,
+    ) -> list[MemoryItem]:
+        """items 가 덮지 못한 대상마다 그 이름으로 하나씩 더 찾아 limit 개 안에 섞는다. 덮었으면 items 그대로."""
+        if not names:
+            return list(items)
+        missing = uncovered(names, items, await self._embed_names(names))
+        if not missing:
+            return list(items)
+        taken = {i.id for i in items} | (exclude or set())
+        extra: list[MemoryItem] = []
+        for name in missing:
+            found = await self.recall(
+                name, scope, kinds=RECALL_KINDS, limit=COVERAGE_CANDIDATES, exclude=taken, where=RECALL_FILTER
+            )
+            pick = next((i for i in found if keep is None or keep(i)), None)
+            if pick is not None:
+                taken.add(pick.id)
+                extra.append(pick)
+        logger.info("[Memory] coverage", entities=len(names), uncovered=len(missing), added=len(extra))
+        return merge_coverage(items, extra, limit)
+
+    async def _embed_names(self, names: Sequence[str]) -> list[list[float] | None]:
+        if self._embedder is None:
+            return []
+        try:
+            return list(await self._embedder.embed(list(names)))
+        except Exception:  # 벡터가 없으면 글자 포함만으로 가린다
+            return []
 
     async def recall_episodes(
         self,

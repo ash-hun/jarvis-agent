@@ -22,8 +22,9 @@ USER = "benchmark"
 #   turns: 실서비스 경로. 발화와 답을 턴 일화로 쓰고 세션 끝에 공고화(추출기를 주면 LLM 이 사실을 뽑는다)
 #   turns+src: turns 와 같은 메모리에서 추출 사실의 출처 턴을 후보에 더해 질의 관련도 하나로 다시 매긴다(src-aug)
 #   turns+excerpt: 처음 시도한 방식. 추출 사실 아래 출처 턴의 해당 부분(최대 300자)을 붙인다
+#   turns+src+cov: turns+src 의 회상 k 개가 질문의 대상을 다 덮지 못하면 빠진 대상으로 다시 찾아 k 개 안에 섞는다
 # 증거 재현율은 LLM 없이 계산하고, 정답 여부(accuracy)는 judge 를 줄 때만 판정한다.
-MODES = ("rag", "raw", "turns", "turns+src", "turns+excerpt")
+MODES = ("rag", "raw", "turns", "turns+src", "turns+excerpt", "turns+src+cov")
 # 노출 예산으로 자르기 전에 받는 후보 수. 짧은 사실이 많은 비교군도 예산을 채우게 넉넉히 받는다. 예산이 없으면 k 개만
 CANDIDATES = 150
 
@@ -237,11 +238,21 @@ def _item_turns(item: MemoryItem) -> frozenset[str]:
 
 
 async def recall_items(
-    memory: MemoryService, question: BenchmarkQuestion, limit: int, mode: str = "raw"
+    memory: MemoryService, question: BenchmarkQuestion, limit: int, mode: str = "raw", k: int | None = None
 ) -> list[Retrieved]:
-    """추출 사실의 세션과 턴은 출처 턴의 것으로 센다. 증거 턴에서 뽑은 사실이 떠오르면 증거를 찾은 것이다."""
+    """추출 사실의 세션과 턴은 출처 턴의 것으로 센다. 증거 턴에서 뽑은 사실이 떠오르면 증거를 찾은 것이다.
+
+    k 는 핵심 사실을 뺀 회상 자리 수다. turns+src+cov 는 실서비스처럼 그 k 개 안에서 커버리지를 맞춘다.
+    """
     scope = MemoryScope(user_id=USER, agent_id="main")
-    if mode == "turns+src":
+    if mode == "turns+src+cov":
+        found = await memory.recall_with_sources(question.question, scope, limit=limit)
+        fixed_ids = {f.id for f in await memory.fixed_facts(scope)}
+        pool = [i for i in found if i.id not in fixed_ids][: k or limit]
+        covered = await memory.cover(await memory.entities(question.question), pool, scope, k or limit,
+                                     exclude=fixed_ids)
+        items = [i for i in found if i.id in fixed_ids] + covered
+    elif mode == "turns+src":
         items = await memory.recall_with_sources(question.question, scope, limit=limit)
     else:
         items = await memory.recall(question.question, scope, limit=limit)
@@ -354,7 +365,7 @@ async def run_benchmark(
                 else:
                     await ingest_turns(memory, head)
                 for q in group:
-                    found = await recall_items(memory, q, limit, mode)
+                    found = await recall_items(memory, q, limit, mode, k)
                     if fixed:
                         out.append(score(q, await _with_fixed(memory, found, k)))
                     else:

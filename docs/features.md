@@ -567,6 +567,8 @@
 
 **처리 흐름**: `MemoryService.observe` 에서 `working.window` 와 `deixis` 로 창과 지칭을 정하고, `scope` 와 `access` 로 읽을 범위를 계산해 `stores` 조회, `retrieval.scoring` 과 `cues` 로 순위, `remember` 쓰기는 `long_term` 정책 적용, 공고화는 `consolidation.idle` 에서 `semantic_extract` 순.
 
+**커버리지 재검색**(`memory.coverage_recall`, 기본 꺼짐): 회상 블록을 고를 때 사고 모델이 질문에서 기억으로 찾을 대상(사람, 장소, 물건, 일)을 최대 4개 뽑는다. 1차 회상과 함께 돌고 1.5초를 넘기거나 실패하면 1차 결과만 쓴다. 대상 이름이 회상 항목 글에 없고 벡터 유사도도 0.6 미만이면 빠진 것으로 보고, 빠진 대상마다 그 이름으로 한 번 더 찾아 창 안의 턴과 이미 보인 항목을 거른 첫 항목을 1차 결과의 뒷순위와 바꾼다. 회상 개수는 늘지 않고 1차 1순위는 늘 남는다. NVIDIA auto-ontology 의 entity coverage(질문 대상 추출, 후보 검색, 덮였는지 채점)를 옮겼고, 채점은 LLM 대신 글자와 벡터로 한다.
+
 **구현 파일**
 
 | 파일 | 층 | 역할 |
@@ -583,6 +585,8 @@
 | `src/jarvis/memory/long_term/fact_source.py` | memory | 추출 사실의 출처 턴 고르기와 출처 발췌(발췌는 평가 비교군만, 순수 함수) |
 | `src/jarvis/memory/long_term/procedural.py` | memory | 스킬 파일을 읽기 전용 절차 기억으로 노출 |
 | `src/jarvis/memory/retrieval/cues.py` | memory | 단서 겹침 점수 |
+| `src/jarvis/memory/retrieval/coverage_extract.py` | memory | 질문에서 기억으로 찾을 대상을 뽑는 LLM 경계 |
+| `src/jarvis/memory/retrieval/coverage_grade.py` | memory | 대상이 회상 항목에 덮였는지 가리기, 같은 개수 안에 섞기(순수 함수) |
 | `src/jarvis/memory/retrieval/scoring.py` | memory | recency, importance, relevance 합성 점수 |
 | `src/jarvis/memory/stores/store_protocol.py` | memory | 장기 기억 저장소 기본 클래스 |
 | `src/jarvis/memory/stores/in_memory.py` | memory | 프로세스 메모리 저장소 |
@@ -601,6 +605,8 @@
 |---|---|
 | 단위 | `tests/unit/test_memory_access.py` |
 | 단위 | `tests/unit/test_memory_compaction.py` |
+| 단위 | `tests/unit/test_memory_coverage_extract.py` |
+| 단위 | `tests/unit/test_memory_coverage_grade.py` |
 | 단위 | `tests/unit/test_memory_cues.py` |
 | 단위 | `tests/unit/test_memory_deixis.py` |
 | 단위 | `tests/unit/test_memory_embeddings.py` |
@@ -620,7 +626,7 @@
 | 단위 | `tests/unit/test_memory_state.py` |
 | 단위 | `tests/unit/test_memory_store_protocol.py` |
 | 단위 | `tests/unit/test_memory_window.py` |
-| 통합 | `tests/integ/test_memory.py` |
+| 통합 | `tests/integ/test_memory.py`(커버리지 재검색이 1차 회상에서 빠진 대상의 기억을 되찾음 포함) |
 
 **제약과 미구현**: 항목 낱말이 답에 절반 넘게 나와야 쓰였다고 본다. 이력이 줄어 턴 번호를 다시 세면 옛 턴 일화를 덮는다. 조사 목록 휴리스틱으로 명사를 자른다. main 에이전트는 정의 파일이 없어 기본 정책(자기 것만)이다. 긴 답은 조각 2개(약 3,000자)까지만 남긴다. 출처 회상을 켜면 회상 블록이 최근성과 중요도를 쓰지 않는다(모두 `# ponytail`). 출처 회상은 `MemoryService(source_recall=...)` 로 끄고 켜며 기본은 켜짐이다(LongMemEval-s 실서비스 블록 조건 정답률 0.28 → 0.50). Memory Tax(He et al. 2026)의 recursive memory 와 미래 수요 예측은 범위 밖이다.
 

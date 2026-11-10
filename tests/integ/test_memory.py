@@ -407,3 +407,28 @@ class TestRecallCandidates:
         scope = MemoryScope(user_id="ref", agent_id="main")
         await ltm.remember("그 방법 계속 써", source="explicit", scope=scope, referent="롤백 방식으로 고쳤다")
         assert [i.content for i in await ltm.recall("롤백", scope)] == ["그 방법 계속 써"]
+
+
+async def test_observe_with_coverage_brings_back_the_missed_entity(ltm):
+    from jarvis.memory.memory_service import LTM_HEADER, MemoryService
+    from jarvis.model_layer.model_types import UserMessage
+
+    scope = MemoryScope(user_id="cov", agent_id="main", session_id="old")
+    for text in ("Emma 와 주말 일정 정함", "Emma 와 저녁 일정 겹침", "Emma 일정 공유", "치과 예약은 금요일 오후"):
+        await ltm.remember(text, source="explicit", scope=scope)
+
+    async def extract(question: str) -> list[str]:
+        return ["Emma", "치과"]
+
+    question = [UserMessage(content="Emma 랑 치과 일정 겹쳐?", timestamp=0)]
+    ctx = {"user_id": "cov", "agent_id": "main", "session_id": "new"}
+    plain = MemoryService(ltm.store, inject_limit=2, fixed_facts=0)
+    covered = MemoryService(ltm.store, inject_limit=2, fixed_facts=0, coverage=extract)
+
+    def block(messages: list) -> str:
+        return next(m.content for m in messages if isinstance(m.content, str) and m.content.startswith(LTM_HEADER))
+
+    assert "치과" not in block(await plain.observe(question, ctx))
+    shown = block(await covered.observe(question, ctx))
+    assert "치과" in shown and "Emma" in shown
+

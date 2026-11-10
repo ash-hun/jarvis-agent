@@ -1,12 +1,15 @@
 """[core] 공고 게시판 HTML 과 첨부 파일을 가져오는 HTTP 경계와 KST 오늘 날짜. 모두 도구 밖에서 주입할 수 있다."""
 
 import httpx
+import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime, timedelta
 
 # 게시판이 봇 UA 를 막는 일이 있어 브라우저 UA 를 쓴다(공개 페이지 읽기만 한다)
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) jarvis-karen/1.0"
 TIMEOUT_SEC = 20.0
+# 게시판이 응답 없이 연결을 끊는 일이 있다(11-04, 11-09 실측). 조회라 한 번 다시 보내도 안전하다
+RETRY_DELAY_SEC = 1.0
 KST_OFFSET = timedelta(hours=9)
 
 # (url, query) → 본문 HTML. 실패하면 FetchError
@@ -26,7 +29,12 @@ async def fetch_html(url: str, query: dict[str, str]) -> str:
         async with httpx.AsyncClient(
             timeout=TIMEOUT_SEC, follow_redirects=True, headers={"User-Agent": USER_AGENT}
         ) as client:
-            response = await client.get(url, params=query)
+            try:
+                response = await client.get(url, params=query)
+            except httpx.TransportError:
+                # 오류 응답(HTTP 4xx, 5xx)은 다시 보내도 같아 연결 오류에서만 한 번 더 보낸다
+                await asyncio.sleep(RETRY_DELAY_SEC)
+                response = await client.get(url, params=query)
     except httpx.HTTPError as exc:
         raise FetchError(f"{url} 에 닿지 못했다: {exc}") from exc
     if response.status_code != httpx.codes.OK:

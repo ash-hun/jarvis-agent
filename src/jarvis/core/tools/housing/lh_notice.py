@@ -7,7 +7,7 @@ from collections.abc import Callable
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, Any
 
-from jarvis.core.tools.housing.markup import deadline_label, lines_of, parse_date, table_rows, text_of
+from jarvis.core.tools.housing.markup import deadline_label, lines_of, page_hint, parse_date, table_rows, text_of
 from jarvis.core.tools.housing.fetch import Fetch, FetchError, fetch_html, kst_today
 from jarvis.model_layer.model_types import TextContent, ToolResultMessage
 from jarvis.core.tools.tools_registry import JarvisTool, ToolContext
@@ -465,9 +465,10 @@ class LhNoticeTool(JarvisTool):
         """분류마다 (분류, 전체 건수, 공고). 목록 표가 없으면 ValueError, 게시판 장애는 FetchError."""
         found = []
         for query in queries:
-            total, notices = parse_list(await self._fetch(LIST_URL, form_of(query, today)))
+            listing = await self._fetch(LIST_URL, form_of(query, today))
+            total, notices = parse_list(listing)
             if total is None and not notices:
-                raise ValueError(f"LH 게시판({query.category})이 예상한 목록 표를 주지 않았다")
+                raise ValueError(f"LH 게시판({query.category})이 예상한 목록 표를 주지 않았다({page_hint(listing)})")
             if query.exhaustive:
                 for page in range(2, pages_of(total) + 1):
                     notices += parse_list(await self._fetch(LIST_URL, form_of(query, today, page)))[1]

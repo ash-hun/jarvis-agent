@@ -3,7 +3,7 @@
 import pytest
 from datetime import date
 
-from jarvis.core.tools.housing.markup import deadline_label, lines_of, parse_date, table_rows, text_of
+from jarvis.core.tools.housing.markup import deadline_label, lines_of, page_hint, parse_date, table_rows, text_of
 
 TODAY = date(2026, 10, 13)
 
@@ -35,3 +35,12 @@ def test_table_rows_keeps_header_and_cells():
     rows = table_rows("<tr><th>주택형</th><th>가격</th></tr><tr><th>55A</th><td>504,484,000</td></tr>")
 
     assert rows == [["주택형", "가격"], ["55A", "504,484,000"]]
+
+
+def test_page_hint_shows_title_and_body_start():
+    hint = page_hint("<html><head><title> 시스템 점검 </title></head><body><p>점검 중입니다</p></body></html>")
+    assert hint == "받은 페이지: 제목 '시스템 점검', 본문 '점검 중입니다'"
+
+
+def test_page_hint_without_title_cuts_body():
+    assert page_hint("<p>" + "가" * 100 + "</p>", limit=5) == "받은 페이지: 제목 '', 본문 '가가가가가'"

@@ -19,6 +19,9 @@ DEFAULT_SCHEDULE = "0 9-21 * * *"
 TASK_PREFIX = GOAL_PREFIX
 # 사용자에게 허락이나 값을 구하는 항목의 키 머리. 프롬프트가 이 머리를 쓰라고 시킨다
 ASK_PREFIX = "ask-"
+# 모델이 다 이뤘다고 답하면 닫지 않고 이 항목으로 한 번 묻는다. 지켜보라고 맡긴 목표를 한 번 알린 뒤 닫았다(11-09 실측)
+DONE_KEY = ASK_PREFIX + "done"
+DONE_QUESTION = "이 목표는 다 이룬 것 같아요. 그만 챙길까요? 그만두려면 목표를 멈춰 달라고 말해 주세요."
 # 에이전트 답의 줄 머리. 이 꼴로 답하라고 프롬프트가 시킨다
 _FIELD = re.compile(r"^\s*(머리|항목|기록|완료)\s*[:：]\s*(.*)$")
 # 항목: [키] 한 줄. 키가 없는 항목은 무엇을 알리는지 몰라 버린다
@@ -170,14 +173,17 @@ def fingerprint(results: list[str]) -> str:
     return hashlib.sha1("\x00".join(results).encode()).hexdigest()
 
 
+def with_done_question(step: Step) -> Step:
+    """모델이 다 이뤘다고 답하면 그만 챙길지 묻는 항목을 더한다. 목표를 닫는 것은 사용자만 한다. 순수 함수."""
+    if not step.done or any(key == DONE_KEY for key, _ in step.items):
+        return step
+    return replace(step, items=(*step.items, (DONE_KEY, DONE_QUESTION)))
+
+
 def advance(goal: Goal, step: Step, delivered: list[str], now_ms: int) -> Goal:
-    """한 차례의 결과를 목표에 적는다. 같은 키를 두 번 적어도 한 번만 남는다. 순수 함수."""
+    """한 차례의 결과를 목표에 적는다. 같은 키를 두 번 적어도 한 번만 남는다. 상태는 바꾸지 않는다. 순수 함수."""
     notes = [*goal.notes, step.note][-MAX_NOTES:] if step.note else goal.notes
-    return mark_reported(goal, delivered, now_ms).model_copy(update={
-        "notes": notes,
-        "status": "done" if step.done else goal.status,
-        "runs": goal.runs + 1,
-    })
+    return mark_reported(goal, delivered, now_ms).model_copy(update={"notes": notes, "runs": goal.runs + 1})
 
 
 def mark_reported(goal: Goal, keys: list[str], now_ms: int) -> Goal:

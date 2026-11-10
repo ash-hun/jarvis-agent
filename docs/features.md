@@ -392,6 +392,7 @@
 | `/goal` | 목표 목록 |
 | `/goal stop <문장>` | 그 목표의 차례를 멈춘다 |
 | 차례마다 | 새로 알릴 항목이 있을 때만 ws `reminder{kind:"goal", label:"목표: ..."}` |
+| 에이전트가 `완료: 예` 로 답한 차례 | 목표는 열린 채로 두고 "그만 챙길까요?" 를 `ask-done` 항목으로 한 번만 알린다. 닫는 것은 `/goal stop` 이나 `goal` 도구 멈추기뿐이다 |
 
 **처리 흐름**: `goal_cmd` 또는 `GoalTool` 에서 `goals_store` 저장과 `SchedulerService` 등록으로, 차례마다 `runner` 가 프롬프트를 짓고 경계 안의 도구로 에이전트를 돌려 `goals_types` 로 답을 읽고 알릴 항목을 고르는 순.
 
@@ -435,6 +436,8 @@
 | `housing_watch` 도구 | 지난 조회 뒤 새 공고 중 신청 가능성이 있는 것만 한 번 알림 |
 
 **처리 흐름**: `budget` 에서 `lh_notice` / `sh_notice` 조회로, `fetch`, `markup`, `notice_pdf` / `sh_terms` / `rental_complex` 금액 읽기, `profile` 과 `rules` 로 자격과 한도, `scenario` 경우 펼치기, `deadline` 약속 남기기 순.
+
+**게시판 장애**: 게시판 HTML 조회(`fetch_html`)는 응답 없이 끊기는 연결 오류(`httpx.TransportError`)에서만 1초 쉬고 한 번 더 보낸다. HTTP 오류 응답은 다시 보내지 않는다. 목록 표 대신 다른 페이지를 받으면 오류 글에 그 페이지의 제목과 본문 앞 80자(`markup.page_hint`)를 붙여, 점검 화면인지 접속 제한인지 나중에 가릴 수 있게 한다.
 
 **구현 파일**
 

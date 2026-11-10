@@ -5,7 +5,9 @@ quote: Eyes on everything
 palette:
   primary: "#97BC62"
   accent: "#ffd166"
-# 공고 판별과 대출 계산을 옮기는 일이라 정확성이 먼저다. 작은 모델은 확인하지 않은 사실을 단정했다(2026-10-26). 프로바이더와 키는 JARVIS 것
+# 공고 판별과 대출 계산을 옮기는 일이라 정확성이 먼저다. 작은 모델은 확인하지 않은 사실을 단정했다(2026-10-26).
+# JARVIS 가 다른 프로바이더를 써도 gpt-4o 로 돌도록 프로바이더를 적는다. 키는 OPENAI_API_KEY
+provider: openai
 model: gpt-4o
 # 말투와 성격. 대화 답변과 먼저 건네는 말, filler 에 같이 쓰인다. 업무 규칙은 아래 system_prompt 에 둔다
 persona: |

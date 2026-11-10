@@ -36,14 +36,22 @@ def web_client(assembly: AppAssembly) -> TestClient:
 
 
 def scripted_env(provider: str, tmp_path: Path, team_dir: Path = TEAM_DIR) -> dict[str, str]:
-    """각본 프로바이더로 팀 에이전트를 돌리는 설정."""
+    """각본 프로바이더로 팀 에이전트를 돌리는 설정. 정의의 provider 줄은 빼 팀 에이전트도 각본으로 돈다."""
     return {
-        "TEAM__DIR": str(team_dir),
+        "TEAM__DIR": str(_without_provider(team_dir, tmp_path / "scripted_team")),
         "LLM__PROVIDER": provider,
         "LLM__MODEL": f"{provider}-1",
         "THOUGHT__ENABLED": "false",
         "SECURITY__AGENT_APPROVALS_DIR": str(tmp_path / "approvals"),
     }
+
+
+def _without_provider(team_dir: Path, out: Path) -> Path:
+    out.mkdir(parents=True, exist_ok=True)
+    for spec in team_dir.glob("*.yaml"):
+        lines = spec.read_text(encoding="utf-8").splitlines(keepends=True)
+        (out / spec.name).write_text("".join(x for x in lines if not x.startswith("provider:")), encoding="utf-8")
+    return out
 
 
 def use_provider(provider: Any) -> Iterator[Any]:

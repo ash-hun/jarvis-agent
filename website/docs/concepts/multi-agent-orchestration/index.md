@@ -95,6 +95,7 @@ palette: { primary: "#97BC62", accent: "#ffd166" }
 system_prompt: |
   당신은 K.A.R.E.N. 입니다 ...
 model: null                   # 모델 이름만 바꾼다. 프로바이더와 키는 JARVIS 것
+provider: null                # JARVIS 와 다른 프로바이더(openai 등). 주면 키는 그 SDK 환경변수(OPENAI_API_KEY 등)에서 읽는다
 tools: [lh_notice, web_search, read_file]   # 비우면 앱 레지스트리 전체
 proactive: false              # 비우면 JARVIS 의 proactive 설정
 memory:                       # 비우면 자기 기억만 읽는다

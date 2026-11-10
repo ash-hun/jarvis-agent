@@ -54,7 +54,7 @@ KAREN 은 정의 파일의 `tools` 에 적은 도구만 받는다. 청약 도구
 
 ## 설정
 
-KAREN 은 저장소의 `team/karen.yaml` 정의 파일 하나로 설정한다. 이름, 설명, 명언(`Eyes on everything`), 메인 색 `#97BC62`, 모델, 개성, 시스템 프롬프트, 도구 목록, proactive 여부가 들어 있고, 비운 항목은 JARVIS 설정을 이어받는다. 모델은 `gpt-4o` 다. 공고 판별과 대출 계산을 옮기는 일이라 정확성이 먼저이고, gpt-4o-mini 는 확인하지 않은 사실을 단정했다. 프로바이더와 키는 JARVIS 것을 쓴다. 파일 형식은 [Multi agent Orchestration → 정의 파일](../../concepts/multi-agent-orchestration/index.md#정의-파일)에 있다.
+KAREN 은 저장소의 `team/karen.yaml` 정의 파일 하나로 설정한다. 이름, 설명, 명언(`Eyes on everything`), 메인 색 `#97BC62`, 모델, 개성, 시스템 프롬프트, 도구 목록, proactive 여부가 들어 있고, 비운 항목은 JARVIS 설정을 이어받는다. 모델은 `gpt-4o` 다. 공고 판별과 대출 계산을 옮기는 일이라 정확성이 먼저이고, gpt-4o-mini 는 확인하지 않은 사실을 단정했다. JARVIS 가 다른 프로바이더를 써도 gpt-4o 로 돌도록 `provider: openai` 를 적었고, 키는 `OPENAI_API_KEY` 에서 읽는다. 파일 형식은 [Multi agent Orchestration → 정의 파일](../../concepts/multi-agent-orchestration/index.md#정의-파일)에 있다.
 
 ## 부르는 방법
 

@@ -1,4 +1,4 @@
-"""[ui] 플랫폼 지표 REST: Infra Agent 가 백엔드 프로세스와 에이전트별 작업 상태를 읽는다."""
+"""[ui] 플랫폼 지표 REST: Ion 가 백엔드 프로세스와 에이전트별 작업 상태를 읽는다."""
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse

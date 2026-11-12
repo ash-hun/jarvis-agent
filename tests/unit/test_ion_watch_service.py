@@ -1,12 +1,12 @@
-"""infra 의 감시 루프: 무응답 3회에 사고 하나와 알림 하나, 회복하면 닫히고, 답은 처음 한 번만 행동한다."""
+"""ion 의 감시 루프: 무응답 3회에 사고 하나와 알림 하나, 회복하면 닫히고, 답은 처음 한 번만 행동한다."""
 
 from typing import Any
 from datetime import datetime
 
-from jarvis.infra.watch_service import WatchService, notification, to_observation
-from jarvis.infra.incident_store import Incident, IncidentStore
-from jarvis.infra.docker_client import ContainerState
-from jarvis.infra.infra_config import InfraConfig
+from jarvis.ion.watch_service import WatchService, notification, to_observation
+from jarvis.ion.incident_store import Incident, IncidentStore
+from jarvis.ion.docker_client import ContainerState
+from jarvis.ion.ion_config import IonConfig
 
 NOON = datetime(2026, 11, 12, 12, 0)
 
@@ -57,7 +57,7 @@ def _service(tmp_path, backend: FakeBackend, docker: FakeDocker, poll_sec: float
     async def notify(payload: dict[str, Any]) -> None:
         sent.append(payload)
 
-    cfg = InfraConfig(poll_sec=poll_sec, metrics_every=1, data_dir=str(tmp_path))
+    cfg = IonConfig(poll_sec=poll_sec, metrics_every=1, data_dir=str(tmp_path))
     svc = WatchService(cfg, backend, docker, IncidentStore(tmp_path / "incidents.json"), notify,  # type: ignore[arg-type]
                        now_ms=lambda: next(clock) * 1000, clock=lambda: NOON)
     return svc, sent
@@ -103,4 +103,4 @@ def test_observation_and_notification_are_built_from_what_was_fetched():
     assert to_observation(1, None, None, None).health_ok is None
 
     note = notification(Incident("agent_failing:karen:0", "agent_failing", "karen", "연속 실패 3회", 1), "/")
-    assert note["title"] == "🛠 karen 의 작업이 계속 실패해요" and note["tag"] == "agent_failing:karen:0"
+    assert note["title"] == "Ion: karen 의 작업이 계속 실패해요" and note["tag"] == "agent_failing:karen:0"

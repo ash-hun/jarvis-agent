@@ -81,7 +81,7 @@ class WebState:
         # Workflow 화면: 에이전트 사이 위임과 백그라운드 작업 실행. 바뀔 때마다 열린 HUD 전부에 한 건씩 보낸다
         self.workflow = WorkflowTracker(_now_ms)
         self.jobs = JobBoard(_now_ms, self._broadcast_job)
-        # Infra Agent 가 밖에서 읽는 지표. 루프 지연은 기동 때 재기 시작한다
+        # Ion 가 밖에서 읽는 지표. 루프 지연은 기동 때 재기 시작한다
         self.loop_lag = LoopLagMonitor()
         self.platform_metrics = self._build_platform_metrics()
         self.registry.on_open(self._watch_workflow)

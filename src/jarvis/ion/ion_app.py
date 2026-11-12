@@ -1,4 +1,4 @@
-"""[infra] Infra Agent 의 HTTP: 상태, 사고 목록, 사고 응답, SSE 이벤트. 앱은 nginx 의 /infra/ 로 붙는다."""
+"""[ion] Ion 의 HTTP: 상태, 사고 목록, 사고 응답, SSE 이벤트. 앱은 nginx 의 /ion/ 로 붙는다."""
 
 import asyncio
 import contextlib
@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request
 from collections.abc import AsyncIterator
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from jarvis.infra.watch_service import ACTIONS, WatchService, sse_line
+from jarvis.ion.watch_service import ACTIONS, WatchService, sse_line
 
 QUEUE_MAX = 100
 
@@ -43,14 +43,14 @@ def _token_of(request: Request) -> str | None:
     return request.query_params.get("token")
 
 
-def build_infra_app(service: WatchService, hub: EventHub, access_key: str | None) -> FastAPI:
+def build_ion_app(service: WatchService, hub: EventHub, access_key: str | None) -> FastAPI:
     @contextlib.asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await service.start()
         yield
         await service.stop()
 
-    app = FastAPI(title="Jarvis Infra", docs_url=None, redoc_url=None, lifespan=lifespan)
+    app = FastAPI(title="Jarvis Ion", docs_url=None, redoc_url=None, lifespan=lifespan)
 
     @app.middleware("http")
     async def check_key(request: Request, call_next: Any) -> Any:
@@ -58,15 +58,15 @@ def build_infra_app(service: WatchService, hub: EventHub, access_key: str | None
             return JSONResponse({"error": "unauthorized"}, status_code=401)
         return await call_next(request)
 
-    @app.get("/infra/status", summary="플랫폼 상태")
+    @app.get("/ion/status", summary="플랫폼 상태")
     async def status() -> JSONResponse:
         return JSONResponse(service.status())
 
-    @app.get("/infra/incidents", summary="열린 사고")
+    @app.get("/ion/incidents", summary="열린 사고")
     async def incidents() -> JSONResponse:
         return JSONResponse({"incidents": service.status()["incidents"]})
 
-    @app.post("/infra/incidents/{incident_id}/respond", summary="사고에 답하기")
+    @app.post("/ion/incidents/{incident_id}/respond", summary="사고에 답하기")
     async def respond(incident_id: str, request: Request) -> JSONResponse:
         body = await request.json() if await request.body() else {}
         action = str(body.get("action") or "")
@@ -78,7 +78,7 @@ def build_infra_app(service: WatchService, hub: EventHub, access_key: str | None
         await hub.publish({"type": "incident_update", "incident": incident.__dict__})
         return JSONResponse({"incident": incident.__dict__})
 
-    @app.get("/infra/events", summary="사고 이벤트(SSE)")
+    @app.get("/ion/events", summary="사고 이벤트(SSE)")
     async def events() -> StreamingResponse:
         return StreamingResponse(hub.stream(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

@@ -116,7 +116,7 @@ services:
     restart: unless-stopped
     profiles: ["web"]
 
-  # ── Docker 소켓 프록시 (Infra Agent 의 재기동 권한) ─────────────────────────
+  # ── Docker 소켓 프록시 (Ion 의 재기동 권한) ─────────────────────────
   # 컨테이너에 소켓을 직접 주면 호스트 root 와 같다. 프록시는 조회와 restart, stop 만 연다
   docker-socket-proxy:
     image: tecnativa/docker-socket-proxy:0.3.0
@@ -129,9 +129,9 @@ services:
     restart: unless-stopped
     profiles: ["web"]
 
-  # ── Infra Agent (백엔드 밖의 감시자) ─────────────────────────────────────────
+  # ── Ion (백엔드 밖의 감시자) ─────────────────────────────────────────
   # 백엔드와 Postgres 가 죽어도 뜬다(depends_on 없음). 앱은 nginx 의 /infra/ 로 붙는다
-  jarvis-infra:
+  jarvis-ion:
     build:
       context: .
       target: runtime-web
@@ -141,14 +141,14 @@ services:
       TZ: ${TZ:-Asia/Seoul}
       PYTHONUNBUFFERED: "1"
       JARVIS_SESSION__POSTGRES_DSN: ${JARVIS_SESSION__POSTGRES_DSN:-postgresql://jarvis:jarvis@postgres:5432/jarvis}
-      JARVIS_INFRA__BACKEND_URL: http://jarvis-backend:7777
-      JARVIS_INFRA__DOCKER_URL: http://docker-socket-proxy:2375
-      JARVIS_INFRA__BACKEND_SERVICE: jarvis-backend
+      JARVIS_ION__BACKEND_URL: http://jarvis-backend:7777
+      JARVIS_ION__DOCKER_URL: http://docker-socket-proxy:2375
+      JARVIS_ION__BACKEND_SERVICE: jarvis-backend
       # 백엔드 api_keys 중 하나. 백엔드를 부를 때 싣고 /infra 요청에서 검사한다
-      JARVIS_INFRA__ACCESS_KEY: ${JARVIS_INFRA__ACCESS_KEY:-}
+      JARVIS_ION__ACCESS_KEY: ${JARVIS_ION__ACCESS_KEY:-}
     # 이미지의 venv python 으로 모듈을 띄운다. uv run 은 기동마다 lock 과 맞추느라 dev 의존성까지 받았다(실측).
     # src 가 마운트돼 이미지 재빌드 없이 restart 로 반영된다
-    command: ["python", "-m", "jarvis.infra"]
+    command: ["python", "-m", "jarvis.ion"]
     volumes:
       - jarvis_data:/root/.jarvis
       - ./src:/app/src

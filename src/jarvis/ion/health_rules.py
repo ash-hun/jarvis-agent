@@ -1,4 +1,4 @@
-"""[infra] 관측값의 흐름에서 사고 신호를 가려내는 순수 규칙. 임계치와 창은 인자로 받는다."""
+"""[ion] 관측값의 흐름에서 사고 신호를 가려내는 순수 규칙. 임계치와 창은 인자로 받는다."""
 
 from typing import Literal
 from datetime import datetime
@@ -35,7 +35,7 @@ class Observation:
 
 @dataclass(frozen=True)
 class Thresholds:
-    """기본값은 docs/infra-agent-plan.md 의 표다."""
+    """기본값은 docs/ion-plan.md 의 표다."""
 
     health_fail_count: int = 3
     restart_loop_count: int = 3

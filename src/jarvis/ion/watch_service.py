@@ -1,4 +1,4 @@
-"""[infra] 감시 루프. 관측을 규칙에 넣어 사고를 열고 한 번 알리고, 답에 따라 행동하고, 신호가 사라지면 닫는다."""
+"""[ion] 감시 루프. 관측을 규칙에 넣어 사고를 열고 한 번 알리고, 답에 따라 행동하고, 신호가 사라지면 닫는다."""
 
 import json
 import time
@@ -10,12 +10,12 @@ from datetime import datetime
 from dataclasses import asdict
 from collections.abc import Awaitable, Callable
 
-from jarvis.infra.health_rules import AgentObservation, Observation, Signal, Thresholds, evaluate, incident_id
-from jarvis.infra.docker_client import ContainerState, DockerClient
-from jarvis.infra.incident_store import Incident, IncidentStore
-from jarvis.infra.backend_client import BackendClient
-from jarvis.infra.infra_config import InfraConfig
+from jarvis.ion.health_rules import AgentObservation, Observation, Signal, Thresholds, evaluate, incident_id
+from jarvis.ion.docker_client import ContainerState, DockerClient
+from jarvis.ion.incident_store import Incident, IncidentStore
+from jarvis.ion.backend_client import BackendClient
 from jarvis.common.logger import get_logger
+from jarvis.ion.ion_config import IonConfig
 
 # 사고 알림 payload 를 받는 곳(푸시, SSE). 실패해도 루프는 계속된다
 Notify = Callable[[dict[str, Any]], Awaitable[None]]
@@ -77,7 +77,7 @@ def notification(incident: Incident, hud_url: str) -> dict[str, Any]:
         "id": incident.id,
         "kind": incident.kind,
         "target": incident.target,
-        "title": f"🛠 {title}",
+        "title": f"Ion: {title}",
         "body": incident.detail,
         "tag": incident.id,
         "url": hud_url,
@@ -90,7 +90,7 @@ class WatchService:
 
     def __init__(
         self,
-        cfg: InfraConfig,
+        cfg: IonConfig,
         backend: BackendClient,
         docker: DockerClient,
         store: IncidentStore,
@@ -131,7 +131,7 @@ class WatchService:
                 try:
                     await chore()
                 except Exception as exc:
-                    logger.info(f"[Infra] chore failed: {exc!r}")
+                    logger.info(f"[Ion] chore failed: {exc!r}")
         at = self._now_ms()
         self._history.append(to_observation(at, health, self._metrics, self._container))
         signals = evaluate(list(self._history), self._rules, self._clock())
@@ -152,14 +152,14 @@ class WatchService:
                 try:
                     await self._notify(notification(incident, self._cfg.hud_url))
                 except Exception as exc:
-                    logger.info(f"[Infra] notify failed, will retry next tick: {exc!r}")
+                    logger.info(f"[Ion] notify failed, will retry next tick: {exc!r}")
                     continue
                 self._store.mark_notified(incident.id, at_ms)
-                logger.info(f"[Infra] incident opened and notified: {incident.id}")
+                logger.info(f"[Ion] incident opened and notified: {incident.id}")
         for key, incident in opened.items():
             if key not in live:
                 self._store.close(incident.id, at_ms)
-                logger.info(f"[Infra] incident closed: {incident.id}")
+                logger.info(f"[Ion] incident closed: {incident.id}")
 
     async def respond(self, incident_id_: str, action: str) -> Incident | None:
         """사용자의 답. 모르는 사고면 None. 행동은 답을 처음 받을 때만 한다(같은 답을 두 번 눌러도 한 번)."""
@@ -169,7 +169,7 @@ class WatchService:
         if incident.response is not None:
             return incident
         result = await self._act(incident, action)
-        logger.info(f"[Infra] incident {incident.id} response={action} result={result}")
+        logger.info(f"[Ion] incident {incident.id} response={action} result={result}")
         return self._store.respond(incident.id, action, self._now_ms(), result)
 
     async def _act(self, incident: Incident, action: str) -> str:
@@ -188,7 +188,7 @@ class WatchService:
         return "무시"
 
     def status(self) -> dict[str, Any]:
-        """`GET /infra/status` 본문."""
+        """`GET /ion/status` 본문."""
         latest = self._history[-1] if self._history else None
         return {
             "at_ms": self._now_ms(),
@@ -216,7 +216,7 @@ class WatchService:
             try:
                 await self.tick()
             except Exception as exc:  # 한 바퀴의 오류가 감시를 끝내지 않게
-                logger.warning(f"[Infra] tick failed: {exc!r}")
+                logger.warning(f"[Ion] tick failed: {exc!r}")
             await asyncio.sleep(self._cfg.poll_sec)
 
 

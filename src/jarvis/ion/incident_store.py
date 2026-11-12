@@ -1,4 +1,4 @@
-"""[infra] 사고 기록. JSON 파일 하나에 사고 id 로 두고, 같은 id 를 두 번 열어도 하나다."""
+"""[ion] 사고 기록. JSON 파일 하나에 사고 id 로 두고, 같은 id 를 두 번 열어도 하나다."""
 
 import json
 from pathlib import Path

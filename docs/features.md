@@ -505,7 +505,7 @@
 | 감시 루프(15초, 지표와 컨테이너 통계는 60초) | 사고 열기와 알림 한 번, 신호가 사라지면 닫기 |
 | `GET /ion/status`, `GET /ion/events` | 상태 한 장, 사고 이벤트 SSE |
 | `POST /ion/incidents/{id}/respond` `{action}` | `restart`, `stop`, `pause`, `ignore`. 사고당 한 번만 행동 |
-| HUD ION 띠(`static/app/ion.js`) | 열린 사고를 헤더 아래 한 줄씩 보이고 버튼으로 답한다. SSE 로 바로 갱신, 데스크톱 앱이면 OS 알림. `docs/view_spec.md` |
+| HUD ION 띠와 끼어들기(`static/app/ion.js`) | 열린 사고를 헤더 아래 한 줄씩, 그리고 지금 보는 어느 에이전트의 대화에든 ION 카드로 보이고 버튼으로 답한다. 심각도(`severity`: critical 은 무응답, 재시작 루프, 멈춤. warning 은 메모리, 연속 실패, 정체)로 구체 뒤 배경을 물들인다. SSE 로 바로 갱신, 데스크톱 앱이면 OS 알림. `docs/view_spec.md` |
 | `~/.jarvis/ion/subscriptions.json` | Postgres 의 푸시 구독을 60초마다 복사. DB 가 죽어도 알림이 나간다 |
 
 **처리 흐름**: 백엔드는 `JobBoard` 기록(연속 실패 수 `fail_streak` 포함)과 스케줄 작업의 에이전트, 열린 세션, `LoopLagMonitor` 를 `PlatformMetricsService` 가 한 장으로 접어 `platform_router` 가 낸다. Ion 쪽은 `watch_service` 가 `backend_client`(health, metrics, jobs)와 `docker_client`(inspect, stats)로 관측해 `health_rules` 에 넣고, 신호마다 `incident_store` 에 사고 하나를 열어 알림(`ion_cli` 의 푸시, `ion_app` 의 SSE)을 한 번 보내며, 답(`respond`)은 처음 것만 행동으로 옮긴다. 앱은 nginx 의 `/ion/` 로 붙는다.

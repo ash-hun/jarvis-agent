@@ -535,6 +535,29 @@ body:has(.ion-strip:not([hidden])) .connection-banner { top: calc(var(--header-h
 .ion-item button:disabled { opacity: 0.5; cursor: default; }
 .ion-item button.primary { border-color: color-mix(in srgb, var(--red) 60%, transparent); color: var(--red); }
 
+/* 열린 사고의 심각도대로 구체 뒤 배경을 물들인다. body[data-ion] 은 ion.js 가 가장 심한 등급으로 둔다 */
+:root { --ion-critical: #f05f5f; --ion-warning: #f08a3c; }
+.stage::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(ellipse 42% 52% at 50% 48%, var(--ion-tint, transparent), transparent 70%);
+  opacity: 0; transition: opacity .6s ease;
+}
+body[data-ion="critical"] .stage::before { --ion-tint: color-mix(in srgb, var(--ion-critical) 38%, transparent); opacity: 1; }
+body[data-ion="warning"] .stage::before { --ion-tint: color-mix(in srgb, var(--ion-warning) 32%, transparent); opacity: 1; }
+.stage > * { position: relative; z-index: 1; }
+body[data-ion="critical"] .ion-strip { border-bottom-color: color-mix(in srgb, var(--ion-critical) 55%, transparent); }
+body[data-ion="warning"] .ion-strip {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ion-warning) 16%, var(--bg-1)), color-mix(in srgb, var(--bg-1) 90%, transparent));
+  border-bottom-color: color-mix(in srgb, var(--ion-warning) 55%, transparent);
+}
+body[data-ion="warning"] .ion-mark { color: var(--ion-warning); }
+
+/* Ion 이 어느 에이전트의 대화에든 끼어드는 카드 */
+.msg.ion .role { color: var(--red); }
+.msg.ion .body { border-left: 1px solid color-mix(in srgb, var(--red) 40%, transparent); padding-left: 10px; }
+.msg.ion .ion-item { gap: 8px; }
+.msg.ion .ion-title { font-size: 12px; }
+
 /* 스케줄 작업 알림의 제목 줄 */
 .notice-title { color: var(--accent); font-size: 11px; letter-spacing: 0.06em; margin-bottom: 4px; }
 

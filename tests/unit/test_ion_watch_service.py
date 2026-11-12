@@ -110,3 +110,6 @@ def test_observation_and_notification_are_built_from_what_was_fetched():
 
     note = notification(Incident("agent_failing:karen:0", "agent_failing", "karen", "연속 실패 3회", 1), "/")
     assert note["title"] == "Ion: karen 의 작업이 계속 실패해요" and note["tag"] == "agent_failing:karen:0"
+    assert note["severity"] == "warning"
+    down = notification(Incident("backend_down:backend:0", "backend_down", "backend", "x", 1), "/")
+    assert down["severity"] == "critical"

@@ -75,8 +75,9 @@ def build_ion_app(service: WatchService, hub: EventHub, access_key: str | None) 
         incident = await service.respond(incident_id, action)
         if incident is None:
             return JSONResponse({"error": "unknown incident"}, status_code=404)
-        await hub.publish({"type": "incident_update", "incident": incident.__dict__})
-        return JSONResponse({"incident": incident.__dict__})
+        view = service.view(incident)
+        await hub.publish({"type": "incident_update", "incident": view})
+        return JSONResponse({"incident": view})
 
     @app.get("/ion/events", summary="사고 이벤트(SSE)")
     async def events() -> StreamingResponse:

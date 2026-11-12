@@ -32,7 +32,7 @@
 | `focus` | 한 작업을 네 sub-agent 의 도움으로 끝까지 수행하는 모드 | `/focus <작업>` (Web HUD) | 구현됨 |
 | `goal` | 맡긴 목표를 대화 밖에서 한 단계씩 진행하고 알릴 것만 알린다 | `/goal`, `goal` 도구 | 구현됨 |
 | `housing` | LH, SH 청약 공고 조회와 감시, 대출 원리금 계산 | `lh_notice`, `sh_notice`, `housing_budget`, `housing_loan`, `housing_profile`, `housing_watch` 도구, `/housing` | 구현됨 |
-| `ion` | 백엔드 밖의 컨테이너가 플랫폼을 지켜보다 사고를 알리고 답에 따라 재기동한다. 앱 연결(푸시 버튼, HUD 띠, 데스크톱)은 다음 단계 | `GET /api/platform/metrics`, `GET /ion/status`, `POST /ion/incidents/{id}/respond`, `GET /ion/events` | 구현 중 |
+| `ion` | 백엔드 밖의 컨테이너 Ion 이 플랫폼을 지켜보다 사고를 알리고(푸시, HUD ION 띠, 데스크톱 OS 알림) 답에 따라 재기동한다. 모바일 푸시의 버튼 답은 앱 저장소 쪽 | `GET /api/platform/metrics`, `GET /ion/status`, `POST /ion/incidents/{id}/respond`, `GET /ion/events` | 구현 중 |
 | `journal` | 사고 로그를 성찰해 저널로 남긴다 | `/journal` | 구현됨 |
 | `mcp` | MCP 서버의 툴을 에이전트 도구로 등록 | 설정 `mcp_servers` | 구현됨 |
 | `memory` | 범위를 아는 장기 기억과 작업 기억의 저장, 회상, 공고화 | `/remember`, `/compact`, `recall_episodes` 도구 | 구현됨 |
@@ -505,6 +505,7 @@
 | 감시 루프(15초, 지표와 컨테이너 통계는 60초) | 사고 열기와 알림 한 번, 신호가 사라지면 닫기 |
 | `GET /ion/status`, `GET /ion/events` | 상태 한 장, 사고 이벤트 SSE |
 | `POST /ion/incidents/{id}/respond` `{action}` | `restart`, `stop`, `pause`, `ignore`. 사고당 한 번만 행동 |
+| HUD ION 띠(`static/app/ion.js`) | 열린 사고를 헤더 아래 한 줄씩 보이고 버튼으로 답한다. SSE 로 바로 갱신, 데스크톱 앱이면 OS 알림. `docs/view_spec.md` |
 | `~/.jarvis/ion/subscriptions.json` | Postgres 의 푸시 구독을 60초마다 복사. DB 가 죽어도 알림이 나간다 |
 
 **처리 흐름**: 백엔드는 `JobBoard` 기록(연속 실패 수 `fail_streak` 포함)과 스케줄 작업의 에이전트, 열린 세션, `LoopLagMonitor` 를 `PlatformMetricsService` 가 한 장으로 접어 `platform_router` 가 낸다. Ion 쪽은 `watch_service` 가 `backend_client`(health, metrics, jobs)와 `docker_client`(inspect, stats)로 관측해 `health_rules` 에 넣고, 신호마다 `incident_store` 에 사고 하나를 열어 알림(`ion_cli` 의 푸시, `ion_app` 의 SSE)을 한 번 보내며, 답(`respond`)은 처음 것만 행동으로 옮긴다. 앱은 nginx 의 `/ion/` 로 붙는다.
@@ -527,6 +528,7 @@
 | `src/jarvis/ion/ion_app.py` | ion | `/ion/*` HTTP 와 SSE |
 | `src/jarvis/ion/ion_cli.py`, `__main__.py` | ion | 조립과 기동(`python -m jarvis.ion`, 설치 뒤에는 `jarvis-ion`) |
 | `docker-compose.yml`, `nginx/nginx.conf` | ion | `docker-socket-proxy`, `jarvis-ion` 서비스와 `/ion/` 경로 |
+| `src/jarvis/ui/web/static/app/ion.js` | ui | HUD ION 띠(상태 읽기, SSE, 버튼 응답, OS 알림) |
 
 **테스트**
 
@@ -540,7 +542,7 @@
 | 단위 | `tests/unit/test_ion_ion_config.py`, `test_ion_docker_client.py`, `test_ion_backend_client.py`, `test_ion_push_cache.py`, `test_ion_watch_service.py` |
 | 통합 | `tests/integ/test_platform.py`(지표 API), `tests/integ/test_ion.py`(무응답 → 사고 → 답 → 재기동 한 번, 접근 키) |
 
-**제약과 미구현**: 앱 쪽(푸시 버튼의 응답, HUD ION 띠, 데스크톱 SSE 구독)은 다음 단계라 지금은 푸시 알림을 받고 답은 `curl` 이나 HUD 밖에서 보낸다. 메모리 신호는 컨테이너에 memory limit 이 없으면 Docker 가 호스트 전체를 한도로 줘 거의 켜지지 않는다. 프로필별 메모리는 한 프로세스라 못 나눈다(`# ponytail`, Tavu 가 별도 워커로 분리될 때). 장기 침묵 신호와 LLM 요약은 2단계다. Docker Desktop 자체가 죽으면 Ion 도 같이 죽는다.
+**제약과 미구현**: 모바일 푸시의 버튼 답은 앱 저장소(`jarvis_agent_app`)의 서비스 워커가 맡아야 해서 아직 없다. 폰에서는 푸시를 받고 HUD(`/m/` 또는 `/`)를 열어 띠에서 답한다. 데스크톱 OS 알림은 HUD 페이지가 띄우므로 앱 창이 닫혀(트레이) 있어도 오지만 앱 자체가 꺼져 있으면 없다. 메모리 신호는 컨테이너에 memory limit 이 없으면 Docker 가 호스트 전체를 한도로 줘 거의 켜지지 않는다. 프로필별 메모리는 한 프로세스라 못 나눈다(`# ponytail`, Tavu 가 별도 워커로 분리될 때). 장기 침묵 신호와 LLM 요약은 2단계다. Docker Desktop 자체가 죽으면 Ion 도 같이 죽는다.
 
 ### journal: 자기 성찰 저널
 

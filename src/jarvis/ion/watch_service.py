@@ -31,6 +31,15 @@ CHOICES: dict[str, tuple[str, ...]] = {
     "agent_failing": ("pause", "ignore"),
     "schedule_stale": ("restart", "ignore"),
 }
+# 화면이 구체 뒤 배경을 물들이는 등급. critical 은 백엔드가 못 쓰는 상태, warning 은 한 부분의 이상
+SEVERITY = {
+    "backend_down": "critical",
+    "restart_loop": "critical",
+    "loop_stall": "critical",
+    "memory_high": "warning",
+    "agent_failing": "warning",
+    "schedule_stale": "warning",
+}
 TITLES = {
     "backend_down": "백엔드가 응답하지 않아요",
     "restart_loop": "백엔드가 재시작을 반복해요",
@@ -72,7 +81,8 @@ def to_observation(
 def incident_view(incident: Incident, hud_url: str) -> dict[str, Any]:
     """화면이 그리는 사고 한 건. 저장된 필드에 제목과 버튼을 붙인다. 순수 함수."""
     note = notification(incident, hud_url)
-    return {**asdict(incident), "title": note["title"], "actions": note["actions"], "url": hud_url}
+    extra = {k: note[k] for k in ("title", "actions", "severity")}
+    return {**asdict(incident), **extra, "url": hud_url}
 
 
 def notification(incident: Incident, hud_url: str) -> dict[str, Any]:
@@ -83,6 +93,7 @@ def notification(incident: Incident, hud_url: str) -> dict[str, Any]:
         "id": incident.id,
         "kind": incident.kind,
         "target": incident.target,
+        "severity": SEVERITY.get(incident.kind, "warning"),
         "title": f"Ion: {title}",
         "body": incident.detail,
         "tag": incident.id,

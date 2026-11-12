@@ -413,7 +413,7 @@ GET /ion/status
 | `container` | object | 예 | `id`, `service`, `status`, `restart_count`, `memory_usage`, `memory_limit`. Docker 프록시에서 못 읽으면 null |
 | `loop_lag_ms` | number | 예 | 백엔드 이벤트 루프 지연(최근 60초 최대) |
 | `agents` | object | 아니오 | 에이전트 id → `fail_streak`, `last_ok_ms`, `scheduled` |
-| `incidents` | object[] | 아니오 | 열린 사고. `id`, `kind`, `target`, `detail`, `opened_ms`, `notified_ms`, `response`, `responded_ms`, `action_result`, `closed_ms` |
+| `incidents` | object[] | 아니오 | 열린 사고. `id`, `kind`, `target`, `detail`, `opened_ms`, `notified_ms`, `response`, `responded_ms`, `action_result`, `closed_ms` 에 화면용 `title`, `actions`, `severity`(`critical` 또는 `warning`), `url` 을 붙인다 |
 
 #### 응답 코드
 
@@ -532,7 +532,7 @@ GET /ion/events
 | 종류 | data |
 |---|---|
 | `hello` | `{"type":"hello"}`. 연결 직후 한 번 |
-| `incident` | 사고 알림. `id`, `kind`, `target`, `title`, `body`, `tag`, `url`, `actions`(버튼 순서, 첫 번째가 추천) |
+| `incident` | 사고 알림. `id`, `kind`, `target`, `severity`, `title`, `body`, `tag`, `url`, `actions`(버튼 순서, 첫 번째가 추천) |
 | `incident_update` | 답을 받은 사고. `incident` |
 
 #### 응답 코드

@@ -29,6 +29,8 @@ export function resetMessages() {
   _streamText = '';
   _awaitDiv = null;
   _toolMsgs.clear();
+  // 세션을 바꿔 대화가 비면 Ion 이 열린 사고 카드를 새 대화에 다시 끼운다(app/ion.js)
+  window.dispatchEvent(new CustomEvent('jarvis:messages-reset'));
 }
 
 export function typingDots() {

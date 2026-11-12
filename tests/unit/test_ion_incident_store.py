@@ -1,6 +1,6 @@
-"""infra 의 사고 저장소: 같은 id 는 하나, 알림과 답은 처음 것만 남고, 파일로 돌아온다."""
+"""ion 의 사고 저장소: 같은 id 는 하나, 알림과 답은 처음 것만 남고, 파일로 돌아온다."""
 
-from jarvis.infra.incident_store import Incident, IncidentStore
+from jarvis.ion.incident_store import Incident, IncidentStore
 
 
 def _incident(i: str = "backend_down:backend:1") -> Incident:
@@ -8,12 +8,12 @@ def _incident(i: str = "backend_down:backend:1") -> Incident:
 
 
 def test_open_twice_keeps_one_and_survives_reload(tmp_path):
-    store = IncidentStore(tmp_path / "infra" / "incidents.json")
+    store = IncidentStore(tmp_path / "ion" / "incidents.json")
     first, created = store.open(_incident())
     again, created_again = store.open(_incident())
 
     assert created and not created_again and first == again
-    assert IncidentStore(tmp_path / "infra" / "incidents.json").open_incidents() == [first]
+    assert IncidentStore(tmp_path / "ion" / "incidents.json").open_incidents() == [first]
 
 
 def test_notify_respond_close_keep_first_values_and_unknown_id_is_none(tmp_path):

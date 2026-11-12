@@ -1,4 +1,4 @@
-"""[infra] 백엔드 HTTP 클라이언트. 건강, 지표, 작업 목록을 읽고 스케줄 작업을 끈다. 모든 호출에 타임아웃."""
+"""[ion] 백엔드 HTTP 클라이언트. 건강, 지표, 작업 목록을 읽고 스케줄 작업을 끈다. 모든 호출에 타임아웃."""
 
 import httpx
 from typing import Any
@@ -37,7 +37,7 @@ class BackendClient:
         try:
             res = await self._client.post(f"/api/schedules/{name}", json={"enabled": enabled})
         except httpx.HTTPError as exc:
-            logger.info(f"[Infra] backend schedule toggle failed: {exc!r}")
+            logger.info(f"[Ion] backend schedule toggle failed: {exc!r}")
             return False
         return res.status_code == 200
 
@@ -47,7 +47,7 @@ class BackendClient:
             res.raise_for_status()
             data = res.json()
         except (httpx.HTTPError, ValueError) as exc:
-            logger.info(f"[Infra] backend {path} failed: {exc!r}")
+            logger.info(f"[Ion] backend {path} failed: {exc!r}")
             return None
         return data if isinstance(data, dict) else None
 

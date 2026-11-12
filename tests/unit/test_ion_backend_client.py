@@ -1,8 +1,8 @@
-"""infra 의 백엔드 클라이언트: 건강은 200 만 참이고, 연결 실패는 예외 없이 거짓이나 None 이다."""
+"""ion 의 백엔드 클라이언트: 건강은 200 만 참이고, 연결 실패는 예외 없이 거짓이나 None 이다."""
 
 import httpx
 
-from jarvis.infra.backend_client import BackendClient
+from jarvis.ion.backend_client import BackendClient
 
 
 def _client(handler) -> tuple[BackendClient, list[httpx.Request]]:  # type: ignore[no-untyped-def]

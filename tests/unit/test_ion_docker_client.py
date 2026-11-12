@@ -1,10 +1,10 @@
-"""infra 의 Docker 클라이언트: compose 라벨로 컨테이너를 찾고 통계를 붙이며, 허용 밖 서비스는 부르기 전에 막는다."""
+"""ion 의 Docker 클라이언트: compose 라벨로 컨테이너를 찾고 통계를 붙이며, 허용 밖 서비스는 부르기 전에 막는다."""
 
 import json
 import httpx
 import pytest
 
-from jarvis.infra.docker_client import DockerClient
+from jarvis.ion.docker_client import DockerClient
 
 ALLOWED = frozenset({"jarvis-backend"})
 

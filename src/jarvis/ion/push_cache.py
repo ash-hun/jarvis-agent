@@ -1,4 +1,4 @@
-"""[infra] 푸시 구독을 Postgres 에서 파일로 복사해 둔다. DB 가 죽어도 알림은 나간다."""
+"""[ion] 푸시 구독을 Postgres 에서 파일로 복사해 둔다. DB 가 죽어도 알림은 나간다."""
 
 import json
 from pathlib import Path

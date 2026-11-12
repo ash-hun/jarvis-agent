@@ -23,9 +23,9 @@
    - [GET /api/jobs](#get-apijobs)
    - [POST /api/openloops/{loop_id}](#post-apiopenloopsloop_id)
    - [GET /api/platform/metrics](#get-apiplatformmetrics)
-   - [GET /infra/status](#get-infrastatus)
-   - [POST /infra/incidents/{incident_id}/respond](#post-infraincidentsincident_idrespond)
-   - [GET /infra/events](#get-infraevents)
+   - [GET /ion/status](#get-ionstatus)
+   - [POST /ion/incidents/{incident_id}/respond](#post-ionincidentsincident_idrespond)
+   - [GET /ion/events](#get-ionevents)
    - [GET /api/push/vapid](#get-apipushvapid)
    - [PUT /api/push/subscriptions](#put-apipushsubscriptions)
    - [DELETE /api/push/subscriptions](#delete-apipushsubscriptions)
@@ -317,7 +317,7 @@ $ curl -s http://localhost:7777/api/jobs
 
 ### GET /api/platform/metrics
 
-백엔드 프로세스 자원, 이벤트 루프 지연, 에이전트별 작업 상태. Infra Agent 가 밖에서 주기적으로 읽어 사고를 판정한다.
+백엔드 프로세스 자원, 이벤트 루프 지연, 에이전트별 작업 상태. Ion 가 밖에서 주기적으로 읽어 사고를 판정한다.
 
 #### Endpoint
 
@@ -373,14 +373,14 @@ $ curl -s http://localhost:7777/api/platform/metrics
 
 ---
 
-### GET /infra/status
+### GET /ion/status
 
-Infra Agent(별도 컨테이너)가 본 플랫폼 상태. 백엔드가 죽어도 nginx 의 `/infra/` 로 닿는다.
+Ion(별도 컨테이너)가 본 플랫폼 상태. 백엔드가 죽어도 nginx 의 `/ion/` 로 닿는다.
 
 #### Endpoint
 
 ```
-GET /infra/status
+GET /ion/status
 ```
 
 #### 호출 규약
@@ -388,7 +388,7 @@ GET /infra/status
 | 항목 | 값 |
 |---|---|
 | Method | `GET` |
-| 인증 | `JARVIS_INFRA__ACCESS_KEY` 가 설정돼 있으면 `Authorization: Bearer <키>` 또는 `?token=<키>` 필수 |
+| 인증 | `JARVIS_ION__ACCESS_KEY` 가 설정돼 있으면 `Authorization: Bearer <키>` 또는 `?token=<키>` 필수 |
 | 요청 Content-Type | 없음 (본문 없음) |
 | 응답 Content-Type | `application/json` |
 | 필수 헤더 | 없음 |
@@ -425,7 +425,7 @@ GET /infra/status
 #### 호출 예시
 
 ```bash
-$ curl -s http://localhost:7777/infra/status
+$ curl -s http://localhost:7777/ion/status
 {"at_ms":1794500000000,"backend_ok":true,"observed_ms":1794499990000,"container":{"id":"abc","service":"jarvis-backend","status":"running","restart_count":0,"memory_usage":1030000000,"memory_limit":8000000000},"loop_lag_ms":8.0,"agents":{"karen":{"fail_streak":0,"last_ok_ms":1794499200000,"scheduled":true},"main":{"fail_streak":0,"last_ok_ms":null,"scheduled":false}},"incidents":[]}
 ```
 
@@ -435,14 +435,14 @@ $ curl -s http://localhost:7777/infra/status
 
 ---
 
-### POST /infra/incidents/{incident_id}/respond
+### POST /ion/incidents/{incident_id}/respond
 
 사고에 답한다. 답은 사고당 한 번만 받고, 그때만 행동한다(같은 답을 두 번 보내도 행동은 한 번).
 
 #### Endpoint
 
 ```
-POST /infra/incidents/{incident_id}/respond
+POST /ion/incidents/{incident_id}/respond
 ```
 
 #### 호출 규약
@@ -450,7 +450,7 @@ POST /infra/incidents/{incident_id}/respond
 | 항목 | 값 |
 |---|---|
 | Method | `POST` |
-| 인증 | `GET /infra/status` 와 같다 |
+| 인증 | `GET /ion/status` 와 같다 |
 | 요청 Content-Type | `application/json` |
 | 응답 Content-Type | `application/json` |
 | 필수 헤더 | 없음 |
@@ -485,7 +485,7 @@ POST /infra/incidents/{incident_id}/respond
 #### 호출 예시
 
 ```bash
-$ curl -s -X POST http://localhost:7777/infra/incidents/backend_down:backend:498472/respond -H 'Content-Type: application/json' -d '{"action":"restart"}'
+$ curl -s -X POST http://localhost:7777/ion/incidents/backend_down:backend:498472/respond -H 'Content-Type: application/json' -d '{"action":"restart"}'
 {"incident":{"id":"backend_down:backend:498472","kind":"backend_down","target":"backend","detail":"health 실패 3회 연속","opened_ms":1794500000000,"notified_ms":1794500000000,"response":"restart","responded_ms":1794500030000,"action_result":"재기동함","closed_ms":null}}
 ```
 
@@ -495,14 +495,14 @@ $ curl -s -X POST http://localhost:7777/infra/incidents/backend_down:backend:498
 
 ---
 
-### GET /infra/events
+### GET /ion/events
 
-사고가 열리거나 답을 받을 때마다 한 건씩 보내는 Server-Sent Events. 데스크톱 앱과 HUD 의 INFRA 띠가 구독한다.
+사고가 열리거나 답을 받을 때마다 한 건씩 보내는 Server-Sent Events. 데스크톱 앱과 HUD 의 ION 띠가 구독한다.
 
 #### Endpoint
 
 ```
-GET /infra/events
+GET /ion/events
 ```
 
 #### 호출 규약
@@ -510,7 +510,7 @@ GET /infra/events
 | 항목 | 값 |
 |---|---|
 | Method | `GET` |
-| 인증 | `GET /infra/status` 와 같다 |
+| 인증 | `GET /ion/status` 와 같다 |
 | 요청 Content-Type | 없음 (본문 없음) |
 | 응답 Content-Type | `text/event-stream` |
 | 필수 헤더 | 없음 |
@@ -545,17 +545,17 @@ GET /infra/events
 #### 호출 예시
 
 ```bash
-$ curl -N http://localhost:7777/infra/events
+$ curl -N http://localhost:7777/ion/events
 event: hello
 data: {"type": "hello"}
 
 event: incident
-data: {"type": "incident", "id": "backend_down:backend:498472", "kind": "backend_down", "target": "backend", "title": "🛠 백엔드가 응답하지 않아요", "body": "health 실패 3회 연속", "tag": "backend_down:backend:498472", "url": "/", "actions": ["restart", "ignore"]}
+data: {"type": "incident", "id": "backend_down:backend:498472", "kind": "backend_down", "target": "backend", "title": "Ion: 백엔드가 응답하지 않아요", "body": "health 실패 3회 연속", "tag": "backend_down:backend:498472", "url": "/", "actions": ["restart", "ignore"]}
 ```
 
 #### 특이사항
 
-**재호출**: 연결마다 큐 하나(100건). 느린 연결은 오래된 이벤트부터 버린다. 끊긴 동안의 사고는 `GET /infra/status` 의 `incidents` 로 다시 본다.
+**재호출**: 연결마다 큐 하나(100건). 느린 연결은 오래된 이벤트부터 버린다. 끊긴 동안의 사고는 `GET /ion/status` 의 `incidents` 로 다시 본다.
 
 ---
 

@@ -1,9 +1,9 @@
-"""infra 의 규칙: 관측 흐름에서 신호 여섯 가지를 가려내고, 같은 슬롯의 같은 신호는 같은 사고 id 다."""
+"""ion 의 규칙: 관측 흐름에서 신호 여섯 가지를 가려내고, 같은 슬롯의 같은 신호는 같은 사고 id 다."""
 
 import pytest
 from datetime import datetime
 
-from jarvis.infra.health_rules import AgentObservation, Observation, Signal, Thresholds, evaluate, incident_id
+from jarvis.ion.health_rules import AgentObservation, Observation, Signal, Thresholds, evaluate, incident_id
 
 T = Thresholds()
 NOON = datetime(2026, 11, 12, 12, 0)

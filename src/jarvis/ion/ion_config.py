@@ -1,13 +1,13 @@
-"""[infra] Infra Agent 설정. 환경변수 JARVIS_INFRA__* 로 받고, 푸시 키와 DSN 은 백엔드와 같은 변수를 되쓴다."""
+"""[ion] Ion 설정. 환경변수 JARVIS_ION__* 로 받고, 푸시 키와 DSN 은 백엔드와 같은 변수를 되쓴다."""
 
 import os
 from collections.abc import Mapping
 from pydantic import BaseModel, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from jarvis.infra.health_rules import Thresholds
+from jarvis.ion.health_rules import Thresholds
 
-# 백엔드와 같은 값을 쓰는 변수. Infra 전용 변수가 비어 있으면 이것을 읽는다
+# 백엔드와 같은 값을 쓰는 변수. Ion 전용 변수가 비어 있으면 이것을 읽는다
 SHARED_ENV = {
     "postgres_dsn": "JARVIS_SESSION__POSTGRES_DSN",
     "vapid_private_key": "JARVIS_NOTIFY__WEBPUSH_VAPID_PRIVATE_KEY",
@@ -15,8 +15,8 @@ SHARED_ENV = {
 }
 
 
-class InfraThresholds(BaseModel):
-    """docs/infra-agent-plan.md 의 표. 규칙 모듈의 Thresholds 와 같은 뜻이고 환경변수로 고칠 수 있다."""
+class IonThresholds(BaseModel):
+    """docs/ion-plan.md 의 표. 규칙 모듈의 Thresholds 와 같은 뜻이고 환경변수로 고칠 수 있다."""
 
     health_fail_count: int = 3
     restart_loop_count: int = 3
@@ -45,31 +45,31 @@ class InfraThresholds(BaseModel):
         )
 
 
-class InfraConfig(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="JARVIS_INFRA__", env_nested_delimiter="__", extra="ignore")
+class IonConfig(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="JARVIS_ION__", env_nested_delimiter="__", extra="ignore")
 
     backend_url: str = "http://jarvis-backend:7777"
     backend_service: str = "jarvis-backend"  # compose 서비스 이름. 이 컨테이너만 다룬다
     docker_url: str = "http://docker-socket-proxy:2375"
-    # 백엔드 /api 를 부르고 /infra 요청을 검사하는 접근 키. 백엔드의 api_keys 중 하나. 비우면 둘 다 검사하지 않는다
+    # 백엔드 /api 를 부르고 /ion 요청을 검사하는 접근 키. 백엔드의 api_keys 중 하나. 비우면 둘 다 검사하지 않는다
     access_key: SecretStr | None = None
     host: str = "0.0.0.0"
     port: int = 7778
     poll_sec: float = 15.0
     metrics_every: int = 4  # 지표, 컨테이너 통계, 구독 복사는 poll 네 번마다(60초)
     history: int = 120  # 관측 보관 수. 15초 × 120 = 30분
-    data_dir: str = "~/.jarvis/infra"
+    data_dir: str = "~/.jarvis/ion"
     hud_url: str = "/"  # 알림을 눌렀을 때 여는 주소
-    thresholds: InfraThresholds = InfraThresholds()
+    thresholds: IonThresholds = IonThresholds()
     postgres_dsn: str = ""  # 푸시 구독을 복사해 올 곳. 비우면 복사하지 않는다
     vapid_private_key: SecretStr | None = None
     vapid_subject: str = ""
 
 
-def load_config(environ: Mapping[str, str] | None = None) -> InfraConfig:
+def load_config(environ: Mapping[str, str] | None = None) -> IonConfig:
     """설정을 읽고 비어 있는 공유 값은 백엔드 변수에서 채운다. 같은 환경이면 같은 설정이다."""
     env = environ if environ is not None else os.environ
-    cfg = InfraConfig()
+    cfg = IonConfig()
     fill: dict[str, object] = {}
     if not cfg.postgres_dsn and env.get(SHARED_ENV["postgres_dsn"]):
         fill["postgres_dsn"] = env[SHARED_ENV["postgres_dsn"]]

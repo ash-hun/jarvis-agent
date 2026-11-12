@@ -1,4 +1,4 @@
-"""[infra] Docker 소켓 프록시 HTTP 클라이언트. 허용한 compose 서비스만 찾고, 통계를 읽고, 재기동하거나 멈춘다."""
+"""[ion] Docker 소켓 프록시 HTTP 클라이언트. 허용한 compose 서비스만 찾고, 통계를 읽고, 재기동하거나 멈춘다."""
 
 import json
 import httpx
@@ -50,7 +50,7 @@ class DockerClient:
             inspect = await self._client.get(f"/containers/{rows[0]['Id']}/json")
             inspect.raise_for_status()
         except (httpx.HTTPError, ValueError, KeyError) as exc:
-            logger.info(f"[Infra] docker find failed: {exc!r}")
+            logger.info(f"[Ion] docker find failed: {exc!r}")
             return None
         data: dict[str, Any] = inspect.json()
         return ContainerState(
@@ -68,7 +68,7 @@ class DockerClient:
             res.raise_for_status()
             mem: dict[str, Any] = res.json().get("memory_stats") or {}
         except (httpx.HTTPError, ValueError) as exc:
-            logger.info(f"[Infra] docker stats failed: {exc!r}")
+            logger.info(f"[Ion] docker stats failed: {exc!r}")
             return state
         usage, limit = mem.get("usage"), mem.get("limit")
         if usage is None or limit is None:
@@ -89,7 +89,7 @@ class DockerClient:
         try:
             res = await self._client.post(f"/containers/{state.id}/{action}", params=params)
         except httpx.HTTPError as exc:
-            logger.info(f"[Infra] docker {action} failed: {exc!r}")
+            logger.info(f"[Ion] docker {action} failed: {exc!r}")
             return False
         # 304 는 이미 그 상태(멈춘 것을 또 stop)라 성공으로 본다
         return res.status_code in (204, 304)

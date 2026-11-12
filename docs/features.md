@@ -415,7 +415,7 @@
 | 단위 | `tests/unit/test_goal_goals_types.py` |
 | 단위 | `tests/unit/test_goal_runner.py` |
 | 단위 | `tests/unit/test_goal_tool.py` |
-| 통합 | 없음. 스케줄러 차례부터 알림까지 잇는 시나리오가 아직 없다 |
+| 통합 | `tests/integ/test_goal.py`(정각 차례부터 대화 전달과 정산, 같은 결과면 침묵, 지나친 정각 따라잡기, 못 건넨 항목 재시도) |
 
 **제약과 미구현**: 알린 직후 정산 전에 죽으면 다음 차례에 같은 항목을 한 번 더 알린다(`# idempotent`). 결과가 바뀐 차례는 도구를 두 번 부른다(`# ponytail`).
 

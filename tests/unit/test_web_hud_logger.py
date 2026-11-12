@@ -6,17 +6,29 @@ import json
 import pytest
 import logging
 
-from jarvis.common.logger import ROOT_NAME, _StdoutHandler, get_logger
+from jarvis.common.logger import LOG_FORMAT_ENV, LOG_LEVEL_ENV, ROOT_NAME, _StdoutHandler, get_logger
 from jarvis.common import logger as logger_module
+
+
+@pytest.fixture(autouse=True)
+def fresh_console_logging(monkeypatch):
+    """앞선 테스트가 남긴 설정에 기대지 않는다. 실험 스크립트는 import 때 JARVIS_LOG_LEVEL=WARNING 을 두는데,
+    전체 실행에서 integ 가 먼저 돌면 그 레벨로 설정돼 info 줄이 사라졌다(실측)."""
+    previous_level = logging.getLogger(ROOT_NAME).level
+    monkeypatch.delenv(LOG_LEVEL_ENV, raising=False)
+    monkeypatch.delenv(LOG_FORMAT_ENV, raising=False)
+    monkeypatch.setattr(logger_module, "_configured", False)
+    logger_module.configure_logging()
+    yield
+    logger_module._configured = False
+    logger_module.configure_logging()
+    logging.getLogger(ROOT_NAME).setLevel(previous_level)
 
 
 @pytest.fixture
 def json_format(monkeypatch):
     monkeypatch.setattr(logger_module, "_configured", False)
     logger_module.configure_logging(fmt="json")
-    yield
-    logger_module._configured = False
-    logger_module.configure_logging(fmt="console")
 
 
 def test_handler_is_added_once_across_calls():

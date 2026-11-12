@@ -77,6 +77,7 @@ wake = [
 
 [project.scripts]
 jarvis = "jarvis.ui.cli.cli_startup:main"
+jarvis-infra = "jarvis.infra.infra_cli:main"
 
 [tool.uv]
 # openwakeword 는 리눅스에서 tflite-runtime 을 요구하지만 arm64 휠이 없어 Docker(Apple Silicon)에서 설치가 깨진다.

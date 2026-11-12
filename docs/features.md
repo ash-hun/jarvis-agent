@@ -525,7 +525,7 @@
 | `src/jarvis/infra/backend_client.py` | infra | 백엔드 health, metrics, jobs, 작업 끄기 |
 | `src/jarvis/infra/push_cache.py` | infra | 푸시 구독 파일 복사 |
 | `src/jarvis/infra/infra_app.py` | infra | `/infra/*` HTTP 와 SSE |
-| `src/jarvis/infra/infra_cli.py` | infra | 조립과 기동(`python -m jarvis.infra.infra_cli`) |
+| `src/jarvis/infra/infra_cli.py`, `__main__.py` | infra | 조립과 기동(`python -m jarvis.infra`, 설치 뒤에는 `jarvis-infra`) |
 | `docker-compose.yml`, `nginx/nginx.conf` | infra | `docker-socket-proxy`, `jarvis-infra` 서비스와 `/infra/` 경로 |
 
 **테스트**

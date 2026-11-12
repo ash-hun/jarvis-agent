@@ -23,6 +23,9 @@
    - [GET /api/jobs](#get-apijobs)
    - [POST /api/openloops/{loop_id}](#post-apiopenloopsloop_id)
    - [GET /api/platform/metrics](#get-apiplatformmetrics)
+   - [GET /infra/status](#get-infrastatus)
+   - [POST /infra/incidents/{incident_id}/respond](#post-infraincidentsincident_idrespond)
+   - [GET /infra/events](#get-infraevents)
    - [GET /api/push/vapid](#get-apipushvapid)
    - [PUT /api/push/subscriptions](#put-apipushsubscriptions)
    - [DELETE /api/push/subscriptions](#delete-apipushsubscriptions)
@@ -367,6 +370,192 @@ $ curl -s http://localhost:7777/api/platform/metrics
 #### 특이사항
 
 **재호출**: 상태를 바꾸지 않는다. `cpu_percent` 는 직전 호출 이후 구간의 평균이라 첫 호출은 기동 이후 평균이고, 두 호출 사이가 짧으면 0 에 가깝다. 작업 기록은 프로세스 메모리라 재시작하면 `fail_streak` 와 `last_ok_ms` 가 비워진다. 프로필별 메모리는 한 프로세스라 못 나누며 `process` 가 전체다.
+
+---
+
+### GET /infra/status
+
+Infra Agent(별도 컨테이너)가 본 플랫폼 상태. 백엔드가 죽어도 nginx 의 `/infra/` 로 닿는다.
+
+#### Endpoint
+
+```
+GET /infra/status
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | `JARVIS_INFRA__ACCESS_KEY` 가 설정돼 있으면 `Authorization: Bearer <키>` 또는 `?token=<키>` 필수 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `at_ms` | integer | 아니오 | 응답 시각 |
+| `backend_ok` | boolean | 예 | 마지막 관측에서 `GET /api/health` 가 200 이었는지. 아직 관측 전이면 null |
+| `observed_ms` | integer | 예 | 마지막 관측 시각 |
+| `container` | object | 예 | `id`, `service`, `status`, `restart_count`, `memory_usage`, `memory_limit`. Docker 프록시에서 못 읽으면 null |
+| `loop_lag_ms` | number | 예 | 백엔드 이벤트 루프 지연(최근 60초 최대) |
+| `agents` | object | 아니오 | 에이전트 id → `fail_streak`, `last_ok_ms`, `scheduled` |
+| `incidents` | object[] | 아니오 | 열린 사고. `id`, `kind`, `target`, `detail`, `opened_ms`, `notified_ms`, `response`, `responded_ms`, `action_result`, `closed_ms` |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+| `401` | 키 없음 또는 틀림 | `{"error": "unauthorized"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s http://localhost:7777/infra/status
+{"at_ms":1794500000000,"backend_ok":true,"observed_ms":1794499990000,"container":{"id":"abc","service":"jarvis-backend","status":"running","restart_count":0,"memory_usage":1030000000,"memory_limit":8000000000},"loop_lag_ms":8.0,"agents":{"karen":{"fail_streak":0,"last_ok_ms":1794499200000,"scheduled":true},"main":{"fail_streak":0,"last_ok_ms":null,"scheduled":false}},"incidents":[]}
+```
+
+#### 특이사항
+
+**재호출**: 상태를 바꾸지 않는다. 관측은 15초마다, 지표와 컨테이너 통계는 60초마다 갱신된다.
+
+---
+
+### POST /infra/incidents/{incident_id}/respond
+
+사고에 답한다. 답은 사고당 한 번만 받고, 그때만 행동한다(같은 답을 두 번 보내도 행동은 한 번).
+
+#### Endpoint
+
+```
+POST /infra/incidents/{incident_id}/respond
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `POST` |
+| 인증 | `GET /infra/status` 와 같다 |
+| 요청 Content-Type | `application/json` |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `action` | string | 예 | `restart`(백엔드 재기동), `stop`(백엔드 멈춤, 재시작 루프용), `pause`(대상 에이전트의 켜진 스케줄 작업 끄기), `ignore` |
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| `incident_id` | path | string | 예 | | 사고 id(`종류:대상:시간 슬롯`) |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `incident` | object | 아니오 | 갱신된 사고. `action_result` 에 행동 결과 한 줄(`재기동함`, `작업 1개 멈춤`, `무시`) |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+| `400` | `action` 이 넷 중 하나가 아님 | `{"error": "..."}` |
+| `404` | 모르는 사고 | `{"error": "unknown incident"}` |
+| `401` | 키 없음 또는 틀림 | `{"error": "unauthorized"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s -X POST http://localhost:7777/infra/incidents/backend_down:backend:498472/respond -H 'Content-Type: application/json' -d '{"action":"restart"}'
+{"incident":{"id":"backend_down:backend:498472","kind":"backend_down","target":"backend","detail":"health 실패 3회 연속","opened_ms":1794500000000,"notified_ms":1794500000000,"response":"restart","responded_ms":1794500030000,"action_result":"재기동함","closed_ms":null}}
+```
+
+#### 특이사항
+
+**재호출**: 첫 답이 남고 뒤의 답은 그 사고를 그대로 돌려준다. 재기동은 Docker 소켓 프록시의 `restart` 로 가며 두 번 눌러도 결과는 "떠 있음" 하나다. 사고는 신호가 사라질 때 감시 루프가 닫는다.
+
+---
+
+### GET /infra/events
+
+사고가 열리거나 답을 받을 때마다 한 건씩 보내는 Server-Sent Events. 데스크톱 앱과 HUD 의 INFRA 띠가 구독한다.
+
+#### Endpoint
+
+```
+GET /infra/events
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | `GET /infra/status` 와 같다 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `text/event-stream` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+이벤트 줄. `event:` 는 종류, `data:` 는 JSON.
+
+| 종류 | data |
+|---|---|
+| `hello` | `{"type":"hello"}`. 연결 직후 한 번 |
+| `incident` | 사고 알림. `id`, `kind`, `target`, `title`, `body`, `tag`, `url`, `actions`(버튼 순서, 첫 번째가 추천) |
+| `incident_update` | 답을 받은 사고. `incident` |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 스트림 | 위 이벤트 |
+| `401` | 키 없음 또는 틀림 | `{"error": "unauthorized"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -N http://localhost:7777/infra/events
+event: hello
+data: {"type": "hello"}
+
+event: incident
+data: {"type": "incident", "id": "backend_down:backend:498472", "kind": "backend_down", "target": "backend", "title": "🛠 백엔드가 응답하지 않아요", "body": "health 실패 3회 연속", "tag": "backend_down:backend:498472", "url": "/", "actions": ["restart", "ignore"]}
+```
+
+#### 특이사항
+
+**재호출**: 연결마다 큐 하나(100건). 느린 연결은 오래된 이벤트부터 버린다. 끊긴 동안의 사고는 `GET /infra/status` 의 `incidents` 로 다시 본다.
 
 ---
 

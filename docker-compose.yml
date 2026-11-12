@@ -116,6 +116,52 @@ services:
     restart: unless-stopped
     profiles: ["web"]
 
+  # ── Docker 소켓 프록시 (Infra Agent 의 재기동 권한) ─────────────────────────
+  # 컨테이너에 소켓을 직접 주면 호스트 root 와 같다. 프록시는 조회와 restart, stop 만 연다
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    environment:
+      CONTAINERS: "1"
+      POST: "1"
+      ALLOW_RESTARTS: "1"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    profiles: ["web"]
+
+  # ── Infra Agent (백엔드 밖의 감시자) ─────────────────────────────────────────
+  # 백엔드와 Postgres 가 죽어도 뜬다(depends_on 없음). 앱은 nginx 의 /infra/ 로 붙는다
+  jarvis-infra:
+    build:
+      context: .
+      target: runtime-web
+    env_file:
+      - .env
+    environment:
+      TZ: ${TZ:-Asia/Seoul}
+      PYTHONUNBUFFERED: "1"
+      JARVIS_SESSION__POSTGRES_DSN: ${JARVIS_SESSION__POSTGRES_DSN:-postgresql://jarvis:jarvis@postgres:5432/jarvis}
+      JARVIS_INFRA__BACKEND_URL: http://jarvis-backend:7777
+      JARVIS_INFRA__DOCKER_URL: http://docker-socket-proxy:2375
+      JARVIS_INFRA__BACKEND_SERVICE: jarvis-backend
+      # 백엔드 api_keys 중 하나. 백엔드를 부를 때 싣고 /infra 요청에서 검사한다
+      JARVIS_INFRA__ACCESS_KEY: ${JARVIS_INFRA__ACCESS_KEY:-}
+    # 엔트리포인트 대신 모듈로 띄운다. src 가 마운트돼 이미지 재빌드 없이 restart 로 반영된다
+    command: ["uv", "run", "python", "-m", "jarvis.infra.infra_cli"]
+    volumes:
+      - jarvis_data:/root/.jarvis
+      - ./src:/app/src
+    depends_on:
+      - docker-socket-proxy
+    restart: unless-stopped
+    profiles: ["web"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('localhost', 7778), timeout=2); s.close()"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+
 volumes:
   jarvis_data:
   postgres_data:

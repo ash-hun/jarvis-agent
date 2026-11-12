@@ -358,6 +358,29 @@ async def test_cron_slot_fires_once_across_ticks():
     assert notify.await_count == 1
 
 
+async def test_missed_cron_slots_are_caught_up_once_after_a_pause():
+    croniter = pytest.importorskip("croniter").croniter
+    first = datetime(2026, 11, 11, 15, 0, 0)
+    svc = _service([ScheduledTask(name="hourly", schedule="0 * * * *", prompt="x")])
+    notify = _collect(svc)
+
+    with _fake_session(AsyncMock(return_value=MagicMock(text=lambda: "x"))):
+        await asyncio.gather(*svc._tick(first + timedelta(seconds=5), croniter))
+        # 호스트가 절전에 들어가 16, 17, 18시 정각이 지나간 뒤 18:03 에 첫 tick
+        awake = first + timedelta(hours=3, minutes=3)
+        await asyncio.gather(*svc._tick(awake, croniter))
+        await asyncio.gather(*svc._tick(awake + timedelta(seconds=10), croniter))
+
+    assert notify.await_count == 2
+
+
+def test_cron_slot_missed_before_the_first_run_is_not_caught_up():
+    croniter = pytest.importorskip("croniter").croniter
+    svc = _service([ScheduledTask(name="hourly", schedule="0 * * * *", prompt="x")])
+
+    assert svc._tick(datetime(2026, 11, 11, 15, 3, 0), croniter) == []
+
+
 class _Echo(JarvisTool):
     name = "housing_watch"
     description = "x"

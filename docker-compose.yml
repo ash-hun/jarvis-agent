@@ -146,8 +146,9 @@ services:
       JARVIS_INFRA__BACKEND_SERVICE: jarvis-backend
       # 백엔드 api_keys 중 하나. 백엔드를 부를 때 싣고 /infra 요청에서 검사한다
       JARVIS_INFRA__ACCESS_KEY: ${JARVIS_INFRA__ACCESS_KEY:-}
-    # 엔트리포인트 대신 모듈로 띄운다. src 가 마운트돼 이미지 재빌드 없이 restart 로 반영된다
-    command: ["uv", "run", "python", "-m", "jarvis.infra.infra_cli"]
+    # 이미지의 venv python 으로 모듈을 띄운다. uv run 은 기동마다 lock 과 맞추느라 dev 의존성까지 받았다(실측).
+    # src 가 마운트돼 이미지 재빌드 없이 restart 로 반영된다
+    command: ["python", "-m", "jarvis.infra.infra_cli"]
     volumes:
       - jarvis_data:/root/.jarvis
       - ./src:/app/src

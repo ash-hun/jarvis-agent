@@ -7,8 +7,6 @@ from collections.abc import Mapping, Sequence
 
 SignalKind = Literal["backend_down", "restart_loop", "loop_stall", "memory_high", "agent_failing", "schedule_stale"]
 BACKEND = "backend"
-# 사고 id 의 시각 자리. 같은 신호가 한 시간 안에 다시 나면 같은 사고다
-SLOT_MS = 3_600_000
 
 
 @dataclass(frozen=True)
@@ -82,9 +80,10 @@ def evaluate(history: Sequence[Observation], t: Thresholds, now: datetime) -> li
     return signals
 
 
-def incident_id(signal: Signal, at_ms: int, slot_ms: int = SLOT_MS) -> str:
-    """`종류:대상:시각 슬롯`. 같은 슬롯의 같은 신호는 같은 사고다. 순수 함수."""
-    return f"{signal.kind}:{signal.target}:{at_ms // slot_ms}"
+def incident_id(signal: Signal, at_ms: int) -> str:
+    """`종류:대상:연 시각`. 같은 신호의 중복은 열린 사고를 먼저 찾는 쪽(감시 루프)이 막는다. 시각까지 넣는 이유는
+    닫힌 사고와 id 가 겹치면 같은 시간대에 다시 난 사고가 영영 안 열리기 때문이다(11-13 실측). 순수 함수."""
+    return f"{signal.kind}:{signal.target}:{at_ms}"
 
 
 def _last_n(history: Sequence[Observation], n: int, pick: object, expected: object) -> bool:

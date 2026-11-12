@@ -465,7 +465,7 @@ POST /ion/incidents/{incident_id}/respond
 
 | 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
 |---|---|---|---|---|---|
-| `incident_id` | path | string | 예 | | 사고 id(`종류:대상:시간 슬롯`) |
+| `incident_id` | path | string | 예 | | 사고 id(`종류:대상:연 시각 ms`) |
 
 #### Response Body
 

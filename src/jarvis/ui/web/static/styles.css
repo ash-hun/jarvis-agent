@@ -510,7 +510,8 @@ body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
 .msg.thought.open .thought-detail { display: block; }
 /* ION 띠 — 헤더 바로 아래 고정. 열린 사고가 있을 때만 보인다 */
 .ion-strip {
-  position: fixed; top: var(--header-h); left: 0; right: 0; z-index: 29;
+  /* 연결 끊김 배너(z-index 9999)보다 위. 백엔드가 죽으면 둘이 같이 뜨는데 버튼은 눌려야 한다 */
+  position: fixed; top: var(--header-h); left: 0; right: 0; z-index: 10000;
   display: flex; align-items: flex-start; gap: 12px;
   padding: 8px 18px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--red) 16%, var(--bg-1)), color-mix(in srgb, var(--bg-1) 90%, transparent));
@@ -518,6 +519,8 @@ body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
   font-family: var(--mono); font-size: 11px;
 }
 .ion-strip[hidden] { display: none; }
+/* 띠가 보이는 동안 연결 끊김 배너는 그 아래로 내려간다. 높이는 ion.js 가 --ion-h 로 적는다 */
+body:has(.ion-strip:not([hidden])) .connection-banner { top: calc(var(--header-h) + var(--ion-h, 0px)); }
 .ion-mark { color: var(--red); letter-spacing: 0.18em; padding-top: 3px; }
 .ion-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
 .ion-item { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

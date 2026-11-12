@@ -14,6 +14,8 @@ const bridge = window.jarvisDesktop;
 
 function render() {
   $strip.hidden = rows.size === 0;
+  // 연결 끊김 배너가 띠 아래로 비키도록 높이를 알린다
+  document.documentElement.style.setProperty('--ion-h', $strip.hidden ? '0px' : `${$strip.offsetHeight}px`);
 }
 
 function row(incident) {

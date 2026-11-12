@@ -69,6 +69,12 @@ def to_observation(
     )
 
 
+def incident_view(incident: Incident, hud_url: str) -> dict[str, Any]:
+    """화면이 그리는 사고 한 건. 저장된 필드에 제목과 버튼을 붙인다. 순수 함수."""
+    note = notification(incident, hud_url)
+    return {**asdict(incident), "title": note["title"], "actions": note["actions"], "url": hud_url}
+
+
 def notification(incident: Incident, hud_url: str) -> dict[str, Any]:
     """푸시와 SSE 가 같이 쓰는 사고 알림. tag 가 사고 id 라 같은 사고는 한 알림으로 겹친다. 순수 함수."""
     title = TITLES.get(incident.kind, incident.kind).format(target=incident.target)
@@ -197,8 +203,11 @@ class WatchService:
             "container": asdict(self._container) if self._container is not None else None,
             "loop_lag_ms": latest.loop_lag_ms if latest is not None else None,
             "agents": {k: asdict(v) for k, v in (latest.agents.items() if latest is not None else [])},
-            "incidents": [asdict(i) for i in self._store.open_incidents()],
+            "incidents": [incident_view(i, self._cfg.hud_url) for i in self._store.open_incidents()],
         }
+
+    def view(self, incident: Incident) -> dict[str, Any]:
+        return incident_view(incident, self._cfg.hud_url)
 
     async def start(self) -> None:
         if self._task is None or self._task.done():

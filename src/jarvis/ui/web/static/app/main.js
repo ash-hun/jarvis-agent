@@ -9,6 +9,7 @@ import './workflow.js';
 import './settings.js';
 import './desktop.js';
 import './header.js';
+import './ion.js';
 
 setupCollapse('chat-toggle', 'chat-collapsed', 'hud.chatCollapsed', scrollToEnd);
 setupCollapse('sessions-toggle', 'sessions-collapsed', 'hud.sessionsCollapsed');

@@ -22,6 +22,7 @@
    - [GET /api/health](#get-apihealth)
    - [GET /api/jobs](#get-apijobs)
    - [POST /api/openloops/{loop_id}](#post-apiopenloopsloop_id)
+   - [GET /api/platform/metrics](#get-apiplatformmetrics)
    - [GET /api/push/vapid](#get-apipushvapid)
    - [PUT /api/push/subscriptions](#put-apipushsubscriptions)
    - [DELETE /api/push/subscriptions](#delete-apipushsubscriptions)
@@ -308,6 +309,64 @@ $ curl -s http://localhost:7777/api/jobs
 #### 특이사항
 
 **재호출**: 상태를 바꾸지 않는다. 실행 기록은 프로세스 메모리라 서버가 재시작되면 `runs` 가 0 부터 다시 세고 `last_*` 가 null 이 된다. 성찰과 기억 정리는 세션이 여럿이어도 작업 하나(`proactive:reflect`, `memory:consolidate`)로 센다. 외부 조회는 실제로 조회할 소스가 있을 때만 센다.
+
+---
+
+### GET /api/platform/metrics
+
+백엔드 프로세스 자원, 이벤트 루프 지연, 에이전트별 작업 상태. Infra Agent 가 밖에서 주기적으로 읽어 사고를 판정한다.
+
+#### Endpoint
+
+```
+GET /api/platform/metrics
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | 설정 시 필요 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `at_ms` | integer | 아니오 | 읽은 시각(epoch ms) |
+| `process` | object | 아니오 | `pid`, `rss_bytes`, `cpu_percent`(직전 호출부터의 구간 평균), `threads`, `open_fds`(못 재면 null), `asyncio_tasks`, `uptime_sec` |
+| `loop_lag` | object | 아니오 | `last_ms`, `max_ms`(최근 60초 최대), `samples`. 1초마다 잠들고 늦게 깬 만큼 |
+| `agents` | object[] | 아니오 | 에이전트 id 순. `agent`, `jobs`, `running`, `fail_streak`(그 에이전트 작업 중 가장 긴 연속 실패), `last_ok_ms`, `last_error`, `open_sessions`. 스케줄 작업은 그 작업의 에이전트로, 성찰과 기억 정리와 외부 조회는 `shared` 로 센다. 작업이 없는 에이전트도 0 으로 나온다 |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+
+#### 호출 예시
+
+```bash
+$ curl -s http://localhost:7777/api/platform/metrics
+{"at_ms":1794500000000,"process":{"pid":1,"rss_bytes":231735296,"cpu_percent":1.5,"threads":12,"open_fds":48,"asyncio_tasks":9,"uptime_sec":86400.0},"loop_lag":{"last_ms":0.4,"max_ms":12.0,"samples":60},"agents":[{"agent":"karen","jobs":1,"running":0,"fail_streak":0,"last_ok_ms":1794499200000,"last_error":"","open_sessions":0},{"agent":"main","jobs":0,"running":0,"fail_streak":0,"last_ok_ms":null,"last_error":"","open_sessions":1},{"agent":"shared","jobs":2,"running":0,"fail_streak":0,"last_ok_ms":1794499980000,"last_error":"","open_sessions":0}]}
+```
+
+#### 특이사항
+
+**재호출**: 상태를 바꾸지 않는다. `cpu_percent` 는 직전 호출 이후 구간의 평균이라 첫 호출은 기동 이후 평균이고, 두 호출 사이가 짧으면 0 에 가깝다. 작업 기록은 프로세스 메모리라 재시작하면 `fail_streak` 와 `last_ok_ms` 가 비워진다. 프로필별 메모리는 한 프로세스라 못 나누며 `process` 가 전체다.
 
 ---
 

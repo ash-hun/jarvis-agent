@@ -37,6 +37,7 @@ class JobRecord:
     last_ended_ms: int | None = None
     last_ok: bool | None = None
     last_error: str = ""
+    fail_streak: int = 0  # 마지막 성공 뒤 연속 실패 수. 성공하면 0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

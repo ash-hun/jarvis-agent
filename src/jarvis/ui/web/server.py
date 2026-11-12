@@ -8,6 +8,7 @@ from collections.abc import Awaitable, Callable
 
 from jarvis.ui.web.web_auth import auth_enabled, bearer_token, lookup_api_user
 from jarvis.ui.web.router.brand_router import STATIC_DIR, build_brand_router
+from jarvis.ui.web.router.platform_router import build_platform_router
 from jarvis.ui.web.router.settings_router import build_settings_router
 from jarvis.ui.web.router.workflow_router import build_workflow_router
 from jarvis.ui.web.router.session_router import build_session_router
@@ -59,6 +60,7 @@ def create_app(assembly: "AppAssembly", initial_session_id: str = "default") -> 
     app.include_router(build_brand_router(state))
     app.include_router(build_voice_router(state))
     app.include_router(build_workflow_router(state))
+    app.include_router(build_platform_router(state))
     app.include_router(build_settings_router(state, SettingsOverlay(settings_file_path())))
 
     # 정적 파일은 API 와 WebSocket 라우트를 다 단 뒤에 마운트한다(앞에 두면 / 가 모두 가로챈다)

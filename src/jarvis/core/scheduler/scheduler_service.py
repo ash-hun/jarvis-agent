@@ -252,11 +252,23 @@ class SchedulerService:
             except Exception as exc:
                 logger.info(f"[Scheduler] Cron parse error for '{task.name}': {exc}")
                 continue
-            # 직전 cron 슬롯이 최근 60초 안이고 그 슬롯을 아직 안 돌았으면 실행
-            if (now_dt - prev).total_seconds() < 60 and self._last_run.get(task.name) != prev:
+            if self._due(task.name, prev, now_dt):
                 self._last_run[task.name] = prev
                 fired.append(self._spawn(self._run_and_deliver(task)))
         return fired
+
+    def _due(self, name: str, prev: datetime, now_dt: datetime) -> bool:
+        """직전 cron 슬롯을 지금 돌릴지.
+
+        한 번이라도 돌린 작업은 마지막으로 돌린 슬롯보다 뒤면 경과 시간과 무관하게 돌린다. 호스트가 절전에
+        들어가 정각을 지나치면(11-11 실측, 네 슬롯) 깨어난 뒤 가장 최근 슬롯 하나만 따라잡고 그 사이 슬롯은 버린다.
+        아직 한 번도 돌리지 않은 작업(기동 직후)은 슬롯이 60초 안일 때만 돌려, 켤 때마다 모든 cron 작업이
+        터지지 않게 한다.
+        """
+        last = self._last_run.get(name)
+        if last is None:
+            return (now_dt - prev).total_seconds() < 60
+        return last < prev
 
     def _spawn(self, coro: Coroutine[Any, Any, None]) -> asyncio.Task[None]:
         t = asyncio.create_task(coro)

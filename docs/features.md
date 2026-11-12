@@ -1147,7 +1147,7 @@
 | `POST /api/schedules/{name}` `{enabled}` | 켜기, 끄기 |
 | 실행 시각 | ws `reminder`, 열린 화면이 없으면 최근 20건을 다음 접속 때 `missed:true` 로. `deliver: conversation` 이면 최근 대화 세션에 `proactive_message` |
 
-**처리 흐름**: `schedule_cmd` 또는 `tool` 에서 `classify` 로, `scheduler_loader` 저장, `SchedulerService` 루프가 때가 된 `ScheduledTask` 를 새 세션에서 실행, 알림 순. `run_until` 이 지난 작업은 `set_enabled` 로 꺼서 저장 파일에도 남기므로 재시작해도 다시 켜지지 않는다.
+**처리 흐름**: `schedule_cmd` 또는 `tool` 에서 `classify` 로, `scheduler_loader` 저장, `SchedulerService` 루프가 때가 된 `ScheduledTask` 를 새 세션에서 실행, 알림 순. `run_until` 이 지난 작업은 `set_enabled` 로 꺼서 저장 파일에도 남기므로 재시작해도 다시 켜지지 않는다. cron 작업은 마지막으로 돌린 슬롯보다 뒤인 슬롯이 보이면 경과 시간과 무관하게 한 번 돌린다. 호스트 절전으로 정각을 여럿 지나쳐도 깨어난 뒤 가장 최근 슬롯 하나만 따라잡는다. 기동 직후(아직 돌린 적 없음)에는 60초 안의 슬롯만 돌려 켤 때마다 모든 작업이 터지지 않게 한다.
 
 **구현 파일**
 

@@ -148,7 +148,7 @@ services:
       JARVIS_INFRA__ACCESS_KEY: ${JARVIS_INFRA__ACCESS_KEY:-}
     # 이미지의 venv python 으로 모듈을 띄운다. uv run 은 기동마다 lock 과 맞추느라 dev 의존성까지 받았다(실측).
     # src 가 마운트돼 이미지 재빌드 없이 restart 로 반영된다
-    command: ["python", "-m", "jarvis.infra.infra_cli"]
+    command: ["python", "-m", "jarvis.infra"]
     volumes:
       - jarvis_data:/root/.jarvis
       - ./src:/app/src

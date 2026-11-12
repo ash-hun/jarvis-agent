@@ -12,12 +12,14 @@ from jarvis.voice.phrases import load_phrase_texts, load_phrases
 from jarvis.voice.english import Translate, make_llm_translator
 from jarvis.ui.web.session_registry import SessionRegistry
 from jarvis.core.workflow.workflow_types import JobRecord
+from jarvis.core.platform.loop_lag import LoopLagMonitor
 from jarvis.ui.web.agent_activity import AgentActivity
 from jarvis.ui.web.approvals import SessionApprovals
 from jarvis.core.workflow.job_board import JobBoard
 from jarvis.common.logger import get_logger
 
 if TYPE_CHECKING:
+    from jarvis.core.platform.metrics_service import PlatformMetricsService
     from jarvis.agent_layer.thought.reply import ReplyClassifier
     from jarvis.core.focus.focus_service import FocusService
     from jarvis.ui.web.adapter import PerConnectionAdapter
@@ -79,6 +81,9 @@ class WebState:
         # Workflow 화면: 에이전트 사이 위임과 백그라운드 작업 실행. 바뀔 때마다 열린 HUD 전부에 한 건씩 보낸다
         self.workflow = WorkflowTracker(_now_ms)
         self.jobs = JobBoard(_now_ms, self._broadcast_job)
+        # Infra Agent 가 밖에서 읽는 지표. 루프 지연은 기동 때 재기 시작한다
+        self.loop_lag = LoopLagMonitor()
+        self.platform_metrics = self._build_platform_metrics()
         self.registry.on_open(self._watch_workflow)
         # 에이전트끼리 묻는 도구가 받는 쪽 세션을 이 화면의 세션 목록에 열게 한다
         from jarvis.app.agent_conversation import ASK_AGENT_TOOL, AskAgentTool
@@ -94,6 +99,23 @@ class WebState:
     @property
     def settings(self) -> "JarvisSettings":
         return self.assembly.ctx.settings
+
+    def _build_platform_metrics(self) -> "PlatformMetricsService":
+        """에이전트별 작업 지표와 프로세스 지표. 스케줄 작업의 에이전트는 지금 등록된 작업 목록에서 찾는다."""
+        from jarvis.core.platform.metrics_service import PlatformMetricsService, schedule_agent_of
+
+        def agent_of(job_id: str) -> str | None:
+            scheduler = self.ctx.scheduler
+            tasks = {t.name: t.agent for t in scheduler.list_tasks()} if scheduler is not None else {}
+            return schedule_agent_of(tasks)(job_id)
+
+        return PlatformMetricsService(
+            records=self.jobs.records,
+            agent_of=agent_of,
+            agents=self.assembly.agents.ids,
+            sessions=self.registry.session_agents,
+            loop_lag=self.loop_lag,
+        )
 
     def _build_focus_service(self) -> "FocusService | None":
         """Focus 모드 서비스. 시각과 작업 id 는 여기(경계)에서 만들어 넣는다."""

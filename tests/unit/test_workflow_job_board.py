@@ -27,6 +27,18 @@ async def test_track_counts_runs_and_records_failure_then_reraises():
     assert [r.running for r in seen] == [True, False, True, False]
 
 
+async def test_fail_streak_counts_failures_until_a_success():
+    board = JobBoard(clock=lambda: 1)
+    await board.start("schedule:x", "schedule", "x")
+    await board.finish("schedule:x", False, "a")
+    await board.start("schedule:x", "schedule", "x")
+    await board.finish("schedule:x", False, "b")
+    assert board.records()[0].fail_streak == 2
+    await board.start("schedule:x", "schedule", "x")
+    await board.finish("schedule:x", True)
+    assert board.records()[0].fail_streak == 0
+
+
 async def test_finish_without_start_changes_nothing_and_on_change_failure_is_swallowed():
     async def broken(_record: JobRecord) -> None:
         raise RuntimeError("socket closed")

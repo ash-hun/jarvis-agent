@@ -40,7 +40,10 @@ class JobBoard:
         prev = self._records.get(job_id)
         if prev is None or not prev.running:
             return None
-        record = replace(prev, running=False, last_ended_ms=self._clock(), last_ok=ok, last_error=error[:ERROR_CHARS])
+        record = replace(
+            prev, running=False, last_ended_ms=self._clock(), last_ok=ok, last_error=error[:ERROR_CHARS],
+            fail_streak=0 if ok else prev.fail_streak + 1,
+        )
         self._records[job_id] = record
         await self._notify(record)
         return record

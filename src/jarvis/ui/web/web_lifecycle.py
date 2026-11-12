@@ -31,6 +31,7 @@ class WebLifecycle:
         await state.registry.get_or_create(self._initial_session_id)
         if ctx.scheduler is not None:
             await ctx.scheduler.start()
+        await state.loop_lag.start()
 
         # 성찰 daemon: 매 틱 활성 세션 전체를 성찰한다(멀티 세션 추종)
         pcfg = state.settings.proactive
@@ -71,6 +72,7 @@ class WebLifecycle:
 
     async def stop(self) -> None:
         state, ctx = self._state, self._state.ctx
+        await state.loop_lag.stop()
         if self._daemon is not None:
             await self._daemon.stop()
         if ctx.external_poller is not None:

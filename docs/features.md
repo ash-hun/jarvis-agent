@@ -32,6 +32,7 @@
 | `focus` | 한 작업을 네 sub-agent 의 도움으로 끝까지 수행하는 모드 | `/focus <작업>` (Web HUD) | 구현됨 |
 | `goal` | 맡긴 목표를 대화 밖에서 한 단계씩 진행하고 알릴 것만 알린다 | `/goal`, `goal` 도구 | 구현됨 |
 | `housing` | LH, SH 청약 공고 조회와 감시, 대출 원리금 계산 | `lh_notice`, `sh_notice`, `housing_budget`, `housing_loan`, `housing_profile`, `housing_watch` 도구, `/housing` | 구현됨 |
+| `infra` | 백엔드 밖에서 플랫폼을 지켜보다 사고를 알리고 답에 따라 재기동한다. 1단계 중(지표 API, 판정 규칙, 사고 저장소) | `GET /api/platform/metrics` | 구현 중 |
 | `journal` | 사고 로그를 성찰해 저널로 남긴다 | `/journal` | 구현됨 |
 | `mcp` | MCP 서버의 툴을 에이전트 도구로 등록 | 설정 `mcp_servers` | 구현됨 |
 | `memory` | 범위를 아는 장기 기억과 작업 기억의 저장, 회상, 공고화 | `/remember`, `/compact`, `recall_episodes` 도구 | 구현됨 |
@@ -488,6 +489,45 @@
 **제약과 미구현**: 공고 상세는 100건, 공고문 PDF 는 한 번에 60건까지만 연다. LH 전체 조회는 `MAX_PAGES` 쪽까지, `housing_watch` 는 게시판마다 첫 쪽(최신 10건)만 본다. SH 는 최근 `RECENT_DAYS` 안의 모집 글 `MAX_NOTICES` 건만 본다. 소득 기준은 1인 기준만 댄다. 단위 없는 '천'은 천만으로 읽는다. `housing_watch` 는 대화에서 부르면 바로 본 것으로 적어 답이 실패하면 그 공고는 다시 새 공고로 오지 않는다(모두 `# ponytail`). 스케줄 작업으로 부르면 알림이나 대화로 건넨 뒤에야 본 것으로 적어, 전달이 실패하면 다음 차례에 같은 공고를 다시 알린다.
 
 ---
+
+### infra: Infra Agent(이름 미정)
+
+**설명**: 백엔드와 별개의 컨테이너가 백엔드 프로세스와 에이전트별 작업 상태를 지켜보다, 백엔드가 죽거나 멈추거나 한 에이전트가 조용히 실패하면 사용자에게 모바일 앱과 데스크톱 앱으로 알리고, 답에 따라 재기동하거나 작업을 멈춘다. 계획은 `docs/infra-agent-plan.md`. 지금은 1단계의 백엔드 쪽(지표 API)과 Infra 의 순수 부분(판정 규칙, 사고 저장소)까지다.
+
+**입력과 결과**
+
+| 입력 | 결과 |
+|---|---|
+| `GET /api/platform/metrics` | 프로세스 자원(psutil), 이벤트 루프 지연(1초 하트비트의 최근 60초 최대), 에이전트별 작업 수, 연속 실패, 마지막 성공, 열린 세션 수 |
+| 관측값의 흐름(`health_rules.evaluate`) | 신호: 백엔드 무응답(3회 연속), 재시작 루프(10분 3회), 루프 정지(5초 2회), 메모리(limit 85% 5분), 에이전트 연속 실패(3회), 스케줄 정체(9~21시에 2시간) |
+| 신호와 시각(`incident_id`) | `종류:대상:시간 슬롯`. 같은 슬롯의 같은 신호는 같은 사고 |
+| `IncidentStore` | `~/.jarvis/infra/incidents.json`. 같은 id 는 하나, 알림과 답은 처음 값만 남는다 |
+
+**처리 흐름**: 백엔드는 `JobBoard` 기록(연속 실패 수 `fail_streak` 포함)과 스케줄 작업의 에이전트, 열린 세션, `LoopLagMonitor` 를 `PlatformMetricsService` 가 한 장으로 접어 `platform_router` 가 낸다. Infra 쪽은 관측값을 `health_rules` 에 넣어 신호를 얻고 `incident_store` 에 사고로 연다. 감시 루프, Docker 클라이언트, 알림, 앱 연결은 2단계 PR 이다.
+
+**구현 파일**
+
+| 파일 | 층 | 역할 |
+|---|---|---|
+| `src/jarvis/core/platform/metrics_service.py` | core | 에이전트별 작업 지표와 프로세스 지표 |
+| `src/jarvis/core/platform/loop_lag.py` | core | 이벤트 루프 지연 하트비트 |
+| `src/jarvis/ui/web/router/platform_router.py` | ui | `GET /api/platform/metrics` |
+| `src/jarvis/core/workflow/job_board.py` | core | `fail_streak` 기록 |
+| `src/jarvis/infra/health_rules.py` | infra | 관측값 → 신호. 순수 함수 |
+| `src/jarvis/infra/incident_store.py` | infra | 사고 기록 파일 |
+
+**테스트**
+
+| 종류 | 파일 |
+|---|---|
+| 단위 | `tests/unit/test_platform_metrics_service.py` |
+| 단위 | `tests/unit/test_platform_loop_lag.py` |
+| 단위 | `tests/unit/test_infra_health_rules.py` |
+| 단위 | `tests/unit/test_infra_incident_store.py` |
+| 단위 | `tests/unit/test_workflow_job_board.py`(`fail_streak`) |
+| 통합 | `tests/integ/test_platform.py` |
+
+**제약과 미구현**: 감시 루프, Docker 소켓 프록시, 알림과 앱 연결, 재기동은 아직 없다. 프로필별 메모리는 한 프로세스라 못 나눈다(`# ponytail`, Tavu 가 별도 워커로 분리될 때). 장기 침묵 신호는 2단계다. 알림 문구는 템플릿이고 LLM 은 2단계다.
 
 ### journal: 자기 성찰 저널
 

@@ -54,7 +54,7 @@ def test_nothing_observed_means_no_signal(history):
     assert evaluate(history, T, NOON) == []
 
 
-def test_incident_id_is_same_inside_an_hour_slot():
+def test_incident_id_carries_the_opening_time_so_a_closed_one_never_blocks_a_new_one():
     signal = Signal("backend_down", "backend", "x")
-    assert incident_id(signal, 3_600_000 + 1) == incident_id(signal, 7_199_999) == "backend_down:backend:1"
-    assert incident_id(signal, 7_200_000) == "backend_down:backend:2"
+    assert incident_id(signal, 1000) == "backend_down:backend:1000"
+    assert incident_id(signal, 1000) != incident_id(signal, 2000)

@@ -77,6 +77,12 @@ async def test_three_failures_open_one_incident_notify_once_and_recovery_closes_
     await svc.tick()
     assert svc.store.open_incidents() == [] and len(sent) == 1
 
+    # 같은 시간대에 다시 죽으면 새 사고로 다시 알린다. 닫힌 사고가 막지 않는다
+    backend.ok = False
+    for _ in range(3):
+        await svc.tick()
+    assert len(sent) == 2 and len(svc.store.open_incidents()) == 1
+
 
 async def test_respond_acts_once_and_pause_disables_only_enabled_jobs_of_the_agent(tmp_path):
     backend, docker = FakeBackend(), FakeDocker()

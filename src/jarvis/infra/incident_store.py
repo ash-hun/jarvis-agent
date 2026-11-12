@@ -19,6 +19,7 @@ class Incident:
     notified_ms: int | None = None
     response: Response | None = None
     responded_ms: int | None = None
+    action_result: str = ""  # 답에 따라 한 행동의 결과 한 줄
     closed_ms: int | None = None
 
     @property
@@ -53,10 +54,12 @@ class IncidentStore:
         """알린 시각을 적는다. 이미 적혀 있으면 그대로 둔다(두 번 알리지 않는다)."""
         return self._update(incident_id, lambda i: i if i.notified_ms is not None else replace(i, notified_ms=at_ms))
 
-    def respond(self, incident_id: str, response: Response, at_ms: int) -> Incident | None:
-        """사용자의 답을 적는다. 같은 답을 두 번 받아도 처음 시각이 남는다."""
+    def respond(self, incident_id: str, response: Response, at_ms: int, result: str = "") -> Incident | None:
+        """사용자의 답과 그에 따른 행동 결과를 적는다. 답을 두 번 받아도 처음 것이 남는다."""
         return self._update(
-            incident_id, lambda i: i if i.response is not None else replace(i, response=response, responded_ms=at_ms)
+            incident_id,
+            lambda i: i if i.response is not None
+            else replace(i, response=response, responded_ms=at_ms, action_result=result),
         )
 
     def close(self, incident_id: str, at_ms: int) -> Incident | None:

@@ -15,7 +15,7 @@ from jarvis.core.goals.tool import goal_task
 
 croniter = pytest.importorskip("croniter").croniter
 
-CHANGED_REPLY = REPLY.replace("[2026:55A] 서울 행복주택, 55A", "[2026:59B] 서울 행복주택, 59B").replace("30만원", "25만원")
+CHANGED_REPLY = REPLY.replace("[2026:55A]", "[2026:59B]").replace("55A 월 부담 최대 30만원", "59B 월 부담 최대 25만원")
 CHANGED_SAID = SAID.replace("55A 월 부담 최대 30만원", "59B 월 부담 최대 25만원")
 
 

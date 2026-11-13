@@ -276,7 +276,7 @@
 | HUD `SET` 화면의 Desktop 카드 | 단축키, 로그인 때 자동 실행, 백엔드 주소(루프백만) 저장 |
 | HUD `SET` 화면의 RESTART BACKEND | 저장했지만 반영되지 않은 설정이 있을 때 Ion(`POST /ion/restart`)으로 백엔드 재시작. 브라우저에서도 된다 |
 
-**처리 흐름**: `main.js` 에서 `BackendProbe.alive`(`/api/health`)가 참이 될 때까지 5초마다 보고(그동안 `loading.html`), `BrowserWindow` 가 백엔드 주소를 열고 `preload.js` 가 `window.jarvisDesktop` 만 넘기는 순. 화면 쪽은 `desktop.js` 가 단축키 신호를 `voice-ui.listenNow` 로 잇는다. 배포는 `release.yml` 이 Release 를 만들면 `desktop.yml` 이 macOS 러너에서 electron-builder 로 arm64, x64 dmg 와 zip 을 만들어 같은 Release 에 올리고 설치 안내를 한 번 붙인다.
+**처리 흐름**: `main.js` 에서 `BackendProbe.alive`(`/api/health`)가 참이 될 때까지 5초마다 보고(그동안 `loading.html`), `BrowserWindow` 가 백엔드 주소를 열고 `preload.js` 가 `window.jarvisDesktop` 만 넘기는 순. 화면 쪽은 `desktop.js` 가 단축키 신호를 `voice-ui.listenNow` 로 잇는다. 배포는 `release.yml` 이 Release 를 만든 뒤 `desktop.yml` 을 불러(workflow_call. 워크플로 토큰이 만든 Release 는 `on: release` 를 깨우지 않는다) macOS 러너에서 electron-builder 로 arm64, x64 dmg 와 zip 을 만들어 같은 Release 에 올리고 설치 안내를 한 번 붙인다. 손으로는 Actions 의 Desktop 에서 태그를 넣어 돌린다.
 
 **구현 파일**
 

@@ -352,7 +352,7 @@ GET /api/platform/metrics
 | `at_ms` | integer | 아니오 | 읽은 시각(epoch ms) |
 | `process` | object | 아니오 | `pid`, `rss_bytes`, `cpu_percent`(직전 호출부터의 구간 평균), `threads`, `open_fds`(못 재면 null), `asyncio_tasks`, `uptime_sec` |
 | `loop_lag` | object | 아니오 | `last_ms`, `max_ms`(최근 60초 최대), `samples`. 1초마다 잠들고 늦게 깬 만큼 |
-| `agents` | object[] | 아니오 | 에이전트 id 순. `agent`, `jobs`, `running`, `fail_streak`(그 에이전트 작업 중 가장 긴 연속 실패. 알릴 것이 없어 빈 글로 끝난 차례는 성공이고, 실패는 결과를 못 만들었거나 만든 결과를 못 건넨 차례만이다), `last_ok_ms`, `last_error`, `open_sessions`. 스케줄 작업은 그 작업의 에이전트로, 성찰과 기억 정리와 외부 조회는 `shared` 로 센다. 작업이 없는 에이전트도 0 으로 나온다 |
+| `agents` | object[] | 아니오 | 에이전트 id 순. `agent`, `jobs`, `running`, `fail_streak`(그 에이전트 작업 중 가장 긴 연속 실패. 알릴 것이 없어 빈 글로 끝난 차례는 성공이고, 실패는 결과를 못 만들었거나 만든 결과를 못 건넨 차례만이다), `last_ok_ms`, `last_error`, `open_sessions`, `scheduled`(켜진 스케줄 작업이 있는지. 작업 기록과 달리 재기동 직후에도 목록에서 바로 안다). 스케줄 작업은 그 작업의 에이전트로, 성찰과 기억 정리와 외부 조회는 `shared` 로 센다. 작업이 없는 에이전트도 0 으로 나온다 |
 
 #### 응답 코드
 
@@ -364,7 +364,7 @@ GET /api/platform/metrics
 
 ```bash
 $ curl -s http://localhost:7777/api/platform/metrics
-{"at_ms":1794500000000,"process":{"pid":1,"rss_bytes":231735296,"cpu_percent":1.5,"threads":12,"open_fds":48,"asyncio_tasks":9,"uptime_sec":86400.0},"loop_lag":{"last_ms":0.4,"max_ms":12.0,"samples":60},"agents":[{"agent":"karen","jobs":1,"running":0,"fail_streak":0,"last_ok_ms":1794499200000,"last_error":"","open_sessions":0},{"agent":"main","jobs":0,"running":0,"fail_streak":0,"last_ok_ms":null,"last_error":"","open_sessions":1},{"agent":"shared","jobs":2,"running":0,"fail_streak":0,"last_ok_ms":1794499980000,"last_error":"","open_sessions":0}]}
+{"at_ms":1794500000000,"process":{"pid":1,"rss_bytes":231735296,"cpu_percent":1.5,"threads":12,"open_fds":48,"asyncio_tasks":9,"uptime_sec":86400.0},"loop_lag":{"last_ms":0.4,"max_ms":12.0,"samples":60},"agents":[{"agent":"karen","jobs":1,"running":0,"fail_streak":0,"last_ok_ms":1794499200000,"last_error":"","open_sessions":0,"scheduled":true},{"agent":"main","jobs":0,"running":0,"fail_streak":0,"last_ok_ms":null,"last_error":"","open_sessions":1,"scheduled":false},{"agent":"shared","jobs":2,"running":0,"fail_streak":0,"last_ok_ms":1794499980000,"last_error":"","open_sessions":0,"scheduled":false}]}
 ```
 
 #### 특이사항
@@ -412,7 +412,7 @@ GET /ion/status
 | `observed_ms` | integer | 예 | 마지막 관측 시각 |
 | `container` | object | 예 | `id`, `service`, `status`, `restart_count`, `memory_usage`, `memory_limit`. Docker 프록시에서 못 읽으면 null |
 | `loop_lag_ms` | number | 예 | 백엔드 이벤트 루프 지연(최근 60초 최대) |
-| `agents` | object | 아니오 | 에이전트 id → `fail_streak`, `last_ok_ms`, `scheduled` |
+| `agents` | object | 아니오 | 에이전트 id → `fail_streak`, `last_ok_ms`, `scheduled`(백엔드 지표의 `scheduled`. 없는 옛 백엔드면 기록된 작업 수로 짐작) |
 | `incidents` | object[] | 아니오 | 열린 사고. `id`, `kind`, `target`, `detail`, `opened_ms`, `notified_ms`, `response`, `responded_ms`, `action_result`, `closed_ms` 에 화면용 `title`, `actions`, `severity`(`critical` 또는 `warning`), `url` 을 붙인다 |
 
 #### 응답 코드

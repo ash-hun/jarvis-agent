@@ -19,4 +19,5 @@ def test_metrics_fold_schedule_runs_into_their_agent(monkeypatch, tmp_path):
 
     agents = {a["agent"]: a for a in body["agents"]}
     assert agents["main"]["jobs"] == 1 and agents["main"]["fail_streak"] == 0 and agents["main"]["last_ok_ms"]
+    assert agents["main"]["scheduled"] is True and agents["shared"]["scheduled"] is False
     assert "shared" in agents and body["process"]["rss_bytes"] > 0 and body["loop_lag"]["samples"] >= 0

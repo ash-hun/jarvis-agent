@@ -30,6 +30,8 @@ class AgentMetrics:
     last_ok_ms: int | None
     last_error: str
     open_sessions: int
+    # 켜진 스케줄 작업이 있는지. 작업 기록은 프로세스 메모리라 재기동 뒤 첫 차례 전까지 비지만 이 값은 목록에서 바로 안다
+    scheduled: bool = False
 
 
 @dataclass(frozen=True)
@@ -46,9 +48,11 @@ class ProcessMetrics:
 
 
 def agent_metrics(
-    records: Iterable[JobRecord], agent_of: AgentOfJob, agents: Iterable[str], sessions: dict[str, str]
+    records: Iterable[JobRecord], agent_of: AgentOfJob, agents: Iterable[str], sessions: dict[str, str],
+    scheduled: Iterable[str] = (),
 ) -> list[AgentMetrics]:
     """작업 기록을 에이전트별로 접는다. 작업이 없는 에이전트도 0 으로 나온다. 순수 함수."""
+    planned = set(scheduled)
     buckets: dict[str, list[JobRecord]] = {a: [] for a in agents}
     buckets.setdefault(SHARED, [])
     for record in records:
@@ -69,6 +73,7 @@ def agent_metrics(
             last_ok_ms=max(oks) if oks else None,
             last_error=max(failed, key=lambda r: r.last_ended_ms or 0).last_error if failed else "",
             open_sessions=opened.get(agent, 0),
+            scheduled=agent in planned,
         ))
     return out
 
@@ -93,6 +98,7 @@ class PlatformMetricsService:
         agent_of: AgentOfJob,
         agents: Callable[[], list[str]],
         sessions: SessionAgents,
+        scheduled: Callable[[], set[str]] = set,
         loop_lag: LoopLagMonitor | None = None,
         pid: int | None = None,
         now: Callable[[], float] = time.time,
@@ -101,6 +107,7 @@ class PlatformMetricsService:
         self._agent_of = agent_of
         self._agents = agents
         self._sessions = sessions
+        self._scheduled = scheduled
         self._loop_lag = loop_lag
         self._now = now
         import psutil
@@ -129,7 +136,9 @@ class PlatformMetricsService:
     def snapshot(self) -> dict[str, Any]:
         """`GET /api/platform/metrics` 본문. 같은 상태면 같은 값(시각 제외)."""
         lag: LoopLag = self._loop_lag.snapshot() if self._loop_lag is not None else LoopLag(0.0, 0.0, 0)
-        agents = agent_metrics(self._records(), self._agent_of, self._agents(), self._sessions())
+        agents = agent_metrics(
+            self._records(), self._agent_of, self._agents(), self._sessions(), self._scheduled()
+        )
         return {
             "at_ms": int(self._now() * 1000),
             "process": asdict(self.process()),

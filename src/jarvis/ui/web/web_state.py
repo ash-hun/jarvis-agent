@@ -109,11 +109,16 @@ class WebState:
             tasks = {t.name: t.agent for t in scheduler.list_tasks()} if scheduler is not None else {}
             return schedule_agent_of(tasks)(job_id)
 
+        def scheduled() -> set[str]:
+            scheduler = self.ctx.scheduler
+            return {t.agent for t in scheduler.list_tasks() if t.enabled} if scheduler is not None else set()
+
         return PlatformMetricsService(
             records=self.jobs.records,
             agent_of=agent_of,
             agents=self.assembly.agents.ids,
             sessions=self.registry.session_agents,
+            scheduled=scheduled,
             loop_lag=self.loop_lag,
         )
 

@@ -65,7 +65,8 @@ def to_observation(
             agents[str(row["agent"])] = AgentObservation(
                 fail_streak=int(row.get("fail_streak") or 0),
                 last_ok_ms=row.get("last_ok_ms"),
-                scheduled=int(row.get("jobs") or 0) > 0,
+                # 옛 백엔드는 scheduled 가 없다. 그때는 기록된 작업 수로 짐작한다
+                scheduled=bool(row["scheduled"]) if "scheduled" in row else int(row.get("jobs") or 0) > 0,
             )
     return Observation(
         at_ms=at_ms,

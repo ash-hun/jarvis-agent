@@ -101,11 +101,14 @@ async def test_respond_acts_once_and_pause_disables_only_enabled_jobs_of_the_age
 
 def test_observation_and_notification_are_built_from_what_was_fetched():
     metrics = {"loop_lag": {"max_ms": 7.5}, "agents": [
-        {"agent": "karen", "jobs": 2, "fail_streak": 1, "last_ok_ms": 9}, {"agent": "shared", "jobs": 1},
+        {"agent": "karen", "jobs": 2, "fail_streak": 1, "last_ok_ms": 9},
+        {"agent": "main", "jobs": 0, "scheduled": True}, {"agent": "shared", "jobs": 1},
     ]}
     obs = to_observation(100, True, metrics, ContainerState("abc", "jarvis-backend", "running", 3, 10, 100))
     assert (obs.loop_lag_ms, obs.restart_count, obs.rss_bytes, obs.memory_limit_bytes) == (7.5, 3, 10, 100)
-    assert list(obs.agents) == ["karen"] and obs.agents["karen"].scheduled is True
+    assert list(obs.agents) == ["karen", "main"] and obs.agents["karen"].scheduled is True
+    # 재기동 직후라 기록은 없어도 켜진 스케줄이 있으면 감시 대상이다
+    assert obs.agents["main"].scheduled is True
     assert to_observation(1, None, None, None).health_ok is None
 
     note = notification(Incident("agent_failing:karen:0", "agent_failing", "karen", "연속 실패 3회", 1), "/")

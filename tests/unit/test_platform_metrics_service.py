@@ -17,17 +17,20 @@ def test_agent_metrics_fold_jobs_by_agent_and_count_sessions():
         _job("proactive:reflect", True, 300),
     ]
 
-    out = {m.agent: m for m in agent_metrics(records, agent_of, ["main", "karen"], {"s1": "main", "s2": "main"})}
+    out = {m.agent: m for m in agent_metrics(records, agent_of, ["main", "karen"], {"s1": "main", "s2": "main"},
+                                             scheduled={"karen"})}
 
     assert (out["karen"].jobs, out["karen"].last_ok_ms, out["karen"].open_sessions) == (1, 100, 0)
+    assert out["karen"].scheduled is True and out["main"].scheduled is False
     main = out["main"]
     assert (main.fail_streak, main.running, main.last_error, main.open_sessions) == (2, 1, "boom", 2)
     assert (out["shared"].jobs, out["shared"].last_ok_ms) == (1, 300)
 
 
 def test_agent_without_jobs_still_appears_with_zeros():
-    out = agent_metrics([], lambda _: None, ["evi"], {})
-    assert [(m.agent, m.jobs, m.last_ok_ms) for m in out] == [("evi", 0, None), ("shared", 0, None)]
+    out = agent_metrics([], lambda _: None, ["evi"], {}, scheduled={"evi"})
+    assert [(m.agent, m.jobs, m.last_ok_ms, m.scheduled) for m in out] == [("evi", 0, None, True),
+                                                                           ("shared", 0, None, False)]
 
 
 def test_snapshot_reads_this_process_and_lists_agents():

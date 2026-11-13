@@ -190,6 +190,12 @@ class WatchService:
         logger.info(f"[Ion] incident {incident.id} response={action} result={result}")
         return self._store.respond(incident.id, action, self._now_ms(), result)
 
+    async def restart_backend(self) -> bool:
+        """사고 없이 사용자가 요청한 재기동(SET 화면의 RESTART BACKEND). 부를 때마다 한 번 재기동한다."""
+        ok = await self._docker.restart(self._cfg.backend_service)
+        logger.info(f"[Ion] backend restart requested: {'ok' if ok else 'failed'}")
+        return ok
+
     async def _act(self, incident: Incident, action: str) -> str:
         service = self._cfg.backend_service
         if action == "restart":

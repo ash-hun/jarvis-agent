@@ -25,6 +25,7 @@
    - [GET /api/platform/metrics](#get-apiplatformmetrics)
    - [GET /ion/status](#get-ionstatus)
    - [POST /ion/incidents/{incident_id}/respond](#post-ionincidentsincident_idrespond)
+   - [POST /ion/restart](#post-ionrestart)
    - [GET /ion/events](#get-ionevents)
    - [GET /api/push/vapid](#get-apipushvapid)
    - [PUT /api/push/subscriptions](#put-apipushsubscriptions)
@@ -492,6 +493,64 @@ $ curl -s -X POST http://localhost:7777/ion/incidents/backend_down:backend:49847
 #### 특이사항
 
 **재호출**: 첫 답이 남고 뒤의 답은 그 사고를 그대로 돌려준다. 재기동은 Docker 소켓 프록시의 `restart` 로 가며 두 번 눌러도 결과는 "떠 있음" 하나다. 사고는 신호가 사라질 때 감시 루프가 닫는다.
+
+---
+
+### POST /ion/restart
+
+사고와 무관하게 백엔드 컨테이너를 재기동한다. HUD SET 화면의 RESTART BACKEND 가 부른다(저장했지만 재시작해야 반영되는 설정). 백엔드는 자기를 재시작할 수 없고 데스크톱 앱은 docker 를 모르므로 Ion 이 소켓 프록시로 한다.
+
+#### Endpoint
+
+```
+POST /ion/restart
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `POST` |
+| 인증 | `JARVIS_ION__ACCESS_KEY` 가 있으면 `Authorization: Bearer <키>` 또는 `?token=` |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `ok` | boolean | 아니오 | 프록시가 재기동을 받았는지 |
+| `result` | string | 아니오 | `재기동함` 또는 `재기동 실패` |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 재기동 요청됨 | `{"ok": true, "result": "재기동함"}` |
+| `401` | 키 불일치 | `{"error": "unauthorized"}` |
+| `502` | 프록시가 거절했거나 닿지 않음 | `{"ok": false, "result": "재기동 실패"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s -X POST http://localhost:7777/ion/restart
+{"ok": true, "result": "재기동함"}
+```
+
+#### 특이사항
+
+**재호출**: 부를 때마다 한 번 재기동한다(멱등하지 않다. 재시작 자체가 요청한 행동이다). 재기동 중에는 `/api/*` 가 잠시 502 이고 Ion 의 health 가 3회 연속 실패하기 전에 보통 돌아오므로 사고는 열리지 않는다. 뜨는 데 45초를 넘기면 `backend_down` 사고가 열린다.
 
 ---
 

@@ -238,3 +238,5 @@ docs/*
 
 # Electron 셸 의존성. desktop/package-lock.json 이 정본이다
 desktop/node_modules/
+# electron-builder 결과(dmg, zip, .app). GitHub Release 가 정본이다
+desktop/dist/

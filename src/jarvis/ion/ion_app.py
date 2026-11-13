@@ -79,6 +79,11 @@ def build_ion_app(service: WatchService, hub: EventHub, access_key: str | None) 
         await hub.publish({"type": "incident_update", "incident": view})
         return JSONResponse({"incident": view})
 
+    @app.post("/ion/restart", summary="백엔드 재기동")
+    async def restart() -> JSONResponse:
+        ok = await service.restart_backend()
+        return JSONResponse({"ok": ok, "result": "재기동함" if ok else "재기동 실패"}, status_code=200 if ok else 502)
+
     @app.get("/ion/events", summary="사고 이벤트(SSE)")
     async def events() -> StreamingResponse:
         return StreamingResponse(hub.stream(), media_type="text/event-stream",

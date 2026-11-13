@@ -32,13 +32,22 @@ jarvis -a karen                          # 그 에이전트의 기본 세션으�
 jarvis --list-sessions                   # 저장된 세션 목록
 ```
 
-**데스크톱 앱.** `desktop/` 의 Electron 셸이 HUD 를 창 하나로 띄운다. 백엔드는 아래 Docker `web` 프로파일 그대로이고, 떠 있지 않으면 셸이 `docker compose --profile web up -d` 로 띄운다. 창을 닫으면 트레이에 남아 먼저 건네는 말과 리마인더를 OS 알림으로 받고, 전역 단축키(기본 `Cmd/Ctrl+Shift+J`)로 창을 불러 듣기를 연다. 단축키, 자동 실행, 백엔드 주소는 HUD 의 `SET` 화면에서 고친다.
+**데스크톱 앱.** [GitHub Release](https://github.com/ash-hun/jarvis-agent/releases) 의 `Jarvis-<버전>-<arch>.dmg`(Apple Silicon 은 arm64, Intel 은 x64)를 받아 Applications 에 넣는다. Electron 셸이 HUD 를 창 하나로 띄우고, 백엔드는 아래 Docker `web` 프로파일 그대로다. 앱은 백엔드를 띄우지 않고 `http://127.0.0.1:7777` 이 응답할 때까지 기다린다. 창을 닫으면 트레이에 남아 먼저 건네는 말과 리마인더를 OS 알림으로 받고, 전역 단축키(기본 `Cmd/Ctrl+Shift+J`)로 창을 불러 듣기를 연다. 단축키, 자동 실행, 백엔드 주소는 HUD 의 `SET` 화면에서 고친다.
+
+Apple 서명이 없어서 처음 열 때 macOS 가 막는다. 한 번만 푼다.
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Jarvis.app   # 또는 시스템 설정 > 개인정보 보호 및 보안 > "그래도 열기"
+```
+
+저장소에서 바로 띄우거나 직접 빌드하려면:
 
 ```bash
 cd desktop
-npm install      # electron 버전은 package-lock.json 이 고정
-npm start
-npm test         # 셸 설정 검증과 백엔드 기동 로직
+npm install      # electron, electron-builder 버전은 package-lock.json 이 고정
+npm start        # 저장소에서 바로
+npm run dist     # desktop/dist/ 에 dmg, zip (서명 없음)
+npm test         # 셸 설정 검증과 백엔드 확인 로직
 ```
 
 <details>

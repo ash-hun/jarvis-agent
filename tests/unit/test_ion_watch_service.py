@@ -84,6 +84,14 @@ async def test_three_failures_open_one_incident_notify_once_and_recovery_closes_
     assert len(sent) == 2 and len(svc.store.open_incidents()) == 1
 
 
+async def test_restart_backend_restarts_each_time_it_is_asked(tmp_path):
+    backend, docker = FakeBackend(), FakeDocker()
+    svc, _ = _service(tmp_path, backend, docker)
+
+    assert await svc.restart_backend() is True and await svc.restart_backend() is True
+    assert docker.restarts == 2
+
+
 async def test_respond_acts_once_and_pause_disables_only_enabled_jobs_of_the_agent(tmp_path):
     backend, docker = FakeBackend(), FakeDocker()
     svc, _ = _service(tmp_path, backend, docker)

@@ -26,3 +26,13 @@ def test_notify_respond_close_keep_first_values_and_unknown_id_is_none(tmp_path)
     assert store.respond("backend_down:backend:1", "ignore", 50).response == "restart"
     assert store.close("backend_down:backend:1", 60).open is False
     assert store.open_incidents() == [] and store.respond("ghost", "restart", 1) is None
+
+
+def test_recent_lists_open_and_closed_newest_first_within_the_limit(tmp_path):
+    store = IncidentStore(tmp_path / "incidents.json")
+    for i, opened in (("a", 10), ("b", 30), ("c", 20)):
+        store.open(Incident(id=i, kind="backend_down", target="backend", detail="x", opened_ms=opened))
+    store.close("b", 40)
+
+    assert [i.id for i in store.recent(2)] == ["b", "c"]
+    assert [i.id for i in store.recent(10)] == ["b", "c", "a"] and store.recent(0) == []

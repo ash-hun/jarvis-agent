@@ -75,6 +75,24 @@ class DockerClient:
             return state
         return ContainerState(state.id, state.service, state.status, state.restart_count, int(usage), int(limit))
 
+    async def logs(self, service: str, since_s: int | None, until_s: int | None, tail: int) -> str:
+        """컨테이너 로그 글. TTY 없는 컨테이너는 8바이트 머리가 붙은 프레임으로 와서 풀어 잇는다. 못 읽으면 빈 글."""
+        state = await self.find(service)
+        if state is None:
+            return ""
+        params: dict[str, Any] = {"stdout": "true", "stderr": "true", "tail": str(tail)}
+        if since_s is not None:
+            params["since"] = str(since_s)
+        if until_s is not None:
+            params["until"] = str(until_s)
+        try:
+            res = await self._client.get(f"/containers/{state.id}/logs", params=params)
+            res.raise_for_status()
+        except httpx.HTTPError as exc:
+            logger.info(f"[Ion] docker logs failed: {exc!r}")
+            return ""
+        return demux_logs(res.content)
+
     async def restart(self, service: str) -> bool:
         """재기동. 두 번 불러도 결과는 '떠 있음' 하나다."""
         return await self._post(service, "restart", {"t": str(RESTART_WAIT_SEC)})
@@ -96,3 +114,18 @@ class DockerClient:
 
     async def aclose(self) -> None:
         await self._client.aclose()
+
+
+def demux_logs(raw: bytes) -> str:
+    """Docker 다중화 로그(머리 8바이트: 종류 1, 비움 3, 길이 4)를 글로. 머리 꼴이 아니면 그대로. 순수 함수."""
+    out: list[bytes] = []
+    i, n = 0, len(raw)
+    while i + 8 <= n:
+        kind, size = raw[i], int.from_bytes(raw[i + 4:i + 8], "big")
+        if kind not in (0, 1, 2) or raw[i + 1:i + 4] != b"\x00\x00\x00" or i + 8 + size > n:
+            return raw.decode("utf-8", "replace")
+        out.append(raw[i + 8:i + 8 + size])
+        i += 8 + size
+    if i < n:
+        return raw.decode("utf-8", "replace")
+    return b"".join(out).decode("utf-8", "replace")

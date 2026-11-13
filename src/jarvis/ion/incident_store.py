@@ -41,6 +41,11 @@ class IncidentStore:
         """닫히지 않은 사고. id 순."""
         return [self._incidents[k] for k in sorted(self._incidents) if self._incidents[k].open]
 
+    def recent(self, limit: int) -> list[Incident]:
+        """열린 것과 닫힌 것을 함께, 연 시각이 늦은 순으로 limit 건."""
+        rows = sorted(self._incidents.values(), key=lambda i: (i.opened_ms, i.id), reverse=True)
+        return rows[:max(0, limit)]
+
     def open(self, incident: Incident) -> tuple[Incident, bool]:
         """사고를 연다. 같은 id 가 있으면 그것을 돌려주고 새로 만들지 않는다(둘째 값 False)."""
         existing = self._incidents.get(incident.id)

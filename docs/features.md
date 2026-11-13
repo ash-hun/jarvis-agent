@@ -495,18 +495,20 @@
 
 ### ion: Ion
 
-**설명**: 백엔드와 별개의 컨테이너 `jarvis-ion` 가 백엔드 프로세스와 에이전트별 작업 상태를 지켜보다, 백엔드가 죽거나 멈추거나 한 에이전트가 조용히 실패하면 사고를 열어 한 번 알리고(Web Push, SSE), 답에 따라 재기동하거나 작업을 멈춘다. 재기동 권한은 Docker 소켓 프록시(조회와 restart, stop 만)를 거친다. 계획은 `docs/ion-plan.md`. 앱 쪽(푸시 버튼, HUD 띠, 데스크톱 연결)은 다음 단계다.
+**설명**: 백엔드와 별개의 컨테이너 `jarvis-ion` 가 백엔드 프로세스와 에이전트별 작업 상태를 지켜보다, 백엔드가 죽거나 멈추거나 한 에이전트가 조용히 실패하면 사고를 열어 한 번 알리고(Web Push, SSE), 답에 따라 재기동하거나 작업을 멈춘다. 재기동 권한은 Docker 소켓 프록시(조회와 restart, stop 만)를 거친다. 계획은 `docs/ion-plan.md`. 2단계로 Ion 프로필(`team/ion.yaml`)이 그 기록을 읽어 대화로 답하고("지금 뭐가 아파?", "왜 죽었어?"), 사용자가 시키면 사고에 답하거나 재기동하며, 먼저 말을 거는 에이전트가 하루 넘게 조용하면 info 사고로 알린다. Ion 컨테이너에는 LLM 이 없어 백엔드가 죽어 있는 동안은 프로필과 대화할 수 없고 그때는 띠와 푸시가 전부다.
 
 **입력과 결과**
 
 | 입력 | 결과 |
 |---|---|
-| `GET /api/platform/metrics` | 프로세스 자원(psutil), 이벤트 루프 지연(1초 하트비트의 최근 60초 최대), 에이전트별 작업 수, 연속 실패, 마지막 성공, 열린 세션 수 |
-| 관측값의 흐름(`health_rules.evaluate`) | 신호: 백엔드 무응답(3회 연속), 재시작 루프(10분 3회), 루프 정지(5초 2회), 메모리(limit 85% 5분), 에이전트 연속 실패(3회), 스케줄 정체(9~21시에 2시간) |
+| `GET /api/platform/metrics` | 프로세스 자원(psutil), 이벤트 루프 지연(1초 하트비트의 최근 60초 최대), 에이전트별 작업 수, 연속 실패, 마지막 성공, 열린 세션 수, 켜진 스케줄 유무, 마지막 활동 시각(세션 updated_at), 먼저 말을 거는지 |
+| 관측값의 흐름(`health_rules.evaluate`) | 신호: 백엔드 무응답(3회 연속), 재시작 루프(10분 3회), 루프 정지(5초 2회), 메모리(limit 85% 5분), 에이전트 연속 실패(3회), 스케줄 정체(9~21시에 2시간), 장기 침묵(먼저 말을 거는 에이전트가 24시간 활동 없음, info) |
 | 신호와 시각(`incident_id`) | `종류:대상:연 시각`. 같은 신호에 열린 사고가 있으면 새로 열지 않는다 |
 | `IncidentStore` | `~/.jarvis/ion/incidents.json`. 같은 id 는 하나, 알림과 답은 처음 값만 남는다 |
 | 감시 루프(15초, 지표와 컨테이너 통계는 60초) | 사고 열기와 알림 한 번, 신호가 사라지면 닫기 |
 | `GET /ion/status`, `GET /ion/events` | 상태 한 장, 사고 이벤트 SSE |
+| `GET /ion/incidents?closed=1&limit=N`, `GET /ion/logs?since_ms&until_ms&lines` | 닫힌 사고까지 최신순, 백엔드 컨테이너 로그(프록시의 logs, 다중화 프레임을 풀어 글로) |
+| Ion 프로필의 도구 `ion_status`, `ion_incidents`, `ion_respond`, `ion_report` | 위 API 를 백엔드 안에서 부른다(`JARVIS_ION__URL`, 기본 `http://jarvis-ion:7778`). `ion_respond` 는 사고의 버튼을 대신 누르거나 incident_id 없이 재기동. `ion_report` 는 사고 10분 전부터 닫힐 때까지의 로그와 타임라인을 돌려주고 요약은 모델이 한다. 로그는 신뢰하지 않는 입력이라 머리에 그렇게 적는다 |
 | `POST /ion/incidents/{id}/respond` `{action}` | `restart`, `stop`, `pause`, `ignore`. 사고당 한 번만 행동 |
 | HUD ION 띠와 끼어들기(`static/app/ion.js`) | 열린 사고를 헤더 아래 한 줄씩, 그리고 지금 보는 어느 에이전트의 대화에든 ION 카드로 보이고 버튼으로 답한다. 심각도(`severity`: critical 은 무응답, 재시작 루프, 멈춤. warning 은 메모리, 연속 실패, 정체)로 구체 뒤 배경을 물들인다. SSE 로 바로 갱신, 데스크톱 앱이면 OS 알림. `docs/view_spec.md` |
 | `~/.jarvis/ion/subscriptions.json` | Postgres 의 푸시 구독을 60초마다 복사. DB 가 죽어도 알림이 나간다 |
@@ -525,7 +527,12 @@
 | `src/jarvis/ion/incident_store.py` | ion | 사고 기록 파일 |
 | `src/jarvis/ion/ion_config.py` | ion | 설정(`JARVIS_ION__*`, 푸시 키와 DSN 은 백엔드 변수 되쓰기) |
 | `src/jarvis/ion/watch_service.py` | ion | 감시 루프, 사고 열고 닫기, 답에 따른 행동 |
-| `src/jarvis/ion/docker_client.py` | ion | 소켓 프록시 클라이언트. 허용 서비스만 |
+| `src/jarvis/ion/docker_client.py` | ion | 소켓 프록시 클라이언트. 허용 서비스만. `logs` 와 `demux_logs` |
+| `src/jarvis/core/tools/ion/ion_client.py` | client | 백엔드가 Ion 을 부르는 HTTP(타임아웃, Bearer) |
+| `src/jarvis/core/tools/ion/ion_tools.py` | agent | Ion 프로필의 도구 넷 |
+| `src/jarvis/core/tools/ion/ion_format.py` | common | 상태, 사고, 보고서 재료를 글로(순수) |
+| `team/ion.yaml` | 정의 | I.O.N. 프로필(gpt-4o-mini, proactive 끔, `ion_respond` 는 ask 경계) |
+| `src/jarvis/jarvis_config.py` `IonLinkConfig` | config | `JARVIS_ION__URL`, `JARVIS_ION__ACCESS_KEY`, `JARVIS_ION__TIMEOUT_SEC` |
 | `src/jarvis/ion/backend_client.py` | ion | 백엔드 health, metrics, jobs, 작업 끄기 |
 | `src/jarvis/ion/push_cache.py` | ion | 푸시 구독 파일 복사 |
 | `src/jarvis/ion/ion_app.py` | ion | `/ion/*` HTTP 와 SSE. `POST /ion/restart` 는 사고 없이 백엔드를 재기동한다(SET 화면 RESTART BACKEND) |
@@ -542,7 +549,7 @@
 | 단위 | `tests/unit/test_ion_health_rules.py` |
 | 단위 | `tests/unit/test_ion_incident_store.py` |
 | 단위 | `tests/unit/test_workflow_job_board.py`(`fail_streak`) |
-| 단위 | `tests/unit/test_ion_ion_config.py`, `test_ion_docker_client.py`, `test_ion_backend_client.py`, `test_ion_push_cache.py`, `test_ion_watch_service.py` |
+| 단위 | `tests/unit/test_ion_ion_config.py`, `test_ion_docker_client.py`(logs, demux), `test_ion_backend_client.py`, `test_ion_push_cache.py`, `test_ion_watch_service.py`, `test_ion_health_rules.py`(silent), `test_ion_incident_store.py`(recent), `test_tools_ion.py`(도구 넷) |
 | 통합 | `tests/integ/test_platform.py`(지표 API), `tests/integ/test_ion.py`(무응답 → 사고 → 답 → 재기동 한 번, 접근 키) |
 
 **제약과 미구현**: 모바일 푸시의 버튼 답은 앱 저장소(`jarvis_agent_app`)의 서비스 워커가 맡아야 해서 아직 없다. 폰에서는 푸시를 받고 HUD(`/m/` 또는 `/`)를 열어 띠에서 답한다. 데스크톱 OS 알림은 HUD 페이지가 띄우므로 앱 창이 닫혀(트레이) 있어도 오지만 앱 자체가 꺼져 있으면 없다. 메모리 신호는 컨테이너에 memory limit 이 없으면 Docker 가 호스트 전체를 한도로 줘 거의 켜지지 않는다. 프로필별 메모리는 한 프로세스라 못 나눈다(`# ponytail`, Tavu 가 별도 워커로 분리될 때). 장기 침묵 신호와 LLM 요약은 2단계다. Docker Desktop 자체가 죽으면 Ion 도 같이 죽는다.

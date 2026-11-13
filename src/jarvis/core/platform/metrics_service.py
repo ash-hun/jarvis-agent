@@ -5,7 +5,7 @@ import time
 import asyncio
 from typing import Any
 from dataclasses import asdict, dataclass
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 
 from jarvis.core.platform.loop_lag import LoopLag, LoopLagMonitor
 from jarvis.core.workflow.workflow_types import JobRecord
@@ -32,6 +32,9 @@ class AgentMetrics:
     open_sessions: int
     # 켜진 스케줄 작업이 있는지. 작업 기록은 프로세스 메모리라 재기동 뒤 첫 차례 전까지 비지만 이 값은 바로 안다
     scheduled: bool = False
+    # 그 에이전트 세션이 마지막으로 움직인 시각(세션 updated_at). Ion 의 장기 침묵 신호가 본다
+    last_active_ms: int | None = None
+    proactive: bool = False
 
 
 @dataclass(frozen=True)
@@ -49,10 +52,10 @@ class ProcessMetrics:
 
 def agent_metrics(
     records: Iterable[JobRecord], agent_of: AgentOfJob, agents: Iterable[str], sessions: dict[str, str],
-    scheduled: Iterable[str] = (),
+    scheduled: Iterable[str] = (), active: Mapping[str, int] | None = None, proactive: Iterable[str] = (),
 ) -> list[AgentMetrics]:
     """작업 기록을 에이전트별로 접는다. 작업이 없는 에이전트도 0 으로 나온다. 순수 함수."""
-    planned = set(scheduled)
+    planned, talkers = set(scheduled), set(proactive)
     buckets: dict[str, list[JobRecord]] = {a: [] for a in agents}
     buckets.setdefault(SHARED, [])
     for record in records:
@@ -74,6 +77,8 @@ def agent_metrics(
             last_error=max(failed, key=lambda r: r.last_ended_ms or 0).last_error if failed else "",
             open_sessions=opened.get(agent, 0),
             scheduled=agent in planned,
+            last_active_ms=(active or {}).get(agent),
+            proactive=agent in talkers,
         ))
     return out
 
@@ -99,6 +104,7 @@ class PlatformMetricsService:
         agents: Callable[[], list[str]],
         sessions: SessionAgents,
         scheduled: Callable[[], set[str]] = set,
+        proactive: Callable[[], set[str]] = set,
         loop_lag: LoopLagMonitor | None = None,
         pid: int | None = None,
         now: Callable[[], float] = time.time,
@@ -108,6 +114,7 @@ class PlatformMetricsService:
         self._agents = agents
         self._sessions = sessions
         self._scheduled = scheduled
+        self._proactive = proactive
         self._loop_lag = loop_lag
         self._now = now
         import psutil
@@ -133,11 +140,12 @@ class PlatformMetricsService:
                 uptime_sec=max(0.0, self._now() - self._process.create_time()),
             )
 
-    def snapshot(self) -> dict[str, Any]:
-        """`GET /api/platform/metrics` 본문. 같은 상태면 같은 값(시각 제외)."""
+    def snapshot(self, active: Mapping[str, int] | None = None) -> dict[str, Any]:
+        """`GET /api/platform/metrics` 본문. 같은 상태면 같은 값(시각 제외). active 는 에이전트별 마지막 활동 시각."""
         lag: LoopLag = self._loop_lag.snapshot() if self._loop_lag is not None else LoopLag(0.0, 0.0, 0)
         agents = agent_metrics(
-            self._records(), self._agent_of, self._agents(), self._sessions(), self._scheduled()
+            self._records(), self._agent_of, self._agents(), self._sessions(), self._scheduled(), active,
+            self._proactive(),
         )
         return {
             "at_ms": int(self._now() * 1000),

@@ -30,6 +30,7 @@ CHOICES: dict[str, tuple[str, ...]] = {
     "memory_high": ("restart", "ignore"),
     "agent_failing": ("pause", "ignore"),
     "schedule_stale": ("restart", "ignore"),
+    "silent": ("ignore",),
 }
 # 화면이 구체 뒤 배경을 물들이는 등급. critical 은 백엔드가 못 쓰는 상태, warning 은 한 부분의 이상
 SEVERITY = {
@@ -39,8 +40,11 @@ SEVERITY = {
     "memory_high": "warning",
     "agent_failing": "warning",
     "schedule_stale": "warning",
+    # info 는 띠에만 보이고 배경을 물들이지 않는다
+    "silent": "info",
 }
 TITLES = {
+    "silent": "{target} 이(가) 하루 넘게 조용해요",
     "backend_down": "백엔드가 응답하지 않아요",
     "restart_loop": "백엔드가 재시작을 반복해요",
     "loop_stall": "백엔드가 멈춘 것 같아요",
@@ -67,6 +71,8 @@ def to_observation(
                 last_ok_ms=row.get("last_ok_ms"),
                 # 옛 백엔드는 scheduled 가 없다. 그때는 기록된 작업 수로 짐작한다
                 scheduled=bool(row["scheduled"]) if "scheduled" in row else int(row.get("jobs") or 0) > 0,
+                last_active_ms=row.get("last_active_ms"),
+                proactive=bool(row.get("proactive")),
             )
     return Observation(
         at_ms=at_ms,
@@ -226,6 +232,17 @@ class WatchService:
 
     def view(self, incident: Incident) -> dict[str, Any]:
         return incident_view(incident, self._cfg.hud_url)
+
+    def incidents(self, closed: bool, limit: int) -> list[dict[str, Any]]:
+        """`GET /ion/incidents`. closed 면 닫힌 사고까지 최신순으로 limit 건."""
+        rows = self._store.recent(limit) if closed else self._store.open_incidents()[-limit:][::-1]
+        return [incident_view(i, self._cfg.hud_url) for i in rows]
+
+    async def logs(self, since_ms: int | None, until_ms: int | None, lines: int) -> str:
+        """`GET /ion/logs`. 백엔드 컨테이너 로그. 구간을 주면 그 사이, 없으면 마지막 lines 줄."""
+        since = since_ms // 1000 if since_ms else None
+        until = until_ms // 1000 if until_ms else None
+        return await self._docker.logs(self._cfg.backend_service, since, until, lines)
 
     async def start(self) -> None:
         if self._task is None or self._task.done():

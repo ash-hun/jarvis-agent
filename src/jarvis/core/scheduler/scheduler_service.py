@@ -57,6 +57,19 @@ AgentResolver = Callable[[str], "TaskAgent | None"]
 logger = get_logger(__name__)
 
 
+def job_outcome(text: str | None, delivered: bool) -> tuple[bool, str]:
+    """작업 기록에 적을 (성공, 오류). 실패는 못 만든 것(None)과 만들었는데 못 건넨 것뿐이다.
+
+    알릴 것이 없어 빈 글을 준 차례는 성공이다. 이걸 실패로 적으면 새 공고가 드문 KAREN 이 매 정각 실패로 쌓여
+    Ion 이 연속 실패 사고를 열고, 성공 시각이 한 번도 안 찍혀 정체 규칙은 영영 안 울렸다(11-13 실측). 순수 함수.
+    """
+    if text is None:
+        return False, "결과를 만들지 못했다"
+    if not text.strip() or delivered:
+        return True, ""
+    return False, "결과를 건네지 못했다"
+
+
 class SchedulerService:
     """스케줄 루프. cron 반복 작업(croniter)과 정한 시각 한 번 실행(run_at) 작업.
 
@@ -299,6 +312,7 @@ class SchedulerService:
         job_id = f"schedule:{task.name}"
         if self._jobs is not None:
             await self._jobs.start(job_id, "schedule", task.description or task.name)
+        text: str | None = None
         delivered = False
         try:
             text = await self._produce(task)
@@ -306,7 +320,8 @@ class SchedulerService:
         finally:
             _settles.reset(token)
             if self._jobs is not None:
-                await self._jobs.finish(job_id, delivered, "" if delivered else "결과를 만들거나 건네지 못했다")
+                ok, error = job_outcome(text, delivered)
+                await self._jobs.finish(job_id, ok, error)
         for settle in settles:
             try:
                 settle(delivered)

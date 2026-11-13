@@ -5,7 +5,6 @@ const path = require('node:path');
 const DEFAULTS = Object.freeze({
   hotkey: 'CommandOrControl+Shift+J',
   autoLaunch: false,
-  startBackend: true,
   backendUrl: 'http://127.0.0.1:7777',
 });
 // 셸이 띄우는 페이지는 이 기계 안의 백엔드만. preload 브리지가 다른 출처에 열리지 않게 한다
@@ -29,11 +28,9 @@ function normalize(input) {
     if (typeof src.hotkey === 'string' && HOTKEY.test(src.hotkey)) out.hotkey = src.hotkey;
     else errors.push('hotkey: 영문, 숫자, + 만 (예: CommandOrControl+Shift+J)');
   }
-  for (const key of ['autoLaunch', 'startBackend']) {
-    if (key in src) {
-      if (typeof src[key] === 'boolean') out[key] = src[key];
-      else errors.push(`${key}: true 또는 false`);
-    }
+  if ('autoLaunch' in src) {
+    if (typeof src.autoLaunch === 'boolean') out.autoLaunch = src.autoLaunch;
+    else errors.push('autoLaunch: true 또는 false');
   }
   if ('backendUrl' in src) {
     const origin = normalizeBackendUrl(src.backendUrl);

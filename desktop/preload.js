@@ -5,7 +5,6 @@ contextBridge.exposeInMainWorld('jarvisDesktop', {
   platform: process.platform,
   getSettings: () => ipcRenderer.invoke('desktop:get-settings'),
   setSettings: (next) => ipcRenderer.invoke('desktop:set-settings', next),
-  restartBackend: () => ipcRenderer.invoke('desktop:restart-backend'),
   onHotkey: (callback) => {
     ipcRenderer.on('desktop:hotkey', () => callback());
   },

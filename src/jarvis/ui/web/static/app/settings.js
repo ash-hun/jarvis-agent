@@ -1,4 +1,4 @@
-// Settings 화면 — 서버가 준 필드 정의(fields)로 폼을 그리고, 바뀐 값만 PUT 한다. 데스크톱 앱이면 앱 설정과 재시작도.
+// Settings 화면 — 서버가 준 필드 정의(fields)로 폼을 그리고, 바뀐 값만 PUT 한다. 재시작은 Ion 에, 데스크톱 앱이면 앱 설정도.
 import { apiFetch } from './api.js';
 import { onViewOpen } from './view.js';
 
@@ -7,7 +7,6 @@ const SECTION_LABEL = { voice: 'Voice', proactive: 'Proactive', thought: 'Though
 const DESKTOP_FIELDS = {
   hotkey: { title: '전역 단축키 (듣기 시작)', type: 'string' },
   autoLaunch: { title: '로그인 때 자동 실행', type: 'boolean' },
-  startBackend: { title: '백엔드가 없으면 docker compose 로 띄우기', type: 'boolean' },
   backendUrl: { title: '백엔드 주소 (재시작 후 반영)', type: 'string' },
 };
 
@@ -101,7 +100,7 @@ function renderForm(body) {
   $effective.textContent = JSON.stringify(body.effective || {}, null, 2);
   const waiting = Object.keys(pending).length > 0;
   status($status, waiting ? '저장됨 · 백엔드를 다시 띄우면 반영됩니다' : '', waiting ? 'warn' : '');
-  $restart.hidden = !(waiting && window.jarvisDesktop);
+  $restart.hidden = !waiting;
 }
 
 // 화면의 값 중 지금 적용값과 다른 것만. 같은 값을 다시 보내지 않으니 저장을 여러 번 눌러도 결과가 같다
@@ -151,14 +150,19 @@ $form.addEventListener('submit', async (e) => {
   }
 });
 
+// 재기동은 Ion(/ion/restart, docker 소켓 프록시)이 한다. 백엔드가 자기를 재시작할 수 없고, 앱은 docker 를 모른다
 $restart.addEventListener('click', async () => {
-  if (!window.jarvisDesktop) return;
   $restart.disabled = true;
   status($status, '백엔드를 다시 띄우는 중…', 'warn');
-  const result = await window.jarvisDesktop.restartBackend().catch((err) => ({ ok: false, error: String(err) }));
+  try {
+    const res = await apiFetch('/ion/restart', { method: 'POST' });
+    const body = res.ok ? await res.json() : {};
+    // 성공하면 ws 가 끊겼다 다시 붙는다. 데스크톱 앱은 페이지를 새로 읽는다
+    if (!res.ok || !body.ok) status($status, `재시작 실패: ${body.result || res.status}. docker compose restart jarvis-backend 를 직접 실행하세요`, 'err');
+  } catch {
+    status($status, '재시작 실패: Ion 에 연결되지 않았습니다. docker compose restart jarvis-backend 를 직접 실행하세요', 'err');
+  }
   $restart.disabled = false;
-  // 성공하면 ws 가 끊겼다 다시 붙고, 셸이 페이지를 새로 읽는다
-  if (!result.ok) status($status, `재시작 실패: ${result.error || '알 수 없음'}`, 'err');
 });
 
 async function loadDesktop() {

@@ -1,20 +1,18 @@
-// Electron 메인 프로세스: 창 하나, 트레이 상주, 전역 단축키, 마이크와 알림 권한, 백엔드 확인과 기동.
+// Electron 메인 프로세스: 창 하나, 트레이 상주, 전역 단축키, 마이크와 알림 권한, 백엔드 확인.
 const path = require('node:path');
-const { execFile } = require('node:child_process');
 const {
   app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut, ipcMain, session, shell, systemPreferences,
 } = require('electron');
 
 const { DesktopSettings } = require('./desktop_settings');
-const { BackendLauncher } = require('./backend_launcher');
+const { BackendProbe } = require('./backend_probe');
 
-// compose.yml 이 있는 저장소 루트. 패키징하지 않고 저장소 안에서 npm start 로 띄운다
-const REPO_DIR = process.env.JARVIS_REPO_DIR || path.resolve(__dirname, '..');
 // 앱 아이콘은 HUD 리액터에 가운데 글자만 AGENT. 트레이는 메뉴 막대에 맞게 둥근 사각형 없이 리액터만
 const ICON = path.join(__dirname, 'icons', 'icon.png');
 const TRAY_ICON = path.join(__dirname, 'icons', 'tray.png');
 const LOADING = path.join(__dirname, 'loading.html');
-const RUN_TIMEOUT_MS = 180_000;
+// 백엔드가 없으면 이 간격으로 다시 본다. 앱은 백엔드를 띄우지 않는다(docker compose 나 Ion 의 몫). 뜨면 알아서 붙는다
+const RETRY_MS = 5000;
 // 렌더러가 요청할 수 있는 권한. 그 밖은 모두 거절한다
 const ALLOWED_PERMISSIONS = new Set(['media', 'notifications', 'clipboard-sanitized-write']);
 // 기본 제목 표시줄을 숨기고 HUD 헤더(높이 52px, 배경 #02060c)가 그 자리를 맡는다.
@@ -31,19 +29,7 @@ let settings = settingsStore.load();
 let win = null;
 let tray = null;
 let quitting = false;
-
-function run(cmd, args, opts) {
-  // 셸을 거치지 않는다. 인자는 배열 그대로 docker 에 간다
-  return new Promise((resolve) => {
-    execFile(cmd, args, { ...opts, timeout: RUN_TIMEOUT_MS }, (error, _stdout, stderr) => {
-      resolve({ code: error ? (typeof error.code === 'number' ? error.code : 1) : 0, stderr: String(stderr || error?.message || '') });
-    });
-  });
-}
-
-function launcher() {
-  return new BackendLauncher({ url: settings.backendUrl, composeDir: REPO_DIR, run });
-}
+let connectSeq = 0;  // 주소가 바뀌면 지난 재시도 루프를 버린다
 
 function isBackendUrl(target) {
   try { return new URL(target).origin === settings.backendUrl; } catch { return false; }
@@ -55,11 +41,17 @@ function showLoading(error) {
 }
 
 async function connectBackend() {
+  const seq = ++connectSeq;
   showLoading();
-  const result = await launcher().ensure({ start: settings.startBackend });
-  if (!win) return;
-  if (result.ok) win.loadURL(settings.backendUrl);
-  else showLoading(result.error);
+  const probe = new BackendProbe({ url: settings.backendUrl });
+  while (win && seq === connectSeq) {
+    if (await probe.alive()) {
+      if (win && seq === connectSeq) win.loadURL(settings.backendUrl);
+      return;
+    }
+    showLoading(`백엔드(${settings.backendUrl})가 응답하지 않습니다. docker compose --profile web up -d 로 띄우면 자동으로 연결합니다.`);
+    await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
+  }
 }
 
 function showWindow() {
@@ -136,12 +128,6 @@ function applyLoginItem() {
   }
 }
 
-async function restartBackend() {
-  const result = await launcher().restart();
-  if (result.ok && win) win.loadURL(settings.backendUrl);
-  return result;
-}
-
 function createTray() {
   const source = nativeImage.createFromPath(TRAY_ICON);
   const image = source.resize({ width: 18, height: 18 });
@@ -151,7 +137,6 @@ function createTray() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: '열기', click: showWindow },
     { label: '듣기 시작', click: triggerListen },
-    { label: '백엔드 다시 띄우기', click: () => restartBackend() },
     { type: 'separator' },
     { label: '종료', click: () => { quitting = true; app.quit(); } },
   ]));
@@ -170,7 +155,6 @@ function registerIpc() {
     if (settings.backendUrl !== prevUrl) connectBackend();
     return { ok: true, settings };
   });
-  ipcMain.handle('desktop:restart-backend', () => restartBackend());
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -179,8 +163,8 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', showWindow);
   app.whenReady().then(async () => {
     if (process.platform === 'darwin') {
-      // 패키징 전 macOS 는 창 icon 을 무시하고 Electron 기본 아이콘을 Dock 에 띄운다
-      app.dock?.setIcon(ICON);
+      // 패키징 전 macOS 는 창 icon 을 무시하고 Electron 기본 아이콘을 Dock 에 띄운다. 번들은 Info.plist 의 아이콘을 쓴다
+      if (!app.isPackaged) app.dock?.setIcon(ICON);
       // 처음 한 번 macOS 가 마이크 권한을 묻는다. 거절하면 HUD 가 마이크 오류를 보여 준다
       await systemPreferences.askForMediaAccess('microphone').catch(() => false);
     }

@@ -27,7 +27,7 @@
 | `agent_registry` | 정의 파일로 최상위 에이전트를 더하고 화면 브랜드를 바꾼다 | `GET /api/agents`, `GET /brand.js`, `jarvis --agent <id>` | 구현됨 |
 | `approval` | 위험한 도구 실행 전 사용자 승인과 "항상 허용" 규칙 | ws `approval_request` / `approval_response` | 구현됨 |
 | `cli` | `jarvis` 명령으로 Web HUD 백엔드를 띄우고 시작 세션을 고른다 | `jarvis [--session <id>] [--agent <id>] [--host] [--port]`, `jarvis --list-sessions` | 구현됨 |
-| `desktop` | HUD 를 창 하나로 띄우고 트레이 상주, 전역 단축키, OS 알림, 백엔드 기동을 맡는 Electron 셸 | `cd desktop && npm start`, 트레이 메뉴, 전역 단축키 | 구현됨 |
+| `desktop` | HUD 를 창 하나로 띄우고 트레이 상주, 전역 단축키, OS 알림을 맡는 Electron 셸. GitHub Release 의 dmg 로 받는다 | `cd desktop && npm start`, Release 의 `Jarvis-<버전>-<arch>.dmg`, 트레이 메뉴, 전역 단축키 | 구현됨 |
 | `external` | 캘린더, 메일 같은 외부 변화를 주기적으로 읽어 성찰에 먹인다 | `~/.jarvis/external_sources/*.yaml` | 구현됨 |
 | `focus` | 한 작업을 네 sub-agent 의 도움으로 끝까지 수행하는 모드 | `/focus <작업>` (Web HUD) | 구현됨 |
 | `goal` | 맡긴 목표를 대화 밖에서 한 단계씩 진행하고 알릴 것만 알린다 | `/goal`, `goal` 도구 | 구현됨 |
@@ -262,19 +262,21 @@
 
 ### desktop: 데스크톱 앱
 
-**설명**: Electron 셸이 Web HUD 를 창 하나로 띄운다. 백엔드는 그대로 docker compose 의 `jarvis-backend` 이고, 셸은 떠 있는지 보고 없으면 `docker compose --profile web up -d` 로 띄운다. 창을 닫으면 트레이로 숨어 ws 를 열어 둬서 🔔 와 리마인더를 OS 알림으로 받는다. 전역 단축키로 창을 앞으로 가져와 듣기를 연다.
+**설명**: Electron 셸이 Web HUD 를 창 하나로 띄운다. 백엔드는 그대로 docker compose 의 `jarvis-backend` 이고, 셸은 떠 있는지만 본다. 띄우는 것은 사용자(`docker compose --profile web up -d`)와 재기동은 Ion 의 몫이라 앱은 docker 를 모르고, 그래서 저장소 밖의 앱 번들로 받아 쓸 수 있다. 백엔드가 없으면 5초마다 다시 보다가 뜨면 붙는다. 창을 닫으면 트레이로 숨어 ws 를 열어 둬서 🔔 와 리마인더를 OS 알림으로 받는다. 전역 단축키로 창을 앞으로 가져와 듣기를 연다.
 
 **입력과 결과**
 
 | 입력 | 결과 |
 |---|---|
-| `cd desktop && npm install && npm start` | 백엔드 확인(필요하면 기동) 후 HUD 창. 두 번째 실행은 첫 창을 앞으로 가져온다 |
+| GitHub Release 의 `Jarvis-<버전>-<arch>.dmg` | Applications 에 끌어 넣고 처음 한 번 Gatekeeper 를 푼다(README). Apple Silicon 은 arm64, Intel 은 x64 |
+| `cd desktop && npm install && npm start` | 저장소에서 바로 띄우기. 두 번째 실행은 첫 창을 앞으로 가져온다 |
+| `cd desktop && npm run dist` | 이 기계에서 dmg, zip 빌드(`desktop/dist/`, 서명 없음) |
 | 전역 단축키(기본 `CommandOrControl+Shift+J`) | 창을 앞으로, HUD 로 돌아가 듣기 토글 |
-| 트레이 메뉴 | 열기, 듣기 시작, 백엔드 다시 띄우기(`docker compose restart jarvis-backend`), 종료 |
-| HUD `SET` 화면의 Desktop 카드 | 단축키, 로그인 때 자동 실행, 백엔드 자동 기동, 백엔드 주소(루프백만) 저장 |
-| HUD `SET` 화면의 RESTART BACKEND | 저장했지만 반영되지 않은 설정이 있을 때 백엔드 재시작 |
+| 트레이 메뉴 | 열기, 듣기 시작, 종료 |
+| HUD `SET` 화면의 Desktop 카드 | 단축키, 로그인 때 자동 실행, 백엔드 주소(루프백만) 저장 |
+| HUD `SET` 화면의 RESTART BACKEND | 저장했지만 반영되지 않은 설정이 있을 때 Ion(`POST /ion/restart`)으로 백엔드 재시작. 브라우저에서도 된다 |
 
-**처리 흐름**: `main.js` 에서 `BackendLauncher.ensure`(`/api/health` 확인, 없으면 compose up, 뜰 때까지 기다림)로, `BrowserWindow` 가 백엔드 주소를 열고 `preload.js` 가 `window.jarvisDesktop` 만 넘기는 순. 화면 쪽은 `desktop.js` 가 단축키 신호를 `voice-ui.listenNow` 로 잇는다.
+**처리 흐름**: `main.js` 에서 `BackendProbe.alive`(`/api/health`)가 참이 될 때까지 5초마다 보고(그동안 `loading.html`), `BrowserWindow` 가 백엔드 주소를 열고 `preload.js` 가 `window.jarvisDesktop` 만 넘기는 순. 화면 쪽은 `desktop.js` 가 단축키 신호를 `voice-ui.listenNow` 로 잇는다. 배포는 `release.yml` 이 Release 를 만들면 `desktop.yml` 이 macOS 러너에서 electron-builder 로 arm64, x64 dmg 와 zip 을 만들어 같은 Release 에 올리고 설치 안내를 한 번 붙인다.
 
 **구현 파일**
 
@@ -282,11 +284,12 @@
 |---|---|---|
 | `desktop/main.js` | desktop | 창, 트레이, 단일 인스턴스, 전역 단축키, 권한(마이크와 알림은 백엔드 출처만), 이동 제한 |
 | `desktop/preload.js` | desktop | `window.jarvisDesktop` 브리지(contextIsolation, sandbox) |
-| `desktop/backend_launcher.js` | desktop | 백엔드 확인, compose up, restart |
+| `desktop/backend_probe.js` | desktop | 백엔드 응답 확인(`/api/health`, 3초 제한) |
 | `desktop/desktop_settings.js` | desktop | 셸 설정 검증과 원자적 저장(`userData/settings.json`) |
 | `desktop/loading.html` | desktop | 연결 중, 실패 안내 화면 |
 | `desktop/icons/icon.svg`(원본), `icon.png`, `tray.png` | desktop | 앱(Dock)과 트레이 아이콘. HUD 리액터를 작은 크기에서도 보이게 굵게 다시 그리고 가운데 글자만 AGENT |
-| `desktop/package.json`, `desktop/package-lock.json` | desktop | Electron 버전 고정 |
+| `desktop/package.json`, `desktop/package-lock.json` | desktop | Electron 과 electron-builder 버전 고정, `build` 블록(appId, dmg와 zip, 아이콘, 서명 없음, 마이크 문구) |
+| `.github/workflows/desktop.yml` | ci | Release 가 나면 dmg, zip 을 빌드해 올린다 |
 | `src/jarvis/ui/web/static/app/desktop.js` | ui | 브리지가 있을 때만 단축키를 듣기로 잇는다 |
 
 **테스트**
@@ -294,10 +297,10 @@
 | 종류 | 파일 |
 |---|---|
 | 단위 | `desktop/test/desktop_settings.test.js` (`npm test`) |
-| 단위 | `desktop/test/backend_launcher.test.js` (`npm test`) |
+| 단위 | `desktop/test/backend_probe.test.js` (`npm test`) |
 | 통합 | 없음. 창, 트레이, 단축키는 손으로 확인한다 |
 
-**제약과 미구현**: 저장소 안에서 `npm start` 로만 띄운다. 앱 번들, 서명, 공증은 없다. Web Push(서비스 워커)는 Electron 에서 돌지 않아 앱이 떠 있을 때만 알림을 받는다. Electron 의 브라우저 음성 인식은 Google 키가 없어 `network` 오류로 끝나고, 그때 서버 STT 로 넘어간다(`voice`). 이동 제한 때문에 창 안의 바깥 링크는 기본 브라우저로 열린다.
+**제약과 미구현**: Apple Developer Program 에 가입하지 않아 서명과 공증이 없다. 받은 앱은 처음 한 번 `xattr -dr com.apple.quarantine /Applications/Jarvis.app` 이나 시스템 설정의 "그래도 열기"로 푼다(`# ponytail`, 가입하면 공증 단계만 더한다). 자동 업데이트는 없고 새 dmg 로 덮는다. 앱은 백엔드를 띄우지 않는다. Web Push(서비스 워커)는 Electron 에서 돌지 않아 앱이 떠 있을 때만 알림을 받는다. Electron 의 브라우저 음성 인식은 Google 키가 없어 `network` 오류로 끝나고, 그때 서버 STT 로 넘어간다(`voice`). 이동 제한 때문에 창 안의 바깥 링크는 기본 브라우저로 열린다.
 
 ---
 
@@ -525,7 +528,7 @@
 | `src/jarvis/ion/docker_client.py` | ion | 소켓 프록시 클라이언트. 허용 서비스만 |
 | `src/jarvis/ion/backend_client.py` | ion | 백엔드 health, metrics, jobs, 작업 끄기 |
 | `src/jarvis/ion/push_cache.py` | ion | 푸시 구독 파일 복사 |
-| `src/jarvis/ion/ion_app.py` | ion | `/ion/*` HTTP 와 SSE |
+| `src/jarvis/ion/ion_app.py` | ion | `/ion/*` HTTP 와 SSE. `POST /ion/restart` 는 사고 없이 백엔드를 재기동한다(SET 화면 RESTART BACKEND) |
 | `src/jarvis/ion/ion_cli.py`, `__main__.py` | ion | 조립과 기동(`python -m jarvis.ion`, 설치 뒤에는 `jarvis-ion`) |
 | `docker-compose.yml`, `nginx/nginx.conf` | ion | `docker-socket-proxy`, `jarvis-ion` 서비스와 `/ion/` 경로 |
 | `src/jarvis/ui/web/static/app/ion.js` | ui | HUD ION 띠(상태 읽기, SSE, 버튼 응답, OS 알림) |

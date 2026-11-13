@@ -7,8 +7,8 @@ from typing import Any
 from dataclasses import dataclass
 
 from jarvis.core.tools.housing.fetch import Fetch, FetchError, fetch_html
+from jarvis.core.tools.housing.markup import lines_of, page_hint, text_of
 from jarvis.model_layer.model_types import TextContent, ToolResultMessage
-from jarvis.core.tools.housing.markup import lines_of, text_of
 from jarvis.core.tools.tools_registry import JarvisTool
 
 TOOL_NAME = "sh_notice"
@@ -206,9 +206,10 @@ class ShNoticeTool(JarvisTool):
     async def latest(self, category: str) -> list[Post]:
         """그 종류 게시판의 첫 쪽(최신 10건). 목록 표가 없으면 ValueError, 게시판 장애는 FetchError."""
         board = BOARDS[category]
-        parsed = parse_list(await self._fetch(list_url(board), list_query(board, "", "제목", 1)))
+        page = await self._fetch(list_url(board), list_query(board, "", "제목", 1))
+        parsed = parse_list(page)
         if parsed is None:
-            raise ValueError("SH 게시판이 목록 표를 주지 않았다")
+            raise ValueError(f"SH 게시판이 목록 표를 주지 않았다({page_hint(page)})")
         return parsed[1]
 
     async def _search(
@@ -227,9 +228,10 @@ class ShNoticeTool(JarvisTool):
         except (TypeError, ValueError):
             return _result(tool_call_id, "page 는 정수다", True)
         query = list_query(board, keyword, search_in, page)
-        parsed = parse_list(await self._fetch(list_url(board), query))
+        page_html = await self._fetch(list_url(board), query)
+        parsed = parse_list(page_html)
         if parsed is None:
-            return _result(tool_call_id, "SH 게시판이 목록 표를 주지 않았다(접속 제한이나 점검 화면일 수 있다)", True)
+            return _result(tool_call_id, f"SH 게시판이 목록 표를 주지 않았다({page_hint(page_html)})", True)
         total, posts = parsed
         if status:
             posts = [p for p in posts if p.status == status]

@@ -27,11 +27,12 @@
 | `agent_registry` | 정의 파일로 최상위 에이전트를 더하고 화면 브랜드를 바꾼다 | `GET /api/agents`, `GET /brand.js`, `jarvis --agent <id>` | 구현됨 |
 | `approval` | 위험한 도구 실행 전 사용자 승인과 "항상 허용" 규칙 | ws `approval_request` / `approval_response` | 구현됨 |
 | `cli` | `jarvis` 명령으로 Web HUD 백엔드를 띄우고 시작 세션을 고른다 | `jarvis [--session <id>] [--agent <id>] [--host] [--port]`, `jarvis --list-sessions` | 구현됨 |
-| `desktop` | HUD 를 창 하나로 띄우고 트레이 상주, 전역 단축키, OS 알림, 백엔드 기동을 맡는 Electron 셸 | `cd desktop && npm start`, 트레이 메뉴, 전역 단축키 | 구현됨 |
+| `desktop` | HUD 를 창 하나로 띄우고 트레이 상주, 전역 단축키, OS 알림을 맡는 Electron 셸. GitHub Release 의 dmg 로 받는다 | `cd desktop && npm start`, Release 의 `Jarvis-<버전>-<arch>.dmg`, 트레이 메뉴, 전역 단축키 | 구현됨 |
 | `external` | 캘린더, 메일 같은 외부 변화를 주기적으로 읽어 성찰에 먹인다 | `~/.jarvis/external_sources/*.yaml` | 구현됨 |
 | `focus` | 한 작업을 네 sub-agent 의 도움으로 끝까지 수행하는 모드 | `/focus <작업>` (Web HUD) | 구현됨 |
 | `goal` | 맡긴 목표를 대화 밖에서 한 단계씩 진행하고 알릴 것만 알린다 | `/goal`, `goal` 도구 | 구현됨 |
 | `housing` | LH, SH 청약 공고 조회와 감시, 대출 원리금 계산 | `lh_notice`, `sh_notice`, `housing_budget`, `housing_loan`, `housing_profile`, `housing_watch` 도구, `/housing` | 구현됨 |
+| `ion` | 백엔드 밖의 컨테이너 Ion 이 플랫폼을 지켜보다 사고를 알리고(푸시, HUD ION 띠, 데스크톱 OS 알림) 답에 따라 재기동한다. 모바일 푸시의 버튼 답은 앱 저장소 쪽 | `GET /api/platform/metrics`, `GET /ion/status`, `POST /ion/incidents/{id}/respond`, `GET /ion/events` | 구현 중 |
 | `journal` | 사고 로그를 성찰해 저널로 남긴다 | `/journal` | 구현됨 |
 | `mcp` | MCP 서버의 툴을 에이전트 도구로 등록 | 설정 `mcp_servers` | 구현됨 |
 | `memory` | 범위를 아는 장기 기억과 작업 기억의 저장, 회상, 공고화 | `/remember`, `/compact`, `recall_episodes` 도구 | 구현됨 |
@@ -105,6 +106,8 @@
 
 **처리 흐름**: `ws_router` 에서 `AgentSession.prompt` 로, 보안 파이프라인, 스킬 확장, router 판정, 사고와 AGENDA 판단 띄우기, `AgentHarness.run`, `run_agent_loop`, `model_layer.stream`, 도구 실행기 순. 프로바이더나 저장소가 예외를 던져도 `AgentHarness.run` 이 `finally` 에서 실행 표시(`is_running`)를 풀어, 다음 턴이 실행 중으로 막히지 않는다.
 
+**호출 측정**: 루프는 LLM 호출마다 `[Loop] llm call` 로그 한 줄을 남긴다. 필드는 모델, 첫 출력(글자, 생각, 도구 호출 조각)까지 걸린 초 `first_output_sec`, 전체 초 `total_sec`, `input_tokens`, `cache_read`, 부분별 글자 수 `prompt_chars` 다. `prompt_chars` 는 프롬프트에 놓이는 순서대로 `system`, `inner_thought`, `tools`, 메모리가 붙인 블록(`[핵심 사실]`, `[장기 기억]` 같은 첫 줄 머리말), role(`user`, `assistant`, `tool_result`)이다. OpenAI 는 `prompt_tokens` 에서 캐시 적중분(`prompt_tokens_details.cached_tokens`)을 빼 `input` 에, 적중분을 `cache_read` 에 둔다(Anthropic 과 같은 뜻).
+
 **넘침 이어가기**: `max_turns` 의 마지막 차례까지 도구를 부르고 끝나면(다음 차례를 기다리는 도구 결과로 끝남) 루프가 바로 끊지 않는다. 도구 정의 없이 "한 것, 남은 단계, 지금까지의 답" 을 정리하는 LLM 호출을 한 번 하고, 그 정리를 기록에 남지 않는 지시로 매 호출 끝에 붙여 `max(1, max_turns // 2)` 차례를 더 돈다. 이어간 구간에서도 또 넘치면 두 번째 정리문을 답으로 돌려준다. 정리문은 화면에 흘리지 않고(두 번째만 답으로 보냄), 정리 호출이 실패하거나 비면 부른 도구 이름으로 만든 기본 정리문을 쓴다. 정리와 이어가기 지시는 항목 이름(한 것, 남은 단계, 지금까지의 답)만 고정하고, 내용과 답은 원래 요청의 언어와 답 형식을 따르게 한다(두 번째 정리문이 그대로 답이 되므로, 예전 문구로는 영어 요청에도 한국어 답이 나왔다). 중단 신호는 정리 호출 뒤에도 확인한다. 한 턴의 LLM 호출은 차례 `max_turns + max_turns // 2` 개(빈 답 재촉 포함 차례당 최대 두 번)와 정리 두 번이 상한이다. `agent_end.overflows` 가 넘친 횟수를 알리고, 하네스는 넘친 턴의 턴 일화 metadata 에 `overflow: true` 를 남긴다(실패 반성의 근거). `AgentLoopConfig.overflow_resume=False` 면 예전처럼 그 자리에서 끊는다. EMMA(arXiv 2610.35966) 의 overflow decomposition 을 한 에이전트 루프에 맞게 줄였다.
 
 **구현 파일**
@@ -113,6 +116,7 @@
 |---|---|---|
 | `src/jarvis/agent_layer/loop.py` | agent_layer | LLM 호출과 툴 실행을 반복하는 루프 본체 |
 | `src/jarvis/agent_layer/loop_overflow.py` | agent_layer | 넘침 판단, 이어갈 예산, 정리 지시와 기본 정리문(순수 함수) |
+| `src/jarvis/agent_layer/prompt_measure.py` | agent_layer | LLM 호출 입력을 시스템, 사고, 도구, 메모리 블록, role 별 글자 수로 나눔(순수 함수) |
 | `src/jarvis/agent_layer/harness.py` | agent_layer | 세션 이력, 작업 기억 변환, 이벤트 구독을 묶어 한 턴을 돌리는 래퍼 |
 
 **테스트**
@@ -129,6 +133,7 @@
 | 단위 | `tests/unit/test_agent_loop_model_types.py` |
 | 단위 | `tests/unit/test_agent_loop_ollama.py` |
 | 단위 | `tests/unit/test_agent_loop_openai.py` |
+| 단위 | `tests/unit/test_agent_loop_prompt_measure.py` |
 | 단위 | `tests/unit/test_agent_loop_provider_base.py` |
 | 단위 | `tests/unit/test_agent_loop_session.py` |
 | 단위 | `tests/unit/test_agent_loop_stream.py` |
@@ -139,13 +144,13 @@
 
 **τ²-bench 꼭짓점**: sierra-research/tau2-bench v2.0.0(MIT) 의 airline, retail 데이터(DB, 과제, 정책)를 `~/.jarvis/benchmarks/tau2/src/tau2-bench-main/` 에 받는다(공식 저장소 tarball 에서 `data/tau2/domains/{airline,retail}` 과 `src/tau2` 만 풀었다). 표본은 공식 test split(airline 20, retail 40)에서 도메인마다 id 순 정렬 뒤 `random.Random(seed).sample` 로 20 개를 고르고 도메인을 번갈아 늘어놓는다(`--limit` 은 앞에서 자른다). 도메인 도구 30 개는 공식 코드를 평가 전용으로 옮긴 것이고(`tau2_tools.py`, 운영 도구 목록에는 없다), 큰 DB 를 과제마다 복사하지 않으려고 공유 DB 위에 바뀐 레코드만 복사하는 덮어쓰기 층에서 돈다. 에이전트는 운영 루프(`run_agent_loop`, `AgentLoopConfig()` 기본값, 넘침 이어가기 켬)에 공식 에이전트 지시문과 정책을 시스템 프롬프트로 주고, 사용자 시뮬레이터는 `judge_model`(기본 gpt-4o, temperature 0)이 공식 텍스트 지시문으로 말한다. 대화는 공식 첫 인사로 시작해 사용자가 `###STOP###`, `###TRANSFER###`, `###OUT-OF-SCOPE###` 를 말하면 끝나고, 공식 상한(200 단계, 도구 오류 10 회)에 닿으면 0 점이다. 보상은 공식처럼 끝난 DB 와 정답 행동을 적용한 DB 의 일치에 필요한 값의 전달을 곱한다. 공식과 다른 점은 셋이다. 전달 여부를 공식 기본(의미 판정 LLM) 대신 공식이 함께 두는 substring 방식으로 본다. retail 의 NL_ASSERTION(LLM 판정)은 짝을 이룬 `communicate_info` 값의 substring 으로 대신 본다. 시뮬레이터에 v2 언어 팩의 persona 문구를 넣지 않는다. score = pass^1 × 100, `detail` 에 도메인별 pass^1 과 문항당 LLM 호출 수, 입력, 출력 토큰(메인 모델과 시뮬레이터 따로)을 둔다.
 
-**제약과 미구현**: 메인 모델의 프롬프트 처리 시간이 첫 글자 지연의 대부분이라 시스템 프롬프트와 도구 목록 크기를 줄이는 일이 남아 있다(`TODO.md`).
+**제약과 미구현**: 첫 글자 지연을 줄이는 조치(캐시가 맞게 고정 부분을 앞에 두기, 큰 동적 블록 줄이기)는 호출 측정 결과를 보고 정한다(`TODO.md`). `/cost` 는 `cache_read` 를 비용에 넣지 않는다.
 
 ---
 
 ### agent_registry: 최상위 에이전트 등록
 
-**설명**: `~/.jarvis/team/*.yaml` 정의 파일 한 장이 최상위 에이전트 하나가 된다. 에이전트마다 이름, 명언, 색, 모델, 개성, 도구 목록, 도구 경계(`ask`, `never`), 층별 기억 읽기 정책(`memory.read`)을 갖고, 비운 항목은 main 설정을 이어받는다. Web HUD 는 세션 에이전트의 브랜드로 칠해진다.
+**설명**: `~/.jarvis/team/*.yaml` 정의 파일 한 장이 최상위 에이전트 하나가 된다. 에이전트마다 이름, 명언, 색, 모델, 개성, 도구 목록, 도구 경계(`ask`, `never`), 층별 기억 읽기 정책(`memory.read`)을 갖고, 비운 항목은 main 설정을 이어받는다. `model` 은 모델 이름만 바꾸고 프로바이더, 키, 주소는 main 것을 쓴다. `provider` 가 main 과 다르면 main 의 키와 주소를 넘기지 않고 그 SDK 의 환경변수 키(`OPENAI_API_KEY` 등)와 기본 주소를 쓴다(`agent_model`). Web HUD 는 세션 에이전트의 브랜드로 칠해진다.
 
 **입력과 결과**
 
@@ -257,19 +262,21 @@
 
 ### desktop: 데스크톱 앱
 
-**설명**: Electron 셸이 Web HUD 를 창 하나로 띄운다. 백엔드는 그대로 docker compose 의 `jarvis-backend` 이고, 셸은 떠 있는지 보고 없으면 `docker compose --profile web up -d` 로 띄운다. 창을 닫으면 트레이로 숨어 ws 를 열어 둬서 🔔 와 리마인더를 OS 알림으로 받는다. 전역 단축키로 창을 앞으로 가져와 듣기를 연다.
+**설명**: Electron 셸이 Web HUD 를 창 하나로 띄운다. 백엔드는 그대로 docker compose 의 `jarvis-backend` 이고, 셸은 떠 있는지만 본다. 띄우는 것은 사용자(`docker compose --profile web up -d`)와 재기동은 Ion 의 몫이라 앱은 docker 를 모르고, 그래서 저장소 밖의 앱 번들로 받아 쓸 수 있다. 백엔드가 없으면 5초마다 다시 보다가 뜨면 붙는다. 창을 닫으면 트레이로 숨어 ws 를 열어 둬서 🔔 와 리마인더를 OS 알림으로 받는다. 전역 단축키로 창을 앞으로 가져와 듣기를 연다.
 
 **입력과 결과**
 
 | 입력 | 결과 |
 |---|---|
-| `cd desktop && npm install && npm start` | 백엔드 확인(필요하면 기동) 후 HUD 창. 두 번째 실행은 첫 창을 앞으로 가져온다 |
+| GitHub Release 의 `Jarvis-<버전>-<arch>.dmg` | Applications 에 끌어 넣고 처음 한 번 Gatekeeper 를 푼다(README). Apple Silicon 은 arm64, Intel 은 x64 |
+| `cd desktop && npm install && npm start` | 저장소에서 바로 띄우기. 두 번째 실행은 첫 창을 앞으로 가져온다 |
+| `cd desktop && npm run dist` | 이 기계에서 dmg, zip 빌드(`desktop/dist/`, 서명 없음) |
 | 전역 단축키(기본 `CommandOrControl+Shift+J`) | 창을 앞으로, HUD 로 돌아가 듣기 토글 |
-| 트레이 메뉴 | 열기, 듣기 시작, 백엔드 다시 띄우기(`docker compose restart jarvis-backend`), 종료 |
-| HUD `SET` 화면의 Desktop 카드 | 단축키, 로그인 때 자동 실행, 백엔드 자동 기동, 백엔드 주소(루프백만) 저장 |
-| HUD `SET` 화면의 RESTART BACKEND | 저장했지만 반영되지 않은 설정이 있을 때 백엔드 재시작 |
+| 트레이 메뉴 | 열기, 듣기 시작, 종료 |
+| HUD `SET` 화면의 Desktop 카드 | 단축키, 로그인 때 자동 실행, 백엔드 주소(루프백만) 저장 |
+| HUD `SET` 화면의 RESTART BACKEND | 저장했지만 반영되지 않은 설정이 있을 때 Ion(`POST /ion/restart`)으로 백엔드 재시작. 브라우저에서도 된다 |
 
-**처리 흐름**: `main.js` 에서 `BackendLauncher.ensure`(`/api/health` 확인, 없으면 compose up, 뜰 때까지 기다림)로, `BrowserWindow` 가 백엔드 주소를 열고 `preload.js` 가 `window.jarvisDesktop` 만 넘기는 순. 화면 쪽은 `desktop.js` 가 단축키 신호를 `voice-ui.listenNow` 로 잇는다.
+**처리 흐름**: `main.js` 에서 `BackendProbe.alive`(`/api/health`)가 참이 될 때까지 5초마다 보고(그동안 `loading.html`), `BrowserWindow` 가 백엔드 주소를 열고 `preload.js` 가 `window.jarvisDesktop` 만 넘기는 순. 화면 쪽은 `desktop.js` 가 단축키 신호를 `voice-ui.listenNow` 로 잇는다. 배포는 `release.yml` 이 Release 를 만들면 `desktop.yml` 이 macOS 러너에서 electron-builder 로 arm64, x64 dmg 와 zip 을 만들어 같은 Release 에 올리고 설치 안내를 한 번 붙인다.
 
 **구현 파일**
 
@@ -277,11 +284,12 @@
 |---|---|---|
 | `desktop/main.js` | desktop | 창, 트레이, 단일 인스턴스, 전역 단축키, 권한(마이크와 알림은 백엔드 출처만), 이동 제한 |
 | `desktop/preload.js` | desktop | `window.jarvisDesktop` 브리지(contextIsolation, sandbox) |
-| `desktop/backend_launcher.js` | desktop | 백엔드 확인, compose up, restart |
+| `desktop/backend_probe.js` | desktop | 백엔드 응답 확인(`/api/health`, 3초 제한) |
 | `desktop/desktop_settings.js` | desktop | 셸 설정 검증과 원자적 저장(`userData/settings.json`) |
 | `desktop/loading.html` | desktop | 연결 중, 실패 안내 화면 |
 | `desktop/icons/icon.svg`(원본), `icon.png`, `tray.png` | desktop | 앱(Dock)과 트레이 아이콘. HUD 리액터를 작은 크기에서도 보이게 굵게 다시 그리고 가운데 글자만 AGENT |
-| `desktop/package.json`, `desktop/package-lock.json` | desktop | Electron 버전 고정 |
+| `desktop/package.json`, `desktop/package-lock.json` | desktop | Electron 과 electron-builder 버전 고정, `build` 블록(appId, dmg와 zip, 아이콘, 서명 없음, 마이크 문구) |
+| `.github/workflows/desktop.yml` | ci | Release 가 나면 dmg, zip 을 빌드해 올린다 |
 | `src/jarvis/ui/web/static/app/desktop.js` | ui | 브리지가 있을 때만 단축키를 듣기로 잇는다 |
 
 **테스트**
@@ -289,10 +297,10 @@
 | 종류 | 파일 |
 |---|---|
 | 단위 | `desktop/test/desktop_settings.test.js` (`npm test`) |
-| 단위 | `desktop/test/backend_launcher.test.js` (`npm test`) |
+| 단위 | `desktop/test/backend_probe.test.js` (`npm test`) |
 | 통합 | 없음. 창, 트레이, 단축키는 손으로 확인한다 |
 
-**제약과 미구현**: 저장소 안에서 `npm start` 로만 띄운다. 앱 번들, 서명, 공증은 없다. Web Push(서비스 워커)는 Electron 에서 돌지 않아 앱이 떠 있을 때만 알림을 받는다. Electron 의 브라우저 음성 인식은 Google 키가 없어 `network` 오류로 끝나고, 그때 서버 STT 로 넘어간다(`voice`). 이동 제한 때문에 창 안의 바깥 링크는 기본 브라우저로 열린다.
+**제약과 미구현**: Apple Developer Program 에 가입하지 않아 서명과 공증이 없다. 받은 앱은 처음 한 번 `xattr -dr com.apple.quarantine /Applications/Jarvis.app` 이나 시스템 설정의 "그래도 열기"로 푼다(`# ponytail`, 가입하면 공증 단계만 더한다). 자동 업데이트는 없고 새 dmg 로 덮는다. 앱은 백엔드를 띄우지 않는다. Web Push(서비스 워커)는 Electron 에서 돌지 않아 앱이 떠 있을 때만 알림을 받는다. Electron 의 브라우저 음성 인식은 Google 키가 없어 `network` 오류로 끝나고, 그때 서버 STT 로 넘어간다(`voice`). 이동 제한 때문에 창 안의 바깥 링크는 기본 브라우저로 열린다.
 
 ---
 
@@ -388,6 +396,7 @@
 | `/goal` | 목표 목록 |
 | `/goal stop <문장>` | 그 목표의 차례를 멈춘다 |
 | 차례마다 | 새로 알릴 항목이 있을 때만 ws `reminder{kind:"goal", label:"목표: ..."}` |
+| 에이전트가 `완료: 예` 로 답한 차례 | 목표는 열린 채로 두고 "그만 챙길까요?" 를 `ask-done` 항목으로 한 번만 알린다. 닫는 것은 `/goal stop` 이나 `goal` 도구 멈추기뿐이다 |
 
 **처리 흐름**: `goal_cmd` 또는 `GoalTool` 에서 `goals_store` 저장과 `SchedulerService` 등록으로, 차례마다 `runner` 가 프롬프트를 짓고 경계 안의 도구로 에이전트를 돌려 `goals_types` 로 답을 읽고 알릴 항목을 고르는 순.
 
@@ -410,7 +419,7 @@
 | 단위 | `tests/unit/test_goal_goals_types.py` |
 | 단위 | `tests/unit/test_goal_runner.py` |
 | 단위 | `tests/unit/test_goal_tool.py` |
-| 통합 | 없음. 스케줄러 차례부터 알림까지 잇는 시나리오가 아직 없다 |
+| 통합 | `tests/integ/test_goal.py`(정각 차례부터 대화 전달과 정산, 같은 결과면 침묵, 지나친 정각 따라잡기, 못 건넨 항목 재시도) |
 
 **제약과 미구현**: 알린 직후 정산 전에 죽으면 다음 차례에 같은 항목을 한 번 더 알린다(`# idempotent`). 결과가 바뀐 차례는 도구를 두 번 부른다(`# ponytail`).
 
@@ -431,6 +440,8 @@
 | `housing_watch` 도구 | 지난 조회 뒤 새 공고 중 신청 가능성이 있는 것만 한 번 알림 |
 
 **처리 흐름**: `budget` 에서 `lh_notice` / `sh_notice` 조회로, `fetch`, `markup`, `notice_pdf` / `sh_terms` / `rental_complex` 금액 읽기, `profile` 과 `rules` 로 자격과 한도, `scenario` 경우 펼치기, `deadline` 약속 남기기 순.
+
+**게시판 장애**: 게시판 HTML 조회(`fetch_html`)는 응답 없이 끊기는 연결 오류(`httpx.TransportError`)에서만 1초 쉬고 한 번 더 보낸다. HTTP 오류 응답은 다시 보내지 않는다. 목록 표 대신 다른 페이지를 받으면 오류 글에 그 페이지의 제목과 본문 앞 80자(`markup.page_hint`)를 붙여, 점검 화면인지 접속 제한인지 나중에 가릴 수 있게 한다.
 
 **구현 파일**
 
@@ -481,6 +492,67 @@
 **제약과 미구현**: 공고 상세는 100건, 공고문 PDF 는 한 번에 60건까지만 연다. LH 전체 조회는 `MAX_PAGES` 쪽까지, `housing_watch` 는 게시판마다 첫 쪽(최신 10건)만 본다. SH 는 최근 `RECENT_DAYS` 안의 모집 글 `MAX_NOTICES` 건만 본다. 소득 기준은 1인 기준만 댄다. 단위 없는 '천'은 천만으로 읽는다. `housing_watch` 는 대화에서 부르면 바로 본 것으로 적어 답이 실패하면 그 공고는 다시 새 공고로 오지 않는다(모두 `# ponytail`). 스케줄 작업으로 부르면 알림이나 대화로 건넨 뒤에야 본 것으로 적어, 전달이 실패하면 다음 차례에 같은 공고를 다시 알린다.
 
 ---
+
+### ion: Ion
+
+**설명**: 백엔드와 별개의 컨테이너 `jarvis-ion` 가 백엔드 프로세스와 에이전트별 작업 상태를 지켜보다, 백엔드가 죽거나 멈추거나 한 에이전트가 조용히 실패하면 사고를 열어 한 번 알리고(Web Push, SSE), 답에 따라 재기동하거나 작업을 멈춘다. 재기동 권한은 Docker 소켓 프록시(조회와 restart, stop 만)를 거친다. 계획은 `docs/ion-plan.md`. 2단계로 Ion 프로필(`team/ion.yaml`)이 그 기록을 읽어 대화로 답하고("지금 뭐가 아파?", "왜 죽었어?"), 사용자가 시키면 사고에 답하거나 재기동하며, 먼저 말을 거는 에이전트가 하루 넘게 조용하면 info 사고로 알린다. Ion 컨테이너에는 LLM 이 없어 백엔드가 죽어 있는 동안은 프로필과 대화할 수 없고 그때는 띠와 푸시가 전부다.
+
+**입력과 결과**
+
+| 입력 | 결과 |
+|---|---|
+| `GET /api/platform/metrics` | 프로세스 자원(psutil), 이벤트 루프 지연(1초 하트비트의 최근 60초 최대), 에이전트별 작업 수, 연속 실패, 마지막 성공, 열린 세션 수, 켜진 스케줄 유무, 마지막 활동 시각(세션 updated_at), 먼저 말을 거는지 |
+| 관측값의 흐름(`health_rules.evaluate`) | 신호: 백엔드 무응답(3회 연속), 재시작 루프(10분 3회), 루프 정지(5초 2회), 메모리(limit 85% 5분), 에이전트 연속 실패(3회), 스케줄 정체(9~21시에 2시간), 장기 침묵(먼저 말을 거는 에이전트가 24시간 활동 없음, info) |
+| 신호와 시각(`incident_id`) | `종류:대상:연 시각`. 같은 신호에 열린 사고가 있으면 새로 열지 않는다 |
+| `IncidentStore` | `~/.jarvis/ion/incidents.json`. 같은 id 는 하나, 알림과 답은 처음 값만 남는다 |
+| 감시 루프(15초, 지표와 컨테이너 통계는 60초) | 사고 열기와 알림 한 번, 신호가 사라지면 닫기 |
+| `GET /ion/status`, `GET /ion/events` | 상태 한 장, 사고 이벤트 SSE |
+| `GET /ion/incidents?closed=1&limit=N`, `GET /ion/logs?since_ms&until_ms&lines` | 닫힌 사고까지 최신순, 백엔드 컨테이너 로그(프록시의 logs, 다중화 프레임을 풀어 글로) |
+| Ion 프로필의 도구 `ion_status`, `ion_incidents`, `ion_respond`, `ion_report` | 위 API 를 백엔드 안에서 부른다(`JARVIS_ION__URL`, 기본 `http://jarvis-ion:7778`). `ion_respond` 는 사고의 버튼을 대신 누르거나 incident_id 없이 재기동. `ion_report` 는 사고 10분 전부터 닫힐 때까지의 로그와 타임라인을 돌려주고 요약은 모델이 한다. 로그는 신뢰하지 않는 입력이라 머리에 그렇게 적는다 |
+| `POST /ion/incidents/{id}/respond` `{action}` | `restart`, `stop`, `pause`, `ignore`. 사고당 한 번만 행동 |
+| HUD ION 띠와 끼어들기(`static/app/ion.js`) | 열린 사고를 헤더 아래 한 줄씩, 그리고 지금 보는 어느 에이전트의 대화에든 ION 카드로 보이고 버튼으로 답한다. 심각도(`severity`: critical 은 무응답, 재시작 루프, 멈춤. warning 은 메모리, 연속 실패, 정체)로 구체 뒤 배경을 물들인다. SSE 로 바로 갱신, 데스크톱 앱이면 OS 알림. `docs/view_spec.md` |
+| `~/.jarvis/ion/subscriptions.json` | Postgres 의 푸시 구독을 60초마다 복사. DB 가 죽어도 알림이 나간다 |
+
+**처리 흐름**: 백엔드는 `JobBoard` 기록(연속 실패 수 `fail_streak` 포함)과 스케줄 작업의 에이전트, 열린 세션, `LoopLagMonitor` 를 `PlatformMetricsService` 가 한 장으로 접어 `platform_router` 가 낸다. Ion 쪽은 `watch_service` 가 `backend_client`(health, metrics, jobs)와 `docker_client`(inspect, stats)로 관측해 `health_rules` 에 넣고, 신호마다 `incident_store` 에 사고 하나를 열어 알림(`ion_cli` 의 푸시, `ion_app` 의 SSE)을 한 번 보내며, 답(`respond`)은 처음 것만 행동으로 옮긴다. 앱은 nginx 의 `/ion/` 로 붙는다.
+
+**구현 파일**
+
+| 파일 | 층 | 역할 |
+|---|---|---|
+| `src/jarvis/core/platform/metrics_service.py` | core | 에이전트별 작업 지표와 프로세스 지표 |
+| `src/jarvis/core/platform/loop_lag.py` | core | 이벤트 루프 지연 하트비트 |
+| `src/jarvis/ui/web/router/platform_router.py` | ui | `GET /api/platform/metrics` |
+| `src/jarvis/core/workflow/job_board.py` | core | `fail_streak` 기록 |
+| `src/jarvis/ion/health_rules.py` | ion | 관측값 → 신호. 순수 함수 |
+| `src/jarvis/ion/incident_store.py` | ion | 사고 기록 파일 |
+| `src/jarvis/ion/ion_config.py` | ion | 설정(`JARVIS_ION__*`, 푸시 키와 DSN 은 백엔드 변수 되쓰기) |
+| `src/jarvis/ion/watch_service.py` | ion | 감시 루프, 사고 열고 닫기, 답에 따른 행동 |
+| `src/jarvis/ion/docker_client.py` | ion | 소켓 프록시 클라이언트. 허용 서비스만. `logs` 와 `demux_logs` |
+| `src/jarvis/core/tools/ion/ion_client.py` | client | 백엔드가 Ion 을 부르는 HTTP(타임아웃, Bearer) |
+| `src/jarvis/core/tools/ion/ion_tools.py` | agent | Ion 프로필의 도구 넷 |
+| `src/jarvis/core/tools/ion/ion_format.py` | common | 상태, 사고, 보고서 재료를 글로(순수) |
+| `team/ion.yaml` | 정의 | I.O.N. 프로필(gpt-4o-mini, proactive 끔, `ion_respond` 는 ask 경계) |
+| `src/jarvis/jarvis_config.py` `IonLinkConfig` | config | `JARVIS_ION__URL`, `JARVIS_ION__ACCESS_KEY`, `JARVIS_ION__TIMEOUT_SEC` |
+| `src/jarvis/ion/backend_client.py` | ion | 백엔드 health, metrics, jobs, 작업 끄기 |
+| `src/jarvis/ion/push_cache.py` | ion | 푸시 구독 파일 복사 |
+| `src/jarvis/ion/ion_app.py` | ion | `/ion/*` HTTP 와 SSE. `POST /ion/restart` 는 사고 없이 백엔드를 재기동한다(SET 화면 RESTART BACKEND) |
+| `src/jarvis/ion/ion_cli.py`, `__main__.py` | ion | 조립과 기동(`python -m jarvis.ion`, 설치 뒤에는 `jarvis-ion`) |
+| `docker-compose.yml`, `nginx/nginx.conf` | ion | `docker-socket-proxy`, `jarvis-ion` 서비스와 `/ion/` 경로 |
+| `src/jarvis/ui/web/static/app/ion.js` | ui | HUD ION 띠(상태 읽기, SSE, 버튼 응답, OS 알림) |
+
+**테스트**
+
+| 종류 | 파일 |
+|---|---|
+| 단위 | `tests/unit/test_platform_metrics_service.py` |
+| 단위 | `tests/unit/test_platform_loop_lag.py` |
+| 단위 | `tests/unit/test_ion_health_rules.py` |
+| 단위 | `tests/unit/test_ion_incident_store.py` |
+| 단위 | `tests/unit/test_workflow_job_board.py`(`fail_streak`) |
+| 단위 | `tests/unit/test_ion_ion_config.py`, `test_ion_docker_client.py`(logs, demux), `test_ion_backend_client.py`, `test_ion_push_cache.py`, `test_ion_watch_service.py`, `test_ion_health_rules.py`(silent), `test_ion_incident_store.py`(recent), `test_tools_ion.py`(도구 넷) |
+| 통합 | `tests/integ/test_platform.py`(지표 API), `tests/integ/test_ion.py`(무응답 → 사고 → 답 → 재기동 한 번, 접근 키) |
+
+**제약과 미구현**: 모바일 푸시의 버튼 답은 앱 저장소(`jarvis_agent_app`)의 서비스 워커가 맡아야 해서 아직 없다. 폰에서는 푸시를 받고 HUD(`/m/` 또는 `/`)를 열어 띠에서 답한다. 데스크톱 OS 알림은 HUD 페이지가 띄우므로 앱 창이 닫혀(트레이) 있어도 오지만 앱 자체가 꺼져 있으면 없다. 메모리 신호는 컨테이너에 memory limit 이 없으면 Docker 가 호스트 전체를 한도로 줘 거의 켜지지 않는다. 프로필별 메모리는 한 프로세스라 못 나눈다(`# ponytail`, Tavu 가 별도 워커로 분리될 때). 장기 침묵 신호와 LLM 요약은 2단계다. Docker Desktop 자체가 죽으면 Ion 도 같이 죽는다.
 
 ### journal: 자기 성찰 저널
 
@@ -560,6 +632,12 @@
 
 **처리 흐름**: `MemoryService.observe` 에서 `working.window` 와 `deixis` 로 창과 지칭을 정하고, `scope` 와 `access` 로 읽을 범위를 계산해 `stores` 조회, `retrieval.scoring` 과 `cues` 로 순위, `remember` 쓰기는 `long_term` 정책 적용, 공고화는 `consolidation.idle` 에서 `semantic_extract` 순.
 
+**커버리지 재검색**(`memory.coverage_recall`, 기본 꺼짐): 회상 블록을 고를 때 사고 모델이 질문에서 기억으로 찾을 대상(사람, 장소, 물건, 일)을 최대 4개 뽑는다. 1차 회상과 함께 돌고 1.5초를 넘기거나 실패하면 1차 결과만 쓴다. 대상 이름이 회상 항목 글에 없고 벡터 유사도도 0.6 미만이면 빠진 것으로 보고, 빠진 대상마다 그 이름으로 한 번 더 찾아 창 안의 턴과 이미 보인 항목을 거른 첫 항목을 1차 결과의 뒷순위와 바꾼다. 회상 개수는 늘지 않고 1차 1순위는 늘 남는다. NVIDIA auto-ontology 의 entity coverage(질문 대상 추출, 후보 검색, 덮였는지 채점)를 옮겼고, 채점은 LLM 대신 글자와 벡터로 한다. 실서비스 조건(k=3, 답과 판정 gpt-4o-mini)에서 기준선(`turns+src`) 대비 이김과 짐은 LongMemEval-s 1 대 0, PersonaMem-v2 7 대 4(p=0.55), MINT-Eval 0 대 0 이다. 노린 multi-session(0.11)과 multi-hop(0.12)은 그대로라 기본은 꺼 둔다(`memory_net_value --coverage`, results.json `memory_net_value.coverage`).
+
+**대상 타임라인**(`memory.timeline_recall`, 기본 꺼짐, 커버리지 재검색이 켜져 있어야 돈다): 질문이 세기, 순서, 기간, n번째를 물으면(`is_aggregate`, 정규식) 커버리지가 뽑은 대상마다 그 이름이 글자로 나오는 일화만 모아 날짜, 세션 안 턴 번호, 조각 번호 순으로 늘어놓은 `[대상 타임라인] 이름: 언급 n건` 블록을 회상 블록 뒤에 붙인다. 개수는 코드가 세고, 대상 하나에 40줄(줄마다 이름 둘레 100자)을 넘으면 최근 것만 남기고 그렇다고 적는다. 벡터로만 비슷한 일화는 넣지 않는다(세는 질문에 다른 대상이 섞이지 않게). 별칭("엄마"와 "어머니")은 합치지 않는다(`# ponytail`). 저장소에서 읽은 시각은 로컬(naive)로 되돌린다. 예전에는 UTC 로 돌려 회상 블록의 날짜가 9시간 앞당겨졌다. 커버리지 재검색 대비 이김과 짐은 LongMemEval-s 1 대 0, PersonaMem-v2 1 대 0, MINT-Eval 1 대 1 이고 temporal-reasoning(0.0), counting(0.0), ordering(0.0)은 그대로라 기본은 꺼 둔다. 타임라인이 붙은 문항은 LongMemEval-s 60 중 19, MINT-Eval 40 중 12 다. MINT-Eval 순서 문항은 뽑은 대상 이름이 일화 글과 맞지 않아 블록이 비었고, LongMemEval-s 시간 문항은 블록이 붙어도 답 모델이 날짜 계산을 못 해 "모름" 으로 답했다(`memory_net_value --timeline`, results.json `memory_net_value.timeline`).
+
+**정정 되먹이기**: 턴이 끝날 때 사용자 발화가 정정 표현("아니", "그게 아니라", "틀렸어", "이제는", "actually", "no," 등, `is_correction`)이고 이번 턴에 의미 사실이 회상돼 있었으면, 그 턴만 바로 사실 추출에 넣는다. 추출기에 `[정정 전 사실]` 을 함께 보여 같은 주제 이름을 쓰게 하고, `remember` 의 같은 주제 대체로 옛 사실을 `superseded_by` 로 잇는다. 뽑은 턴은 추출 완료로 표시해 공고화가 다시 뽑지 않는다. 예전에는 조용한 틱의 공고화까지 틀린 사실이 계속 회상됐다. auto-ontology 의 "certified corrections fold back" 을 옮겼다.
+
 **구현 파일**
 
 | 파일 | 층 | 역할 |
@@ -573,9 +651,13 @@
 | `src/jarvis/memory/consolidation/semantic_extract.py` | memory | 일화에서 사실 추출 |
 | `src/jarvis/memory/long_term/episodic.py` | memory | 일화 기억 정책 |
 | `src/jarvis/memory/long_term/semantic.py` | memory | 의미 기억 대체와 간섭 후보 |
+| `src/jarvis/memory/long_term/correction_detect.py` | memory | 사용자 발화가 사실을 바로잡는 말인지 가리기(순수 함수) |
 | `src/jarvis/memory/long_term/fact_source.py` | memory | 추출 사실의 출처 턴 고르기와 출처 발췌(발췌는 평가 비교군만, 순수 함수) |
 | `src/jarvis/memory/long_term/procedural.py` | memory | 스킬 파일을 읽기 전용 절차 기억으로 노출 |
 | `src/jarvis/memory/retrieval/cues.py` | memory | 단서 겹침 점수 |
+| `src/jarvis/memory/retrieval/coverage_extract.py` | memory | 질문에서 기억으로 찾을 대상을 뽑는 LLM 경계 |
+| `src/jarvis/memory/retrieval/coverage_grade.py` | memory | 대상이 회상 항목에 덮였는지 가리기, 같은 개수 안에 섞기(순수 함수) |
+| `src/jarvis/memory/retrieval/timeline_build.py` | memory | 집계형 질문 가리기, 대상별 일화 시간순 블록(순수 함수) |
 | `src/jarvis/memory/retrieval/scoring.py` | memory | recency, importance, relevance 합성 점수 |
 | `src/jarvis/memory/stores/store_protocol.py` | memory | 장기 기억 저장소 기본 클래스 |
 | `src/jarvis/memory/stores/in_memory.py` | memory | 프로세스 메모리 저장소 |
@@ -594,6 +676,10 @@
 |---|---|
 | 단위 | `tests/unit/test_memory_access.py` |
 | 단위 | `tests/unit/test_memory_compaction.py` |
+| 단위 | `tests/unit/test_memory_correction_detect.py` |
+| 단위 | `tests/unit/test_memory_coverage_extract.py` |
+| 단위 | `tests/unit/test_memory_coverage_grade.py` |
+| 단위 | `tests/unit/test_memory_timeline_build.py` |
 | 단위 | `tests/unit/test_memory_cues.py` |
 | 단위 | `tests/unit/test_memory_deixis.py` |
 | 단위 | `tests/unit/test_memory_embeddings.py` |
@@ -613,7 +699,7 @@
 | 단위 | `tests/unit/test_memory_state.py` |
 | 단위 | `tests/unit/test_memory_store_protocol.py` |
 | 단위 | `tests/unit/test_memory_window.py` |
-| 통합 | `tests/integ/test_memory.py` |
+| 통합 | `tests/integ/test_memory.py`(커버리지 재검색이 1차 회상에서 빠진 대상의 기억을 되찾음, 타임라인이 대상의 모든 언급을 시간순으로 늘어놓음, 정정한 턴이 공고화 전에 옛 사실을 대체함 포함) |
 
 **제약과 미구현**: 항목 낱말이 답에 절반 넘게 나와야 쓰였다고 본다. 이력이 줄어 턴 번호를 다시 세면 옛 턴 일화를 덮는다. 조사 목록 휴리스틱으로 명사를 자른다. main 에이전트는 정의 파일이 없어 기본 정책(자기 것만)이다. 긴 답은 조각 2개(약 3,000자)까지만 남긴다. 출처 회상을 켜면 회상 블록이 최근성과 중요도를 쓰지 않는다(모두 `# ponytail`). 출처 회상은 `MemoryService(source_recall=...)` 로 끄고 켜며 기본은 켜짐이다(LongMemEval-s 실서비스 블록 조건 정답률 0.28 → 0.50). Memory Tax(He et al. 2026)의 recursive memory 와 미래 수요 예측은 범위 밖이다.
 
@@ -1126,7 +1212,7 @@
 | `POST /api/schedules/{name}` `{enabled}` | 켜기, 끄기 |
 | 실행 시각 | ws `reminder`, 열린 화면이 없으면 최근 20건을 다음 접속 때 `missed:true` 로. `deliver: conversation` 이면 최근 대화 세션에 `proactive_message` |
 
-**처리 흐름**: `schedule_cmd` 또는 `tool` 에서 `classify` 로, `scheduler_loader` 저장, `SchedulerService` 루프가 때가 된 `ScheduledTask` 를 새 세션에서 실행, 알림 순. `run_until` 이 지난 작업은 `set_enabled` 로 꺼서 저장 파일에도 남기므로 재시작해도 다시 켜지지 않는다.
+**처리 흐름**: `schedule_cmd` 또는 `tool` 에서 `classify` 로, `scheduler_loader` 저장, `SchedulerService` 루프가 때가 된 `ScheduledTask` 를 새 세션에서 실행, 알림 순. `run_until` 이 지난 작업은 `set_enabled` 로 꺼서 저장 파일에도 남기므로 재시작해도 다시 켜지지 않는다. cron 작업은 마지막으로 돌린 슬롯보다 뒤인 슬롯이 보이면 경과 시간과 무관하게 한 번 돌린다. 호스트 절전으로 정각을 여럿 지나쳐도 깨어난 뒤 가장 최근 슬롯 하나만 따라잡는다. 기동 직후(아직 돌린 적 없음)에는 60초 안의 슬롯만 돌려 켤 때마다 모든 작업이 터지지 않게 한다.
 
 **구현 파일**
 

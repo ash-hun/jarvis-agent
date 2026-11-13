@@ -1,7 +1,8 @@
 """goal: goals_types 의 자연 키, 답 해석, 새로 알릴 항목 고르기, 진행 기록이 두 번 적어도 한 번만 남는지 검증."""
 
 from jarvis.core.goals.goals_types import (
-    MAX_NOTES, Goal, Step, advance, compose, goal_key, new_items, parse_step, with_tool_items, worth_noting,
+    DONE_KEY, DONE_QUESTION, MAX_NOTES, Goal, Step, advance, compose, goal_key, new_items, parse_step,
+    with_done_question, with_tool_items, worth_noting,
 )
 
 REPLY = (
@@ -67,8 +68,15 @@ def test_advance_keeps_only_the_latest_notes():
     assert len(g.notes) == MAX_NOTES and g.notes[-1] == f"n{MAX_NOTES + 4}"
 
 
-def test_advance_done_step_closes_the_goal():
-    assert advance(goal(), Step(done=True, parsed=True), [], 1).status == "done"
+def test_advance_done_step_keeps_the_goal_open():
+    assert advance(goal(), Step(done=True, parsed=True), [], 1).status == "active"
+
+
+def test_with_done_question_asks_once_only_when_done():
+    asked = with_done_question(Step(items=(("A", "a"),), done=True))
+    assert asked.items == (("A", "a"), (DONE_KEY, DONE_QUESTION))
+    assert with_done_question(asked) == asked
+    assert with_done_question(Step(items=(("A", "a"),))).items == (("A", "a"),)
 
 
 def test_parse_step_reads_reply_without_field_labels():

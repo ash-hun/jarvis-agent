@@ -407,3 +407,76 @@ class TestRecallCandidates:
         scope = MemoryScope(user_id="ref", agent_id="main")
         await ltm.remember("그 방법 계속 써", source="explicit", scope=scope, referent="롤백 방식으로 고쳤다")
         assert [i.content for i in await ltm.recall("롤백", scope)] == ["그 방법 계속 써"]
+
+
+async def test_observe_with_coverage_brings_back_the_missed_entity(ltm):
+    from jarvis.memory.memory_service import LTM_HEADER, MemoryService
+    from jarvis.model_layer.model_types import UserMessage
+
+    scope = MemoryScope(user_id="cov", agent_id="main", session_id="old")
+    for text in ("Emma 와 주말 일정 정함", "Emma 와 저녁 일정 겹침", "Emma 일정 공유", "치과 예약은 금요일 오후"):
+        await ltm.remember(text, source="explicit", scope=scope)
+
+    async def extract(question: str) -> list[str]:
+        return ["Emma", "치과"]
+
+    question = [UserMessage(content="Emma 랑 치과 일정 겹쳐?", timestamp=0)]
+    ctx = {"user_id": "cov", "agent_id": "main", "session_id": "new"}
+    plain = MemoryService(ltm.store, inject_limit=2, fixed_facts=0)
+    covered = MemoryService(ltm.store, inject_limit=2, fixed_facts=0, coverage=extract)
+
+    def block(messages: list) -> str:
+        return next(m.content for m in messages if isinstance(m.content, str) and m.content.startswith(LTM_HEADER))
+
+    assert "치과" not in block(await plain.observe(question, ctx))
+    shown = block(await covered.observe(question, ctx))
+    assert "치과" in shown and "Emma" in shown
+
+
+async def test_observe_with_timeline_lists_every_mention_in_time_order(ltm):
+    from datetime import datetime
+
+    from jarvis.memory.memory_service import MemoryService
+    from jarvis.model_layer.model_types import UserMessage
+
+    scope = MemoryScope(user_id="tl", agent_id="main", session_id="old")
+    for day, text in ((3, "Mary moved to the garden"), (1, "Mary moved to the office"), (7, "John slept"),
+                      (5, "Mary moved to the kitchen")):
+        await ltm.remember(text, source="manual_compact", scope=scope, created_at=datetime(2026, 1, day))
+
+    async def extract(question: str) -> list[str]:
+        return ["Mary"]
+
+    memory = MemoryService(ltm.store, inject_limit=1, fixed_facts=0, coverage=extract, timeline=True)
+    out = await memory.observe([UserMessage(content="How many times has Mary moved?", timestamp=0)],
+                               {"user_id": "tl", "agent_id": "main", "session_id": "new"})
+
+    block = next(m.content for m in out if str(m.content).startswith("[대상 타임라인]"))
+    assert block.splitlines() == [
+        "[대상 타임라인] Mary: 언급 3건, 오래된 것부터",
+        "- [2026-01-01] Mary moved to the office",
+        "- [2026-01-03] Mary moved to the garden",
+        "- [2026-01-05] Mary moved to the kitchen",
+    ]
+
+
+async def test_correction_turn_replaces_fact_before_consolidation(ltm):
+    from jarvis.memory.consolidation.semantic_extract import Fact
+    from jarvis.memory.memory_service import MemoryService
+    from jarvis.model_layer.model_types import UserMessage
+    from jarvis.memory import MemoryKind
+
+    async def extractor(text: str) -> list[Fact]:
+        return [Fact(key="거주지", value="부산", importance=0.9)] if "부산" in text else []
+
+    scope = MemoryScope(user_id="fix", agent_id="main", session_id="s1")
+    memory = MemoryService(ltm.store, extractor=extractor)
+    old = await memory.remember("거주지: 서울", source="explicit", scope=scope)
+    ctx = {"user_id": "fix", "agent_id": "main", "session_id": "s1"}
+    await memory.observe([UserMessage(content="아니, 거주지는 이제 부산이야", timestamp=0)], ctx)
+    await memory.reinforce("부산으로 기억할게요.", ctx)
+
+    facts = await memory.recall("거주지", scope=scope, kinds=[MemoryKind.SEMANTIC])
+    assert [f.content for f in facts] == ["거주지: 부산"]
+    assert (await memory.get(old)).superseded_by == facts[0].id
+

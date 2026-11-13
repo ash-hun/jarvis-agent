@@ -1,0 +1,97 @@
+"""[ion] Ion 의 HTTP: 상태, 사고 목록과 로그, 사고 응답과 재기동, SSE 이벤트. 앱은 nginx 의 /ion/ 로 붙는다."""
+
+import asyncio
+import contextlib
+from typing import Any
+from fastapi import FastAPI, Request
+from collections.abc import AsyncIterator
+from fastapi.responses import JSONResponse, StreamingResponse
+
+from jarvis.ion.watch_service import ACTIONS, WatchService, sse_line
+
+QUEUE_MAX = 100
+
+
+class EventHub:
+    """열린 SSE 연결마다 큐 하나. 느린 연결은 오래된 이벤트를 버린다."""
+
+    def __init__(self) -> None:
+        self._queues: set[asyncio.Queue[dict[str, Any]]] = set()
+
+    async def publish(self, payload: dict[str, Any]) -> None:
+        for queue in list(self._queues):
+            if queue.full():
+                queue.get_nowait()
+            queue.put_nowait(payload)
+
+    async def stream(self) -> AsyncIterator[str]:
+        queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(QUEUE_MAX)
+        self._queues.add(queue)
+        try:
+            yield sse_line({"type": "hello"})
+            while True:
+                yield sse_line(await queue.get())
+        finally:
+            self._queues.discard(queue)
+
+
+def _token_of(request: Request) -> str | None:
+    header = request.headers.get("authorization", "")
+    scheme, _, value = header.partition(" ")
+    if scheme.lower() == "bearer" and value.strip():
+        return value.strip()
+    return request.query_params.get("token")
+
+
+def build_ion_app(service: WatchService, hub: EventHub, access_key: str | None) -> FastAPI:
+    @contextlib.asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        await service.start()
+        yield
+        await service.stop()
+
+    app = FastAPI(title="Jarvis Ion", docs_url=None, redoc_url=None, lifespan=lifespan)
+
+    @app.middleware("http")
+    async def check_key(request: Request, call_next: Any) -> Any:
+        if access_key and _token_of(request) != access_key:
+            return JSONResponse({"error": "unauthorized"}, status_code=401)
+        return await call_next(request)
+
+    @app.get("/ion/status", summary="플랫폼 상태")
+    async def status() -> JSONResponse:
+        return JSONResponse(service.status())
+
+    @app.get("/ion/incidents", summary="사고 목록")
+    async def incidents(closed: int = 0, limit: int = 20) -> JSONResponse:
+        return JSONResponse({"incidents": service.incidents(bool(closed), max(1, min(limit, 100)))})
+
+    @app.get("/ion/logs", summary="백엔드 컨테이너 로그")
+    async def logs(since_ms: int | None = None, until_ms: int | None = None, lines: int = 200) -> JSONResponse:
+        text = await service.logs(since_ms, until_ms, max(1, min(lines, 1000)))
+        return JSONResponse({"text": text, "lines": len(text.splitlines())})
+
+    @app.post("/ion/incidents/{incident_id}/respond", summary="사고에 답하기")
+    async def respond(incident_id: str, request: Request) -> JSONResponse:
+        body = await request.json() if await request.body() else {}
+        action = str(body.get("action") or "")
+        if action not in ACTIONS:
+            return JSONResponse({"error": f"action must be one of {list(ACTIONS)}"}, status_code=400)
+        incident = await service.respond(incident_id, action)
+        if incident is None:
+            return JSONResponse({"error": "unknown incident"}, status_code=404)
+        view = service.view(incident)
+        await hub.publish({"type": "incident_update", "incident": view})
+        return JSONResponse({"incident": view})
+
+    @app.post("/ion/restart", summary="백엔드 재기동")
+    async def restart() -> JSONResponse:
+        ok = await service.restart_backend()
+        return JSONResponse({"ok": ok, "result": "재기동함" if ok else "재기동 실패"}, status_code=200 if ok else 502)
+
+    @app.get("/ion/events", summary="사고 이벤트(SSE)")
+    async def events() -> StreamingResponse:
+        return StreamingResponse(hub.stream(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    return app

@@ -1,6 +1,7 @@
 """memory 기능의 MemoryService: 쓰기 규칙, 범위 격리, 턴 전 주입과 되뇌기, 턴 일화, 공고화, 임베딩, 작업 패턴."""
 
 import pytest
+import asyncio
 from datetime import datetime, timedelta
 
 from jarvis.memory.memory_service import (
@@ -725,3 +726,82 @@ async def test_observe_with_source_recall_brings_back_the_source_turn(memory):
     recall = next(b for b in await observe(on, other, "땅콩 알레르기") if b.startswith(LTM_HEADER))
 
     assert "나 땅콩 알레르기 있어" in recall
+
+
+def _coverage(names: list[str], delay: float = 0.0):  # type: ignore[no-untyped-def]
+    async def extract(question: str) -> list[str]:
+        await asyncio.sleep(delay)
+        return names
+
+    return extract
+
+
+async def test_cover_adds_item_for_entity_the_first_recall_missed():
+    store = InMemoryItemStore()
+    seed = MemoryService(store)
+    await seed.remember("Emma 와 북한산에 갔다", source="explicit", scope=U1_MAIN)
+    await seed.remember("치과 예약은 금요일", source="explicit", scope=U1_MAIN)
+    mgr = MemoryService(store, coverage=_coverage(["Emma", "치과"]))
+    first = await mgr.recall("Emma", U1_MAIN, limit=2)
+
+    covered = await mgr.cover(await mgr.entities("Emma 랑 치과"), first, U1_MAIN, 2)
+
+    assert [i.content for i in covered] == ["Emma 와 북한산에 갔다", "치과 예약은 금요일"]
+
+
+async def test_entities_over_time_limit_falls_back_to_none():
+    mgr = MemoryService(InMemoryItemStore(), coverage=_coverage(["Emma"], delay=0.2), coverage_timeout=0.01)
+    assert await mgr.entities("Emma") == []
+    assert await MemoryService(InMemoryItemStore()).entities("Emma") == []
+
+
+async def test_observe_adds_timeline_only_for_aggregate_questions():
+    store = InMemoryItemStore()
+    seed = MemoryService(store)
+    for day, text in ((1, "Emma 와 카페"), (5, "Emma 와 등산"), (9, "Emma 생일 저녁")):
+        await seed.remember(text, source="manual_compact", scope=U1_MAIN, created_at=datetime(2026, 1, day))
+    mgr = MemoryService(store, coverage=_coverage(["Emma"]), timeline=True)
+    ctx = {"user_id": "u1", "agent_id": "main", "session_id": "s2"}
+
+    asked = await mgr.observe([UserMessage(content="Emma 랑 몇 번 만났지?", timestamp=0)], ctx)
+    plain = await mgr.observe([UserMessage(content="Emma 는 뭘 좋아해?", timestamp=0)], ctx)
+
+    block = next(m.content for m in asked if str(m.content).startswith("[대상 타임라인]"))
+    assert block.startswith("[대상 타임라인] Emma: 언급 3건")
+    assert not any(str(m.content).startswith("[대상 타임라인]") for m in plain)
+
+
+async def test_correction_turn_supersedes_recalled_fact_right_away(memory):
+    seen: list[str] = []
+
+    async def extractor(text: str) -> list[Fact]:
+        seen.append(text)
+        return [Fact(key="거주지", value="부산", importance=0.9)]
+
+    mgr = MemoryService(memory.store, memory.working, extractor=extractor)
+    old = await mgr.remember("거주지: 서울", source="explicit", scope=U1_MAIN)
+    history = [_u("아니, 거주지 서울 아니고 이제 부산이야")]
+    await mgr.observe(history, CTX)
+    await mgr.reinforce("알겠어요, 부산으로 기억할게요.", CTX)
+
+    assert (await mgr.get(old)).superseded_by is not None
+    facts = await mgr.recall("거주지", scope=U1_MAIN, kinds=[MemoryKind.SEMANTIC])
+    assert [i.content for i in facts] == ["거주지: 부산"]
+    assert seen[0].startswith("[정정 전 사실]\n- 거주지: 서울")
+    assert await mgr.consolidate(U1_MAIN) == 0
+
+
+async def test_plain_turn_waits_for_consolidation(memory):
+    calls: list[str] = []
+
+    async def extractor(text: str) -> list[Fact]:
+        calls.append(text)
+        return []
+
+    mgr = MemoryService(memory.store, memory.working, extractor=extractor)
+    await mgr.remember("거주지: 서울", source="explicit", scope=U1_MAIN)
+    await mgr.observe([_u("거주지 근처 맛집 알려줘")], CTX)
+    await mgr.reinforce("근처 맛집은 …", CTX)
+
+    assert calls == []
+

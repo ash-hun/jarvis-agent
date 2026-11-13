@@ -73,18 +73,7 @@ class AgentProfile:
 
     def thought_model(self) -> "ModelConfig":
         """사고 모델: 사고 설정에 지정한 항목만 메인 모델에서 바꾸고 나머지는 이어받는다."""
-        from jarvis.model_layer.model_types import ModelConfig
-
-        tcfg = self.thought
-        api_key = tcfg.api_key.get_secret_value() if tcfg.api_key is not None else self.model.api_key
-        return ModelConfig(
-            provider=tcfg.provider or self.model.provider,
-            model=tcfg.model or self.model.model,
-            api_key=api_key,
-            base_url=tcfg.base_url or self.model.base_url,
-            temperature=self.model.temperature,
-            max_tokens=self.model.max_tokens,
-        )
+        return thought_model_config(self.thought, self.model)
 
     def reply_classifier(self) -> "ReplyClassifier | None":
         """🔔 짧은 답과 음성 승인 답 분류기. 사고가 꺼져 있으면 None(화면은 키워드만 쓴다)."""
@@ -114,3 +103,18 @@ class AgentProfile:
             return DefaultProactivityCore(emit_proactive=emit, policy=policy)
 
         return factory
+
+
+def thought_model_config(tcfg: "ThoughtConfig", main: "ModelConfig") -> "ModelConfig":
+    """사고 설정에 지정한 항목만 main 모델에서 바꾼다. 순수 함수."""
+    from jarvis.model_layer.model_types import ModelConfig
+
+    api_key = tcfg.api_key.get_secret_value() if tcfg.api_key is not None else main.api_key
+    return ModelConfig(
+        provider=tcfg.provider or main.provider,
+        model=tcfg.model or main.model,
+        api_key=api_key,
+        base_url=tcfg.base_url or main.base_url,
+        temperature=main.temperature,
+        max_tokens=main.max_tokens,
+    )

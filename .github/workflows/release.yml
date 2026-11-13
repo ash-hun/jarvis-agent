@@ -20,8 +20,9 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # 이 워크플로가 올린 릴리즈 커밋은 GITHUB_TOKEN 푸시라 다시 트리거되지 않지만, 손으로 올린 경우를 막는다
-    if: ${{ !startsWith(github.event.head_commit.message, 'Release:') }}
+    # 이 워크플로가 올린 버전 커밋(Release: vX.Y.Z)은 GITHUB_TOKEN 푸시라 다시 트리거되지 않지만, 손으로 올린 경우를 막는다.
+    # 'Release:' 전체로 거르면 'Release: develop 을 main 에 합친다' 같은 릴리즈 PR 머지까지 건너뛴다(#213)
+    if: "${{ !startsWith(github.event.head_commit.message, 'Release: v') }}"
     steps:
       - uses: actions/checkout@v4
         with:

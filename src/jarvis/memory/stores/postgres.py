@@ -4,7 +4,7 @@ import json
 import asyncio
 import contextlib
 from typing import Any
-from datetime import UTC, datetime
+from datetime import datetime
 from collections.abc import Sequence
 
 from jarvis.memory.stores.store_protocol import OUTCOME, TASK_TYPE, ItemFilter, ItemStore, tokens_of
@@ -370,8 +370,10 @@ def _naive(value: Any) -> datetime | None:
     if value is None:
         return None
     parsed: datetime = datetime.fromisoformat(value) if isinstance(value, str) else value
-    if parsed.tzinfo is not None:  # asyncpg 는 aware 로 돌려준다. 코드 전체가 naive 를 쓴다
-        parsed = parsed.astimezone(UTC).replace(tzinfo=None)
+    # asyncpg 는 naive 를 로컬 시각으로 써서 aware(UTC)로 돌려준다. 코드 전체가 naive 로컬 시각이라 로컬로 되돌린다.
+    # UTC 로 두면 회상 블록의 날짜가 9시간(KST) 앞당겨져 09시 전 일화가 전날로 보였다
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone().replace(tzinfo=None)
     return parsed
 
 

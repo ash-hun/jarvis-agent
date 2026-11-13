@@ -223,3 +223,16 @@ async def test_step_runs_the_model_when_replay_fails_or_is_unavailable(tmp_path)
     await runner.step(goal.id, ["housing_budget"], [], run, broken)
     saved = store.get(goal.id)
     assert saved is not None and saved.seen == "" and saved.last_calls == []
+
+
+async def test_step_done_reply_keeps_goal_active_and_asks_to_stop_once(tmp_path):
+    store, runner, goal = goal_setup(tmp_path)
+    done = REPLY.replace("완료: 아니오", "완료: 예")
+    run, _ = replying(done, done)
+    first = await runner.step(goal.id, ["housing_budget"], [], run)
+    runner.settle(goal.id, delivered=True)
+    again = await runner.step(goal.id, ["housing_budget"], [], run)
+    runner.settle(goal.id, delivered=True)
+    saved = store.get(goal.id)
+    assert "그만 챙길까요?" in first and again == ""
+    assert saved is not None and saved.status == "active" and "ask-done" in saved.reported

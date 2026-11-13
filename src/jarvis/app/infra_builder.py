@@ -196,10 +196,15 @@ class InfraBuilder:
         """에이전트 정의가 이름으로 골라야 쓰는 도구. JARVIS(도구 목록 없음)의 레지스트리에는 넣지 않는다."""
         from jarvis.core.tools.housing import ProfileStore, housing_tools
         from jarvis.core.tools.tools_registry import ToolRegistry
+        from jarvis.core.tools.ion import IonClient, ion_tools
 
         registry = ToolRegistry()
         profiles = ProfileStore(memory) if memory is not None else None
         for tool in housing_tools(profiles=profiles, loops=loops):
+            registry.register(tool)
+        ion = self._settings.ion
+        key = ion.access_key.get_secret_value() if ion.access_key else None
+        for tool in ion_tools(IonClient(ion.url, key, ion.timeout_sec)):
             registry.register(tool)
         return registry
 
@@ -219,7 +224,9 @@ class InfraBuilder:
     def build_memory(self, model_config: "ModelConfig", skill_registry: "SkillRegistry") -> "MemoryService":
         """임베딩, 항목과 작업 기억 저장소(in_memory 또는 Postgres), 요약과 사실 추출을 단 메모리 서비스."""
         from jarvis.memory.consolidation.semantic_extract import llm_fact_extractor
+        from jarvis.memory.retrieval.coverage_extract import llm_entity_extractor
         from jarvis.memory.long_term.procedural import SkillRegistryProcedures
+        from jarvis.app.agent_profile import thought_model_config
         from jarvis.app.agent_registry import load_agent_specs
         from jarvis.memory.memory_service import MemoryService
         from jarvis.memory.retrieval import ScoringParams
@@ -267,6 +274,10 @@ class InfraBuilder:
             interference_threshold=mcfg.interference_threshold,
             embedder=embedder,
             min_similarity=mcfg.min_similarity,
+            coverage=llm_entity_extractor(
+                thought_model_config(settings.thought, model_config).model_copy(update={"temperature": 0.0})
+            ) if mcfg.coverage_recall else None,
+            timeline=mcfg.timeline_recall,
         )
 
     def build_session_repo(self) -> "SessionRepo":

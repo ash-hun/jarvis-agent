@@ -57,6 +57,19 @@ AgentResolver = Callable[[str], "TaskAgent | None"]
 logger = get_logger(__name__)
 
 
+def job_outcome(text: str | None, delivered: bool) -> tuple[bool, str]:
+    """작업 기록에 적을 (성공, 오류). 실패는 못 만든 것(None)과 만들었는데 못 건넨 것뿐이다.
+
+    알릴 것이 없어 빈 글을 준 차례는 성공이다. 이걸 실패로 적으면 새 공고가 드문 KAREN 이 매 정각 실패로 쌓여
+    Ion 이 연속 실패 사고를 열고, 성공 시각이 한 번도 안 찍혀 정체 규칙은 영영 안 울렸다(11-13 실측). 순수 함수.
+    """
+    if text is None:
+        return False, "결과를 만들지 못했다"
+    if not text.strip() or delivered:
+        return True, ""
+    return False, "결과를 건네지 못했다"
+
+
 class SchedulerService:
     """스케줄 루프. cron 반복 작업(croniter)과 정한 시각 한 번 실행(run_at) 작업.
 
@@ -252,11 +265,23 @@ class SchedulerService:
             except Exception as exc:
                 logger.info(f"[Scheduler] Cron parse error for '{task.name}': {exc}")
                 continue
-            # 직전 cron 슬롯이 최근 60초 안이고 그 슬롯을 아직 안 돌았으면 실행
-            if (now_dt - prev).total_seconds() < 60 and self._last_run.get(task.name) != prev:
+            if self._due(task.name, prev, now_dt):
                 self._last_run[task.name] = prev
                 fired.append(self._spawn(self._run_and_deliver(task)))
         return fired
+
+    def _due(self, name: str, prev: datetime, now_dt: datetime) -> bool:
+        """직전 cron 슬롯을 지금 돌릴지.
+
+        한 번이라도 돌린 작업은 마지막으로 돌린 슬롯보다 뒤면 경과 시간과 무관하게 돌린다. 호스트가 절전에
+        들어가 정각을 지나치면(11-11 실측, 네 슬롯) 깨어난 뒤 가장 최근 슬롯 하나만 따라잡고 그 사이 슬롯은 버린다.
+        아직 한 번도 돌리지 않은 작업(기동 직후)은 슬롯이 60초 안일 때만 돌려, 켤 때마다 모든 cron 작업이
+        터지지 않게 한다.
+        """
+        last = self._last_run.get(name)
+        if last is None:
+            return (now_dt - prev).total_seconds() < 60
+        return last < prev
 
     def _spawn(self, coro: Coroutine[Any, Any, None]) -> asyncio.Task[None]:
         t = asyncio.create_task(coro)
@@ -287,6 +312,7 @@ class SchedulerService:
         job_id = f"schedule:{task.name}"
         if self._jobs is not None:
             await self._jobs.start(job_id, "schedule", task.description or task.name)
+        text: str | None = None
         delivered = False
         try:
             text = await self._produce(task)
@@ -294,7 +320,8 @@ class SchedulerService:
         finally:
             _settles.reset(token)
             if self._jobs is not None:
-                await self._jobs.finish(job_id, delivered, "" if delivered else "결과를 만들거나 건네지 못했다")
+                ok, error = job_outcome(text, delivered)
+                await self._jobs.finish(job_id, ok, error)
         for settle in settles:
             try:
                 settle(delivered)

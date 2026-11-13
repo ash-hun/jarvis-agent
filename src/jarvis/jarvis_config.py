@@ -100,6 +100,10 @@ class MemoryConfig(BaseModel):
     stm_turns: int = 3  # 모델에 넣는 최근 턴 수. 그 밖은 턴마다 쓴 EDM 에서 회상한다
     fixed_facts: int = 3  # 매 턴 항상 넣는 상위 의미 사실 수(고정 블록)
     recall_limit: int = 3  # 질의로 회상해 넣는 항목 수(회상 블록)
+    # 회상이 질문의 대상(사람, 장소, 물건)을 다 덮지 못하면 빠진 대상으로 다시 찾는다. 사고 모델로 대상을 뽑는다
+    coverage_recall: bool = False
+    # 세기, 순서, 기간을 묻는 질문이면 대상별 일화를 시간순으로 붙인다. coverage_recall 이 켜져 있어야 돈다
+    timeline_recall: bool = False
     importance_threshold: float = 0.5  # 의미 추출 결과 중 이 값 미만은 버린다
     recency_half_life_hours: float = 168.0  # 검색 점수의 recency 반감기(일주일)
     importance_half_life_days: float = 90.0  # 되뇌기 없는 항목의 importance 반감기. 0 이면 감쇠 없음
@@ -417,6 +421,16 @@ class VoiceConfig(BaseModel):
         return {"model_path": self.piper_model, "noise_scale": self.piper_noise_scale}
 
 
+class IonLinkConfig(BaseModel):
+    """백엔드 안의 Ion 프로필이 Ion 컨테이너(/ion/*)를 부를 주소. 접근 키는 Ion 컨테이너의 것과 같다."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    url: str = "http://jarvis-ion:7778"
+    access_key: SecretStr | None = None
+    timeout_sec: float = 5.0
+
+
 class JarvisSettings(BaseSettings):
     """
     최상위 설정 — .env 또는 환경변수에서 자동 로딩.
@@ -450,6 +464,7 @@ class JarvisSettings(BaseSettings):
     external: ExternalTriggerConfig = Field(default_factory=ExternalTriggerConfig)
     procedures: ProcedureConfig = Field(default_factory=ProcedureConfig)
     notify: NotifyConfig = Field(default_factory=NotifyConfig)
+    ion: IonLinkConfig = Field(default_factory=IonLinkConfig)
     web_search: WebSearchConfig = Field(default_factory=WebSearchConfig)
     mcp_servers: list[MCPServerConfig] = Field(default_factory=list)
     debug: bool = False

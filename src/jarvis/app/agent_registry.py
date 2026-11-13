@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from jarvis.core.scheduler.scheduler_service import TaskAgent
     from jarvis.core.policy.approval_rules import ApprovalRules
     from jarvis.core.tools.tools_registry import ToolRegistry
+    from jarvis.model_layer.model_types import ModelConfig
     from jarvis.app.app_services import AppServices
     from jarvis.app.app_context import AppContext
     from jarvis.core.session import AgentSession
@@ -50,6 +51,8 @@ class AgentSpec(BaseModel):
     system_prompt: str | None = None
     # 모델 이름만 바꾼다. 프로바이더, 키, 주소는 main 것을 쓴다
     model: str | None = None
+    # main 과 다른 프로바이더. 주면 키는 그 SDK 의 환경변수(OPENAI_API_KEY 등)에서 읽고 주소는 기본값을 쓴다
+    provider: str | None = None
     # 비우면 도구 전체
     tools: list[str] = Field(default_factory=list)
     # 비우면 main 의 proactive 설정 그대로
@@ -78,11 +81,20 @@ def load_agent_specs(team_dir: str) -> dict[str, AgentSpec]:
     return specs
 
 
+def agent_model(main: "ModelConfig", provider: str | None, model: str | None) -> "ModelConfig":
+    """정의의 프로바이더와 모델을 main 위에 얹는다. 프로바이더가 다르면 main 의 키와 주소를 넘기지 않는다. 순수 함수."""
+    if provider and provider != main.provider:
+        # main 의 키를 다른 프로바이더로 보내면 인증 오류가 나고 키가 엉뚱한 곳으로 나간다
+        return main.model_copy(update={"provider": provider, "model": model or main.model, "api_key": None,
+                                       "base_url": None})
+    return main.model_copy(update={"model": model}) if model else main
+
+
 def profile_from_spec(agent_id: str, spec: AgentSpec, main: AgentProfile) -> AgentProfile:
     """정의 한 장을 main 위에 얹어 AgentProfile 로. 피드백 학습기는 에이전트마다 새로 만든다."""
     from jarvis.core.proactive import FeedbackLearner
 
-    model = main.model.model_copy(update={"model": spec.model}) if spec.model else main.model
+    model = agent_model(main.model, spec.provider, spec.model)
     proactive = main.proactive if spec.proactive is None else main.proactive.model_copy(
         update={"enabled": spec.proactive}
     )

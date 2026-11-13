@@ -22,6 +22,13 @@
    - [GET /api/health](#get-apihealth)
    - [GET /api/jobs](#get-apijobs)
    - [POST /api/openloops/{loop_id}](#post-apiopenloopsloop_id)
+   - [GET /api/platform/metrics](#get-apiplatformmetrics)
+   - [GET /ion/status](#get-ionstatus)
+   - [POST /ion/incidents/{incident_id}/respond](#post-ionincidentsincident_idrespond)
+   - [POST /ion/restart](#post-ionrestart)
+   - [GET /ion/incidents](#get-ionincidents)
+   - [GET /ion/logs](#get-ionlogs)
+   - [GET /ion/events](#get-ionevents)
    - [GET /api/push/vapid](#get-apipushvapid)
    - [PUT /api/push/subscriptions](#put-apipushsubscriptions)
    - [DELETE /api/push/subscriptions](#delete-apipushsubscriptions)
@@ -308,6 +315,424 @@ $ curl -s http://localhost:7777/api/jobs
 #### 특이사항
 
 **재호출**: 상태를 바꾸지 않는다. 실행 기록은 프로세스 메모리라 서버가 재시작되면 `runs` 가 0 부터 다시 세고 `last_*` 가 null 이 된다. 성찰과 기억 정리는 세션이 여럿이어도 작업 하나(`proactive:reflect`, `memory:consolidate`)로 센다. 외부 조회는 실제로 조회할 소스가 있을 때만 센다.
+
+---
+
+### GET /api/platform/metrics
+
+백엔드 프로세스 자원, 이벤트 루프 지연, 에이전트별 작업 상태. Ion 가 밖에서 주기적으로 읽어 사고를 판정한다.
+
+#### Endpoint
+
+```
+GET /api/platform/metrics
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | 설정 시 필요 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `at_ms` | integer | 아니오 | 읽은 시각(epoch ms) |
+| `process` | object | 아니오 | `pid`, `rss_bytes`, `cpu_percent`(직전 호출부터의 구간 평균), `threads`, `open_fds`(못 재면 null), `asyncio_tasks`, `uptime_sec` |
+| `loop_lag` | object | 아니오 | `last_ms`, `max_ms`(최근 60초 최대), `samples`. 1초마다 잠들고 늦게 깬 만큼 |
+| `agents` | object[] | 아니오 | 에이전트 id 순. `agent`, `jobs`, `running`, `fail_streak`(그 에이전트 작업 중 가장 긴 연속 실패. 알릴 것이 없어 빈 글로 끝난 차례는 성공이고, 실패는 결과를 못 만들었거나 만든 결과를 못 건넨 차례만이다), `last_ok_ms`, `last_error`, `open_sessions`, `scheduled`(켜진 스케줄 작업이 있는지. 작업 기록과 달리 재기동 직후에도 목록에서 바로 안다), `last_active_ms`(그 에이전트 세션의 마지막 `updated_at`. 세션 저장소가 못 답하면 null), `proactive`(먼저 말을 거는 설정인지). 스케줄 작업은 그 작업의 에이전트로, 성찰과 기억 정리와 외부 조회는 `shared` 로 센다. 작업이 없는 에이전트도 0 으로 나온다 |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+
+#### 호출 예시
+
+```bash
+$ curl -s http://localhost:7777/api/platform/metrics
+{"at_ms":1794500000000,"process":{"pid":1,"rss_bytes":231735296,"cpu_percent":1.5,"threads":12,"open_fds":48,"asyncio_tasks":9,"uptime_sec":86400.0},"loop_lag":{"last_ms":0.4,"max_ms":12.0,"samples":60},"agents":[{"agent":"karen","jobs":1,"running":0,"fail_streak":0,"last_ok_ms":1794499200000,"last_error":"","open_sessions":0,"scheduled":true},{"agent":"main","jobs":0,"running":0,"fail_streak":0,"last_ok_ms":null,"last_error":"","open_sessions":1,"scheduled":false},{"agent":"shared","jobs":2,"running":0,"fail_streak":0,"last_ok_ms":1794499980000,"last_error":"","open_sessions":0,"scheduled":false}]}
+```
+
+#### 특이사항
+
+**재호출**: 상태를 바꾸지 않는다. `cpu_percent` 는 직전 호출 이후 구간의 평균이라 첫 호출은 기동 이후 평균이고, 두 호출 사이가 짧으면 0 에 가깝다. 작업 기록은 프로세스 메모리라 재시작하면 `fail_streak` 와 `last_ok_ms` 가 비워진다. 프로필별 메모리는 한 프로세스라 못 나누며 `process` 가 전체다.
+
+---
+
+### GET /ion/status
+
+Ion(별도 컨테이너)가 본 플랫폼 상태. 백엔드가 죽어도 nginx 의 `/ion/` 로 닿는다.
+
+#### Endpoint
+
+```
+GET /ion/status
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | `JARVIS_ION__ACCESS_KEY` 가 설정돼 있으면 `Authorization: Bearer <키>` 또는 `?token=<키>` 필수 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `at_ms` | integer | 아니오 | 응답 시각 |
+| `backend_ok` | boolean | 예 | 마지막 관측에서 `GET /api/health` 가 200 이었는지. 아직 관측 전이면 null |
+| `observed_ms` | integer | 예 | 마지막 관측 시각 |
+| `container` | object | 예 | `id`, `service`, `status`, `restart_count`, `memory_usage`, `memory_limit`. Docker 프록시에서 못 읽으면 null |
+| `loop_lag_ms` | number | 예 | 백엔드 이벤트 루프 지연(최근 60초 최대) |
+| `agents` | object | 아니오 | 에이전트 id → `fail_streak`, `last_ok_ms`, `scheduled`(백엔드 지표의 `scheduled`. 없는 옛 백엔드면 기록된 작업 수로 짐작), `last_active_ms`, `proactive` |
+| `incidents` | object[] | 아니오 | 열린 사고. `id`, `kind`, `target`, `detail`, `opened_ms`, `notified_ms`, `response`, `responded_ms`, `action_result`, `closed_ms` 에 화면용 `title`, `actions`, `severity`(`critical` 또는 `warning`), `url` 을 붙인다 |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+| `401` | 키 없음 또는 틀림 | `{"error": "unauthorized"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s http://localhost:7777/ion/status
+{"at_ms":1794500000000,"backend_ok":true,"observed_ms":1794499990000,"container":{"id":"abc","service":"jarvis-backend","status":"running","restart_count":0,"memory_usage":1030000000,"memory_limit":8000000000},"loop_lag_ms":8.0,"agents":{"karen":{"fail_streak":0,"last_ok_ms":1794499200000,"scheduled":true},"main":{"fail_streak":0,"last_ok_ms":null,"scheduled":false}},"incidents":[]}
+```
+
+#### 특이사항
+
+**재호출**: 상태를 바꾸지 않는다. 관측은 15초마다, 지표와 컨테이너 통계는 60초마다 갱신된다.
+
+---
+
+### POST /ion/incidents/{incident_id}/respond
+
+사고에 답한다. 답은 사고당 한 번만 받고, 그때만 행동한다(같은 답을 두 번 보내도 행동은 한 번).
+
+#### Endpoint
+
+```
+POST /ion/incidents/{incident_id}/respond
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `POST` |
+| 인증 | `GET /ion/status` 와 같다 |
+| 요청 Content-Type | `application/json` |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `action` | string | 예 | `restart`(백엔드 재기동), `stop`(백엔드 멈춤, 재시작 루프용), `pause`(대상 에이전트의 켜진 스케줄 작업 끄기), `ignore` |
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| `incident_id` | path | string | 예 | | 사고 id(`종류:대상:연 시각 ms`) |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `incident` | object | 아니오 | 갱신된 사고. `action_result` 에 행동 결과 한 줄(`재기동함`, `작업 1개 멈춤`, `무시`) |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+| `400` | `action` 이 넷 중 하나가 아님 | `{"error": "..."}` |
+| `404` | 모르는 사고 | `{"error": "unknown incident"}` |
+| `401` | 키 없음 또는 틀림 | `{"error": "unauthorized"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s -X POST http://localhost:7777/ion/incidents/backend_down:backend:498472/respond -H 'Content-Type: application/json' -d '{"action":"restart"}'
+{"incident":{"id":"backend_down:backend:498472","kind":"backend_down","target":"backend","detail":"health 실패 3회 연속","opened_ms":1794500000000,"notified_ms":1794500000000,"response":"restart","responded_ms":1794500030000,"action_result":"재기동함","closed_ms":null}}
+```
+
+#### 특이사항
+
+**재호출**: 첫 답이 남고 뒤의 답은 그 사고를 그대로 돌려준다. 재기동은 Docker 소켓 프록시의 `restart` 로 가며 두 번 눌러도 결과는 "떠 있음" 하나다. 사고는 신호가 사라질 때 감시 루프가 닫는다.
+
+---
+
+### POST /ion/restart
+
+사고와 무관하게 백엔드 컨테이너를 재기동한다. HUD SET 화면의 RESTART BACKEND 가 부른다(저장했지만 재시작해야 반영되는 설정). 백엔드는 자기를 재시작할 수 없고 데스크톱 앱은 docker 를 모르므로 Ion 이 소켓 프록시로 한다.
+
+#### Endpoint
+
+```
+POST /ion/restart
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `POST` |
+| 인증 | `JARVIS_ION__ACCESS_KEY` 가 있으면 `Authorization: Bearer <키>` 또는 `?token=` |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `ok` | boolean | 아니오 | 프록시가 재기동을 받았는지 |
+| `result` | string | 아니오 | `재기동함` 또는 `재기동 실패` |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 재기동 요청됨 | `{"ok": true, "result": "재기동함"}` |
+| `401` | 키 불일치 | `{"error": "unauthorized"}` |
+| `502` | 프록시가 거절했거나 닿지 않음 | `{"ok": false, "result": "재기동 실패"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s -X POST http://localhost:7777/ion/restart
+{"ok": true, "result": "재기동함"}
+```
+
+#### 특이사항
+
+**재호출**: 부를 때마다 한 번 재기동한다(멱등하지 않다. 재시작 자체가 요청한 행동이다). 재기동 중에는 `/api/*` 가 잠시 502 이고 Ion 의 health 가 3회 연속 실패하기 전에 보통 돌아오므로 사고는 열리지 않는다. 뜨는 데 45초를 넘기면 `backend_down` 사고가 열린다.
+
+---
+
+### GET /ion/incidents
+
+사고 목록. 기본은 열린 사고만이고 `closed=1` 이면 닫힌 사고까지 연 시각이 늦은 순으로 낸다. Ion 프로필의 `ion_incidents`, `ion_report` 가 쓴다.
+
+#### Endpoint
+
+```
+GET /ion/incidents?closed=1&limit=20
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | `JARVIS_ION__ACCESS_KEY` 가 있으면 `Authorization: Bearer <키>` 또는 `?token=` |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| `closed` | query | int | 아니오 | `0` | `1` 이면 닫힌 사고도 |
+| `limit` | query | int | 아니오 | `20` | 최대 건수(1~100) |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `incidents` | object[] | 아니오 | `GET /ion/status` 의 `incidents` 와 같은 꼴. `closed=1` 이면 `closed_ms` 가 있는 사고가 섞인다 |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+| `401` | 키 불일치 | `{"error": "unauthorized"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s 'http://localhost:7777/ion/incidents?closed=1&limit=2'
+{"incidents": [{"id": "agent_failing:karen:1794535268462", "kind": "agent_failing", "target": "karen", "detail": "연속 실패 3회", "opened_ms": 1794535268462, "notified_ms": 1794535268462, "response": null, "responded_ms": null, "action_result": "", "closed_ms": 1794536470454, "title": "Ion: karen 의 작업이 계속 실패해요", "actions": ["pause", "ignore"], "severity": "warning", "url": "/"}]}
+```
+
+#### 특이사항
+
+**재호출**: 상태를 바꾸지 않는다. 같은 저장소면 같은 목록이다.
+
+---
+
+### GET /ion/logs
+
+백엔드 컨테이너 로그. 소켓 프록시의 `containers/{id}/logs` 를 읽어 다중화 프레임을 풀어 글로 낸다. Ion 프로필의 `ion_report` 가 사고 전후 구간을 읽는다.
+
+#### Endpoint
+
+```
+GET /ion/logs?since_ms=1794535000000&until_ms=1794536470454&lines=200
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | `JARVIS_ION__ACCESS_KEY` 가 있으면 `Authorization: Bearer <키>` 또는 `?token=` |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `application/json` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| `since_ms` | query | int | 아니오 | 없음 | 이 시각(epoch ms)부터. 초 단위로 내려 프록시에 준다 |
+| `until_ms` | query | int | 아니오 | 없음 | 이 시각까지 |
+| `lines` | query | int | 아니오 | `200` | 마지막 몇 줄(1~1000) |
+
+#### Response Body
+
+| 필드 | 타입 | 널 허용 | 설명 |
+|---|---|---|---|
+| `text` | string | 아니오 | 로그 원문. 컨테이너를 못 찾거나 프록시가 못 답하면 빈 글 |
+| `lines` | int | 아니오 | `text` 의 줄 수 |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 정상 | 위 스키마 |
+| `401` | 키 불일치 | `{"error": "unauthorized"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -s 'http://localhost:7777/ion/logs?lines=2'
+{"text": "2026-11-13T02:00:50.366808Z [info     ] [Goal] karen/0ee3fa5259b32a33 run=166 skipped=unchanged took=45.2s [jarvis.core.goals.runner]\n2026-11-13T02:00:50.367152Z [info     ] [Scheduler] Tool task 'goal-0ee3fa5259b32a33' had nothing to report [jarvis.core.scheduler.scheduler_service]\n", "lines": 2}
+```
+
+#### 특이사항
+
+**재호출**: 상태를 바꾸지 않는다. 구간을 주면 같은 글이고, 주지 않으면 새 로그가 붙어 마지막 줄이 바뀐다. 로그는 모델에 신뢰하지 않는 입력으로 넘긴다.
+
+---
+
+### GET /ion/events
+
+사고가 열리거나 답을 받을 때마다 한 건씩 보내는 Server-Sent Events. 데스크톱 앱과 HUD 의 ION 띠가 구독한다.
+
+#### Endpoint
+
+```
+GET /ion/events
+```
+
+#### 호출 규약
+
+| 항목 | 값 |
+|---|---|
+| Method | `GET` |
+| 인증 | `GET /ion/status` 와 같다 |
+| 요청 Content-Type | 없음 (본문 없음) |
+| 응답 Content-Type | `text/event-stream` |
+| 필수 헤더 | 없음 |
+
+#### Request Body
+
+없음.
+
+#### Query / Path 파라미터
+
+| 파라미터 | 위치 | 타입 | 필수 | 기본값 | 설명 |
+|---|---|---|---|---|---|
+| 없음 | | | | | |
+
+#### Response Body
+
+이벤트 줄. `event:` 는 종류, `data:` 는 JSON.
+
+| 종류 | data |
+|---|---|
+| `hello` | `{"type":"hello"}`. 연결 직후 한 번 |
+| `incident` | 사고 알림. `id`, `kind`, `target`, `severity`, `title`, `body`, `tag`, `url`, `actions`(버튼 순서, 첫 번째가 추천) |
+| `incident_update` | 답을 받은 사고. `incident` |
+
+#### 응답 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| `200` | 스트림 | 위 이벤트 |
+| `401` | 키 없음 또는 틀림 | `{"error": "unauthorized"}` |
+
+#### 호출 예시
+
+```bash
+$ curl -N http://localhost:7777/ion/events
+event: hello
+data: {"type": "hello"}
+
+event: incident
+data: {"type": "incident", "id": "backend_down:backend:498472", "kind": "backend_down", "target": "backend", "title": "Ion: 백엔드가 응답하지 않아요", "body": "health 실패 3회 연속", "tag": "backend_down:backend:498472", "url": "/", "actions": ["restart", "ignore"]}
+```
+
+#### 특이사항
+
+**재호출**: 연결마다 큐 하나(100건). 느린 연결은 오래된 이벤트부터 버린다. 끊긴 동안의 사고는 `GET /ion/status` 의 `incidents` 로 다시 본다.
 
 ---
 

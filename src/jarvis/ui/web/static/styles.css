@@ -508,6 +508,56 @@ body.sessions-collapsed .sessions-card .chev { transform: rotate(-90deg); }
 .msg.thought.open .thought-head .chev { transform: rotate(90deg); }
 .msg.thought .thought-detail { display: none; margin-top: 4px; }
 .msg.thought.open .thought-detail { display: block; }
+/* ION 띠 — 헤더 바로 아래 고정. 열린 사고가 있을 때만 보인다 */
+.ion-strip {
+  /* 연결 끊김 배너(z-index 9999)보다 위. 백엔드가 죽으면 둘이 같이 뜨는데 버튼은 눌려야 한다 */
+  position: fixed; top: var(--header-h); left: 0; right: 0; z-index: 10000;
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 8px 18px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--red) 16%, var(--bg-1)), color-mix(in srgb, var(--bg-1) 90%, transparent));
+  border-bottom: 1px solid color-mix(in srgb, var(--red) 45%, transparent);
+  font-family: var(--mono); font-size: 11px;
+}
+.ion-strip[hidden] { display: none; }
+/* 띠가 보이는 동안 연결 끊김 배너는 그 아래로 내려간다. 높이는 ion.js 가 --ion-h 로 적는다 */
+body:has(.ion-strip:not([hidden])) .connection-banner { top: calc(var(--header-h) + var(--ion-h, 0px)); }
+.ion-mark { color: var(--red); letter-spacing: 0.18em; padding-top: 3px; }
+.ion-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.ion-item { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ion-title { color: var(--text); }
+.ion-detail { color: var(--text-dim); }
+.ion-result { color: var(--accent); }
+.ion-item button {
+  background: transparent; cursor: pointer; font: inherit; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text); border: 1px solid var(--hairline-strong); border-radius: 3px; padding: 3px 8px;
+}
+.ion-item button:hover { border-color: var(--primary); color: var(--pri-bright); }
+.ion-item button:disabled { opacity: 0.5; cursor: default; }
+.ion-item button.primary { border-color: color-mix(in srgb, var(--red) 60%, transparent); color: var(--red); }
+
+/* 열린 사고의 심각도대로 구체 뒤 배경을 물들인다. body[data-ion] 은 ion.js 가 가장 심한 등급으로 둔다 */
+:root { --ion-critical: #f05f5f; --ion-warning: #f08a3c; }
+.stage::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(ellipse 42% 52% at 50% 48%, var(--ion-tint, transparent), transparent 70%);
+  opacity: 0; transition: opacity .6s ease;
+}
+body[data-ion="critical"] .stage::before { --ion-tint: color-mix(in srgb, var(--ion-critical) 38%, transparent); opacity: 1; }
+body[data-ion="warning"] .stage::before { --ion-tint: color-mix(in srgb, var(--ion-warning) 32%, transparent); opacity: 1; }
+.stage > * { position: relative; z-index: 1; }
+body[data-ion="critical"] .ion-strip { border-bottom-color: color-mix(in srgb, var(--ion-critical) 55%, transparent); }
+body[data-ion="warning"] .ion-strip {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ion-warning) 16%, var(--bg-1)), color-mix(in srgb, var(--bg-1) 90%, transparent));
+  border-bottom-color: color-mix(in srgb, var(--ion-warning) 55%, transparent);
+}
+body[data-ion="warning"] .ion-mark { color: var(--ion-warning); }
+
+/* Ion 이 어느 에이전트의 대화에든 끼어드는 카드 */
+.msg.ion .role { color: var(--red); }
+.msg.ion .body { border-left: 1px solid color-mix(in srgb, var(--red) 40%, transparent); padding-left: 10px; }
+.msg.ion .ion-item { gap: 8px; }
+.msg.ion .ion-title { font-size: 12px; }
+
 /* 스케줄 작업 알림의 제목 줄 */
 .notice-title { color: var(--accent); font-size: 11px; letter-spacing: 0.06em; margin-bottom: 4px; }
 

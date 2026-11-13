@@ -2,6 +2,7 @@
 
 import sys
 import json
+import math
 import random
 import asyncio
 import argparse
@@ -10,11 +11,14 @@ from typing import Any
 from pathlib import Path
 from scripts.experiments.models import OLLAMA_URL, model_config
 
+from jarvis.memory.eval.eval_cache import (
+    CachedEmbedder, JsonlCache, cached_entity_extractor, cached_extractor, cached_judge,
+)
 from jarvis.memory.eval.benchmark import BenchmarkQuestion, BenchmarkReport, run_benchmark, stratified_sample
-from jarvis.memory.eval.eval_cache import CachedEmbedder, JsonlCache, cached_extractor, cached_judge
 from jarvis.memory.eval.adapters.personamem import HISTORY_COLUMN, read_rows
 from jarvis.memory.consolidation.semantic_extract import llm_fact_extractor
 from jarvis.memory.eval.adapters import load_longmemeval, load_personamem
+from jarvis.memory.retrieval.coverage_extract import llm_entity_extractor
 from jarvis.memory.memory_service import MAX_TURN_PARTS, MemoryService
 from jarvis.memory.eval.adapters.minteval import parse_minteval
 from jarvis.memory.stores.in_memory import InMemoryItemStore
@@ -107,8 +111,13 @@ async def run_arm(
     extractor = cached_extractor(llm_fact_extractor(extract), JsonlCache(CACHE / "extract.jsonl"), EXTRACT_MODEL)
     judge = cached_judge(llm_judge(answer, grader), JsonlCache(CACHE / "judge.jsonl"), namespace)
 
+    coverage = cached_entity_extractor(
+        llm_entity_extractor(extract), JsonlCache(CACHE / "entities.jsonl"), EXTRACT_MODEL
+    ) if mode.startswith("turns+src+cov") else None
+
     def factory() -> MemoryService:
-        return MemoryService(InMemoryItemStore(), extractor=extractor, embedder=embedder, answer_parts=parts)
+        return MemoryService(InMemoryItemStore(), extractor=extractor, embedder=embedder, answer_parts=parts,
+                             coverage=coverage, coverage_timeout=60.0, timeline=mode.endswith("+tl"))
 
     report = await run_benchmark(
         name, questions, factory, k=SERVICE_K if service else K, mode=mode, judge=judge, embedder=embedder,
@@ -187,6 +196,53 @@ async def measure(names: list[str]) -> dict[str, Any]:
     return out
 
 
+def sign_test(benefit: int, tax: int) -> float:
+    """이김과 짐만 본 정확 이항 양측 p. 둘 다 0 이면 1."""
+    n = benefit + tax
+    if n == 0:
+        return 1.0
+    tail = sum(math.comb(n, i) for i in range(min(benefit, tax) + 1)) / 2**n
+    return round(min(1.0, 2 * tail), 4)
+
+
+def wilson(correct: int, n: int, z: float = 1.96) -> list[float]:
+    if n == 0:
+        return [0.0, 0.0]
+    p = correct / n
+    centre = (p + z * z / (2 * n)) / (1 + z * z / n)
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
+    return [round(centre - half, 4), round(centre + half, 4)]
+
+
+async def coverage(names: list[str], arms: tuple[str, ...] = ("turns+src", "turns+src+cov")) -> dict[str, Any]:
+    """실서비스 조건(k=3, 핵심 사실, 출처 회상)에서 비교군들을 첫 비교군과 맞댄다. 평가 캐시를 그대로 쓴다.
+
+    net 은 마지막 비교군을 첫 비교군과, net_prev 는 바로 앞 비교군과 맞댄 것이다(셋 이상일 때).
+    """
+    embedder = CachedEmbedder(
+        OllamaEmbedder(model=EMBED_MODEL, dimensions=1024, base_url=OLLAMA_URL), CACHE / "embeddings.sqlite"
+    )
+    out: dict[str, Any] = {}
+    try:
+        for name in names:
+            questions = BENCHMARKS[name]()
+            reports = {arm: await run_arm(name, questions, arm, embedder, service=True) for arm in arms}
+            nv = net_value(reports[arms[0]], reports[arms[-1]])
+            entry: dict[str, Any] = {"n": len(questions), "net": {**nv.rates(), "p": sign_test(nv.benefit, nv.tax)}}
+            if len(arms) > 2:
+                prev = net_value(reports[arms[-2]], reports[arms[-1]])
+                entry["net_prev"] = {**prev.rates(), "p": sign_test(prev.benefit, prev.tax)}
+            for label, report in reports.items():
+                judged = [r for r in report.results if r.correct is not None]
+                right = sum(1 for r in judged if r.correct)
+                entry[label] = {**arm_entry(report), "ci95": wilson(right, len(judged))}
+            out[name] = entry
+            print(f"{name}: {entry['net']}", file=sys.stderr)
+    finally:
+        embedder.close()
+    return out
+
+
 def turn_loss() -> dict[str, Any]:
     """LongMemEval-s 전체 500문항의 정답 턴. LLM 없이 센다."""
     questions = load_longmemeval(DATA / "longmemeval_s_cleaned.json")
@@ -205,8 +261,19 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", nargs="*", choices=list(BENCHMARKS), help="이 벤치마크만(기본은 셋 다)")
     parser.add_argument("--dry-run", action="store_true", help="results.json 에 쓰지 않고 출력만")
+    parser.add_argument("--coverage", action="store_true", help="실서비스 조건에서 커버리지 재검색 전후만 잰다")
+    parser.add_argument("--timeline", action="store_true", help="실서비스 조건에서 커버리지와 타임라인을 더한 전후")
     args = parser.parse_args()
     names = args.only or list(BENCHMARKS)
+    if args.coverage or args.timeline:
+        key, arms = ("timeline", ("turns+src", "turns+src+cov", "turns+src+cov+tl")) if args.timeline else (
+            "coverage", ("turns+src", "turns+src+cov"))
+        found = asyncio.run(coverage(names, arms))
+        print(json.dumps({n: {"net": e["net"], "net_prev": e.get("net_prev")} for n, e in found.items()},
+                         ensure_ascii=False))
+        if not args.dry_run:
+            write({key: {"config": {"k": SERVICE_K, "judge": JUDGE_MODEL, "extract": EXTRACT_MODEL}, **found}})
+        return
     result: dict[str, Any] = {
         "config": {"seed": SEED, "k": K, "budget_chars": BUDGET, "judge": JUDGE_MODEL, "embedder": EMBED_MODEL,
                    "arms": list(ARMS), "max_turn_parts": MAX_TURN_PARTS},

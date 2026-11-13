@@ -61,3 +61,11 @@ def deadline_label(close: date | None, today: date) -> str:
     if days == 0:
         return "오늘 마감"
     return f"D-{days}"
+
+
+def page_hint(raw: str, limit: int = 80) -> str:
+    """목록 표 대신 받은 페이지의 제목과 본문 앞부분. 점검 화면인지 차단인지 나중에 가리려고 오류에 붙인다."""
+    title = re.search(r"<title[^>]*>(.*?)</title>", raw, re.IGNORECASE | re.DOTALL)
+    head = text_of(title.group(1)) if title else ""
+    body = text_of(re.sub(r"<title[^>]*>.*?</title>", " ", raw, flags=re.IGNORECASE | re.DOTALL))[:limit]
+    return f"받은 페이지: 제목 '{head[:limit]}', 본문 '{body}'"

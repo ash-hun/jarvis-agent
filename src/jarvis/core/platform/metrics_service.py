@@ -30,7 +30,7 @@ class AgentMetrics:
     last_ok_ms: int | None
     last_error: str
     open_sessions: int
-    # 켜진 스케줄 작업이 있는지. 작업 기록은 프로세스 메모리라 재기동 뒤 첫 차례 전까지 비지만 이 값은 목록에서 바로 안다
+    # 켜진 스케줄 작업이 있는지. 작업 기록은 프로세스 메모리라 재기동 뒤 첫 차례 전까지 비지만 이 값은 바로 안다
     scheduled: bool = False
 
 

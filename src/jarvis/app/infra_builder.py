@@ -196,10 +196,15 @@ class InfraBuilder:
         """에이전트 정의가 이름으로 골라야 쓰는 도구. JARVIS(도구 목록 없음)의 레지스트리에는 넣지 않는다."""
         from jarvis.core.tools.housing import ProfileStore, housing_tools
         from jarvis.core.tools.tools_registry import ToolRegistry
+        from jarvis.core.tools.ion import IonClient, ion_tools
 
         registry = ToolRegistry()
         profiles = ProfileStore(memory) if memory is not None else None
         for tool in housing_tools(profiles=profiles, loops=loops):
+            registry.register(tool)
+        ion = self._settings.ion
+        key = ion.access_key.get_secret_value() if ion.access_key else None
+        for tool in ion_tools(IonClient(ion.url, key, ion.timeout_sec)):
             registry.register(tool)
         return registry
 

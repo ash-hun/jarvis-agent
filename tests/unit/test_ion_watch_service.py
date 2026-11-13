@@ -35,6 +35,7 @@ class FakeBackend:
 class FakeDocker:
     def __init__(self) -> None:
         self.restarts = 0
+        self.log_calls: list[tuple[int | None, int | None, int]] = []
 
     async def find(self, service: str) -> ContainerState | None:
         return ContainerState("abc", service, "running", 0)
@@ -48,6 +49,10 @@ class FakeDocker:
 
     async def stop(self, service: str) -> bool:
         return True
+
+    async def logs(self, service: str, since_s: int | None, until_s: int | None, tail: int) -> str:
+        self.log_calls.append((since_s, until_s, tail))
+        return "[Loop] boom\nTraceback"
 
 
 def _service(tmp_path, backend: FakeBackend, docker: FakeDocker, poll_sec: float = 0):  # type: ignore[no-untyped-def]

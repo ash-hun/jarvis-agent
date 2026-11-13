@@ -91,7 +91,7 @@
 | `GET /api/sessions` | 세션 삭제 직후, 일하는 에이전트 목록을 반영할 때마다(`connected`, `agent_activity`) | SESSIONS 목록. 에이전트끼리 대화하며 새로 생긴 `peer-…` 세션이 여기서 보인다 |
 | `GET /brand.js` | 페이지 로드 | 이름, 명언, 색 |
 | `GET /ion/status` | 페이지 로드, SSE 가 (다시) 열릴 때, 1분마다 | ION 띠의 사고 목록(`incidents` 의 `title`, `detail`, `actions`, `response`, `action_result`). 실패하면(Ion 없음) 띠를 숨긴 채 둔다 |
-| SSE `GET /ion/events` | 페이지 로드부터 계속(`EventSource`, 키는 `?token=`) | `incident` 는 띠에 한 줄, 지금 대화에 ION 카드, 배경 물들이기(`severity`), ACTIVITY `ion · <제목>`, 데스크톱 앱이거나 알림을 이미 허락했으면 OS 알림. `incident_update` 는 그 줄과 카드를 결과로 바꾼다 |
+| SSE `GET /ion/events` | 페이지 로드부터 계속(`EventSource`, 키는 `?token=`) | `incident` 는 띠에 한 줄, 지금 대화에 ION 카드, 배경 물들이기(`severity`. critical 붉게, warning 주황, info 는 띠만), ACTIVITY `ion · <제목>`, 데스크톱 앱이거나 알림을 이미 허락했으면 OS 알림. `incident_update` 는 그 줄과 카드를 결과로 바꾼다 |
 | `POST /ion/incidents/{id}/respond {action}` | 띠의 버튼 클릭 | 버튼을 잠그고 결과(`action_result`)를 보인다. 실패하면 버튼을 풀고 ACTIVITY `ion · <버튼> 실패 · <코드>` |
 | `GET /api/voice/phrases/{name}` | 그 문구를 처음 읽을 때 한 번(받은 wav 는 탭이 닫힐 때까지 둔다) | 읽기 문구 재생 |
 | WS 바이너리 프레임(보냄), `voice_wake`(받음) | 모드와 상관없이 기다리는 동안 80ms 마다 | 웨이크워드 |

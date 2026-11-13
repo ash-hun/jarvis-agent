@@ -4,7 +4,7 @@ import json
 import httpx
 import pytest
 
-from jarvis.ion.docker_client import DockerClient
+from jarvis.ion.docker_client import DockerClient, demux_logs
 
 ALLOWED = frozenset({"jarvis-backend"})
 
@@ -60,3 +60,36 @@ async def test_proxy_down_means_none_not_an_exception():
     client = _client([], fail=True)
     assert await client.find("jarvis-backend") is None
     assert await client.restart("jarvis-backend") is False
+
+
+def _frame(kind: int, payload: bytes) -> bytes:
+    return bytes([kind, 0, 0, 0]) + len(payload).to_bytes(4, "big") + payload
+
+
+async def test_logs_demuxes_docker_frames_and_passes_the_window(monkeypatch):
+    calls: list[str] = []
+    params: dict[str, str] = {}
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        calls.append(f"{request.method} {request.url.path}")
+        if request.url.path == "/containers/json":
+            return httpx.Response(200, json=[{"Id": "abc"}])
+        if request.url.path == "/containers/abc/json":
+            return httpx.Response(200, json={"Id": "abc", "State": {"Status": "running"}, "RestartCount": 0})
+        if request.url.path == "/containers/abc/logs":
+            params.update(dict(request.url.params))
+            return httpx.Response(200, content=_frame(1, b"out line\n") + _frame(2, b"err line\n"))
+        return httpx.Response(404)
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handle), base_url="http://proxy")
+    client = DockerClient("http://proxy", ALLOWED, client=http)
+    text = await client.logs("jarvis-backend", 100, 200, 50)
+    assert text == "out line\nerr line\n"
+    assert params == {"stdout": "true", "stderr": "true", "tail": "50", "since": "100", "until": "200"}
+
+
+def test_demux_logs_keeps_plain_text_and_broken_frames_as_is():
+    assert demux_logs(b"plain tty text\n") == "plain tty text\n"
+    assert demux_logs(_frame(1, b"ab") + b"\x01\x00\x00\x00\x00\x00\x00\x09x") == (
+        _frame(1, b"ab") + b"\x01\x00\x00\x00\x00\x00\x00\x09x").decode("utf-8", "replace")
+    assert demux_logs(b"") == ""

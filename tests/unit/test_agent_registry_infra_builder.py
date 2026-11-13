@@ -47,7 +47,8 @@ def test_agent_tools_are_kept_out_of_the_app_registry():
 
     agent_only = {t.name for t in builder.build_agent_tools().list_all()}
 
-    assert agent_only == {"lh_notice", "sh_notice", "housing_loan", "housing_budget", "housing_watch"}
+    assert agent_only == {"lh_notice", "sh_notice", "housing_loan", "housing_budget", "housing_watch",
+                          "ion_status", "ion_incidents", "ion_respond", "ion_report"}
     assert not agent_only & {t.name for t in builder.build_tool_registry().list_all()}
     # 사용자 기억이 있어야 주거 프로필 도구가 생긴다
     with_memory = {t.name for t in builder.build_agent_tools(MemoryService(InMemoryItemStore())).list_all()}

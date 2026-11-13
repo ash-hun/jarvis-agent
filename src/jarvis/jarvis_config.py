@@ -421,6 +421,16 @@ class VoiceConfig(BaseModel):
         return {"model_path": self.piper_model, "noise_scale": self.piper_noise_scale}
 
 
+class IonLinkConfig(BaseModel):
+    """백엔드 안의 Ion 프로필이 Ion 컨테이너(/ion/*)를 부를 주소. 접근 키는 Ion 컨테이너의 것과 같다."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    url: str = "http://jarvis-ion:7778"
+    access_key: SecretStr | None = None
+    timeout_sec: float = 5.0
+
+
 class JarvisSettings(BaseSettings):
     """
     최상위 설정 — .env 또는 환경변수에서 자동 로딩.
@@ -454,6 +464,7 @@ class JarvisSettings(BaseSettings):
     external: ExternalTriggerConfig = Field(default_factory=ExternalTriggerConfig)
     procedures: ProcedureConfig = Field(default_factory=ProcedureConfig)
     notify: NotifyConfig = Field(default_factory=NotifyConfig)
+    ion: IonLinkConfig = Field(default_factory=IonLinkConfig)
     web_search: WebSearchConfig = Field(default_factory=WebSearchConfig)
     mcp_servers: list[MCPServerConfig] = Field(default_factory=list)
     debug: bool = False

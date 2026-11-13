@@ -113,14 +113,30 @@ class WebState:
             scheduler = self.ctx.scheduler
             return {t.agent for t in scheduler.list_tasks() if t.enabled} if scheduler is not None else set()
 
+        def proactive() -> set[str]:
+            return {p.agent_id for p in self.assembly.agents.profiles() if p.proactive.enabled}
+
         return PlatformMetricsService(
             records=self.jobs.records,
             agent_of=agent_of,
             agents=self.assembly.agents.ids,
             sessions=self.registry.session_agents,
             scheduled=scheduled,
+            proactive=proactive,
             loop_lag=self.loop_lag,
         )
+
+    async def last_active(self) -> dict[str, int]:
+        """에이전트별 마지막 세션 갱신 시각(epoch ms). Ion 의 장기 침묵 신호가 본다. 저장소가 없으면 빈 것."""
+        try:
+            metas = await self.ctx.session_repo.list()
+        except Exception:  # 세션 저장소가 잠시 못 답해도 지표는 낸다
+            return {}
+        latest: dict[str, int] = {}
+        for m in metas:
+            if m.updated_at > latest.get(m.agent_id, 0):
+                latest[m.agent_id] = m.updated_at
+        return latest
 
     def _build_focus_service(self) -> "FocusService | None":
         """Focus 모드 서비스. 시각과 작업 id 는 여기(경계)에서 만들어 넣는다."""

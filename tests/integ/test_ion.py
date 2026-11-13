@@ -1,14 +1,23 @@
-"""ion 기능: /ion 이 상태와 사고를 내고 답을 받아 행동하며, 접근 키가 있으면 키 없는 요청을 막는다."""
+"""ion 기능: /ion 이 상태, 사고, 로그를 내고 답과 재기동을 받아 행동하며, Ion 도구가 그 HTTP 를 거친다."""
 
+import httpx
 import pytest
+from datetime import datetime
 
 pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from jarvis.core.tools.ion.ion_tools import IonIncidentsTool, IonReportTool, IonRespondTool  # noqa: E402
 from tests.unit.test_ion_watch_service import FakeBackend, FakeDocker, _service  # noqa: E402
+from jarvis.ion.watch_service import sse_line, to_observation  # noqa: E402
+from jarvis.core.tools.ion.ion_client import IonClient  # noqa: E402
 from jarvis.ion.ion_app import EventHub, build_ion_app  # noqa: E402
-from jarvis.ion.watch_service import sse_line  # noqa: E402
+from jarvis.ion.incident_store import Incident  # noqa: E402
+from jarvis.ion.health_rules import evaluate  # noqa: E402
+from jarvis.ion.ion_config import IonConfig  # noqa: E402
+
+DAY_MS = 86_400_000
 
 
 def _app(tmp_path, key: str | None):  # type: ignore[no-untyped-def]
@@ -51,3 +60,46 @@ async def test_event_hub_streams_hello_then_published_events():
     await hub.publish({"type": "incident", "id": "x"})
     assert await anext(stream) == sse_line({"type": "incident", "id": "x"})
     await stream.aclose()
+
+
+def _tool_client(app, key: str) -> IonClient:  # type: ignore[no-untyped-def]
+    http = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://ion",
+                             headers={"Authorization": f"Bearer {key}"})
+    return IonClient("http://ion", key, client=http)
+
+
+async def test_ion_tools_reach_incidents_logs_and_actions_through_the_ion_http(tmp_path):
+    app, svc, docker = _app(tmp_path, "key")
+    svc.store.open(Incident("backend_down:backend:1000", "backend_down", "backend", "health 실패 3회 연속", 1000))
+    svc.store.open(Incident("agent_failing:karen:700000", "agent_failing", "karen", "연속 실패 3회", 700_000))
+    svc.store.respond("backend_down:backend:1000", "restart", 2000, "재기동함")
+    svc.store.close("backend_down:backend:1000", 3000)
+    client = _tool_client(app, "key")
+
+    listed = (await IonIncidentsTool(client).execute("c1", {})).content[0].text
+    assert listed.index("agent_failing:karen:700000") < listed.index("backend_down:backend:1000")
+    assert "닫힘" in listed and "열려 있음" in listed
+
+    report = (await IonReportTool(client).execute("c2", {"incident_id": "agent_failing:karen:700000"})).content[0].text
+    # 연 시각 10분 전부터, 아직 열려 있어 끝은 없이, 기본 200줄
+    assert "[Loop] boom" in report and docker.log_calls == [(100, None, 200)]
+
+    params = {"action": "pause", "incident_id": "agent_failing:karen:700000"}
+    answered = await IonRespondTool(client).execute("c3", params)
+    assert answered.is_error is False and "작업 1개 멈춤" in answered.content[0].text
+    restarted = await IonRespondTool(client).execute("c4", {"action": "restart"})
+    assert restarted.is_error is False and docker.restarts == 1
+
+    assert (await IonIncidentsTool(_tool_client(app, "wrong")).execute("c5", {})).is_error is True
+
+
+def test_long_silence_of_a_proactive_agent_is_an_info_signal():
+    metrics = {"loop_lag": {"max_ms": 1.0}, "agents": [
+        {"agent": "karen", "proactive": True, "last_active_ms": 0},
+        {"agent": "main", "proactive": True, "last_active_ms": DAY_MS},
+        {"agent": "evi", "proactive": False, "last_active_ms": 0},
+    ]}
+    obs = to_observation(DAY_MS + 1, True, metrics, None)
+    signals = evaluate([obs], IonConfig().thresholds.rules(), datetime(2026, 11, 13, 12, 0))
+    assert [(s.kind, s.target) for s in signals] == [("silent", "karen")]
+    assert "24시간" in signals[0].detail

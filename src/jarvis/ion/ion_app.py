@@ -1,4 +1,4 @@
-"""[ion] Ion 의 HTTP: 상태, 사고 목록, 사고 응답, SSE 이벤트. 앱은 nginx 의 /ion/ 로 붙는다."""
+"""[ion] Ion 의 HTTP: 상태, 사고 목록과 로그, 사고 응답과 재기동, SSE 이벤트. 앱은 nginx 의 /ion/ 로 붙는다."""
 
 import asyncio
 import contextlib
@@ -62,9 +62,14 @@ def build_ion_app(service: WatchService, hub: EventHub, access_key: str | None) 
     async def status() -> JSONResponse:
         return JSONResponse(service.status())
 
-    @app.get("/ion/incidents", summary="열린 사고")
-    async def incidents() -> JSONResponse:
-        return JSONResponse({"incidents": service.status()["incidents"]})
+    @app.get("/ion/incidents", summary="사고 목록")
+    async def incidents(closed: int = 0, limit: int = 20) -> JSONResponse:
+        return JSONResponse({"incidents": service.incidents(bool(closed), max(1, min(limit, 100)))})
+
+    @app.get("/ion/logs", summary="백엔드 컨테이너 로그")
+    async def logs(since_ms: int | None = None, until_ms: int | None = None, lines: int = 200) -> JSONResponse:
+        text = await service.logs(since_ms, until_ms, max(1, min(lines, 1000)))
+        return JSONResponse({"text": text, "lines": len(text.splitlines())})
 
     @app.post("/ion/incidents/{incident_id}/respond", summary="사고에 답하기")
     async def respond(incident_id: str, request: Request) -> JSONResponse:

@@ -352,7 +352,7 @@ GET /api/platform/metrics
 | `at_ms` | integer | 아니오 | 읽은 시각(epoch ms) |
 | `process` | object | 아니오 | `pid`, `rss_bytes`, `cpu_percent`(직전 호출부터의 구간 평균), `threads`, `open_fds`(못 재면 null), `asyncio_tasks`, `uptime_sec` |
 | `loop_lag` | object | 아니오 | `last_ms`, `max_ms`(최근 60초 최대), `samples`. 1초마다 잠들고 늦게 깬 만큼 |
-| `agents` | object[] | 아니오 | 에이전트 id 순. `agent`, `jobs`, `running`, `fail_streak`(그 에이전트 작업 중 가장 긴 연속 실패), `last_ok_ms`, `last_error`, `open_sessions`. 스케줄 작업은 그 작업의 에이전트로, 성찰과 기억 정리와 외부 조회는 `shared` 로 센다. 작업이 없는 에이전트도 0 으로 나온다 |
+| `agents` | object[] | 아니오 | 에이전트 id 순. `agent`, `jobs`, `running`, `fail_streak`(그 에이전트 작업 중 가장 긴 연속 실패. 알릴 것이 없어 빈 글로 끝난 차례는 성공이고, 실패는 결과를 못 만들었거나 만든 결과를 못 건넨 차례만이다), `last_ok_ms`, `last_error`, `open_sessions`. 스케줄 작업은 그 작업의 에이전트로, 성찰과 기억 정리와 외부 조회는 `shared` 로 센다. 작업이 없는 에이전트도 0 으로 나온다 |
 
 #### 응답 코드
 

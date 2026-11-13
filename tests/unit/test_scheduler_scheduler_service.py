@@ -11,14 +11,15 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from tests.fixtures.goal_helpers import REPLY, SAID, TEXT, goal_scheduler, goal_setup, registry
+from jarvis.core.scheduler.scheduler_service import SchedulerService, TaskAgent, job_outcome
 from jarvis.model_layer.model_types import ModelConfig, TextContent, ToolResultMessage
-from jarvis.core.scheduler.scheduler_service import SchedulerService, TaskAgent
 from jarvis.core.tools.tools_registry import JarvisTool, ToolRegistry
 from jarvis.core.scheduler.scheduler_loader import load_tasks
 from jarvis.core.skills.skills_registry import SkillRegistry
 from tests.fixtures.agent_registry_helpers import app_tools
 from jarvis.core.scheduler.task import ScheduledTask
 from jarvis.core.plugins.runner import PluginRunner
+from jarvis.core.workflow.job_board import JobBoard
 from jarvis.core.goals.tool import goal_task
 
 
@@ -440,6 +441,33 @@ class _Settling(_Echo):
 
     def settle(self, tool_call_id: str, delivered: bool) -> None:
         self.settled.append((tool_call_id, delivered))
+
+
+@pytest.mark.parametrize("text, delivered, ok, error", [
+    ("", False, True, ""),
+    ("새 공고", True, True, ""),
+    (None, False, False, "만들지"),
+    ("새 공고", False, False, "건네지"),
+])
+def test_job_outcome_counts_nothing_to_report_as_success(text, delivered, ok, error):
+    got_ok, got_error = job_outcome(text, delivered)
+    assert got_ok is ok and error in got_error
+
+
+async def test_tool_task_with_nothing_to_report_is_recorded_as_a_success():
+    svc, _ = _tool_service(_Echo(["", "LH 조회 실패"], error=False))
+    board = JobBoard(clock=lambda: 1)
+    svc.set_job_board(board)
+    task = ScheduledTask(name="watch", prompt="", kind="tool", tool="housing_watch", agent="karen")
+
+    await _run(svc, task)
+    (record,) = board.records()
+    assert (record.last_ok, record.fail_streak, record.last_error) == (True, 0, "")
+
+    svc.set_notifier(None)
+    await _run(svc, task)
+    (record,) = board.records()
+    assert (record.last_ok, record.fail_streak) == (False, 1) and "건네지" in record.last_error
 
 
 async def test_tool_task_settles_the_tool_with_the_delivery_result():

@@ -41,8 +41,9 @@ def status_text(status: dict[str, Any]) -> str:
     lag = status.get("loop_lag_ms")
     lines.append(f"이벤트 루프 지연: {lag:.0f}ms" if isinstance(lag, (int, float)) else "이벤트 루프 지연: -")
     for agent, obs in sorted((status.get("agents") or {}).items()):
+        label = obs.get("name") or agent
         lines.append(
-            f"에이전트 {agent}: 연속 실패 {obs.get('fail_streak', 0)}회, 마지막 성공 {fmt_ms(obs.get('last_ok_ms'))},"
+            f"에이전트 {label}: 연속 실패 {obs.get('fail_streak', 0)}회, 마지막 성공 {fmt_ms(obs.get('last_ok_ms'))},"
             f" 스케줄 {'있음' if obs.get('scheduled') else '없음'}, 마지막 활동 {fmt_ms(obs.get('last_active_ms'))}"
         )
     incidents = status.get("incidents") or []

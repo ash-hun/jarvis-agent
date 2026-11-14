@@ -8,7 +8,7 @@ from typing import Any
 from collections import deque
 from datetime import datetime
 from dataclasses import asdict
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 
 from jarvis.ion.health_rules import AgentObservation, Observation, Signal, Thresholds, evaluate, incident_id
 from jarvis.ion.docker_client import ContainerState, DockerClient
@@ -30,7 +30,6 @@ CHOICES: dict[str, tuple[str, ...]] = {
     "memory_high": ("restart", "ignore"),
     "agent_failing": ("pause", "ignore"),
     "schedule_stale": ("restart", "ignore"),
-    "silent": ("ignore",),
 }
 # 화면이 구체 뒤 배경을 물들이는 등급. critical 은 백엔드가 못 쓰는 상태, warning 은 한 부분의 이상
 SEVERITY = {
@@ -40,11 +39,9 @@ SEVERITY = {
     "memory_high": "warning",
     "agent_failing": "warning",
     "schedule_stale": "warning",
-    # info 는 띠에만 보이고 배경을 물들이지 않는다
-    "silent": "info",
 }
+# {target} 은 에이전트 표시 이름(JARVIS, K.A.R.E.N.)이다. 모르면 id
 TITLES = {
-    "silent": "{target} 이(가) 하루 넘게 조용해요",
     "backend_down": "백엔드가 응답하지 않아요",
     "restart_loop": "백엔드가 재시작을 반복해요",
     "loop_stall": "백엔드가 멈춘 것 같아요",
@@ -72,7 +69,7 @@ def to_observation(
                 # 옛 백엔드는 scheduled 가 없다. 그때는 기록된 작업 수로 짐작한다
                 scheduled=bool(row["scheduled"]) if "scheduled" in row else int(row.get("jobs") or 0) > 0,
                 last_active_ms=row.get("last_active_ms"),
-                proactive=bool(row.get("proactive")),
+                name=str(row.get("name") or ""),
             )
     return Observation(
         at_ms=at_ms,
@@ -85,16 +82,21 @@ def to_observation(
     )
 
 
-def incident_view(incident: Incident, hud_url: str) -> dict[str, Any]:
+Names = Mapping[str, str]
+
+
+def incident_view(incident: Incident, hud_url: str, names: Names | None = None) -> dict[str, Any]:
     """화면이 그리는 사고 한 건. 저장된 필드에 제목과 버튼을 붙인다. 순수 함수."""
-    note = notification(incident, hud_url)
+    note = notification(incident, hud_url, names)
     extra = {k: note[k] for k in ("title", "actions", "severity")}
     return {**asdict(incident), **extra, "url": hud_url}
 
 
-def notification(incident: Incident, hud_url: str) -> dict[str, Any]:
-    """푸시와 SSE 가 같이 쓰는 사고 알림. tag 가 사고 id 라 같은 사고는 한 알림으로 겹친다. 순수 함수."""
-    title = TITLES.get(incident.kind, incident.kind).format(target=incident.target)
+def notification(incident: Incident, hud_url: str, names: Names | None = None) -> dict[str, Any]:
+    """푸시와 SSE 가 같이 쓰는 사고 알림. tag 가 사고 id 라 같은 사고는 한 알림으로 겹친다. 순수 함수.
+    target 은 id 로 남기고 제목에만 이름을 쓴다. 사고 id 와 답 경로가 id 를 쓰기 때문이다."""
+    label = (names or {}).get(incident.target, incident.target)
+    title = TITLES.get(incident.kind, incident.kind).format(target=label)
     return {
         "type": "incident",
         "id": incident.id,
@@ -133,6 +135,8 @@ class WatchService:
         self._now_ms = now_ms
         self._clock = clock
         self._history: deque[Observation] = deque(maxlen=cfg.history)
+        # 에이전트 id → 표시 이름. 지표에서 보일 때마다 갱신하고 백엔드가 죽은 동안은 마지막 값을 쓴다
+        self._names: dict[str, str] = {}
         self._container: ContainerState | None = None
         self._metrics: dict[str, Any] | None = None
         self._ticks = 0
@@ -157,7 +161,9 @@ class WatchService:
                 except Exception as exc:
                     logger.info(f"[Ion] chore failed: {exc!r}")
         at = self._now_ms()
-        self._history.append(to_observation(at, health, self._metrics, self._container))
+        observation = to_observation(at, health, self._metrics, self._container)
+        self._names.update({agent: a.name for agent, a in observation.agents.items() if a.name})
+        self._history.append(observation)
         signals = evaluate(list(self._history), self._rules, self._clock())
         await self._reconcile(signals, at)
         return signals
@@ -174,7 +180,7 @@ class WatchService:
                 )
             if incident.notified_ms is None:
                 try:
-                    await self._notify(notification(incident, self._cfg.hud_url))
+                    await self._notify(notification(incident, self._cfg.hud_url, self._names))
                 except Exception as exc:
                     logger.info(f"[Ion] notify failed, will retry next tick: {exc!r}")
                     continue
@@ -227,16 +233,16 @@ class WatchService:
             "container": asdict(self._container) if self._container is not None else None,
             "loop_lag_ms": latest.loop_lag_ms if latest is not None else None,
             "agents": {k: asdict(v) for k, v in (latest.agents.items() if latest is not None else [])},
-            "incidents": [incident_view(i, self._cfg.hud_url) for i in self._store.open_incidents()],
+            "incidents": [incident_view(i, self._cfg.hud_url, self._names) for i in self._store.open_incidents()],
         }
 
     def view(self, incident: Incident) -> dict[str, Any]:
-        return incident_view(incident, self._cfg.hud_url)
+        return incident_view(incident, self._cfg.hud_url, self._names)
 
     def incidents(self, closed: bool, limit: int) -> list[dict[str, Any]]:
         """`GET /ion/incidents`. closed 면 닫힌 사고까지 최신순으로 limit 건."""
         rows = self._store.recent(limit) if closed else self._store.open_incidents()[-limit:][::-1]
-        return [incident_view(i, self._cfg.hud_url) for i in rows]
+        return [incident_view(i, self._cfg.hud_url, self._names) for i in rows]
 
     async def logs(self, since_ms: int | None, until_ms: int | None, lines: int) -> str:
         """`GET /ion/logs`. 백엔드 컨테이너 로그. 구간을 주면 그 사이, 없으면 마지막 lines 줄."""

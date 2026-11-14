@@ -2,7 +2,6 @@
 
 import httpx
 import pytest
-from datetime import datetime
 
 pytest.importorskip("fastapi")
 
@@ -10,14 +9,10 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from jarvis.core.tools.ion.ion_tools import IonIncidentsTool, IonReportTool, IonRespondTool  # noqa: E402
 from tests.unit.test_ion_watch_service import FakeBackend, FakeDocker, _service  # noqa: E402
-from jarvis.ion.watch_service import sse_line, to_observation  # noqa: E402
 from jarvis.core.tools.ion.ion_client import IonClient  # noqa: E402
 from jarvis.ion.ion_app import EventHub, build_ion_app  # noqa: E402
 from jarvis.ion.incident_store import Incident  # noqa: E402
-from jarvis.ion.health_rules import evaluate  # noqa: E402
-from jarvis.ion.ion_config import IonConfig  # noqa: E402
-
-DAY_MS = 86_400_000
+from jarvis.ion.watch_service import sse_line  # noqa: E402
 
 
 def _app(tmp_path, key: str | None):  # type: ignore[no-untyped-def]
@@ -93,13 +88,12 @@ async def test_ion_tools_reach_incidents_logs_and_actions_through_the_ion_http(t
     assert (await IonIncidentsTool(_tool_client(app, "wrong")).execute("c5", {})).is_error is True
 
 
-def test_long_silence_of_a_proactive_agent_is_an_info_signal():
-    metrics = {"loop_lag": {"max_ms": 1.0}, "agents": [
-        {"agent": "karen", "proactive": True, "last_active_ms": 0},
-        {"agent": "main", "proactive": True, "last_active_ms": DAY_MS},
-        {"agent": "evi", "proactive": False, "last_active_ms": 0},
-    ]}
-    obs = to_observation(DAY_MS + 1, True, metrics, None)
-    signals = evaluate([obs], IonConfig().thresholds.rules(), datetime(2026, 11, 13, 12, 0))
-    assert [(s.kind, s.target) for s in signals] == [("silent", "karen")]
-    assert "24시간" in signals[0].detail
+async def test_incident_titles_use_the_agent_display_name_from_metrics(tmp_path):
+    backend, docker = FakeBackend(), FakeDocker()
+    backend.rows = [{"agent": "karen", "name": "K.A.R.E.N.", "fail_streak": 3, "jobs": 1}]
+    svc, _ = _service(tmp_path, backend, docker, poll_sec=3600)
+    app = build_ion_app(svc, EventHub(), None)
+    await svc.tick()
+    with TestClient(app) as client:
+        rows = client.get("/ion/incidents").json()["incidents"]
+    assert [(r["target"], r["title"]) for r in rows] == [("karen", "Ion: K.A.R.E.N. 의 작업이 계속 실패해요")]

@@ -44,8 +44,9 @@ def test_snapshot_reads_this_process_and_lists_agents():
     assert [a["agent"] for a in snap["agents"]] == ["main", "shared"]
 
 
-def test_agent_metrics_carry_last_activity_and_proactive_flag():
+def test_agent_metrics_carry_last_activity_and_display_name():
     out = {m.agent: m for m in agent_metrics([], lambda _: None, ["main", "karen"], {}, active={"karen": 5},
-                                             proactive={"karen"})}
-    assert (out["karen"].last_active_ms, out["karen"].proactive) == (5, True)
-    assert (out["main"].last_active_ms, out["main"].proactive) == (None, False)
+                                             names={"karen": "K.A.R.E.N."})}
+    assert (out["karen"].last_active_ms, out["karen"].name) == (5, "K.A.R.E.N.")
+    # 이름을 모르면 id 그대로라 화면이 빈칸을 그리지 않는다
+    assert (out["main"].last_active_ms, out["main"].name) == (None, "main")

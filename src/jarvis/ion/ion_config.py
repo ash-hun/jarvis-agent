@@ -29,7 +29,6 @@ class IonThresholds(BaseModel):
     stale_ms: int = 7_200_000
     active_start_hour: int = 9
     active_end_hour: int = 21
-    silent_ms: int = 86_400_000
 
     def rules(self) -> Thresholds:
         return Thresholds(
@@ -43,7 +42,6 @@ class IonThresholds(BaseModel):
             fail_streak=self.fail_streak,
             stale_ms=self.stale_ms,
             active_hours=(self.active_start_hour, self.active_end_hour),
-            silent_ms=self.silent_ms,
         )
 
 

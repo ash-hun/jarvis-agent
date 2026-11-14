@@ -495,7 +495,7 @@
 
 ### ion: Ion
 
-**설명**: 백엔드와 별개의 컨테이너 `jarvis-ion` 가 백엔드 프로세스와 에이전트별 작업 상태를 지켜보다, 백엔드가 죽거나 멈추거나 한 에이전트가 조용히 실패하면 사고를 열어 한 번 알리고(Web Push, SSE), 답에 따라 재기동하거나 작업을 멈춘다. 재기동 권한은 Docker 소켓 프록시(조회와 restart, stop 만)를 거친다. 계획은 `docs/ion-plan.md`. 2단계로 Ion 프로필(`team/ion.yaml`)이 그 기록을 읽어 대화로 답하고("지금 뭐가 아파?", "왜 죽었어?"), 사용자가 시키면 사고에 답하거나 재기동하며, 먼저 말을 거는 에이전트가 하루 넘게 조용하면 info 사고로 알린다. Ion 컨테이너에는 LLM 이 없어 백엔드가 죽어 있는 동안은 프로필과 대화할 수 없고 그때는 띠와 푸시가 전부다.
+**설명**: 백엔드와 별개의 컨테이너 `jarvis-ion` 가 백엔드 프로세스와 에이전트별 작업 상태를 지켜보다, 백엔드가 죽거나 멈추거나 한 에이전트가 조용히 실패하면 사고를 열어 한 번 알리고(Web Push, SSE), 답에 따라 재기동하거나 작업을 멈춘다. 재기동 권한은 Docker 소켓 프록시(조회와 restart, stop 만)를 거친다. 계획은 `docs/ion-plan.md`. 2단계로 Ion 프로필(`team/ion.yaml`)이 그 기록을 읽어 대화로 답하고("지금 뭐가 아파?", "왜 죽었어?"), 사용자가 시키면 사고에 답하거나 재기동한다. 에이전트가 오래 조용한 것은 사고가 아니다(JARVIS 와 KAREN 모두 하루 넘게 말이 없을 수 있다). Ion 은 조용히 지켜보다 오류와 중단에만 움직인다. 사고 제목은 지표의 `name`(JARVIS, K.A.R.E.N.)으로 쓰고 사고 id 와 `target` 은 에이전트 id 다. Ion 컨테이너에는 LLM 이 없어 백엔드가 죽어 있는 동안은 프로필과 대화할 수 없고 그때는 띠와 푸시가 전부다.
 
 **입력과 결과**
 
@@ -549,7 +549,7 @@
 | 단위 | `tests/unit/test_ion_health_rules.py` |
 | 단위 | `tests/unit/test_ion_incident_store.py` |
 | 단위 | `tests/unit/test_workflow_job_board.py`(`fail_streak`) |
-| 단위 | `tests/unit/test_ion_ion_config.py`, `test_ion_docker_client.py`(logs, demux), `test_ion_backend_client.py`, `test_ion_push_cache.py`, `test_ion_watch_service.py`, `test_ion_health_rules.py`(silent), `test_ion_incident_store.py`(recent), `test_tools_ion.py`(도구 넷) |
+| 단위 | `tests/unit/test_ion_ion_config.py`, `test_ion_docker_client.py`(logs, demux), `test_ion_backend_client.py`, `test_ion_push_cache.py`, `test_ion_watch_service.py`, `test_ion_health_rules.py`, `test_ion_incident_store.py`(recent), `test_tools_ion.py`(도구 넷) |
 | 통합 | `tests/integ/test_platform.py`(지표 API), `tests/integ/test_ion.py`(무응답 → 사고 → 답 → 재기동 한 번, 접근 키) |
 
 **제약과 미구현**: 모바일 푸시의 버튼 답은 앱 저장소(`jarvis_agent_app`)의 서비스 워커가 맡아야 해서 아직 없다. 폰에서는 푸시를 받고 HUD(`/m/` 또는 `/`)를 열어 띠에서 답한다. 데스크톱 OS 알림은 HUD 페이지가 띄우므로 앱 창이 닫혀(트레이) 있어도 오지만 앱 자체가 꺼져 있으면 없다. 메모리 신호는 컨테이너에 memory limit 이 없으면 Docker 가 호스트 전체를 한도로 줘 거의 켜지지 않는다. 프로필별 메모리는 한 프로세스라 못 나눈다(`# ponytail`, Tavu 가 별도 워커로 분리될 때). 장기 침묵 신호와 LLM 요약은 2단계다. Docker Desktop 자체가 죽으면 Ion 도 같이 죽는다.

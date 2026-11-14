@@ -60,12 +60,7 @@ def test_incident_id_carries_the_opening_time_so_a_closed_one_never_blocks_a_new
     assert incident_id(signal, 1000) != incident_id(signal, 2000)
 
 
-def test_silence_needs_a_proactive_agent_with_a_known_last_activity():
-    quiet = AgentObservation(proactive=True, last_active_ms=0)
-    unknown = AgentObservation(proactive=True, last_active_ms=None)
-    muted = AgentObservation(proactive=False, last_active_ms=0)
-    # 관측 5761번째(86,415초)는 하루를 넘겼고 5760번째(86,400초)는 꼭 하루라 아직 아니다
-    obs = _obs(5761, agents={"karen": quiet, "evi": unknown, "tavu": muted})
-    assert [s.target for s in evaluate([obs], Thresholds(), NOON) if s.kind == "silent"] == ["karen"]
-    just = _obs(5760, agents={"karen": quiet})
-    assert not [s for s in evaluate([just], Thresholds(), NOON) if s.kind == "silent"]
+def test_a_long_quiet_agent_is_not_an_incident():
+    quiet = AgentObservation(last_active_ms=0, name="K.A.R.E.N.")
+    # 관측 5761번째(86,415초)는 하루를 넘겼지만 침묵은 정상이라 신호가 없다
+    assert evaluate([_obs(5761, agents={"karen": quiet})], Thresholds(), NOON) == []

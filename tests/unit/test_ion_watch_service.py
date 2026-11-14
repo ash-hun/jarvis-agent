@@ -15,13 +15,13 @@ class FakeBackend:
     def __init__(self) -> None:
         self.ok = True
         self.toggled: list[tuple[str, bool]] = []
+        self.rows: list[dict[str, Any]] = [{"agent": "karen", "jobs": 1, "fail_streak": 0, "last_ok_ms": 5}]
 
     async def health(self) -> bool:
         return self.ok
 
     async def metrics(self) -> dict[str, Any] | None:
-        karen = {"agent": "karen", "jobs": 1, "fail_streak": 0, "last_ok_ms": 5}
-        return {"loop_lag": {"max_ms": 1.0}, "agents": [karen]}
+        return {"loop_lag": {"max_ms": 1.0}, "agents": list(self.rows)}
 
     async def jobs(self) -> list[dict[str, Any]]:
         return [{"name": "goal-1", "agent": "karen", "enabled": True},
@@ -124,8 +124,10 @@ def test_observation_and_notification_are_built_from_what_was_fetched():
     assert obs.agents["main"].scheduled is True
     assert to_observation(1, None, None, None).health_ok is None
 
-    note = notification(Incident("agent_failing:karen:0", "agent_failing", "karen", "연속 실패 3회", 1), "/")
-    assert note["title"] == "Ion: karen 의 작업이 계속 실패해요" and note["tag"] == "agent_failing:karen:0"
+    failing = Incident("agent_failing:karen:0", "agent_failing", "karen", "연속 실패 3회", 1)
+    note = notification(failing, "/", {"karen": "K.A.R.E.N."})
+    assert note["title"] == "Ion: K.A.R.E.N. 의 작업이 계속 실패해요" and note["tag"] == "agent_failing:karen:0"
+    assert note["target"] == "karen" and notification(failing, "/")["title"] == "Ion: karen 의 작업이 계속 실패해요"
     assert note["severity"] == "warning"
     down = notification(Incident("backend_down:backend:0", "backend_down", "backend", "x", 1), "/")
     assert down["severity"] == "critical"

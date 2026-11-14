@@ -5,9 +5,7 @@ from datetime import datetime
 from dataclasses import dataclass, field
 from collections.abc import Mapping, Sequence
 
-SignalKind = Literal[
-    "backend_down", "restart_loop", "loop_stall", "memory_high", "agent_failing", "schedule_stale", "silent"
-]
+SignalKind = Literal["backend_down", "restart_loop", "loop_stall", "memory_high", "agent_failing", "schedule_stale"]
 BACKEND = "backend"
 
 
@@ -18,9 +16,11 @@ class AgentObservation:
     fail_streak: int = 0
     last_ok_ms: int | None = None
     scheduled: bool = False
-    # 그 에이전트 세션이 마지막으로 움직인 시각. 먼저 말을 거는(proactive) 에이전트가 오래 조용하면 알린다
+    # 그 에이전트 세션이 마지막으로 움직인 시각. 규칙은 보지 않고 상태 화면에만 나온다. 하루 넘게 조용한 것은
+    # 정상이라(사용자 판단, 11-14) 침묵은 사고가 아니다
     last_active_ms: int | None = None
-    proactive: bool = False
+    # 화면과 알림에 쓸 이름. 규칙은 보지 않는다
+    name: str = ""
 
 
 @dataclass(frozen=True)
@@ -50,7 +50,6 @@ class Thresholds:
     fail_streak: int = 3
     stale_ms: int = 7_200_000
     active_hours: tuple[int, int] = (9, 21)
-    silent_ms: int = 86_400_000
 
 
 @dataclass(frozen=True)
@@ -83,8 +82,6 @@ def evaluate(history: Sequence[Observation], t: Thresholds, now: datetime) -> li
             signals.append(Signal("agent_failing", agent, f"연속 실패 {obs.fail_streak}회"))
         if obs.scheduled and _active(now, t.active_hours) and _stale(obs, latest.at_ms, t.stale_ms):
             signals.append(Signal("schedule_stale", agent, f"{t.stale_ms // 3_600_000}시간 넘게 성공한 차례 없음"))
-        if obs.proactive and obs.last_active_ms is not None and latest.at_ms - obs.last_active_ms > t.silent_ms:
-            signals.append(Signal("silent", agent, f"{t.silent_ms // 3_600_000}시간 넘게 활동 없음"))
     return signals
 
 

@@ -32,9 +32,10 @@ class AgentMetrics:
     open_sessions: int
     # 켜진 스케줄 작업이 있는지. 작업 기록은 프로세스 메모리라 재기동 뒤 첫 차례 전까지 비지만 이 값은 바로 안다
     scheduled: bool = False
-    # 그 에이전트 세션이 마지막으로 움직인 시각(세션 updated_at). Ion 의 장기 침묵 신호가 본다
+    # 그 에이전트 세션이 마지막으로 움직인 시각(세션 updated_at)
     last_active_ms: int | None = None
-    proactive: bool = False
+    # 화면에 보일 이름(JARVIS, K.A.R.E.N.). 모르면 id 그대로
+    name: str = ""
 
 
 @dataclass(frozen=True)
@@ -52,10 +53,10 @@ class ProcessMetrics:
 
 def agent_metrics(
     records: Iterable[JobRecord], agent_of: AgentOfJob, agents: Iterable[str], sessions: dict[str, str],
-    scheduled: Iterable[str] = (), active: Mapping[str, int] | None = None, proactive: Iterable[str] = (),
+    scheduled: Iterable[str] = (), active: Mapping[str, int] | None = None, names: Mapping[str, str] | None = None,
 ) -> list[AgentMetrics]:
     """작업 기록을 에이전트별로 접는다. 작업이 없는 에이전트도 0 으로 나온다. 순수 함수."""
-    planned, talkers = set(scheduled), set(proactive)
+    planned, labels = set(scheduled), dict(names or {})
     buckets: dict[str, list[JobRecord]] = {a: [] for a in agents}
     buckets.setdefault(SHARED, [])
     for record in records:
@@ -78,7 +79,7 @@ def agent_metrics(
             open_sessions=opened.get(agent, 0),
             scheduled=agent in planned,
             last_active_ms=(active or {}).get(agent),
-            proactive=agent in talkers,
+            name=labels.get(agent, agent),
         ))
     return out
 
@@ -104,7 +105,7 @@ class PlatformMetricsService:
         agents: Callable[[], list[str]],
         sessions: SessionAgents,
         scheduled: Callable[[], set[str]] = set,
-        proactive: Callable[[], set[str]] = set,
+        names: Callable[[], dict[str, str]] = dict,
         loop_lag: LoopLagMonitor | None = None,
         pid: int | None = None,
         now: Callable[[], float] = time.time,
@@ -114,7 +115,7 @@ class PlatformMetricsService:
         self._agents = agents
         self._sessions = sessions
         self._scheduled = scheduled
-        self._proactive = proactive
+        self._names = names
         self._loop_lag = loop_lag
         self._now = now
         import psutil
@@ -145,7 +146,7 @@ class PlatformMetricsService:
         lag: LoopLag = self._loop_lag.snapshot() if self._loop_lag is not None else LoopLag(0.0, 0.0, 0)
         agents = agent_metrics(
             self._records(), self._agent_of, self._agents(), self._sessions(), self._scheduled(), active,
-            self._proactive(),
+            self._names(),
         )
         return {
             "at_ms": int(self._now() * 1000),
